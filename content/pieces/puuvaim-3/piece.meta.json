@@ -1,0 +1,42 @@
+{
+  "id": "puuvaim-3",
+  "title": "Greensleeves",
+  "titles": {
+    "et": "Rohelised varrukad"
+  },
+  "level": 5,
+  "status": "draft",
+  "difficulty": 3,
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "Alas",
+      "bars": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "Home",
+      "bars": [
+        5,
+        7
+      ]
+    }
+  ],
+  "styles": [
+    "folk",
+    "classical"
+  ],
+  "tags": [
+    "phrase",
+    "puuvaim"
+  ],
+  "source": "traditional English tune (16th century), public domain; its first line and its closing line, the dotted rhythm made even in E minor",
+  "license": "public-domain",
+  "generator": {
+    "kind": "manual"
+  }
+}

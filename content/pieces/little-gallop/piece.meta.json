@@ -1,0 +1,17 @@
+{
+  "id": "little-gallop",
+  "title": "Little Gallop",
+  "titles": { "et": "Väike galopp" },
+  "level": 5,
+  "status": "draft",
+  "hands": ["RH"],
+  "phrases": [
+    { "name": "Trot", "bars": [1, 4] },
+    { "name": "Gallop", "bars": [5, 8] }
+  ],
+  "styles": ["original"],
+  "tags": ["sixteenth-notes", "dotted-eighth", "c-position"],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": { "kind": "manual" }
+}

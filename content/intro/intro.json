@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "note": "The first-run intro (ft_1_31). AX-3 provisional: what is said and shown, and the lesson (the first phrase of Twinkle, one pass to learn, two more to practise, as the tug's gate asks three plays). The tour goes out to the map and back before the teacher knocks. Lines are string keys (src/core/text/strings.ts); a Kiur step's spot is what the spotlight shows (null: the whole screen dimmed). Change the learn stage here when how a piece is learned changes.",
+  "piece": "twinkle-twinkle",
+  "bars": [
+    1,
+    4
+  ],
+  "practisePasses": 2,
+  "room": {
+    "tour": [
+      { "who": "kiur", "spot": null, "line": "intro.kiur.hello" },
+      { "who": "kiur", "spot": "piano", "line": "intro.kiur.piano" },
+      { "who": "kiur", "spot": "shield", "line": "intro.kiur.shield" },
+      { "who": "kiur", "spot": "stand", "line": "intro.kiur.stand" },
+      { "who": "kiur", "spot": "door", "line": "intro.kiur.door" },
+      { "who": "kiur", "spot": "kiur", "line": "intro.kiur.bed" },
+      { "who": "kiur", "spot": "door", "line": "intro.kiur.outside" }
+    ],
+    "knock": [
+      { "who": "kiur", "spot": null, "line": "intro.kiur.home" },
+      { "who": "kiur", "spot": "door", "line": "intro.kiur.knock" },
+      { "who": "teacher", "line": "intro.teacher.hello" }
+    ],
+    "learn": [
+      { "who": "teacher", "line": "intro.teacher.learn" }
+    ],
+    "practise": [
+      { "who": "teacher", "line": "intro.teacher.practise" }
+    ],
+    "tug": [
+      { "who": "teacher", "line": "intro.teacher.tug" }
+    ],
+    "end": [
+      { "who": "teacher", "line": "intro.teacher.end" },
+      { "who": "kiur", "spot": "piano", "line": "intro.kiur.yourTurn" }
+    ]
+  },
+  "map": [
+    { "who": "kiur", "spot": null, "line": "intro.kiur.map" },
+    { "who": "kiur", "spot": "place", "line": "intro.kiur.place" },
+    { "who": "kiur", "spot": "house", "line": "intro.kiur.house" }
+  ],
+  "practice": {
+    "learn": [
+      { "who": "kiur", "spot": "staff", "line": "intro.kiur.staff" },
+      { "who": "kiur", "spot": "note", "line": "intro.kiur.note" },
+      { "who": "kiur", "spot": "listen", "line": "intro.kiur.listen" },
+      { "who": "kiur", "spot": "back", "line": "intro.kiur.back" }
+    ],
+    "practise": [
+      { "who": "kiur", "spot": "restart", "line": "intro.kiur.restart" }
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "synthetic": true,
+  "description": "Hand-written stand-in for a student's first run: three wrong keys (wrong letter, neighbour key, wrong octave), slow and uneven timing. Replace or supplement with a real EZ-220 recording after the hardware spike.",
+  "chart": "tests/fixtures/charts/little-steps.v1.json",
+  "events": [
+    { "kind": "on", "midi": 60, "velocity": 70, "timeMs": 0 },
+    { "kind": "off", "midi": 60, "velocity": 0, "timeMs": 300 },
+    { "kind": "on", "midi": 62, "velocity": 64, "timeMs": 900 },
+    { "kind": "off", "midi": 62, "velocity": 0, "timeMs": 1200 },
+    { "kind": "on", "midi": 66, "velocity": 60, "timeMs": 1800 },
+    { "kind": "off", "midi": 66, "velocity": 0, "timeMs": 1900 },
+    { "kind": "on", "midi": 65, "velocity": 58, "timeMs": 2000 },
+    { "kind": "off", "midi": 65, "velocity": 0, "timeMs": 2100 },
+    { "kind": "on", "midi": 64, "velocity": 66, "timeMs": 2300 },
+    { "kind": "off", "midi": 64, "velocity": 0, "timeMs": 2600 },
+    { "kind": "on", "midi": 65, "velocity": 72, "timeMs": 2700 },
+    { "kind": "off", "midi": 65, "velocity": 0, "timeMs": 3000 },
+    { "kind": "on", "midi": 79, "velocity": 61, "timeMs": 3600 },
+    { "kind": "off", "midi": 79, "velocity": 0, "timeMs": 3700 },
+    { "kind": "on", "midi": 67, "velocity": 70, "timeMs": 3900 },
+    { "kind": "off", "midi": 67, "velocity": 0, "timeMs": 4500 },
+    { "kind": "on", "midi": 65, "velocity": 68, "timeMs": 4700 },
+    { "kind": "off", "midi": 65, "velocity": 0, "timeMs": 5300 },
+    { "kind": "on", "midi": 65, "velocity": 70, "timeMs": 5500 },
+    { "kind": "off", "midi": 65, "velocity": 0, "timeMs": 5800 },
+    { "kind": "on", "midi": 64, "velocity": 70, "timeMs": 6300 },
+    { "kind": "off", "midi": 64, "velocity": 0, "timeMs": 6600 },
+    { "kind": "on", "midi": 62, "velocity": 70, "timeMs": 7100 },
+    { "kind": "off", "midi": 62, "velocity": 0, "timeMs": 7400 },
+    { "kind": "on", "midi": 60, "velocity": 70, "timeMs": 7900 },
+    { "kind": "off", "midi": 60, "velocity": 0, "timeMs": 8200 },
+    { "kind": "on", "midi": 60, "velocity": 75, "timeMs": 9000 },
+    { "kind": "off", "midi": 60, "velocity": 0, "timeMs": 11000 }
+  ],
+  "expect": {
+    "wrong": [
+      { "midi": 66, "expectedMidi": 64, "reason": "wrong-letter", "direction": "higher" },
+      { "midi": 65, "expectedMidi": 64, "reason": "neighbour-key", "direction": "higher" },
+      { "midi": 79, "expectedMidi": 67, "reason": "wrong-octave", "direction": "higher" }
+    ],
+    "bars": [
+      { "bar": 0, "notes": 4, "firstTryCorrect": 3, "mistakes": 2 },
+      { "bar": 1, "notes": 2, "firstTryCorrect": 1, "mistakes": 1 },
+      { "bar": 2, "notes": 4, "firstTryCorrect": 4, "mistakes": 0 },
+      { "bar": 3, "notes": 1, "firstTryCorrect": 1, "mistakes": 0 }
+    ],
+    "piece": { "notes": 11, "firstTryCorrect": 9, "mistakes": 3 }
+  }
+}

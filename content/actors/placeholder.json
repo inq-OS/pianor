@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "placeholder",
+  "sheet": "placeholder",
+  "size": { "w": 32, "h": 64 },
+  "anchor": { "x": 16, "y": 63 },
+  "states": {
+    "idle": { "frames": 1, "fps": 1, "loop": true }
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "scenarios": [
+    {
+      "id": "clean-wait",
+      "title": "A clean run in Wait mode",
+      "piece": "little-steps",
+      "mode": "wait",
+      "activity": "practice",
+      "player": { "style": "clean" },
+      "speed": 1,
+      "seed": 1,
+      "after": "stop"
+    },
+    {
+      "id": "clean-tempo",
+      "title": "A clean run in Tempo mode, on the beat",
+      "piece": "little-steps",
+      "mode": "tempo",
+      "scoreView": "number",
+      "activity": "practice",
+      "player": { "style": "clean", "jitterMs": 20 },
+      "speed": 1,
+      "seed": 1,
+      "after": "stop"
+    },
+    {
+      "id": "messy-tempo",
+      "title": "A messy run in Tempo mode: wrong keys, a missed note, early and late notes",
+      "piece": "little-steps",
+      "mode": "tempo",
+      "scoreView": "number",
+      "activity": "practice",
+      "player": { "style": "messy", "wrongKeys": 3, "skips": 1, "jitterMs": 220 },
+      "speed": 1,
+      "seed": 19,
+      "after": "stop"
+    },
+    {
+      "id": "tour",
+      "title": "Every piece in turn in Wait mode, played cleanly, until stopped",
+      "mode": "wait",
+      "activity": "practice",
+      "player": { "style": "clean" },
+      "speed": 1,
+      "seed": 1,
+      "after": "next-piece",
+      "maxRuns": 50
+    },
+    {
+      "id": "teacher",
+      "title": "A piece on the curriculum, practised three times, then the teacher's screen with its measured status",
+      "piece": "au-clair-de-la-lune",
+      "mode": "wait",
+      "activity": "teacher",
+      "player": { "style": "clean" },
+      "speed": 2,
+      "seed": 1,
+      "after": "again",
+      "maxRuns": 3
+    },
+    {
+      "id": "challenge",
+      "title": "Puuvaim's phrase practised three times in the room, then met on the knoll: he teaches it, and on a later talk his tug is played to the end and won",
+      "piece": "puuvaim-1",
+      "mode": "wait",
+      "activity": "challenge",
+      "scene": "knoll",
+      "player": { "style": "clean" },
+      "speed": 2,
+      "seed": 1,
+      "after": "again",
+      "maxRuns": 3
+    },
+    {
+      "id": "week",
+      "title": "A week before the teacher's deadline: the piece played once on each of six days before (synthetic) and twice today, then the room, where she asks for it, hears it once and gives her verdict",
+      "piece": "little-steps",
+      "mode": "wait",
+      "activity": "week",
+      "player": { "style": "clean" },
+      "speed": 2,
+      "seed": 1,
+      "after": "again",
+      "maxRuns": 2
+    },
+    {
+      "id": "boat-arrives",
+      "title": "A script: the placeholder boat sails in to the docks and Kiur greets it with a tune",
+      "mode": "wait",
+      "activity": "script",
+      "scene": "docks",
+      "script": "boat-arrives",
+      "player": { "style": "clean" },
+      "after": "stop"
+    }
+  ]
+}

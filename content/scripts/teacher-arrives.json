@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "teacher-arrives",
+  "commands": [
+    { "enter": "kiur", "place": "quay-west" },
+    { "enter": "galleon", "place": "sea-far" },
+    { "fade": "in", "ms": 600 },
+    { "say": "kiur", "line": "script.teacher.boatComing" },
+    { "walkTo": "galleon", "place": "berth-east" },
+    { "wait": 400 },
+    { "enter": "teacher", "place": "gangway" },
+    { "walkTo": "teacher", "place": "to-island" },
+    { "exit": "teacher" },
+    { "fade": "out", "ms": 600 }
+  ],
+  "skippable": true
+}

@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "note": "AX-3 provisional (ft_1_27.AC3, WP-15). The gap is the expected level minus the predicted one at the deadline (or minus the level today, before there is a trend), rounded to whole points. Under dailyFromGap Kiur does not remind; from it, once a day; above everyVisitAboveGap, on every visit. A piece with no level yet (under the minimum of plays) is reminded once a day.",
+  "dailyFromGap": 1,
+  "everyVisitAboveGap": 5
+}

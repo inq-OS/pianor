@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "boat-arrives",
+  "commands": [
+    { "fade": "in", "ms": 400 },
+    { "enter": "boat", "place": "sea-far" },
+    { "walkTo": "boat", "place": "pier" },
+    { "wait": 500 },
+    { "face": "kiur", "facing": "front" },
+    { "say": "kiur", "line": "script.boat.arrives" },
+    { "playPhrase": "kiur", "piece": "echo-giant" },
+    { "give": "shell" },
+    { "exit": "boat" }
+  ],
+  "skippable": true
+}

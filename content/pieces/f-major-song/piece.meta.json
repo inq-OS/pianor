@@ -1,0 +1,39 @@
+{
+  "id": "f-major-song",
+  "title": "F Major Song",
+  "titles": { "et": "F-duuri laul" },
+  "level": 4,
+  "status": "draft",
+  "hands": [
+    "LH"
+  ],
+  "phrases": [
+    {
+      "name": "Question",
+      "bars": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "Answer",
+      "bars": [
+        5,
+        8
+      ]
+    }
+  ],
+  "styles": [
+    "original"
+  ],
+  "tags": [
+    "f-major",
+    "key-signature",
+    "left-hand"
+  ],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": {
+    "kind": "manual"
+  }
+}

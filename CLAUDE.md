@@ -1,0 +1,125 @@
+# Pianor
+
+Gamified piano learning for beginners, suitable for children and adults alike. Players use a USB-MIDI keyboard connected to a computer or Android tablet; the reference keyboard is the Yamaha EZ-220 (61 keys). The game is a point-and-click adventure on Keri island in the manner of the early 1990s adventure games, where characters talk with the student and challenge them to trade musical phrases (d129, d132), and a teacher sets the curriculum; underneath it is a staff-notation reading and playing trainer with XP and levels.
+
+Read before large changes: `docs/architecture.md`, `docs/features/FEATURES.md` (every feature, one file each with its acceptance criteria), `docs/authoring/AUTHORING.md` (pieces), `docs/testing.md`, `docs/sprites.md` (pixel art), `docs/art-direction.md` (the look of painted screens and how a picture is made), `docs/futureproofing.md` (locked early, seams to keep open), `docs/decisions/DECISIONS.md` (seven ledgers by area, one short entry per decision, d152).
+
+## Where things are
+
+- **Screens:** `src/game/*Scene.ts`, all on `src/game/ui/pixel/PixelScene.ts` (draw in `draw()`, buttons through `this.button`); the staff is `src/game/ui/staff/StaffView.ts`; helpers per scene in `src/game/practice`, `src/game/profile` (`ProfileService`), `src/game/editor`.
+- **Keri** (the island the game is set on, ft_1_18, ft_1_19): what is known in `docs/keri.md` and `docs/keri/` (notes per picture), measured places in `content/world/keri.json` (d108), painters in `src/game/ui/pixel/paint/` and `src/game/ui/pixel/keri/` (the things scenes share, a boulder, a tuft, a bush, in the kit `keri/kit/`, d124), painted at build time by `tools/vite-keri.ts` (d111). Never invent a place, house or landmark the maintainer must tell: write `KERI-TODO` and ask.
+- **Feature ids** (`ft_Y_XX`, Y the iteration, 0 the MVP: `ft_0_00` to `ft_0_17`; `core_XX` for core behaviour; `docs/decisions/workflow.md#d037`) are authoritative; roadmap "Phase" numbers are only coarse. In code they appear only as acceptance-criteria tags (`ft_0_08.AC1`, in a test comment or title; `docs/decisions/workflow.md#d041`). `npm run docs:check` fails on any id with no file.
+- **How we work (d153, d264, `docs/automation/work-model.md`):** one Claude project; its threads take three roles, named by the work tag. The **builder** builds each feature top to bottom (core, content, screen, tests) and takes the maintainer's GitHub issues; the **painter** owns how screens look, never what they do (`docs/architect/painter-project.md`); the **architect** sets one playable goal a week at the top of `docs/architect/roadmap.md`, guards the axioms and deletes what nobody used. No work packages, mailboxes, triage or dispatch labels. Merge rules and the few labels: `docs/architect/labels.md`. **Never work on, push to or merge an item labeled `architect:blocker`**; only the maintainer removes it.
+- **Work items** are tags in the doc the work belongs to: `ASAP`, `TODO`, `NEEDS-HUMAN`, `IDEA`, written `TODO(builder|painter|architect, <release>): ...` or `NEEDS-HUMAN: ...` (`docs/automation/todo-tags.md`). Agents open a GitHub issue only when told, or for a bug whose fix is not trivial and cannot be done in the work at hand (d116).
+- **Process only when it hurts:** add a doc, process step, label or tool only after the same thing broke twice, as a test or a script where possible; measure work by what the student plays (AX-0).
+
+## Axioms (`docs/axioms.md`, d000): read before asking the maintainer anything
+
+If anything feels like a conflict, **AX-0 decides**. The axioms rank above every decision, feature and design doc.
+
+- **AX-0 The Core:** learning piano and music is above everything; every detail must make the student read and play more, or better. If Pianor does not teach music, it has failed.
+- **AX-1 The Grind:** in a gameplay question, prefer the harder option (more correct repetitions for the same reward), never punishment.
+- **AX-2 The Attraction:** just enough game to bring the student back; objective feedback, no unearned praise; stimulation may be added later, never removed.
+- **AX-3 The Scaffold:** if the axioms do not decide, build the simplest modular version that satisfies them all, mark it `AX-3 provisional:` and add a `TODO(architect)` tag; do not wait for the maintainer (except for a step that cannot be undone).
+
+## Non-negotiable product rules
+
+- **Staff notation is core.** The staff is the main view. No Guitar-Hero-style falling notes in the MVP (they let a student play without reading).
+- **Target player is a young beginner student.** Big, readable notes, objective feedback (AX-2.1), no punishing fail states (a challenge can be lost, but a loss still earns XP and never takes any away). Wait mode (cursor waits for the right key) is the MVP play mode.
+- **All pieces are custom or public domain.** Never reproduce copyrighted music or copy third-party charts. Every piece records its `source` and `license` in its meta file. Exception: pieces a person writes in the game's editor (ft_1_02) get `license: "NaN"` and stay private (browser storage or the gitignored `private/`), never committed or deployed.
+- **Pixel-art look, minimal assets.** Free third-party assets (CC0 first, CC BY with credit) are welcome and preferred over redrawing standard symbols; each gets a row in `docs/assets.md` and is fitted to the palette and pixel grid (d084). Before drawing any icon, panel, sprite, tile or effect, follow the `use-free-art-packs` skill (`.claude/skills/use-free-art-packs/SKILL.md`): which packs fit our pixel size and how to bring one in. Places are painted pictures in the manner of the early 1990s adventure games: Monkey Island 2 as first released in 1991, pixel art, never its later remake (the approach, never their art; rules in `docs/art-direction.md`, d111); no shadow or vignette is laid over a picture. Reference pictures (reference photographs, screenshots of other games) are studied locally and never committed. Never copyrighted or franchise art, names or music.
+
+## Stack (update this section if a decision changes)
+
+TypeScript (strict), Vite, Phaser 4, Vitest, Web MIDI API (raw, no wrapper library), Web Audio with a sampled piano, saves in IndexedDB behind the `KeyValueStore` seam (`src/core/progression/repository.ts`, `src/io/storage/`), localStorage only as the fallback and the source of a one-time move (d080). A browser app run on the player's own machine or local network, never hosted (d068); every third-party library, tool or asset must have a FOSS-compatible licence. Chrome/Edge only (Web MIDI); target device a modest laptop at 1920x1080, Android tablets later.
+
+## Commands
+
+Keep this list accurate (`docs:check` fails if a script is missing here).
+
+- `npm install` runs `prepare`, which points git at `.githooks/`: the privacy rules (d165) on every commit's staged files and message, for any tool or person
+- `npm run dev`: dev server (shows draft pieces; progress saved in the browser per player). URL switches such as `?device=virtual`, `?lang=en`: `docs/url-switches.md`
+- `npm run start`: dev server that opens the game on `127.0.0.1` (Vite's dev port, 5173 unless taken) in Vite mode `start`: draft pieces are hidden
+- `npm run build`: typecheck and production build
+- `npm run start:local`: build (approved pieces only), serve on `http://127.0.0.1:4173` offline and open it as its own full-screen window (Edge or Chrome in app mode, own browser profile); how a student plays on their own computer (ft_0_14, d068, d105)
+- `npm test`: Vitest unit tests. `npm run test:coverage`: plus the 90% coverage gate on `src/core`, `src/io` and `tools/` (CI), without the art rules' test and the painters' picture tests. `npm run test:art`: those alone (`tools/art/pictureRules.test.ts` paints every picture at every hour, a minute or more, and keeps them until the painters' code changes; its own CI job)
+- `npm run test:e2e`: Playwright end-to-end and screenshot tests (own dev server on port 5180; on a new machine `npx playwright install chromium`; cloud sessions use the pre-installed Chromium or `PW_CHROMIUM_PATH`, and screenshot tests without a Linux baseline skip). `-- --project=<area>` runs one area
+- `npm run test:e2e:affected`: the areas the branch touches (against `origin/main`, uncommitted files included) plus `@smoke`; use it while working and before a commit that touches the game. Areas and the run log in `test-logs/`: `docs/testing.md` section 10
+- `npm run test:e2e:smoke`: the seven `@smoke` tests (about two minutes)
+- `npm run typecheck`, `npm run lint`
+- `npm run analyze`: type-aware lint (`npm run analyze:types`), unused files and exports (`npm run analyze:unused`, knip), duplicated code (`npm run analyze:dupes`, jscpd); in CI. Reading findings: `docs/architecture/static-analysis.md`
+- `npm run check`: typecheck, lint, unit tests and `docs:check`: the one command before saying a task is done (end-to-end is separate)
+- `npm run check:ci`: what the CI `check` and `art rules` jobs run (plus analyze, coverage, `piece:build`, `piece:lint`, production build; about 2 minutes): run it before pushing
+- `npm run piece:lint [piecesDir] [--levels=path] [--strict]`: check every piece in `content/pieces/` against its level in `content/curriculum/levels.json` (errors fail, warnings are for review)
+- `npm run piece:build [piecesDir] [outDir]`: compile `content/pieces/<id>/piece.abc` + `piece.meta.json` to `build/charts/<id>.chart.json` (errors as `file:line:column`)
+- `npm run piece:generate -- <kind> --level N [--seed S] [--hand ..] [--bars N]`: a draft piece (five-finger, scale, reading-drill, echo, phrase); same seed, same piece; passes `piece:lint` by construction. `--regenerate <id>` checks or remakes one. `docs/authoring/au06-generators.md`
+- `npm run piece:import -- <score.musicxml|.mxl> [--id ..] [--out ..] [--license .. --source ..]`: a MusicXML file to a draft game piece, by default in the gitignored `private/pieces/` (copyrighted wishes, licence `NaN`), which the game plays on this machine; `content/pieces` needs an open licence and a level it passes; refuses with bar and beat what it cannot write (ft_Y_04 slice 2)
+- `npm run piece:photo [folder]`: a menu in the terminal that reads a scan, photo or PDF of a sheet (in `private/photo/in/`) with Audiveris, installed separately (AGPL, never bundled), into an own piece file for the piece maker's Import, plus a report of the bars to fill by hand; a MusicXML file skips Audiveris (ft_Y_04 slice 3)
+- `npm run art:render -- <room|map|knoll> [day|dawn|dusk|night] [file.png] [zoom]`: paint one of Keri's pictures to a PNG (default in `test-logs/art/`) without starting the game; look at every picture before showing it (`docs/art-direction.md` section 5). `npm run art:render -- kit [family] [hour]`: the painter's kit on one sheet, every shared thing in every variant (d124)
+- `npm run art:check -- <room|map|knoll> [day|dawn|dusk|night]`: measure a picture against the rules that can be measured (colour runs, clouds) and write it with composition guides to `test-logs/art/<picture>-<hour>-guides.png`; warnings for the painter (`paint-a-scene` skill)
+- `npm run spike`: hardware spike page (`/spike.html`, `?device=virtual` for the simulated EZ-220); a human runs it on the real keyboard with `docs/hardware-test-checklist.md`
+- `npm run piece:preview`: opens `/?demo=preview`, where a human reviews and approves pieces. Agents never approve on their own: a piece is approved by the maintainer, here or by a pick on a board (d262)
+- `npm run demo`: opens `/?autoplay=1`: the game plays a scenario by itself with a virtual EZ-220 and an in-memory player (dev only). `?scenario=<id>` (`content/dev/scenarios.json`), `?piece=`, `?speed=`, `?seed=`: `docs/features/ft_Y_09-demo-director.md`
+- `npm run docs:index`: regenerate the index tables and the `<!-- docs:... -->` blocks from front matter and code; never edit text between those markers by hand
+- `npm run docs:check`: docs checks (front matter, generated blocks, links, paths, ids, `npm run` commands, criteria tags; `docs/decisions/workflow.md#d041`), also in CI
+- `npm run docs:criteria`: which acceptance criteria have a test that names them. `npm run docs:stale`: docs whose covered code changed since a person verified them; `npm run docs:verify -- <doc>` stamps a doc a person re-read (agents do not run it). `npm run docs:touched -- <base>`: CI check that a pull request changing core, tools or the curriculum touches the docs (or says `docs: n/a`)
+
+## Architecture rules
+
+- `src/core/` is **pure TypeScript with no imports from Phaser, the DOM, Web MIDI or Web Audio.** Chart model, clock, judge, scoring, progression and challenge rules live here and must be unit-tested.
+- `src/io/` wraps hardware and browser APIs (MIDI in/out, audio, storage) behind small interfaces; `src/io/mock/` provides a virtual EZ-220 (fake `MIDIAccess`), on-screen and QWERTY keyboards, a virtual player and a replay player (`docs/testing.md` section 7). Never make a feature testable only with the real keyboard.
+- `src/game/` holds Phaser scenes and the own-built staff renderer. Scenes read from `core/` and never contain game rules.
+- Painted pictures are made at build time in Node: `src/game/ui/pixel/paint/`, `src/game/ui/pixel/keri/` and the plans in `src/core/layout/` import neither Phaser nor the DOM (a convention, no lint rule yet). Unit tests call the painters and never load `virtual:keri-pictures`. Every painted picture is in `tools/art/pictures.ts` with its runs of colours; `tools/art/pictureRules.test.ts` holds each to the measured art rules and fails for a picture the build paints that is missing there (d111).
+- Content (pieces, characters, conversations, the curriculum) is JSON/ABC data in `content/`, validated by schemas (zod). Adding content must not require engine code changes.
+- Time is measured on the audio clock, in ticks (480 per quarter note) inside the core, never in frames. The core takes an injectable clock.
+- Every persisted or loaded format (chart, piece meta, save data, content) has a `schemaVersion` and a tested migration path. Pitches are stored spelled (`step`, `alter`, `octave`) as well as MIDI.
+- The judge consumes abstract `NoteEvent`s and emits domain events (`NoteJudged`, `BarCompleted`, `PhraseCompleted`, `PieceCompleted`). Play modes (Wait now, Tempo later) are strategies behind one interface. Do not let challenges, UI or progression reach into judge internals.
+- Layout is a pure function; Phaser views only draw it. Views read play state and never decide correctness.
+- All UI text goes through string keys; save data is profile-scoped. Do not hardcode text in art or scenes.
+- Do not build features that have no file in `docs/features/`; keep only the seams listed in `docs/futureproofing.md`. Retired ideas are deleted, not kept on hold; a rejected idea stays as one line so it is not proposed again ([d151](docs/decisions/workflow.md#d151)).
+
+## Music conventions
+
+- MIDI note 60 is middle C (C4). The EZ-220 range is MIDI 36 (C2) to 96 (C7); pieces stay inside the player's current level range.
+- Pieces are authored in ABC notation plus a sidecar meta JSON (`docs/authoring/AUTHORING.md`) and compiled to the chart JSON the game loads.
+- Judge pitch first; rhythm is gentle in the MVP. A wrong note must carry a reason (wrong octave, neighbour key, wrong letter) for feedback.
+
+## Working agreements for agents
+
+- For anything touching more than 2 files, write a short plan first and confirm it matches the feature's file in `docs/features/`. One feature at a time; small, focused commits.
+- Docs that list items are folders: an index in capitals (`FEATURES.md`, `DECISIONS.md`, `AUTHORING.md`, `PLAYTESTS.md`) and one file per item (`<id>-name.md`, `auNN-name.md`; playtest notes stay in the gitignored `private/playtests/`); decisions are entries in the area ledgers of `docs/decisions/` (d152). Add an item as a new file with the next number and its front matter (`docs/decisions/workflow.md#d041`; a feature also needs `completeness` 0 to 100 by the rule in `docs/features/FEATURES.md`, changed with its status), then run `npm run docs:index`; never edit an index table by hand.
+- A Stop hook (`.claude/hooks/stop-check.mjs`) runs typecheck, lint and docs check when the tree has changes and sends you back on a failure; it lets you stop on the second try, so say plainly when a failure is not yours. Run the full `npm run check` yourself before declaring done.
+- Long runs (end-to-end, full check) go out as one background task with its completion notice; never poll them (no `sleep` loops, no repeated status checks). Use the Monitor tool with an until-loop if you must wait on a condition.
+- Every code pull request gets a second reader before it merges: one fresh `reviewer` agent (`.claude/agents/reviewer.md`) on its head, its findings fixed; the thread then merges it, a save-format (`[save]`) one after the end-to-end tests are green too (`docs/architect/labels.md`, d166).
+- **No quotes, dates or personal facts (d165).** Chat and personal facts never go into a committed file, commit message or pull request (the gitignored `private/` at most). A rule is written as one or two plain lines, with no date or time (the higher dNNN is newer). A ledger entry is `## dNNN`, `**Rule in one sentence.** Features: ids or none.`, one to four plain sentences with the values a builder needs, and one line `Check: \`test file\` "test title"` (several joined by `; `) or `Check: untestable: <reason>`; a retired or superseded entry is one line and needs no check. `npm run docs:check` enforces the format and the privacy rules on every pull request; the CI `privacy` job runs the same rules with the private word list, and a hook (`tools/docs/privacy-cli.ts`, `.claude/settings.json`) checks every file an agent writes the moment it is written.
+- **Requirements live in the repo, not in a project's memory (d165).** Every requirement, decision, idea or change of direction the maintainer gives in any project is turned, in the same session, into a clear, plain rule of one or two lines (no quotes, no conversation, nothing personal; Keri and other public places are fine; d116) and written into the repo: a decision in the matching ledger (`docs/decisions/*.md`, next free dNNN), an idea or work item as a tag in the doc it belongs to (`docs/automation/todo-tags.md`), and a check when it can be tested; in the work's own pull request, or else a doc-only one merged at once. Pull main and read the ledgers before designing. A rule in memory that the repo lacks is not stale: write it in as above. Where memory and the repo contradict, the latest word wins (in the repo, the higher dNNN): write it into the repo and fix the other. `npm run docs:check` fails on a quote of a person and on any entry of the gitignored `private/personal-words.txt` (one per line); without that file it warns, and the CI `privacy` job, which has the list, fails.
+- **Rules are plain rules; authority comes from where they live (d165).** Every ledger entry is binding, whoever typed it; the repo never names who wanted a rule, and where a person must act it says "the maintainer". An agent adds, changes or retires a ledger entry only when the maintainer asked for it in that session, and the pull request says so in one plain line (`Ledger: asked by the maintainer in this session.`, no quote); a reviewer agent rejects a ledger change without that line.
+- Before declaring done: `npm run check` passes and new rules have tests. For `core` and `tools`, write the failing test first. Bugs found by a human get a regression test or replay fixture before the fix; every GitHub issue that changes behaviour leaves a test whose title names the behaviour, never the issue number (`docs/testing.md` section 9); a tagged doc item's test names the feature's acceptance criterion.
+- A change to something in `docs/futureproofing.md` gets a ledger entry in `docs/decisions/` (the next number, `log-decision` skill).
+- **Do not invent hardware behaviour.** EZ-220 key lighting (notes on MIDI channel 1 light keys), latency and driver behaviour are unverified until the hardware spike (ft_0_01); record results in `docs/hardware-notes.md` and mark the rest as assumptions. Agents have no EZ-220: verify with the virtual device and virtual player, label synthetic fixtures `synthetic`, and report real-hardware behaviour as "needs human".
+- Generated pieces start as `status: "draft"` and must pass `piece:lint`. Only the maintainer approves one (the preview tool or a pick board, d262).
+- Don't add dependencies casually; prefer the platform API. Check the licence (MIT/BSD/Apache preferred; GPL only if the project is GPL) and add it to `docs/dependencies.md` with the reason.
+- When something is ambiguous or product-relevant (difficulty, feedback wording for a student, curriculum order), decide it from the axioms (`docs/axioms.md`); when they do not decide it, follow AX-3 instead of waiting for the maintainer.
+- **Skills** in `.claude/skills/` hold the step lists for repeated jobs; load the one that fits before starting: `write-ui-text` (any text the player sees), `use-free-art-packs` (any icon, panel, sprite or effect), `paint-a-scene` (any painted place picture: study, paint, measure), `artists-notes` (any thing that turns up in more than one picture, a stone, grass, a bush, a path, a lamp's light: the house recipe, its kit type, its model scene and its atlas words, in `projects/painter/artists-notes/`), `art-review` (before showing the maintainer a painted pass, and on every painter pull request: a fresh reviewer against the MI2 atlas, advisory, d122), `study-a-picture` (any picture the maintainer drops: seen before?, study, map to what is known, note it in `projects/painter/vocabulary/`), `axiom-call` (a product question), `log-decision` (a dNNN file), `save-format-bump` (anything saved or loaded), `before-pr` (before a push or saying done), `file-issue` (only when told to, or a non-trivial bug you cannot fix now).
+- **Bugs and surprises you find** (a real bug, or behaviour unexpected for the player or a developer; skip typos, lint noise and failures you fix in the same step): fix them on the way, or write a `TODO` tag in the doc they belong to (`docs/automation/todo-tags.md`). Open a GitHub issue only when the maintainer says so or the fix is not trivial and cannot be done in the work at hand, following the `file-issue` skill (`.claude/skills/file-issue/SKILL.md`). Never put child data in an issue or a doc.
+
+## Working notes
+
+- Do not run unit tests while end-to-end tests run (the load fails a 5-second timeout in the `piece:lint` test); rerun a failing end-to-end test alone before suspecting the code.
+- Chrome's "AudioContext encountered an error from the audio device" is noise.
+- In a Windows shell, write multi-line scripts to a file (a Python script in the scratchpad) instead of an inline heredoc with quotes; `git` CRLF warnings are harmless.
+- Send long test output to a log file (`npm run test:e2e > <scratchpad>/e2e.log 2>&1`) and read only the summary and failing names (`grep -n -E "FAIL|passed|failed" <log>`); an end-to-end run also writes `test-logs/runs/<newest>/summary.md` and `failures/`.
+- A full end-to-end run takes about 8 minutes with a GPU, 20 to 30 without (SwiftShader, `E2E_GPU=0`, CI). Use `npm run test:e2e:affected`.
+- Screenshot baselines are made on Windows, tolerance 2 percent (a small control can slip through: look at the picture when a screen changes). Linux CI and cloud sessions skip them; the `visual (Windows)` CI job checks them and the "Update screenshot baselines (Windows)" workflow makes new ones (`docs/decisions/workflow.md#d062`).
+- Playwright uses port 5180 (`PW_PORT=<n>` changes it) and never reuses a server already there, so a stale server fails the run: find the holder (`lsof -i :5180` or `netstat -ano | findstr :5180`) and stop it or change `PW_PORT`. `PW_REUSE_SERVER=1` reuses a server you started on purpose.
+
+## Definition of done (any task)
+
+Acceptance criteria in the feature's file are met, tests and checks pass, docs touched by the change are updated, and a short note says what was done and what was not verified.
+
+<!-- code-review-graph MCP tools -->
+## Code graph (code-review-graph MCP)
+
+Only where the `code-review-graph` MCP server runs (`.mcp.json`: wherever the tool is installed and its index built). When its tools are present, narrow scope with the graph before reading files: skills `explore-codebase`, `debug-issue`, `review-changes`, `refactor-safely` in `.claude/skills/`. Then read the source and its tests before changing anything; when graph and source disagree, the source wins, and an empty result may only mean "not indexed". Hooks in `.claude/settings.json` update the graph after edits and skip silently where it is not installed.
+Agents without the MCP tools can use the CLI: `code-review-graph update` (refresh the index) and `code-review-graph search <name>` (find a symbol).
+<!-- /code-review-graph MCP tools -->

@@ -1,0 +1,12 @@
+# Paper and books
+
+## Sheets, rolls and books in the rooms of the 1991 game (mi2-bg-0-008, mi2-bg-2-030)
+
+With the map maker's office of Woodtick: notice how MI does papers, quite fat and not thin strips, and that our books look bland where MI draws them differently. Studied, never copied.
+
+- **"Fat" is the pile, not the sheet (the map maker's office, mi2-bg-0-008):** a pile of paper is as high as it is deep and is known by its side: thin lines of cream, tan and brown, leaf on leaf, none straight. The sheets on top are thin, lie askew so that corners stick out, lift at a corner and hang over the pile's edge; each has a dark brown line under it. Paper is golden cream in the light and orange-brown in the shade, never grey, and each sheet is shaded in two or three tones in soft shapes. What is written on a sheet is a few dark strokes and one or two marks of red, never fine print. Slabs with ruled edges (pass 4 of the room) still read as blocks of stone.
+- **A roll is a fat tube (the same room):** as thick as a forearm, with the coil of its paper drawn at the open end and a dark middle.
+- **A book is small, warm and soft-edged (the library of Phatt, mi2-bg-2-030):** boards that stand out past a pale strip of pages, a rounded back with bands lighter than the cloth, a lighter line along its top edge; cloths in brown, ochre, olive and dull red, no two neighbours the same; many small ones, not a few large.
+- **Piles are crooked:** books and papers lie in leaning stacks, each piece turned its own way, some slumped against the next pile, a book tipped against a pile. The library's nearest piles are dark warm shapes; the map maker's nearest papers are golden.
+- Ours: the warden's room (pass 5): `src/game/ui/pixel/keri/roomPapers.ts` (`sheaf`, a thin sagging bundle with leaf lines on its side; `looseSheet` on a `Bent` shape with `sheetLift` and a `worn` outline; `manuscript`, a page of music ruled by hand; `musicStacks`; the book's parts `bookBoard`, `bookPages`, `bookBack`, put together by `book` in `roomSet.ts`). Pass 4 had slabs 2.2 cm thick and books as blocks; before it a sheet was a box 1.2 cm thick with specks, and a book a box of one colour.
+- IDEA(painter): the rolls in the chest's basket are thin (2 to 4 cm) with a plain end; the map maker's are fat with a coil. Pass 5 laid one fat roll with a coil on the tall stack (`paperRoll`); the basket's are not changed (the direction named sheets and books).

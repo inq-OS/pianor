@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "port",
+  "picture": "port",
+  "hotspots": [],
+  "places": [
+    {
+      "id": "quay-west",
+      "x": 210,
+      "y": 138,
+      "facing": "right"
+    },
+    {
+      "id": "sea-far",
+      "x": 600,
+      "y": 92,
+      "facing": "left",
+      "scale": 0.3
+    },
+    {
+      "id": "berth-east",
+      "x": 380,
+      "y": 125,
+      "facing": "left"
+    },
+    {
+      "id": "gangway",
+      "x": 430,
+      "y": 138,
+      "facing": "left"
+    },
+    {
+      "id": "to-island",
+      "x": 8,
+      "y": 138,
+      "facing": "left"
+    },
+    {
+      "id": "quay-east",
+      "x": 400,
+      "y": 138,
+      "facing": "left"
+    }
+  ],
+  "exits": []
+}

@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "note": "AX-3 provisional (ft_1_25, WP-08). appearChance: the chance an eligible character turns up on a day; maxDaysAway: at most that many days in a row away once eligible (AC2); boatDays: the teacher's boat is on the map that many days before a deadline (AC4).",
+  "appearChance": 0.5,
+  "maxDaysAway": 3,
+  "boatDays": 7
+}

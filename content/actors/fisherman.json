@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "fisherman",
+  "template": {
+    "features": {
+      "skin": "ruddy",
+      "hair": "bald",
+      "hairColour": "grey",
+      "headwear": "beanie",
+      "beard": "full",
+      "nose": "bulb",
+      "top": "jacket",
+      "topColour": "mustard",
+      "accentColour": "red",
+      "trimColour": "red",
+      "bottomColour": "navy",
+      "feet": "boots",
+      "feetColour": "black",
+      "build": "stout",
+      "height": "short",
+      "belly": "belly"
+    }
+  },
+  "size": {
+    "w": 72,
+    "h": 104
+  },
+  "anchor": {
+    "x": 34,
+    "y": 101
+  },
+  "states": {
+    "idle": {
+      "frames": 4,
+      "fps": 3,
+      "loop": true
+    },
+    "talk": {
+      "frames": 4,
+      "fps": 6,
+      "loop": true
+    },
+    "listen": {
+      "frames": 4,
+      "fps": 2,
+      "loop": true
+    },
+    "play": {
+      "frames": 4,
+      "fps": 3,
+      "loop": true
+    },
+    "walk": {
+      "frames": 6,
+      "fps": 8,
+      "loop": true
+    }
+  }
+}

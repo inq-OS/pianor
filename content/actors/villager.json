@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "villager",
+  "template": {
+    "features": {
+      "hair": "bun",
+      "hairColour": "grey",
+      "nose": "long",
+      "top": "sweater",
+      "topColour": "navy",
+      "bottom": "longskirt",
+      "bottomColour": "brown",
+      "neckwear": "scarf",
+      "trimColour": "rust",
+      "stoop": "slight"
+    }
+  },
+  "size": {
+    "w": 72,
+    "h": 104
+  },
+  "anchor": {
+    "x": 34,
+    "y": 101
+  },
+  "states": {
+    "idle": {
+      "frames": 4,
+      "fps": 3,
+      "loop": true
+    },
+    "talk": {
+      "frames": 4,
+      "fps": 6,
+      "loop": true
+    },
+    "listen": {
+      "frames": 4,
+      "fps": 2,
+      "loop": true
+    },
+    "play": {
+      "frames": 4,
+      "fps": 3,
+      "loop": true
+    },
+    "walk": {
+      "frames": 6,
+      "fps": 8,
+      "loop": true
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "grace-steps",
+  "title": "Grace Steps",
+  "titles": { "et": "Eelnoodisammud" },
+  "level": 3,
+  "status": "draft",
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "Lean",
+      "bars": [
+        1,
+        4
+      ]
+    }
+  ],
+  "styles": [
+    "original"
+  ],
+  "tags": [
+    "c-position",
+    "steps",
+    "grace-notes"
+  ],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": {
+    "kind": "manual"
+  }
+}

@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "id": "puuvaim",
+  "start": "taught",
+  "nodes": {
+    "taught": {
+      "speaker": "character",
+      "line": "talk.puuvaim.taught",
+      "when": {
+        "all": [
+          {
+            "taught": "puuvaim-1"
+          },
+          {
+            "notFlag": "puuvaim-taught-said"
+          }
+        ]
+      },
+      "effects": [
+        {
+          "setFlag": "puuvaim-taught-said"
+        },
+        {
+          "leave": true
+        }
+      ],
+      "next": "hello"
+    },
+    "hello": {
+      "speaker": "character",
+      "line": "talk.puuvaim.hello",
+      "when": {
+        "notFlag": "met-puuvaim"
+      },
+      "next": "tie"
+    },
+    "tie": {
+      "speaker": "character",
+      "line": "character.puuvaim.music",
+      "when": {
+        "notFlag": "met-puuvaim"
+      },
+      "effects": [
+        {
+          "setFlag": "met-puuvaim"
+        }
+      ],
+      "next": "ask"
+    },
+    "ask": {
+      "speaker": "character",
+      "line": "talk.puuvaim.menu",
+      "when": {
+        "notFlag": "known-puuvaim"
+      },
+      "choices": [
+        {
+          "text": "talk.puuvaim.askWho",
+          "next": "who"
+        },
+        {
+          "text": "talk.puuvaim.askTeach",
+          "next": "teach"
+        },
+        {
+          "text": "talk.puuvaim.askLater",
+          "next": "bye"
+        }
+      ],
+      "next": "menu"
+    },
+    "who": {
+      "speaker": "character",
+      "line": "talk.puuvaim.who",
+      "effects": [
+        {
+          "setFlag": "known-puuvaim"
+        }
+      ],
+      "choices": [
+        {
+          "text": "talk.puuvaim.askTeach",
+          "next": "teach"
+        },
+        {
+          "text": "talk.puuvaim.askTug",
+          "next": "tug",
+          "when": {
+            "taught": "puuvaim-1"
+          }
+        },
+        {
+          "text": "talk.puuvaim.askLater",
+          "next": "bye"
+        }
+      ]
+    },
+    "menu": {
+      "speaker": "character",
+      "line": "talk.puuvaim.menu",
+      "choices": [
+        {
+          "text": "talk.puuvaim.askTeach",
+          "next": "teach"
+        },
+        {
+          "text": "talk.puuvaim.askTug",
+          "next": "tug",
+          "when": {
+            "taught": "puuvaim-1"
+          }
+        },
+        {
+          "text": "talk.puuvaim.askLater",
+          "next": "bye"
+        }
+      ]
+    },
+    "teach": {
+      "speaker": "character",
+      "line": "piece.puuvaim-1.about",
+      "effects": [
+        {
+          "teach": "puuvaim-1"
+        }
+      ]
+    },
+    "tug": {
+      "speaker": "character",
+      "line": "talk.puuvaim.tug",
+      "effects": [
+        {
+          "tug": 1
+        }
+      ]
+    },
+    "bye": {
+      "speaker": "character",
+      "line": "talk.puuvaim.bye",
+      "effects": [
+        {
+          "leave": true
+        }
+      ]
+    }
+  }
+}

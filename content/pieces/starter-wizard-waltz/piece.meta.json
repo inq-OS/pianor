@@ -1,0 +1,48 @@
+{
+  "id": "starter-wizard-waltz",
+  "title": "Wizard's Waltz",
+  "titles": { "et": "Nõia valss" },
+  "level": 3,
+  "status": "draft",
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "Rise",
+      "bars": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "Settle",
+      "bars": [
+        5,
+        8
+      ]
+    }
+  ],
+  "styles": [
+    "original"
+  ],
+  "tags": [
+    "starter-song",
+    "class-wizard",
+    "c-position",
+    "thirds",
+    "three-four"
+  ],
+  "source": "composed by an AI agent (Claude) for Pianor; original",
+  "license": "CC0-1.0",
+  "generator": {
+    "kind": "ai",
+    "params": {
+      "model": "Claude",
+      "theme": "a gentle classical waltz in three",
+      "class": "wizard",
+      "note": "Starter song of the wizard class for the turn battle: the fallback for every spellbook slot. The style is flavour only in the MVP, so it is marked original.",
+      "prompt": "docs/authoring/au07-agent-composing.md"
+    }
+  }
+}

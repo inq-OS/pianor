@@ -1,0 +1,129 @@
+name: CI
+
+# Agents already run `npm run check:ci` and `npm run test:e2e:affected` before
+# they push, so CI here is the second opinion; the browser jobs run on a label, by hand, or in the weekly run (d090).
+# Steps use only npm scripts and Node tools, so they run on Linux and Windows alike.
+#   - every pull request push: the check job and the art rules job
+#   - label `ci:e2e` on a pull request: also the Linux end-to-end tests of the affected areas (browser-tests.yml)
+#   - label `ci:visual` on a pull request: also the Windows screenshot tests
+#   Adding a label and editing the description are handled by pr-events.yml, so this workflow never makes a run whose
+#   check job is skipped: on the pull request, "CI / check" is always the result of the last push.
+#   - daily: the check job on main (no push to main runs CI: the pull request was checked)
+#   - weekly (Monday) and a manual run: everything, every area
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1' # the weekly full run
+    - cron: '0 3 * * 0,2-6' # the daily check of main
+
+# A new push to the same pull request replaces the run in progress. The event and the schedule are in the group, so the
+# daily and weekly runs do not cancel each other.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ github.event.schedule }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read # the docs-touched step reads the current description
+
+jobs:
+  # Everything that needs no browser. On a docs-only change only the docs steps run. Skipped on a draft pull request.
+  check:
+    name: check
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the code and docs-touched steps compare with the base branch
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Did code change? (a docs-only pull request skips the code steps)
+        env:
+          PR_BASE: ${{ github.base_ref }}
+        run: node --experimental-strip-types --no-warnings tools/ci/code-changed-cli.ts
+      # No package's install script runs in the job that holds the private list secret.
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+        if: env.CODE == 'true'
+      - run: npm run lint
+        if: env.CODE == 'true'
+      - name: Static analysis (type-aware lint, unused code, duplication; docs/architecture/static-analysis.md)
+        if: env.CODE == 'true'
+        run: npm run analyze
+      - name: Unit and property tests, with the coverage gate on src/core and tools (the art rules run in their own job)
+        if: env.CODE == 'true'
+        run: npm run test:coverage
+      - name: Docs check (the private list is checked in privacy.yml)
+        run: npm run docs:check
+      - name: Docs touched with the change (a pull request that changes src/core, tools or the curriculum)
+        if: github.event_name == 'pull_request'
+        # The description is read now (by the tool, from GitHub), not from the event, so a rerun after the description was fixed sees the new one.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: origin/${{ github.base_ref }}
+        run: node --experimental-strip-types --no-warnings tools/docs/touched-cli.ts "$BASE"
+      - run: npm run piece:build
+        if: env.CODE == 'true'
+      - run: npm run piece:lint
+        if: env.CODE == 'true'
+      - name: Production build (the typecheck above already ran, so vite alone)
+        if: env.CODE == 'true'
+        run: npx vite build
+
+  # The art rules' test paints every picture at every hour (tools/art/pictureRules.test.ts). Under coverage it took most
+  # of the check job's 15 minutes, so it runs here without coverage, beside the check job. Skipped like the check job.
+  art:
+    name: art rules
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Did code change? (a docs-only pull request skips the painting)
+        env:
+          PR_BASE: ${{ github.base_ref }}
+        run: node --experimental-strip-types --no-warnings tools/ci/code-changed-cli.ts
+      - run: npm ci
+        if: env.CODE == 'true'
+      # The pictures painted for the checks are kept between runs, keyed on the painters' code (tools/test/paintCache.ts
+      # holds the real key and repaints on a miss): a pull request that leaves the painters alone reads them. `npm ci`
+      # clears node_modules, so they live outside it.
+      - name: Restore the paintings of earlier runs
+        if: env.CODE == 'true'
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/pianor-paint
+          key: pianor-paint-${{ hashFiles('src/game/ui/pixel/**', 'src/core/layout/**', 'src/core/sky/**', 'src/core/world/**', 'src/game/room/**', 'content/world/keri.json', 'tools/art/pictures.ts', 'tools/test/paintCache.ts', 'package-lock.json') }}
+          restore-keys: pianor-paint-
+      - name: Every painted picture against the art rules (d111 point 21)
+        if: env.CODE == 'true'
+        env:
+          # The weekly and manual runs paint everything afresh, so a key that misses an input shows.
+          PIANOR_PAINT_CACHE_DIR: ${{ runner.temp }}/pianor-paint
+          PIANOR_PAINT_CACHE: ${{ (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 3 * * 1') && '0' || '1' }}
+        run: npm run test:art
+
+  # The browser jobs (browser-tests.yml): on a push to a pull request with a ci: label, and in the weekly and manual runs.
+  # Adding the label to a pull request starts them from pr-events.yml.
+  browser:
+    name: browser
+    if: >-
+      github.event_name == 'workflow_dispatch' || github.event.schedule == '0 3 * * 1' ||
+      contains(github.event.pull_request.labels.*.name, 'ci:e2e') ||
+      contains(github.event.pull_request.labels.*.name, 'ci:visual')
+    uses: ./.github/workflows/browser-tests.yml
+    with:
+      full: ${{ github.event_name != 'pull_request' }}
+      e2e: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:e2e') }}
+      visual: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:visual') }}

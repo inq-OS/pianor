@@ -1,0 +1,46 @@
+# Adding a label to a pull request and editing its description, apart from CI (ci.yml) so that those events never make
+# a CI run whose check job shows as skipped over the real result of the last push (d090).
+#   - label `ci:e2e` or `ci:visual` added: runs that browser job now (browser-tests.yml); later pushes run it from CI
+#   - description edited: if the last CI run on the head commit failed, reruns its failed jobs, so the docs-touched step,
+#     which reads the current description, sees the fix. Costs one minute, and three for the rerun.
+name: PR labels and edits
+
+on:
+  pull_request:
+    types: [labeled, edited]
+
+concurrency:
+  group: pr-events-${{ github.ref }}-${{ github.event.action }}-${{ github.event.label.name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rerun-check:
+    name: rerun check after a description edit
+    if: github.event.action == 'edited' && github.event.changes.body != null
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write # to rerun the CI run
+    steps:
+      - name: Rerun the failed jobs of the last CI run on the head commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          run=$(gh run list -R "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$SHA" --event pull_request -L 1 --json databaseId,conclusion --jq '.[0]')
+          echo "last CI run on $SHA: ${run:-none}"
+          if [ -n "$run" ] && [ "$(echo "$run" | jq -r .conclusion)" = failure ]; then
+            gh run rerun -R "$GITHUB_REPOSITORY" "$(echo "$run" | jq -r .databaseId)" --failed
+          fi
+
+  browser:
+    name: browser
+    if: github.event.action == 'labeled' && (github.event.label.name == 'ci:e2e' || github.event.label.name == 'ci:visual')
+    uses: ./.github/workflows/browser-tests.yml
+    with:
+      e2e: ${{ github.event.label.name == 'ci:e2e' }}
+      visual: ${{ github.event.label.name == 'ci:visual' }}

@@ -1,0 +1,18 @@
+{
+  "id": "two-voices",
+  "title": "Two Voices",
+  "titles": { "et": "Kaks häält" },
+  "level": 5,
+  "unlockLevel": 5,
+  "status": "draft",
+  "hands": ["RH"],
+  "phrases": [
+    { "name": "Hold", "bars": [1, 4] },
+    { "name": "Home", "bars": [5, 8] }
+  ],
+  "styles": ["original"],
+  "tags": ["two-voices"],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": { "kind": "manual" }
+}

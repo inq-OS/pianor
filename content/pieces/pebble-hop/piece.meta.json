@@ -1,0 +1,39 @@
+{
+  "id": "pebble-hop",
+  "title": "Pebble Hop",
+  "titles": { "et": "Kivihüpe" },
+  "level": 1,
+  "status": "approved",
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "Hop",
+      "bars": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "Home",
+      "bars": [
+        5,
+        8
+      ]
+    }
+  ],
+  "styles": [
+    "original"
+  ],
+  "tags": [
+    "c-position",
+    "steps",
+    "monster-song"
+  ],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": {
+    "kind": "manual"
+  }
+}

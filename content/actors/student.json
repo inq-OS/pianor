@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "student",
+  "template": {
+    "features": {
+      "age": "child",
+      "skin": "fair",
+      "hair": "short",
+      "hairColour": "chestnut",
+      "headwear": "stocking",
+      "top": "striped",
+      "topColour": "sail",
+      "trimColour": "navy",
+      "accentColour": "red",
+      "bottomColour": "denim",
+      "feet": "boots",
+      "feetColour": "black"
+    }
+  },
+  "size": {
+    "w": 72,
+    "h": 104
+  },
+  "anchor": {
+    "x": 34,
+    "y": 101
+  },
+  "states": {
+    "idle": {
+      "frames": 4,
+      "fps": 3,
+      "loop": true
+    },
+    "talk": {
+      "frames": 4,
+      "fps": 6,
+      "loop": true
+    },
+    "listen": {
+      "frames": 4,
+      "fps": 2,
+      "loop": true
+    },
+    "play": {
+      "frames": 4,
+      "fps": 3,
+      "loop": true
+    },
+    "walk": {
+      "frames": 6,
+      "fps": 8,
+      "loop": true
+    }
+  }
+}

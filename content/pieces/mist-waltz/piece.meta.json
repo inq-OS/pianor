@@ -1,0 +1,55 @@
+{
+  "id": "mist-waltz",
+  "title": "Mist Waltz",
+  "titles": { "et": "Udu valss" },
+  "level": 3,
+  "status": "approved",
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "Drift",
+      "bars": [
+        1,
+        6
+      ]
+    },
+    {
+      "name": "Settle",
+      "bars": [
+        7,
+        12
+      ]
+    },
+    {
+      "name": "Swirl",
+      "bars": [
+        13,
+        18
+      ]
+    },
+    {
+      "name": "Fade",
+      "bars": [
+        19,
+        24
+      ]
+    }
+  ],
+  "styles": [
+    "original"
+  ],
+  "tags": [
+    "c-position",
+    "rests",
+    "thirds",
+    "three-four",
+    "monster-song"
+  ],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": {
+    "kind": "manual"
+  }
+}

@@ -1,0 +1,8 @@
+X:45
+T:Three Step Skip
+M:4/4
+L:1/4
+Q:1/4=60
+K:C
+% Triplets: a 3 over three notes means they share the time of two. Three eighths with a 3 fill one beat, three quarters with a 3 fill two. Count "one-and-a" for each beat of eighth triplets, evenly.
+!1!C (3!1!C/ !2!D/ !3!E/ !4!F !5!G | !5!G (3!5!G/ !4!F/ !3!E/ !2!D2 | !3!E (3!3!E/ !4!F/ !5!G/ !4!F !3!E | !1!C (3!2!D/ !3!E/ !2!D/ !1!C2 | (3!1!C !2!D !3!E !4!F2 | (3!5!G !4!F !3!E !2!D2 | !3!E (3!4!F/ !3!E/ !2!D/ (3!3!E/ !2!D/ !1!C/ !2!D | !1!C4 |]

@@ -1,0 +1,38 @@
+name: Update screenshot baselines (Windows)
+
+# Windows baselines are the source of truth (the game is played on Windows; d062). Run this by hand on a branch whose change
+# moves pixels on purpose: Actions tab, or `gh workflow run update-snapshots.yml --ref <branch>`. It makes the baselines on
+# the same kind of hosted Windows runner the "visual (Windows)" job of CI checks against, and hands them back as a download: unzip it into
+# tests/e2e/ and commit the images in the pull request, where the maintainer looks at them before it merges. It never commits
+# by itself, so a baseline is always a reviewed change. A cloud session (Linux) has no other way to make a Windows baseline.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: windows-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install chromium
+      - name: Make the baselines (CI is cleared so a missing baseline is written, not skipped; software WebGL as in CI)
+        # only the spec with screenshots: the other specs of the visual area check behaviour and make no baselines
+        run: npx playwright test tests/e2e/visual.spec.ts --project=visual --update-snapshots=all --workers=1 --timeout=600000
+        env:
+          CI: ''
+          E2E_GPU: '0'
+          PW_EXPECT_TIMEOUT: '120000'
+      - uses: actions/upload-artifact@v7
+        if: always() # the baselines that were made, even when a test failed
+        with:
+          name: windows-snapshots
+          path: tests/e2e/*-snapshots/*-win32.png
+          if-no-files-found: error
+          retention-days: 14

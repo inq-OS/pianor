@@ -1,0 +1,11 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    ".claude/hooks/*.mjs",
+    "tools/**/cli.ts",
+    "tools/**/*-cli.ts",
+    "tools/vite-keri-worker.ts",
+    "tools/docs/privacy-ci.ts"
+  ],
+  "ignoreExportsUsedInFile": true
+}

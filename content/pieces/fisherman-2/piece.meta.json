@@ -1,0 +1,56 @@
+{
+  "id": "fisherman-2",
+  "title": "Lightly Row",
+  "titles": {
+    "et": "S\u00f5ua kergelt"
+  },
+  "level": 5,
+  "status": "draft",
+  "difficulty": 2,
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "Lightly row",
+      "bars": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "Glassy waves",
+      "bars": [
+        3,
+        4
+      ]
+    },
+    {
+      "name": "Lightly row again",
+      "bars": [
+        5,
+        6
+      ]
+    },
+    {
+      "name": "Home",
+      "bars": [
+        7,
+        8
+      ]
+    }
+  ],
+  "styles": [
+    "folk"
+  ],
+  "tags": [
+    "phrase",
+    "fisherman",
+    "thirds"
+  ],
+  "source": "German folk tune \"H\u00e4nschen klein\" (19th century), public domain; its first eight bars",
+  "license": "public-domain",
+  "generator": {
+    "kind": "manual"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "knoll",
+  "picture": "knoll",
+  "hotspots": [
+    {
+      "id": "fire",
+      "area": {
+        "x": 252,
+        "y": 112,
+        "w": 84,
+        "h": 24
+      },
+      "name": "scene.knoll.fire",
+      "look": "scene.knoll.fireLook"
+    }
+  ],
+  "places": [
+    {
+      "id": "left-of-the-fire",
+      "x": 196,
+      "y": 143,
+      "facing": "right"
+    },
+    {
+      "id": "right-of-the-fire",
+      "x": 392,
+      "y": 142,
+      "facing": "left"
+    },
+    {
+      "id": "before-the-fire-left",
+      "x": 254,
+      "y": 159,
+      "facing": "right"
+    },
+    {
+      "id": "before-the-fire-right",
+      "x": 336,
+      "y": 160,
+      "facing": "left"
+    },
+    {
+      "id": "in-the-tree",
+      "x": 91,
+      "y": 80,
+      "facing": "right"
+    }
+  ],
+  "exits": []
+}

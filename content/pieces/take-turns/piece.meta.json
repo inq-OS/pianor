@@ -1,0 +1,18 @@
+{
+  "id": "take-turns",
+  "title": "Take Turns",
+  "titles": { "et": "Vaheldumisi" },
+  "level": 4,
+  "unlockLevel": 4,
+  "status": "draft",
+  "hands": ["RH", "LH"],
+  "phrases": [
+    { "name": "Right hand", "bars": [1, 3] },
+    { "name": "Left hand answers", "bars": [4, 6] }
+  ],
+  "styles": ["original"],
+  "tags": ["two-hands", "alternate"],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": { "kind": "manual" }
+}

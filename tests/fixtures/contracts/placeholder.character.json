@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "placeholder",
+  "kind": "visitor",
+  "name": { "kind": "generated", "pool": "et-given-family" },
+  "styles": ["folk"],
+  "musicTie": "character.placeholder.music",
+  "actor": "placeholder",
+  "conversation": "placeholder",
+  "phrases": { "1": ["echo-giant"] },
+  "meet": { "practiceMinutes": 30, "cooldownCleanPlays": 3 },
+  "scenes": ["knoll"]
+}

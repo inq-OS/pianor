@@ -1,0 +1,73 @@
+{
+  "kind": "pianor-piece",
+  "schemaVersion": 2,
+  "id": "own-fixture-song",
+  "author": "Fixture Player",
+  "contentVersion": 1,
+  "piece": {
+    "title": "Fixture Song",
+    "hands": "RH",
+    "beats": 4,
+    "bars": 2,
+    "fifths": 0,
+    "mode": "major",
+    "notes": [
+      {
+        "hand": "RH",
+        "bar": 0,
+        "start": 0,
+        "length": "quarter",
+        "step": "C",
+        "octave": 4,
+        "alter": 0
+      },
+      {
+        "hand": "RH",
+        "bar": 0,
+        "start": 480,
+        "length": "quarter",
+        "step": "D",
+        "octave": 4,
+        "alter": 0
+      },
+      {
+        "hand": "RH",
+        "bar": 0,
+        "start": 960,
+        "length": "half",
+        "step": "E",
+        "octave": 4,
+        "alter": 0
+      },
+      {
+        "hand": "RH",
+        "bar": 1,
+        "start": 0,
+        "length": "half",
+        "step": "G",
+        "octave": 4,
+        "alter": 0
+      },
+      {
+        "hand": "RH",
+        "bar": 1,
+        "start": 960,
+        "length": "quarter",
+        "step": "E",
+        "octave": 4,
+        "alter": 0
+      },
+      {
+        "hand": "RH",
+        "bar": 1,
+        "start": 1440,
+        "length": "quarter",
+        "step": "C",
+        "octave": 4,
+        "alter": 0
+      }
+    ]
+  },
+  "abc": "X:1\nT:Fixture Song\nM:4/4\nL:1/8\nQ:1/4=80\nK:C\nV:RH clef=treble\nV:RH\nC2 D2 E4 | G4 E2 C2 |]\n",
+  "meta": "{\n  \"id\": \"own-fixture-song\",\n  \"title\": \"Fixture Song\",\n  \"contentVersion\": 1,\n  \"level\": 1,\n  \"unlockLevel\": 1,\n  \"status\": \"approved\",\n  \"hands\": [\n    \"RH\"\n  ],\n  \"phrases\": [],\n  \"tags\": [\n    \"own\"\n  ],\n  \"source\": \"written in Pianor by Fixture Player\",\n  \"license\": \"NaN\",\n  \"generator\": {\n    \"kind\": \"editor\"\n  }\n}"
+}

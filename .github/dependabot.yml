@@ -1,0 +1,22 @@
+version: 2
+updates:
+  # One pull request a week for the npm packages, grouped, so updates are reviewed together and CI runs once.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # TypeScript 7 breaks the install: typescript-eslint 8.x accepts TypeScript below 6.1 only.
+      # Moving to 7 is a stack decision (architect:review); remove this when typescript-eslint supports it.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+    groups:
+      dev-tools:
+        dependency-type: development
+      runtime:
+        dependency-type: production
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

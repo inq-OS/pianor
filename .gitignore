@@ -1,0 +1,24 @@
+node_modules
+dist/
+build/
+*.log
+.DS_Store
+coverage/
+test-results/
+playwright-report/
+
+# Local-only code and downloaded repositories (see docs/decisions/workflow.md#d026). Never committed, never imported.
+private/
+
+# Agent worktrees (parallel subagent work); never committed
+.claude/worktrees/
+
+# End-to-end run logs (tools/e2e/runLogReporter.ts)
+test-logs/
+# Added by code-review-graph
+.code-review-graph/
+/release/
+__pycache__/
+
+# a personal copy of .githooks/pre-push.example
+.githooks/pre-push

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "p-fixture-1",
+  "name": "Fixture Player",
+  "createdAt": "1998-10-01T09:00:00.000Z",
+  "attempts": [
+    {
+      "n": 1, "at": "1998-10-01T10:00:00.000Z", "pieceId": "little-steps", "contentVersion": 1, "stars": 3,
+      "result": { "chartId": "little-steps", "contentVersion": 1, "notes": 11, "firstTryCorrect": 11, "mistakes": 0, "accuracy": 1, "rhythmErrorMs": 120.5, "hints": { "noteNames": 0, "fingers": 0 }, "bothHands": { "notes": 0, "together": 0 } },
+      "xp": { "kind": "first", "completion": 20, "accuracy": 30, "bonus": 20, "replayFactor": 1, "hintFactor": 1, "bothHandsMultiplier": 1, "total": 70 }
+    },
+    {
+      "n": 2, "at": "1998-10-01T10:05:00.000Z", "pieceId": "little-steps", "contentVersion": 1, "stars": 3,
+      "result": { "chartId": "little-steps", "contentVersion": 1, "notes": 11, "firstTryCorrect": 11, "mistakes": 0, "accuracy": 1, "rhythmErrorMs": 90, "hints": { "noteNames": 0, "fingers": 0 }, "bothHands": { "notes": 0, "together": 0 } },
+      "xp": { "kind": "replay", "completion": 20, "accuracy": 30, "bonus": 0, "replayFactor": 0.5, "hintFactor": 1, "bothHandsMultiplier": 1, "total": 25 }
+    },
+    {
+      "n": 3, "at": "1998-10-02T16:00:00.000Z", "pieceId": "rest-waltz", "contentVersion": 1, "stars": 2,
+      "result": { "chartId": "rest-waltz", "contentVersion": 1, "notes": 5, "firstTryCorrect": 4, "mistakes": 1, "accuracy": 0.8, "rhythmErrorMs": null, "hints": { "noteNames": 0, "fingers": 0 }, "bothHands": { "notes": 0, "together": 0 } },
+      "xp": { "kind": "first", "completion": 20, "accuracy": 24, "bonus": 20, "replayFactor": 1, "hintFactor": 1, "bothHandsMultiplier": 1, "total": 64 }
+    },
+    {
+      "n": 4, "at": "1998-10-02T16:10:00.000Z", "pieceId": "rest-waltz", "contentVersion": 1, "stars": 3,
+      "result": { "chartId": "rest-waltz", "contentVersion": 1, "notes": 5, "firstTryCorrect": 5, "mistakes": 0, "accuracy": 1, "rhythmErrorMs": null, "hints": { "noteNames": 0, "fingers": 0 }, "bothHands": { "notes": 0, "together": 0 } },
+      "xp": { "kind": "improved", "completion": 20, "accuracy": 30, "bonus": 15, "replayFactor": 1, "hintFactor": 1, "bothHandsMultiplier": 1, "total": 65 }
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "id": "puuvaim-1",
+  "title": "Runo Song",
+  "titles": {
+    "et": "Regilaul"
+  },
+  "level": 1,
+  "status": "draft",
+  "difficulty": 1,
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "Lead",
+      "bars": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "Choir",
+      "bars": [
+        3,
+        4
+      ]
+    }
+  ],
+  "styles": [
+    "folk"
+  ],
+  "tags": [
+    "phrase",
+    "puuvaim"
+  ],
+  "source": "in the manner of an Estonian runo song (regilaul): a short line sung by the lead and sung back, on the narrow steps those tunes keep; not a transcription of one documented song; written for Pianor",
+  "license": "CC0-1.0",
+  "generator": {
+    "kind": "manual"
+  }
+}

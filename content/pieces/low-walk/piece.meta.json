@@ -1,0 +1,39 @@
+{
+  "id": "low-walk",
+  "title": "Low Walk",
+  "titles": { "et": "Madal kõnd" },
+  "level": 2,
+  "status": "draft",
+  "hands": [
+    "LH"
+  ],
+  "phrases": [
+    {
+      "name": "Down",
+      "bars": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "Home",
+      "bars": [
+        5,
+        8
+      ]
+    }
+  ],
+  "styles": [
+    "original"
+  ],
+  "tags": [
+    "c-position",
+    "stepwise",
+    "left-hand"
+  ],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": {
+    "kind": "manual"
+  }
+}

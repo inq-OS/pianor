@@ -1,0 +1,55 @@
+{
+  "id": "fisherman-3",
+  "title": "Hey Ho and Up She Rises",
+  "titles": {
+    "et": "Hei-hoo, \u00fcles ta t\u00f5useb"
+  },
+  "level": 5,
+  "status": "draft",
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "What shall we do",
+      "bars": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "With the sailor",
+      "bars": [
+        3,
+        4
+      ]
+    },
+    {
+      "name": "What shall we do",
+      "bars": [
+        5,
+        6
+      ]
+    },
+    {
+      "name": "Early in the morning",
+      "bars": [
+        7,
+        8
+      ]
+    }
+  ],
+  "styles": [
+    "folk"
+  ],
+  "tags": [
+    "phrase",
+    "fisherman",
+    "shanty"
+  ],
+  "source": "Sea shanty \"What Shall We Do with the Drunken Sailor\" (early 19th century), public domain; its verse, a tone lower",
+  "license": "public-domain",
+  "generator": {
+    "kind": "manual"
+  }
+}

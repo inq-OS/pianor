@@ -1,0 +1,84 @@
+{
+  "id": "echo-giant",
+  "title": "Echo Giant",
+  "titles": { "et": "Kajav hiiglane" },
+  "level": 4,
+  "status": "approved",
+  "hands": [
+    "RH",
+    "LH"
+  ],
+  "phrases": [
+    {
+      "name": "Call",
+      "bars": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "Low answer",
+      "bars": [
+        5,
+        8
+      ]
+    },
+    {
+      "name": "Call again",
+      "bars": [
+        9,
+        12
+      ]
+    },
+    {
+      "name": "Low home",
+      "bars": [
+        13,
+        16
+      ]
+    },
+    {
+      "name": "Steps and rests",
+      "bars": [
+        17,
+        20
+      ]
+    },
+    {
+      "name": "Low steps",
+      "bars": [
+        21,
+        24
+      ]
+    },
+    {
+      "name": "Giant tune",
+      "bars": [
+        25,
+        28
+      ]
+    },
+    {
+      "name": "Giant echo",
+      "bars": [
+        29,
+        32
+      ]
+    }
+  ],
+  "styles": [
+    "original"
+  ],
+  "tags": [
+    "two-hands",
+    "alternate",
+    "rests",
+    "thirds",
+    "monster-song"
+  ],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": {
+    "kind": "manual"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "id": "hot-cross-buns",
+  "title": "Hot Cross Buns",
+  "titles": { "et": "Ristikujulised saiad" },
+  "level": 1,
+  "status": "draft",
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "First half",
+      "bars": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "Second half",
+      "bars": [
+        3,
+        4
+      ]
+    }
+  ],
+  "styles": [
+    "folk"
+  ],
+  "tags": [
+    "c-position",
+    "stepwise"
+  ],
+  "source": "traditional English street cry (18th century), public domain; adapted to steps and even quarter notes",
+  "license": "public-domain",
+  "generator": {
+    "kind": "manual"
+  }
+}

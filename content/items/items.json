@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "note": "The items a student can have (ft_1_20 item model; ft_1_21.AC15 prizes, AC18 ladders: the order of a ladder is the character's `prizes`). `kind` kept: it stands in the band's inventory and does nothing more (AX-3 provisional; held, worn and opening items come with ft_1_20.AC4, AC5). `name` is its string key; `picture` its picture in the band, when the painter has drawn one (until then the band shows its name).",
+  "items": [
+    { "id": "oak-leaf", "kind": "kept", "name": "item.oakLeaf", "picture": "oak-leaf" },
+    { "id": "acorn", "kind": "kept", "name": "item.acorn", "picture": "acorn" },
+    { "id": "golden-leaf", "kind": "kept", "name": "item.goldenLeaf", "picture": "golden-leaf" },
+    { "id": "singing-branch", "kind": "kept", "name": "item.singingBranch", "picture": "singing-branch" },
+    { "id": "seed-of-life", "kind": "kept", "name": "item.seedOfLife", "picture": "seed-of-life" },
+    { "id": "net-float", "kind": "kept", "name": "item.netFloat" },
+    { "id": "net-needle", "kind": "kept", "name": "item.netNeedle" },
+    { "id": "gull-feather", "kind": "kept", "name": "item.gullFeather" },
+    { "id": "holed-stone", "kind": "kept", "name": "item.holedStone" },
+    { "id": "ships-bell", "kind": "kept", "name": "item.shipsBell" }
+  ]
+}

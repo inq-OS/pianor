@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "galleon",
+  "sheet": "galleon",
+  "size": { "w": 240, "h": 140 },
+  "anchor": { "x": 120, "y": 126 },
+  "states": {
+    "idle": { "frames": 2, "fps": 1, "loop": true }
+  }
+}

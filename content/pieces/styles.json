@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "note": "PROVISIONAL: the starter styles; the maintainer may rename them. A piece names its styles in `styles` of piece.meta.json.",
+  "styles": [
+    { "id": "folk", "nameKey": "style.folk" },
+    { "id": "classical", "nameKey": "style.classical" },
+    { "id": "exercise", "nameKey": "style.exercise" },
+    { "id": "original", "nameKey": "style.original" }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "crossroads",
+  "picture": "crossroads",
+  "hotspots": [],
+  "places": [
+    {
+      "id": "spot-1",
+      "x": 150,
+      "y": 196,
+      "facing": "right"
+    },
+    {
+      "id": "spot-2",
+      "x": 506,
+      "y": 190,
+      "facing": "left"
+    },
+    {
+      "id": "spot-3",
+      "x": 236,
+      "y": 160,
+      "facing": "right"
+    },
+    {
+      "id": "spot-4",
+      "x": 430,
+      "y": 156,
+      "facing": "left"
+    }
+  ],
+  "exits": []
+}

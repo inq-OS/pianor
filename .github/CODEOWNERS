@@ -1,0 +1,9 @@
+# The maintainer reviews every change to the tooling that runs on a developer's machine or in CI, and to the rules.
+/.claude/ @inq-OS
+/.github/ @inq-OS
+/tools/docs/ @inq-OS
+/package.json @inq-OS
+/package-lock.json @inq-OS
+/.mcp.json @inq-OS
+/CLAUDE.md @inq-OS
+/opencode.jsonc @inq-OS

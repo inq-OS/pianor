@@ -1,0 +1,38 @@
+{
+  "id": "stair-steps",
+  "title": "Stair Steps",
+  "titles": { "et": "Trepiastmed" },
+  "level": 1,
+  "status": "draft",
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "Up",
+      "bars": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "Down",
+      "bars": [
+        5,
+        8
+      ]
+    }
+  ],
+  "styles": [
+    "original"
+  ],
+  "tags": [
+    "c-position",
+    "stepwise"
+  ],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": {
+    "kind": "manual"
+  }
+}

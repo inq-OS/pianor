@@ -1,0 +1,13 @@
+X:1
+T:Echo Game 4.1 both hands
+M:4/4
+L:1/4
+Q:1/4=66
+K:C
+% The right hand calls, the left hand answers an octave lower. Generated, level 4.
+V:RH clef=treble
+V:LH clef=bass
+V:RH
+!3!E !4!F !2!D2 | Z | !1!C !3!E !2!D !3!E | Z | !3!E !2!D !1!C !1!C | Z | !3!E !1!C !2!D !1!C | Z |]
+V:LH
+Z | !3!E, !2!F, !4!D,2 | Z | !5!C, !3!E, !4!D, !3!E, | Z | !3!E, !4!D, !5!C, !5!C, | Z | !3!E, !5!C, !4!D, !5!C, |]

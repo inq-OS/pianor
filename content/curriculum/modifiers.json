@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "note": "PROPOSED START VALUES (core_07, WP-G1). Every help is a factor below 1.0 on XP, never 0; full difficulty (clef reading, no helps) is 1.0. These numbers are tuned after playtests; nothing reads the table yet.",
+  "full": {
+    "factor": 1,
+    "note": "Full difficulty: clef reading, no helps. Not a proposal."
+  },
+  "helps": {
+    "noteNames": { "factor": 0.6, "note": "proposal" },
+    "fingerNumbers": { "factor": 0.8, "note": "proposal" },
+    "litKey": { "factor": 0.6, "note": "proposal" },
+    "onScreenKeyboard": { "factor": 0.95, "note": "proposal" },
+    "metronome": { "factor": 0.95, "note": "proposal" }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "boat-arrives",
+  "commands": [
+    { "enter": "kiur", "place": "jetty" },
+    { "enter": "boat", "place": "sea-far" },
+    { "fade": "in", "ms": 600 },
+    { "walkTo": "boat", "place": "pier" },
+    { "wait": 400 },
+    { "say": "kiur", "line": "script.boat.arrives" },
+    { "playPhrase": "kiur", "piece": "au-clair-de-la-lune" }
+  ],
+  "skippable": true
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "kiur",
+  "sheet": "kiur",
+  "size": { "w": 24, "h": 24 },
+  "anchor": { "x": 12, "y": 23 },
+  "states": {
+    "idle": { "frames": 2, "fps": 2, "loop": true },
+    "talk": { "frames": 4, "fps": 8, "loop": true }
+  }
+}

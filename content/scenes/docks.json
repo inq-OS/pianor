@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "docks",
+  "picture": "docks",
+  "hotspots": [],
+  "places": [
+    {
+      "id": "sea-far",
+      "x": 120,
+      "y": 116,
+      "facing": "right",
+      "scale": 0.4
+    },
+    {
+      "id": "pier",
+      "x": 226,
+      "y": 156,
+      "facing": "right"
+    },
+    {
+      "id": "jetty",
+      "x": 340,
+      "y": 214,
+      "facing": "left"
+    }
+  ],
+  "exits": []
+}

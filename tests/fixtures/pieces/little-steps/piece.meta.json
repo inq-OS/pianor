@@ -1,0 +1,13 @@
+{
+  "id": "little-steps",
+  "title": "Little Steps",
+  "level": 1,
+  "status": "draft",
+  "hands": ["RH"],
+  "phrases": [{ "name": "Steps", "bars": [1, 4] }],
+  "styles": ["original"],
+  "tags": ["c-position", "stepwise"],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": { "kind": "manual" }
+}

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "bars": [
+    {
+      "at": "1998-11-10T16:00:00.000Z",
+      "pieceId": "little-steps",
+      "bar": 0,
+      "notes": 4,
+      "firstTry": 4,
+      "timing": null,
+      "mode": "wait",
+      "tempoPercent": 100,
+      "section": null,
+      "misses": []
+    },
+    {
+      "at": "1998-11-10T16:00:04.000Z",
+      "pieceId": "little-steps",
+      "bar": 1,
+      "notes": 4,
+      "firstTry": 3,
+      "timing": null,
+      "mode": "wait",
+      "tempoPercent": 100,
+      "section": null,
+      "misses": [
+        {
+          "tick": 480,
+          "track": "rh",
+          "midi": 63
+        }
+      ]
+    },
+    {
+      "at": "1998-11-11T16:00:00.000Z",
+      "pieceId": "little-steps",
+      "bar": 0,
+      "notes": 4,
+      "firstTry": 4,
+      "timing": 88,
+      "mode": "tempo",
+      "tempoPercent": 80,
+      "section": {
+        "first": 0,
+        "last": 1
+      },
+      "misses": [],
+      "short": 1
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "id": "quiet-pond",
+  "title": "Quiet Pond",
+  "titles": { "et": "Vaikne tiik" },
+  "level": 3,
+  "status": "draft",
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "Ripples",
+      "bars": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "Calm",
+      "bars": [
+        5,
+        8
+      ]
+    }
+  ],
+  "styles": [
+    "original"
+  ],
+  "tags": [
+    "c-position",
+    "rests",
+    "thirds"
+  ],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": {
+    "kind": "manual"
+  }
+}

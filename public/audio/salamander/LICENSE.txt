@@ -1,0 +1,14 @@
+Salamander Grand Piano (Yamaha C5)
+Recorded and edited by Alexander Holm.
+
+Licence: Creative Commons Attribution 3.0 (CC BY 3.0)
+https://creativecommons.org/licenses/by/3.0/
+
+You may share and adapt these recordings, including commercially, as long as you give credit.
+Credit used by Pianor: "Salamander Grand Piano by Alexander Holm (CC BY 3.0)".
+
+What is here: 21 MP3 files, one every minor third from C2 to C7 (C, D#, F#, A in each octave, plus C7),
+taken unchanged from the copy hosted by the Tone.js project at
+https://github.com/Tonejs/audio/tree/master/salamander (original README says "Licence: CC-by").
+The game plays other notes by changing the playback speed of the nearest file.
+Original project info: Salamander Grand Piano V2/V3, 48 kHz 24 bit originals, 16 velocity layers; these MP3s are the single-layer web versions.

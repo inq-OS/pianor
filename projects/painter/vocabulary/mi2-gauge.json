@@ -1,0 +1,1707 @@
+{
+ "schemaVersion": 1,
+ "about": "MI2 (1991) traits measured by refcat.py baseline from the painter's library; numbers only, the pictures are studied locally and never committed. Weights and the dial fit come from refcat.py calibrate.",
+ "traits": {
+  "colours": "colours in the picture",
+  "tones_per_hue": "colours per hue family (the 6 fullest of 12)",
+  "step_L": "median lightness step between unlike neighbours (L*)",
+  "dither": "share of 2x2 checkerboards (two colours)",
+  "lone": "share of pixels unlike all four neighbours (the grain of scanned paint)",
+  "mark": "mean length of a run of one colour along a row, in 1/320 of the width",
+  "dark": "share of pixels darker than L* 25",
+  "spread_L": "lightness spread, 5th to 95th percentile (L*)",
+  "saturation": "median saturation"
+ },
+ "weights": {
+  "colours": 1.0,
+  "tones_per_hue": 1.0,
+  "step_L": 1.0,
+  "dither": 1.0,
+  "mark": 1.0,
+  "dark": 1.0,
+  "spread_L": 1.0,
+  "saturation": 1.0
+ },
+ "dial": {
+  "a": 1.5385,
+  "b": -49.57,
+  "fitOn": [
+   {
+    "picture": "docks-day.png",
+    "score": 40.0,
+    "raw": 55
+   },
+   {
+    "picture": "cross-day.png",
+    "score": 60.0,
+    "raw": 60
+   },
+   {
+    "picture": "docks-night.png",
+    "score": 35.0,
+    "raw": 59
+   },
+   {
+    "picture": "garden-day.png",
+    "score": 10.0,
+    "raw": 48
+   },
+   {
+    "picture": "full-room-028.png",
+    "score": 100.0,
+    "raw": 91
+   },
+   {
+    "picture": "full-room-038.png",
+    "score": 100.0,
+    "raw": 100
+   },
+   {
+    "picture": "full-room-004.png",
+    "score": 100.0,
+    "raw": 100
+   },
+   {
+    "picture": "full-room-016.png",
+    "score": 100.0,
+    "raw": 99
+   }
+  ]
+ },
+ "rooms": [
+  {
+   "id": "mi2-bg-0-004",
+   "tags": [
+    "mi2",
+    "wide",
+    "outdoor",
+    "night",
+    "sea",
+    "shore",
+    "rock",
+    "tree",
+    "grass",
+    "foliage",
+    "building",
+    "sky"
+   ],
+   "colours": 116,
+   "tones_per_hue": 15.6667,
+   "step_L": 6.9931,
+   "dither": 0.0194,
+   "lone": 0.3934,
+   "mark": 0.7602,
+   "dark": 0.4956,
+   "spread_L": 68.0931,
+   "saturation": 0.5333
+  },
+  {
+   "id": "mi2-bg-0-005",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "night",
+    "fire",
+    "grass",
+    "sand"
+   ],
+   "colours": 119,
+   "tones_per_hue": 17.3333,
+   "step_L": 8.1925,
+   "dither": 0.0176,
+   "lone": 0.3457,
+   "mark": 1.6628,
+   "dark": 0.4313,
+   "spread_L": 71.4327,
+   "saturation": 0.6667
+  },
+  {
+   "id": "mi2-bg-0-006",
+   "tags": [
+    "mi2",
+    "indoor",
+    "night",
+    "wood",
+    "props",
+    "stone-wall",
+    "dark-frame"
+   ],
+   "colours": 162,
+   "tones_per_hue": 25.1667,
+   "step_L": 7.0675,
+   "dither": 0.0048,
+   "lone": 0.2966,
+   "mark": 2.1158,
+   "dark": 0.7132,
+   "spread_L": 76.5606,
+   "saturation": 0.4211
+  },
+  {
+   "id": "mi2-bg-0-007",
+   "tags": [
+    "mi2",
+    "wide",
+    "outdoor",
+    "night",
+    "town",
+    "ship",
+    "wood",
+    "water",
+    "building",
+    "lamp"
+   ],
+   "colours": 163,
+   "tones_per_hue": 22.1667,
+   "step_L": 9.5386,
+   "dither": 0.0111,
+   "lone": 0.3043,
+   "mark": 0.7281,
+   "dark": 0.4432,
+   "spread_L": 86.6361,
+   "saturation": 0.4078
+  },
+  {
+   "id": "mi2-bg-0-008",
+   "tags": [
+    "mi2",
+    "indoor",
+    "night",
+    "wood",
+    "props",
+    "ship"
+   ],
+   "colours": 173,
+   "tones_per_hue": 26.8333,
+   "step_L": 6.9485,
+   "dither": 0.0071,
+   "lone": 0.3639,
+   "mark": 1.6726,
+   "dark": 0.5639,
+   "spread_L": 65.6071,
+   "saturation": 0.5926
+  },
+  {
+   "id": "mi2-bg-0-009",
+   "tags": [
+    "mi2",
+    "indoor",
+    "wood",
+    "props",
+    "dark-frame"
+   ],
+   "colours": 162,
+   "tones_per_hue": 26.3333,
+   "step_L": 5.116,
+   "dither": 0.0068,
+   "lone": 0.1884,
+   "mark": 2.5726,
+   "dark": 0.7787,
+   "spread_L": 63.1043,
+   "saturation": 0.6567
+  },
+  {
+   "id": "mi2-bg-0-011",
+   "tags": [
+    "mi2",
+    "indoor",
+    "wood",
+    "props"
+   ],
+   "colours": 172,
+   "tones_per_hue": 25.8333,
+   "step_L": 6.2228,
+   "dither": 0.0078,
+   "lone": 0.3258,
+   "mark": 1.8361,
+   "dark": 0.5619,
+   "spread_L": 75.1785,
+   "saturation": 0.5
+  },
+  {
+   "id": "mi2-bg-0-012",
+   "tags": [
+    "mi2",
+    "indoor",
+    "wood",
+    "props"
+   ],
+   "colours": 172,
+   "tones_per_hue": 26.1667,
+   "step_L": 4.2448,
+   "dither": 0.0171,
+   "lone": 0.2925,
+   "mark": 1.7441,
+   "dark": 0.6852,
+   "spread_L": 59.0603,
+   "saturation": 0.5926
+  },
+  {
+   "id": "mi2-bg-0-013",
+   "tags": [
+    "mi2",
+    "indoor",
+    "wood",
+    "props"
+   ],
+   "colours": 175,
+   "tones_per_hue": 27.8333,
+   "step_L": 4.611,
+   "dither": 0.0086,
+   "lone": 0.2442,
+   "mark": 2.4776,
+   "dark": 0.7687,
+   "spread_L": 60.8674,
+   "saturation": 0.4211
+  },
+  {
+   "id": "mi2-bg-0-014",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "night",
+    "wood",
+    "ship",
+    "building",
+    "lamp",
+    "town",
+    "sky"
+   ],
+   "colours": 175,
+   "tones_per_hue": 27.5,
+   "step_L": 6.5497,
+   "dither": 0.0109,
+   "lone": 0.4397,
+   "mark": 1.4155,
+   "dark": 0.5156,
+   "spread_L": 68.5213,
+   "saturation": 0.64
+  },
+  {
+   "id": "mi2-bg-0-015",
+   "tags": [
+    "mi2",
+    "indoor",
+    "wood",
+    "props"
+   ],
+   "colours": 175,
+   "tones_per_hue": 20.8333,
+   "step_L": 7.5618,
+   "dither": 0.0062,
+   "lone": 0.2634,
+   "mark": 2.0847,
+   "dark": 0.6237,
+   "spread_L": 66.5531,
+   "saturation": 0.6667
+  },
+  {
+   "id": "mi2-bg-0-016",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "night",
+    "grass",
+    "wood",
+    "rock",
+    "sky",
+    "stone-wall"
+   ],
+   "colours": 168,
+   "tones_per_hue": 27.8333,
+   "step_L": 6.0683,
+   "dither": 0.0079,
+   "lone": 0.4722,
+   "mark": 1.3753,
+   "dark": 0.3163,
+   "spread_L": 70.3604,
+   "saturation": 0.7356
+  },
+  {
+   "id": "mi2-bg-0-017",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "night",
+    "grass",
+    "sky",
+    "clouds",
+    "rock"
+   ],
+   "colours": 123,
+   "tones_per_hue": 20.0,
+   "step_L": 5.1014,
+   "dither": 0.0253,
+   "lone": 0.3967,
+   "mark": 1.4261,
+   "dark": 0.3141,
+   "spread_L": 69.5225,
+   "saturation": 0.7447
+  },
+  {
+   "id": "mi2-bg-0-018",
+   "tags": [
+    "mi2",
+    "indoor",
+    "rock",
+    "stone-wall"
+   ],
+   "colours": 160,
+   "tones_per_hue": 26.3333,
+   "step_L": 3.3626,
+   "dither": 0.0107,
+   "lone": 0.3921,
+   "mark": 1.6177,
+   "dark": 0.7286,
+   "spread_L": 64.5918,
+   "saturation": 0.3636
+  },
+  {
+   "id": "mi2-bg-0-020",
+   "tags": [
+    "mi2",
+    "wide",
+    "outdoor",
+    "night",
+    "swamp",
+    "jungle",
+    "tree",
+    "water",
+    "foliage"
+   ],
+   "colours": 174,
+   "tones_per_hue": 22.6667,
+   "step_L": 8.8934,
+   "dither": 0.0102,
+   "lone": 0.3085,
+   "mark": 0.7448,
+   "dark": 0.537,
+   "spread_L": 76.2766,
+   "saturation": 0.3529
+  },
+  {
+   "id": "mi2-bg-0-021",
+   "tags": [
+    "mi2",
+    "wide",
+    "indoor",
+    "wood",
+    "props"
+   ],
+   "colours": 126,
+   "tones_per_hue": 19.1667,
+   "step_L": 5.9647,
+   "dither": 0.012,
+   "lone": 0.3217,
+   "mark": 1.1632,
+   "dark": 0.6006,
+   "spread_L": 80.2538,
+   "saturation": 0.5581
+  },
+  {
+   "id": "mi2-bg-0-022",
+   "tags": [
+    "mi2",
+    "indoor",
+    "day",
+    "wood",
+    "props",
+    "ship"
+   ],
+   "colours": 156,
+   "tones_per_hue": 20.3333,
+   "step_L": 6.462,
+   "dither": 0.0091,
+   "lone": 0.2665,
+   "mark": 1.7089,
+   "dark": 0.5487,
+   "spread_L": 64.9099,
+   "saturation": 0.4211
+  },
+  {
+   "id": "mi2-bg-0-023",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "night",
+    "ship",
+    "wood",
+    "sea",
+    "shore",
+    "building",
+    "lamp",
+    "sky"
+   ],
+   "colours": 169,
+   "tones_per_hue": 27.6667,
+   "step_L": 4.6318,
+   "dither": 0.0105,
+   "lone": 0.354,
+   "mark": 1.6524,
+   "dark": 0.461,
+   "spread_L": 66.7663,
+   "saturation": 0.7425
+  },
+  {
+   "id": "mi2-bg-0-024",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "ship",
+    "sea",
+    "sky",
+    "clouds",
+    "wood"
+   ],
+   "colours": 161,
+   "tones_per_hue": 21.6667,
+   "step_L": 8.7783,
+   "dither": 0.0138,
+   "lone": 0.2525,
+   "mark": 2.025,
+   "dark": 0.3042,
+   "spread_L": 82.8011,
+   "saturation": 0.4115
+  },
+  {
+   "id": "mi2-bg-0-109",
+   "tags": [
+    "mi2",
+    "tall",
+    "outdoor",
+    "night",
+    "sea",
+    "rock",
+    "clouds",
+    "sky",
+    "lamp"
+   ],
+   "colours": 212,
+   "tones_per_hue": 33.0,
+   "step_L": 4.162,
+   "dither": 0.0085,
+   "lone": 0.2996,
+   "mark": 1.9871,
+   "dark": 0.5844,
+   "spread_L": 61.2565,
+   "saturation": 0.7838
+  },
+  {
+   "id": "mi2-bg-1-046",
+   "tags": [
+    "mi2",
+    "wide",
+    "outdoor",
+    "day",
+    "town",
+    "building",
+    "path",
+    "sea",
+    "sky"
+   ],
+   "colours": 174,
+   "tones_per_hue": 21.0,
+   "step_L": 8.6774,
+   "dither": 0.0112,
+   "lone": 0.3412,
+   "mark": 0.9356,
+   "dark": 0.1996,
+   "spread_L": 82.2012,
+   "saturation": 0.4277
+  },
+  {
+   "id": "mi2-bg-1-047",
+   "tags": [
+    "mi2",
+    "wide",
+    "outdoor",
+    "day",
+    "town",
+    "building",
+    "path",
+    "tree",
+    "sea",
+    "sky"
+   ],
+   "colours": 174,
+   "tones_per_hue": 19.8333,
+   "step_L": 8.8987,
+   "dither": 0.0133,
+   "lone": 0.3863,
+   "mark": 0.9877,
+   "dark": 0.2677,
+   "spread_L": 77.0818,
+   "saturation": 0.4396
+  },
+  {
+   "id": "mi2-bg-1-048",
+   "tags": [
+    "mi2",
+    "wide",
+    "tall",
+    "indoor",
+    "props",
+    "wood"
+   ],
+   "colours": 169,
+   "tones_per_hue": 23.0,
+   "step_L": 7.9667,
+   "dither": 0.0007,
+   "lone": 0.0,
+   "mark": 1.623,
+   "dark": 0.659,
+   "spread_L": 67.7578,
+   "saturation": 0.4211
+  },
+  {
+   "id": "mi2-bg-1-049",
+   "tags": [
+    "mi2",
+    "wide",
+    "indoor",
+    "props",
+    "wood"
+   ],
+   "colours": 175,
+   "tones_per_hue": 22.8333,
+   "step_L": 7.9363,
+   "dither": 0.0154,
+   "lone": 0.2741,
+   "mark": 1.0542,
+   "dark": 0.5701,
+   "spread_L": 71.0082,
+   "saturation": 0.7843
+  },
+  {
+   "id": "mi2-bg-1-050",
+   "tags": [
+    "mi2",
+    "indoor",
+    "props",
+    "wood"
+   ],
+   "colours": 177,
+   "tones_per_hue": 22.0,
+   "step_L": 9.1487,
+   "dither": 0.0166,
+   "lone": 0.4332,
+   "mark": 1.3542,
+   "dark": 0.3254,
+   "spread_L": 78.9821,
+   "saturation": 0.64
+  },
+  {
+   "id": "mi2-bg-1-051",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "sea",
+    "shore",
+    "building",
+    "path",
+    "foliage",
+    "grass",
+    "sky"
+   ],
+   "colours": 155,
+   "tones_per_hue": 20.1667,
+   "step_L": 9.1137,
+   "dither": 0.0129,
+   "lone": 0.2871,
+   "mark": 1.8548,
+   "dark": 0.2901,
+   "spread_L": 79.1246,
+   "saturation": 0.459
+  },
+  {
+   "id": "mi2-bg-1-052",
+   "tags": [
+    "mi2",
+    "wide",
+    "outdoor",
+    "day",
+    "jungle",
+    "foliage",
+    "tree",
+    "building",
+    "path"
+   ],
+   "colours": 165,
+   "tones_per_hue": 19.0,
+   "step_L": 7.3997,
+   "dither": 0.0128,
+   "lone": 0.3753,
+   "mark": 0.6334,
+   "dark": 0.3238,
+   "spread_L": 74.1348,
+   "saturation": 0.4706
+  },
+  {
+   "id": "mi2-bg-1-053",
+   "tags": [
+    "mi2",
+    "wide",
+    "outdoor",
+    "day",
+    "building",
+    "foliage",
+    "jungle",
+    "path",
+    "stone-wall"
+   ],
+   "colours": 148,
+   "tones_per_hue": 17.0,
+   "step_L": 7.2152,
+   "dither": 0.0115,
+   "lone": 0.2995,
+   "mark": 1.0915,
+   "dark": 0.3085,
+   "spread_L": 79.5812,
+   "saturation": 0.3855
+  },
+  {
+   "id": "mi2-bg-1-054",
+   "tags": [
+    "mi2",
+    "wide",
+    "outdoor",
+    "day",
+    "building",
+    "path",
+    "stone-wall",
+    "foliage"
+   ],
+   "colours": 176,
+   "tones_per_hue": 19.8333,
+   "step_L": 7.5632,
+   "dither": 0.0126,
+   "lone": 0.3588,
+   "mark": 1.0405,
+   "dark": 0.3059,
+   "spread_L": 77.0818,
+   "saturation": 0.3216
+  },
+  {
+   "id": "mi2-bg-1-055",
+   "tags": [
+    "mi2",
+    "indoor",
+    "day",
+    "plaster",
+    "props"
+   ],
+   "colours": 185,
+   "tones_per_hue": 22.8333,
+   "step_L": 5.918,
+   "dither": 0.0145,
+   "lone": 0.3478,
+   "mark": 1.5039,
+   "dark": 0.258,
+   "spread_L": 65.1803,
+   "saturation": 0.3716
+  },
+  {
+   "id": "mi2-bg-1-056",
+   "tags": [
+    "mi2",
+    "indoor",
+    "day",
+    "plaster",
+    "props"
+   ],
+   "colours": 175,
+   "tones_per_hue": 20.5,
+   "step_L": 5.3958,
+   "dither": 0.0198,
+   "lone": 0.3164,
+   "mark": 1.551,
+   "dark": 0.2148,
+   "spread_L": 63.3698,
+   "saturation": 0.3774
+  },
+  {
+   "id": "mi2-bg-1-057",
+   "tags": [
+    "mi2",
+    "indoor",
+    "props",
+    "wood",
+    "stone-wall",
+    "fire"
+   ],
+   "colours": 174,
+   "tones_per_hue": 21.5,
+   "step_L": 5.0309,
+   "dither": 0.0094,
+   "lone": 0.2998,
+   "mark": 1.727,
+   "dark": 0.6785,
+   "spread_L": 64.1102,
+   "saturation": 0.4211
+  },
+  {
+   "id": "mi2-bg-1-058",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "rock",
+    "grass"
+   ],
+   "colours": 160,
+   "tones_per_hue": 16.8333,
+   "step_L": 5.8612,
+   "dither": 0.013,
+   "lone": 0.3894,
+   "mark": 1.4633,
+   "dark": 0.3563,
+   "spread_L": 81.0287,
+   "saturation": 0.3333
+  },
+  {
+   "id": "mi2-bg-1-059",
+   "tags": [
+    "mi2",
+    "wide",
+    "tall",
+    "outdoor",
+    "day",
+    "rock",
+    "sea",
+    "shore",
+    "sand"
+   ],
+   "colours": 168,
+   "tones_per_hue": 18.0,
+   "step_L": 6.5352,
+   "dither": 0.0011,
+   "lone": 0.0,
+   "mark": 1.6029,
+   "dark": 0.295,
+   "spread_L": 89.5112,
+   "saturation": 0.3333
+  },
+  {
+   "id": "mi2-bg-1-060",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "tree",
+    "jungle",
+    "foliage",
+    "grass",
+    "building"
+   ],
+   "colours": 157,
+   "tones_per_hue": 18.8333,
+   "step_L": 5.9281,
+   "dither": 0.0117,
+   "lone": 0.4548,
+   "mark": 1.3813,
+   "dark": 0.3739,
+   "spread_L": 61.5387,
+   "saturation": 0.4706
+  },
+  {
+   "id": "mi2-bg-1-061",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "tree",
+    "foliage",
+    "building",
+    "roof",
+    "wood"
+   ],
+   "colours": 174,
+   "tones_per_hue": 21.5,
+   "step_L": 5.9626,
+   "dither": 0.0132,
+   "lone": 0.5099,
+   "mark": 1.3,
+   "dark": 0.4793,
+   "spread_L": 72.7693,
+   "saturation": 0.4211
+  },
+  {
+   "id": "mi2-bg-1-062",
+   "tags": [
+    "mi2",
+    "indoor",
+    "wood"
+   ],
+   "colours": 158,
+   "tones_per_hue": 20.1667,
+   "step_L": 5.486,
+   "dither": 0.01,
+   "lone": 0.318,
+   "mark": 1.6397,
+   "dark": 0.7114,
+   "spread_L": 57.8089,
+   "saturation": 0.8136
+  },
+  {
+   "id": "mi2-bg-1-065",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "water",
+    "rock"
+   ],
+   "colours": 148,
+   "tones_per_hue": 22.3333,
+   "step_L": 5.8686,
+   "dither": 0.0083,
+   "lone": 0.3346,
+   "mark": 1.8639,
+   "dark": 0.5853,
+   "spread_L": 74.036,
+   "saturation": 0.6735
+  },
+  {
+   "id": "mi2-bg-1-066",
+   "tags": [
+    "mi2",
+    "wide",
+    "outdoor",
+    "water",
+    "ship",
+    "wood"
+   ],
+   "colours": 173,
+   "tones_per_hue": 28.1667,
+   "step_L": 3.9816,
+   "dither": 0.0102,
+   "lone": 0.3721,
+   "mark": 1.1316,
+   "dark": 0.5324,
+   "spread_L": 77.8653,
+   "saturation": 0.614
+  },
+  {
+   "id": "mi2-bg-1-081",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "sea",
+    "ship",
+    "sky",
+    "clouds",
+    "wood"
+   ],
+   "colours": 145,
+   "tones_per_hue": 22.1667,
+   "step_L": 10.4022,
+   "dither": 0.013,
+   "lone": 0.2657,
+   "mark": 1.953,
+   "dark": 0.38,
+   "spread_L": 84.2334,
+   "saturation": 0.7692
+  },
+  {
+   "id": "mi2-bg-2-027",
+   "tags": [
+    "mi2",
+    "wide",
+    "outdoor",
+    "day",
+    "town",
+    "building",
+    "path",
+    "stone-wall",
+    "sea",
+    "sky"
+   ],
+   "colours": 169,
+   "tones_per_hue": 21.6667,
+   "step_L": 8.1189,
+   "dither": 0.0116,
+   "lone": 0.3628,
+   "mark": 0.7722,
+   "dark": 0.3024,
+   "spread_L": 88.1963,
+   "saturation": 0.381
+  },
+  {
+   "id": "mi2-bg-2-028",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "sea",
+    "wood",
+    "sky",
+    "clouds"
+   ],
+   "colours": 158,
+   "tones_per_hue": 24.0,
+   "step_L": 5.9371,
+   "dither": 0.0176,
+   "lone": 0.1995,
+   "mark": 2.1452,
+   "dark": 0.2844,
+   "spread_L": 74.3973,
+   "saturation": 0.7778
+  },
+  {
+   "id": "mi2-bg-2-029",
+   "tags": [
+    "mi2",
+    "indoor",
+    "stone-wall",
+    "props",
+    "wood"
+   ],
+   "colours": 174,
+   "tones_per_hue": 24.3333,
+   "step_L": 8.7246,
+   "dither": 0.0095,
+   "lone": 0.3315,
+   "mark": 1.5259,
+   "dark": 0.4921,
+   "spread_L": 85.6411,
+   "saturation": 0.3516
+  },
+  {
+   "id": "mi2-bg-2-030",
+   "tags": [
+    "mi2",
+    "wide",
+    "indoor",
+    "wood",
+    "props"
+   ],
+   "colours": 152,
+   "tones_per_hue": 21.5,
+   "step_L": 7.5203,
+   "dither": 0.0099,
+   "lone": 0.3235,
+   "mark": 1.3683,
+   "dark": 0.6187,
+   "spread_L": 63.3909,
+   "saturation": 0.8254
+  },
+  {
+   "id": "mi2-bg-2-033",
+   "tags": [
+    "mi2",
+    "indoor",
+    "stone-wall",
+    "wood",
+    "props"
+   ],
+   "colours": 106,
+   "tones_per_hue": 13.8333,
+   "step_L": 7.0155,
+   "dither": 0.0121,
+   "lone": 0.2658,
+   "mark": 1.7118,
+   "dark": 0.3371,
+   "spread_L": 64.6214,
+   "saturation": 0.3137
+  },
+  {
+   "id": "mi2-bg-2-034",
+   "tags": [
+    "mi2",
+    "indoor",
+    "stone-wall",
+    "wood",
+    "props",
+    "lamp"
+   ],
+   "colours": 162,
+   "tones_per_hue": 19.8333,
+   "step_L": 8.2793,
+   "dither": 0.0135,
+   "lone": 0.2352,
+   "mark": 1.9665,
+   "dark": 0.5599,
+   "spread_L": 86.8974,
+   "saturation": 0.4112
+  },
+  {
+   "id": "mi2-bg-2-035",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "water",
+    "rock",
+    "foliage",
+    "jungle"
+   ],
+   "colours": 157,
+   "tones_per_hue": 21.5,
+   "step_L": 11.3787,
+   "dither": 0.0117,
+   "lone": 0.3346,
+   "mark": 1.6057,
+   "dark": 0.3758,
+   "spread_L": 81.8667,
+   "saturation": 0.566
+  },
+  {
+   "id": "mi2-bg-2-036",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "foliage",
+    "jungle",
+    "tree",
+    "water",
+    "sea",
+    "sky"
+   ],
+   "colours": 163,
+   "tones_per_hue": 21.5,
+   "step_L": 8.6474,
+   "dither": 0.0122,
+   "lone": 0.2917,
+   "mark": 1.8534,
+   "dark": 0.4186,
+   "spread_L": 74.2833,
+   "saturation": 0.5455
+  },
+  {
+   "id": "mi2-bg-2-037",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "sea",
+    "shore",
+    "sand",
+    "rock",
+    "grass",
+    "sky",
+    "clouds"
+   ],
+   "colours": 175,
+   "tones_per_hue": 24.8333,
+   "step_L": 5.9454,
+   "dither": 0.0239,
+   "lone": 0.3009,
+   "mark": 1.763,
+   "dark": 0.2092,
+   "spread_L": 74.1291,
+   "saturation": 0.5581
+  },
+  {
+   "id": "mi2-bg-2-038",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "building",
+    "roof",
+    "grass",
+    "sea",
+    "foliage",
+    "sky",
+    "rock"
+   ],
+   "colours": 171,
+   "tones_per_hue": 21.1667,
+   "step_L": 6.0745,
+   "dither": 0.0186,
+   "lone": 0.3926,
+   "mark": 1.4406,
+   "dark": 0.3306,
+   "spread_L": 78.3057,
+   "saturation": 0.4486
+  },
+  {
+   "id": "mi2-bg-2-039",
+   "tags": [
+    "mi2",
+    "wide",
+    "indoor",
+    "wood",
+    "props"
+   ],
+   "colours": 175,
+   "tones_per_hue": 21.5,
+   "step_L": 5.86,
+   "dither": 0.018,
+   "lone": 0.3198,
+   "mark": 1.2358,
+   "dark": 0.7841,
+   "spread_L": 45.808,
+   "saturation": 0.6957
+  },
+  {
+   "id": "mi2-bg-2-040",
+   "tags": [
+    "mi2",
+    "indoor",
+    "wood",
+    "stone-wall",
+    "props"
+   ],
+   "colours": 170,
+   "tones_per_hue": 24.8333,
+   "step_L": 5.9805,
+   "dither": 0.009,
+   "lone": 0.3004,
+   "mark": 1.8867,
+   "dark": 0.6929,
+   "spread_L": 64.461,
+   "saturation": 0.5902
+  },
+  {
+   "id": "mi2-bg-2-041",
+   "tags": [
+    "mi2",
+    "wide",
+    "outdoor",
+    "day",
+    "building",
+    "foliage",
+    "path",
+    "sea",
+    "stone-wall",
+    "sky"
+   ],
+   "colours": 175,
+   "tones_per_hue": 20.8333,
+   "step_L": 9.5683,
+   "dither": 0.0121,
+   "lone": 0.3865,
+   "mark": 1.0073,
+   "dark": 0.3198,
+   "spread_L": 77.9317,
+   "saturation": 0.5874
+  },
+  {
+   "id": "mi2-bg-2-042",
+   "tags": [
+    "mi2",
+    "indoor",
+    "day",
+    "plaster",
+    "props",
+    "wood"
+   ],
+   "colours": 175,
+   "tones_per_hue": 22.5,
+   "step_L": 6.6837,
+   "dither": 0.0222,
+   "lone": 0.4002,
+   "mark": 1.4653,
+   "dark": 0.3016,
+   "spread_L": 79.9425,
+   "saturation": 0.5657
+  },
+  {
+   "id": "mi2-bg-2-043",
+   "tags": [
+    "mi2",
+    "indoor",
+    "plaster",
+    "props"
+   ],
+   "colours": 142,
+   "tones_per_hue": 19.5,
+   "step_L": 7.8411,
+   "dither": 0.0112,
+   "lone": 0.3311,
+   "mark": 1.6064,
+   "dark": 0.3578,
+   "spread_L": 76.434,
+   "saturation": 0.5464
+  },
+  {
+   "id": "mi2-bg-3-068",
+   "tags": [
+    "mi2",
+    "tall",
+    "outdoor",
+    "dusk",
+    "rock",
+    "sea",
+    "clouds",
+    "sky",
+    "building"
+   ],
+   "colours": 78,
+   "tones_per_hue": 10.0,
+   "step_L": 7.5816,
+   "dither": 0.013,
+   "lone": 0.2478,
+   "mark": 1.9578,
+   "dark": 0.5308,
+   "spread_L": 73.5621,
+   "saturation": 0.3051
+  },
+  {
+   "id": "mi2-bg-3-069",
+   "tags": [
+    "mi2",
+    "wide",
+    "tall",
+    "outdoor",
+    "dusk",
+    "sea",
+    "rock",
+    "clouds",
+    "sky"
+   ],
+   "colours": 90,
+   "tones_per_hue": 11.0,
+   "step_L": 6.652,
+   "dither": 0.0007,
+   "lone": 0.0,
+   "mark": 2.4128,
+   "dark": 0.4573,
+   "spread_L": 79.9282,
+   "saturation": 0.3333
+  },
+  {
+   "id": "mi2-bg-3-070",
+   "tags": [
+    "mi2",
+    "wide",
+    "indoor",
+    "rock",
+    "fire"
+   ],
+   "colours": 166,
+   "tones_per_hue": 27.5,
+   "step_L": 4.3592,
+   "dither": 0.0125,
+   "lone": 0.313,
+   "mark": 0.8211,
+   "dark": 0.4214,
+   "spread_L": 64.9881,
+   "saturation": 0.8962
+  },
+  {
+   "id": "mi2-bg-3-071",
+   "tags": [
+    "mi2",
+    "indoor",
+    "rock",
+    "stone-wall",
+    "fire"
+   ],
+   "colours": 120,
+   "tones_per_hue": 19.8333,
+   "step_L": 5.132,
+   "dither": 0.0152,
+   "lone": 0.274,
+   "mark": 1.8422,
+   "dark": 0.4816,
+   "spread_L": 74.0223,
+   "saturation": 0.8205
+  },
+  {
+   "id": "mi2-bg-3-072",
+   "tags": [
+    "mi2",
+    "indoor",
+    "stone-wall"
+   ],
+   "colours": 143,
+   "tones_per_hue": 22.5,
+   "step_L": 3.6912,
+   "dither": 0.0172,
+   "lone": 0.2014,
+   "mark": 2.1499,
+   "dark": 0.2961,
+   "spread_L": 64.2128,
+   "saturation": 0.8372
+  },
+  {
+   "id": "mi2-bg-3-073",
+   "tags": [
+    "mi2",
+    "indoor",
+    "stone-wall",
+    "fire",
+    "props"
+   ],
+   "colours": 175,
+   "tones_per_hue": 28.6667,
+   "step_L": 7.0983,
+   "dither": 0.0093,
+   "lone": 0.4462,
+   "mark": 1.4261,
+   "dark": 0.4926,
+   "spread_L": 73.3581,
+   "saturation": 0.8533
+  },
+  {
+   "id": "mi2-bg-3-074",
+   "tags": [
+    "mi2",
+    "indoor",
+    "stone-wall",
+    "fire",
+    "props"
+   ],
+   "colours": 175,
+   "tones_per_hue": 28.3333,
+   "step_L": 7.5949,
+   "dither": 0.0087,
+   "lone": 0.43,
+   "mark": 1.4267,
+   "dark": 0.404,
+   "spread_L": 75.7021,
+   "saturation": 0.8974
+  },
+  {
+   "id": "mi2-bg-3-075",
+   "tags": [
+    "mi2",
+    "indoor",
+    "stone-wall",
+    "fire",
+    "props"
+   ],
+   "colours": 149,
+   "tones_per_hue": 24.6667,
+   "step_L": 5.0306,
+   "dither": 0.0106,
+   "lone": 0.4158,
+   "mark": 1.425,
+   "dark": 0.4827,
+   "spread_L": 79.9419,
+   "saturation": 0.8
+  },
+  {
+   "id": "mi2-bg-3-076",
+   "tags": [
+    "mi2",
+    "indoor",
+    "stone-wall"
+   ],
+   "colours": 158,
+   "tones_per_hue": 25.8333,
+   "step_L": 5.73,
+   "dither": 0.0092,
+   "lone": 0.283,
+   "mark": 1.5779,
+   "dark": 0.5983,
+   "spread_L": 80.1463,
+   "saturation": 0.875
+  },
+  {
+   "id": "mi2-bg-3-077",
+   "tags": [
+    "mi2",
+    "indoor",
+    "wood",
+    "props",
+    "figure"
+   ],
+   "colours": 174,
+   "tones_per_hue": 27.5,
+   "step_L": 7.2874,
+   "dither": 0.0058,
+   "lone": 0.1958,
+   "mark": 2.5142,
+   "dark": 0.6296,
+   "spread_L": 78.0458,
+   "saturation": 1.0
+  },
+  {
+   "id": "mi2-bg-3-079",
+   "tags": [
+    "mi2",
+    "indoor",
+    "rock",
+    "props",
+    "fire",
+    "lamp"
+   ],
+   "colours": 159,
+   "tones_per_hue": 23.0,
+   "step_L": 8.9438,
+   "dither": 0.0093,
+   "lone": 0.2782,
+   "mark": 1.961,
+   "dark": 0.6258,
+   "spread_L": 77.7003,
+   "saturation": 0.67
+  },
+  {
+   "id": "mi2-bg-3-083",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "dusk",
+    "sea",
+    "clouds",
+    "sky"
+   ],
+   "colours": 111,
+   "tones_per_hue": 17.1667,
+   "step_L": 5.6482,
+   "dither": 0.015,
+   "lone": 0.2138,
+   "mark": 2.161,
+   "dark": 0.1756,
+   "spread_L": 71.98,
+   "saturation": 0.4054
+  },
+  {
+   "id": "mi2-bg-4-085",
+   "tags": [
+    "mi2",
+    "wide",
+    "outdoor",
+    "day",
+    "jungle",
+    "foliage",
+    "tree",
+    "shore",
+    "sand"
+   ],
+   "colours": 167,
+   "tones_per_hue": 19.5,
+   "step_L": 9.9594,
+   "dither": 0.0092,
+   "lone": 0.3934,
+   "mark": 0.777,
+   "dark": 0.3188,
+   "spread_L": 77.0879,
+   "saturation": 0.451
+  },
+  {
+   "id": "mi2-bg-4-086",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "jungle",
+    "foliage",
+    "grass",
+    "path"
+   ],
+   "colours": 172,
+   "tones_per_hue": 25.6667,
+   "step_L": 7.6145,
+   "dither": 0.0139,
+   "lone": 0.5185,
+   "mark": 1.2774,
+   "dark": 0.3241,
+   "spread_L": 72.8844,
+   "saturation": 0.5102
+  },
+  {
+   "id": "mi2-bg-4-087",
+   "tags": [
+    "mi2",
+    "tall",
+    "indoor",
+    "rock"
+   ],
+   "colours": 168,
+   "tones_per_hue": 20.0,
+   "step_L": 3.0294,
+   "dither": 0.0189,
+   "lone": 0.2463,
+   "mark": 1.7647,
+   "dark": 0.4232,
+   "spread_L": 64.4314,
+   "saturation": 0.25
+  },
+  {
+   "id": "mi2-bg-4-088",
+   "tags": [
+    "mi2",
+    "indoor",
+    "props",
+    "dark-frame"
+   ],
+   "colours": 153,
+   "tones_per_hue": 18.6667,
+   "step_L": 7.8411,
+   "dither": 0.0027,
+   "lone": 0.1179,
+   "mark": 4.9341,
+   "dark": 0.8877,
+   "spread_L": 57.045,
+   "saturation": 0.0
+  },
+  {
+   "id": "mi2-bg-4-089",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "night",
+    "building",
+    "town",
+    "lamp"
+   ],
+   "colours": 114,
+   "tones_per_hue": 17.5,
+   "step_L": 3.9776,
+   "dither": 0.0879,
+   "lone": 0.2299,
+   "mark": 1.9867,
+   "dark": 0.8005,
+   "spread_L": 48.7913,
+   "saturation": 0.7879
+  },
+  {
+   "id": "mi2-bg-4-090",
+   "tags": [
+    "mi2",
+    "indoor",
+    "props"
+   ],
+   "colours": 161,
+   "tones_per_hue": 20.5,
+   "step_L": 4.7599,
+   "dither": 0.0103,
+   "lone": 0.2637,
+   "mark": 1.8788,
+   "dark": 0.6916,
+   "spread_L": 57.3506,
+   "saturation": 0.8533
+  },
+  {
+   "id": "mi2-bg-4-091",
+   "tags": [
+    "mi2",
+    "indoor",
+    "props",
+    "lamp"
+   ],
+   "colours": 175,
+   "tones_per_hue": 19.5,
+   "step_L": 4.2405,
+   "dither": 0.0122,
+   "lone": 0.3104,
+   "mark": 1.664,
+   "dark": 0.7134,
+   "spread_L": 68.761,
+   "saturation": 0.5619
+  },
+  {
+   "id": "mi2-bg-4-092",
+   "tags": [
+    "mi2",
+    "indoor",
+    "props",
+    "plaster"
+   ],
+   "colours": 170,
+   "tones_per_hue": 20.0,
+   "step_L": 4.2405,
+   "dither": 0.0212,
+   "lone": 0.3268,
+   "mark": 1.6176,
+   "dark": 0.6531,
+   "spread_L": 74.4151,
+   "saturation": 0.4068
+  },
+  {
+   "id": "mi2-bg-4-093",
+   "tags": [
+    "mi2",
+    "indoor",
+    "plaster",
+    "lamp"
+   ],
+   "colours": 105,
+   "tones_per_hue": 11.8333,
+   "step_L": 3.6408,
+   "dither": 0.0305,
+   "lone": 0.2075,
+   "mark": 2.1481,
+   "dark": 0.7569,
+   "spread_L": 64.8962,
+   "saturation": 0.3582
+  },
+  {
+   "id": "mi2-bg-4-096",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "jungle",
+    "foliage",
+    "path"
+   ],
+   "colours": 138,
+   "tones_per_hue": 17.1667,
+   "step_L": 11.9514,
+   "dither": 0.0161,
+   "lone": 0.4484,
+   "mark": 1.3622,
+   "dark": 0.4484,
+   "spread_L": 62.6288,
+   "saturation": 0.5714
+  },
+  {
+   "id": "mi2-bg-4-097",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "jungle",
+    "foliage",
+    "path",
+    "tree"
+   ],
+   "colours": 120,
+   "tones_per_hue": 14.8333,
+   "step_L": 10.9558,
+   "dither": 0.0133,
+   "lone": 0.4937,
+   "mark": 1.3083,
+   "dark": 0.3823,
+   "spread_L": 71.7715,
+   "saturation": 0.5714
+  },
+  {
+   "id": "mi2-bg-4-098",
+   "tags": [
+    "mi2",
+    "outdoor",
+    "day",
+    "jungle",
+    "foliage",
+    "path"
+   ],
+   "colours": 113,
+   "tones_per_hue": 14.3333,
+   "step_L": 10.9558,
+   "dither": 0.0185,
+   "lone": 0.422,
+   "mark": 1.4168,
+   "dark": 0.5076,
+   "spread_L": 62.1655,
+   "saturation": 0.5714
+  },
+  {
+   "id": "mi2-bg-4-110",
+   "tags": [
+    "mi2",
+    "wide",
+    "outdoor",
+    "day",
+    "town",
+    "building"
+   ],
+   "colours": 175,
+   "tones_per_hue": 21.0,
+   "step_L": 8.9509,
+   "dither": 0.016,
+   "lone": 0.3112,
+   "mark": 0.8589,
+   "dark": 0.346,
+   "spread_L": 72.8387,
+   "saturation": 0.5581
+  }
+ ]
+}

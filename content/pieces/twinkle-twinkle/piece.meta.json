@@ -1,0 +1,18 @@
+{
+  "id": "twinkle-twinkle",
+  "title": "Twinkle Twinkle Little Star",
+  "titles": { "et": "Sätenda, täht" },
+  "level": 5,
+  "unlockLevel": 1,
+  "status": "approved",
+  "hands": ["RH"],
+  "phrases": [
+    { "name": "Twinkle", "bars": [1, 4] },
+    { "name": "Up above", "bars": [5, 8] }
+  ],
+  "styles": ["folk"],
+  "tags": ["preliminary"],
+  "source": "traditional melody (Ah! vous dirai-je, maman, France, published 1761), public domain",
+  "license": "public-domain",
+  "generator": { "kind": "manual" }
+}

@@ -1,0 +1,73 @@
+# The privacy check (d165), apart from CI so that it also runs on every push to main and when a pull request's title or
+# description is edited. The private list secret is only in this job. On a pull request it runs as `pull_request_target`,
+# so this file and the checker always come from the base branch, never from the pull request; the pull request's own
+# files are checked out as data and read as text, never run. Nothing is installed: the checker uses Node's built-ins.
+#   - a pull request: every committed file of its head, its commit messages, its title and its description
+#   - a push to main: every committed file and the commit messages the push added
+# The private list goes only to a pull request from a branch of this repository, a push to main and a run by hand. A
+# pull request from a fork, a pull request from Dependabot and any run in a fork get the generic rules alone (a missing
+# list is a warning there), so a stranger's pull request can never test guesses against the list; the run on main
+# checks the merged files against it.
+name: Privacy
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, edited]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: privacy-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
+  # a run on main is never cancelled, so the messages of every push are checked
+  cancel-in-progress: ${{ github.event_name == 'pull_request_target' }}
+
+permissions:
+  contents: read
+  pull-requests: read # the title and the description are read now, so a run after an edit sees the new ones
+
+jobs:
+  privacy:
+    name: privacy
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: The files to check
+        uses: actions/checkout@v7
+        with:
+          path: head
+          # the pull request's head (from its own repository), or the pushed commit
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0 # the commit messages since the base
+          persist-credentials: false
+      - name: The checker, from the base commit
+        uses: actions/checkout@v7
+        with:
+          path: checker
+          ref: ${{ github.event.pull_request.base.sha || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before) || github.sha }}
+          sparse-checkout: tools/docs
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Every committed file, the commit messages, the title and the description, against the rules and the private list
+        working-directory: head
+        env:
+          # the list only for a branch of this repository: never for a fork's pull request
+          PIANOR_PERSONAL_WORDS: ${{ (github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.full_name == github.repository) && secrets.PIANOR_PERSONAL_WORDS || '' }}
+          ALLOW_MISSING_LIST: ${{ (github.event.repository.fork || github.actor == 'dependabot[bot]' || (github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository)) && '1' || '0' }}
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          # the base the messages are counted from: the pull request's base, or main before the push
+          BASE: ${{ github.event.pull_request.base.sha || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before) || '' }}
+        run: |
+          if [ -n "$PR" ]; then
+            PR_TITLE="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq '.title // ""')"
+            PR_BODY="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" --jq '.body // ""')"
+            export PR_TITLE PR_BODY
+          fi
+          base="$BASE"
+          if [ -z "$base" ] && git rev-parse -q --verify HEAD~1 >/dev/null; then base=HEAD~1; fi
+          node --experimental-strip-types --no-warnings ../checker/tools/docs/privacy-ci.ts ${base:+"$base"}

@@ -1,0 +1,110 @@
+# The browser jobs, called by CI (a push to a labelled pull request, the weekly and manual runs) and by "PR labels and
+# edits" (adding a ci: label). One file, so both run the same jobs (d090).
+name: browser tests
+
+on:
+  workflow_call:
+    inputs:
+      e2e:
+        type: boolean
+        default: false
+      visual:
+        type: boolean
+        default: false
+      full: # every area instead of the areas the pull request touches
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  # The browser tests (Playwright, Chromium). Screenshot baselines are made on Windows only (d062), so the screenshot tests
+  # skip here and the visual (Windows) job below checks the pixels; here they prove the flow.
+  # A pull request with the `ci:e2e` label runs the areas its changes touch plus the smoke tests (on adding the label and
+  # on each later push); the weekly and manual runs run every area (docs/testing.md section 10).
+  e2e:
+    name: e2e
+    if: inputs.e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the affected areas are found by comparing with the base branch
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Remember the browser between runs
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps chromium
+      - name: End-to-end tests, the affected areas of a pull request
+        if: ${{ !inputs.full }}
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: npm run test:e2e:affected -- "$BASE"
+      - name: End-to-end tests, every area
+        if: inputs.full
+        run: npm run test:e2e
+      - name: Keep the run log (summary per area, failures with the browser console, history line)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-run-log
+          path: test-logs/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Keep the report and traces of a failed run
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  # The screenshot tests against the Windows baselines, the source of truth (the game is played on Windows; d062).
+  # Linux CI and cloud sessions skip them. Runs on GitHub's hosted Windows runner, with the `ci:visual` label, in the
+  # weekly run and by hand. Software WebGL (E2E_GPU=0), like the update-snapshots workflow that makes the baselines on
+  # the same kind of runner. On a failure the report holds the expected,
+  # actual and diff images.
+  visual-windows:
+    name: visual (Windows)
+    if: inputs.visual
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      E2E_GPU: '0'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx playwright install chromium
+      # One test at a time with a long limit, as measured on the 2-core hosted runner.
+      - name: Screenshot tests and the label check, the visual area
+        run: npx playwright test --project=visual --workers=1 --timeout=240000
+      - name: Keep the run log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-run-log-windows
+          path: test-logs/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Keep the report with the screenshot diffs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-windows
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

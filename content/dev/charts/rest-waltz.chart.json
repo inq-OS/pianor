@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 2,
+  "id": "rest-waltz",
+  "contentVersion": 1,
+  "title": "Rest Waltz",
+  "level": 3,
+  "ppq": 480,
+  "tempoMap": [
+    {
+      "tick": 0,
+      "bpm": 90
+    }
+  ],
+  "meterMap": [
+    {
+      "tick": 0,
+      "num": 3,
+      "den": 4
+    }
+  ],
+  "keyMap": [
+    {
+      "tick": 0,
+      "fifths": 0,
+      "mode": "major"
+    }
+  ],
+  "tracks": [
+    {
+      "id": "t",
+      "role": "play",
+      "hand": "RH",
+      "clef": "treble"
+    }
+  ],
+  "notes": [
+    {
+      "tick": 0,
+      "dur": 480,
+      "midi": 60,
+      "spelling": {
+        "step": "C",
+        "alter": 0,
+        "octave": 4
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 0,
+      "finger": 1
+    },
+    {
+      "tick": 480,
+      "dur": 480,
+      "midi": 62,
+      "spelling": {
+        "step": "D",
+        "alter": 0,
+        "octave": 4
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 0,
+      "finger": 2
+    },
+    {
+      "tick": 960,
+      "dur": 480,
+      "midi": 64,
+      "spelling": {
+        "step": "E",
+        "alter": 0,
+        "octave": 4
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 0,
+      "finger": 3
+    },
+    {
+      "tick": 1440,
+      "dur": 960,
+      "midi": 67,
+      "spelling": {
+        "step": "G",
+        "alter": 0,
+        "octave": 4
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 1,
+      "finger": 5
+    },
+    {
+      "tick": 4320,
+      "dur": 960,
+      "midi": 60,
+      "spelling": {
+        "step": "C",
+        "alter": 0,
+        "octave": 4
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 3,
+      "finger": 1
+    }
+  ],
+  "rests": [
+    {
+      "tick": 2400,
+      "dur": 480,
+      "track": "t",
+      "voice": 1,
+      "bar": 1
+    },
+    {
+      "tick": 2880,
+      "dur": 1440,
+      "track": "t",
+      "voice": 1,
+      "bar": 2
+    },
+    {
+      "tick": 5280,
+      "dur": 480,
+      "track": "t",
+      "voice": 1,
+      "bar": 3
+    }
+  ],
+  "bars": [
+    {
+      "index": 0,
+      "startTick": 0,
+      "endTick": 1440
+    },
+    {
+      "index": 1,
+      "startTick": 1440,
+      "endTick": 2880
+    },
+    {
+      "index": 2,
+      "startTick": 2880,
+      "endTick": 4320
+    },
+    {
+      "index": 3,
+      "startTick": 4320,
+      "endTick": 5760
+    }
+  ],
+  "phrases": [
+    {
+      "name": "Phrase",
+      "startBar": 0,
+      "endBar": 3
+    }
+  ],
+  "range": {
+    "low": 60,
+    "high": 67
+  }
+}

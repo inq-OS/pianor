@@ -1,0 +1,38 @@
+{
+  "id": "mary-had-a-little-lamb",
+  "title": "Mary Had a Little Lamb",
+  "titles": { "et": "Marial oli väike lammas" },
+  "level": 3,
+  "status": "draft",
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "First",
+      "bars": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "Second",
+      "bars": [
+        5,
+        8
+      ]
+    }
+  ],
+  "styles": [
+    "folk"
+  ],
+  "tags": [
+    "c-position",
+    "thirds"
+  ],
+  "source": "traditional tune (Mary Had a Little Lamb, 1830s), public domain",
+  "license": "public-domain",
+  "generator": {
+    "kind": "manual"
+  }
+}

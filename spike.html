@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pianor hardware check</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <style>
+      :root { --ink: #1b1b2f; --paper: #fdf6e3; --card: #ffffff; --line: #d9cfb8; --accent: #2b6cff; --good: #1f9d55; --warn: #b7791f; --bad: #d7263d; }
+      html, body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.45 system-ui, sans-serif; }
+      main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+      h1 { font-size: 1.6rem; margin: 0.2rem 0 0.4rem; }
+      h2 { font-size: 1.15rem; margin: 0 0 0.5rem; }
+      section { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin: 12px 0; }
+      button { font: inherit; padding: 6px 12px; margin: 2px 4px 2px 0; border-radius: 6px; border: 1px solid #1d4fc4; background: var(--accent); color: #fff; cursor: pointer; }
+      button:disabled { background: #9aa9c9; border-color: #9aa9c9; cursor: default; }
+      button.quiet { background: #fff; color: var(--ink); border-color: var(--line); }
+      input, select, textarea { font: inherit; padding: 3px 6px; }
+      input[type=number] { width: 5.5em; }
+      label { margin-right: 12px; white-space: nowrap; }
+      table { border-collapse: collapse; width: 100%; font: 14px/1.35 ui-monospace, monospace; }
+      th, td { text-align: left; padding: 2px 8px 2px 0; border-bottom: 1px solid #eee5d0; vertical-align: top; }
+      .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.85rem; color: #fff; background: var(--good); }
+      .badge.virtual { background: var(--warn); }
+      .badge.bad { background: var(--bad); }
+      .hint { color: #5b5b70; font-size: 0.92rem; }
+      .row { margin: 6px 0; }
+      .log { max-height: 340px; overflow: auto; }
+      .result { font-weight: 600; }
+      textarea.report { width: 100%; min-height: 220px; font: 13px/1.35 ui-monospace, monospace; box-sizing: border-box; }
+    </style>
+  </head>
+  <body>
+    <main id="spike"></main>
+    <script type="module" src="/src/spike/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "knoll",
+  "picture": "knoll",
+  "hotspots": [
+    { "id": "bonfire", "area": { "x": 270, "y": 150, "w": 84, "h": 40 }, "name": "scene.knoll.bonfire", "look": "scene.knoll.bonfire.look", "place": "by-the-fire" }
+  ],
+  "places": [
+    { "id": "by-the-fire", "x": 330, "y": 210, "facing": "left" },
+    { "id": "path-top", "x": 120, "y": 250, "facing": "right", "scale": 0.9 }
+  ],
+  "exits": [
+    { "id": "to-map", "area": { "x": 0, "y": 300, "w": 60, "h": 60 }, "to": "map", "name": "scene.exit.map" },
+    { "id": "to-room", "area": { "x": 580, "y": 300, "w": 60, "h": 60 }, "to": "room", "name": "scene.exit.room" }
+  ],
+  "musicTie": "scene.knoll.music"
+}

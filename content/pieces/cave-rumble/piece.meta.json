@@ -1,0 +1,54 @@
+{
+  "id": "cave-rumble",
+  "title": "Cave Rumble",
+  "titles": { "et": "Koopa kõmin" },
+  "level": 2,
+  "status": "approved",
+  "hands": [
+    "LH"
+  ],
+  "phrases": [
+    {
+      "name": "Rumble",
+      "bars": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "Rumble back",
+      "bars": [
+        5,
+        8
+      ]
+    },
+    {
+      "name": "Climb",
+      "bars": [
+        9,
+        12
+      ]
+    },
+    {
+      "name": "Home",
+      "bars": [
+        13,
+        16
+      ]
+    }
+  ],
+  "styles": [
+    "original"
+  ],
+  "tags": [
+    "c-position",
+    "steps",
+    "bass-clef",
+    "monster-song"
+  ],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": {
+    "kind": "manual"
+  }
+}

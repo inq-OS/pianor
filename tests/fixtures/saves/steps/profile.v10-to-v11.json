@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 11,
+  "id": "p-fixture-10",
+  "name": "Fixture Player",
+  "createdAt": "1998-10-01T09:00:00.000Z",
+  "settings": {
+    "staff": {
+      "lines": 2,
+      "barsPerLine": 4
+    },
+    "play": {
+      "mode": "tempo",
+      "scoreView": "number"
+    },
+    "pieces": {
+      "hidden": [
+        "rest-waltz",
+        "a-piece-that-no-longer-exists"
+      ]
+    },
+    "battle": {
+      "fights": "many"
+    },
+    "barNumbers": {
+      "mode": "every2"
+    },
+    "keyboard": {
+      "onScreen": false
+    },
+    "noteNaming": "B",
+    "staffGap": "wide",
+    "keyLights": {
+      "enabled": false,
+      "afterWrong": 0
+    }
+  },
+  "battles": [
+    {
+      "n": 1,
+      "at": "1998-10-03T17:00:00.000Z",
+      "monsterId": "wobble",
+      "pieceId": "little-steps",
+      "won": true,
+      "hpTaken": 20,
+      "maxHp": 20,
+      "potentialXp": 30,
+      "rounds": 2,
+      "playerHpLeft": 80,
+      "playerMaxHp": 100,
+      "xp": 30
+    },
+    {
+      "n": 2,
+      "at": "1998-10-03T17:10:00.000Z",
+      "monsterId": "wobble",
+      "pieceId": "rest-waltz",
+      "won": false,
+      "hpTaken": 5,
+      "maxHp": 20,
+      "potentialXp": 30,
+      "rounds": 1,
+      "playerHpLeft": 0,
+      "playerMaxHp": 100,
+      "xp": 4
+    },
+    {
+      "n": 3,
+      "at": "1998-10-04T17:00:00.000Z",
+      "monsterId": "wobble",
+      "pieceId": "little-steps",
+      "won": true,
+      "hpTaken": 20,
+      "maxHp": 20,
+      "potentialXp": 30,
+      "rounds": 1,
+      "playerHpLeft": 74,
+      "playerMaxHp": 100,
+      "xp": 30
+    },
+    {
+      "n": 4,
+      "at": "1998-10-04T17:00:00.000Z",
+      "monsterId": "wobble",
+      "pieceId": "little-steps",
+      "won": true,
+      "hpTaken": 30,
+      "maxHp": 30,
+      "potentialXp": 38,
+      "rounds": 1,
+      "playerHpLeft": 60,
+      "playerMaxHp": 100,
+      "xp": 38
+    },
+    {
+      "n": 5,
+      "at": "1998-10-04T17:00:00.000Z",
+      "monsterId": "wobble",
+      "pieceId": "little-steps",
+      "won": false,
+      "hpTaken": 9,
+      "maxHp": 45,
+      "potentialXp": 47,
+      "rounds": 2,
+      "playerHpLeft": 0,
+      "playerMaxHp": 100,
+      "xp": 5
+    }
+  ],
+  "attempts": [
+    {
+      "n": 1,
+      "at": "1998-10-01T10:00:00.000Z",
+      "pieceId": "little-steps",
+      "contentVersion": 1,
+      "stars": 3,
+      "result": {
+        "chartId": "little-steps",
+        "contentVersion": 1,
+        "notes": 11,
+        "firstTryCorrect": 11,
+        "mistakes": 0,
+        "accuracy": 1,
+        "rhythmErrorMs": 120.5,
+        "hints": {
+          "noteNames": 0,
+          "fingers": 0
+        },
+        "bothHands": {
+          "notes": 0,
+          "together": 0
+        }
+      },
+      "xp": {
+        "kind": "first",
+        "completion": 20,
+        "accuracy": 30,
+        "bonus": 20,
+        "replayFactor": 1,
+        "hintFactor": 1,
+        "bothHandsMultiplier": 1,
+        "total": 70
+      },
+      "play": {
+        "mode": "wait",
+        "tempoPercent": 100
+      }
+    },
+    {
+      "n": 2,
+      "at": "1998-10-01T10:05:00.000Z",
+      "pieceId": "little-steps",
+      "contentVersion": 1,
+      "stars": 3,
+      "result": {
+        "chartId": "little-steps",
+        "contentVersion": 1,
+        "notes": 11,
+        "firstTryCorrect": 11,
+        "mistakes": 0,
+        "accuracy": 1,
+        "rhythmErrorMs": 90,
+        "hints": {
+          "noteNames": 0,
+          "fingers": 0
+        },
+        "bothHands": {
+          "notes": 0,
+          "together": 0
+        }
+      },
+      "xp": {
+        "kind": "replay",
+        "completion": 20,
+        "accuracy": 30,
+        "bonus": 0,
+        "replayFactor": 0.5,
+        "hintFactor": 1,
+        "bothHandsMultiplier": 1,
+        "total": 25
+      },
+      "play": {
+        "mode": "wait",
+        "tempoPercent": 100
+      }
+    },
+    {
+      "n": 3,
+      "at": "1998-10-02T16:00:00.000Z",
+      "pieceId": "rest-waltz",
+      "contentVersion": 1,
+      "stars": 2,
+      "result": {
+        "chartId": "rest-waltz",
+        "contentVersion": 1,
+        "notes": 5,
+        "firstTryCorrect": 4,
+        "mistakes": 1,
+        "accuracy": 0.8,
+        "rhythmErrorMs": null,
+        "hints": {
+          "noteNames": 0,
+          "fingers": 0
+        },
+        "bothHands": {
+          "notes": 0,
+          "together": 0
+        }
+      },
+      "xp": {
+        "kind": "first",
+        "completion": 20,
+        "accuracy": 24,
+        "bonus": 20,
+        "replayFactor": 1,
+        "hintFactor": 1,
+        "bothHandsMultiplier": 1,
+        "total": 64
+      },
+      "play": {
+        "mode": "wait",
+        "tempoPercent": 100
+      }
+    },
+    {
+      "n": 4,
+      "at": "1998-10-02T16:10:00.000Z",
+      "pieceId": "rest-waltz",
+      "contentVersion": 1,
+      "stars": 3,
+      "result": {
+        "chartId": "rest-waltz",
+        "contentVersion": 1,
+        "notes": 5,
+        "firstTryCorrect": 5,
+        "mistakes": 0,
+        "accuracy": 1,
+        "rhythmErrorMs": null,
+        "hints": {
+          "noteNames": 0,
+          "fingers": 0
+        },
+        "bothHands": {
+          "notes": 0,
+          "together": 0
+        },
+        "timing": {
+          "played": 5,
+          "onTime": 4,
+          "early": 0,
+          "late": 1,
+          "missed": 0,
+          "meanAbsErrorMs": 64.5,
+          "score": 88
+        }
+      },
+      "xp": {
+        "kind": "improved",
+        "completion": 20,
+        "accuracy": 30,
+        "bonus": 15,
+        "replayFactor": 1,
+        "hintFactor": 1,
+        "bothHandsMultiplier": 1,
+        "total": 65
+      },
+      "play": {
+        "mode": "tempo",
+        "tempoPercent": 90
+      }
+    }
+  ]
+}

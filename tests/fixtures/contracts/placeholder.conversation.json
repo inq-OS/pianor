@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "placeholder",
+  "start": "hello",
+  "nodes": {
+    "hello": {
+      "speaker": "character",
+      "line": "talk.placeholder.hello",
+      "choices": [
+        {
+          "text": "talk.placeholder.play",
+          "next": "play"
+        },
+        {
+          "text": "talk.placeholder.bye",
+          "next": "bye",
+          "when": {
+            "all": [
+              {
+                "flag": "met-placeholder"
+              },
+              {
+                "notFlag": "tired"
+              }
+            ]
+          }
+        }
+      ],
+      "effects": [
+        {
+          "setFlag": "met-placeholder"
+        }
+      ]
+    },
+    "play": {
+      "speaker": "character",
+      "line": "talk.placeholder.listen",
+      "effects": [
+        {
+          "teach": "echo-giant"
+        }
+      ]
+    },
+    "bye": {
+      "speaker": "character",
+      "line": "talk.placeholder.goodbye",
+      "effects": [
+        {
+          "leave": true
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "id": "fisherman",
+  "start": "taught",
+  "nodes": {
+    "taught": {
+      "speaker": "character",
+      "line": "talk.fisherman.taught",
+      "when": { "all": [{ "taught": "fisherman-1" }, { "notFlag": "fisherman-taught-said" }] },
+      "effects": [{ "setFlag": "fisherman-taught-said" }, { "leave": true }],
+      "next": "hello"
+    },
+    "hello": {
+      "speaker": "character",
+      "line": "talk.fisherman.hello",
+      "when": { "notFlag": "met-fisherman" },
+      "next": "tie"
+    },
+    "tie": {
+      "speaker": "character",
+      "line": "character.fisherman.music",
+      "when": { "notFlag": "met-fisherman" },
+      "effects": [{ "setFlag": "met-fisherman" }],
+      "next": "ask"
+    },
+    "ask": {
+      "speaker": "character",
+      "line": "talk.fisherman.menu",
+      "when": { "notFlag": "known-fisherman" },
+      "choices": [
+        { "text": "talk.fisherman.askWho", "next": "who" },
+        { "text": "talk.fisherman.askTeach", "next": "teach" },
+        { "text": "talk.fisherman.askLater", "next": "bye" }
+      ],
+      "next": "menu"
+    },
+    "who": {
+      "speaker": "character",
+      "line": "talk.fisherman.who",
+      "effects": [{ "setFlag": "known-fisherman" }],
+      "choices": [
+        { "text": "talk.fisherman.askTeach", "next": "teach" },
+        { "text": "talk.fisherman.askTug", "next": "tug", "when": { "taught": "fisherman-1" } },
+        { "text": "talk.fisherman.askLater", "next": "bye" }
+      ]
+    },
+    "menu": {
+      "speaker": "character",
+      "line": "talk.fisherman.menu",
+      "choices": [
+        { "text": "talk.fisherman.askTeach", "next": "teach" },
+        { "text": "talk.fisherman.askTug", "next": "tug", "when": { "taught": "fisherman-1" } },
+        { "text": "talk.fisherman.askLater", "next": "bye" }
+      ]
+    },
+    "teach": {
+      "speaker": "character",
+      "line": "piece.fisherman-1.about",
+      "effects": [{ "teach": "fisherman-1" }]
+    },
+    "tug": {
+      "speaker": "character",
+      "line": "talk.fisherman.tug",
+      "effects": [{ "tug": 1 }]
+    },
+    "bye": {
+      "speaker": "character",
+      "line": "talk.fisherman.bye",
+      "effects": [{ "leave": true }]
+    }
+  }
+}

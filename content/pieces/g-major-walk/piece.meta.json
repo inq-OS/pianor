@@ -1,0 +1,39 @@
+{
+  "id": "g-major-walk",
+  "title": "G Major Walk",
+  "titles": { "et": "G-duuri jalutuskäik" },
+  "level": 1,
+  "status": "draft",
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "Up",
+      "bars": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "Down",
+      "bars": [
+        5,
+        8
+      ]
+    }
+  ],
+  "styles": [
+    "original"
+  ],
+  "tags": [
+    "g-major",
+    "key-signature",
+    "natural-sign"
+  ],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": {
+    "kind": "manual"
+  }
+}

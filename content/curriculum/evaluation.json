@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "note": "AX-3 provisional (d139). Defaults of the curriculum model; the teacher overrides base, lastPlays and retain per player or piece in the curriculum document. weights: shares of the play score per mode (pitch = notes right first try, timing = notes on time, tempo = tempo reached). retain: of the last lastPlays plays at least atLeast reach the expected level, at most belowAtMost fall below it, none by more than byAtMost points. medals: achieved level over expected, in percent.",
+  "weights": {
+    "tempo": { "pitch": 60, "timing": 30, "tempo": 10 },
+    "wait": { "pitch": 100, "timing": 0, "tempo": 0 }
+  },
+  "base": 85,
+  "lastPlays": 10,
+  "retain": { "atLeast": 3, "belowAtMost": 2, "byAtMost": 15 },
+  "minPlays": 3,
+  "trendDays": 14,
+  "minPracticeDays": 3,
+  "highPriorityFrom": 5,
+  "medals": { "bronzeFrom": 85, "silverFrom": 96, "goldAbove": 105 }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "hands-together",
+  "title": "Hands Together",
+  "level": 5,
+  "status": "draft",
+  "hands": ["RH", "LH"],
+  "phrases": [{ "name": "Together", "bars": [1, 4] }],
+  "styles": ["original"],
+  "tags": ["two-hands"],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": { "kind": "manual" }
+}

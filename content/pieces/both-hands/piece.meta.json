@@ -1,0 +1,18 @@
+{
+  "id": "both-hands",
+  "title": "Both Hands",
+  "titles": { "et": "Mõlemad käed" },
+  "level": 5,
+  "unlockLevel": 5,
+  "status": "draft",
+  "hands": ["RH", "LH"],
+  "phrases": [
+    { "name": "Up", "bars": [1, 4] },
+    { "name": "Home", "bars": [5, 8] }
+  ],
+  "styles": ["original"],
+  "tags": ["two-hands", "together"],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": { "kind": "manual" }
+}

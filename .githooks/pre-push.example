@@ -1,0 +1,10 @@
+#!/bin/sh
+# Optional: copy this file to `.githooks/pre-push` (untracked) to run the check before every push.
+# Runs the fast gate before anything leaves this machine: typecheck, lint, unit tests and the docs check.
+# (The browser tests are slow here; CI runs them. Use `npm run test:e2e:smoke` for a quick look.)
+# Skip it for one push with `git push --no-verify` when you know why.
+echo "pre-push: npm run check"
+npm run check || {
+  echo "pre-push: the check failed, nothing was pushed."
+  exit 1
+}

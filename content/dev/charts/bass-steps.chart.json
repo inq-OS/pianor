@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 2,
+  "id": "bass-steps",
+  "contentVersion": 1,
+  "title": "Bass Steps",
+  "level": 2,
+  "ppq": 480,
+  "tempoMap": [
+    {
+      "tick": 0,
+      "bpm": 70
+    }
+  ],
+  "meterMap": [
+    {
+      "tick": 0,
+      "num": 4,
+      "den": 4
+    }
+  ],
+  "keyMap": [
+    {
+      "tick": 0,
+      "fifths": 0,
+      "mode": "major"
+    }
+  ],
+  "tracks": [
+    {
+      "id": "t",
+      "role": "play",
+      "hand": "LH",
+      "clef": "bass"
+    }
+  ],
+  "notes": [
+    {
+      "tick": 0,
+      "dur": 480,
+      "midi": 48,
+      "spelling": {
+        "step": "C",
+        "alter": 0,
+        "octave": 3
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 0,
+      "finger": 5
+    },
+    {
+      "tick": 480,
+      "dur": 480,
+      "midi": 50,
+      "spelling": {
+        "step": "D",
+        "alter": 0,
+        "octave": 3
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 0,
+      "finger": 4
+    },
+    {
+      "tick": 960,
+      "dur": 480,
+      "midi": 52,
+      "spelling": {
+        "step": "E",
+        "alter": 0,
+        "octave": 3
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 0,
+      "finger": 3
+    },
+    {
+      "tick": 1440,
+      "dur": 480,
+      "midi": 53,
+      "spelling": {
+        "step": "F",
+        "alter": 0,
+        "octave": 3
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 0,
+      "finger": 2
+    },
+    {
+      "tick": 1920,
+      "dur": 960,
+      "midi": 55,
+      "spelling": {
+        "step": "G",
+        "alter": 0,
+        "octave": 3
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 1,
+      "finger": 1
+    },
+    {
+      "tick": 2880,
+      "dur": 960,
+      "midi": 53,
+      "spelling": {
+        "step": "F",
+        "alter": 0,
+        "octave": 3
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 1,
+      "finger": 2
+    },
+    {
+      "tick": 3840,
+      "dur": 480,
+      "midi": 52,
+      "spelling": {
+        "step": "E",
+        "alter": 0,
+        "octave": 3
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 2,
+      "finger": 3
+    },
+    {
+      "tick": 4320,
+      "dur": 480,
+      "midi": 50,
+      "spelling": {
+        "step": "D",
+        "alter": 0,
+        "octave": 3
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 2,
+      "finger": 4
+    },
+    {
+      "tick": 4800,
+      "dur": 480,
+      "midi": 48,
+      "spelling": {
+        "step": "C",
+        "alter": 0,
+        "octave": 3
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 2,
+      "finger": 5
+    },
+    {
+      "tick": 5760,
+      "dur": 1920,
+      "midi": 48,
+      "spelling": {
+        "step": "C",
+        "alter": 0,
+        "octave": 3
+      },
+      "track": "t",
+      "voice": 1,
+      "bar": 3,
+      "finger": 5
+    }
+  ],
+  "rests": [
+    {
+      "tick": 5280,
+      "dur": 480,
+      "track": "t",
+      "voice": 1,
+      "bar": 2
+    }
+  ],
+  "bars": [
+    {
+      "index": 0,
+      "startTick": 0,
+      "endTick": 1920
+    },
+    {
+      "index": 1,
+      "startTick": 1920,
+      "endTick": 3840
+    },
+    {
+      "index": 2,
+      "startTick": 3840,
+      "endTick": 5760
+    },
+    {
+      "index": 3,
+      "startTick": 5760,
+      "endTick": 7680
+    }
+  ],
+  "phrases": [
+    {
+      "name": "Phrase",
+      "startBar": 0,
+      "endBar": 3
+    }
+  ],
+  "range": {
+    "low": 48,
+    "high": 55
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "id": "ode-to-joy-left-hand",
+  "title": "Ode to Joy, Left Hand",
+  "titles": { "et": "Ood rõõmule, vasak käsi" },
+  "level": 2,
+  "status": "draft",
+  "hands": [
+    "LH"
+  ],
+  "phrases": [
+    {
+      "name": "Question",
+      "bars": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "Answer",
+      "bars": [
+        5,
+        8
+      ]
+    }
+  ],
+  "styles": [
+    "classical"
+  ],
+  "tags": [
+    "c-position",
+    "stepwise",
+    "left-hand"
+  ],
+  "source": "Ludwig van Beethoven, Symphony No. 9 (1824), public domain; the theme with the dotted rhythm made even",
+  "license": "public-domain",
+  "generator": {
+    "kind": "manual"
+  }
+}

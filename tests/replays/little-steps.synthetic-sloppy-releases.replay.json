@@ -1,0 +1,32 @@
+{
+  "synthetic": true,
+  "description": "Perfect notes with messy releases: note-on with velocity 0 as note-off, releases of keys that were never pressed, and keys never released at all. None of it may judge, advance or block.",
+  "chart": "tests/fixtures/charts/little-steps.v1.json",
+  "events": [
+    { "kind": "off", "midi": 72, "velocity": 0, "timeMs": 0 },
+    { "kind": "on", "midi": 60, "velocity": 80, "timeMs": 100 },
+    { "kind": "on", "midi": 60, "velocity": 0, "timeMs": 300 },
+    { "kind": "on", "midi": 62, "velocity": 80, "timeMs": 900 },
+    { "kind": "on", "midi": 99, "velocity": 0, "timeMs": 950 },
+    { "kind": "on", "midi": 64, "velocity": 80, "timeMs": 1800 },
+    { "kind": "on", "midi": 65, "velocity": 80, "timeMs": 2700 },
+    { "kind": "off", "midi": 62, "velocity": 0, "timeMs": 2800 },
+    { "kind": "on", "midi": 67, "velocity": 80, "timeMs": 3600 },
+    { "kind": "on", "midi": 65, "velocity": 80, "timeMs": 4500 },
+    { "kind": "on", "midi": 65, "velocity": 80, "timeMs": 5400 },
+    { "kind": "on", "midi": 64, "velocity": 80, "timeMs": 6200 },
+    { "kind": "on", "midi": 62, "velocity": 80, "timeMs": 7000 },
+    { "kind": "on", "midi": 60, "velocity": 80, "timeMs": 7800 },
+    { "kind": "on", "midi": 60, "velocity": 80, "timeMs": 9500 }
+  ],
+  "expect": {
+    "wrong": [],
+    "bars": [
+      { "bar": 0, "notes": 4, "firstTryCorrect": 4, "mistakes": 0 },
+      { "bar": 1, "notes": 2, "firstTryCorrect": 2, "mistakes": 0 },
+      { "bar": 2, "notes": 4, "firstTryCorrect": 4, "mistakes": 0 },
+      { "bar": 3, "notes": 1, "firstTryCorrect": 1, "mistakes": 0 }
+    ],
+    "piece": { "notes": 11, "firstTryCorrect": 11, "mistakes": 0, "accuracy": 1 }
+  }
+}

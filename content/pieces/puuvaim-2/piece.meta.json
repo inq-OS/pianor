@@ -1,0 +1,41 @@
+{
+  "id": "puuvaim-2",
+  "title": "Brother John",
+  "titles": {
+    "et": "Vend Jaak"
+  },
+  "level": 3,
+  "status": "draft",
+  "difficulty": 2,
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "Are you sleeping",
+      "bars": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "Morning bells",
+      "bars": [
+        3,
+        4
+      ]
+    }
+  ],
+  "styles": [
+    "folk"
+  ],
+  "tags": [
+    "phrase",
+    "puuvaim"
+  ],
+  "source": "traditional French round \"Frère Jacques\" (18th century), public domain; the first half",
+  "license": "public-domain",
+  "generator": {
+    "kind": "manual"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 0,
+  "id": "legacy-steps",
+  "title": "Legacy Steps",
+  "level": 1,
+  "tempo": 80,
+  "timeSig": {
+    "num": 4,
+    "den": 4
+  },
+  "synthetic": true,
+  "notes": [
+    {
+      "tick": 0,
+      "dur": 480,
+      "midi": 60
+    },
+    {
+      "tick": 480,
+      "dur": 480,
+      "midi": 61
+    },
+    {
+      "tick": 960,
+      "dur": 960,
+      "midi": 64
+    },
+    {
+      "tick": 1920,
+      "dur": 1920,
+      "midi": 67
+    }
+  ]
+}

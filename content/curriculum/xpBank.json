@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "note": "PROVISIONAL. Bank of a practice run (WP-X). bitePercentByLevel[i] is the base bite in percent for curriculum level i+1; the last value is used for higher levels. 2% at every level (harder default) until WP-G sets the difficulty scaling (task X3). floorPercent: miss bites switch off at or below this share of the base XP.",
+  "floorPercent": 10,
+  "bitePercentByLevel": [2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+}

@@ -1,0 +1,41 @@
+{
+  "id": "fisherman-1",
+  "title": "Row, Row, Row Your Boat",
+  "titles": {
+    "et": "S\u00f5ua, s\u00f5ua paati"
+  },
+  "level": 1,
+  "status": "draft",
+  "difficulty": 1,
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "Row your boat",
+      "bars": [
+        1,
+        3
+      ]
+    },
+    {
+      "name": "Life is but a dream",
+      "bars": [
+        4,
+        5
+      ]
+    }
+  ],
+  "styles": [
+    "folk"
+  ],
+  "tags": [
+    "phrase",
+    "fisherman"
+  ],
+  "source": "American round (words 1852, tune 1881), public domain; its first and last lines",
+  "license": "public-domain",
+  "generator": {
+    "kind": "manual"
+  }
+}

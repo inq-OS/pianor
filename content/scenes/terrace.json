@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "terrace",
+  "picture": "terrace",
+  "hotspots": [],
+  "places": [
+    {
+      "id": "by-the-walk",
+      "x": 236,
+      "y": 179,
+      "facing": "right"
+    },
+    {
+      "id": "mid-deck-left",
+      "x": 300,
+      "y": 179,
+      "facing": "right"
+    },
+    {
+      "id": "mid-deck-right",
+      "x": 364,
+      "y": 179,
+      "facing": "left"
+    },
+    {
+      "id": "by-the-bench",
+      "x": 428,
+      "y": 179,
+      "facing": "left"
+    }
+  ],
+  "exits": []
+}

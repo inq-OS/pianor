@@ -1,0 +1,13 @@
+X:43
+T:Echo Giant
+M:4/4
+L:1/4
+Q:1/4=66
+K:C
+% The fourth monster song: the hands take turns, four bars each, never together; the resting hand has a whole-bar rest. The last four bars echo the giant's tune of bars 25 to 28 an octave lower.
+V:RH clef=treble
+V:LH clef=bass
+V:RH
+!5!G !3!E !4!F !2!D | !3!E !1!C !2!D2 | !3!E !4!F !5!G !3!E | !4!F2 !2!D2 | Z | Z | Z | Z | !1!C !3!E !2!D !4!F | !3!E !5!G !4!F2 | !3!E !2!D !3!E !1!C | !2!D4 | Z | Z | Z | Z | !3!E z !5!G z | !4!F !3!E !2!D z | !3!E !4!F !5!G !3!E | !4!F3 z | Z | Z | Z | Z | !3!E !5!G !4!F !2!D | !3!E !1!C !2!D !3!E | !4!F !3!E !2!D2 | !1!C4 | Z | Z | Z | Z |]
+V:LH
+Z | Z | Z | Z | !4!D, !3!E, !2!F, !4!D, | !3!E,2 !5!C,2 | !4!D, !2!F, !3!E, !4!D, | !3!E,4 | Z | Z | Z | Z | !1!G, !2!F, !3!E, !4!D, | !5!C,2 !3!E,2 | !4!D, !3!E, !2!F, !4!D, | !5!C,4 | Z | Z | Z | Z | !5!C, z !3!E, z | !4!D, !3!E, !2!F, z | !1!G, !2!F, !3!E, !1!G, | !2!F,3 z | Z | Z | Z | Z | !3!E, !1!G, !2!F, !4!D, | !3!E, !5!C, !4!D, !3!E, | !2!F, !3!E, !4!D,2 | !5!C,4 |]

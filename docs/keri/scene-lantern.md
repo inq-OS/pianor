@@ -1,0 +1,54 @@
+---
+title: "Scene: the lantern over Keri (the main menu): notes, what was noticed, improvement tips"
+---
+# Scene: the lantern over Keri (the main menu): notes, what was noticed, improvement tips
+
+These notes are what the painter saw on a reference photograph of Keri. They may be wrong, and nobody has confirmed them. The picture stays out of the repository ([docs/keri.md](../keri.md) section 6); it is in the painter project's reference catalogue as the lantern dome seen from the air (`keri-lantern-dome-air`), and the sketches and passes shown for review are in the painter's private folder under `painter/menu/`.
+
+## What it is
+
+The picture of the main menu, the first screen ([ft_1_07](../features/ft_1_07-profile-selection-and-room.md)). Its scene is a photograph of the lighthouse's lantern from the air at sunset: the tip of the lighthouse and an overview of the island, with the buttons and the name done as in the atlas.
+
+The viewer hangs in the air about six metres south-south-east of the lantern, at the height of its glass (30 m over the sea), and looks north-west by west (bearing 307) past it. The picture fills the whole screen (640 x 360 fine pixels, with no lower section). The lantern stands in its right from its gallery to the ball on its dome (the lantern stays on the right), and under it the island runs out toward the setting sun, in the picture's middle, clear of the sheet of names that hangs over its left. The plan is `src/core/layout/lantern.ts`, the painter `src/game/ui/pixel/keri/lanternPicture.ts`.
+
+## Direction for the picture
+
+- No heading asking who plays (picking a player is implied). No "new player" button: up to the maximum number of players, the next empty slot shows as the outline of a button with "+". Credits (autorid) and admin (haldus) live in the settings (the gear). No piece maker here, but the bare piano can be played from the main menu without tracking, through a button showing a keyboard. The design of the menus is the painter's.
+- The lighthouse is painted grand, as in every scene; the lantern takes nearly the picture's whole height. The horizon here is straight.
+- The sun in the lantern, with no lower section: the picture fills the whole screen, the lantern on the right, the names down the left one under the other on a parchment like the parchment of the Monkey Island map, below the title "Pianor", and the buttons are done as Monkey Island would do them, never plain boxes. The piano and the settings stay put when the players change.
+- The island below has depth and character: the well house in its size, clear of the warden's house; the bonfire, the terrace and the path shown; houses with character, never plain boxes.
+
+## How it is made
+
+- **The island is the world model's, and it stands over the sea** (the central grassy part is at least 3, if not 4, metres higher than the waterline; never flat). Each pixel under the horizon follows the viewer's line of sight (`lanternSight`) out until it meets the ground: the shingle rises 1.6 m from the water, the meadow stands on a bank 5.6 m over the sea (a little higher than true, as the houses are drawn larger) and the knoll a little more. The bank is a dark slope of scrub and rough grass with earth and stones in it, as on the reference photograph; where the land ends in a crest against what lies lower behind it, a dark line and the lit lip of the turf. Each pixel then asks `content/world/keri.json` what lies there: sea, shingle or meadow, how far from the shore, the tracks and footpaths. Each house stands where it stands (`lanternProject`), on its ground's height.
+- **Only the lantern is the painter's**, placed in fine pixels after the photograph: a gallery ring with its rail, a low iron wall, tall panes between thin bars, a fat cornice with teeth, a ribbed dome round as a pot lid, a capped vent ball. It leans a little and bulges, its bars stand at uneven steps and its rail wanders (art-direction rule 3; the art review of pass 1: drawn with a ruler). The glass is seen through (what is behind it, two places darker). The lens is a brass beehive of rings with a bull's eye in its belt, on a red drum.
+- **Houses as the 1991 game would draw them** (never bland boxes with no character): each seen along its ridge, its gable toward the viewer broader at the foot and leaning, a roof too big for it that hangs over the walls and sags, sheets or strokes each in its own tone with rust or lichen streaked down a few, fat crooked brick chimneys, framed windows that burn at dusk, a door; drawn longer than true behind the gable that faces the viewer. The warden's house in plaster with bare stone at its foot under its pale blue tin; the well house in blue-green boards under a wooden roof, with its blue barrels; the sauna with its lichen roof, chimney and porch on red-brown posts; the power station behind the house a low grey block, kept quiet. Rocks are larger than to scale, as on the map ([d125](../decisions/game.md#d125)).
+- **The well house is drawn out of the way** (it must not cover the warden's house: it stands lower and to the left, as in the photograph): about 14 m nearer the viewer than the world model has it, under the house's left, as the reference photograph shows it.
+- **The places of the reference photograph** (the terrace, the path, and the bonfire in the photograph's bottom left): the terrace before the house's door as a deck of pale planks with red benches and a table; the concrete track in worn slabs from the terrace past the well house, forking below the house to the sauna; the bonfire place on the knoll at the meadow's left lip, larger than true: trodden earth, a ring of stones, three logs, a thread of smoke, the embers burning at dusk and night. With many players the scroll covers the bonfire.
+- **From the kit** ([d124](../decisions/art.md#d124)): the sea (`water/sea`, after the Phatt dock), boulders (`stones/boulder`), the rose thickets (`bushes`), the lamp's warm light (`lights/lamp`), the weathered wood. The palette is Keri's shared one with four runs of its own: the lantern's iron, the house's plaster and pale blue tin, the green boards.
+- **Hours:** by day the sun glints on the brass; at dusk the sun sets on the horizon left of the lantern (bearing about 302) with its path on the water, the lamp burns and the warden's windows are lit; at night the moon, stars, and the lamp's beam: one flat wedge of lit air from the lens out over the island near the eye's level, palest where it leaves the lamp, in flat steps of pale blue over the open sea and sky, while a thing in it goes lighter along its own run; and the lamp lights its own cage: the bars, the cornice's underside and the rail go to the embers' reds and oranges in two flat rings, and the burning lamp shows through the lens's rings as a round glow (the art review of pass 3: it read as an orange box and did not light its own bars).
+- **What moves:** the sea's looks in one gust's loop, the clouds drifting, the light in the lens flickering.
+
+## The screen round it
+
+The game's name hangs on a board on two ropes in the picture's upper left; it is drawn by the screen from its text key, never painted into the picture (art-direction rule 16). Under it hangs a scroll of parchment (`scroll` in `src/game/ui/pixel/menuArt.ts`, laid out by `src/core/layout/mainMenu.ts`), after the island maps' name scrolls of the 1991 game (the menu parchment looks like the parchment of the Monkey Island map): thrown down a little askew, its top rolled with the roll's spiral at the left end, its foot torn at the left and curled over at the right, its sides wavering with a nick or two, darker along its right and under the roll, a dark line round it and its own shape in ink under it to the lower left. The players are written on it one under the other in dark ink (ten at most), the active one with a red star in the margin; under the pointer a name turns red with a line under it. The next free line is marked out in a broken line with a "+". At the scroll's head, over the names and under a flourish of red ink, are a keyboard (the bare piano) and the gear (Credits and Admin under it, written on a scrap of the same parchment): they stay in their place whatever the number of players (the piano and the settings never move when players are added). The sheet is only as long as what is written on it, and its colours are the interface's, the same at every hour, so the names read at night. The screen has no toolbar and no band: it paints every row itself (`wholeScreen`).
+
+## Where it departs from the real Keri
+
+- The lens is drawn as a brass beehive with a bull's eye, as a child would draw a lighthouse's lamp; the real optic was not studied.
+- The beam at night is one flat wedge, as the 1991 game would paint it.
+- Houses and boulders are larger than to scale (d125), and the mast at the house's gable is taller and fatter, so it reads as the lattice mast it is.
+- The sauna's roof is painted orange-brown for its lichen (an orange-lichened corrugated roof); the well house's and the warden's are tin.
+
+## Improvement tips (not done)
+
+- `KERI-TODO`: the north shed. The world model has it as a boarded shed with a dark gabled roof; the photo map calls the building there a grey flat-roofed brick one, and the grey flat building is the power station. The picture paints it as a low grey block with a flat roof, small and quiet, until the maintainer says how it looks.
+- TODO(painter, R2): the north jetty is a plain plank walk on three legs at this distance; give it the docks' walk round its boulder once the picture is refined.
+- TODO(painter, R2): the art reviews measure too little scanned-paint grain and too much ordered dither (the kit's sea near the viewer, the sky's band steps), and by day too few dark pixels (9 percent against the atlas's 27 to 44): a dark wing near the viewer, as the 1991 game frames its days, is not painted.
+- TODO(painter, R2): from the art review of pass 4, not done: the column's rivets stand on an exact grid; a straight dashed foam line crosses the shingle at the right edge; the name's board is a plain rectangle.
+- TODO(painter, R2): this picture's departures (the beehive lens, the beam, the larger houses and mast) are in docs/keri.md section 9; the photo map's departures.json has no `lantern` scene yet (the consistency thread's file).
+
+- IDEA: gulls round the dome and a boat far out, as the docks have them.
+- IDEA: the helipad and the memorial stone, once the maintainer has said how each looks from above.
+- TODO(painter, R2): the bare piano is a small keyboard drawn in ink on the sheet; a painted upright in the picture's manner may suit better once the bare piano is built.
+- The gear's choices are two words written on a scrap of the same parchment (`openMenu` with `paper`); what Settings shows before a player is picked is the architect's to say (AX-3 provisional, d126).

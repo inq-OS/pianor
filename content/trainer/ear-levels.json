@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "note": "Pitch trainer by ear levels (ft_1_10). MIDI keys: C4 is 60, C5 is 72. Row N is level N; a level past the last row uses the last row. Provisional until playtests (AX-3).",
+  "levels": [
+    { "mode": "single", "keys": [60, 64, 67] },
+    { "mode": "single", "keys": [60, 62, 64, 65, 67] },
+    { "mode": "single", "keys": [60, 62, 64, 65, 67, 69, 71, 72] },
+    { "mode": "two", "keys": [60, 64, 67] },
+    { "mode": "two", "keys": [60, 62, 64, 65, 67] },
+    { "mode": "two", "keys": [60, 62, 64, 65, 67, 69, 71, 72] },
+    { "mode": "single", "keys": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72] },
+    { "mode": "two", "keys": [60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72] },
+    { "mode": "two", "keys": [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84] }
+  ]
+}

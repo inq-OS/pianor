@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "note": "AX-3 provisional (d129). The tug of ft_1_21: the student wins at +steps, the character at -steps; phraseBars bars per phrase; per level the share of the student's phrase that wins an exchange (the ladder's accuracy, ft_1_06.AC9), the play mode (d100) and the XP a won tug pays (the old battle's 30 at level 1, more for the harder levels).",
+  "steps": 3,
+  "practiceSteps": 2,
+  "phraseBars": 2,
+  "levels": [
+    { "share": 0.6, "mode": "wait", "prize": 30 },
+    { "share": 0.8, "mode": "tempo", "prize": 45 },
+    { "share": 0.95, "mode": "tempo", "prize": 60 }
+  ],
+  "stall": { "after": 4, "raise": 0.05 }
+}

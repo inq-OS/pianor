@@ -1,0 +1,38 @@
+{
+  "id": "ode-to-joy",
+  "title": "Ode to Joy",
+  "titles": { "et": "Ood rõõmule" },
+  "level": 1,
+  "status": "draft",
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "Question",
+      "bars": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "Answer",
+      "bars": [
+        5,
+        8
+      ]
+    }
+  ],
+  "styles": [
+    "classical"
+  ],
+  "tags": [
+    "c-position",
+    "stepwise"
+  ],
+  "source": "Ludwig van Beethoven, Symphony No. 9 (1824), public domain; the theme with the dotted rhythm made even",
+  "license": "public-domain",
+  "generator": {
+    "kind": "manual"
+  }
+}
