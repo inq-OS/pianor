@@ -945,6 +945,15 @@ export abstract class PixelScene extends Phaser.Scene {
    * The bubble's options for a right click at `at` (art pixels; null when More opened it), slot by slot (slot 0 straight
    * up, then clockwise; a `null` leaves its slot empty), or null for no bubble there (ft_1_20, d282). None by default.
    */
+  /**
+   * Whether a press at `at` would open a bubble, asked at the start of a press before the bubble opens (a long press may
+   * still turn into a drag): it changes nothing. By default, whether `bubbleOptions` gives any; a screen whose
+   * `bubbleOptions` selects what is under the pointer answers without it.
+   */
+  protected hasBubbleAt(at: { x: number; y: number }): boolean {
+    return this.bubbleOptions(at) !== null;
+  }
+
   protected bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
     void at;
     return null;
@@ -1132,13 +1141,13 @@ export abstract class PixelScene extends Phaser.Scene {
     if (this.isBubblePress(p)) {
       if (this.menuOpen) return;
       const at = this.artPoint(p);
-      if (this.bubbleOptions(at) !== null || this.stripOverflow.length > 0) this.openBubble(at);
+      if (this.hasBubbleAt(at) || this.stripOverflow.length > 0) this.openBubble(at);
       return;
     }
     if (!p.wasTouch || this.menuOpen || this.pointerOnButton(p)) return;
     this.cancelLongPress();
     const at = this.artPoint(p);
-    if (this.bubbleOptions(at) === null) return;
+    if (!this.hasBubbleAt(at)) return;
     const timer = this.time.delayedCall(LONG_PRESS_MS, () => {
       this.cancelLongPress();
       this.bubbleFreshTouch = true;
@@ -1238,7 +1247,7 @@ export abstract class PixelScene extends Phaser.Scene {
     const more = this.inventoryBand?.slots.find((s) => s.item.icon === TOOL_ICONS.more)?.rect;
     // from More the bubble stands on the strip over More, never over the strip: the pointer goes straight up to it
     if (at === null && strip) bounds.h = this.mainRows - top;
-    const centre = at ?? (more ? { x: more.x + more.w / 2, y: more.y } : { x: bounds.w / 2, y: bounds.h / 2 });
+    const centre = at ?? (more ? { x: more.x + more.w / 2, y: more.y } : { x: bounds.w / 2, y: bounds.y + bounds.h / 2 });
     const open = options.open !== undefined ? listed[paging.slots[options.open] as number] : undefined;
     const choices = open?.menu?.items() ?? [];
     const layout = bubbleLayout({ at: centre, options: BUBBLE_SLOTS, screen: bounds, ...(open && options.open !== undefined ? { open: { option: options.open, choices: choices.length } } : {}) });

@@ -2268,6 +2268,11 @@ export class EditorScene extends PixelScene {
    * the staff for played notes, 4 the short tap, 6 the key. From More (`at` null): the note's options while one is
    * selected, else the place's.
    */
+  /** A bubble opens anywhere unless the time is being asked for; asked before the bubble opens, so it selects nothing. */
+  protected override hasBubbleAt(): boolean {
+    return this.meterAsk === null;
+  }
+
   protected override bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
     if (this.meterAsk !== null) return null;
     const hit = at ? this.hit({ x: this.root.x + at.x * this.px.scale, y: this.root.y + at.y * this.px.scale }) : null;
