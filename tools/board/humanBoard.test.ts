@@ -4,6 +4,9 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { collectItems, groupOf, itemsOf, renderHumanBoard } from './humanBoard';
 
+const roots: string[] = [];
+afterAll(() => roots.forEach((r) => rmSync(r, { recursive: true, force: true })));
+
 describe('the board of what waits on the maintainer', () => {
   it('takes only list items that start with the tag, with their file and line', () => {
     const md = ['# Doc', '- NEEDS-HUMAN: look at the knoll on the laptop.', 'The `NEEDS-HUMAN` tags are listed here.', '- Until the NEEDS-HUMAN test below, it stays off.', '  - NEEDS-HUMAN: request the CIPI files.', '```', '- NEEDS-HUMAN: an example in a fence.', '```'].join('\n');
@@ -27,7 +30,7 @@ describe('the board of what waits on the maintainer', () => {
 
   it('finds the tags under docs and projects of a repository, in file order, and links each to its line', () => {
     const root = mkdtempSync(join(tmpdir(), 'pianor-human-'));
-    afterAll(() => rmSync(root, { recursive: true, force: true }));
+    roots.push(root);
     mkdirSync(join(root, 'docs', 'features'), { recursive: true });
     mkdirSync(join(root, 'projects', 'painter'), { recursive: true });
     writeFileSync(join(root, 'docs', 'features', 'f.md'), '# F\n\n- NEEDS-HUMAN: request the CIPI files.\n');
