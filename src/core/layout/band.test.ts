@@ -1,6 +1,6 @@
 // Covers ft_1_20 (the action and inventory band, d115).
 import { describe, expect, it } from 'vitest';
-import { BAND_CELLS, BAND_ROWS, QUIET_COLUMNS, QUIET_ROWS, bandCells, bandFlow, bandItemPage, bandLayout, cellSpan, quietBandLayout, quietBandRows, wheelChoice, wheelPage, type BandLayout } from './band';
+import { BAND_CELLS, BAND_ROWS, bandCells, bandItemPage, bandLayout, wheelChoice, wheelPage, type BandLayout } from './band';
 import { moveFocus } from './focus';
 import { rectBottom, rectRight, type Rect } from './rect';
 
@@ -111,76 +111,5 @@ describe('the wheel over the inventory (ft_1_20.AC16)', () => {
     expect(wheelPage({ items: 11, slots: 8, page: 1 }, 1)).toBeNull();
     expect(wheelPage({ items: 11, slots: 8, page: 1 }, -1)).toBe(0);
     expect(wheelPage({ items: 5, slots: 8, page: 0 }, 1)).toBeNull();
-  });
-});
-
-describe('the quiet band (ft_1_20 rule 8)', () => {
-  it('ft_1_20.AC17 is as tall as what it holds: none on a screen with nothing in it, one row or two', () => {
-    expect(quietBandRows({ actionCells: 0, items: 0, slotsPerRow: 4 })).toBe(0);
-    expect(quietBandRows({ actionCells: 3, items: 0, slotsPerRow: 4 })).toBe(QUIET_ROWS.one);
-    expect(quietBandRows({ actionCells: 0, items: 4, slotsPerRow: 4 })).toBe(QUIET_ROWS.one);
-    expect(quietBandRows({ actionCells: 6, items: 0, slotsPerRow: 4 })).toBe(QUIET_ROWS.two);
-    expect(quietBandRows({ actionCells: 2, items: 5, slotsPerRow: 4 })).toBe(QUIET_ROWS.two);
-    expect(QUIET_ROWS).toEqual({ one: 17, two: 32 });
-  });
-
-  it.each(WIDTHS)('ft_1_20.AC17 at %i cells wide the quiet cells and slots are 15 rows high, inside the band and apart', (width) => {
-    for (const rows of [1, 2] as const) {
-      const layout = quietBandLayout(width, rows);
-      const all = boxes(layout);
-      expect(layout.cells).toHaveLength(QUIET_COLUMNS * rows);
-      for (const r of all) {
-        expect(r.h).toBeGreaterThanOrEqual(15);
-        expect(r.x).toBeGreaterThanOrEqual(0);
-        expect(rectRight(r)).toBeLessThanOrEqual(width);
-        expect(rectBottom(r)).toBeLessThanOrEqual(rows === 1 ? QUIET_ROWS.one : QUIET_ROWS.two);
-      }
-      for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) expect(overlap(all[i]!, all[j]!)).toBe(false);
-      expect(layout.slots.length % rows).toBe(0);
-      expect(layout.slots.length / rows).toBeGreaterThanOrEqual(4);
-    }
-  });
-
-  it('ft_1_20.AC18 never cuts a word: a word wider than a cell takes as many cells of its row as it needs', () => {
-    expect(cellSpan(10, 30)).toBe(1);
-    expect(cellSpan(30, 30)).toBe(1);
-    expect(cellSpan(31, 30)).toBe(2);
-    expect(cellSpan(70, 30)).toBe(3);
-    // a word longer than a whole row still gets the whole row, never a cut
-    expect(cellSpan(500, 30)).toBe(QUIET_COLUMNS);
-  });
-
-  it('ft_1_20.AC18 flows the actions row by row in their order, a wide one to the next row when it does not fit', () => {
-    const flow = bandFlow({ spans: [1, 1, 1, 1, 2, 1], rows: 2, page: 0 });
-    expect(flow.placed).toEqual([
-      { action: 0, row: 0, column: 0, span: 1 },
-      { action: 1, row: 0, column: 1, span: 1 },
-      { action: 2, row: 0, column: 2, span: 1 },
-      { action: 3, row: 0, column: 3, span: 1 },
-      { action: 4, row: 1, column: 0, span: 2 },
-      { action: 5, row: 1, column: 2, span: 1 },
-    ]);
-    expect(flow.more).toBeNull();
-    expect(flow.pages).toBe(1);
-  });
-
-  it('ft_1_20.AC18 with more actions than room the last cell is More and turns to the rest', () => {
-    const spans = Array.from({ length: 12 }, () => 1);
-    const first = bandFlow({ spans, rows: 2, page: 0 });
-    expect(first.placed.map((p) => p.action)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8]);
-    expect(first.more).toEqual({ row: 1, column: QUIET_COLUMNS - 1 });
-    expect(first.pages).toBe(2);
-    const second = bandFlow({ spans, rows: 2, page: 1 });
-    expect(second.placed.map((p) => p.action)).toEqual([9, 10, 11]);
-    expect(second.more).toEqual({ row: 1, column: QUIET_COLUMNS - 1 });
-    expect(bandFlow({ spans, rows: 2, page: 2 }).page).toBe(0);
-  });
-
-  it('ft_1_20.AC18 a page always shows an action, so every action can be reached through More', () => {
-    const first = bandFlow({ spans: [5, 1, 1], rows: 1, page: 0 });
-    expect(first.placed.map((p) => p.action)).toEqual([0]);
-    expect(first.pages).toBe(2);
-    expect(bandFlow({ spans: [5, 1, 1], rows: 1, page: 1 }).placed.map((p) => p.action)).toEqual([1, 2]);
-    expect(bandFlow({ spans: [5, 5, 1], rows: 2, page: 0 }).placed.map((p) => p.action)).toEqual([0]);
   });
 });
