@@ -144,6 +144,20 @@ describe('LearnSession', () => {
     expect(third.verdict).toEqual({ state: 'perfect' });
   });
 
+  it('ft_1_32.AC17 measures the run while it is played: no tempo before three notes, then the pace, spread and wobble so far', () => {
+    const run = open().session();
+    expect(run.liveTempo).toBeNull();
+    const mode = new WaitMode(run.chart);
+    const press = (i: number, timeMs: number) => run.push(mode.handle({ kind: 'on', midi: midis[i]!, velocity: 80, timeMs, source: 'test' }), run.chart);
+    press(0, 0);
+    press(1, 1000);
+    expect(run.liveTempo).toBeNull();
+    press(2, 2000);
+    expect(run.liveTempo).toMatchObject({ bpm: 60, spread: 0, robust: 0 });
+    press(3, 3600);
+    expect(run.liveTempo!.spread).toBeGreaterThan(0);
+  });
+
   it('ft_1_32.AC11 never stops for speed before a baseline tempo is measured', () => {
     expect(open().session().rushStops).toBe(false);
   });

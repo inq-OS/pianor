@@ -33,6 +33,7 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 15. **A tug needs a learned piece.** Kiur's Tug opens the piece book listing only the pieces whose whole plan is done (`pieceLearned`), with a line to learn one first when there are none; the room tugs only such a piece, and for any other Kiur says to learn it with him first and nothing is played. Free plays never count. With learning off (`?learn=0`) every piece may be tugged.
 16. **A character teaches by learning** (slice 4). A character's "teach me" opens its piece in learning bar by bar, as Kiur's Learn does; Back, the door, or the piece learned goes back to the character's scene. Every piece of a met character's `phrases` that is learned is kept as taught with that character, on that day (`learnedTaught` in `src/core/exchange/teach.ts`), however it was learned. A character's tug waits for its piece to be learned before any other practice wait (`tugGate`'s `learn` wait, `tug.wait.learn`). With learning off (`?learn=0`, the self-playing demo) the three tries of ft_1_22.AC3 stay and any piece may be tugged.
 17. **Go on or start over.** A piece left past its first step and opened again in learning (not a restart between runs) pauses with two pictures and no words: go on where the learning stopped (also Esc), or start over from the first step (`LearnResumeScene`, d285). Starting over clears the steps and medals and plans the piece with the player's settings now, its hands and step size; the measured paces and runs stay (`startOver`, `halfLearned` in `src/core/learn/progress.ts`).
+18. **The run measured while it is played.** With the stats pane on, a learning run shows at the pane's left edge its tempo, spread and wobble so far (`LearnSession.liveTempo`, the measures of rule 9 named as on the learning stats screen), a dash before three notes are played; it updates on every note and decides nothing.
 
 ## Slices
 
@@ -63,6 +64,7 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 - **ft_1_32.AC14** Kiur's Tug lists only learned pieces and opens the tug only for one; for any other he says to learn it first and nothing is played (rule 15).
 - **ft_1_32.AC15** A character's "teach me" opens its piece in learning bar by bar and leaving goes back to its scene; a learned piece of a met character is kept as taught; a character's tug waits for its piece to be learned (rule 16).
 - **ft_1_32.AC16** A piece left halfway through learning asks, when opened again, with two pictures whether to go on or start over; starting over begins at the first step with the settings now and keeps the measured runs (rule 17).
+- **ft_1_32.AC17** With the stats pane on, a learning run shows its tempo, spread and wobble so far, from three notes played, updated on every note (rule 18).
 
 ## Slice 2 as built
 

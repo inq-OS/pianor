@@ -40,6 +40,8 @@ export class LearnSession {
   private judge: LearnRunJudge | null = null;
   /** The judge's events of this run, for the tempo of a measured run. */
   private readonly events: JudgeEvent[] = [];
+  /** The chart the judge plays, from the run's first events (`push`). */
+  private played: Chart | null = null;
   /** The measures of this run once it was played to its end, when it is a measured one: kept with the progress (ft_1_32.AC8). */
   private measured: RunTempo | null = null;
 
@@ -114,6 +116,7 @@ export class LearnSession {
    */
   push(events: readonly JudgeEvent[], played: Chart): LearnRunVerdict {
     this.events.push(...events);
+    this.played = played;
     this.judge ??= new LearnRunJudge(this.rushStops ? { chart: played, baselineBpm: this.baseline } : undefined);
     return this.judge.push(events);
   }
@@ -125,6 +128,14 @@ export class LearnSession {
    */
   get rushStops(): boolean {
     return this.run.kind === 'step' && this.baseline !== null && (this.progress.unsteady ?? 0) < TEMPO_RULES.asks;
+  }
+
+  /**
+   * The run measured so far, for the stats pane while it is played (ft_1_32.AC17): the pace, spread and wobble of the
+   * notes played up to now; null before three steps are played.
+   */
+  get liveTempo(): RunTempo | null {
+    return this.played ? runTempo(this.played, this.events) : null;
   }
 
   get verdict(): LearnRunVerdict {

@@ -1,6 +1,6 @@
-// Covers ft_1_32.AC4, ft_1_32.AC5, ft_1_32.AC6, ft_1_32.AC11, ft_1_32.AC12, ft_1_32.AC13, ft_1_32.AC14, ft_1_32.AC16.
+// Covers ft_1_32.AC4, ft_1_32.AC5, ft_1_32.AC6, ft_1_32.AC11, ft_1_32.AC12, ft_1_32.AC13, ft_1_32.AC14, ft_1_32.AC16, ft_1_32.AC17.
 import { expect, test, type Page } from '@playwright/test';
-import { clickButton, clickToolbar, expectNoErrors, isPieceLabel, menuLabels, letGameRun, openGame, openPiece, playWithKeys, sceneButton, showMenuPageWith, waitForScene } from './helpers';
+import { clickButton, clickToolbar, expectNoErrors, sceneTexts, isPieceLabel, menuLabels, letGameRun, openGame, openPiece, playWithKeys, sceneButton, showMenuPageWith, waitForScene } from './helpers';
 
 /** The bars the practice screen shows now (0-based, of the whole piece), and the notes to play in them in order. */
 async function shown(page: Page): Promise<{ bars: number; first: number; midis: number[] }> {
@@ -166,5 +166,19 @@ test('ft_1_32.AC16 a half-learned piece opened again asks to go on or start over
   await expect.poll(async () => (await progress(page)).step).toBe(0);
   await expect.poll(async () => (await shown(page)).first, { timeout: 10_000 }).toBe(0);
   expect((await shown(page)).bars).toBe(1);
+  expectNoErrors(errors);
+});
+
+test('ft_1_32.AC17 the stats pane shows the run measured while it is played: tempo, spread and wobble', async ({ page }) => {
+  const errors = await openGame(page, '?device=virtual&learn=1');
+  await learnPiece(page, 'Little Steps');
+  await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { toggleStatsPane: () => void }).toggleStatsPane());
+  const live = async () => (await sceneTexts(page, 'practice')).filter((text) => /^(Tempo|Spread|Wobble) /.test(text));
+  await expect.poll(live).toEqual(['Tempo -', 'Spread -', 'Wobble -']);
+  const { midis } = await shown(page);
+  expect(midis.length).toBeGreaterThan(3);
+  await playWithKeys(page, midis.slice(0, 3));
+  await expect.poll(async () => (await live())[0]).toMatch(/^Tempo \d+$/);
+  expect((await live())[1]).toMatch(/^Spread \d+%$/);
   expectNoErrors(errors);
 });
