@@ -54,7 +54,7 @@ export function parseChord(content: Pick<ChordContent, 'qualities'>, name: strin
   const quality = letter === undefined ? undefined : content.qualities.find((q) => q.suffix === match![3] && q.minor === (letter === letter.toLowerCase()));
   if (!letter || !quality) throw new RangeError(`unknown chord name: ${name}`);
   const step = letter.toUpperCase() as Step;
-  const alter = match![2] === 'b' ? -1 : match![2] === '#' ? 1 : 0;
+  const alter = match[2] === 'b' ? -1 : match[2] === '#' ? 1 : 0;
   const root = (STEP_SEMITONES[step] + alter + 12) % 12;
   return {
     name,
