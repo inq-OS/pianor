@@ -771,6 +771,7 @@ export const strings = {
   'tug.fact': '{right} of {total} notes right',
   'tug.factTempo': '{right} of {total} notes on time',
   'tug.wrongOctave': 'Right letter, wrong octave',
+  'tug.wait.learn': 'Learn my tune bar by bar first: ask me to teach you.',
   'tug.wait.plays': 'Practice my tune in your room first: {more} more plays.',
   'tug.wait.level': 'Your last plays of my tune got {reached} of 100. I wait for {need}. Practice it more in your room.',
   'tug.wait.clean': 'Play my tune clean in your room {more} more times, then we try again.',

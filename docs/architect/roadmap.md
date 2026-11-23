@@ -1,15 +1,22 @@
 # Pianor releases and roadmap
 
-## This week
+## The barrel
 
-**Goal: the student learns one approved piece bar by bar on the laptop, through to its clef, and on the next day the recall check asks the step before.** The builder, in this order, each a `TODO(builder, R2)` in [ft_1_32](../features/ft_1_32-learn-a-piece-bar-by-bar.md): count only plays after the piece is learned for the three-plays-to-gold rule; keep the step when the step size changes; the learning settings on the settings screen; three perfect whole runs to finish the learning (the architect's call there). The painter: the reward notes and the clef in the house manner (`TODO(painter, R2)` there). The maintainer: approve Puuvaim's three phrases and at least one piece to learn in the piece preview, learn that piece on the EZ-220 over two days, and write three lines in the architect thread.
+The game is a barrel: it holds only as much as its shortest stave (d283). Each area of the game has a level, the mean `completeness` of its features (`docs/features/FEATURES.md`), lowest first; how it feels in play can rank an area lower than its number. What comes next is raising the shortest stave the maintainer feels in play, chosen with the maintainer, never a fixed goal for a week.
 
-**Done before this.** The tug of phrases with Puuvaim on the knoll plays end to end (ft_1_21); only the maintainer's look on the real keyboard is left (NEEDS-HUMAN in [ft_1_22](../features/ft_1_22-conversations-and-phrase-book.md)). The circle of fifths is built (ft_1_28).
-
-**Next week, unless the playtest says otherwise:** the scales and chords trainer, slices A to D ([ft_1_29](../features/ft_1_29-scales-and-chords.md)). After it, beside the goal, in this order: the piece maker's drag-repeat handle ([ft_1_02d](../features/ft_1_02d-editor-extras.md)); the key-light settings rows, practice wiring and half-cost XP rule ([ft_Y_06](../features/ft_Y_06-key-light-hints.md); the real EZ-220 light still waits on the maintainer's silent-light test).
-
-**Real pieces, after those** (the goal: import and split 64 bars of a public-domain classical piece). In this order, each a `TODO(builder, R2)`: a real-piece level with no bar maximum and parts of any length ([ft_0_04](../features/ft_0_04-piece-linter.md)); the notation such a piece needs first, dotted quarter and eighth, sixteenths, first and second endings ([core_09](../features/core_09-notation-growth.md)); MusicXML import in the browser with parts proposed from double bars and repeats ([ft_Y_04](../features/ft_Y_04-piece-import.md)). Until then a real piece goes in as hand-written ABC with `phrases` for its parts (core_06).
-
+| Area | Features | Level | What holds it back |
+|---|---|---|---|
+| Pieces to play | content, core_08, core_09, ft_Y_04 | low | 6 of 39 pieces approved; Puuvaim's phrases are drafts, so a release build has no tug |
+| Getting it to a player | ft_0_14, [release.md](../release.md) | low | the Windows zip never run on a real PC; no credits file for CC BY assets |
+| Learning a new piece | ft_1_32 | 55 | slices 1 to 3 built; characters teaching by it (slice 4) and the review schedule (slice 6) open |
+| Characters and challenges | ft_1_21, ft_1_22, ft_1_06 | 50 | one character plays end to end; the phrase book, the border guard |
+| The teacher and the curriculum | ft_1_26, ft_1_27 | 55 | statistics, calendar, requests held |
+| The EZ-220 | ft_0_01, ft_Y_06, core_01 | 60 | key lights wait on the silent-light test; latency calibration |
+| Theory and ear | ft_0_17, ft_1_10, ft_1_28, ft_1_29 | 65 | scales and chords not started |
+| The world of Keri | ft_1_18, ft_1_19, ft_1_24, ft_1_25 | 70 | pictures loaded per hour; walkers held |
+| The piece maker | ft_1_02b, ft_1_02d, ft_1_30, ft_1_33 | 75 | the drag-repeat handle |
+| Reading and playing | ft_0_05 to ft_0_16, core_01, core_03, core_10, ft_1_12, ft_1_35, core_13 | 85 | Tempo latency, rhythm practice; the autotrainer and the beat helpers designed, held for the maintainer's word |
+| Progress and rewards | ft_0_10, ft_1_09, ft_1_13, core_12 | 90 | earned trophies (Later) |
 
 The architect's working tool (roadmap questions are the architect's to decide). Each release is a GitHub milestone (R1 to R5, `Later pool`); when a grouping changes, change this file and the milestone together. Tracking rules: [labels.md](labels.md).
 

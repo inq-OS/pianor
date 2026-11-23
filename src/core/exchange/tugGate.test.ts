@@ -45,3 +45,13 @@ describe('the cool-down after a lost tug (ft_1_21.AC13)', () => {
     expect(tugGate({ ...base, plays: ready, lastLost: { piece: 'other', at: 'x' } })).toEqual({ open: true });
   });
 });
+
+describe('a tug waits for its piece to be learned (ft_1_32.AC15)', () => {
+  const ready = [play(90, 1), play(90, 2), play(90, 3)];
+
+  it('ft_1_32.AC15 a piece not learned bar by bar keeps the tug shut, saying so, before any other wait', () => {
+    expect(tugGate({ ...base, plays: ready, learned: false })).toEqual({ open: false, wait: { kind: 'learn' } });
+    expect(tugGate({ ...base, plays: [], learned: false })).toEqual({ open: false, wait: { kind: 'learn' } });
+    expect(tugGate({ ...base, plays: ready, learned: true })).toEqual({ open: true });
+  });
+});

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { CharacterDef } from '../character/character';
 import type { WorldState } from '../island/worldState';
 import { DEFAULT_TUG_RULES } from './tug';
-import { TEACH_TRIES, advanceTeach, startTeach, teachAfter, teachLevelOf } from './teach';
+import { TEACH_TRIES, advanceTeach, learnedTaught, startTeach, teachAfter, teachLevelOf } from './teach';
 
 const rules = DEFAULT_TUG_RULES;
 const empty: WorldState = { flags: [], items: [], met: {}, teacherVisits: [] };
@@ -52,5 +52,20 @@ describe('teaching a phrase (ft_1_22.AC3)', () => {
     expect(teachLevelOf(puuvaim, 'puuvaim-2')).toBe(2);
     expect(teachLevelOf(puuvaim, 'puuvaim-3')).toBe(3);
     expect(teachLevelOf(puuvaim, 'other')).toBe(1);
+  });
+});
+
+describe('a phrase learned bar by bar is taught (ft_1_32.AC15)', () => {
+  const defs = [{ ...puuvaim, id: 'puuvaim' }, { id: 'fisherman', phrases: { '1': ['fisherman-1'] } }] as unknown as CharacterDef[];
+
+  it('ft_1_32.AC15 a met character\'s piece the student has learned is kept as taught, on that day, once', () => {
+    const next = learnedTaught(met, defs, (piece) => piece === 'puuvaim-1' || piece === 'fisherman-1', '1998-11-22');
+    expect(next.met['puuvaim']).toMatchObject({ taught: ['puuvaim-1'], taughtOn: { 'puuvaim-1': '1998-11-22' } });
+    // a character not met yet is not given anything
+    expect(next.met['fisherman']).toBeUndefined();
+    // nothing new: the same world back
+    expect(learnedTaught(next, defs, () => true, '1998-11-23').met['puuvaim']!.taughtOn).toEqual({ 'puuvaim-1': '1998-11-22', 'puuvaim-2': '1998-11-23', 'puuvaim-3': '1998-11-23' });
+    expect(learnedTaught(next, defs, (piece) => piece === 'puuvaim-1', '1998-11-23')).toBe(next);
+    expect(learnedTaught(met, defs, () => false, '1998-11-22')).toBe(met);
   });
 });

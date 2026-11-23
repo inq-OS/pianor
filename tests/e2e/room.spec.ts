@@ -369,9 +369,9 @@ test.describe('the player room', () => {
     const picture = { x: looks[1]!.x, y: looks[1]!.y, w: 320, h: 124 };
     // no strip of empty felt under the picture: it is the whole main area above the band (ft_1_20, d111)
     expect(picture.y + picture.h).toBe(height);
-    // piano, door, stand, the shield, which opens the player's card (ft_1_20.AC13), and Kiur the trainer (ft_1_21.AC14);
-    // the window is no button since d117
-    expect(buttons).toHaveLength(5);
+    // piano, door, stand, the shield, which opens the player's card (ft_1_20.AC13), Kiur the trainer (ft_1_21.AC14) and
+    // the wall telephone (ft_1_34); the window is no button since d117
+    expect(buttons).toHaveLength(6);
     for (const b of buttons) {
       expect(b.x).toBeGreaterThanOrEqual(picture.x);
       expect(b.y).toBeGreaterThanOrEqual(picture.y);

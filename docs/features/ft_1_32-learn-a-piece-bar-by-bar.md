@@ -3,8 +3,8 @@ id: "ft_1_32"
 title: "Learn a piece bar by bar"
 scope: "Every new piece is learned before it is practised: the staff shows a growing run of bars inside chunks of four, each step needs one perfect run (a mistake ends the run and repeats the step), each finished chunk is confirmed by one more play whose key times measure the player's own tempo, then the whole piece; learned bars give quarter notes that merge into whole notes per chunk and a clef per piece, each gold, silver or bronze by how cleanly it was learned and raised to gold by three perfect plays; mistake markers over notes missed again; a recall check on a later day"
 effort: "large"
-status: "slices 1 to 3 done: the pure core; the learning view on the practice screen with the confirmation play, the measured tempo and the learning settings; the clock that follows the student and the rushing stop; hands apart in a two-hand piece. Slices 4 to 6 open"
-completeness: 55
+status: "slices 1 to 4 done: the pure core; the learning view on the practice screen with the confirmation play, the measured tempo and the learning settings; the clock that follows the student and the rushing stop; hands apart in a two-hand piece; characters teach by learning. Slices 5 and 6 open"
+completeness: 65
 depends_on: ["ft_0_08", "core_03", "core_10"]
 ---
 # ft_1_32: Learn a piece bar by bar
@@ -31,6 +31,7 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 13. **Hands apart.** In a piece for both hands each growing step is played by the right hand alone, then the left hand alone, then both; a hand step shows and waits for that hand's staff only (`handChart`), and a step whose bars have only one hand's notes is played once. Confirmation plays, joins and the whole run are always both hands. A piece begun before hands apart keeps the plan it began with (`LearnProgress.handsApart`, optional, d069.3). `AX-3 provisional:` hands apart in every growing step.
 14. **The piano is a sandbox** ([d278](../decisions/game.md#d278)). A piece picked at the piano plays in full with no learning and no limits, except a character's piece, which is learned bar by bar first as before. Learning goes through Kiur: pressed in the room he asks Learn or Tug as two pictures (an open music book, a rope with its red rag; their names only in their bubbles, `learnBook` and `tugRope` in `standArt.ts`), and Learn opens the piece book; the piece picked opens in learning even when it was played to the end before (`learnsOnOpen` in `src/core/learn/route.ts`).
 15. **A tug needs a learned piece.** Kiur's Tug opens the piece book listing only the pieces whose whole plan is done (`pieceLearned`), with a line to learn one first when there are none; the room tugs only such a piece, and for any other Kiur says to learn it with him first and nothing is played. Free plays never count. With learning off (`?learn=0`) every piece may be tugged.
+16. **A character teaches by learning** (slice 4). A character's "teach me" opens its piece in learning bar by bar, as Kiur's Learn does; Back, the door, or the piece learned goes back to the character's scene. Every piece of a met character's `phrases` that is learned is kept as taught with that character, on that day (`learnedTaught` in `src/core/exchange/teach.ts`), however it was learned. A character's tug waits for its piece to be learned before any other practice wait (`tugGate`'s `learn` wait, `tug.wait.learn`). With learning off (`?learn=0`, the self-playing demo) the three tries of ft_1_22.AC3 stay and any piece may be tugged.
 
 ## Slices
 
@@ -39,7 +40,7 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 | 1 | Pure core: units, step plan, progress with recall, perfect-run verdict, rewards, markers | medium |
 | 2 | Practice screen: learning view (only the step's bars drawn), stop on mistake, Kiur's lines, note rewards, markers; settings and progress in the save (optional fields, the maintainer merges) | large |
 | 3 | The baseline tempo (measured in slice 2) given to Tempo mode: the clock that follows the student (built as core_01 slice h, [core_01 rules 20 and 21](core_01-tempo-mode.md)); and the rushing stop (rule 12) | medium |
-| 4 | Characters teach by this instead of three tries (`src/core/exchange/teach.ts`, ft_1_22.AC3) | medium |
+| 4 | Characters teach by this instead of three tries (`src/core/exchange/teach.ts`, ft_1_22.AC3): built (rule 16) | medium |
 | 5 | Step size from a difficulty budget per level (core_08 `difficultyOfPassage`), steps of 1 (beginners) or an even number of bars | medium |
 | 6 | Kiur's review: learned pieces come back on a spaced schedule (longer gaps after perfect reviews, shorter after a miss); core_12's spaced repetition (F13) | medium |
 
@@ -59,6 +60,7 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 - **ft_1_32.AC12** In a new two-hand piece each growing step comes three times, the right hand alone, the left hand alone, then both, a hand step showing and judging that hand only; a step with one hand's notes only comes once; a piece begun before keeps its plan (hands apart, beside slices 4 to 6).
 - **ft_1_32.AC13** A piece picked at the piano plays in full with no learning unless it is a character's piece; a piece picked through Kiur's Learn opens in learning, even after full plays (rule 14).
 - **ft_1_32.AC14** Kiur's Tug lists only learned pieces and opens the tug only for one; for any other he says to learn it first and nothing is played (rule 15).
+- **ft_1_32.AC15** A character's "teach me" opens its piece in learning bar by bar and leaving goes back to its scene; a learned piece of a met character is kept as taught; a character's tug waits for its piece to be learned (rule 16).
 
 ## Slice 2 as built
 
@@ -85,6 +87,7 @@ Weighed against the axioms; they stay as built until real runs of the student sa
 - TODO(builder, R2): the same records on the teacher's screen (ft_1_26 statistics).
 - TODO(painter, R2): paint Kiur's two choices, the music book of Learn and the rope of Tug (`learnBook`, `tugRope` in `standArt.ts`, the builder's sketches).
 - TODO(painter, R2): an icon for the settings screen's Learning action (a band cell with a word now, `SettingsScene.ts`).
+- TODO(architect, R2): with learning on, the three tries of ft_1_22.AC3 are left only for `?learn=0` and the self-playing demo; retire them once the demo can learn a piece (AX-3 provisional).
 - TODO(builder, R2): a song taught in levels (rule 2): a character's song is cut into pieces of 4 to 16 bars, one per level, each learned by this plan; the final boss is every bar in one sitting in the tug (slice 4, with ft_1_22); then add the rule that a character's final level is its whole song to `src/core/character/rules.ts` (checked over every character by `tests/content/characters.test.ts`).
 - TODO(builder, R3): still open: show the student where they hesitated in a run, and a click that follows the student's pace.
 - TODO(builder, R3): a piece learned before `learnedAt` was kept has none, so its bars never turn gold from later plays; backfill it (the day of its last run) if a screen ever shows the rewards of learned pieces.

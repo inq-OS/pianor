@@ -35,6 +35,7 @@ import { BAR_BUTTON_HEIGHT, BAR_EDGE, BAR_GAP, BUBBLE_X, TITLE_X, TOP_BAR } from
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { openOverlay, startScene, type OverlayOutcome } from './scenes';
+import type { KeriScreen } from './visit/islandVisit';
 import { afterPlay, type PlayStage, type PracticeSpot } from '../core/intro/intro';
 import { INTRO } from './intro/introContent';
 import type { Rect } from '../core/layout/rect';
@@ -123,6 +124,11 @@ export interface PracticeData {
    * before. Without it the piano is a sandbox: only a character's piece is learned before it is played in full.
    */
   learn?: boolean;
+  /**
+   * A character teaches this piece (ft_1_32.AC15): it opens in learning with `learn`, and Back, or the piece learned, goes
+   * back to the character's scene of Keri, which keeps the learned piece as taught.
+   */
+  teacher?: { scene: KeriScreen };
   /**
    * One play of the first-run intro (ft_1_31.AC3, AC4): the lesson's bars as a section in Wait mode, with only Listen and
    * Start over; Kiur's spotlight shows the screen before the first lap (`shown` once it was); after `passes` laps back to
@@ -648,6 +654,12 @@ export class PracticeScene extends PixelScene {
       void Promise.all([pending, this.barsSaved]).then(() => startScene(this, 'profile', { checkup: { piece: this.fullChart.id, since: checkup.since } }));
       return;
     }
+    const teacher = this.startData.teacher;
+    if (teacher) {
+      // a character's teaching: back to its scene once the run's bars and a whole run's pass are kept (ft_1_32.AC15)
+      void Promise.all([this.pendingPass, this.barsSaved]).then(() => startScene(this, teacher.scene, {}));
+      return;
+    }
     if (this.learn) {
       // learning has no score screen: back to the pieces once the run's bars and a whole run's pass are kept
       void Promise.all([this.pendingPass, this.barsSaved]).then(() => startScene(this, 'menu'));
@@ -800,7 +812,10 @@ export class PracticeScene extends PixelScene {
       void Promise.all([this.pendingPass, this.barsSaved]).then(() => {
         if (!this.scene.isActive() || this.loopTimer !== null) return;
         this.pendingPass = null;
-        this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });
+        // a character's piece learned: back to the character, who has taught it (ft_1_32.AC15)
+        const teacher = this.startData.teacher;
+        if (learn.learned && teacher) startScene(this, teacher.scene, {});
+        else this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });
       });
     });
   }
@@ -910,7 +925,8 @@ export class PracticeScene extends PixelScene {
     // the screen may still be resuming here (Phaser runs the resume on its next step), so only a leave stops this
     if (this.leaving) return;
     if (choice === 'door') {
-      if (this.preview) {
+      // a draft preview goes back where it came from, a character's teaching to its scene
+      if (this.preview || this.startData.teacher) {
         this.leave();
         return;
       }

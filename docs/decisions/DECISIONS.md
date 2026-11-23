@@ -265,4 +265,5 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d279](game.md#d279) | An old wall telephone in the room rings while the teacher's curriculum holds a piece whose learning has not begun, and a press on it opens that piece in bar-by-bar learning | ft_1_34 |
 | [d281](play.md#d281) | A learning run with every note right counts for its pace unless it was clearly uneven; a beginner's wobble passes, and an uneven run is asked again at most once | ft_1_32 |
 | [d282](game.md#d282) | The band is quiet: it draws only the cells and slots in use, is as tall as what it holds (none, one row or two of 15-row cells), and never cuts a word short | ft_1_20 |
+| [d283](workflow.md#d283) | Work raises the shortest stave: every area of the game is kept at a similar level, and the next work is the area that lags most in play, chosen with the maintainer; there is no weekly goal |  |
 <!-- /docs:index -->

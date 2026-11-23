@@ -761,6 +761,7 @@ export const stringsEt: Record<StringKey, string> = {
   'tug.fact': '{right} nooti {total}-st õige',
   'tug.factTempo': '{right} nooti {total}-st õigel ajal',
   'tug.wrongOctave': 'Õige täht, vale oktav',
+  'tug.wait.learn': 'Õpi enne mu viis takt-taktilt selgeks: palu, et ma sind õpetaksin.',
   'tug.wait.plays': 'Harjuta mu viisi enne toas: veel {more} korda.',
   'tug.wait.level': 'Su viimased mängud mu viisist said {reached} punkti 100-st. Ma ootan {need}. Harjuta seda toas veel.',
   'tug.wait.clean': 'Mängi mu viisi toas veel {more} korda puhtalt, siis proovime uuesti.',

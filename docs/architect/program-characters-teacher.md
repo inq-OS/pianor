@@ -1,6 +1,6 @@
 # Characters, the teacher and the curriculum: parts and contracts
 
-The plan for characters, the teacher and the curriculum (d129, d132, d135, d139). Its parts are named by their features (d275) and taken in the order the week's goal needs ([roadmap.md](roadmap.md)). The contracts in the appendix are the source of the shared types.
+The plan for characters, the teacher and the curriculum (d129, d132, d135, d139). Its parts are named by their features (d275) and taken when their area is the shortest stave (d283) ([roadmap.md](roadmap.md)). The contracts in the appendix are the source of the shared types.
 
 ## Rules that stay
 
