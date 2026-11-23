@@ -3,8 +3,8 @@ id: "core_08"
 title: "Difficulty estimator"
 scope: "Per-bar and per-piece difficulty on the 1 to 10 scale of d138, from the notes; later from how players do"
 effort: "medium"
-status: "slice A built: the prior from the notes per bar, passage and piece, with its why by dimension, in piece:lint, the info-card stars and the piece preview's difficulty panel (heat on the staff, any passage); the measured number, calibration and XP use open; the learned model trains on any readable set, MusicXML and CIPI included (ft_Y_04 slice 1); the analyser page scores dropped MusicXML files; the full analyser and the player profile are planned (a plan doc)"
-completeness: 55
+status: "slice A built: the prior from the notes per bar, passage and piece, with its why by dimension, in piece:lint, the info-card stars and the piece preview's difficulty panel (heat on the staff, any passage); the measured number, calibration and XP use open; the learned model trains on any readable set, MusicXML and CIPI included (ft_Y_04 slice 1); the analyser page scores dropped MusicXML files; the fit of the points above Beginner to a graded set is built and waits on CIPI's files (rule 15); the full analyser and the player profile are planned (a plan doc)"
+completeness: 60
 ---
 # core_08: Difficulty estimator
 
@@ -26,6 +26,7 @@ How hard a piece, a bar or a phrase is. One scale, 0 to 100 points in five grade
 12. **Learned** (`src/core/piece/learnedModel.ts`, `tools/analysis/`). A ridge model over the prior's features (the eight dimensions, the bars' log length, mean, peak and hard share, the range and the key signature) fitted to any graded set read through one neutral manifest (`labelledSet.ts`: name, licence, `publishable`, the label's scale, items with a composer group, a label and score files). `npx tsx tools/analysis/train-cli.ts <manifest.json>`, or `--cipi <cipi/index.json>` for CIPI (Henle 1 to 9, `cipi.ts`), checks it by cross-validation with whole composers held out (mean error, within one step, exact, rank correlation), fits on every item and writes the model with those numbers. A work in movements takes, feature by feature, its hardest movement (AX-3 provisional). The piece preview's panel shows each model's level for the piece and the passage, read through the dev server only.
 13. **Private until a person says otherwise.** A set's `publishable` is set only by a person who read its licence. A model on a set that is not publishable (CIPI is CC BY-NC-SA 4.0, research only) goes to the gitignored `private/models/`, is never committed or built into the game, and is marked private wherever it shows; a publishable one goes to a `models` folder in `content/`. The CIPI files themselves are requested from Zenodo by the maintainer and never committed.
 14. **Use for reward** (slice C). Piece XP times a factor from the prior (for example 0.75 to 1.5), known before the first play and the same for every student. The measured number only chooses: which bars the section loop and the part cards point at, which phrases a character offers first. It never lowers XP already earned (AX-1.1).
+15. **Fitting the grades above Beginner** (`tools/analysis/gradeFit.ts`, `npx tsx tools/analysis/fit-grades-cli.ts <manifest.json>` or `--cipi <index.json>`). Each item's label is mapped onto the points, its lowest value 10 and its highest 98, linear between (Henle 2 is 21, the first point of Intermediate; AX-3 provisional); each item is scored by the Rules model, a work by its hardest movement; `tail` is fitted by least squares over the items scored at or past `beginnerEnd`. The command prints the suggested `tail`, its mean error in points, the share landing in the right grade, the rank correlation of score and label, and how many items graded above Beginner score as Beginner (the Rules model orders those too low, and no `tail` can mend it). It writes nothing: a person accepts the number in `DIFFICULTY_WEIGHTS`. The game's points above Beginner are `upperPoints` (`src/core/piece/difficulty.ts`).
 
 ## Acceptance criteria
 
@@ -42,6 +43,7 @@ Slice A (built):
 - **core_08.AC9** The parts of every bar's and piece's score, one per dimension, add up to its score.
 - **core_08.AC10** The piece preview's difficulty panel shows the heat of every bar on the staff and in a strip, scores the passage clicked, shift-clicked or typed, and lists its dimensions and each bar's features.
 - **core_08.AC11** A labelled set (our manifest, or CIPI's index) trains a learned model that is cross-validated with composers held out and written to `private/models/` unless the set is publishable; the game reads a model only if it was fitted on today's features, and the preview shows its level, marked private; scores it cannot read are listed with why.
+- **core_08.AC12** A graded set (our manifest, or CIPI's index) is scored item by item, a work by its hardest movement; its labels map onto the points from 10 to 98; the fitted `tail` recovers the one a synthetic set was made with; the report gives the suggestion, its error, the share in the right grade, the rank correlation and the items scored too low, and nothing is written.
 
 ## References
 
@@ -58,7 +60,8 @@ What the published work measures, for the calibration of slice B; the features o
 - TODO(builder, R3): a syncopation feature (Longuet-Higgins and Lee, see References) once dotted notes and ties across beats are common in pieces (core_09).
 - TODO(builder, R3): `otherHandSounds` in `difficultyOf` is O(n^2) over the notes; a sorted sweep before long imported pieces arrive (ft_Y_04).
 - NEEDS-HUMAN: request the CIPI files (zenodo.org/records/8037327, research use only), unpack them into `private/cipi/` and run `npx tsx tools/analysis/train-cli.ts --cipi private/cipi/index.json`; the model stays in `private/models/`.
-- TODO(builder, R3): fit the points above Beginner (`beginnerEnd`, `tail`, d157) to outside grades: Henle 1 to 9 through the learned model on CIPI (rule 12; needs the maintainer's data request), or about 30 public-domain pieces with published ABRSM grades; until then the upper grades are provisional and the analyser sorts by the raw score.
+- NEEDS-HUMAN: when CIPI's files arrive, unpack them into `private/cipi/`, run `npx tsx tools/analysis/fit-grades-cli.ts --cipi private/cipi/index.json`, and accept or refuse the suggested `tail` (rule 15). Until then the upper grades are provisional and the analyser sorts by the raw score.
+- TODO(architect, R3): AX-3 provisional: Henle 1 to 9 onto the points 10 to 98, linear (rule 15); check it against CIPI's spread once the fit has run, and whether `beginnerEnd` itself should move.
 - TODO(builder, R3): slice B, the measured number and the calibration script (rules 10 and 11); needs core_10's per-bar store with real plays first.
 - TODO(architect): the XP factor's range for slice C, and whether the measured number may ever change the reward (it would let a student's struggles pay more, which goes against AX-1).
 - TODO(builder, R3): check the hardest-movement rule of `tools/analysis/train.ts` against CIPI once it can be read.
