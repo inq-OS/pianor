@@ -418,6 +418,7 @@ export const strings = {
   'editor.paste.4': 'x4',
   'editor.dragRepeat.copies': '{n} copies: let go to put them in',
   'editor.dragRepeat.none': 'No copies: drag right',
+  'editor.chordName': 'Chord: {chord}',
   'editor.paste.none': 'Copy a bar first.',
   'editor.why.bars-full': 'The piece is full: no more bars fit.',
   'editor.why.meter': 'The copied bar is in another meter.',

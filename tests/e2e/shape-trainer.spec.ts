@@ -1,4 +1,4 @@
-// Covers ft_1_29.AC1, ft_1_29.AC3.
+// Covers ft_1_29.AC1, ft_1_29.AC3, ft_1_29.AC4.
 // The stand's panel opens the scales and chords trainer (ft_1_29 slice A): the scale of the chosen key on the staff, played
 // in Wait mode with three lives; a wrong key costs a heart and says why, the names come on the notes, and the XP of the
 // right notes is kept after a lost round. The key comes from the circle of fifths, the shape and the hand from the toolbar.
@@ -79,6 +79,19 @@ test.describe('scales and chords trainer (ft_1_29)', () => {
     await expect.poll(() => state(page)).toMatchObject({ lives: 2, outcome: 'playing' });
     await playWithVirtualPiano(page, [78]);
     await expect.poll(() => state(page)).toMatchObject({ xp: 100 });
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_29.AC4 the keys held are named live: C, E and G down together read C, and the name goes when they are let go', async ({ page }) => {
+    const errors = await openTrainer(page);
+    await clickButton(page, SCENE, await sceneButton(page, SCENE, 'Scale up and down, the triad, or the scale switcher'));
+    await page.evaluate(() => { for (const midi of [60, 64, 67]) window.__virtualDevice!.press(midi, 80); });
+    // the key button reads C too, so count the C's: one more while the chord is held
+    const cs = async () => (await sceneTexts(page, SCENE)).filter((text) => text === 'C').length;
+    await expect.poll(() => page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as { held: { name: string } | null }).held?.name, SCENE)).toBe('C');
+    const withChord = await cs();
+    await page.evaluate(() => { for (const midi of [60, 64, 67]) window.__virtualDevice!.release(midi); });
+    await expect.poll(cs).toBe(withChord - 1);
     expectNoErrors(errors);
   });
 });

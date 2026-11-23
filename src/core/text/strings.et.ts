@@ -415,6 +415,7 @@ export const stringsEt: Record<StringKey, string> = {
   'editor.paste.4': 'x4',
   'editor.dragRepeat.copies': '{n} koopiat: lase lahti, et need lisada',
   'editor.dragRepeat.none': 'Koopiaid pole: lohista paremale',
+  'editor.chordName': 'Akord: {chord}',
   'editor.paste.none': 'Kopeeri enne takt.',
   'editor.why.bars-full': 'Lugu on täis, rohkem takte ei mahu.',
   'editor.why.meter': 'Kopeeritud takt on teises taktimõõdus.',

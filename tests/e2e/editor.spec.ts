@@ -1,4 +1,4 @@
-// Covers ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
+// Covers ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
 import { readFileSync } from 'node:fs';
 import { encode as encodePng } from 'fast-png';
 import { expect, test, type Page } from '@playwright/test';
@@ -217,6 +217,15 @@ test.describe('piece editor (preliminary)', () => {
     await pressSignature(page, 'time');
     await expect.poll(() => panelOf(page)).toBe(null);
     expect(await barStep(page, '+')).toBeGreaterThanOrEqual(0);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_29.AC4 a note selected in a column of C, E and G names the chord, C', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    for (const step of ['C', 'E', 'G'] as const) await clickNote(page, 0, 0, step);
+    await selectNote(page, 0, 0, 'E');
+    await expect.poll(() => status(page)).toContain('Chord: C');
     expectNoErrors(errors);
   });
 

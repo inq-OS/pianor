@@ -29,8 +29,11 @@ import type { NoteEvent } from '../core/judge/types';
 import { hitTest, placeClick, pointOf, targetOf, type ActionTarget, type EntryMode, type Hit } from '../core/editor/hitTest';
 import { barBoxes, barsInRect, drawnWhileWriting, editorStaff, pageOfBar, shadowsFor, targetBox } from '../core/editor/staff';
 import { onRepeatHandle, repeatCopies, repeatHandleBox } from '../core/editor/repeatHandle';
+import chordsJson from '../../content/trainer/chords.json';
+import { nameChord } from '../core/trainer/chordNamer';
+import { chordLabel, loadChordContent } from '../core/trainer/chordTrainer';
 import {
-  BARS_DEFAULT, BPM_MAX, EDITOR_LENGTHS, cycleLength, emptyPiece, findNote, lengthen, lengthenRest, lengthsFor, stepChord, placeNote, placeRest, placedRests, removeNote, removeRest, setAlter, nextAlter, longestFit, setDynamic, nextDynamic, setBeats, setPickup, onBothStaves, setKey, setFinger, bpmOf, stepBpm, setLength, setTitle, shorten, shortenRest, stepBars,
+  BARS_DEFAULT, BPM_MAX, soundingMidi, EDITOR_LENGTHS, cycleLength, emptyPiece, findNote, lengthen, lengthenRest, lengthsFor, stepChord, placeNote, placeRest, placedRests, removeNote, removeRest, setAlter, nextAlter, longestFit, setDynamic, nextDynamic, setBeats, setPickup, onBothStaves, setKey, setFinger, bpmOf, stepBpm, setLength, setTitle, shorten, shortenRest, stepBars,
   type Edit, type EditorHand, type EditorLength, type EditorPiece, type NoteRef,
 } from '../core/editor/model';
 import type { Alter } from '../core/chart/key';
@@ -104,6 +107,8 @@ const AUTO_WIDTH = 34;
 const LEVEL_TABLE: readonly LevelDefinition[] = levelsFileSchema.parse(levelsJson).levels;
 const FLASH_MS = 500;
 const MESSAGE_MS = 3000;
+/** The chord dictionary the piece maker names a column's chord from (ft_1_29 slice D). */
+const CHORDS = loadChordContent(chordsJson);
 /** The id an unsaved piece is drawn under. */
 const DRAFT_ID = 'own-draft';
 
@@ -213,6 +218,8 @@ export class EditorScene extends PixelScene {
   private lassoBox: Phaser.GameObjects.Graphics | null = null;
   /** The drag-repeat handle is held (ft_1_02d.AC24): the bars it repeats and the copies the drag asks for so far. */
   private repeatDrag: { range: BarRange; copies: number } | null = null;
+  /** The column (bar, start and keys) whose chord was last named (ft_1_29 slice D), so the name is said once for it. */
+  private namedColumn: string | null = null;
   /** The ghost copies of a drag-repeat, over the bars they will take. */
   private repeatGhost: Phaser.GameObjects.Graphics | null = null;
   /** The keyboard cursor (ft_1_02d.AC15): where Enter, the chord key and Shift + arrows act; null until a key or a left click sets it. */
@@ -314,6 +321,7 @@ export class EditorScene extends PixelScene {
     this.lassoActive = false;
     this.lassoBox = null;
     this.repeatDrag = null;
+    this.namedColumn = null;
     this.repeatGhost = null;
     this.keyCursor = null;
     this.cursorMark = null;
@@ -682,6 +690,22 @@ export class EditorScene extends PixelScene {
     this.repeatGhost?.clear();
     if (!drag || drag.copies === 0) return;
     this.apply(insertBars(this.piece, drag.range.to + 1, copyBars(this.piece, drag.range), drag.copies), null);
+  }
+
+  /**
+   * The chord under the selected note (ft_1_29 slice D): the notes of both hands that start with it, named once when the
+   * selection comes to a column or its notes change. A column that is no chord the dictionary knows says nothing.
+   */
+  private nameSelectedChord(): void {
+    const at = this.selected;
+    const keys = at ? this.piece.notes.filter((n) => n.bar === at.bar && n.start === at.start).map(soundingMidi) : [];
+    // a new column, or a note added to or taken from this one
+    const column = at ? `${at.bar}:${at.start}:${[...keys].sort((a, b) => a - b).join(',')}` : null;
+    if (column === this.namedColumn) return;
+    this.namedColumn = column;
+    if (!at) return;
+    const chord = nameChord(CHORDS, keys);
+    if (chord) this.say(t('editor.chordName', { chord: chordLabel(chord, contextOf(this).profiles.noteNaming) }), MESSAGE_MS);
   }
 
   /** The left button comes up: it ends a drag of the repeat handle or of the lasso. */
@@ -2111,6 +2135,7 @@ export class EditorScene extends PixelScene {
    * page: a selected note on another page keeps its mark but does not pull the page back to it.
    */
   private refreshStaff(pageTurn = false): void {
+    this.nameSelectedChord();
     this.staffView?.destroy();
     this.drawnPiece = this.piece;
     this.chart = toChart(this.piece, { id: this.id ?? DRAFT_ID });

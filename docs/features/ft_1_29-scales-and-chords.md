@@ -3,8 +3,8 @@ id: "ft_1_29"
 title: "Scales and chords trainer"
 scope: "The rest of the theory trainer under Practice theory: play a scale or chord of a chosen key from the staff, play a chord from its name, a scale switcher, and a chord namer for the keys pressed"
 effort: "large"
-status: "slices A, B and C built: a scale or triad of a chosen key and hand, a chord from its name in three steps, and the scale switcher; the staff-note step and slice D planned; verified on the virtual device only"
-completeness: 65
+status: "slices A to D built: a scale or triad of a chosen key and hand, a chord from its name in three steps, the scale switcher, and the chord namer; slice B's staff-note step open; verified on the virtual device only"
+completeness: 85
 depends_on: ["ft_0_17", "ft_1_28"]
 ---
 # ft_1_29: Scales and chords trainer
@@ -42,6 +42,12 @@ Chord and key names in Estonian follow the way Estonian music teaching writes th
 - The scale switcher is the third choice of slice A's shape button (`switcherChart` in `src/core/trainer/scaleSwitcher.ts`, judged by `ShapeRound`): twelve bars of eighths, each the major scale of its key, up in one bar and down in the next. The first six keys go round the circle from C (C, G, D, A, E, B), the rest are seeded at random within six signs, never the same key twice in a row. The name of the cursor's bar's key stands above the staff.
 - `AX-3 provisional:` the staff stays in C major and each note carries its own sign, because a key change inside a piece is not drawn yet (`layout/staff.ts`); major keys only; twelve bars. TODO(architect, R2): ask the maintainer after a week of use whether the switcher should draw the new signature each bar once key changes are drawn, and whether minor keys belong in it.
 
+## Slice D as built
+
+- `nameChord(content, keys)` in `src/core/trainer/chordNamer.ts` names the chord the keys make from slice B's dictionary, now with the diminished and augmented triads and the half-diminished and diminished sevenths (`dim`, `+`, `7b5` shown as 7♭5, `dim7`); nothing for a set it does not know or for fewer than three pitch classes. Of the roots that fit, the lowest key's wins, so a symmetric chord is named from its bass.
+- Shown live at the left above the staff on slice A's screen for the keys held, and in the piece maker as a message when a selected note's column (both hands) is a chord, once per column and set of notes.
+- `AX-3 provisional:` each root is spelled as it is most often taught (Db, Eb, F#, Ab, Bb; c#, eb, f#, g#, bb), not from the piece's key.
+
 ## Acceptance criteria
 
 - **ft_1_29.AC1** Slice A: a chosen key and shape is shown on the staff and judged in Wait mode; a wrong press costs a life and says why; XP earned is kept on a loss.
@@ -52,9 +58,9 @@ Chord and key names in Estonian follow the way Estonian music teaching writes th
 
 ## TODO
 
-- TODO(builder, R2): slice B's last step, one note on the staff that must be in the chord; then slice D, test first in `src/core/trainer/`.
+- TODO(builder, R2): slice B's last step, one note on the staff that must be in the chord, test first in `src/core/trainer/`.
 - TODO(painter, R2): the stand panel's pictures for the new trainers (scale, chord, switcher), from the free packs first; slice A's three steps (`scaleSteps`) are a first sketch to repaint.
-- NEEDS-HUMAN: play a scale and a triad on the EZ-220 in the trainer, both hands, a few chords from their names, and the scale switcher.
+- NEEDS-HUMAN: play a scale and a triad on the EZ-220 in the trainer, both hands, a few chords from their names, the scale switcher, and the chord names for held keys.
 - TODO(builder, Later): light the scale's or chord's keys on the EZ-220 once ft_Y_06's real output works (needs the silent-light test there).
 - IDEA(architect, Later): a two-player game with the keyboard split in half. Not now: it needs two profiles at once and a save answer for whose XP it is.
 - Rejected: skill training that levels a character's attributes; the battles and their attributes are deleted (d151).
