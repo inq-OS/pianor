@@ -116,8 +116,8 @@ export function wheelPage(input: { items: number; slots: number; page: number },
  */
 export const QUIET_COLUMNS = 5;
 const QUIET_CELL = { w: 30, h: 15 } as const;
-/** The quiet band's height in rows: one row of cells, or two, each with a line above and below. */
-export const QUIET_ROWS = { one: TOP + QUIET_CELL.h + 1, two: TOP + 2 * QUIET_CELL.h + 2 } as const;
+/** The quiet band's height in rows: one row of cells or two, touching as the cells of `bandLayout` do, a line above and below. */
+export const QUIET_ROWS = { one: TOP + QUIET_CELL.h + 1, two: TOP + 2 * QUIET_CELL.h + 1 } as const;
 
 /** How tall the quiet band is for a screen with `actionCells` cells of actions (their spans added) and `items` items. */
 export function quietBandRows(input: { actionCells: number; items: number; slotsPerRow: number }): number {
@@ -127,7 +127,7 @@ export function quietBandRows(input: { actionCells: number; items: number; slots
 
 /** The quiet band's grid of cells (row by row, `QUIET_COLUMNS` a row), its arrows and its slots (`rows` rows), `width` cells wide. */
 export function quietBandLayout(width: number, rows: 1 | 2): BandLayout {
-  const step = QUIET_CELL.h + (rows === 2 ? 1 : 0);
+  const step = QUIET_CELL.h;
   const cells: Rect[] = [];
   for (let row = 0; row < rows; row++) {
     for (let column = 0; column < QUIET_COLUMNS; column++) cells.push({ x: EDGE + column * (QUIET_CELL.w + CELL_GAP), y: TOP + row * step, w: QUIET_CELL.w, h: QUIET_CELL.h });
@@ -174,6 +174,13 @@ export function bandFlow(input: { spans: readonly number[]; rows: 1 | 2; page: n
       const last = row === input.rows - 1;
       const room = QUIET_COLUMNS - (reserve && last ? 1 : 0);
       if (column + spans[i]! > room) {
+        // a page must show something: an action as wide as the whole row, alone on a last row that also holds More, gets
+        // the room left (only a one-row band that pages, which `quietBandRows` never makes, comes here)
+        if (placed.length === 0 && last) {
+          placed.push({ action: i, row, column, span: room });
+          i += 1;
+          break;
+        }
         row += 1;
         column = 0;
         continue;

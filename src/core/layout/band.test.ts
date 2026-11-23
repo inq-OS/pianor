@@ -121,7 +121,7 @@ describe('the quiet band (ft_1_20 rule 8)', () => {
     expect(quietBandRows({ actionCells: 0, items: 4, slotsPerRow: 4 })).toBe(QUIET_ROWS.one);
     expect(quietBandRows({ actionCells: 6, items: 0, slotsPerRow: 4 })).toBe(QUIET_ROWS.two);
     expect(quietBandRows({ actionCells: 2, items: 5, slotsPerRow: 4 })).toBe(QUIET_ROWS.two);
-    expect(QUIET_ROWS.two).toBeLessThan(BAND_ROWS);
+    expect(QUIET_ROWS).toEqual({ one: 17, two: 32 });
   });
 
   it.each(WIDTHS)('ft_1_20.AC17 at %i cells wide the quiet cells and slots are 15 rows high, inside the band and apart', (width) => {
@@ -174,5 +174,13 @@ describe('the quiet band (ft_1_20 rule 8)', () => {
     expect(second.placed.map((p) => p.action)).toEqual([9, 10, 11]);
     expect(second.more).toEqual({ row: 1, column: QUIET_COLUMNS - 1 });
     expect(bandFlow({ spans, rows: 2, page: 2 }).page).toBe(0);
+  });
+
+  it('ft_1_20.AC18 a page always shows an action, so every action can be reached through More', () => {
+    const first = bandFlow({ spans: [5, 1, 1], rows: 1, page: 0 });
+    expect(first.placed.map((p) => p.action)).toEqual([0]);
+    expect(first.pages).toBe(2);
+    expect(bandFlow({ spans: [5, 1, 1], rows: 1, page: 1 }).placed.map((p) => p.action)).toEqual([1, 2]);
+    expect(bandFlow({ spans: [5, 5, 1], rows: 2, page: 0 }).placed.map((p) => p.action)).toEqual([0]);
   });
 });
