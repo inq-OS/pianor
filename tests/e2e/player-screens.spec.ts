@@ -334,7 +334,7 @@ test.describe('admin gate, pages and password', () => {
     await clickButton(page, 'adminPages', await buttonIndex(page, 'adminPages', 'Piano: full'));
     await expect.poll(() => sceneTexts(page, 'adminPages')).toContain('Piano: light');
     await clickButton(page, 'adminPages', await buttonIndex(page, 'adminPages', 'Piano: light'));
-    await expect.poll(() => sceneTexts(page, 'adminPages')).toContain('Piano: EZ-220');
+    await expect.poll(() => sceneTexts(page, 'adminPages')).toContain('Piano: keyboard');
     // the virtual EZ-220 is attached: a note the game plays goes to it on channel 2 (0x91), and none on channel 1
     const sent = await page.evaluate(() => {
       const w = window as unknown as { __virtualDevice: { output: { sent: { data: number[] }[] } }; __game: { registry: { get(k: string): { audio: { piano: { noteOn(m: number, v: number): void; noteOff(m: number): void; playsOnKeyboard: boolean } } } } } };
@@ -345,7 +345,7 @@ test.describe('admin gate, pages and password', () => {
       return { onKeyboard: piano.playsOnKeyboard, data: w.__virtualDevice.output.sent.slice(before).map((m) => m.data) };
     });
     expect(sent).toEqual({ onKeyboard: true, data: [[0x91, 67, 80], [0x81, 67, 0]] });
-    await clickButton(page, 'adminPages', await buttonIndex(page, 'adminPages', 'Piano: EZ-220'));
+    await clickButton(page, 'adminPages', await buttonIndex(page, 'adminPages', 'Piano: keyboard'));
     await expect.poll(() => sceneTexts(page, 'adminPages')).toContain('Piano: full');
     expectNoErrors(errors);
   });

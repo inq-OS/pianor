@@ -414,7 +414,7 @@ test('the setting buttons show pictures or numbers, and the choice name only as 
   expect(buttons).toHaveLength(6); // Wait/Tempo moved to the practice screen; the keyboard switch is on this screen's toolbar (d099)
   expect(buttons.filter((b) => !b.picture)).toEqual([{ name: 'Auto', picture: false, text: 'A' }, { name: 'Off', picture: false, text: '' }, { name: 'No finger numbers', picture: false, text: 'OFF' }]);
   const texts = await sceneTexts(page, 'settings');
-  for (const word of ['Colours', 'Auto', 'Small', 'Back']) expect(texts).not.toContain(word);
+  for (const word of ['Colors', 'Auto', 'Small', 'Back']) expect(texts).not.toContain(word);
   expectNoErrors(errors);
 });
 

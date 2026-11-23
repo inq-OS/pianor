@@ -500,3 +500,19 @@ Check: untestable: how a thread offers drafts; the build side is held by d025
 The separate builder and painter projects are retired. A `TODO(builder|painter|architect, <release>)` tag names the kind of work, not a project: any thread here picks it up. Adds to d153; the architect's weekly goal and deletion stay.
 
 Check: untestable: how the work is organised across Claude projects
+
+## d275
+
+**A part of a feature is named by its feature id and slice; the work-package ids (WP-nn) are retired.** Features: none.
+
+Adds to d153 and d264: the parts table of the characters programme is gone, its three held parts are tags in ft_1_24, ft_1_22 and ft_1_26, and docs name a part by its feature (and slice). Code comments and test titles drop the old ids, since a feature id appears in code only as an acceptance-criteria tag (d041).
+
+Check: untestable: a naming rule for docs and comments; `git grep "WP-[0-9]"` finds none once the builder's clean-up is merged
+
+## d276
+
+**Every thread approves and merges its own pull requests once its checks pass; no pull request waits for the maintainer.** Features: none.
+
+Adds to d166: code needs a fresh `reviewer` run with `VERDICT: APPROVE` and green CI, a save change also the end-to-end tests, pictures the art review, sensitive paths (`.github/`, `.claude/`, `CLAUDE.md`, package files) a reviewer run too; docs only need `docs:check`. The `main` ruleset requires no approving review, only the `check` and `privacy` checks. `architect:blocker` still stops a merge until the maintainer removes it.
+
+Check: untestable: a merge rule for threads and a repository setting

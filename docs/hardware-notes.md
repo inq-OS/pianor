@@ -63,6 +63,16 @@ Windows, EZ-220 on USB straight into the reference laptop. Only a first check: t
 - **The game is playable on the real keyboard** in Chrome or Edge at `npm run dev`: key presses reach the game and pieces can be played.
 - **The Claude desktop app's built-in browser pane cannot use the keyboard:** the spike page there shows Web MIDI as present but access refused ("Permission to use Web MIDI API was not granted"), without a prompt. Open the pages in Chrome or Edge itself. Agents testing through that pane only ever reach the virtual EZ-220.
 
+## Yamaha YDP-166 (a second keyboard): **unverified**
+
+The YDP-166 (Arius, 88 keys, USB to host, no key lights). Nothing below is observed on one yet; its profile is `YDP166_PROFILE` in `src/io/midi/keyboardProfiles.ts` (ft_0_06.AC5).
+
+- Assumed: it is class-compliant like the EZ-220 and its port is named like Yamaha's other digital pianos, "Digital Piano", or carries the model. If the port has another name, the game still takes it (the first connected input), but plays it as an unknown keyboard: the game's notes on channel 2, which may sound with another voice or not at all.
+- Assumed: keys go out on channel 1, releases as note-on velocity 0 or note-off (both are read), all 88 keys, MIDI 21 (A0) to 108 (C8). Pieces never ask for a key outside C2 to C7, so the keys below and above are only ever a wrong note.
+- Assumed: notes it receives on channel 1 sound with the panel's voice, so the game sends no voice and plays its own notes there (no lights to give an answer away). Its bank numbers are not checked against Yamaha's MIDI reference for the model.
+- Unknown: whether it sends the notes the computer plays back out over USB (an echo would be read as the student's keys), its latency, and the pedal.
+- To verify: the spike page (`npm run spike`) sections 1, 2, 3, 6 and 11 of `docs/hardware-test-checklist.md`, then the "Piano: keyboard" setting with a piece preview. Needs human.
+
 ## The reference screen
 
 A **1920x1080** screen at **125%** display scaling, the common laptop setting on Windows. Chrome then reports 1536x864 CSS pixels with `devicePixelRatio` 1.25; the game draws its canvas in physical pixels (1920x1080), so the pixel art is 5 screen pixels per art pixel and the staff is drawn at full resolution. How sharp it looks to the student on the real screen: **needs human**.

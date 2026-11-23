@@ -118,7 +118,7 @@ test.describe('the learning stats of a piece (ft_1_32)', () => {
     // the latest three runs: no stop, the third bar slow, the left hand the uneven one
     expect((await shown(page)).focus).toEqual(['slowBar', 'hand']);
     expect(texts).toEqual(expect.arrayContaining([
-      'Bar 3 takes 135% of the time it should. Practise it alone until it keeps up with the rest.',
+      'Bar 3 takes 135% of the time it should. Practice it alone until it keeps up with the rest.',
       'The left hand wobbles more (19%) than the right (8%). Play the left hand alone.',
     ]));
     if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/learn-stats-focus.png` });

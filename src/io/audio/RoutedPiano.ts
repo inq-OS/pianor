@@ -1,6 +1,7 @@
 import type { PianoSound } from '../audio';
 import type { PianoSoundKind } from '../../core/sound/pianoSound';
 import type { KeyboardPiano, NoteOutput } from '../midi/KeyboardPiano';
+import type { KeyboardProfile } from '../midi/keyboardProfiles';
 import type { SamplerPiano } from './SamplerPiano';
 
 export interface RoutedPianoOptions {
@@ -82,10 +83,10 @@ export class RoutedPiano implements PianoSound {
     await switching;
   }
 
-  /** The keyboard's output once MIDI has settled (null: none, or it went away). Call it again on every change. */
-  attachKeyboard(output: NoteOutput | null): void {
+  /** The keyboard's output and profile once MIDI has settled (null: none, or it went away). Call it again on every change. */
+  attachKeyboard(output: NoteOutput | null, profile?: KeyboardProfile): void {
     this.midiKnown = true;
-    this.keyboard.attach(output);
+    this.keyboard.attach(output, profile);
     this.update();
   }
 

@@ -193,7 +193,7 @@ Check: `src/core/island/presenceRules.test.ts` "needs the practice threshold, ne
 
 **A character's piece goes learn, practise, show; "find the key" and "find the door" are retired as names and as a gate.** Features: ft_1_06, ft_1_21, ft_1_22.
 
-The three phases are learn (the character teaches the piece, ft_1_22), practise (in the room and trainers until the evaluation says good enough, core_12) and show (the tug, ft_1_21); "key" and "door" leave screens, docs and new code. The gate to the tug is the practice evidence the evaluation already keeps, not a separate timed screen. `FindKeyScene` and the Tempo door stay playable until WP-13 removes them.
+The three phases are learn (the character teaches the piece, ft_1_22), practise (in the room and trainers until the evaluation says good enough, core_12) and show (the tug, ft_1_21); "key" and "door" leave screens, docs and new code. The gate to the tug is the practice evidence the evaluation already keeps, not a separate timed screen. `FindKeyScene` and the Tempo door stay playable until ft_1_21 removes them.
 
 Check: `src/core/exchange/tugGate.test.ts` "ft_1_06.AC15 it opens when the median of the last plays reaches the level"
 
@@ -209,7 +209,7 @@ Check: `src/core/piece/difficulty.test.ts` "core_08.AC2 gives 1 to 100, two poin
 
 **The curriculum model: play score, median level, consistency rule, Theil-Sen prediction, urgency, colours and medals.** Features: core_12, ft_1_26, ft_1_27.
 
-All numbers are teacher-changeable defaults, AX-3 provisional. A curriculum piece (set only by the teacher) has a deadline and priority 1 to 10; a play scores 0 to 100: pitch 60 %, timing 30 %, tempo 10 % in Tempo mode (pitch 100 % in Wait), kept per hand. Level is the median of the last X=10 plays, spread their standard deviation; retained when at least Y=3 of the last X reach the expected level and at most Z=2 fall below, none by more than B=15. Expected = 85 + priority; predicted = Theil-Sen trend of daily medians over the last 14 practice days projected to the deadline, capped at 100, none under 3 practice days; delta = expected minus predicted; urgency = max(0, delta) x (1 + priority/10) / sqrt(days left + 1), priority 5 to 10 with positive delta first. Colour: purple under 3 plays, green by predicted over expected, strong green when retained and reached; medal by achieved over expected: bronze 85 to 95 %, silver 96 to 105 %, gold above. Pure functions in core_12 (WP-04).
+All numbers are teacher-changeable defaults, AX-3 provisional. A curriculum piece (set only by the teacher) has a deadline and priority 1 to 10; a play scores 0 to 100: pitch 60 %, timing 30 %, tempo 10 % in Tempo mode (pitch 100 % in Wait), kept per hand. Level is the median of the last X=10 plays, spread their standard deviation; retained when at least Y=3 of the last X reach the expected level and at most Z=2 fall below, none by more than B=15. Expected = 85 + priority; predicted = Theil-Sen trend of daily medians over the last 14 practice days projected to the deadline, capped at 100, none under 3 practice days; delta = expected minus predicted; urgency = max(0, delta) x (1 + priority/10) / sqrt(days left + 1), priority 5 to 10 with positive delta first. Colour: purple under 3 plays, green by predicted over expected, strong green when retained and reached; medal by achieved over expected: bronze 85 to 95 %, silver 96 to 105 %, gold above. Pure functions in core_12 (core_12).
 
 Check: `src/core/curriculum/evaluate.test.ts` "content/curriculum/evaluation.json parses and holds the defaults of d139"; `src/core/curriculum/evaluate.test.ts` "urgency = max(0, delta) * (1 + priority / 10) / sqrt(days left + 1)"; `src/core/curriculum/evaluate.test.ts` "medal by level over expected: bronze 85 to 95, silver 96 to 105, gold above"
 
@@ -428,3 +428,11 @@ Check: `src/core/character/rules.test.ts` "each piece has its background in one 
 Checked by `characterProblems` (d169) for every character and across all characters by the content test.
 
 Check: `src/core/character/rules.test.ts` "ft_1_21.AC18 the prize ladder has a new, named, drawn rung for every level"
+
+## d277
+
+**A new instance of the game starts with no players; the first screen asks for the first player's name, and players are only ever added by the person.** Features: ft_1_07.
+
+The same holds when every saved player is damaged: the damaged saves are kept and shown, and no default player is made in their place. Only the end-to-end tests' `?players=test` (dev only) and dev pages that keep a player in memory start with players.
+
+Check: `tests/progression/profile-service.test.ts` "ft_1_07.AC1: a new install makes no player, and nothing is written until the first name is given"; `tests/progression/profile-service.test.ts` "ft_1_07.AC1: a start whose only saves cannot be read makes no player either: it asks for a name and keeps the damaged save"

@@ -25,7 +25,7 @@ async function setup(store: KeyValueStore = new MemoryStore()) {
 }
 
 describe('ProfileService', () => {
-  it('ft_1_07.AC1: a new install makes no player; nothing is written until the first name is given', async () => {
+  it('ft_1_07.AC1: a new install makes no player, and nothing is written until the first name is given', async () => {
     const store = new MemoryStore();
     const repository = new ProfileRepository(store, config, { idFactory: (() => { let n = 0; return () => `id-${++n}`; })() });
     const service = await ProfileService.create({ repository, config, catalogue: () => CATALOGUE, askFirstPlayer: true });
@@ -44,6 +44,17 @@ describe('ProfileService', () => {
     const again = await ProfileService.create({ repository, config, catalogue: () => CATALOGUE, askFirstPlayer: true });
     expect(again.needsFirstPlayer).toBe(false);
     expect(again.profile.name).toBe('ANNA');
+  });
+
+  it('ft_1_07.AC1: a start whose only saves cannot be read makes no player either: it asks for a name and keeps the damaged save', async () => {
+    const store = new MemoryStore();
+    await store.set('pianor/v1/player/old/profile', '{ not json');
+    const repository = new ProfileRepository(store, config, { idFactory: (() => { let n = 0; return () => `id-${++n}`; })() });
+    const service = await ProfileService.create({ repository, config, catalogue: () => CATALOGUE, askFirstPlayer: true });
+    expect(service.needsFirstPlayer).toBe(true);
+    expect(service.profiles).toEqual([]);
+    expect(service.damaged.map((d) => d.id)).toEqual(['old']);
+    expect((await store.keys('pianor/v1/player/')).filter((k) => !k.startsWith('pianor/v1/player/old/'))).toEqual([]);
   });
 
   it('starts with a fresh "Player 1" at level 1 with nothing finished', async () => {

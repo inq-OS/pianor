@@ -1,6 +1,7 @@
 import type { NoteEvent } from '../../core/judge/types';
 import { Emitter } from '../emitter';
 import { MIDI_SOURCE, type KeyboardInput, type KeyboardStatus, type Unsubscribe } from '../keyboard';
+import { profileOfPort, type KeyboardProfile } from './keyboardProfiles';
 import { parseMidiMessage } from './parse';
 
 export type MidiUnavailableReason = 'unsupported' | 'denied' | 'failed';
@@ -119,6 +120,11 @@ export class WebMidiKeyboard implements KeyboardInput {
       ?? outputs.find((o) => inputName !== '' && (o.name ?? '').includes(inputName))
       ?? outputs.find((o) => this.preferName?.test(o.name ?? '') === true)
       ?? null;
+  }
+
+  /** What the game knows about the keyboard being played, from its port name (ft_0_06.AC5); the unknown profile while none is. */
+  profile(): KeyboardProfile {
+    return profileOfPort(this.active?.name);
   }
 
   /** Pick a specific input by id, or null to go back to automatic selection. */
