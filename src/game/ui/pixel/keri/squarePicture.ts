@@ -20,9 +20,9 @@ import { KIT_WOOD } from './kit/wood';
  * bands of tone, an ink line round every thing in the darkest tone of its own colour.
  *
  * Laid back to front: the bare sky (its clouds are their own pictures and drift over it), the sea with the pier and a
- * boat, the sand spit, the shore, the cinema house, the plaza of flagstones in rings round its lamp and flower bed, the lighthouse's side building as
- * the left wing and the old boat shed's corner as the right. The plaza and what stands on it (the flagstones, the lamp,
- * its flower bed, the benches, the barrels, the string of pennants) are the painter's props; the houses and the pier stand where the
+ * boat, the sand spit, the shore, the cinema house, the plaza of flagstones in rings round its flower bed, the lighthouse's side building as
+ * the left wing and the old boat shed's corner as the right. The plaza and what stands on it (the flagstones,
+ * the flower bed, the benches, the barrels, the string of pennants) are the painter's props; the houses and the pier stand where the
  * world model has them. The hour changes the colours and where the shade lies, not the drawing.
  */
 
@@ -115,12 +115,22 @@ function inside(pts: readonly Pt[], x: number, y: number): boolean {
 const RINGS = [10, 19, 30, 43, 58, 76, 98, 124] as const;
 const RX = 3.9, RY = 0.86;
 
-/** The lanterns: the lamp's two arms, the side building's corner. Each by its hook (fine pixels, flat plan). */
+/** The lanterns: the side building's corner, the beacon at the pier's head. Each by its hook (fine pixels, flat plan). */
 const LANTERNS: readonly { x: number; y: number; reach: number }[] = [
-  { x: 312, y: 70, reach: 40 },
-  { x: 362, y: 64, reach: 40 },
   { x: 150, y: 124, reach: 30 },
+  { x: 451, y: 97, reach: 20 },
 ];
+
+/**
+ * The pier as the stage has it: its top's two edges run from the shore to one point on the horizon, and it ends
+ * `PIER.head` of the way there. The same heavy stone quay as the port's own picture, seen from the land.
+ */
+const PIER = { near: 158, left: 476, right: 600, to: { x: 392, y: SQUARE.horizon }, head: 0.6, face: 0.42 } as const;
+/** A point of the pier's top: `t` from the shore (0) toward the horizon (1), `across` from its left edge (0) to its right (1). */
+function onPier(t: number, across: number): Pt {
+  const x = PIER.left + (PIER.right - PIER.left) * across;
+  return [x + (PIER.to.x - x) * t, PIER.near + (PIER.to.y - PIER.near) * t];
+}
 
 class SquarePainter {
   readonly palette: readonly number[];
@@ -242,13 +252,10 @@ class SquarePainter {
       case 'day':
         // the sun in the south, to the right: the boat shed's corner throws its shade over the plaza's right, the lamp a thin one
         if (within([[640, 176], [596, 186], [404, 218], [214, 252], [640, 252]])) return 1;
-        if (within([[334, 204], [338, 208], [236, 199], [232, 195]])) return 0.8;
-        // the side building's eaves shade the foot of its wall
         return 0;
       case 'dawn':
         // the sun ahead over the sea: every shade comes toward the viewer
         if (within([[112, 164], [250, 160], [304, 204], [84, 218]])) return 1;
-        if (within([[334, 208], [340, 208], [412, 248], [396, 248]])) return 0.8;
         if (within([[452, 204], [524, 204], [560, 236], [470, 236]])) return 0.7;
         return 0;
       case 'dusk':
@@ -343,70 +350,115 @@ class SquarePainter {
 
   /**
    * The sand spit off the island's south-east corner: a long low tongue of pale sand that leaves the shore east of the
-   * pier and runs away south behind the pier's head, shoal water pale round it and surf along its seaward side.
+   * pier and runs away south beside it, clear of it, shoal water pale round it and surf where the swell breaks.
    */
   private spit(): void {
     const { hour } = this;
-    const sand: readonly Pt[] = [[352, 146], [370, 128], [396, 114], [440, 105], [520, 100], [616, 97], [622, 99], [534, 104], [458, 109], [422, 116], [402, 128], [394, 146]];
+    const sand: readonly Pt[] = [[318, 150], [336, 132], [346, 120], [352, 109], [366, 101], [390, 96], [412, 94], [420, 97], [406, 101], [398, 107], [398, 117], [406, 130], [410, 150]];
+    const shape = sand.map(([x, y]) => bend(x, y) as Pt);
     // the shoal: the sea a tone or two paler in level dashes round the sand
-    const shoal = sand.map(([x, y]) => bend(x, y) as Pt);
-    for (let y = this.horizonAt(320); y < 150; y++) for (let x = 340; x < this.w; x++) {
+    for (let y = this.horizonAt(380) + 2; y < 150; y++) for (let x = 296; x < 440; x++) {
       let near = false;
-      for (const [dx, dy] of [[0, 3], [0, 6], [-9, 2], [9, 2], [-18, 1], [18, 1], [0, -2]] as const) if (inside(shoal, x + dx, y - dy)) { near = true; break; }
+      for (const [dx, dy] of [[0, 3], [-8, 1], [8, 1], [-15, 0], [15, 0], [0, -2]] as const) if (inside(shape, x + dx, y - dy)) { near = true; break; }
       if (near && hash2(x >> 2, y, 845) > 0.3) this.put(x, y, tone(F.sea, 0.82 + 0.18 * hash2(x >> 3, y, 846), x, y));
     }
     this.as(() => {
       this.poly(sand, (x, y) => {
-        const crest = fbm(x / 19, y / 3, 2, 847);
-        // a low crest of dry grass along its back near the island, bare sand beyond
-        if (crest > 0.7 && x < 430) return tone(F.grass, clamp01(hour.ground - 0.2), x, y);
-        // pale sand, straw-yellow where it lies dry and grey where the sea has just left it
-        if (fbm(x / 29, y / 5, 2, 844) > 0.47) return this.worn(F.shingle, hour.ground + 0.24, x, y, 0.04, 21);
+        // a low crest of grass along its back near the island; pale sand, straw-yellow where dry, grey where the sea has just left it
+        if (fbm(x / 9, y / 7, 2, 847) > 0.66 && y > 118) return tone(F.grass, clamp01(hour.ground - 0.2), x, y);
+        if (fbm(x / 13, y / 9, 2, 844) > 0.5) return this.worn(F.shingle, hour.ground + 0.24, x, y, 0.04, 21);
         return this.worn(F.dry, hour.ground + 0.22, x, y, 0.04, 21);
       }, 0.7, 4);
     });
-    // surf in short level dashes where the swell breaks on it
-    for (let k = 0; k < 46; k++) {
-      const t = hash2(k, 1, 849), x = 432 + t * 190, y = 113 - t * 12 + hash2(k, 2, 849) * 2.5;
-      const [bx, by] = bend(x, y);
-      if (this.owner[Math.round(by) * this.w + Math.round(bx)] !== 0) continue;
-      for (let d = 0; d < 2 + hash2(k, 3, 849) * 5; d++) this.put(bx + d, by, R.foam);
+    this.as(() => {
+      // the dune on its back: a long hump of sand, its top lit and its lee in shade, marram grass along the crest
+      const [cx, cy] = bend(364, 124);
+      this.oval(364, 126, 30, 9, (x, y) => this.worn(F.dry, hour.ground - 0.2 + (x - cx) / 30 * hour.side * 0.14, x, y, 0.05, 27));
+      this.oval(366, 122, 27, 6, (x, y) => (y < cy - 2 ? this.worn(F.shingle, hour.ground + 0.3, x, y, 0.03, 28) : this.worn(F.dry, hour.ground + 0.2, x, y, 0.04, 28)));
+      for (let k = 0; k < 34; k++) {
+        const x = 342 + hash2(k, 1, 843) * 46, y = 119 + hash2(k, 2, 843) * 4 - 3 * Math.sin(((x - 342) / 46) * Math.PI), tall = 2 + Math.floor(hash2(k, 3, 843) * 4);
+        for (let i = 0; i < tall; i++) this.put(...bend(x + (i > 1 ? (k % 3) - 1 : 0), y - i), tone(k % 4 ? F.grass : F.dry, clamp01(hour.ground - 0.24 + i * 0.12), 0, 0));
+      }
+    });
+    // surf in short level dashes along its edges
+    for (let k = 0; k < 110; k++) {
+      const x = 310 + hash2(k, 1, 849) * 120, y = 98 + hash2(k, 2, 849) * 44;
+      if (inside(shape, x, y) || !(inside(shape, x + 5, y) || inside(shape, x - 5, y))) continue;
+      for (let d = 0; d < 2 + hash2(k, 3, 849) * 4; d++) this.put(x + d, y, R.foam);
     }
   }
 
+  /**
+   * The southern pier, the port's own (`portPicture.ts`) seen from the land: a heavy quay of grey stone on arches going
+   * straight out, a pale top of big slabs, bollards, crates and a barrel, the red and white beacon with its lantern at
+   * the head, the low landing beyond it with the rowing boat, and the red houseboat moored at its landward end.
+   */
   private pier(): void {
     const { hour } = this;
-    // the boat moored at its seaward side: a red hull, a white cabin, a mast and a pennant
-    const at = (x: number, y: number): Pt => [462 + (x - 506) * 0.78, 108 + (y - 104) * 0.78];
+    // the houseboat on its far side: a brown hull, a red cabin under a grey roof, a stovepipe, the seal at its bow
     this.as(() => {
-      this.poly([at(506, 110), at(588, 104), at(578, 128), at(516, 130)], (x, y) => this.worn(F.red, hour.front * 0.7 + (y < 118 ? 0.16 : 0), x, y, 0.05));
-      this.line(at(508, 112), at(586, 106), R.red[4]!);
-      this.poly([at(528, 92), at(560, 90), at(560, 108), at(528, 110)], (x, y) => tone(F.plaster, hour.front + (x < 484 ? -0.2 : 0.08), x, y));
-      this.poly([at(524, 92), at(564, 88), at(564, 84), at(526, 87)], (x, y) => tone(F.tin, 0.42, x, y));
-      this.poly([at(534, 96), at(544, 96), at(544, 103), at(534, 104)], () => (this.lit ? R.ember[4]! : R.tin[1]!));
-      this.line(at(552, 90), at(554, 46), R.wood[1]!, 2);
-      this.poly([at(555, 48), at(574, 53), at(555, 59)], () => R.red[2]!, 0.3);
+      this.poly([[552, 133], [560, 142], [640, 144], [640, 128], [566, 129]], (x, y) => this.worn(F.wood, 0.4 + (y < bend(x, 134)[1] ? 0.16 : 0), x, y, 0.06), 0.5);
+      this.poly([[572, 112], [614, 110], [614, 129], [572, 130]], (x, y) => this.worn(F.red, hour.front * 0.6 + 0.12 + (((x >> 2) & 1) ? 0.06 : 0), x, y, 0.05), 0.4);
+      this.poly([[566, 113], [570, 104], [614, 102], [620, 111]], (x, y) => tone(F.stone, 0.3 + (((x + y) >> 2) & 1 ? 0.06 : 0), x, y), 0.5);
+      this.poly([[578, 116], [586, 116], [586, 124], [578, 124]], () => (this.lit ? R.ember[4]! : R.tin[3]!), 0.2);
+      this.line([604, 104], [606, 88], R.stone[3]!, 2);
+      this.oval(560, 124, 4.5, 5.5, (x, y) => tone(F.stone, 0.56 + 0.2 * (hash2(x, y, 841) > 0.6 ? 1 : 0), x, y));
+    });
+    const { head, face } = PIER;
+    const drop = (t: number): number => face * (onPier(t, 0)[1] - PIER.to.y);
+    this.as(() => {
+      // the low landing beyond the head, wet and darker, and the head's own end
+      this.poly([onPier(head, -0.1), onPier(head, 1), onPier(head + 0.07, 1), onPier(head + 0.07, -0.1)].map(([x, y]) => [x, y + drop(head) * 0.7] as Pt), (x, y) => this.worn(F.stone, hour.ground * 0.6 + 0.1, x, y, 0.05, 23), 0.4);
+      const [hx, hy] = onPier(head, 0), [rx, ry] = onPier(head, 1);
+      this.poly([[hx, hy], [rx, ry], [rx, ry + drop(head) * 0.7], [hx, hy + drop(head) * 0.7]], this.blocks(hour.front * 0.6 + 0.1, 4, 9, 2), 0.3);
+      // its long face: a pale coping, courses of big blocks, the arches' dark tops over the water
+      this.poly([onPier(0, 0), onPier(head, 0), [hx, hy + drop(head)], [PIER.left, PIER.near + drop(0)]], (x, y) => {
+        const t = (PIER.left - x) / (PIER.left - PIER.to.x), top = PIER.near + (PIER.to.y - PIER.near) * t, tall = face * (top - PIER.to.y);
+        const v = (y - bend(x, top)[1]) / tall;
+        if (v < 0.16) return this.worn(F.stone, hour.north + 0.42, x, y, 0.04, 24);
+        for (const c of [0.15, 0.3, 0.43, 0.54, 0.63]) {
+          const half = 0.06 * (1 - c);
+          if (Math.abs(t - c) < half && v > 0.5 + 0.5 * ((t - c) / half) ** 2) return R.stone[0]!;
+        }
+        return this.blocks(hour.north + 0.12, Math.max(3, tall / 4), Math.max(7, tall), 1)(x, y);
+      }, 0.5);
+      // its top: big pale slabs going away
+      this.poly([onPier(0, 0), onPier(0, 1), onPier(head, 1), onPier(head, 0)], (x, y) => {
+        const along = Math.floor(240 / Math.max(1, y - PIER.to.y - 6));
+        const seam = along !== Math.floor(240 / Math.max(1, y - PIER.to.y - 7)) || (Math.abs(x - PIER.to.x - (y - PIER.to.y) * 2.6) < 0.7 && along % 2 === 0);
+        return seam ? tone(F.stone, 0.3, x, y) : this.worn(F.stone, hour.ground * 0.5 + 0.44 + (hash2(along, 3, 840) - 0.5) * 0.12, x, y, 0.05);
+      }, 0.5);
+    });
+    // bollards along its edge, smaller the further out
+    for (const t of [0.14, 0.32, 0.47]) this.as(() => {
+      const [x, y] = onPier(t, 0.1), s = 1.5 * (1 - t);
+      this.poly([[x - 2 * s, y], [x + 2 * s, y], [x + 1.4 * s, y - 5 * s], [x + 3 * s, y - 5 * s], [x + 3 * s, y - 7 * s], [x - 3 * s, y - 7 * s], [x - 3 * s, y - 5 * s], [x - 1.4 * s, y - 5 * s]], () => R.stone[0]!, 0.2);
     });
     this.as(() => {
-      // the quay runs out from the shore away to the left: its top a pale band of slabs, its near face big blocks in the shade
-      this.poly([[470, 154], [530, 151], [432, 108], [412, 109]], (x, y) => {
-        const along = 300 / Math.max(1, y - 86);
-        const seam = Math.floor(along) !== Math.floor(300 / Math.max(1, y - 85));
-        return seam ? tone(F.stone, 0.22, x, y) : this.worn(F.stone, hour.ground * 0.8 + 0.06 + (hash2(Math.floor(along), 3, 840) - 0.5) * 0.14, x, y, 0.05);
-      }, 0.6);
-      this.poly([[470, 154], [412, 109], [408, 116], [458, 167]], this.blocks(hour.north + 0.06, 5, 12, 1), 0.6);
-      // bollards along its seaward edge, smaller the further out
-      for (const t of [0.1, 0.34, 0.56, 0.76, 0.93]) {
-        const x = 524 + (433 - 524) * t, y = 150 + (108 - 150) * t, s = 1.2 - 0.7 * t;
-        this.poly([[x - 3 * s, y], [x + 3 * s, y], [x + 2 * s, y - 7 * s], [x - 2 * s, y - 7 * s]], (px) => tone(F.stone, px < bend(x, y)[0] ? 0.16 : 0.34, px, 0), 0.3);
-      }
+      // crates and a barrel near the head
+      const [x, y] = onPier(head - 0.1, 0.55);
+      this.poly([[x - 7, y], [x + 3, y], [x + 3, y - 7], [x - 2, y - 7], [x - 2, y - 11], [x - 7, y - 11]], (px, py) => this.worn(F.wood, 0.46, px, py, 0.08, 25), 0.3);
+      this.oval(x + 8, y - 3, 3.2, 4, (px, py) => this.worn(F.wood, 0.36, px, py, 0.06, 26));
+    });
+    this.as(() => {
+      // the beacon at the head: a stout post in red and white bands, an arm and the lantern on it
+      const [x, y] = onPier(head - 0.02, 0.6);
+      for (let i = 0; i < 26; i++) for (let d = -1; d <= 1; d++) this.put(...bend(x + d + i * 0.04, y - i), [R.plaster[4]!, R.plaster[4]!, R.red[2]!][Math.floor(i / 3.4) % 3]!);
+      this.poly([[x - 3, y], [x + 3, y], [x + 2, y - 3], [x - 2, y - 3]], () => R.stone[1]!, 0.2);
+      this.line([x + 1, y - 25], [LANTERNS[1]!.x, LANTERNS[1]!.y - 1], R.ink, 1);
+    });
+    this.as(() => {
+      // the tarred rowing boat at the landing
+      const [x, y] = onPier(head + 0.04, -0.3);
+      this.poly([[x - 9, y], [x + 9, y - 1], [x + 7, y + 4], [x - 6, y + 4]], () => R.boards[0]!, 0.3);
+      this.line([x - 8, y], [x + 8, y - 1], R.boards[2]!, 1);
     });
   }
 
   private shore(): void {
     const { hour } = this;
     // the shingle beach below the square, curving round to the east point on the left
-    this.poly([[224, 150], [256, 122], [320, 126], [350, 142], [430, 150], [540, 150], [650, 144], [650, 200], [0, 200], [0, 150]], (x, y) => {
+    this.poly([[224, 150], [256, 122], [320, 126], [350, 144], [430, 150], [540, 150], [650, 148], [650, 200], [0, 200], [0, 150]], (x, y) => {
       const pebble = hash2(x >> 1, y, 850);
       return tone(F.shingle, clamp01(hour.ground + 0.06 + (pebble > 0.86 ? 0.14 : pebble < 0.12 ? -0.2 : 0) - 0.1 * smooth(150, 196, y)), x, y);
     }, 1.6);
@@ -569,6 +621,20 @@ class SquarePainter {
     }, 1.8);
   }
 
+  /**
+   * The trodden paths: one from the plaza to the cinema's doors and on into the gap behind the side building (it goes
+   * on round the lighthouse), one from the plaza down to the pier's root. Pale gravel beaten into the earth, ragged edges.
+   */
+  private paths(): void {
+    const { hour } = this;
+    const beaten: Tone = (x, y) => {
+      const light = hour.ground + 0.16 - this.shade(x, y) * 0.46, speck = hash2(x >> 1, y, 923);
+      return speck < 0.12 ? tone(F.earth, clamp01(light + 0.1), x, y) : this.worn(F.shingle, light - 0.04 + (speck > 0.9 ? 0.12 : 0), x, y, 0.06, 29);
+    };
+    this.poly([[250, 180], [214, 166], [176, 166], [150, 168], [96, 172], [96, 184], [150, 182], [186, 178], [214, 190]], beaten, 2.2, 5);
+    this.poly([[430, 186], [492, 184], [552, 170], [604, 150], [536, 150], [500, 160], [452, 172]], beaten, 2.2, 6);
+  }
+
   /** A flagstone's ring and its place round it, or null off the plaza. */
   private flag(x: number, y: number): { ring: number; stone: number; seam: boolean; top: boolean } | null {
     const [cx, cy] = bend(SQUARE.lamp.x, SQUARE.lamp.y);
@@ -628,8 +694,8 @@ class SquarePainter {
     }
   }
 
-  /** The lamp in the plaza's middle: a round flower bed in a kerb of stone, a crooked iron post out of its middle, two arms. */
-  private lampPost(): void {
+  /** The plaza's middle: a round flower bed in a kerb of stone, a rose bush grown tall in its middle. */
+  private flowerBed(): void {
     const { hour } = this;
     const { x, y } = SQUARE.lamp;
     this.as(() => {
@@ -661,23 +727,18 @@ class SquarePainter {
       }
     });
     this.as(() => {
-      // the post, crooked, fatter at its foot, a collar halfway; the light side to the hour's sun
-      const post: readonly Pt[] = [[x, y - 6], [x - 2, y - 52], [x, y - 100], [x + 3, y - 140]];
-      for (let k = 0; k < post.length - 1; k++) this.line(post[k]!, post[k + 1]!, R.stone[0]!, k === 0 ? 8 : k === 1 ? 6 : 5);
-      for (let k = 0; k < post.length - 1; k++) this.line([post[k]![0] + hour.side * 1.4, post[k]![1]], [post[k + 1]![0] + hour.side * 1.4, post[k + 1]![1]], R.stone[2]!, 1);
-      this.oval(x - 2, y - 52, 6, 2.6, () => R.stone[1]!);
-      this.oval(x, y - 100, 5, 2.2, () => R.stone[1]!);
-      // two arms in curls, one higher than the other
-      const arm = (to: Pt, lift: number): void => {
-        for (let t = 0; t <= 1; t += 0.02) {
-          const ax = x + 3 + (to[0] - x - 3) * t, ay = y - 136 + (to[1] - (y - 136)) * t - lift * Math.sin(Math.PI * t);
-          this.put(...bend(ax, ay), R.stone[0]!);
-          this.put(...bend(ax, ay + 1), R.stone[0]!);
-        }
-      };
-      arm([LANTERNS[0]!.x, LANTERNS[0]!.y], 9);
-      arm([LANTERNS[1]!.x, LANTERNS[1]!.y], 12);
-      this.oval(x + 3, y - 143, 3.4, 3.4, () => R.stone[1]!);
+      // the bush in the middle: a heap of leaves in flat clumps, lit from the hour's side, red heads on it
+      const [cx, cy] = bend(x, y - 22);
+      this.oval(x, y - 20, 15, 16, (px, py) => {
+        const across = (px - cx) / 15, up = (cy - py) / 16;
+        return tone(F.grass, clamp01(hour.ground * 0.5 + 0.04 + Math.round(fbm(px / 5, py / 4, 2, 953) * 4) / 4 * 0.4 + up * 0.16 + across * hour.side * 0.2), px, py);
+      });
+      for (let k = 0; k < 22; k++) {
+        const a = hash2(k, 1, 954) * Math.PI * 2, r = Math.sqrt(hash2(k, 2, 954)) * 0.86;
+        const [px, py] = bend(x + Math.cos(a) * r * 14, y - 20 + Math.sin(a) * r * 15);
+        const head = hash2(k, 3, 954) > 0.4 ? R.red[3]! : R.red[4]!;
+        this.put(px, py, head); this.put(px + 1, py, head); this.put(px, py + 1, R.red[2]!); this.put(px + 1, py + 1, head);
+      }
     });
   }
 
@@ -773,8 +834,8 @@ class SquarePainter {
   }
 
   private gulls(): void {
-    // one on the lamp's top, one on the cinema's ridge: painted still; the flock that flies is the game's
-    for (const [x, y] of [[340, 57], [206, 86]] as const) this.as(() => {
+    // one on the barrels, one on the cinema's ridge: painted still; the flock that flies is the game's
+    for (const [x, y] of [[536, 207], [206, 86]] as const) this.as(() => {
       this.oval(x, y, 4, 2.4, (px, py) => tone(F.plaster, py < bend(x, y)[1] ? 0.9 : 0.62, px, py));
       this.oval(x + 4, y - 3, 1.8, 1.8, () => R.plaster[4]!);
       this.put(...bend(x + 6, y - 3), R.dry[2]!);
@@ -797,12 +858,13 @@ class SquarePainter {
     this.paintSea();
     this.farRocks();
     this.spit();
-    this.shore();
     this.pier();
+    this.shore();
     this.ground();
+    this.paths();
     this.cinema();
     this.plaza();
-    this.lampPost();
+    this.flowerBed();
     this.props();
     this.sideBuilding();
     this.lighthouseFoot();
@@ -844,8 +906,7 @@ class SquarePainter {
         const [x, y] = bend(l.x, l.y);
         lamp.paint(brush, Math.round(x), Math.round(y), optionsOf(lamp, 'no-water', { reach: l.reach + look * 3, lantern: false }), k);
       }
-      // the lamp's pool on the plaza under it, and the doors' light spilling out over the stones
-      this.pool(bitmap, base, SQUARE.lamp.x, SQUARE.lamp.y + 8, 112 + look * 4, 27 + look);
+      // the doors' light spilling out over the stones
       this.pool(bitmap, base, 192, 172, 42 + look * 2, 9);
       return bitmap;
     }));

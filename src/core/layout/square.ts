@@ -28,7 +28,7 @@ export const SQUARE = {
   bow: 7,
   /** How far what stands up fans out from the middle at the picture's top, as a share of its distance from the middle. */
   splay: 0.05,
-  /** The middle of the plaza's rings of flagstones, where the lamp stands. */
+  /** The middle of the plaza's rings of flagstones, where the flower bed lies. */
   lamp: { x: 336, y: 206 },
 } as const;
 
@@ -46,6 +46,6 @@ export function squarePlan(): SquarePlan {
   return {
     fine: { w: SQUARE.w, h: SQUARE.h },
     horizon: SQUARE.horizon,
-    pier: { x: 412, y: 70, w: 118, h: 94 },
+    pier: { x: 430, y: 84, w: 180, h: 70 },
   };
 }
