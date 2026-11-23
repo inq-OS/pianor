@@ -266,4 +266,5 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d281](play.md#d281) | A learning run with every note right counts for its pace unless it was clearly uneven; a beginner's wobble passes, and an uneven run is asked again at most once | ft_1_32 |
 | [d282](game.md#d282) | The band under every screen goes: actions open in a bubble round the pointer on a right click, a screen pins its few most-used actions in one slim strip, and the items a student keeps are in a backpack | ft_1_20 |
 | [d283](workflow.md#d283) | Work raises the shortest stave: every area of the game is kept at a similar level, and the next work is the area that lags most in play, chosen with the maintainer; there is no weekly goal |  |
+| [d286](game.md#d286) | No silent tool action: every tool shows the result it would make before it commits, on the screen where it acts | ft_1_02d, ft_1_20 |
 <!-- /docs:index -->

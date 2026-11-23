@@ -76,6 +76,7 @@ Keep this list accurate (`docs:check` fails if a script is missing here).
 - Time is measured on the audio clock, in ticks (480 per quarter note) inside the core, never in frames. The core takes an injectable clock.
 - Every persisted or loaded format (chart, piece meta, save data, content) has a `schemaVersion` and a tested migration path. Pitches are stored spelled (`step`, `alter`, `octave`) as well as MIDI.
 - The judge consumes abstract `NoteEvent`s and emits domain events (`NoteJudged`, `BarCompleted`, `PhraseCompleted`, `PieceCompleted`). Play modes (Wait now, Tempo later) are strategies behind one interface. Do not let challenges, UI or progression reach into judge internals.
+- **No silent tool action (d286):** every tool previews its result before it commits (a pick draws its mark faint where the click would put it; an item shows its change on the note under the pointer), as a picture, never as text.
 - Layout is a pure function; Phaser views only draw it. Views read play state and never decide correctness.
 - All UI text goes through string keys; save data is profile-scoped. Do not hardcode text in art or scenes.
 - Do not build features that have no file in `docs/features/`; keep only the seams listed in `docs/futureproofing.md`. Retired ideas are deleted, not kept on hold; a rejected idea stays as one line so it is not proposed again ([d151](docs/decisions/workflow.md#d151)).

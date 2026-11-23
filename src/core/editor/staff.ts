@@ -196,6 +196,22 @@ export function barBoxes(layout: StaffLayout, range: { from: number; to: number 
 }
 
 /**
+ * What the repeat item's next click would make (d286, ft_1_02d.AC27): the bars lit, from the picked start bar (or the bar
+ * under the pointer while none is picked) to the bar under the pointer, either way round, and where its two signs go: the
+ * start sign at the left side of its first bar, the end sign at the right side of its last, each only on the page it is on.
+ */
+export function repeatPreview(layout: StaffLayout, startBar: number | null, bar: number, page: number): { boxes: ReturnType<typeof barBoxes>; signs: { side: 'start' | 'end'; x: number; y1: number; y2: number }[] } {
+  const start = startBar ?? bar;
+  const all = barBoxes(layout, { from: Math.min(start, bar), to: Math.max(start, bar) });
+  const signs: { side: 'start' | 'end'; x: number; y1: number; y2: number }[] = [];
+  const first = all[0];
+  const last = all.at(-1);
+  if (first?.page === page) signs.push({ side: 'start', x: first.x1, y1: first.y1, y2: first.y2 });
+  if (last?.page === page) signs.push({ side: 'end', x: last.x2, y1: last.y1, y2: last.y2 });
+  return { boxes: all.filter((b) => b.page === page), signs };
+}
+
+/**
  * The bars a lasso rectangle touches on a page, from the first to the last, as a bar range; null when it touches
  * none. A bar's box is the one its highlight uses (`barBoxes`), so the lasso picks what it will light up.
  */

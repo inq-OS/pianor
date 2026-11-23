@@ -1,4 +1,4 @@
-// Covers ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
+// Covers ft_1_02d.AC25, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
 import { readFileSync } from 'node:fs';
 import { encode as encodePng } from 'fast-png';
 import { expect, test, type Page } from '@playwright/test';
@@ -933,6 +933,13 @@ test.describe('slurs (core_09.AC30)', () => {
     expect(pickAt).toBeGreaterThanOrEqual(0);
     await clickButton(page, 'editor', pickAt);
     expect(await sceneTexts(page, 'editor')).toContain('Now click the note the tie or slur goes to.');
+    // (ft_1_02d.AC25) the pointer on E, before the click: the slur it would make shows as a preview, and the piece has none yet
+    const over = await canvasPoint(page, { bar: 0, start: 960, step: 'E' });
+    await page.mouse.move(over.x, over.y);
+    const preview = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { previewCache: { marks: { slurs: unknown[]; ties: unknown[] } } | null }).previewCache?.marks ?? null);
+    await expect.poll(async () => (await preview())?.slurs.length ?? 0).toBe(1);
+    expect((await preview())?.ties).toEqual([]);
+    expect(await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { history: { present: { slurs?: unknown[] } } }).history.present.slurs ?? [])).toEqual([]);
     await clickNote(page, 0, 960, 'E');
     expect(await status(page)).not.toContain('Now click the note the tie or slur goes to.');
     expect(await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { arcFrom: unknown }).arcFrom)).toBeNull();

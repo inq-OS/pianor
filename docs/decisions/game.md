@@ -460,3 +460,11 @@ Check: `src/core/curriculum/phoneCall.test.ts` "ft_1_34.AC1 rings for a curricul
 The bubble's options keep fixed slots (eight round a ring, slot 0 up, then clockwise), an option with choices opens them in a row beside it, and a long press or the context-menu key opens it too. The strip is one row of 15-row cells along the foot (17 rows, none on a screen with nothing pinned) and ends with More, which opens the bubble, so nothing is reached by the right click alone; a word is never cut short. Only practice and the piece maker have a bubble; a screen whose actions fit the strip pins them all. Which action goes where is the table in ft_1_20, AX-3 provisional until the maintainer tunes it on the laptop.
 
 Check: `src/core/layout/bubble.test.ts` "ft_1_20.AC19 an option keeps its slot whatever how many options the screen has, so the hand learns it"; `src/core/layout/bubble.test.ts` "ft_1_20.AC21 a screen with nothing pinned has no strip, and anything pinned takes one row of 15-row cells"; `src/core/layout/bubble.test.ts` "ft_1_20.AC18 never cuts a word: a word wider than a cell takes as many cells of the row as it needs"
+
+## d286
+
+**No silent tool action: every tool shows the result it would make before it commits, on the screen where it acts.** Features: ft_1_02d, ft_1_20.
+
+Applies to the piece maker and to every new screen or tool. A pick that waits for a target (a tie or slur's end note, a pre-note's pitch, a repeat's bars) marks what it started from and draws its mark faint where the pointer's click would put it; an item or held item shows its change on the note under the pointer before the press. The preview is a picture on the staff or the screen, never a line of text, and nothing is written until the click.
+
+Check: `src/core/layout/preview.test.ts` "ft_1_02d.AC25 note A then the same key right after shows one tie between their heads, and nothing else"; `src/core/editor/staff.test.ts` "ft_1_02d.AC27 the repeat pick lights the bars from its start to the pointer, either way round, with its signs on their outer sides"

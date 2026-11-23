@@ -1,4 +1,4 @@
-// Covers ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12.
+// Covers ft_1_02d.AC27, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { naturalAtPosition, staffPosition } from '../chart/pitch';
@@ -6,7 +6,7 @@ import type { StaffLayout } from '../layout/staff';
 import { toChart } from './chart';
 import { hitTest, placeClick, pointOf, targetOf } from './hitTest';
 import { EDITOR_LENGTHS, emptyPiece, placeNote, placeRest, restLengthFor, type EditorHands, type EditorLength, type EditorPiece } from './model';
-import { barBoxes, barsInRect, columnWidth, drawnWhileWriting, editorFrame, editorStaff, pageOfBar, RESERVE_CHORD, RESERVE_HIGH, RESERVE_LOW, shadowsFor, targetBox } from './staff';
+import { barBoxes, barsInRect, columnWidth, drawnWhileWriting, editorFrame, editorStaff, pageOfBar, repeatPreview, RESERVE_CHORD, RESERVE_HIGH, RESERVE_LOW, shadowsFor, targetBox } from './staff';
 
 /** The editor's staff area on 1280x720 and on the 1366x768 laptop at 4x, on 960x540 at 3x, and on a 1920x1080 screen. */
 const VIEWPORTS = [{ width: 1280, height: 296 }, { width: 1366, height: 344 }, { width: 960, height: 222 }, { width: 1920, height: 864 }];
@@ -286,6 +286,16 @@ describe('the highlight of selected bars', () => {
 
   it('puts a bar on the next page on that page', () => {
     expect(barBoxes(layout, { from: 2, to: 2 })).toEqual([{ x1: 0, x2: 100, y1: 40, y2: 100, page: 1 }]);
+  });
+
+  it('ft_1_02d.AC27 the repeat pick lights the bars from its start to the pointer, either way round, with its signs on their outer sides', () => {
+    expect(repeatPreview(layout, null, 1, 0)).toEqual({ boxes: [{ x1: 100, x2: 200, y1: 40, y2: 170, page: 0 }], signs: [{ side: 'start', x: 100, y1: 40, y2: 170 }, { side: 'end', x: 200, y1: 40, y2: 170 }] });
+    const back = repeatPreview(layout, 1, 0, 0);
+    expect(back.boxes).toHaveLength(2);
+    expect(back.signs).toEqual([{ side: 'start', x: 0, y1: 40, y2: 170 }, { side: 'end', x: 200, y1: 40, y2: 170 }]);
+    // a repeat that runs on to the next page shows only its start sign here, and only its end sign there
+    expect(repeatPreview(layout, 0, 2, 0).signs.map((s) => s.side)).toEqual(['start']);
+    expect(repeatPreview(layout, 0, 2, 1)).toEqual({ boxes: [{ x1: 0, x2: 100, y1: 40, y2: 100, page: 1 }], signs: [{ side: 'end', x: 100, y1: 40, y2: 100 }] });
   });
 });
 
