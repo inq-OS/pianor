@@ -133,26 +133,22 @@ export const LONG_EYE = { a: 0.14, b: 0.3, high: 1.3, long: 2.1, aim: { x: -0.97
 export const GRILL = { u: 6.9, v: 5.7, r: 0.36, high: 0.9 } as const;
 
 /**
- * The terrace's torches (torches at night, the terrace being like the village plaza): standing torches lashed to posts of the rails, round the deck and down the walk's right
- * side, where the village gathers of an evening (the head has the watchtower's lantern). Each has its foot `on` the deck's boards (`u`, `v` of
- * the deck's frame) or the walk's (`u`, and `v` metres out from the deck's edge), and its head `high` over those
- * boards; none stands plumb (`lean` metres to the viewer's right for each metre up). Unlit by day; they burn at dusk and night, as the lantern does. The painter's, not Keri's.
+ * The terrace's torches (torches at night, the terrace being like the village plaza): three standing torches lashed to
+ * posts of the deck's seaward rail, one on the left by the barrel and a pair at the walk's mouth, a gate of fire; the
+ * head has the watchtower's lantern. Few, so the plaza stays calm (d278). Each has its foot `on` the deck's boards
+ * (`u`, `v` of the deck's frame) or the walk's (`u`, and `v` metres out from the deck's edge), and its head `high` over
+ * those boards; none stands plumb (`lean` metres to the viewer's right for each metre up). Unlit by day; they burn at
+ * dusk and night, as the lantern does. The painter's, not Keri's.
  */
 export const TORCHES: readonly { on: 'deck' | 'reach'; u: number; v: number; high: number; lean: number }[] = [
   { on: 'deck', u: -0.2, v: DECK.v1 - 0.1, high: 1.6, lean: 0.05 },
-  // two down the walk's right side, where no flame stands behind a being's head (`TERRACE_SPOTS`)
-  { on: 'reach', u: REACH.u1 - 0.1, v: 1.6, high: 1.5, lean: -0.05 },
-  // the further one is low, its flame under the string of lanterns there
-  { on: 'reach', u: REACH.u1 - 0.1, v: 5.8, high: 1.1, lean: 0.04 },
-  { on: 'deck', u: DECK.u1 - 0.12, v: DECK.v1 - 0.12, high: 2.0, lean: -0.04 },
-  { on: 'deck', u: DECK.u1 - 0.12, v: 3.05, high: 1.75, lean: 0.06 },
-  // a low pair at the walk's mouth, a gate of fire, their flames under the string of lanterns
+  // the pair at the walk's mouth, low, so that their flames stand clear of the beings' heads
   { on: 'deck', u: REACH.u0 - 0.35, v: DECK.v1 - 0.1, high: 1.15, lean: -0.06 },
   { on: 'deck', u: REACH.u1 + 0.35, v: DECK.v1 - 0.1, high: 1.1, lean: 0.05 },
 ];
 
 /** The torches that throw sparks in the game: the two nearest the eye, by their place in `TORCHES`. */
-export const TORCH_SPARKS: readonly number[] = [0, 5];
+export const TORCH_SPARKS: readonly number[] = [0, 1];
 
 /** How tall a torch's flame stands over its head, in metres. */
 export const TORCH_FLAME = 0.5;

@@ -823,7 +823,7 @@ class TerracePainter {
    * The watchtower on the head's seaward corner (a roofed section, perhaps a small watchtower
    * that goes up to the second floor with a static long-eye to scan the horizon): four crooked posts, a floor a storey up with a
    * boarded parapet and a ladder to it, a long brass spyglass fixed on a post there, and a thatched roof with a staff
-   * for the pennant; a bench in its shade below. Painted back to front.
+   * for the pennant. Painted back to front.
    */
   private tower(): void {
     const T = TOWER, side = this.hour.side;
@@ -836,10 +836,6 @@ class TerracePainter {
     post(0, 1);
     this.line3(onTower(0, 1, 0.25), onTower(1, 1, T.floor - 0.3), R.stone[1]!);
     this.line3(onTower(1, 1, 0.25), onTower(0, 1, T.floor - 0.3), R.stone[1]!);
-    // the bench in the tower's shade, its back to the sea
-    this.base = -REACH.drop;
-    this.bench(T.u0 + 0.3, DECK.v1 + T.t1 - 0.35, [1, 0], [0, -1], T.u1 - T.u0 - 0.6, true, 4);
-    this.base = 0;
     // the floor a storey up: its underside dark, the beams that carry it on the two near sides
     this.quad([onTower(-0.06, -0.06, T.floor), onTower(1.06, -0.06, T.floor), onTower(1.06, 1.06, T.floor), onTower(-0.06, 1.06, T.floor)], () => R.wood[0]!);
     // the far parapet, seen over the near one
@@ -929,60 +925,6 @@ class TerracePainter {
       this.pole(neck, head, kind === 2 ? 0.14 : 0.2, CHARRED4, kind === 2 ? 0.19 : 0.25);
       // the cord round the bundle
       for (const down of kind === 2 ? [0.14, 0.36] : [0.2]) across(torch.high - down, kind === 2 ? 0.17 : 0.22, R.dry[1]!);
-    }
-  }
-
-  /**
-   * A string of paper lanterns and small flags from pole to pole (the painter's: a deck dressed for a summer evening):
-   * it hangs slack between its fastenings, a flag and a lantern in turn. The lanterns are pale paper by day and glow
-   * from dusk on.
-   */
-  private festoon(points: readonly P3[]): void {
-    const lit = lampLit(this.brush());
-    let item = 0;
-    for (let k = 0; k + 1 < points.length; k++) {
-      const a = points[k]!, b = points[k + 1]!;
-      const long = Math.hypot(b[0] - a[0], b[2] - a[2]), sag = 0.12 * long;
-      const hang = (s: number): P3 => [a[0] + (b[0] - a[0]) * s, a[1] + (b[1] - a[1]) * s - sag * 4 * s * (1 - s), a[2] + (b[2] - a[2]) * s];
-      const n = Math.max(8, Math.ceil(long * 14));
-      for (let i = 0; i <= n; i++) { const q = this.at(hang(i / n)); this.put(q.x, q.y, R.earth[0]!); }
-      const things = Math.max(2, Math.round(long / 0.8));
-      for (let i = 1; i < things; i++, item++) {
-        const q = this.at(hang(i / things)), x = Math.round(q.x), y = Math.round(q.y);
-        if (item % 2) {
-          // a flag: red, white and gold in turn
-          const run = [F.red, F.hull, F.dry][(item >> 1) % 3]!, size = Math.max(3, Math.round((LENS * 0.3) / q.far));
-          for (let dy = 0; dy < size; dy++) for (let dx = -Math.floor((size - dy) / 2); dx <= Math.floor((size - dy - 1) / 2); dx++) this.put(x + dx, y + 1 + dy, tone(run, dx < 0 ? 0.55 : 0.72, x, y, 0));
-        } else {
-          // a paper lantern: a round of pale paper with a dark cap, lit from inside when the lamps are
-          this.paperLantern(x, y, Math.max(1.6, (LENS * 0.13) / q.far), [F.red, F.dry, F.hull][(item >> 1) % 3]!, lit);
-          this.put(x, y + 1, R.ink);
-        }
-      }
-    }
-  }
-
-  /** One paper lantern of the string, hung at (`x`, `y`): a round of `paper`, or of the embers' light when `lit`. */
-  private paperLantern(x: number, y: number, r: number, paper: readonly number[], lit: boolean): void {
-    for (let dy = -Math.ceil(r); dy <= Math.ceil(r); dy++) for (let dx = -Math.ceil(r); dx <= Math.ceil(r); dx++) {
-      const d = Math.hypot(dx, dy * 0.85) / r;
-      if (d > 1) continue;
-      this.put(x + dx, y + 2 + Math.ceil(r) + dy, lit ? (d < 0.5 ? F.ember[10]! : d < 0.8 ? F.ember[8]! : F.ember[5]!) : tone(paper, 0.75 - 0.3 * d - 0.15 * (dx / r) * this.hour.side, x, y, 0));
-    }
-  }
-
-  /** Fishing rods leaning in the head's corner, a float hanging from one (the painter's). */
-  private rods(u: number, t: number): void {
-    for (const [k, lean] of [[0, -0.5], [1, 0.25]] as const) {
-      const foot = onReach(u + 0.18 * k, t), tip = onReach(u + lean + 0.18 * k, t + 0.3, 3.3 - 0.5 * k);
-      this.line3(foot, mix(foot, tip, 0.45), R.earth[1]!);
-      this.line3(mix(foot, tip, 0.45), tip, R.dry[1]!);
-      if (k === 0) {
-        const end = this.at(tip);
-        for (let d = 1; d < 9; d++) this.put(end.x - 1, end.y + d, R.hull[2]!);
-        this.put(end.x - 1, end.y + 9, R.red[2]!);
-        this.put(end.x - 1, end.y + 10, R.hull[4]!);
-      }
     }
   }
 
@@ -1162,7 +1104,7 @@ class TerracePainter {
     if (this.at(at(long / 2, 0, 0)).far > this.at(at(long / 2, 0.44, 0)).far) { back(); seat(); } else { seat(); back(); }
   }
 
-  /** The picnic table between the benches (the painter's): a top of pale scrubbed boards on crossed legs, a jug and two mugs on it. */
+  /** The picnic table between the benches (the painter's): a top of pale scrubbed boards on crossed legs, a jug on it. */
   private table(u: number, v: number, long: number, wide: number, seed: number): void {
     const high = 0.74, lit = clamp01(0.55 - 0.3 * this.hour.side);
     const at = (s: number, d: number, up: number): P3 => this.floor(u + s, v + d, up);
@@ -1175,16 +1117,12 @@ class TerracePainter {
     const o = at(0, 0, high);
     this.face(o, span(o, at(long, 0, high)), span(o, at(0, wide, high)), (s, t, x, y) => (s < 0.015 || s > 0.985 ? R.wood[1]! : Math.abs(((t * 4) % 1) - 0.5) > 0.44 ? R.wood[1]! : tone(F.wood, 0.72 + 0.2 * lit + 0.08 * (hash2(x >> 2, y, 876 + seed) - 0.5), x, y, 0)));
     this.face(at(0, 0, high - 0.07), [0, 0.07, 0], span(o, at(long, 0, high)), (_s, _t, x, y) => tone(F.wood, 0.3 + 0.06 * hash2(x >> 2, seed, 877), x, y, 0));
-    // a jug and two mugs on it
+    // a jug on it
     const jug = this.at(at(long * 0.42, wide * 0.5, high));
     const jar = Math.max(2, Math.round((LENS * 0.09) / jug.far)), tall = Math.max(4, Math.round((LENS * 0.26) / jug.far));
     for (let dy = 0; dy < tall; dy++) for (let dx = -jar; dx <= jar; dx++) this.put(jug.x + dx, jug.y - dy, dy > tall - 2 ? R.hull[4]! : dx * this.hour.side > 0 ? R.hull[3]! : R.hull[2]!);
     this.put(jug.x + jar + 1, jug.y - tall + 2, R.hull[1]!);
     this.put(jug.x + jar + 1, jug.y - tall + 3, R.hull[1]!);
-    for (const k of [0.68, 0.2]) {
-      const mug = this.at(at(long * k, wide * (k > 0.5 ? 0.3 : 0.6), high));
-      for (let dy = 0; dy < Math.max(2, tall / 2); dy++) for (let dx = -1; dx <= 1; dx++) this.put(mug.x + dx, mug.y - dy, dx > 0 ? R.dry[1]! : R.dry[3]!);
-    }
   }
 
   /** A barrel standing at a point of the plan: bulging staves lit on the light's side, two iron hoops, its lid seen from above; `dark` near the viewer. */
@@ -1216,38 +1154,13 @@ class TerracePainter {
   }
 
   /** A wooden crate on the deck at a point of its frame, `half` metres to each side: boarded faces, a darker frame, a lit top. */
-  private crate(u: number, v: number, half: number, seed: number, float = true): void {
+  private crate(u: number, v: number, half: number, seed: number): void {
     const o = this.floor(u - half, v - half), du = add(onDeck(2 * half, 0), [0, -DECK.y, 0]), dv = add(onDeck(0, 2 * half), [0, -DECK.y, 0]), up: P3 = [0, 2 * half, 0];
     const boards = (base: number) => (s: number, t: number, x: number, y: number): number => (s < 0.06 || s > 0.94 || t < 0.06 || t > 0.94 ? R.wood[0]! : Math.abs(((t * 4) % 1) - 0.5) > 0.42 ? R.wood[Math.max(0, base - 1)]! : hash2(x >> 2, y, seed) > 0.85 ? R.wood[Math.max(0, base - 1)]! : R.wood[base]!);
     // the side along the deck's `v` toward the eye, the side across, the top
     this.face(o, dv, up, boards(this.hour.side < 0 ? 3 : 2));
     this.face(o, du, up, boards(this.hour.side < 0 ? 2 : 3));
     this.face(add(o, up), du, dv, (s, t) => (s < 0.06 || s > 0.94 || t < 0.06 || t > 0.94 ? R.wood[1]! : Math.abs(((s * 3) % 1) - 0.5) > 0.44 ? R.wood[1]! : R.wood[3]!));
-    if (!float) return;
-    // a net float lying on it: a ball in the benches' red, a white band round it
-    const c = this.at(this.floor(u + 0.02, v - 0.03, 2 * half + 0.13)), r = (LENS * 0.14) / c.far;
-    for (let dy = -Math.ceil(r); dy <= Math.ceil(r); dy++) for (let dx = -Math.ceil(r); dx <= Math.ceil(r); dx++) {
-      if (Math.hypot(dx, dy) > r) continue;
-      const lit = 0.55 - 0.3 * (dx / r) * -this.hour.side - 0.3 * (dy / r);
-      this.put(c.x + dx, c.y + dy, Math.abs(dx + dy * 0.4) < r * 0.28 ? tone(F.hull, lit + 0.2, 0, 0, 0) : tone(F.red, lit, 0, 0, 0));
-    }
-  }
-
-  /** A coil of rope lying on the boards at a point of the deck's frame. */
-  private coil(u: number, v: number, r: number): void {
-    // a fat flat coil: a body of rope's tan filled turn on turn, dark between the turns and where the rope is laid
-    const c = this.at(onDeck(u, v, 0.05)), rx = (LENS * r) / c.far, ry = (rx * (c.y - this.hz)) / LENS;
-    for (let dy = -Math.ceil(ry) - 1; dy <= Math.ceil(ry); dy++) for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++) {
-      const d = Math.hypot(dx / rx, dy / ry);
-      if (d > 1 || d < 0.16) continue;
-      const turn = (d * 4.2) % 1, strand = Math.sin(Math.atan2(dy / ry, dx / rx) * 11 + d * 9) > 0.6;
-      this.put(c.x + dx, c.y + dy, turn < 0.22 ? R.earth[0]! : strand ? R.earth[1]! : dx * this.hour.side > 0 === turn > 0.6 ? R.dry[2]! : R.dry[1]!);
-    }
-    // its thickness toward the eye
-    for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++) {
-      const edge = ry * Math.sqrt(Math.max(0, 1 - (dx / rx) ** 2));
-      for (let k = 1; k <= 2; k++) this.put(c.x + dx, c.y + edge + k, R.earth[0]!);
-    }
   }
 
   // ---- the picture
@@ -1274,23 +1187,13 @@ class TerracePainter {
     this.as(() => { this.reachThing = this.thing; this.reachDeck(); });
     const feet = TerracePainter.reachFeet;
     // the head's seaward rail from its far right corner to the tower, and the rail down the walk's right side and round the head's
-    this.woodRail(feet([[head.u1 - 0.12, end - 0.12], [6.3, end - 0.1], [4.9, end - 0.1]]), 870, onTower(1, 1));
-    this.woodRail(feet([[REACH.u1 - 0.1, 0.5], [REACH.u1 - 0.1, 2.7], [REACH.u1 - 0.1, 4.9], [REACH.u1 - 0.1, 7.1], [REACH.u1 - 0.1, REACH.long - 0.05], [head.u1 - 0.12, REACH.long + 0.15], [head.u1 - 0.12, REACH.long + 2], [head.u1 - 0.12, REACH.long + 3.8], [head.u1 - 0.12, end - 0.12]]), 880);
-    this.base = -REACH.drop;
-    this.as(() => this.rods(head.u1 - 0.5, end - 0.2));
-    this.as(() => this.crate(head.u1 - 0.75, DECK.v1 + end - 0.8, 0.3, 905));
-    this.base = 0;
+    this.woodRail(feet([[head.u1 - 0.12, end - 0.12], [5.6, end - 0.1]]), 870, onTower(1, 1));
+    // few posts, far apart, so the rails do not stand one behind another as a lattice over the walk (d278)
+    this.woodRail(feet([[REACH.u1 - 0.1, 0.5], [REACH.u1 - 0.1, 4.6], [REACH.u1 - 0.1, REACH.long - 0.05], [head.u1 - 0.12, REACH.long + 0.15], [head.u1 - 0.12, REACH.long + 2.9], [head.u1 - 0.12, end - 0.12]]), 880);
+    // the head is bare but for the watchtower: no rods, crates or bench (d278)
     this.as(() => this.tower());
-    // the string of lanterns: from a pole at the deck's edge, by a pole half way out the walk and one at the head's corner, to the tower
-    const poles: P3[] = [onDeck(8.9, DECK.v1 - 0.25), onReach(REACH.u1 - 0.1, 4.7), onReach(head.u1 - 0.12, REACH.long + 0.15)];
-    const tops = poles.map((foot, k): P3 => [foot[0] + 0.12 * (hash2(k, 1, 848) - 0.5), foot[1] + 2.75 - 0.15 * k, foot[2]]);
-    poles.forEach((foot, k) => { if (k > 0) this.as(() => this.pole(foot, tops[k]!, 0.13, WOOD4, 0.08, 0.1 * (hash2(k, 2, 849) - 0.5))); });
-    this.as(() => this.festoon([...tops, onTower(1, 0, TOWER.eave - 0.5)]));
-    // the walk's torches, at its right rail
-    this.as(() => this.torch(2));
-    this.as(() => this.torch(1));
     // the rail down the walk's left side and along the head's to the tower, nearest the eye
-    this.woodRail(feet([[REACH.u0 + 0.1, 0.5], [REACH.u0 + 0.1, 2.7], [REACH.u0 + 0.1, 4.9], [REACH.u0 + 0.1, 7.1], [REACH.u0 + 0.1, REACH.long - 0.05], [head.u0 + 0.12, REACH.long + 0.15], [head.u0 + 0.12, REACH.long + 1.5]]), 890, onTower(0, 0));
+    this.woodRail(feet([[REACH.u0 + 0.1, 0.5], [REACH.u0 + 0.1, 4.6], [REACH.u0 + 0.1, REACH.long - 0.05], [head.u0 + 0.12, REACH.long + 0.15], [head.u0 + 0.12, REACH.long + 1.5]]), 890, onTower(0, 0));
     // the terrace: its boards, the rail and what hangs on it, the grill, the picnic table and its benches
     let deck = 0;
     this.as(() => { deck = this.thing; this.deck(); });
@@ -1302,19 +1205,16 @@ class TerracePainter {
     // the deck's own rail along its seaward edge: right of the walk round the far corner and back along the deck's end, and left of the walk out of the picture
     this.woodRail([[REACH.u1 + 0.35, DECK.v1 - 0.1], [7.7, DECK.v1 - 0.1], [8.75, DECK.v1 - 0.1], [9.65, DECK.v1 - 0.1], [DECK.u1 - 0.12, DECK.v1 - 0.12], [DECK.u1 - 0.12, 5.3], [DECK.u1 - 0.12, 4.2], [DECK.u1 - 0.12, 3.05]].map(([u, v]) => onDeck(u!, v!)), 850);
     this.woodRail([[REACH.u0 - 0.35, DECK.v1 - 0.1], [0.9, DECK.v1 - 0.1], [-0.2, DECK.v1 - 0.1], [-1.1, DECK.v1 - 0.1]].map(([u, v]) => onDeck(u!, v!)), 860);
-    this.as(() => this.pole(poles[0]!, tops[0]!, 0.14, WOOD4, 0.09, 0.08));
-    // the deck's torches, on posts of its rail, far to near: at the far corner, right of the walk's mouth, on the
-    // right side, left of the mouth and on the left by the barrel
-    for (const k of [3, 6, 4, 5, 0]) this.as(() => this.torch(k));
+    // the torches, on posts of the deck's rail, far to near: right of the walk's mouth, left of it, on the left by the barrel
+    for (const k of [2, 1, 0]) this.as(() => this.torch(k));
     this.as(() => this.grill());
     // the walk's lifebuoy, on a post of its near rail (the real terrace's hangs on a post, with a sign)
     this.base = -REACH.drop;
     this.as(() => this.lifebuoy(REACH.u0 + 0.1, DECK.v1 + 3.3));
     this.base = 0;
-    // near the viewer: a barrel, a crate and a coil of rope on the left; on the right the picnic set, a bench facing
-    // the eye, the table, and a bench with its back to the eye, the darkest
-    this.as(() => this.crate(0.3, 5.95, 0.26, 907, false));
-    this.as(() => this.coil(1.55, 4.35, 0.36));
+    // near the viewer: a barrel and two crates on the left, one dark wing with nothing on it (d278); on the right the
+    // picnic set, a bench facing the eye, the table, and a bench with its back to the eye, the darkest
+    this.as(() => this.crate(0.3, 5.95, 0.26, 907));
     this.as(() => this.crate(0.62, 4.2, 0.27, 903));
     this.as(() => this.barrel(onDeck(-0.25, 4.75), 0.31, 0.86, 901, true));
     this.as(() => this.bench(5.5, 4.0, [1, 0], [0, -1], 2.4, false, 3));

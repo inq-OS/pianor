@@ -178,7 +178,7 @@ describe('the painted terrace (ft_1_19)', () => {
     const cloudy = new Set(terraceRuns().cloud);
     expect(frames[0]!.pixels.subarray(0, (TERRACE.horizon - 2) * W).some((p) => cloudy.has(p))).toBe(false);
     for (const cloud of clouds) expect(cloud.bitmap.pixels.some((p) => cloudy.has(p))).toBe(true);
-    // the watchtower and the string of lanterns are in the cut-out, and it stays above the rows the clouds reach
+    // the watchtower is in the cut-out, and it stays above the rows the clouds reach
     const cut = fore.frames[0]!;
     expect(cut.pixels.filter((p) => p !== 0).length).toBeGreaterThan(150);
     expect(fore.y + cut.height).toBeLessThanOrEqual(TERRACE.horizon + 4);

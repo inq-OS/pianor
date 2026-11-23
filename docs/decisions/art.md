@@ -372,3 +372,11 @@ Check: untestable: a look on the real machine
 The atlas gauge (`refcat.py gauge`) and `art:check` measure; what goes into a picture is decided by looking (art direction section 5) and by the scene's rules, not by raising a number.
 
 Check: untestable: a painting judgement, held by the art review
+
+## d278
+
+**The terrace is calm: the deck, the walk, the watchtower, the picnic set, the grill and three torches, and no small props round them.** Features: ft_1_19.
+
+The terrace read as too busy and out of character, so it carries only what d176 asked for and the real terrace has: no string of paper lanterns and flags, no rods, crates or bench on the head, no coil of rope or net float, no mugs. Three torches stand at the deck's rail (one by the barrel, a low pair at the walk's mouth) and none on the walk, whose rails have a post every four metres or so, so they do not stand one behind another as a lattice. The near left corner is one dark wing of a barrel and two bare crates.
+
+Check: `src/core/layout/terrace.test.ts` "torches are few: three at the deck"; `src/game/ui/pixel/keri/terracePicture.test.ts` "a watchtower stands on the head"

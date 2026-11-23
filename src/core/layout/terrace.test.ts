@@ -233,8 +233,8 @@ describe('the terrace: the plan of the picture (ft_1_19)', () => {
     expect(plan.fire.y).toBeLessThan(H * 0.6);
   });
 
-  it('ft_1_19.AC1 the plaza\'s torches stand at the rails round the deck and down the walk, none plumb, none behind a being\'s head, a low pair at the walk\'s mouth, each flame in the picture and to its scale (torches at night, the terrace being like the village plaza)', () => {
-    expect(TORCHES.length).toBeGreaterThanOrEqual(6);
+  it('ft_1_19.AC1 the plaza\'s torches are few: three at the deck\'s rail, a low pair at the walk\'s mouth and one by the barrel, none plumb, none behind a being\'s head, each flame in the picture and to its scale (torches at night, the terrace being like the village plaza, and calm)', () => {
+    expect(TORCHES).toHaveLength(3);
     expect(plan.torches).toHaveLength(TORCHES.length);
     const end = REACH.long + REACH.deep;
     TORCHES.forEach((torch, k) => {
@@ -278,10 +278,9 @@ describe('the terrace: the plan of the picture (ft_1_19)', () => {
     // the two that throw sparks are the two nearest the eye
     const byFar = TORCHES.map((torch, k) => ({ k, far: onTorch(torch)[2] })).sort((p, q) => p.far - q.far);
     expect([...TORCH_SPARKS].sort()).toEqual(byFar.slice(0, 2).map((t) => t.k).sort());
-    // a plaza: torches on the deck and down the walk alike
-    expect(TORCHES.filter((torch) => torch.on === 'deck').length).toBeGreaterThanOrEqual(3);
-    expect(TORCHES.filter((torch) => torch.on === 'reach').length).toBeGreaterThanOrEqual(2);
-    // the low pair at the walk's mouth, one each side, their flames under the string of lanterns
+    // all on the deck: the walk and the head have the watchtower's lantern only
+    expect(TORCHES.every((torch) => torch.on === 'deck')).toBe(true);
+    // the low pair at the walk's mouth, one each side, their flames under the beings' heads' height
     const mouth = TORCHES.filter((torch) => torch.on === 'deck' && torch.v > DECK.v1 - 0.3 && torch.u > REACH.u0 - 0.6 && torch.u < REACH.u1 + 0.6);
     expect(mouth).toHaveLength(2);
     expect(mouth.some((torch) => torch.u < REACH.u0)).toBe(true);
