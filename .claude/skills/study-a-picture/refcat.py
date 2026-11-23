@@ -599,7 +599,8 @@ GAUGE = os.environ.get(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
                  "projects", "painter", "vocabulary", "mi2-gauge.json"))
 # The tags of every library picture the gauge does not measure (maps, close-ups, MI1, MI3 ...), by id,
-# so that a library gathered again on a new machine gets them back on `import`. `tag` keeps it up to date.
+# so that a library gathered again on a new machine gets them back on `import`. `tag` keeps it up to date;
+# where it and mi2-gauge.json differ about a room, it wins (the gauge's tags date from its last baseline).
 ATLAS_TAGS = os.environ.get("PAINTER_ATLAS_TAGS", os.path.join(os.path.dirname(GAUGE), "atlas-tags.json"))
 # Traits and how they are read; "hour" traits are compared only within the same hour.
 TRAITS = {
@@ -1567,17 +1568,17 @@ def cmd_init(args):
 
 
 def gauge_rooms():
-    """Every library picture whose tags are kept in git: the gauge's rooms and atlas-tags.json."""
+    """Every library picture whose tags are kept in git: the gauge's rooms, then atlas-tags.json,
+    which wins (it is written by every `tag`, so a removed tag stays removed)."""
     known = {}
     try:
-        with open(ATLAS_TAGS, encoding="utf-8") as f:
-            known.update(json.load(f).get("pictures", {}))
+        with open(GAUGE, encoding="utf-8") as f:
+            known.update({r["id"]: r["tags"] for r in json.load(f).get("rooms", [])})
     except FileNotFoundError:
         pass
     try:
-        with open(GAUGE, encoding="utf-8") as f:
-            for r in json.load(f).get("rooms", []):
-                known[r["id"]] = r["tags"] + [t for t in known.get(r["id"], []) if t not in r["tags"]]
+        with open(ATLAS_TAGS, encoding="utf-8") as f:
+            known.update(json.load(f).get("pictures", {}))
     except FileNotFoundError:
         pass
     return known
@@ -1641,7 +1642,7 @@ def cmd_import(args):
         print(f"refcat: the gauge knows {len(missing)} {prefix} rooms not in the library yet, "
               f"such as {', '.join(missing[:5])}")
     untagged = added - restored
-    if untagged and "screenshot" in base_tags:
+    if untagged and "screenshot" in base_tags and "mi2" in base_tags:
         print(f"refcat: {untagged} new screens carry only {' '.join(base_tags)}: refcat.py rooms gives "
               "MI2's screens the tags of the room they show")
     elif untagged:
@@ -1668,6 +1669,7 @@ def gallery_name(url):
 
 
 def fetch(url, tries=8):
+    import http.client
     import time
     import urllib.parse
     import urllib.request
@@ -1677,10 +1679,10 @@ def fetch(url, tries=8):
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (refcat)"})
             with urllib.request.urlopen(req, timeout=60) as r:
                 return r.read()
-        except OSError as err:
+        except (OSError, http.client.HTTPException) as err:
             if n == tries - 1:
-                raise
-            print(f"  again ({err}): {url}", file=sys.stderr)
+                raise OSError(f"{err!r}") from err
+            print(f"  again ({err!r}): {url}", file=sys.stderr)
             time.sleep(3 * (n + 1))
 
 
@@ -1697,12 +1699,22 @@ def cmd_gather(args):
     for shelf in shelves:
         page, parts, pattern = GATHER[shelf]
         folder = os.path.join(CATALOG, SHELVES[shelf][0])
-        got = had = failed = 0
-        log = []
+        got = had = failed = same = 0
+        seen = set()
         for part in parts:
-            html = fetch(GALLERY + page + ("" if part is None else str(part))).decode("utf-8", "replace")
+            try:
+                html = fetch(GALLERY + page + ("" if part is None else str(part))).decode("utf-8", "replace")
+            except OSError as err:
+                print(f"  page not read ({err}): {page}{part}; run gather again", file=sys.stderr)
+                failed += 1
+                continue
             for link in gallery_links(html):
                 rel = pattern.format(part=part, name=gallery_name(link))
+                if rel in seen:  # two links of the gallery that name the same picture file
+                    print(f"  {link} gives {rel} again: kept the first", file=sys.stderr)
+                    same += 1
+                    continue
+                seen.add(rel)
                 dest = os.path.join(folder, *rel.split("/"))
                 if os.path.exists(dest):
                     had += 1
@@ -1715,14 +1727,14 @@ def cmd_gather(args):
                     failed += 1
                     continue
                 os.makedirs(os.path.dirname(dest), exist_ok=True)
-                with open(dest, "wb") as f:
+                with open(dest + ".part", "wb") as f:  # renamed when whole, so a cut-off file is fetched again
                     f.write(data)
-                log.append(f"{rel}\t{url}\n")
+                os.replace(dest + ".part", dest)
+                with open(os.path.join(folder, "sources.tsv"), "a", encoding="utf-8") as f:
+                    f.write(f"{rel}\t{url}\n")
                 got += 1
-        if log:
-            with open(os.path.join(folder, "sources.tsv"), "a", encoding="utf-8") as f:
-                f.writelines(log)
         print(f"{shelf}: {got} downloaded, {had} already there"
+              + (f", {same} links named a file twice" if same else "")
               + (f", {failed} failed (run gather again)" if failed else "") + f", in {folder}")
     print("refcat: next, refcat.py import <folder> --shelf <shelf> --source \"scummbar.com MojoDB\"")
 

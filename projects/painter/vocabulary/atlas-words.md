@@ -41,37 +41,37 @@ Say the place and get its rooms (the clean backgrounds, `mi2-bg-<part>-<room>`; 
 
 | Place | What it is | Rooms | Screens |
 |---|---|---|---|
-| `scabb` | Scabb Island (Part I): every room on it, and its map | 0-002, 0-004, 0-005, 0-006, 0-007, 0-008, 0-009, 0-011, 0-012, 0-013, 0-014, 0-015, 0-016, 0-017, 0-018, 0-019, 0-020, 0-021, 0-022, 0-023 | 53 |
-| `woodtick` | Woodtick, Scabb's town of beached ships: plank walks, lamps, and its rooms | 0-006, 0-007, 0-008, 0-009, 0-011, 0-012, 0-013, 0-014, 0-015 | 30 |
+| `scabb` | Scabb Island (Part I): every room on it, and its map | 0-002, 0-004, 0-005, 0-006, 0-007, 0-008, 0-009, 0-011, 0-012, 0-013, 0-014, 0-015, 0-016, 0-017, 0-018, 0-019, 0-020, 0-021, 0-022, 0-023 | 61 |
+| `woodtick` | Woodtick, Scabb's town of beached ships: plank walks, lamps, and its rooms | 0-006, 0-007, 0-008, 0-009, 0-011, 0-012, 0-013, 0-014, 0-015 | 31 |
 | `bar` | the bar in Woodtick | 0-009, MI3 part3-008, MI1 0-bar, MI1 0-cu-bar-1, MI1 0-cu-bar-2, MI1 0-cu-bar-3, MI1 0-kitchen | 4 |
 | `kitchen` | a kitchen (Woodtick's bar, the Booty mansion) | 0-006, 1-057, MI1 0-kitchen | 2 |
 | `inn` | the inn in Woodtick | 0-011, MI3 part3-008, MI3 part3-011, MI3 part3-012, MI3 part3-013 | 1 |
-| `cartographer` | the map maker's cabin in Woodtick | 0-008 | 2 |
+| `cartographer` | the map maker's cabin in Woodtick | 0-008 | 3 |
 | `woodsmith` | the woodsmith's workshop in Woodtick | 0-015 | 2 |
-| `cemetery` | Scabb's graveyard: the fence and gate, the hill of graves, the crypt | 0-016, 0-017, 0-018, 0-019, MI3 part3-014 | 9 |
+| `cemetery` | Scabb's graveyard: the fence and gate, the hill of graves, the crypt | 0-016, 0-017, 0-018, 0-019, MI3 part3-014 | 13 |
 | `crypt` | the crypt under the graveyard | 0-018, MI3 part3-014, MI3 part3-016, MI3 part3-017, MI3 part3-018 | 1 |
-| `voodoo` | the voodoo house in the swamp | 0-021, MI3 part1-016, MI3 part1-017, MI3 part1-026 | 0 |
+| `voodoo` | the voodoo house in the swamp | 0-021, MI3 part1-016, MI3 part1-017, MI3 part1-026 | 3 |
 | `beach` | a beach (Scabb's with the twisted tree, Phatt's under the cottage, Dinky's) | 0-004, 0-005, 2-037, 4-085, MI3 part1-002, MI3 part1-013, MI3 part1-014, MI3 part1-015, MI3 part3-022, MI1 2-beach, MI1 2-main-beac | 8 |
 | `bonfire` | the campfire of the opening, on Scabb's beach | 0-004, 0-005 | 3 |
 | `peninsula` | Scabb's peninsula with the jetty and the houseboat | 0-023 | 1 |
 | `dock` | a jetty with a ship or a fisherman (Scabb's peninsula, Phatt's pier) | 0-023, 2-028, MI1 0-cu-dock, MI1 0-dock | 4 |
 | `dread-ship` | the houseboat, inside, moored and at sea | 0-022, 0-023, 0-024 | 3 |
-| `booty` | Booty Island (Part II): every room on it, and its map | 1-045, 1-046, 1-047, 1-048, 1-049, 1-050, 1-051, 1-052, 1-053, 1-054, 1-055, 1-056, 1-057, 1-058, 1-059, 1-060, 1-061, 1-062, 1-065, 1-066 | 49 |
+| `booty` | Booty Island (Part II): every room on it, and its map | 1-045, 1-046, 1-047, 1-048, 1-049, 1-050, 1-051, 1-052, 1-053, 1-054, 1-055, 1-056, 1-057, 1-058, 1-059, 1-060, 1-061, 1-062, 1-065, 1-066 | 51 |
 | `stans` | the coffin shop on Booty | 1-046, 1-050 | 4 |
 | `spitting` | Booty's street with the flags | 1-047 | 4 |
-| `antique-shop` | the antique shop on Booty | 1-048 | 0 |
+| `antique-shop` | the antique shop on Booty | 1-048 | 1 |
 | `costume-shop` | the costume shop on Booty | 1-049 | 2 |
 | `mansion` | a governor's mansion (Booty's and Phatt's), outside and in | 1-052, 1-053, 1-054, 1-055, 1-056, 1-057, 2-041, 2-042, 2-043, 2-044, MI1 0-foyer, MI1 0-mansion-e | 26 |
 | `big-tree` | the foot of Booty's big tree, with a small hut | 1-060 | 2 |
 | `treehouse` | the huts up in Booty's big tree, and inside one | 1-060, 1-061, 1-062 | 4 |
-| `sunken-ship` | the wreck on the sea bed off Booty | 1-065, 1-066 | 6 |
+| `sunken-ship` | the wreck on the sea bed off Booty | 1-065, 1-066 | 7 |
 | `phatt` | Phatt Island (Part II): every room on it, and its map | 2-026, 2-027, 2-028, 2-029, 2-030, 2-031, 2-032, 2-033, 2-034, 2-035, 2-036, 2-037, 2-038, 2-039, 2-040, 2-041, 2-042, 2-043, 2-044 | 38 |
 | `library` | Phatt's library, with its card drawers | 2-030, 2-031, 2-032 | 5 |
 | `jail` | Phatt's jail | 2-029, MI1 0-jail | 2 |
 | `alley` | a back alley (Phatt's, and the night street at the end) | 2-033, 2-034, 4-089 | 4 |
 | `cottage` | the cottage on the small island off Phatt, its beach, room and cellar | 2-037, 2-038, 2-039, 2-040 | 9 |
-| `fortress` | the fortress (Part III): the rock in a storm, and its fire-lit rooms | 3-068, 3-069, 3-070, 3-071, 3-072, 3-073, 3-074, 3-075, 3-076, 3-077, 3-078, 3-079 | 24 |
-| `dinky` | Dinky Island (Part IV): beach, jungle paths, the clearing | 4-085, 4-086, 4-096, 4-097, 4-098 | 15 |
+| `fortress` | the fortress (Part III): the rock in a storm, and its fire-lit rooms | 3-068, 3-069, 3-070, 3-071, 3-072, 3-073, 3-074, 3-075, 3-076, 3-077, 3-078, 3-079 | 27 |
+| `dinky` | Dinky Island (Part IV): beach, jungle paths, the clearing | 4-085, 4-086, 4-096, 4-097, 4-098 | 16 |
 | `tunnels` | the tunnels under Dinky: storerooms, a lift, bare rooms | 4-087, 4-088, 4-090, 4-091, 4-092, 4-093, MI1 2-hellcliff, MI1 2-hellhall | 37 |
 | `melee` | the night street at the end | 4-089 | 1 |
 | `carnival` | the carnival at the end | 4-110, MI3 part4-000-01, MI3 part4-000, MI3 part4-001, MI3 part4-002, MI3 part4-003, MI3 part4-004, MI3 part4-005 | 4 |
