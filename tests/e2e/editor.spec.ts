@@ -1,4 +1,4 @@
-// Covers ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
+// Covers ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_02e.AC8, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
 import { readFileSync } from 'node:fs';
 import { encode as encodePng } from 'fast-png';
 import { expect, test, type Page } from '@playwright/test';
@@ -1820,7 +1820,7 @@ test.describe('piece maker: vim keys (ft_1_02e)', () => {
   /** The vim keys' mode and the keys pending, from the scene. */
   const vimState = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { vim: { mode: string; pending: string; line: string | null } | null }).vim);
 
-  test('ft_1_02e.AC1 ft_1_02e.AC2 ft_1_02e.AC3 ft_1_02e.AC4 ft_1_02e.AC5 ft_1_02e.AC6 ft_1_02e.AC7 Ctrl+Shift+V turns them on; insert writes letters, normal moves and changes, Esc never leaves', async ({ page }) => {
+  test('ft_1_02e.AC1 ft_1_02e.AC2 ft_1_02e.AC3 ft_1_02e.AC4 ft_1_02e.AC5 ft_1_02e.AC6 ft_1_02e.AC7 ft_1_02e.AC8 Ctrl+Shift+V turns them on; insert writes letters, normal moves and changes, Esc never leaves', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
     // off by default: h is no key of the piece maker and moves nothing
@@ -1868,6 +1868,10 @@ test.describe('piece maker: vim keys (ft_1_02e)', () => {
     await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
     expect(await activeScenes(page)).toContain('editor');
+    // F1 shows the vim keymap over the staff (ft_1_02e.AC8); Esc hides it
+    await page.keyboard.press('F1');
+    expect(await sceneTexts(page, 'editor')).toEqual(expect.arrayContaining(['Move', 'Insert mode', 'write a note']));
+    await page.keyboard.press('Escape');
     // a : line runs a tool by its word; :set novim turns the keys off
     await page.keyboard.type(':nonsense');
     expect(await vimState(page)).toMatchObject({ line: 'nonsense' });

@@ -1,6 +1,6 @@
 // Covers ft_1_02d.AC19 (the piece maker's keys).
 import { describe, expect, it } from 'vitest';
-import { digitOf, EDITOR_KEYS, editorKeyOf, vimKeyOf, vimLabelOf, vimWordOf } from './shortcuts';
+import { digitOf, EDITOR_KEYS, editorKeyOf, VIM_HELP, vimHelpColumns, vimKeyOf, vimLabelOf, vimWordOf } from './shortcuts';
 
 const press = (code: string, mods: { ctrl?: boolean; shift?: boolean; alt?: boolean } = {}) => ({ code, ctrlKey: !!mods.ctrl, metaKey: false, altKey: !!mods.alt, shiftKey: !!mods.shift });
 
@@ -64,5 +64,18 @@ describe('the vim keys of the piece maker (ft_1_02e)', () => {
     expect(k('$', 'Digit4')).toEqual({ key: '$', ctrl: false });
     expect(k('к', 'KeyR', { ctrl: true })).toEqual({ key: 'r', ctrl: true });
     expect(k('~', 'Backquote', { ctrl: true, alt: true })).toEqual({ key: '~', ctrl: false });
+  });
+
+  it('ft_1_02e.AC8 F1 lists the vim keys in at most four columns over the staff, each group under its title', () => {
+    // the staff area under the top strip holds about ten lines of the pixel font
+    const columns = vimHelpColumns(VIM_HELP, 10);
+    expect(columns.length).toBeLessThanOrEqual(4);
+    for (const column of columns) {
+      expect(column.length).toBeLessThanOrEqual(10);
+      expect(column[0]!.kind).toBe('title');
+    }
+    expect(columns.flat().filter((l) => l.kind === 'row')).toHaveLength(VIM_HELP.reduce((n, g) => n + g.rows.length, 0));
+    // a group longer than a column runs on into the next
+    expect(vimHelpColumns([VIM_HELP[2]!], 4).map((c) => c.length)).toEqual([4, 4, 2]);
   });
 });

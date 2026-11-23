@@ -1,3 +1,5 @@
+import type { StringKey } from '../../core/text/strings';
+
 /**
  * The piece maker's keys: every action and item of the band has one, F1 shows them on the band, and a
  * key with choices opens its menu with a number on each choice (N, then 3: a dotted half). Matched by physical key
@@ -106,4 +108,51 @@ export function vimKeyOf(e: { key: string; code: string; ctrlKey: boolean; metaK
     return { key: letter ? letter[1]!.toLowerCase() : e.key, ctrl };
   }
   return { key: e.key, ctrl: false };
+}
+
+/** One group of the vim keys' F1 page (ft_1_02e.AC8): its title, then each row's keys (as typed) and what they do. */
+export interface VimHelpGroup {
+  readonly title: StringKey;
+  readonly rows: readonly (readonly [keys: string, does: StringKey])[];
+}
+
+/** What F1 shows while the vim keys are on: every key of ft_1_02e, grouped as a vim user looks for them. */
+export const VIM_HELP: readonly VimHelpGroup[] = [
+  { title: 'editor.vimHelp.move', rows: [
+    ['h l', 'editor.vimHelp.note'], ['j k', 'editor.vimHelp.step'], ['w b', 'editor.vimHelp.bar'], ['3l 5j', 'editor.vimHelp.count'], ['0 $', 'editor.vimHelp.barEnds'],
+    ['+ -', 'editor.vimHelp.staff'], ['gg G', 'editor.vimHelp.firstLast'], ['5G', 'editor.vimHelp.barN'],
+  ] },
+  { title: 'editor.vimHelp.change', rows: [
+    ['x', 'editor.vimHelp.delete'], ['^A ^X', 'editor.vimHelp.upDown'], ['r a..g', 'editor.vimHelp.letter'], ['~', 'editor.vimHelp.sharpFlat'],
+    ['u ^R', 'editor.vimHelp.undo'], ['.', 'editor.vimHelp.again'], ['dd yy', 'editor.vimHelp.cutCopy'], ['p P', 'editor.vimHelp.paste'],
+    ['v', 'editor.vimHelp.select'],
+  ] },
+  { title: 'editor.vimHelp.insert', rows: [
+    ['Esc', 'editor.vimHelp.stop'], ['i a', 'editor.vimHelp.here'], ['o O', 'editor.vimHelp.newBar'], ['c..g', 'editor.vimHelp.write'], ['C..G', 'editor.vimHelp.chord'],
+    ['+ -', 'editor.vimHelp.sharpFlat'], ["' ,", 'editor.vimHelp.octave'], ['r', 'editor.vimHelp.rest'], ['1..8', 'editor.vimHelp.length'],
+  ] },
+  { title: 'editor.vimHelp.line', rows: [
+    [':w', 'editor.vimHelp.save'], [':q', 'editor.vimHelp.leave'], [':q!', 'editor.vimHelp.leaveNow'], [':wq', 'editor.vimHelp.saveLeave'],
+    [':pl[ay]', 'editor.vimHelp.listen'], [':12', 'editor.vimHelp.barN'], [':set novim', 'editor.vimHelp.off'],
+  ] },
+];
+
+export type VimHelpLine = { readonly kind: 'title'; readonly text: StringKey } | { readonly kind: 'row'; readonly keys: string; readonly does: StringKey };
+
+/**
+ * The F1 page's lines poured into columns of at most `rows` lines, top to bottom: a group starts a new column when it does
+ * not fit in what is left of one, so its title stays with its keys (a group longer than a column runs on).
+ */
+export function vimHelpColumns(groups: readonly VimHelpGroup[], rows: number): VimHelpLine[][] {
+  const columns: VimHelpLine[][] = [[]];
+  for (const group of groups) {
+    const lines: VimHelpLine[] = [{ kind: 'title', text: group.title }, ...group.rows.map(([keys, does]) => ({ kind: 'row' as const, keys, does }))];
+    let column = columns.at(-1)!;
+    if (column.length > 0 && column.length + lines.length > rows) columns.push((column = []));
+    for (const line of lines) {
+      if (column.length >= rows) columns.push((column = []));
+      column.push(line);
+    }
+  }
+  return columns;
 }

@@ -47,7 +47,7 @@ import { fitsLabel, problemLabel } from '../core/text/labels';
 import { strings, t, type StringKey } from '../core/text/strings';
 import { contextOf } from './context';
 import { compileOwn } from './editor/OwnPieces';
-import { digitOf, EDITOR_KEYS, editorKeyOf, vimKeyOf, vimLabelOf, vimWordOf, type EditorKeyName } from './editor/shortcuts';
+import { digitOf, EDITOR_KEYS, editorKeyOf, VIM_HELP, vimHelpColumns, vimKeyOf, vimLabelOf, vimWordOf, type EditorKeyName } from './editor/shortcuts';
 import { ChartPlayer } from './preview/ChartPlayer';
 import { panelBitmap } from './ui/pixel/frames';
 import { ACCIDENTAL_ICONS, NOTE_ICONS, REST_ICONS } from './ui/pixel/lengthArt';
@@ -55,7 +55,8 @@ import { C, hexCss } from './ui/pixel/palette';
 import { GESTURE_SIZE, HELP_ARROW, SKETCH_SIZE, gesturePicture, keyCap, staffSketch } from './ui/pixel/mouseArt';
 import { PixelImage, PixelText, type PixelButton, type PixelButtonOptions } from './ui/pixel/PixelObjects';
 import { SpeechBubble } from './ui/pixel/SpeechBubble';
-import { drawnText, measure } from './ui/pixel/font';
+import { CELL_HEIGHT, drawnText, measure } from './ui/pixel/font';
+import { ART_DETAIL } from '../core/layout/frame';
 import { BAR_BUTTON_HEIGHT, BAR_EDGE } from './ui/pixel/playBars';
 import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
 import { itemPicture, type ItemSign } from './ui/pixel/itemArt';
@@ -1168,6 +1169,7 @@ export class EditorScene extends PixelScene {
    */
   private drawKeyHelp(top: number): void {
     if (!this.shortcutsShown || this.touring) return;
+    if (this.vim) return this.drawVimHelp(top);
     const { width } = this.px;
     const layer = this.overStaff();
     // a key's name as it is printed on the key (keepCase): small capitals would not fit the cap
@@ -1204,6 +1206,35 @@ export class EditorScene extends PixelScene {
     });
     const k = plan.keys;
     this.buttonOn(layer, { x: k.x + k.w / 2, y: k.y + k.h / 2, width: k.w, height: k.h, label: t('editor.help.keys'), tooltip: t('editor.help.keys.tip'), onClick: () => this.startKeyTour() });
+  }
+
+  /**
+   * F1 with the vim keys on (ft_1_02e.AC8): their keymap over the staff from `top` (art rows), in columns by group (move, edit,
+   * insert, the : line), the keys as they are typed and what each does; the tools' own keys still show on their buttons.
+   */
+  private drawVimHelp(top: number): void {
+    const { width } = this.px;
+    const layer = this.overStaff();
+    const height = this.mainRows - top;
+    layer.add(new PixelImage(this, 0, top, panelBitmap(Math.max(5, width), height, 'panel')));
+    // the text is drawn on the fine grid (d110), half an art pixel to a font pixel, so the whole keymap fits over the staff
+    const fine = 1 / ART_DETAIL;
+    const pad = 4;
+    const lineRows = (CELL_HEIGHT + 1) * fine;
+    const columns = vimHelpColumns(VIM_HELP, Math.max(1, Math.floor((height - 2 * pad) / lineRows)));
+    const columnWidth = Math.floor((width - 2 * pad) / columns.length);
+    const text = (x: number, y: number, words: string, color: number, keepCase = false) => layer.add(new PixelText(this, x, y, words, { color, keepCase }).setScale(fine));
+    columns.forEach((lines, i) => {
+      const x = pad + i * columnWidth;
+      // the keys as typed (keepCase: G is not g), then what they do, after the widest keys of the column
+      const keysWidth = (Math.max(...lines.map((l) => (l.kind === 'row' ? measure(drawnText(l.keys)) : 0))) + 12) * fine;
+      lines.forEach((line, row) => {
+        const y = top + pad + row * lineRows;
+        if (line.kind === 'title') return void text(x, y, t(line.text), C.gold);
+        text(x, y, line.keys, C.white, true);
+        text(x + keysWidth, y, t(line.does), C.white);
+      });
+    });
   }
 
   /**
