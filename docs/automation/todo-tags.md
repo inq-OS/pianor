@@ -54,7 +54,7 @@ git grep -n -E "\b(ASAP|TODO)\([^)]*\bR2\)" -- docs projects   # one release
 
 `git grep` searches the files git tracks (like `grep -r`, but it skips `node_modules/` and build output); `-E` turns on the `( | )` pattern syntax, `-n` prints line numbers.
 
-Each project, at the start of a session: the week's goal at the top of [roadmap.md](../architect/roadmap.md), its `ASAP` tags, the maintainer's open issues (the builder), then its `TODO` tags in release order.
+Each thread, at the start of a session: the area the maintainer is raising now (the barrel at the top of [roadmap.md](../architect/roadmap.md)), its `ASAP` tags, the maintainer's open issues (the builder), then its `TODO` tags in release order.
 
 ## When it is done
 
