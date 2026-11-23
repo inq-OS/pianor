@@ -114,6 +114,10 @@ const BUBBLE_SIGN = 24;
 const STRIP_SIGN = 22;
 /** How much of the bubble's ground covers what is under it. */
 const BUBBLE_GROUND_ALPHA = 0.45;
+/** The long press's ring starts to fill this long after the finger went down. */
+const LONG_PRESS_RING_FROM_MS = 150;
+/** More pulses on this many first visits of a screen. */
+const MORE_PULSE_VISITS = 3;
 const LONG_PRESS_MS = 450;
 const LONG_PRESS_SLIP = 12;
 
@@ -214,7 +218,7 @@ export abstract class PixelScene extends Phaser.Scene {
   /** Where the strip's items are drawn (art pixels), for the wheel over an item with choices (ft_1_20.AC16); null without a strip. */
   private inventoryBand: { area: Rect; slots: { rect: Rect; item: ToolbarItem }[] } | null = null;
   /** A long press on a touch screen that may open the bubble (ft_1_20, d282): where it began and its timer. */
-  private longPress: { x: number; y: number; timer: Phaser.Time.TimerEvent } | null = null;
+  private longPress: { x: number; y: number; timer: Phaser.Time.TimerEvent; ring: Phaser.GameObjects.Graphics } | null = null;
   /** The bubble was just opened by a long press: the lift of that finger must not close it or pick anything. */
   private bubbleFreshTouch = false;
   /** The door and the gear over the top corners with the band and no toolbar: faded until the pointer or the focus is on them. */
@@ -550,6 +554,7 @@ export abstract class PixelScene extends Phaser.Scene {
     this.input.on('wheel', (p: Phaser.Input.Pointer, _over: unknown, _dx: number, dy: number) => this.inventoryWheel(p, dy));
     // the bubble (ft_1_20, d282): a right click, a long press on a touch screen, the context-menu key or Shift + F10
     this.input.mouse?.disableContextMenu();
+    this.moreVisitCounted = false;
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.bubblePointerDown(p));
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       if (this.longPress && Math.hypot(p.x - this.longPress.x, p.y - this.longPress.y) > LONG_PRESS_SLIP) this.cancelLongPress();
@@ -1059,7 +1064,10 @@ export abstract class PixelScene extends Phaser.Scene {
       const button = this.bandButton(item, box(placed.rect), 'bandCell', placed.rect.w - CELL_PAD);
       made.set(item, button);
       shown.push({ rect: { ...placed.rect, y: top + placed.rect.y }, item });
-      if (item === moreItem) moreRight = placed.rect.x + placed.rect.w;
+      if (item === moreItem) {
+        moreRight = placed.rect.x + placed.rect.w;
+        this.pulseMore(button);
+      }
     }
     // the worn options that are on, beside More: a press turns one off (ft_1_20, d282)
     if (bubble && moreRight > 0) {
@@ -1083,6 +1091,29 @@ export abstract class PixelScene extends Phaser.Scene {
     this.inventoryBand = { area: { x: 0, y: top, w: width, h: rows }, slots: shown };
   }
 
+  /**
+   * More pulses on a screen's first three visits (ft_1_20, d282), so a student finds what is behind it; once a visit, kept
+   * per screen in this browser. AX-3 provisional: three visits.
+   */
+  private pulseMore(button: PixelButton): void {
+    // once a visit: a screen drawn again (a tempo change, a hint) does not pulse again
+    if (this.moreVisitCounted) return;
+    const key = `pianor.morePulse.${this.scene.key}`;
+    let seen = MORE_PULSE_VISITS;
+    try {
+      seen = Number(window.localStorage.getItem(key) ?? '0') || 0;
+      window.localStorage.setItem(key, String(seen + 1));
+    } catch {
+      // storage is blocked: no pulse
+    }
+    this.moreVisitCounted = true;
+    if (seen >= MORE_PULSE_VISITS || !motionAllowed()) return;
+    this.tweens.add({ targets: button, alpha: 0.45, duration: 450, yoyo: true, repeat: 3, ease: 'Sine.easeInOut' });
+  }
+
+  /** Whether this visit was counted for More's pulse. */
+  private moreVisitCounted = false;
+
   /** Opens the bubble at the right click's `p`, or starts a long press on a touch screen (ft_1_20, d282). */
   private bubblePointerDown(p: Phaser.Input.Pointer): void {
     if (this.sys.isPaused() || !this.screenFrame?.band) return;
@@ -1097,11 +1128,24 @@ export abstract class PixelScene extends Phaser.Scene {
     const at = this.artPoint(p);
     if (this.bubbleOptions(at) === null) return;
     const timer = this.time.delayedCall(LONG_PRESS_MS, () => {
-      this.longPress = null;
+      this.cancelLongPress();
       this.bubbleFreshTouch = true;
       this.openBubble(at);
     });
-    this.longPress = { x: p.x, y: p.y, timer };
+    // a ring fills round the finger from a moment in, so the student sees that holding on opens something
+    const ring = this.add.graphics().setDepth(MENU_DEPTH);
+    const radius = 10 * this.px.scale;
+    const started = this.time.now;
+    ring.on('destroy', () => this.events.off('update', fill));
+    const fill = () => {
+      const done = (this.time.now - started - LONG_PRESS_RING_FROM_MS) / (LONG_PRESS_MS - LONG_PRESS_RING_FROM_MS);
+      ring.clear();
+      if (done <= 0) return;
+      ring.lineStyle(Math.max(2, this.px.scale), PALETTE[C.goldLight] ?? 0xffd36b, 0.9);
+      ring.beginPath().arc(p.x, p.y, radius, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * Math.min(1, done)).strokePath();
+    };
+    this.events.on('update', fill);
+    this.longPress = { x: p.x, y: p.y, timer, ring };
   }
 
   /** Whether a press is the right button's, which opens the bubble: a screen's own press on its staff leaves it alone (ft_1_20, d282). */
@@ -1111,6 +1155,7 @@ export abstract class PixelScene extends Phaser.Scene {
 
   private cancelLongPress(): void {
     this.longPress?.timer.remove(false);
+    this.longPress?.ring.destroy();
     this.longPress = null;
   }
 
@@ -1172,10 +1217,24 @@ export abstract class PixelScene extends Phaser.Scene {
     // the catcher takes every press outside the bubble and closes it on release, so the press never reaches the screen
     // under it; the lift of the long press that opened it is not such a press
     const catcher = this.add.zone(whole.x, whole.y, whole.w, whole.h).setOrigin(0).setInteractive();
-    catcher.on('pointerup', () => {
+    // a press inside the ring but between the options picks the option in that direction (a slice of the ring each), so a
+    // quick move toward an option is enough; outside the ring it closes the bubble
+    const sectorPick: ((() => void) | null)[] = [];
+    catcher.on('pointerup', (p: Phaser.Input.Pointer) => {
       if (this.bubbleFreshTouch) {
         this.bubbleFreshTouch = false;
         return;
+      }
+      const a = this.artPoint(p);
+      const dx = a.x - layout.centre.x, dy = a.y - layout.centre.y;
+      const d = Math.hypot(dx, dy);
+      if (d > layout.close.w / 2 + 1 && d <= layout.area.w / 2) {
+        const turn = (Math.atan2(dy, dx) + Math.PI / 2 + 2 * Math.PI) % (2 * Math.PI);
+        const pick = sectorPick[Math.round(turn / ((2 * Math.PI) / BUBBLE_SLOTS)) % BUBBLE_SLOTS];
+        if (pick) {
+          pick();
+          return;
+        }
       }
       this.closeMenu();
     });
@@ -1199,12 +1258,14 @@ export abstract class PixelScene extends Phaser.Scene {
     paging.slots.forEach((slot, i) => {
       const r = layout.options[i]!;
       if (slot === 'more') {
-        make(r, { label: t('band.more'), icon: TOOL_ICONS.more, onClick: () => undefined }, () => this.openBubble(at, { page: this.bubblePageNo + 1 }));
+        const turn = () => this.openBubble(at, { page: this.bubblePageNo + 1 });
+        make(r, { label: t('band.more'), icon: TOOL_ICONS.more, onClick: () => undefined }, turn);
+        sectorPick[i] = turn;
         return;
       }
       const item = slot === null ? null : listed[slot];
       if (!item) return;
-      make(r, item, () => {
+      const pick = () => {
         if (item.menu) {
           this.openBubble(at, options.open === i ? {} : { open: i });
           return;
@@ -1213,7 +1274,9 @@ export abstract class PixelScene extends Phaser.Scene {
         item.onClick();
         // a worn option leaves the bubble open, so several can be set in a row
         if (item.worn) this.time.delayedCall(0, () => this.openBubble(at));
-      });
+      };
+      make(r, item, pick);
+      if (!item.disabled) sectorPick[i] = pick;
     });
     choices.forEach((choice, j) => {
       const r = layout.choices[j];

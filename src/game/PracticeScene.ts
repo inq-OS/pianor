@@ -93,6 +93,8 @@ const BUBBLE_DROP = 2;
 const STATUS_RISE = 11;
 /** With the band (ft_1_20): Kiur and his bubble stand in the strip between the door and the gear, this far below its top. */
 const BAND_STRIP_DROP = 1;
+/** How long Kiur's one hint about the bubble stays before the start message. */
+const BUBBLE_HINT_MS = 6000;
 
 /** The cycling mode button's name per choice (core_01.AC10). */
 const MODE_LABEL: Readonly<Record<PlayChoice, 'settings.modeWait' | 'settings.modeFollow' | 'settings.modeTempo' | 'settings.modeTempoFirstNote'>> = {
@@ -448,7 +450,11 @@ export class PracticeScene extends PixelScene {
     const counted = play.mode === 'tempo' && play.tempoStart !== 'firstNote';
     const startMessage = counted && !this.wrap && this.startMessage === t('practice.start') ? t('practice.tempoStart') : this.startMessage;
     if (this.passSummaryShown) this.playSession.say(startMessage, PASS_SUMMARY_MS, true);
-    else this.playSession.say(startMessage);
+    else if (this.bubbleHintDue()) {
+      // Kiur shows the bubble once (ft_1_20, d282), then says what he says at every start
+      this.playSession.say(t('practice.bubbleHint'), BUBBLE_HINT_MS, true);
+      this.time.delayedCall(BUBBLE_HINT_MS, () => this.playSession.say(startMessage));
+    } else this.playSession.say(startMessage);
     const wrap = this.wrap;
     if (wrap && this.clickOn) {
       // a section that wraps on keeps its click: Wait mode's runs on as it is, Tempo mode's starts again on the lap's first
@@ -500,6 +506,24 @@ export class PracticeScene extends PixelScene {
     super.create();
     if (this.listening) this.startListening();
     else this.introAfterCreate();
+  }
+
+  /**
+   * Whether Kiur tells this player about the bubble now: once, on the first practice that is not the intro, learning or a
+   * check-up (those keep their own words). Kept per player in this browser. AX-3 provisional: a browser flag, not the save.
+   */
+  private bubbleHintDue(): boolean {
+    const flags = contextOf(this).flags;
+    // the intro switched off (the end-to-end tests) or a self-playing demo: no first-run words
+    if (this.locked || this.wrap || this.listening || flags.intro === 'off' || flags.autoplay) return false;
+    const key = `pianor.bubbleHint.${contextOf(this).profiles.profile.id}`;
+    try {
+      if (window.localStorage.getItem(key) === '1') return false;
+      window.localStorage.setItem(key, '1');
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** The teacher's check-up (ft_1_27.AC2) or the intro's lesson (ft_1_31.AC3) of this start; neither for any other play. */
@@ -1487,7 +1511,8 @@ export class PracticeScene extends PixelScene {
   /** A tap on the staff: while marking a section the first, then the last bar (then the scene starts over on that part); otherwise the play starts from the bar. */
   private onTap(pointer: Phaser.Input.Pointer): void {
     const { layout, staffView } = this.playSession;
-    if (!layout || !staffView || this.isBubblePress(pointer)) return;
+    // a press while the bubble or a menu is open is theirs: it never starts the play from a bar under them
+    if (!layout || !staffView || this.isBubblePress(pointer) || this.menuOpen) return;
     // a press on a button over the staff (the page buttons, with the band) is the button's
     if (this.pointerOnButton(pointer)) return;
     const top = this.mainTop + (this.bandShown ? this.cornerStrip.rows : TOP_BAR + this.toolRows) * this.px.scale;

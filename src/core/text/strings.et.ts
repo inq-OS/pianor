@@ -687,6 +687,7 @@ export const stringsEt: Record<StringKey, string> = {
   'staff.dyn.f': 'VALJULT',
   'staff.dyn.ff': 'VÄGA VALJULT',
   'staff.legato': 'LEGAATO',
+  'practice.bubbleHint': 'Rohkem tööriistu: paremklõps nootidel või nupp Veel',
   'practice.start': 'Mängi süttinud noot, kui oled valmis',
   'learn.stepOne': 'Takt {n}: iga noot õigesti',
   'learn.step': 'Taktid {from} kuni {to}: iga noot õigesti',

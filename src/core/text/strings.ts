@@ -697,6 +697,7 @@ export const strings = {
   'staff.dyn.f': 'loud',
   'staff.dyn.ff': 'very loud',
   'staff.legato': 'LEGATO',
+  'practice.bubbleHint': 'More tools: right-click the music, or press More',
   'practice.start': 'Play the lit note when you are ready',
   'learn.stepOne': 'Bar {n}: every note right',
   'learn.step': 'Bars {from} to {to}: every note right',
