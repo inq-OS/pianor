@@ -954,8 +954,9 @@ export abstract class PixelScene extends Phaser.Scene {
     return this.bubbleOptions(at) !== null;
   }
 
+  // the base screen has no bubble wherever it is opened; a screen overrides this and reads `at`
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
-    void at;
     return null;
   }
 
