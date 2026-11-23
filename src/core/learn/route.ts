@@ -21,6 +21,6 @@ export function learnsOnOpen(play: { readonly route: PlayRoute; readonly mustLea
  * so a tug (which needs a learned piece) is earned by learning it. A piece with nothing to play has nothing to learn.
  */
 export function pieceLearned(piece: Chart, kept: LearnProgress, settings: LearnSettings): boolean {
-  const plan = learnPlan(piece, learnStepBars(kept, settings), learnHandsApart(kept));
+  const plan = learnPlan(piece, learnStepBars(kept, settings), learnHandsApart(kept, settings));
   return plan.length === 0 || isLearned(plan, kept);
 }
