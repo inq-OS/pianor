@@ -15,7 +15,7 @@ import { LADDER } from '../campaign/ladder';
 import { contextOf } from '../context';
 import { motionAllowed } from '../motion';
 import { startScene } from '../scenes';
-import { watchVisit, type VisitData } from '../visit/islandVisit';
+import { SCENE_SCREENS, watchVisit, type VisitData } from '../visit/islandVisit';
 import { MONSTER_BLINK_FRAMES, MONSTER_FRAMES } from '../ui/pixel/beings/monsterArt';
 import { blit, createBitmap, type Bitmap } from '../ui/pixel/bitmap';
 import { stripArt } from '../ui/pixel/keri/stripArt';
@@ -44,7 +44,8 @@ import { TalkView } from './talkView';
 import { TugView } from './tugView';
 import { prizePicture } from '../ui/pixel/prizeArt';
 import { TeachView } from './teachView';
-import { teachAfter, teachLevelOf } from '../../core/exchange/teach';
+import { learnedTaught, teachAfter, teachLevelOf } from '../../core/exchange/teach';
+import { pieceLearned } from '../../core/learn/route';
 import { StaffView } from '../ui/staff/StaffView';
 import { layoutForSettings } from '../../core/layout/staffSettings';
 import { staffSpaceLimits } from '../../core/layout/canvasSize';
@@ -758,8 +759,26 @@ export class AdventureScene extends PixelScene {
     // a save that cannot be read is never written over with an empty world: this visit talks, but saves nothing
     this.worldSaves = read !== null;
     this.world = read ?? { flags: [], items: [], met: {}, teacherVisits: [] };
+    this.keepLearnedTaught();
     const anyKnown = [...CHARACTERS.keys()].some((id) => characterKnown(this.world!.flags, id));
     if ((this.world.items.length > 0 || anyKnown) && this.sys.isActive()) this.redraw();
+  }
+
+  /**
+   * A met character's piece the student has learned bar by bar is taught (ft_1_32.AC15): kept with the character and saved,
+   * so its talk goes on as after a teaching. Nothing with learning off.
+   */
+  private keepLearnedTaught(): void {
+    const { flags, pieces, profiles } = contextOf(this);
+    if (!flags.learn || !this.world) return;
+    const learned = (piece: string): boolean => {
+      const chart = pieces.find(piece)?.chart;
+      return chart !== undefined && pieceLearned(chart, profiles.learnProgressOf(piece), profiles.learnSettings);
+    };
+    const next = learnedTaught(this.world, CHARACTERS.values(), learned, dayString(new Date()));
+    if (next === this.world) return;
+    this.world = next;
+    if (this.worldSaves) void profiles.saveWorld(profiles.profile.id, next);
   }
 
   /**
@@ -800,7 +819,10 @@ export class AdventureScene extends PixelScene {
     const { chart, level } = tug;
     // the player who played it keeps it, even if another is chosen while it is saved
     const player = context.profiles.profile.id;
-    const gate = characterTugGate(def, chart, level, this.world, context.profiles.profile.practice);
+    const { profiles } = context;
+    // a tug needs the piece learned bar by bar; with learning off (`?learn=0`) any piece may be tugged (ft_1_32.AC15)
+    const learned = !context.flags.learn || pieceLearned(chart, profiles.learnProgressOf(chart.id), profiles.learnSettings);
+    const gate = characterTugGate(def, chart, level, this.world, profiles.profile.practice, learned);
     // the rung of its prize ladder this level gives (AC18), named in its closing line
     const prize = ITEMS.get(prizeFor(def, level) ?? '');
     this.tug = TugView.open(this, this.talkLayer, {
@@ -833,6 +855,13 @@ export class AdventureScene extends PixelScene {
     const context = contextOf(this);
     const chart = context.pieces.find(piece)?.chart;
     if (!chart || !this.talkLayer) return false;
+    // the character teaches its piece bar by bar (ft_1_32.AC15): learning opens, and leaving it comes back here, where a
+    // learned piece is kept as taught. With learning off (`?learn=0`, the self-playing demo) the three tries stay
+    const screen = SCENE_SCREENS[this.sceneData.id]?.scene;
+    if (context.flags.learn && screen) {
+      startScene(this, 'practice', { chartId: piece, learn: true, teacher: { scene: screen } });
+      return true;
+    }
     const player = context.profiles.profile.id;
     this.teach = TeachView.open(this, this.talkLayer, {
       chart,
