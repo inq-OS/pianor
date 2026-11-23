@@ -441,6 +441,6 @@ Check: `tests/progression/profile-service.test.ts` "ft_1_07.AC1: a new install m
 
 **The piano is a sandbox: a piece picked there plays in full with no learning gate, except a character's piece, which is still learned bar by bar first; learning and tugging go through Kiur, and a tug needs a learned piece.** Features: ft_1_32, ft_1_21. Changes d160 (pressing Kiur).
 
-Pressing Kiur in the room asks Learn or Tug, and either opens the piece book. Learn opens the piece in learning bar by bar even when it was played to the end before (`PracticeData.learn`); Tug takes it to the room, where Kiur tugs it only once its whole learning plan is done (`pieceLearned`), and before that says to learn it with him first. Free plays never count as learning for the tug.
+Pressing Kiur in the room asks Learn or Tug, and either opens the piece book. Learn opens the piece in learning bar by bar even when it was played to the end before (`PracticeData.learn`); Tug lists only the pieces whose whole learning plan is done (`pieceLearned`) and takes the one picked to the room for his tug. Free plays never count as learning for the tug.
 
 Check: `src/core/learn/route.test.ts` "ft_1_32.AC13 the piano plays any piece in full, and a piece of a character is learned first"; `src/core/learn/route.test.ts` "ft_1_32.AC14 a piece is learned for the tug only once its whole plan is done, never from free plays"

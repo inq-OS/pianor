@@ -25,6 +25,7 @@ export const stringsEt: Record<StringKey, string> = {
   'hand.LH': 'Vasak käsi',
   'hand.both': 'Mõlemad käed',
   'menu.noPieces': 'Lugusid pole veel.',
+  'menu.noneLearned': 'Ühtegi lugu pole veel selgeks õpitud. Vajuta Kiurile ja vali enne Õpi.',
   'menu.allOff': 'Kõik lood on välja lülitatud. Lülita mõni sisse seadetes.',
   'menu.xp': '{xp} / {next} XP',
   'menu.xpTop': '{xp} XP (kõrgeim tase)',

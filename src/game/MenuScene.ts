@@ -11,6 +11,7 @@ import { curriculumMark, type CurriculumMark } from '../core/curriculum/bookMark
 import { dayNumber } from '../core/curriculum/evaluate';
 import type { Medal } from '../core/curriculum/play';
 import { CHARACTER_PIECES } from './adventure/scenesData';
+import { pieceLearned } from '../core/learn/route';
 import { CHARACTER_INK } from './ui/pixel/talkArt';
 import { teacherStatuses } from './teacher/teacherStatuses';
 import { dayString } from '../io/teacher/teacherDesk';
@@ -270,8 +271,12 @@ export class MenuScene extends PixelScene {
     // One list (ft_1_12): a card plays its piece, an own piece's pencil opens it in the editor. The piece maker (main
     // menu, no player) lists only own pieces, and a card opens the editor, so nothing is played (and saved) from it.
     const editable = context.flags.editor;
-    const on = this.maker ? offered.filter((p) => p.own) : piecesInShownGroups(piecesThatAreOn(offered, profiles.hiddenPieces), (p) => this.groups(p), this.hiddenGroups);
-    const pieces: (Piece | 'new')[] = editable ? ['new', ...on] : on;
+    const listed = this.maker ? offered.filter((p) => p.own) : piecesInShownGroups(piecesThatAreOn(offered, profiles.hiddenPieces), (p) => this.groups(p), this.hiddenGroups);
+    // picking for Kiur's tug: only the pieces that may be tugged, the learned ones (ft_1_32 rule 15; all with learning off)
+    const tuggable = (p: Piece) => !context.flags.learn || pieceLearned(p.chart, profiles.learnProgressOf(p.chart.id), profiles.learnSettings);
+    const on = this.forKiur === 'tug' ? listed.filter(tuggable) : listed;
+    // a new piece is made from the piano's book only, never while picking for Kiur
+    const pieces: (Piece | 'new')[] = editable && this.forKiur === null ? ['new', ...on] : on;
     this.sky();
 
     // one list for everything (ft_1_12): no mode tabs and no hint
@@ -279,7 +284,8 @@ export class MenuScene extends PixelScene {
     if (!context.savesPersist) this.label(MARGIN, listTop - 1, t('menu.noSave'), C.gold, { shadow: false, maxWidth: width - 2 * MARGIN });
 
     if (pieces.length === 0) {
-      this.label(MARGIN, listTop + 16, t(offered.length > 0 ? 'menu.allOff' : 'menu.noPieces'), C.dim, { maxWidth: width - 2 * MARGIN });
+      const why = this.forKiur === 'tug' && listed.length > 0 ? 'menu.noneLearned' : offered.length > 0 ? 'menu.allOff' : 'menu.noPieces';
+      this.label(MARGIN, listTop + 16, t(why), C.dim, { maxWidth: width - 2 * MARGIN });
       return;
     }
 

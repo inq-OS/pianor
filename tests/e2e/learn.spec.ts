@@ -1,6 +1,6 @@
 // Covers ft_1_32.AC4, ft_1_32.AC5, ft_1_32.AC6, ft_1_32.AC11, ft_1_32.AC12, ft_1_32.AC13, ft_1_32.AC14.
 import { expect, test, type Page } from '@playwright/test';
-import { clickButton, expectNoErrors, letGameRun, openGame, openPiece, playWithKeys, sceneButton, showMenuPageWith, waitForScene } from './helpers';
+import { clickButton, expectNoErrors, isPieceLabel, menuLabels, letGameRun, openGame, openPiece, playWithKeys, sceneButton, showMenuPageWith, waitForScene } from './helpers';
 
 /** The bars the practice screen shows now (0-based, of the whole piece), and the notes to play in them in order. */
 async function shown(page: Page): Promise<{ bars: number; first: number; midis: number[] }> {
@@ -38,8 +38,6 @@ async function learnPiece(page: Page, title: string): Promise<void> {
   await openPiece(page, title);
 }
 
-const kiurInRoom = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('profile') as unknown as { talkState: { text: string } | null }).talkState?.text ?? null);
-
 test('ft_1_32.AC13 the piano is a sandbox: a piece picked there plays in full with no learning', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
   await openPiece(page, 'Little Steps');
@@ -48,15 +46,24 @@ test('ft_1_32.AC13 the piano is a sandbox: a piece picked there plays in full wi
   expectNoErrors(errors);
 });
 
-test('ft_1_32.AC14 Kiur tugs a song only once it is learned: before that he says to learn it with him', async ({ page }) => {
+test('ft_1_32.AC14 Kiur\'s Tug lists only the learned pieces, and his tug opens on one picked', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
-  await askKiur(page);
-  await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Tug'));
-  await waitForScene(page, 'menu');
+  const tugBook = async () => {
+    await askKiur(page);
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Tug'));
+    await waitForScene(page, 'menu');
+    return (await menuLabels(page)).filter(isPieceLabel);
+  };
+  // nothing learned yet: the book lists no piece
+  expect(await tugBook()).toEqual([]);
+  // Little Steps learned to its last step
+  await page.evaluate(() => window.__game.registry.get('context').profiles.saveLearnProgress('little-steps', {
+    step: 999, wholeStreak: 0, recall: false, confirm: false, misses: 0, medals: [], lastDay: '1998-11-21', stepBars: 1, handsApart: true,
+  }));
+  expect(await tugBook()).toEqual(['Little Steps']);
   await clickButton(page, 'menu', await showMenuPageWith(page, 'Little Steps'));
   await waitForScene(page, 'profile');
-  await expect.poll(() => kiurInRoom(page)).toBe('We tug Little Steps once you have learned it. Press me and pick Learn.');
-  expect(await page.evaluate(() => (window.__game.scene.getScene('profile') as unknown as { tug: unknown }).tug)).toBeNull();
+  await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('profile') as unknown as { tug: unknown }).tug !== null)).toBe(true);
   expectNoErrors(errors);
 });
 
