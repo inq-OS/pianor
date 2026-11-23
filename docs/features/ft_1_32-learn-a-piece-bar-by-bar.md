@@ -3,8 +3,8 @@ id: "ft_1_32"
 title: "Learn a piece bar by bar"
 scope: "Every new piece is learned before it is practised: the staff shows a growing run of bars inside chunks of four, each step needs one perfect run (a mistake ends the run and repeats the step), each finished chunk is confirmed by one more play whose key times measure the player's own tempo, then the whole piece; learned bars give quarter notes that merge into whole notes per chunk and a clef per piece, each gold, silver or bronze by how cleanly it was learned and raised to gold by three perfect plays; mistake markers over notes missed again; a recall check on a later day"
 effort: "large"
-status: "slice 2 in progress: the learning view on the practice screen with the confirmation play and the measured tempo; slice 1 (the pure core) done"
-completeness: 35
+status: "slices 1 and 2 done: the pure core, and the learning view on the practice screen with the confirmation play, the measured tempo and the learning settings; slice 3 has its following clock, the rushing stop and slices 4 to 6 are open"
+completeness: 40
 depends_on: ["ft_0_08", "core_03", "core_10"]
 ---
 # ft_1_32: Learn a piece bar by bar
@@ -60,13 +60,14 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 - The reward notes are a row in the tools strip, or with the band at the right end of Kiur's strip (`rewardNotes.ts`); the mistake markers are rings over the notes (`StaffView.setMarkers`), on every practice screen of a piece while the player's setting is on.
 - Progress (with the measured paces, `bpm`, and the measured runs, `tests`) and settings are optional save fields (`learning`, `settings.learn`; d069.3, no version bump).
 - A piece keeps the step size its learning began with (`LearnProgress.stepBars`, `learnStepBars`): a changed setting applies to the next piece, so the saved step index and medals never point at other steps. The moment a piece is learned is kept (`learnedAt`), and only plays after it raise a bar to gold (`goldenBars`); the learning runs themselves never do. Both are optional save fields (d069.3).
+- The learning settings are the second page of the settings screen (the Learning action in the band, lit while the page shows): the bars a step adds (1 or 2), the rings over missed notes on or off, and the miss they come at (1 to 5). `AX-3 provisional:` a second page, since the first one's four rows are full with the band.
 
 ## TODO
 
 - TODO(architect, R2): AX-3 provisional numbers of the stats: 60 runs kept per piece (`MAX_LEARN_TESTS`), and whether "even" should be judged by the robust spread instead of the share of gaps within 30%, once real runs of the student are there to look at.
 - TODO(builder, R2): the same records on the teacher's screen (ft_1_26 statistics).
 - TODO(architect, R2): AX-3 provisional numbers of the hints (`FOCUS_RULES`: the latest 3 runs, a bar slow from 130%, drift from 10%, uneven from 15%, a hand 8 points worse, tempo differing by 15%), of the trend (4 runs) and of the strip (full tint at 160%), to be set from the student's real runs.
-- TODO(builder, R2): the learning settings on the settings screen (step 1 or 2 bars, markers on or off and their threshold); they are saved and read, but the screen's four rows are full with the band.
+- TODO(painter, R2): an icon for the settings screen's Learning action (a band cell with a word now, `SettingsScene.ts`).
 - TODO(painter, R2): redraw the reward notes and the clef in the house manner (`src/game/practice/rewardNotes.ts`).
 - TODO(architect, R2): confirm the AX-3 provisional default that is now built: a piece played to the end three times before its learning began counts as learned (`KNOWN_COMPLETIONS` in `src/game/practice/LearnSession.ts`), so learning never gates Tempo mode or sections for it.
 - TODO(builder, R2): a song taught in levels (rule 2): a character's song is cut into pieces of 4 to 16 bars, one per level, each learned by this plan; the final boss is every bar in one sitting in the tug (slice 4, with ft_1_22); then add the rule that a character's final level is its whole song to `src/core/character/rules.ts` (checked over every character by `tests/content/characters.test.ts`).
