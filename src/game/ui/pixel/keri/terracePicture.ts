@@ -31,8 +31,8 @@ import { fillQuad, KIT_WOOD, planks, post, type Plank, type PlanksOptions, type 
  * thatched watchtower, a storey up, with a long brass spyglass fixed on its floor, a lantern at its corner and a
  * pennant on its roof (a roofed section, perhaps a small watchtower that goes up to the second floor
  * with a static long-eye to scan the horizon). The rails are stout wood (the handrails should be made of wood, as
- * the old ones were too thin and looked as if you could fall down). A string of paper lanterns and flags hangs along
- * the walk, and on the deck stand a picnic table between two of the benches, the grill, and a barrel and crates. A boat's bow stood there in passes 1 and 2 (the deck
+ * the old ones were too thin and looked as if you could fall down). On the deck stand
+ * a picnic table between two of the benches, the grill, a barrel and two crates, and three torches; nothing more (d278). A boat's bow stood there in passes 1 and 2 (the deck
  * has more features and character, and the boat was too much). The walk and what is on it are the painter's,
  * not Keri's (docs/keri.md, section 9).
  *
@@ -126,7 +126,7 @@ export interface TerracePicture {
   palette: readonly number[];
   /** The whole picture, the sky bare: the clouds drift over it. One look: what moves is live or drawn by the game. */
   frames: Bitmap[];
-  /** What stands before the sky where the clouds go (the watchtower, the string of lanterns and its poles, the thicket's top). */
+  /** What stands before the sky where the clouds go (the watchtower, the torches' heads, the thicket's top). */
   fore: Overlay;
   /** The clouds, back to front (`TERRACE_CLOUDS`). */
   clouds: TerraceCloud[];
