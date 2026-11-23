@@ -103,7 +103,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
     await press(page, 'Section');
-    await expect.poll(() => sceneTexts(page, 'practice')).toContain('Tap the first bar of the part to practise.');
+    await expect.poll(() => sceneTexts(page, 'practice')).toContain('Tap the first bar of the part to practice.');
     await tapBar(page, 1);
     await expect.poll(() => sceneTexts(page, 'practice')).toContain('Now tap its last bar.');
     await tapBar(page, 2);
@@ -239,7 +239,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
     const before = await view();
     expect(before.pages).toBeGreaterThan(1); // one line at a time: bar 3 is on another page
     await press(page, 'Section');
-    await expect.poll(() => sceneTexts(page, 'practice')).toContain('Tap the first bar of the part to practise.');
+    await expect.poll(() => sceneTexts(page, 'practice')).toContain('Tap the first bar of the part to practice.');
     expect(await view()).toEqual({ ...before, marks: [], tint: [] }); // the same view, page by page, not the whole piece shrunk
     await tapBar(page, 1);
     await expect.poll(() => view()).toEqual({ ...before, marks: ['A'], tint: [1] });
@@ -302,7 +302,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
     await page.keyboard.press('Shift+KeyR');
-    await expect.poll(() => sceneTexts(page, 'practice')).toContain('Tap the first bar of the part to practise.');
+    await expect.poll(() => sceneTexts(page, 'practice')).toContain('Tap the first bar of the part to practice.');
     await page.keyboard.press('Digit2');
     await expect.poll(() => sceneTexts(page, 'practice')).toContain('Now tap its last bar.');
     await page.keyboard.press('Digit3');
