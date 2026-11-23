@@ -487,7 +487,8 @@ export class PixelButton {
   private trayKind(): TrayKind {
     const slot = this.look === 'bandSlot';
     if (this.disabled) return slot ? 'slotEmpty' : 'cellOff';
-    if (slot && this.armed) return 'slotArmed';
+    // the piece maker's writer (a slot, or a cell of the strip) is on purple while a click writes with it
+    if (this.armed) return 'slotArmed';
     if (this.active) return slot ? 'slotOn' : 'cellOn';
     if (this.down) return 'cellDown';
     if (this.hover) return slot ? 'slotHover' : 'cellHover';

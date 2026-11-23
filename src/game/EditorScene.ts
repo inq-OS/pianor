@@ -568,7 +568,7 @@ export class EditorScene extends PixelScene {
 
   /**
    * A press on the staff: the middle button (or Alt + left) places and changes notes, the left
-   * button selects, Shift + left extends the bar selection, a left drag is the lasso, and the right button removes.
+   * button selects, Shift + left extends the bar selection, a left drag is the lasso; the right button opens the bubble.
    */
   private press(p: Phaser.Input.Pointer): void {
     const event = p.event as MouseEvent | undefined;
@@ -580,22 +580,17 @@ export class EditorScene extends PixelScene {
     if (!hit || action === 'none' || this.meterAsk !== null) return;
     if (this.repeatPick) {
       const bar = this.barOf(hit);
-      if (action === 'remove' || bar === null) {
+      if (bar === null) {
         this.disarm();
         return this.refreshStaff();
       }
       return this.pickRepeatBar(bar);
     }
-    if (action !== 'remove' && this.askMeter(this.barOf(hit) ?? 0)) return;
+    if (this.askMeter(this.barOf(hit) ?? 0)) return;
     if (action === 'select') this.lassoFrom = { x: p.x, y: p.y };
     if (this.barPress(hit, action)) return;
     const ctrl = !!event?.ctrlKey || !!event?.metaKey;
     if (hit.kind === 'note') return this.pressNote(hit.noteIndex, action, ctrl);
-    if (action === 'remove') {
-      // a right click on a rest the author placed takes it away
-      if (hit.kind === 'place') this.apply(removeRest(this.piece, { hand: this.handOf(hit.trackId), bar: hit.bar, start: hit.start }), null);
-      return;
-    }
     // a press on a clef or the key signature opens the circle of fifths to set the key, on the time signature the time panel
     if (hit.kind === 'key') return this.openCircle();
     if (hit.kind === 'time') return this.openPanel('time');
@@ -603,11 +598,10 @@ export class EditorScene extends PixelScene {
     this.placeAt(this.length, hit);
   }
 
-  /** A press on a note head: remove (right), end a waiting pick, select it (left), or lengthen it, Ctrl shortens (middle). */
+  /** A press on a note head: end a waiting pick, select it (left), or lengthen it, Ctrl shortens (middle). */
   private pressNote(noteIndex: number, action: MouseAction, ctrl: boolean): void {
     const ref = this.refOf(noteIndex);
     if (!ref) return;
-    if (action === 'remove') return this.apply(removeNote(this.piece, ref), null);
     if (this.pickWaits()) return this.endPick(ref);
     this.keyCursor = ref;
     this.select(ref);
@@ -2302,7 +2296,7 @@ export class EditorScene extends PixelScene {
       { label: t(`editor.acc.${sign}`), icon: itemPicture(sign), fineIcon: true, tooltip: t('editor.acc.tip'), shortcut: EDITOR_KEYS.accidentals.label, onClick: () => undefined, menu: { items: () => this.accidentalItems(), cell: ITEM_MENU_CELL, columns: 3 } },
       { label: t('editor.delete'), icon: TOOL_ICONS.trash, shortcut: EDITOR_KEYS.delete.label, onClick: () => (sel ? this.change(clearBars(this.piece, sel)) : this.deleteSelected()) },
       { label: t('editor.arc.menu'), icon: itemPicture('tie'), fineIcon: true, shortcut: EDITOR_KEYS.ties.label, onClick: () => undefined, menu: { items: () => this.arcItems(), cell: ITEM_MENU_CELL, columns: 3 } },
-      { label: note?.dynamic ?? '-', icon: dynamicPicture(note?.dynamic), fineIcon: true, keepCase: true, tooltip: t('editor.dyn.tip'), shortcut: EDITOR_KEYS.dynamics.label, onClick: () => undefined, menu: { items: () => this.dynamicItems(), cell: ITEM_MENU_CELL, columns: 7 } },
+      { label: note?.dynamic ?? '-', icon: dynamicPicture(note?.dynamic ?? 'mf'), fineIcon: true, keepCase: true, tooltip: t('editor.dyn.tip'), shortcut: EDITOR_KEYS.dynamics.label, onClick: () => undefined, menu: { items: () => this.dynamicItems(), cell: ITEM_MENU_CELL, columns: 7 } },
       { label: t('editor.finger.menu'), icon: TOOL_ICONS.fingers, shortcut: EDITOR_KEYS.fingers.label, onClick: () => undefined, menu: { items: () => this.fingerItems(), cell: FINGER_MENU_CELL, columns: 6 } },
       { label: t('editor.grace'), icon: TOOL_ICONS.grace, tooltip: t('editor.grace.tip'), onClick: () => this.pressGrace() },
       { label: t('editor.copy'), icon: TOOL_ICONS.copy, shortcut: EDITOR_KEYS.copy.label, onClick: () => this.copyBar() },

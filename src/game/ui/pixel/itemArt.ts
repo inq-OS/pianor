@@ -272,3 +272,35 @@ export function itemPicture(name: ItemSign): Bitmap {
   }
   return bitmap;
 }
+
+/**
+ * An item's sign alone, without its scrap of parchment, for a round option of the bubble or a cell of the strip (ft_1_20,
+ * d282): its ink pixels in white (a cell tints them its letters' colour), cut to their box and, when larger than `maxWidth` x
+ * `maxHeight` fine pixels, made smaller by taking every so many.
+ */
+export function signOnly(picture: Bitmap, maxWidth: number, maxHeight: number): Bitmap {
+  const cached = signs.get(picture)?.get(`${maxWidth}x${maxHeight}`);
+  if (cached) return cached;
+  let x0 = picture.width, y0 = picture.height, x1 = 0, y1 = 0;
+  picture.pixels.forEach((p, i) => {
+    if (p !== ITEM_INK) return;
+    const x = i % picture.width, y = Math.floor(i / picture.width);
+    [x0, y0, x1, y1] = [Math.min(x0, x), Math.min(y0, y), Math.max(x1, x + 1), Math.max(y1, y + 1)];
+  });
+  if (x1 <= x0) return picture;
+  const k = Math.min(1, maxWidth / (x1 - x0), maxHeight / (y1 - y0));
+  const out = createBitmap(Math.max(1, Math.round((x1 - x0) * k)), Math.max(1, Math.round((y1 - y0) * k)));
+  for (let y = 0; y < out.height; y++) {
+    for (let x = 0; x < out.width; x++) {
+      const sx = x0 + Math.min(x1 - x0 - 1, Math.floor((x + 0.5) / k));
+      const sy = y0 + Math.min(y1 - y0 - 1, Math.floor((y + 0.5) / k));
+      if (picture.pixels[sy * picture.width + sx] === ITEM_INK) out.pixels[y * out.width + x] = C.white;
+    }
+  }
+  const byPicture = signs.get(picture) ?? new Map<string, Bitmap>();
+  byPicture.set(`${maxWidth}x${maxHeight}`, out);
+  signs.set(picture, byPicture);
+  return out;
+}
+
+const signs = new WeakMap<Bitmap, Map<string, Bitmap>>();

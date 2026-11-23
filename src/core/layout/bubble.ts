@@ -32,9 +32,12 @@ export interface BubbleLayout {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
 
-/** The bubble for `options` options (at most `BUBBLE_SLOTS`) opened at `at` on a screen `screen` cells large. */
-export function bubbleLayout(input: { at: { x: number; y: number }; options: number; screen: { w: number; h: number }; open?: { option: number; choices: number } }): BubbleLayout {
-  const centre = { x: Math.round(clamp(input.at.x, HALF, input.screen.w - HALF)), y: Math.round(clamp(input.at.y, HALF, input.screen.h - HALF)) };
+/** The bubble for `options` options (at most `BUBBLE_SLOTS`) opened at `at` on a screen `screen` cells large, kept below its `y`. */
+export function bubbleLayout(input: { at: { x: number; y: number }; options: number; screen: { y?: number; w: number; h: number }; open?: { option: number; choices: number } }): BubbleLayout {
+  // `screen.y`: rows at the top the bubble keeps off (the top strip of a screen without a toolbar); `h` counts from there
+  const top = input.screen.y ?? 0;
+  const bottom = top + input.screen.h;
+  const centre = { x: Math.round(clamp(input.at.x, HALF, input.screen.w - HALF)), y: Math.round(clamp(input.at.y, top + HALF, bottom - HALF)) };
   const area = { x: centre.x - HALF, y: centre.y - HALF, w: 2 * HALF, h: 2 * HALF };
   const options: Rect[] = [];
   for (let i = 0; i < Math.min(BUBBLE_SLOTS, Math.max(0, input.options)); i++) {
@@ -48,7 +51,7 @@ export function bubbleLayout(input: { at: { x: number; y: number }; options: num
     const width = n * CHOICE + (n - 1) * CHOICE_GAP;
     const right = rectRight(area) + AWAY;
     const x = right + width <= input.screen.w ? right : area.x - AWAY - width >= 0 ? area.x - AWAY - width : clamp(right, 0, input.screen.w - width);
-    const y = Math.round(clamp(open.y + (OPTION - CHOICE) / 2, 0, input.screen.h - CHOICE));
+    const y = Math.round(clamp(open.y + (OPTION - CHOICE) / 2, top, bottom - CHOICE));
     for (let i = 0; i < n; i++) choices.push({ x: x + i * (CHOICE + CHOICE_GAP), y, w: CHOICE, h: CHOICE });
   }
   const close = { x: centre.x - OPTION / 2, y: centre.y - OPTION / 2, w: OPTION, h: OPTION };

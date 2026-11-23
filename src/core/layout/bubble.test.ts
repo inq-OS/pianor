@@ -111,4 +111,10 @@ describe('the pinned strip (ft_1_20, d282)', () => {
       expect(flow.placed[0]!.rect.x).toBe(2);
     }
   });
+
+  it('ft_1_20.AC19 keeps off the top strip a screen without a toolbar has: opened near the top it moves down below it', () => {
+    const b = bubbleLayout({ at: { x: 160, y: 5 }, options: BUBBLE_SLOTS, screen: { y: 20, w: 320, h: 160 }, open: { option: 0, choices: 4 } });
+    expect(b.area.y).toBe(20);
+    for (const r of [...b.options, ...b.choices]) expect(r.y).toBeGreaterThanOrEqual(20);
+  });
 });

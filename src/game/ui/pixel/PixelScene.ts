@@ -13,6 +13,7 @@ import { initialFocus, moveFocus, refocus, type FocusMove } from '../../../core/
 import { panelBitmap, trayBitmap } from './frames';
 import { ICONS } from './iconArt';
 import { TOOL_ICONS } from './toolArt';
+import { signOnly } from './itemArt';
 import { PALETTE, C } from './palette';
 import { createBitmap, recolor, type Bitmap } from './bitmap';
 import { LiveImage, PixelBar, PixelButton, PixelImage, PixelText, type PixelButtonOptions, type RgbaArt } from './PixelObjects';
@@ -108,6 +109,9 @@ const CHIP = 15;
 /** Room between the backpack and the gear, so the two are not taken for each other. */
 const BACKPACK_GAP = 2;
 /** A long press opens the bubble after this long (ft_1_20, d282); moving the finger farther than `LONG_PRESS_SLIP` screen pixels cancels it. */
+/** The largest music sign (fine pixels) in a round option of the bubble and in a cell of the strip. */
+const BUBBLE_SIGN = 24;
+const STRIP_SIGN = 22;
 /** How much of the bubble's ground covers what is under it. */
 const BUBBLE_GROUND_ALPHA = 0.45;
 const LONG_PRESS_MS = 450;
@@ -1145,10 +1149,13 @@ export abstract class PixelScene extends Phaser.Scene {
     const paging = bubblePage({ options: listed.length, page: this.bubblePageNo });
     this.bubblePageNo = paging.page;
     const strip = this.screenFrame.band;
-    const bounds = { x: 0, y: 0, w: this.px.width, h: this.mainRows + (strip?.rows ?? 0) };
+    // never under the top strip between the door and the gear (the piece maker's title is a text field over the canvas)
+    const top = this.screenFrame.toolbar ? 0 : this.cornerStrip.rows;
+    const whole = { x: 0, y: 0, w: this.px.width, h: this.mainRows + (strip?.rows ?? 0) };
+    const bounds = { ...whole, y: top, h: whole.h - top };
     const more = this.inventoryBand?.slots.find((s) => s.item.icon === TOOL_ICONS.more)?.rect;
     // from More the bubble stands on the strip over More, never over the strip: the pointer goes straight up to it
-    if (at === null && strip) bounds.h = this.mainRows;
+    if (at === null && strip) bounds.h = this.mainRows - top;
     const centre = at ?? (more ? { x: more.x + more.w / 2, y: more.y } : { x: bounds.w / 2, y: bounds.h / 2 });
     const open = options.open !== undefined ? listed[paging.slots[options.open] as number] : undefined;
     const choices = open?.menu?.items() ?? [];
@@ -1156,7 +1163,7 @@ export abstract class PixelScene extends Phaser.Scene {
     const container = this.add.container(this.root.x, this.root.y).setScale(this.px.scale).setDepth(MENU_DEPTH);
     // the catcher takes every press outside the bubble and closes it on release, so the press never reaches the screen
     // under it; the lift of the long press that opened it is not such a press
-    const catcher = this.add.zone(bounds.x, bounds.y, bounds.w, bounds.h).setOrigin(0).setInteractive();
+    const catcher = this.add.zone(whole.x, whole.y, whole.w, whole.h).setOrigin(0).setInteractive();
     catcher.on('pointerup', () => {
       if (this.bubbleFreshTouch) {
         this.bubbleFreshTouch = false;
@@ -1169,7 +1176,9 @@ export abstract class PixelScene extends Phaser.Scene {
     const buttons: PixelButton[] = [];
     const make = (r: Rect, item: ToolbarItem, onClick: () => void): PixelButton => {
       const button = new PixelButton(this, container, {
-        ...rectCentre(r), label: item.label, labelWidth: r.w - CELL_PAD, look: 'bubble', ...(item.icon ? { icon: item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}),
+        ...rectCentre(r), label: item.label, labelWidth: r.w - CELL_PAD, look: 'bubble',
+        // a music sign on its scrap of parchment is too big for a round option: the sign alone, in the option's colour
+        ...(item.icon ? { icon: item.fineIcon ? signOnly(item.icon, BUBBLE_SIGN, BUBBLE_SIGN) : item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}),
         tooltip: item.tooltip ?? item.label, ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}), onClick,
       });
       if (item.active) button.setActive(true);
@@ -1228,7 +1237,7 @@ export abstract class PixelScene extends Phaser.Scene {
     const tooltip = item.tooltip;
     const menu = item.menu;
     const button: PixelButton = this.button({
-      ...at, label, labelWidth: room, look, ...(item.icon ? { icon: item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}), ...(tooltip ? { tooltip } : {}),
+      ...at, label, labelWidth: room, look, ...(item.icon ? { icon: item.fineIcon && look === 'bandCell' ? signOnly(item.icon, STRIP_SIGN, STRIP_SIGN) : item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}), ...(tooltip ? { tooltip } : {}),
       ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}),
       // a band item's menu opens above it, toward the staff, where the pointer goes next
       onClick: menu ? () => this.openMenu(button, menu.items(), { cell: menu.cell, columns: menu.columns, open: 'above' }) : item.onClick,
