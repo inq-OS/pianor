@@ -25,7 +25,7 @@ TAG(<who>[, <release>]): <what to do, in one or two sentences>. <why, or a link>
 Examples:
 
 ```
-- TODO(builder, R2): rename the world model's place `trail` to what it is now, the northern shore. The trail is gone (d117); only the place is left.
+- TODO(builder, R2): the following clock's waits kept per bar in the practice log.
 - ASAP(builder): `tests/e2e/autoplay.spec.ts` "clean tempo" times out on main in cloud sessions.
 - NEEDS-HUMAN: does a key lit with channel volume 0 stay silent on the EZ-220? Spike button: `npm run spike`.
 ```

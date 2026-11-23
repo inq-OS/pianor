@@ -3,7 +3,7 @@
  * The student names the shown note on the keyboard. A wrong press costs one life and says why (classifyWrongNote);
  * the third lost life ends the round. XP already earned is kept.
  */
-import { EZ220_HIGH, EZ220_LOW } from '../chart/pitch';
+import { PIECE_HIGH, PIECE_LOW } from '../chart/pitch';
 import { classifyWrongNote } from '../judge/classify';
 import type { WrongReason } from '../judge/types';
 import { Random } from '../random';
@@ -44,8 +44,8 @@ export interface PressResult {
 function checkRange(range: TrainerRange): void {
   const { low, high } = range;
   if (!Number.isInteger(low) || !Number.isInteger(high)) throw new RangeError('range must be whole MIDI keys');
-  if (low < EZ220_LOW || high > EZ220_HIGH || low > high) {
-    throw new RangeError(`range ${low}..${high} is outside ${EZ220_LOW}..${EZ220_HIGH}`);
+  if (low < PIECE_LOW || high > PIECE_HIGH || low > high) {
+    throw new RangeError(`range ${low}..${high} is outside ${PIECE_LOW}..${PIECE_HIGH}`);
   }
 }
 

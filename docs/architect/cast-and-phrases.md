@@ -1,6 +1,6 @@
-# Cast, difficulty scale, phrase plan and first lines (WP-02)
+# Cast, difficulty scale, phrase plan and first lines (ft_1_22)
 
-Written by the architect: the work package WP-02 of the [programme](program-characters-teacher.md). It follows the answers to Q5 to Q7 and Q10: a character's piece goes learn, practise, show ([d135](../decisions/game.md#d135)); no label word such as VÄLJAKUTSE or TEGELANE on screen, a character's own line invites the tug; a character has a name, a generic name or a generated one. Characters come from Keri's own world (d132, ft_1_21): folk spirits and belief, visitors who really come to the island, ghosts of its past; never a real person and nothing from a copyrighted novel.
+Written by the architect: the work package ft_1_22 of the [programme](program-characters-teacher.md). It follows the answers to Q5 to Q7 and Q10: a character's piece goes learn, practise, show ([d135](../decisions/game.md#d135)); no label word such as VÄLJAKUTSE or TEGELANE on screen, a character's own line invites the tug; a character has a name, a generic name or a generated one. Characters come from Keri's own world (d132, ft_1_21): folk spirits and belief, visitors who really come to the island, ghosts of its past; never a real person and nothing from a copyrighted novel.
 
 **The cast (Q10):** for now a border guard, a Prangli fisherman and a tree spirit (puuvaim). The style of each and the one built first are the architect's (AX-3 provisional: the maintainer may swap them): the tree spirit (classical) first, then the Prangli fisherman (folk) and the border guard (jazz). The other candidates of the first draft (the bonfire's voice, the straw kratt, the old keeper's ghost, the conservatory student, the ship's cook) are dropped; any may come back in a later cast.
 
@@ -8,19 +8,19 @@ Written by the architect: the work package WP-02 of the [programme](program-char
 
 Every sheet: who it is, the name the student sees (`named`, `generic` or `generated`, A.5 of the programme's appendix), where it is met, how it ties to music, its phrases' style, how it invites the tug, the item a won tug gives, and what the painter needs. Walking figures are built on the template character ([d142](../decisions/art.md#d142)).
 
-**Prize ladders (ft_1_21.AC18):** every level of a character beaten gives a better prize than the one before, a plain thing at level 1 and the character's treasure for the final level (the whole song). Five rungs each (AX-3 provisional: four song levels and the final boss); only Puuvaim's are in the game so far (`content/characters/puuvaim.json`, `content/items/items.json`), the fisherman's and the border guard's go in with their characters (WP-17). The band shows each ladder as its best rung.
+**Prize ladders (ft_1_21.AC18):** every level of a character beaten gives a better prize than the one before, a plain thing at level 1 and the character's treasure for the final level (the whole song). Five rungs each (AX-3 provisional: four song levels and the final boss); only Puuvaim's are in the game so far (`content/characters/puuvaim.json`, `content/items/items.json`), the fisherman's and the border guard's go in with their characters (ft_1_22). The band shows each ladder as its best rung.
 
-### Folk: the oak spirit (built first, WP-11)
+### Folk: the oak spirit (built first, ft_1_22)
 
-**Tammehaldjas** (*Oak spirit* in English; its ids stay `puuvaim`, and it was named *Puuvaim* before; d263). The spirit of the low, twisted tree that overhangs the knoll from the left (painted on purpose, [scene-knoll.md](../keri/scene-knoll.md)). Keri has no real trees ([keri.md](../keri.md)), so this one is old and alone, and has listened for a long time to whatever music the wind and the lighthouse's people brought. Generic name: *Tammehaldjas*, a folklore name (d247), shown as "???" until the student asks who it is (ft_1_22.AC10, d249). Met on the knoll at dusk and at night. Music tie: the old songs nobody wrote down, learned by ear. Phrases: a line in the runo song (regilaul) manner (written for Pianor, CC0: no documented runo tune transcribed yet), the first half of the round Frère Jacques, the opening of Greensleeves, each told about before it is taught (`piece.<id>.about`). Invites: "Mina mängin ette, sina mängid järele. No näita, mida sa oskad!" Prizes, one per level beaten (ft_1_21.AC18): a plain oak leaf (*tammeleht*), an acorn (*tõru*), a golden leaf (*kuldne leht*), a singing branch (*laulev oks*), the seed of life (*eluseeme*). Look: no walking figure: a face in the bark that opens its eyes, and branches that sway with the notes (states: asleep, awake, listening, playing). Why first: no walking, on the knoll that already runs and that WP-05 moves first, and call and response is the whole tie; the shortest path to a playtest of the loop.
+**Tammehaldjas** (*Oak spirit* in English; its ids stay `puuvaim`, and it was named *Puuvaim* before; d263). The spirit of the low, twisted tree that overhangs the knoll from the left (painted on purpose, [scene-knoll.md](../keri/scene-knoll.md)). Keri has no real trees ([keri.md](../keri.md)), so this one is old and alone, and has listened for a long time to whatever music the wind and the lighthouse's people brought. Generic name: *Tammehaldjas*, a folklore name (d247), shown as "???" until the student asks who it is (ft_1_22.AC10, d249). Met on the knoll at dusk and at night. Music tie: the old songs nobody wrote down, learned by ear. Phrases: a line in the runo song (regilaul) manner (written for Pianor, CC0: no documented runo tune transcribed yet), the first half of the round Frère Jacques, the opening of Greensleeves, each told about before it is taught (`piece.<id>.about`). Invites: "Mina mängin ette, sina mängid järele. No näita, mida sa oskad!" Prizes, one per level beaten (ft_1_21.AC18): a plain oak leaf (*tammeleht*), an acorn (*tõru*), a golden leaf (*kuldne leht*), a singing branch (*laulev oks*), the seed of life (*eluseeme*). Look: no walking figure: a face in the bark that opens its eyes, and branches that sway with the notes (states: asleep, awake, listening, playing). Why first: no walking, on the knoll that already runs and that ft_1_24 moved first, and call and response is the whole tie; the shortest path to a playtest of the loop.
 
-### Folk: the Prangli fisherman (WP-17)
+### Folk: the Prangli fisherman (ft_1_22)
 
 **A fisherman from Prangli,** the inhabited island 7 km south ([keri.md](../keri.md)), who rows over to see his nets near Keri. Generated name (*Ats Kala*-style, drawn once per player). Met at the docks in the morning. Music tie: the old songs sung while hauling nets and rowing, one singer leads a line and the crew answers it, which is the tug itself (the regilaul manner). Phrases: two-bar song lines, stepwise, five notes, the last note repeated. Invites: "Kui võrke veetakse, siis lauldakse. Mina alustan, sina vastad. No näita, mida sa oskad!" Prizes, one per level beaten: a cork net float (*võrguujuk*), a net needle (*võrgunõel*), a gull's feather (*kajakasulg*), a sea stone with a hole (*näkikivi*), the ship's bell (*laevakell*). Look: on the template: an oilskin jacket, rubber boots, a knitted cap; states idle, sing, talk. KERI-TODO: where his boat lies when he is there (the port is assumed).
 
 **Built:** `content/characters/fisherman.json`, his talk in `content/conversations/fisherman.json`, his actor on the template (`content/actors/fisherman.json`: a yellow oilskin, a red knitted cap, a white beard, black boots), at the southern port, where visitors land and his tarred rowing boat is painted, not the north jetty the plan assumed. Like every character he shows as "???" until the student asks "Who are you?", and he tells where each of his tunes comes from (`piece.<id>.about`). His tunes are real public-domain tunes of the sea, not original phrases: *Row, Row, Row Your Boat* (level 1, its first and last lines), *Lightly Row* ("Hänschen klein", 8 bars; level 5 because its last bar falls a fifth), the shanty *What Shall We Do with the Drunken Sailor*, titled by its chorus *Hey Ho and Up She Rises* (level 5, in C Dorian). The maintainer picks his name and tunes on a pick board; until then he is the generic *Kalamees* and the tunes stay drafts.
 
-### Jazz: the border guard on his break (WP-17)
+### Jazz: the border guard on his break (ft_1_22)
 
 **A border guard** who visits the island on patrol and plays the saxophone on the slipway during his coffee break. Generated name. Met at the docks by day. Music tie: trading fours, two players taking turns with the bars of one tune, which is the tug. Phrases: short riffs with a rest and a syncopated note, a flat third at level 3. Invites: "Mul on kakskümmend minutit pausi. Mängime kordamööda, neli takti mina, neli sina!" Prizes, one per level beaten: a sax reed (*saksofonikeel*), his whistle (*vile*), a compass (*kompass*), a golden reed (*kuldne keel*), the golden saxophone (*kuldne saksofon*). Look: on the template: a uniform with an open jacket, a saxophone; states play and talk.
 
@@ -62,11 +62,11 @@ One scale for phrases and pieces. Since [d157](../decisions/game.md#d157) these 
 | 9 | A section of a real classic in its own texture | both | a section | the real thing |
 | 10 | A whole piece in its full complexity | both | the whole piece | everything |
 
-The MVP's phrases are 1 to 3, one per tug level. Changed (the architect, from a WP-11 question): steps 1 and 2 were 1 to 2 and 2 to 4 bars, but every curriculum level asks at least 4 bars of a piece (`bars.min` in `content/curriculum/levels.json`) and the tug trades two-bar turns anyway (ft_1_21.AC3), so a phrase is never shorter than 4 bars and the linter stays as it is (AX-1: more correct bars for the same reward; AX-3: no special case). Curriculum levels (`content/curriculum/levels.json`) stay what the player has met; difficulty is how hard a phrase or piece is.
+The MVP's phrases are 1 to 3, one per tug level. Changed (the architect, from a question in ft_1_22): steps 1 and 2 were 1 to 2 and 2 to 4 bars, but every curriculum level asks at least 4 bars of a piece (`bars.min` in `content/curriculum/levels.json`) and the tug trades two-bar turns anyway (ft_1_21.AC3), so a phrase is never shorter than 4 bars and the linter stays as it is (AX-1: more correct bars for the same reward; AX-3: no special case). Curriculum levels (`content/curriculum/levels.json`) stay what the player has met; difficulty is how hard a phrase or piece is.
 
 ## 3. The phrase plan: 3 styles × 3 levels
 
-Nine phrases for the MVP, three per character, **public-domain tunes** or original, written as pieces (ABC plus meta with `style` and `difficulty`), generated or composed by the builder in WP-11 and WP-17, passing `piece:lint`, approved by a person in the piece preview. Range inside the student's current level; the tug splits each into two-bar turns (ft_1_21.AC3).
+Nine phrases for the MVP, three per character, **public-domain tunes** or original, written as pieces (ABC plus meta with `style` and `difficulty`), generated or composed by the builder in ft_1_22, passing `piece:lint`, approved by a person in the piece preview. Range inside the student's current level; the tug splits each into two-bar turns (ft_1_21.AC3).
 
 | Style (character) | Level 1 (difficulty 1) | Level 2 (difficulty 2) | Level 3 (difficulty 3) |
 |---|---|---|---|
@@ -83,11 +83,11 @@ Nine phrases for the MVP, three per character, **public-domain tunes** or origin
 | The border guard | the docks | day | trading fours |
 | Õpetaja | the docks (her boat), then the room | toward a deadline | the curriculum |
 
-Presence (WP-08) decides which day each one is there; the fisherman and the border guard share the docks and are not there on the same day. A character is only met after practice (d132).
+Presence (ft_1_25) decides which day each one is there; the fisherman and the border guard share the docks and are not there on the same day. A character is only met after practice (d132).
 
 ## 5. First lines, in Estonian (drafts for the maintainer to read)
 
-Plain text level (ft_1_23's MVP), shown in capitals by the game (the rule for game text). `{…}` is filled from the measured result (AX-2.1). These are drafts; the string keys and the final wording go through `write-ui-text` in WP-09 and WP-11.
+Plain text level (ft_1_23's MVP), shown in capitals by the game (the rule for game text). `{…}` is filled from the measured result (AX-2.1). These are drafts; the string keys and the final wording go through `write-ui-text` in ft_1_22 and ft_1_22.
 
 ### Puuvaim, the first conversation
 
@@ -122,4 +122,4 @@ Plain text level (ft_1_23's MVP), shown in capitals by the game (the rule for ga
 
 ## TODO
 
-- TODO(architect, R3): WP-02 the maintainer reads the lines of section 5 (on the weekly list, rule 11); Puuvaim's final lines go to WP-11, the other two's to WP-17.
+- TODO(architect, R3): ft_1_22 the maintainer reads the lines of section 5 (on the weekly list, rule 11); Puuvaim's final lines go to ft_1_22, the other two's to ft_1_22.

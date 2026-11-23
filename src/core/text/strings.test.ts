@@ -17,4 +17,9 @@ describe('t', () => {
       expect(value.length).toBeGreaterThan(0);
     }
   });
+
+  it('writes English in US spelling: practice, color, harbor', () => {
+    const british = /\b(practis\w*|colour\w*|harbour\w*|favourite\w*|centre\w*)\b/i;
+    expect(Object.values(strings).filter((value) => british.test(value))).toEqual([]);
+  });
 });

@@ -29,12 +29,12 @@ export function signatureAlter(fifths: number, step: Spelling['step']): number {
  * the natural minor for a minor key, as it shares the signature of its relative major (AX-3 provisional: the natural minor,
  * because it shows what the signature means; the harmonic and melodic minor come with the scales trainer, ft_1_29).
  */
-export function scaleSpellings(fifths: number, mode: KeyMode): Spelling[] {
+export function scaleSpellings(fifths: number, mode: KeyMode, tonicOctave = TONIC_OCTAVE): Spelling[] {
   const tonic = abcKey(fifths, mode).replace(/m$/, '');
   const first = STEPS.indexOf(tonic[0] as Spelling['step']);
   return Array.from({ length: SCALE_NOTES }, (_, k) => {
     const step = STEPS[(first + k) % STEPS.length]!;
-    return { step, alter: signatureAlter(fifths, step), octave: TONIC_OCTAVE + Math.floor((first + k) / STEPS.length) };
+    return { step, alter: signatureAlter(fifths, step), octave: tonicOctave + Math.floor((first + k) / STEPS.length) };
   });
 }
 

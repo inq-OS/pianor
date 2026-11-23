@@ -30,6 +30,8 @@ export interface SceneData {
   'profile': RoomData | undefined;
   'noteTrainer': undefined;
   'earTrainer': undefined;
+  'shapeTrainer': undefined;
+  'chordTrainer': undefined;
   'admin': AdminData | undefined;
   'adminDelete': undefined;
   'adminGate': undefined;

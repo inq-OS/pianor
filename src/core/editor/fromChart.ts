@@ -49,7 +49,7 @@ const LENGTH_NAMES: Readonly<Record<number, string>> = {
 const REFUSAL_WORDS: Partial<Record<Refusal, string>> = {
   'bar-line': 'a note across a bar line',
   'no-room': 'two rhythms at once in one hand (a second voice)',
-  range: 'a key the EZ-220 does not have',
+  range: 'a key outside C2 to C7',
   grid: 'a note that does not start on a sixteenth',
   'grace-chord': 'a grace note before a chord',
   pickup: 'a pick-up the piece maker cannot hold',

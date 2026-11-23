@@ -62,7 +62,7 @@ export function moveBar(piece: EditorPiece, cursor: KeyCursor, direction: 1 | -1
   return bar < 0 || bar >= piece.bars ? cursor : { ...cursor, bar, start: 0 };
 }
 
-/** Up (1) or down (-1) one staff step; the cursor stays on the keys of the EZ-220. */
+/** Up (1) or down (-1) one staff step; the cursor stays on the keys a piece may use. */
 export function movePitch(cursor: KeyCursor, direction: 1 | -1): KeyCursor {
   const next = stepped(cursor, direction);
   const midi = midiOf(next.step, next.octave);

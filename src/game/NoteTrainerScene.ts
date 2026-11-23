@@ -6,19 +6,14 @@ import { displayText } from '../core/text/language';
 import { t } from '../core/text/strings';
 import { contextOf } from './context';
 import { C } from './ui/pixel/palette';
-import { PixelImage } from './ui/pixel/PixelObjects';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
-import { HEART, HEART_EMPTY } from './ui/pixel/sprites';
+import { heartRow } from './ui/pixel/hearts';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { StaffView } from './ui/staff/StaffView';
 import { openOverlay, startScene } from './scenes';
 import { circleItem } from './CircleOfFifthsScene';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
 
-/** The lives: three hearts, twice the sprite size, centred at the top of the main area (pictures, not text). */
-const HEARTS_Y = 6;
-const HEARTS_ZOOM = 2;
-const HEART_GAP = 3;
 /** The one miss said in words, "right letter, wrong octave", under the hearts. */
 const WRONG_OCTAVE_Y = 26;
 /** The staff starts under the hearts and the words, in art pixels, and fills the rest of the main area. */
@@ -86,12 +81,7 @@ export class NoteTrainerScene extends PixelScene {
     // the lives as hearts in the middle above the staff, a lost one grey (AC3)
     const total = NOTE_TRAINER_LIVES;
     this.shownHearts = { lit: this.round.lives, total };
-    const heartsWidth = (total * (HEART.width + HEART_GAP) - HEART_GAP) * HEARTS_ZOOM;
-    const left = Math.round((width - heartsWidth) / 2);
-    for (let i = 0; i < total; i++) {
-      const heart = new PixelImage(this, left + i * (HEART.width + HEART_GAP) * HEARTS_ZOOM, HEARTS_Y, i < this.round.lives ? HEART : HEART_EMPTY).setScale(HEARTS_ZOOM);
-      this.root.add(heart);
-    }
+    for (const heart of heartRow(this, width, this.round.lives, total)) this.root.add(heart);
 
     // AX-3 provisional: which misses get words; chose only the wrong octave (as the ear trainer), because the name on the note already shows a wrong letter or a neighbour key (AX-0.2, AX-2)
     if (this.wrong?.reason === 'wrong-octave') this.label(0, WRONG_OCTAVE_Y, t('theory.wrongOctave'), C.white).centerAt(width / 2);

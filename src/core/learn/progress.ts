@@ -2,7 +2,7 @@ import type { DayString } from '../contracts';
 import type { BarPlay } from '../progression/practiceLog';
 import { z } from 'zod';
 import type { Chart } from '../chart';
-import { LEARN_RULES, learnUnits, type LearnStep, type LearnStepKind } from './plan';
+import { LEARN_RULES, learnUnits, type LearnStep, type LearnStepKind, type LearnStepSize } from './plan';
 import { TEMPO_RULES, type RunTempo } from './tempo';
 
 /**
@@ -36,6 +36,19 @@ export interface LearnProgress {
    * uneven ones that were asked again, so the stats show the way to an even pace. Absent before the first.
    */
   tests?: LearnTest[];
+  /**
+   * The bars a step added when this piece's learning began (`LearnSettings.stepBars`): the plan is made with it until the
+   * piece is learned, so `step` and `medals` keep pointing at the same steps when the setting changes. Absent: 1, the only
+   * step size offered before the field.
+   */
+  stepBars?: LearnStepSize;
+  /**
+   * The plan of this piece has hands-apart steps (`learnPlan`'s `handsApart`, ft_1_32 rule 13). Absent: no, as in every
+   * piece begun before the field, so its step index keeps pointing at the same steps.
+   */
+  handsApart?: boolean;
+  /** When the piece was learned (ISO 8601): only plays after it raise a bar to gold (`goldenBars`). Absent before, and in progress kept before the field. */
+  learnedAt?: string;
 }
 
 /** The measures of one measured run, as kept: whole numbers, the shares in percent. */
@@ -98,6 +111,9 @@ export const learnProgressSchema = z.object({
   bpm: z.array(z.number().positive()).exactOptional(),
   unsteady: z.int().nonnegative().exactOptional(),
   tests: z.array(learnTestSchema).exactOptional(),
+  stepBars: z.union([z.literal(1), z.literal(2)]).exactOptional(),
+  learnedAt: z.string().min(1).exactOptional(),
+  handsApart: z.boolean().exactOptional(),
 });
 
 /**
@@ -113,6 +129,19 @@ export const learnSettingsSchema = z.object({
 export type LearnSettings = z.infer<typeof learnSettingsSchema>;
 
 export const DEFAULT_LEARN_SETTINGS: LearnSettings = { stepBars: 1, markers: true, markersFrom: 2 };
+
+/**
+ * The step size to plan a piece with: the player's setting for a piece not started yet, else the size its learning began
+ * with, so a change of the setting applies to the next piece and never moves a piece in progress to another step.
+ */
+export function learnStepBars(progress: LearnProgress, settings: LearnSettings): LearnStepSize {
+  return progress.lastDay === null ? settings.stepBars : (progress.stepBars ?? 1);
+}
+
+/** Whether to plan a piece with hands-apart steps: yes for a piece not begun yet, else as its learning began. */
+export function learnHandsApart(progress: LearnProgress): boolean {
+  return progress.lastDay === null ? true : (progress.handsApart ?? false);
+}
 
 export const START_PROGRESS: LearnProgress = { step: 0, wholeStreak: 0, recall: false, confirm: false, misses: 0, medals: [], lastDay: null };
 
@@ -193,8 +222,9 @@ export function sitDown(plan: readonly LearnStep[], progress: LearnProgress, tod
 /**
  * A run of the current run's bars ended. Only a perfect run with note names hidden counts. A run with note names shown
  * counts nothing, hides them for the next run and, like a stopped run, breaks a streak of whole runs; a stopped run repeats the step.
+ * `at` (ISO 8601, on `today`) is kept as `learnedAt` when the run finishes the piece.
  */
-export function afterRun(plan: readonly LearnStep[], progress: LearnProgress, outcome: RunOutcome, today: DayString, bpm?: number): LearnProgress {
+export function afterRun(plan: readonly LearnStep[], progress: LearnProgress, outcome: RunOutcome, today: DayString, bpm?: number, at: string = today): LearnProgress {
   const next = { ...progress, lastDay: today };
   if (isLearned(plan, progress)) return next;
   // every note was right, only the pace wobbled: nothing is lost and nothing counts; the run is asked for again, slower
@@ -208,7 +238,11 @@ export function afterRun(plan: readonly LearnStep[], progress: LearnProgress, ou
   if (streak < plan[progress.step]!.runs) return { ...counted, wholeStreak: streak };
   const advanced: LearnProgress = { ...counted };
   delete advanced.unsteady;
-  return { ...advanced, step: progress.step + 1, wholeStreak: 0, misses: 0, medals: [...progress.medals, medalOf(progress.misses + (progress.unsteady ?? 0))] };
+  const step = progress.step + 1;
+  return {
+    ...advanced, step, wholeStreak: 0, misses: 0, medals: [...progress.medals, medalOf(progress.misses + (progress.unsteady ?? 0))],
+    ...(step >= plan.length ? { learnedAt: at } : {}),
+  };
 }
 
 /**
@@ -230,13 +264,17 @@ const RANK: Record<Medal, number> = { bronze: 0, silver: 1, gold: 2 };
 const lowest = (medals: readonly Medal[]): Medal => medals.reduce((a, b) => (RANK[b] < RANK[a] ? b : a), 'gold');
 
 /**
- * The bars of a piece whose last `MEDAL_RULES.goldenPlays` plays in the practice log were all perfect (every note right
- * the first time): they shine gold, whatever their learning medal was.
+ * The bars of a piece whose last `MEDAL_RULES.goldenPlays` plays in the practice log after `learnedAt` (the piece's
+ * `LearnProgress.learnedAt`; null while it is not learned) were all perfect (every note right the first time): they shine
+ * gold, whatever their learning medal was. The learning runs themselves never count: every one of them that moved on was
+ * perfect, so the first bars of a chunk would shine for free.
  */
-export function goldenBars(log: readonly BarPlay[], pieceId: string): Set<number> {
+export function goldenBars(log: readonly BarPlay[], pieceId: string, learnedAt: string | null): Set<number> {
   const byBar = new Map<number, boolean[]>();
+  if (learnedAt === null) return new Set();
+  const since = Date.parse(learnedAt);
   for (const play of log) {
-    if (play.pieceId !== pieceId || play.notes === 0) continue;
+    if (play.pieceId !== pieceId || play.notes === 0 || !(Date.parse(play.at) > since)) continue;
     const plays = byBar.get(play.bar) ?? [];
     plays.push(play.firstTry === play.notes);
     byBar.set(play.bar, plays);

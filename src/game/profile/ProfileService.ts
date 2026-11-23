@@ -50,8 +50,8 @@ export interface ProfileServiceOptions {
    */
   lock?: PlayerLock;
   /**
-   * A new install makes no player (ft_1_07.AC1): the service starts on an unsaved stand-in and `needsFirstPlayer` is true
-   * until `createPlayer` makes the first one. Without it (tests, dev pages) the repository makes "Player 1" or its seeds.
+   * A new install makes no player (ft_1_07.AC1, d277): with no player whose save can be read, the service starts on an
+   * unsaved stand-in and `needsFirstPlayer` is true until `createPlayer` makes the first one. Without it (tests, dev pages) the repository makes "Player 1" or its seeds.
    */
   askFirstPlayer?: boolean;
 }
@@ -87,7 +87,8 @@ export class ProfileService {
   }
 
   static async create(options: ProfileServiceOptions): Promise<ProfileService> {
-    const fresh = options.askFirstPlayer === true && (await options.repository.hasNoPlayers());
+    // no player whose save can be read (a new install, or only damaged saves): ask for a name, never make a default player
+    const fresh = options.askFirstPlayer === true && (await options.repository.listProfiles()).length === 0;
     const active = fresh ? options.repository.newProfile('') : await options.repository.loadActiveOrCreate();
     const service = new ProfileService(options, active, await options.repository.listProfiles(), await options.repository.damagedProfiles());
     service.standIn = fresh;

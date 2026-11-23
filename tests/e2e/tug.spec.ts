@@ -180,7 +180,7 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
   });
   test('ft_1_06.AC15 the tug waits for practice: under three plays in the room Puuvaim says how many more, and nothing is played', async ({ page }) => {
     const errors = await openTug(page, 1);
-    await expect.poll(async () => (await tug(page))?.saying).toBe('Practise my tune in your room first: 2 more plays.');
+    await expect.poll(async () => (await tug(page))?.saying).toBe('Practice my tune in your room first: 2 more plays.');
     expect((await tug(page))!.who).toBeNull();
     await page.keyboard.press('Space');
     await expect.poll(() => tug(page)).toBeNull();
@@ -283,7 +283,7 @@ test.describe('Kiur the trainer in the room (ft_1_21.AC14)', () => {
     expect(await roomRound(page, WRONG)).toMatchObject({ standing: -1, saying: '0 of 7 notes right' });
     await roomRound(page, WRONG);
     await expect.poll(async () => (await roomTug(page))?.outcome).toBe('lost');
-    await expect.poll(async () => (await roomTug(page))?.saying).toContain('Practise the piece more');
+    await expect.poll(async () => (await roomTug(page))?.saying).toContain('Practice the piece more');
     await page.keyboard.press('Space');
     await expect.poll(() => roomTug(page)).toBeNull();
     // nothing kept: no character record and no battle record

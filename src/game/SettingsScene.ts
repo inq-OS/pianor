@@ -1,4 +1,5 @@
 import type { PlaySettings } from '../core/judge/playSettings';
+import type { LearnSettings } from '../core/learn/progress';
 import { BAR_NUMBER_MODES, barNumbersToShow, type BarNumberMode } from '../core/layout/barNumbers';
 import type { DurationMark } from '../core/layout/durationHelp';
 import type { StaffSettings } from '../core/layout/staffSettings';
@@ -6,6 +7,7 @@ import { bugReportUrl, screenFacts } from '../core/report/bugReportLink';
 import { language } from '../core/text/language';
 import { t } from '../core/text/strings';
 import { contextOf } from './context';
+import type { ProfileService } from './profile/ProfileService';
 import type { Bitmap } from './ui/pixel/bitmap';
 import { C } from './ui/pixel/palette';
 import { Mascot } from './ui/pixel/PixelObjects';
@@ -73,6 +75,11 @@ export class SettingsScene extends PixelScene {
   /** Space between staves was tapped: the hint line says it only changes two-staff pieces. */
   private gapTapped = false;
   private returnTo: { key: string; data?: object } = { key: 'menu' };
+  /**
+   * The page of settings shown: 0 how the staff looks, 1 how a piece is learned (ft_1_32). AX-3 provisional: a second page,
+   * since the first one's four rows are full with the band; a toolbar item (a band action) turns to it and back, lit while it shows.
+   */
+  private page: 0 | 1 = 0;
 
   protected override keyboardNavigation = true;
   /** The on-screen keyboard switch lives on this screen's toolbar only (d099). */
@@ -85,6 +92,7 @@ export class SettingsScene extends PixelScene {
   init(data?: SettingsData): void {
     this.saveFailed = false;
     this.gapTapped = false;
+    this.page = 0;
     this.returnTo = data?.returnTo ?? { key: 'menu' };
   }
 
@@ -103,7 +111,15 @@ export class SettingsScene extends PixelScene {
       // out here, not in a helper, so the bundler drops the report's code and the repository's address with it.
       ...(import.meta.env.VITE_PIANOR_RELEASE === '1' ? [] : [{ label: t('settings.reportBug'), onClick: () => this.reportBug() }]),
       { label: t('settings.pieces'), icon: TOOL_ICONS.pieces, onClick: () => startScene(this, 'pieces') },
+      { label: t('settings.pageLearn'), active: this.page === 1, onClick: () => this.turnPage() },
     ];
+  }
+
+  /** Between the staff's settings and the learning settings; a hint of the other page goes with it. */
+  private turnPage(): void {
+    this.page = this.page === 0 ? 1 : 0;
+    this.gapTapped = false;
+    this.redraw();
   }
 
   private reportBug(): void {
@@ -147,8 +163,6 @@ export class SettingsScene extends PixelScene {
   protected draw(): void {
     const { width } = this.px;
     const profiles = (contextOf(this)).profiles;
-    const staff = profiles.staffSettings;
-    const play = profiles.playSettings;
     this.sky();
     // the settings are written in the open book on the desk, as the song list is
     this.openBook({ x: 3, y: 3, w: width - 6, h: this.px.height - 5 });
@@ -163,6 +177,21 @@ export class SettingsScene extends PixelScene {
     const mascotX = strip ? strip.right - MASCOT_WIDTH : width - MASCOT_RIGHT - MASCOT_WIDTH;
     this.own(new Mascot(this, this.root, mascotX, strip ? 1 : MASCOT_Y));
 
+    if (this.page === 0) this.staffPage(profiles);
+    else this.learnPage(profiles);
+    // Wait and Tempo moved to the practice screen, and their hint with them; the line is empty until something needs saying
+    const hint = this.saveFailed ? t('settings.saveFailed') : this.gapTapped ? t('settings.staffGapHint') : '';
+    const hintX = strip ? title.x + title.width + NAME_GAP * 2 : MARGIN;
+    const hintEnd = strip ? mascotX - NAME_GAP : width - MARGIN;
+    const hintLabel = this.label(hintX, strip ? STRIP_TEXT_Y : HINT_Y, hint, this.saveFailed ? C.gold : C.dim, { maxWidth: hintEnd - hintX });
+    // a hint that wraps in the strip is lifted so its last line still ends above the first row
+    if (strip) hintLabel.y = Math.max(0, Math.min(STRIP_TEXT_Y, this.firstRowY - this.settingHeight / 2 - hintLabel.height - 1));
+  }
+
+  /** The first page: how the staff looks. */
+  private staffPage(profiles: ProfileService): void {
+    const staff = profiles.staffSettings;
+    const play = profiles.playSettings;
     const lines = ([[1, '1'], [2, '2'], ['all', t('settings.all')]] as const).map(([value, label]): Choice<StaffSettings['lines']> => ({ value, label, symbol: linesSymbol(value) }));
     this.setting(0, 0, t('settings.lines'), lines, staff.lines, (value) => profiles.updateStaffSettings({ lines: value }));
     // It only changes two-staff pieces, so a tap says so on the hint line.
@@ -201,13 +230,20 @@ export class SettingsScene extends PixelScene {
       const choices = marks.map(([value, label]): Choice<DurationMark> => ({ value, label, symbol: durationSymbol(value, hand) }));
       this.setting(column, 3, name, choices, help[hand], (value) => profiles.updateDurationHelp({ [hand]: value }));
     }
+  }
 
-    // Wait and Tempo moved to the practice screen, and their hint with them; the line is empty until something needs saying
-    const hint = this.saveFailed ? t('settings.saveFailed') : this.gapTapped ? t('settings.staffGapHint') : '';
-    const hintX = strip ? title.x + title.width + NAME_GAP * 2 : MARGIN;
-    const hintEnd = strip ? mascotX - NAME_GAP : width - MARGIN;
-    const hintLabel = this.label(hintX, strip ? STRIP_TEXT_Y : HINT_Y, hint, this.saveFailed ? C.gold : C.dim, { maxWidth: hintEnd - hintX });
-    // a hint that wraps in the strip is lifted so its last line still ends above the first row
-    if (strip) hintLabel.y = Math.max(0, Math.min(STRIP_TEXT_Y, this.firstRowY - this.settingHeight / 2 - hintLabel.height - 1));
+  /**
+   * The second page: how a piece is learned bar by bar (ft_1_32 rules 2 and 6): the bars a step adds, which applies to the
+   * next piece begun (a piece in progress keeps its own, `learnStepBars`), and the mistake markers with the miss they come at.
+   */
+  private learnPage(profiles: ProfileService): void {
+    const learn = profiles.learnSettings;
+    const steps = ([1, 2] as const).map((value): Choice<LearnSettings['stepBars']> => ({ value, label: t(value === 1 ? 'settings.learnStepOne' : 'settings.learnStepTwo'), text: String(value) }));
+    this.setting(0, 0, t('settings.learnStep'), steps, learn.stepBars, (value) => profiles.updateLearnSettings({ stepBars: value }));
+    const markers = ([[true, t('settings.learnMarkersOn'), t('settings.learnMarkersOnShort')], [false, t('settings.learnMarkersOff'), t('settings.fingerNumbersOffShort')]] as const)
+      .map(([value, label, text]): Choice<boolean> => ({ value, label, text }));
+    this.setting(1, 0, t('settings.learnMarkers'), markers, learn.markers, (value) => profiles.updateLearnSettings({ markers: value }));
+    const from = ([1, 2, 3, 4, 5] as const).map((n): Choice<number> => ({ value: n, label: t('settings.learnMarkersFromN', { n }), text: String(n) }));
+    this.setting(0, 1, t('settings.learnMarkersFrom'), from, learn.markersFrom, (value) => profiles.updateLearnSettings({ markersFrom: value }));
   }
 }

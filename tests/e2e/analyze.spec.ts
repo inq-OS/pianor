@@ -18,7 +18,7 @@ test.describe('practice analysis (core_10)', () => {
     expectNoErrors(errors);
   });
 
-  test('core_10.AC8: Analyze shows the tricky sections with a start tempo, and Practise opens that section with a ramp', async ({ page }) => {
+  test('core_10.AC8: Analyze shows the tricky sections with a start tempo, and Practice opens that section with a ramp', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
     const id = await page.evaluate(() => window.__game.scene.getScene('practice').chart.id as string);
@@ -32,8 +32,8 @@ test.describe('practice analysis (core_10)', () => {
     await waitForScene(page, 'analyze');
     if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/analyze.png` });
     const texts = await sceneTexts(page, 'analyze');
-    expect(texts).toEqual(expect.arrayContaining(['Bar 2', 'Practise 80%']));
-    const index = await page.evaluate(() => (window.__game.scene.getScene('analyze').buttons as { options: { label: string } }[]).findIndex((b) => b.options.label === 'Practise 80%'));
+    expect(texts).toEqual(expect.arrayContaining(['Bar 2', 'Practice 80%']));
+    const index = await page.evaluate(() => (window.__game.scene.getScene('analyze').buttons as { options: { label: string } }[]).findIndex((b) => b.options.label === 'Practice 80%'));
     await clickButton(page, 'analyze', index);
     await waitForScene(page, 'practice');
     const section = await page.evaluate(() => window.__game.scene.getScene('practice').startData.section as { first: number; last: number });
@@ -57,7 +57,7 @@ test.describe('practice analysis (core_10)', () => {
     if (process.env.SHOT_DIR) await page.screenshot({ path: `${process.env.SHOT_DIR}/analyze-bars.png` });
     expect(await sceneTexts(page, 'analyze')).toContain('Bars 1-4');
     const fits = await page.evaluate(() => (window.__game.scene.getScene('analyze').buttons as { options: { label: string; x: number; width: number } }[]).map((b) => b.options));
-    const [bars, practise] = fits.filter((o) => o.label.startsWith('Bars') || o.label.startsWith('Practise'));
+    const [bars, practise] = fits.filter((o) => o.label.startsWith('Bars') || o.label.startsWith('Practice'));
     expect(bars!.x + bars!.width / 2).toBeLessThanOrEqual(practise!.x - practise!.width / 2); // the two buttons do not overlap
     expectNoErrors(errors);
   });

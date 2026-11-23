@@ -74,7 +74,7 @@ test.describe('Puuvaim teaches his phrase in the knoll (ft_1_22.AC3, WP-12)', ()
     const errors = await openTeach(page);
     for (let i = 0; i < 3; i++) await tryIt(page, MISSED);
     await expect.poll(async () => (await teach(page))?.outcome).toBe('notYet');
-    await expect.poll(async () => (await teach(page))?.saying).toBe('Not yet: 7 of 14 notes right. Practise it in your room, then come back.');
+    await expect.poll(async () => (await teach(page))?.saying).toBe('Not yet: 7 of 14 notes right. Practice it in your room, then come back.');
     await page.keyboard.press('Space');
     await expect.poll(() => teach(page)).toBeNull();
     expect(await taught(page)).toEqual([]);

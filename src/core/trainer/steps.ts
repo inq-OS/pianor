@@ -4,10 +4,10 @@
  * Persisted-format rule: the file has a `schemaVersion`, and a new version needs a migration (docs/testing.md section 4).
  */
 import { z } from 'zod';
-import { EZ220_HIGH, EZ220_LOW } from '../chart/pitch';
+import { PIECE_HIGH, PIECE_LOW } from '../chart/pitch';
 import type { TrainerRange } from './noteTrainer';
 
-const midiKey = z.number().int().min(EZ220_LOW).max(EZ220_HIGH);
+const midiKey = z.number().int().min(PIECE_LOW).max(PIECE_HIGH);
 
 export const trainerStepSchema = z
   .object({
