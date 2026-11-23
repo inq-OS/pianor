@@ -4,7 +4,7 @@
  * laptop), as one page a thread publishes as a private Artifact (`docs/automation/todo-tags.md`). The docs stay the only
  * place a tag lives; the board is regenerated from them.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 export interface HumanItem {
@@ -36,15 +36,18 @@ export function groupOf(text: string): GroupId {
   return GROUPS.find((g) => g.match.test(text))!.id;
 }
 
-/** The items of one Markdown file; only list items that start with the tag count, not a mention of it in prose. */
+/** The items of one Markdown file; only list items that start with the tag count, not a mention of it in prose or an example in a code fence. */
 export function itemsOf(file: string, markdown: string): HumanItem[] {
+  let fenced = false;
   return markdown.split('\n').flatMap((line, i) => {
-    const m = TAG.exec(line);
+    if (/^\s*(```|~~~)/.test(line)) fenced = !fenced;
+    const m = fenced ? null : TAG.exec(line);
     return m ? [{ file, line: i + 1, text: m[1]!.trim(), group: groupOf(m[1]!) }] : [];
   });
 }
 
 function markdownFiles(dir: string): string[] {
+  if (!existsSync(dir)) return [];
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) return markdownFiles(path);

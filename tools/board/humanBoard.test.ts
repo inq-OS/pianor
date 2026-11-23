@@ -6,7 +6,7 @@ import { collectItems, groupOf, itemsOf, renderHumanBoard } from './humanBoard';
 
 describe('the board of what waits on the maintainer', () => {
   it('takes only list items that start with the tag, with their file and line', () => {
-    const md = ['# Doc', '- NEEDS-HUMAN: look at the knoll on the laptop.', 'The `NEEDS-HUMAN` tags are listed here.', '- Until the NEEDS-HUMAN test below, it stays off.', '  - NEEDS-HUMAN: request the CIPI files.'].join('\n');
+    const md = ['# Doc', '- NEEDS-HUMAN: look at the knoll on the laptop.', 'The `NEEDS-HUMAN` tags are listed here.', '- Until the NEEDS-HUMAN test below, it stays off.', '  - NEEDS-HUMAN: request the CIPI files.', '```', '- NEEDS-HUMAN: an example in a fence.', '```'].join('\n');
     expect(itemsOf('docs/x.md', md)).toEqual([
       { file: 'docs/x.md', line: 2, text: 'look at the knoll on the laptop.', group: 'laptop' },
       { file: 'docs/x.md', line: 5, text: 'request the CIPI files.', group: 'outside' },
@@ -32,6 +32,7 @@ describe('the board of what waits on the maintainer', () => {
     mkdirSync(join(root, 'projects', 'painter'), { recursive: true });
     writeFileSync(join(root, 'docs', 'features', 'f.md'), '# F\n\n- NEEDS-HUMAN: request the CIPI files.\n');
     writeFileSync(join(root, 'projects', 'painter', 'n.md'), '- NEEDS-HUMAN: look at it on the laptop.\n');
+    expect(collectItems(root, ['docs', 'missing'])).toHaveLength(1);
     writeFileSync(join(root, 'docs', 'skip.txt'), '- NEEDS-HUMAN: not Markdown.\n');
     const items = collectItems(root);
     expect(items.map((i) => `${i.file}:${i.line} ${i.group}`)).toEqual(['docs/features/f.md:3 outside', 'projects/painter/n.md:1 laptop']);
