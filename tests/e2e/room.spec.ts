@@ -676,7 +676,8 @@ test.describe('the telephone in the room (ft_1_34)', () => {
     await page.evaluate(async () => {
       const { profiles } = window.__game.registry.get('context');
       await profiles.saveCurriculum(profiles.profile.id, { base: 85, calendar: [], testWeekdays: [], pieces: [{ piece: 'little-steps', deadline: '2999-12-20', priority: 5 }] });
-      window.__game.scene.getScene('profile').scene.restart();
+      window.__game.scene.stop('profile');
+      window.__game.scene.start('profile');
     });
     await waitForScene(page, 'profile');
     const ringing = 'The telephone rings: the teacher has a new piece';
