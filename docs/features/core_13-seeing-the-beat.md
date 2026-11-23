@@ -3,7 +3,7 @@ id: "core_13"
 title: "Seeing the beat"
 scope: "Helpers that show the beat beside the click, each switched on or off per player and brought in or hidden by the autotrainer: a swinging pendulum, the playhead drawn as a line on the staff, a row of beat dots under the bar, and a short flash on the first beat; key lights stay a note help (ft_Y_06), never a beat help"
 effort: "medium"
-status: "designed, not started"
+status: "designed, held until the maintainer starts it"
 completeness: 0
 depends_on: ["core_01", "core_02"]
 ---
@@ -31,5 +31,5 @@ Index: [FEATURES.md](FEATURES.md). The click of core_02 is heard; these helpers 
 
 ## TODO
 
-- TODO(builder, R2): build with ft_1_35 slice 3: the layout functions first (test first), then the four views and the settings switches.
-- TODO(painter, R2): the pendulum's picture and the dots in the house manner, after the builder's first sketch.
+- TODO(builder, Later): build with ft_1_35, on the maintainer's word slice 3: the layout functions first (test first), then the four views and the settings switches.
+- TODO(painter, Later): the pendulum's picture and the dots in the house manner, after the builder's first sketch.
