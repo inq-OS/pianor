@@ -54,6 +54,8 @@ git grep -n -E "\b(ASAP|TODO)\([^)]*\bR2\)" -- docs projects   # one release
 
 `git grep` searches the files git tracks (like `grep -r`, but it skips `node_modules/` and build output); `-E` turns on the `( | )` pattern syntax, `-n` prints line numbers.
 
+The `NEEDS-HUMAN` items on one page for the maintainer: `npm run human:board` groups every `- NEEDS-HUMAN:` list item by what it needs (outside access such as the CIPI files first, then the EZ-220, pieces to approve, the student, Estonian, the tablet, the laptop) and writes `test-logs/board/human.html` with a link to each line. A thread publishes it to the same private Artifact each time (the board's address is in project memory), after a tag is added or removed. The board is only a view; the tag in its doc stays the one place the item lives.
+
 Each thread, at the start of a session: the area the maintainer is raising now (the barrel at the top of [roadmap.md](../architect/roadmap.md)), its `ASAP` tags, the maintainer's open issues (the builder), then its `TODO` tags in release order.
 
 ## When it is done
