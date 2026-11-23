@@ -46,6 +46,6 @@ export function squarePlan(): SquarePlan {
   return {
     fine: { w: SQUARE.w, h: SQUARE.h },
     horizon: SQUARE.horizon,
-    pier: { x: 344, y: 100, w: 296, h: 72 },
+    pier: { x: 412, y: 70, w: 118, h: 94 },
   };
 }
