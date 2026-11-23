@@ -690,7 +690,7 @@ export const stringsEt: Record<StringKey, string> = {
   'learn.confirm': 'Taktid {from} kuni {to} veel kord, ühtlases tempos',
   'learn.join': 'Nüüd kokku: taktid {from} kuni {to}, ühtlases tempos',
   'learn.confirmOne': 'Takt {n} veel kord, ühtlases tempos',
-  'learn.unsteady': 'Iga noot õige, aga tempo kõikus. Veel kord, aeglasemalt',
+  'learn.unsteady': 'Iga noot õige. Tempo muutus palju: veel kord, nii ühtlaselt kui saad',
   'learn.pace': 'Iga noot õige, ühtlases tempos {bpm}!',
   'learn.recall': 'Kõigepealt eelmise korra taktid {from} kuni {to}',
   'learn.recallOne': 'Kõigepealt eelmise korra takt {n}',

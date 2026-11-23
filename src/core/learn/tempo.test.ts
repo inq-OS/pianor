@@ -27,8 +27,14 @@ describe('runTempo', () => {
     expect(runTempo(chart, played(times))).toMatchObject({ bpm: 60, halts: 1, steady: false });
   });
 
+  it('ft_1_32.AC7 counts a slightly uneven run of a beginner as even: gaps a third off its pace, one pause of twice the gap', () => {
+    // gaps of 1000, 1350, 700, 1000, 2000 (a look at the next note), 800 and 1300 ms
+    const times = [0, 1000, 2350, 3050, 4050, 6050, 6850, 8150].map((t) => t + 1000);
+    expect(runTempo(chart, played(times))).toMatchObject({ halts: 0, steady: true });
+  });
+
   it('calls a run unsteady when too many gaps are far from its own pace', () => {
-    const times = [0, 1000, 1500, 2500, 3000, 4000, 4500, 5500].map((t) => t + 1000);
+    const times = [0, 1000, 1400, 2400, 2800, 3800, 4200, 5200].map((t) => t + 1000);
     expect(runTempo(chart, played(times))).toMatchObject({ halts: 0, steady: false });
   });
 

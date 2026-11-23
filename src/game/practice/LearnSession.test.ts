@@ -1,4 +1,5 @@
 // Covers ft_1_32.AC5 (the markers the practice screen draws), ft_1_32.AC7 (the confirmation play is measured).
+import { TEMPO_RULES } from '../../core/learn/tempo';
 import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
 import { WaitMode } from '../../core/judge/wait';
@@ -125,7 +126,7 @@ describe('LearnSession', () => {
   it('ft_1_32.AC11 stops a step run that speeds up beyond the baseline, at most as often as an uneven run is asked again', async () => {
     const { kept, session } = open({ ...START_PROGRESS, lastDay: '1998-11-22', bpm: [60] });
     const fast = [0, 1000, 1500, 2000]; // two quarter notes at 60, then at 120
-    for (let ask = 1; ask <= 2; ask++) {
+    for (let ask = 1; ask <= TEMPO_RULES.asks; ask++) {
       const run = session();
       expect(run.rushStops).toBe(true);
       const mode = new WaitMode(run.chart);
@@ -135,7 +136,7 @@ describe('LearnSession', () => {
       await run.finish('unsteady');
       expect(kept.progress).toMatchObject({ step: 0, unsteady: ask }); // nothing lost, nothing counted
     }
-    // asked twice: the run counts at any speed, so the student is never held at a step
+    // asked as often as the rule allows: the run counts at any speed, so the student is never held at a step
     const third = session();
     expect(third.rushStops).toBe(false);
     const mode = new WaitMode(third.chart);
