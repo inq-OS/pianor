@@ -39,6 +39,10 @@ export const strings = {
   'scene.dive': 'Dive in',
   'scene.rise': 'Back up',
   'room.piano': 'Piano',
+  // the old wall telephone in the room (ft_1_34): its name in its bubble, while it rings, and Kiur's line when it is quiet
+  'room.phone': 'Telephone',
+  'room.phone.ringing': 'The telephone rings: the teacher has a new piece',
+  'room.phone.quiet': 'The telephone is quiet: no new piece from the teacher.',
   'room.kiur': 'Kiur',
   // Kiur's question in the room (ft_1_32 rule 14): learn a song bar by bar, or tug one; a tug waits for the song to be learned
   'room.kiur.learn': 'Learn',

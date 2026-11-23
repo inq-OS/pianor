@@ -133,7 +133,7 @@ Key lighting, latency, driver quirks, sleep and reconnect are unverified until t
 
 Check: untestable: a rule about what agents may claim; real hardware needs a human
 
-## d279
+## d281
 
 **A learning run with every note right counts for its pace unless it was clearly uneven; a beginner's wobble passes, and an uneven run is asked again at most once.** Features: ft_1_32.
 

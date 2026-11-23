@@ -664,3 +664,34 @@ test.describe("Kiur and the teacher speak in the room (ft_1_27, WP-15)", () => {
     expectNoErrors(errors);
   });
 });
+
+test.describe('the telephone in the room (ft_1_34)', () => {
+  test('ft_1_34.AC3 the telephone rings for the teacher\'s new piece, and a press opens it to be learned bar by bar', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual&learn=1', 'en', 'profiles');
+    await clickButton(page, 'profiles', 0);
+    await waitForScene(page, 'profile');
+    // quiet with no curriculum
+    await expect.poll(() => sceneButton(page, 'profile', 'Telephone')).toBeGreaterThanOrEqual(0);
+    // the teacher gives Little Steps; the room is opened again and reads it
+    await page.evaluate(async () => {
+      const { profiles } = window.__game.registry.get('context');
+      await profiles.saveCurriculum(profiles.profile.id, { base: 85, calendar: [], testWeekdays: [], pieces: [{ piece: 'little-steps', deadline: '2999-12-20', priority: 5 }] });
+      window.__game.scene.stop('profile');
+      window.__game.scene.start('profile');
+    });
+    await waitForScene(page, 'profile');
+    const ringing = 'The telephone rings: the teacher has a new piece';
+    await expect.poll(() => sceneButton(page, 'profile', ringing), { timeout: 10_000 }).toBeGreaterThanOrEqual(0);
+    // what Kiur says on the visit is read first
+    const talking = () => page.evaluate(() => (window.__game.scene.getScene('profile') as unknown as { talkState: unknown }).talkState !== null);
+    for (let i = 0; i < 10 && (await talking()); i++) await page.keyboard.press('Space');
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', ringing));
+    await waitForScene(page, 'practice');
+    const learning = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('practice') as unknown as { learn: { run: { firstBar: number } } | null; fullChart: { id: string } };
+      return { piece: scene.fullChart.id, firstBar: scene.learn?.run.firstBar ?? null };
+    });
+    expect(learning).toEqual({ piece: 'little-steps', firstBar: 0 });
+    expectNoErrors(errors);
+  });
+});

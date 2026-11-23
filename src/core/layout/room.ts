@@ -97,6 +97,8 @@ export const ROOM = {
   /** In the right wall: the bricks behind the stove from the corner to `a1`, then the door. */
   bricks: { a0: 0, a1: 1.55, y0: 0, y1: 2.4 } as WallPiece,
   door: { a0: 1.82, a1: 2.66, y0: 0, y1: 1.98 } as WallPiece,
+  /** The old wall telephone (ft_1_34): on the bricks of the right wall, beside the stove's pipe, at a child's reach. */
+  phone: { a0: 1.3, a1: 1.5, y0: 1.15, y1: 1.55 } as WallPiece,
   piano: PIANO,
   /** The note-name board on its easel, beside the piano and turned a little toward the viewer. */
   easel: EASEL,
@@ -273,6 +275,8 @@ export interface RoomPlan {
   /** Where the portrait and the rank shield hang on the back wall, in fine pixels of the picture. */
   portrait: Rect;
   shield: Rect;
+  /** The telephone on the right wall (ft_1_34): its button in layout cells, as the objects'. */
+  phone: Rect;
 }
 
 /**
@@ -300,6 +304,7 @@ export function roomPlan(portrait: { w: number; h: number } = PORTRAIT_MAX): Roo
     },
     portrait: picture,
     shield,
+    phone: button(pieceCorners('right', ROOM.phone)),
   };
 }
 

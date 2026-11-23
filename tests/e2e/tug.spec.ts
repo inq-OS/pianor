@@ -245,10 +245,12 @@ async function toRoomWithKiur(page: Page): Promise<PageErrors> {
   return errors;
 }
 
-/** Kiur pressed on the bed: the piece book opens; the piece picked there comes back to the room, where his tug opens. */
+/** Kiur pressed on the bed, then Tug: the piece book opens; the piece picked there comes back to the room, where his tug opens. */
 async function pressKiur(page: Page, title = 'Runo Song'): Promise<void> {
   await expect.poll(() => sceneButton(page, 'profile', 'Kiur')).toBeGreaterThanOrEqual(0);
   await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Kiur'));
+  await expect.poll(() => sceneButton(page, 'profile', 'Tug')).toBeGreaterThanOrEqual(0);
+  await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Tug'));
   await waitForScene(page, 'menu');
   await clickButton(page, 'menu', await showMenuPageWith(page, title));
   await waitForScene(page, 'profile');
