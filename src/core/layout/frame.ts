@@ -79,6 +79,11 @@ export interface FrameOptions {
    * vine and no band, whatever `band` says. AX-3 provisional: asked of the architect (d088 has a toolbar on every screen).
    */
   whole?: boolean;
+  /**
+   * The rows of the strip at the foot (ft_1_20, d282: `pinRows`, 0 on a screen with nothing pinned); `BAND_ROWS` when not
+   * given (the old band's height, which the tests of the frame still measure).
+   */
+  bandRows?: number;
 }
 
 export function frameView(screenWidth: number, screenHeight: number, options: FrameOptions = { band: false }): FrameView {
@@ -90,8 +95,9 @@ export function frameView(screenWidth: number, screenHeight: number, options: Fr
   // the band stands on the last whole row, so none of it is cut off at the screen's foot
   const toolbar = options.toolbar ?? BAND_KEEPS_TOOLBAR;
   const top = toolbar ? FRAME_ROWS : 0;
-  const height = Math.floor(screenHeight / scale) - BAND_ROWS - top;
-  return { scale, fine, width, height, top, toolbar, band: { top: height, rows: BAND_ROWS } };
+  const rows = options.bandRows ?? BAND_ROWS;
+  const height = Math.floor(screenHeight / scale) - rows - top;
+  return { scale, fine, width, height, top, toolbar, band: { top: height, rows } };
 }
 
 /** What a screen puts on the toolbar; widths in art pixels, the texts measured by the caller. */

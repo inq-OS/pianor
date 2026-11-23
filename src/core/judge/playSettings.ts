@@ -50,12 +50,21 @@ export function followsPlayer(settings: Pick<PlaySettings, 'mode' | 'tempoClock'
   return settings.mode === 'tempo' && settings.tempoClock === 'follow';
 }
 
+/** The choices in the order the button cycles them, as the mode menu lists them (ft_1_20, d282). */
+export const PLAY_CHOICES: readonly PlayChoice[] = ['wait', 'follow', 'tempo', 'tempoFirstNote'];
+
+/** The settings that read back as `choice`: what a pick in the mode menu saves. */
+export function choiceSettings(choice: PlayChoice): Required<ChoiceSettings> {
+  switch (choice) {
+    case 'wait': return { mode: 'wait', tempoStart: 'firstNote', tempoClock: 'strict' };
+    case 'follow': return { mode: 'tempo', tempoStart: 'firstNote', tempoClock: 'follow' };
+    case 'tempo': return { mode: 'tempo', tempoStart: 'anyKey', tempoClock: 'strict' };
+    case 'tempoFirstNote': return { mode: 'tempo', tempoStart: 'firstNote', tempoClock: 'strict' };
+  }
+}
+
 /** The settings the button's next press saves. */
 export function nextPlayChoice(settings: ChoiceSettings): Required<ChoiceSettings> {
-  switch (playChoiceOf(settings)) {
-    case 'wait': return { mode: 'tempo', tempoStart: 'firstNote', tempoClock: 'follow' };
-    case 'follow': return { mode: 'tempo', tempoStart: 'anyKey', tempoClock: 'strict' };
-    case 'tempo': return { mode: 'tempo', tempoStart: 'firstNote', tempoClock: 'strict' };
-    case 'tempoFirstNote': return { mode: 'wait', tempoStart: 'firstNote', tempoClock: 'strict' };
-  }
+  const at = PLAY_CHOICES.indexOf(playChoiceOf(settings));
+  return choiceSettings(PLAY_CHOICES[(at + 1) % PLAY_CHOICES.length]!);
 }
