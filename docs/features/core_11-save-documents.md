@@ -3,7 +3,7 @@ id: "core_11"
 title: "The saved player as documents, each with its own version"
 scope: "Split the saved player into documents (the profile core, the practice log, the world, the curriculum), each with its own schemaVersion, migration chain and golden fixtures, read and written through the KeyValueStore seam; one document can change without migrating the others"
 effort: "medium"
-status: "built (WP-03): the four documents, the one-time move and the golden tests; not yet tried in a real install"
+status: "built: the four documents, the one-time move and the golden tests; not yet tried in a real install"
 completeness: 90
 depends_on: ["ft_0_10"]
 ---
@@ -34,4 +34,4 @@ All AX-3 provisional until built and tried; numbers are content, not code.
 
 ## TODO
 
-- TODO(builder, R4): core_11 remove the old profile records (`pianor/v1/profile/<id>`) and their move one release after WP-03 reached a real install (d136).
+- TODO(builder, R4): remove the old profile records (`pianor/v1/profile/<id>`) and their move one release after core_11 reached a real install (d136).

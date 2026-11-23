@@ -19,7 +19,7 @@ false there.
 | `lang=en` | Shows the English text instead of the default Estonian (ft_0_18); the end-to-end tests open the page with it | no | `src/config.ts` |
 | `motion=still` | Stands the scenery still on its first frame: the grass, sea, clouds, smoke and embers of the painted places, the room's screensaver, an aura's pulse. Without it the scenery moves, whatever the operating system's reduce-motion or animation-effects setting says (d127) | no | `src/config.ts` |
 | `beings=1` | Shows the beings in the scenes on Keri (ft_1_19.AC8); without it a scene is clean until the beings are overhauled | no | `src/config.ts` |
-| `actors=1` | Stands the demo cast (Kiur talking, a template villager, a labelled placeholder box) on the first standing places of each adventure scene (ft_1_24, WP-05), and the characters on their scene (Puuvaim in the knoll tree; press one to talk, ft_1_22) | yes | `src/config.ts` |
+| `actors=1` | Stands the demo cast (Kiur talking, a template villager, a labelled placeholder box) on the first standing places of each adventure scene (ft_1_24), and the characters on their scene (Puuvaim in the knoll tree; press one to talk, ft_1_22) | yes | `src/config.ts` |
 | `learn=0` | Opens every piece for practice as before, with no learning bar by bar first (ft_1_32); the end-to-end tests open the page with it unless a test asks for `learn=1`. Autoplay never learns | no | `src/config.ts` |
 | `editor=0` | Hides the piece editor (ft_1_02a) in the menu | no | `src/config.ts` |
 | `anysize=1` | Plays in a window of any size: without it, a window too small for the tested layout at 2x (under 768x432 physical pixels, d105) shows only the line asking for a bigger window and F11 | yes | `src/config.ts` |

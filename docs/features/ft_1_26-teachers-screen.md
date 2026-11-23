@@ -3,7 +3,7 @@ id: "ft_1_26"
 title: "The teacher's screen behind the academic hat"
 scope: "A hat button on the main menu opens, behind a password gate, the screen for parents and the teacher: the players, each one's curriculum pieces with deadline and priority, a calendar with notes, statistics (level, median, standard deviation, histogram, last plays) and the extrapolation with its colour and medal; requests to the developer through GitHub's new-issue form or mail"
 effort: "large"
-status: "WP-14 built (AC1, AC2, AC3 without the calendar, AC8), and the test days and times (AC9); statistics, calendar and requests to come"
+status: "ft_1_26 built (AC1, AC2, AC3 without the calendar, AC8), and the test days and times (AC9); statistics, calendar and requests to come"
 completeness: 50
 depends_on: ["core_12", "ft_1_07", "ft_1_16", "ft_1_20"]
 ---
@@ -36,11 +36,9 @@ All AX-3 provisional until built and tried; numbers are content, not code.
 - **ft_1_26.AC8** In the piece book (the player's piece list) a piece on the active player's curriculum shows the main menu's academic hat at the right of its title line, and no other piece does; beside the hat the days left to its deadline and a bar of how near its level is to the expected level; a finished piece (retained at its expected level, d139's strong green) shows the hat alone, in its medal's colours (gold, silver, bronze) or strong green without a medal.
 - **ft_1_26.AC9** The teacher sets when to come to test: the weekly test days (default Sunday and Wednesday), the time of day from which the teacher comes on them, and a test ordered for hours and minutes from now; on a test day, from that time, the teacher checks the most urgent piece not yet passed, also while the student is already in the room.
 
-## Work packages
+## Parts
 
-WP-nn names a part of the plan ([parts and contracts](../architect/program-characters-teacher.md#3-parts), d153).
-
-- WP-14's queries: `curriculumStatuses(curriculum, plays, today, rules, window?)` gives every curriculum piece's `PieceStatus` (colour, medal, level, prediction, urgency), most urgent first; `pieceStatus` gives one; `playResultsFromLog(log, piece, barCount, dayOf, rules)` turns a player's practice log into the plays they read; `DEFAULT_EVALUATION_RULES` or `parseEvaluationRules(content/curriculum/evaluation.json)` the numbers. All in `src/core/curriculum/`.
-- TODO(painter, R3): the register's list shows a status as a coloured dot (d139) with no key on the page. Write a key on the right page's foot (a dot and its word for purple, green and strong green), through string keys with Estonian. The art review asked for it; it was left out of WP-14's pass 2 to keep the pull request to its look.
-- WP-18 The teacher's statistics, calendar and requests (held, stage 3): statistics, the trend chart, the calendar, requests.
+- ft_1_26's queries: `curriculumStatuses(curriculum, plays, today, rules, window?)` gives every curriculum piece's `PieceStatus` (colour, medal, level, prediction, urgency), most urgent first; `pieceStatus` gives one; `playResultsFromLog(log, piece, barCount, dayOf, rules)` turns a player's practice log into the plays they read; `DEFAULT_EVALUATION_RULES` or `parseEvaluationRules(content/curriculum/evaluation.json)` the numbers. All in `src/core/curriculum/`.
+- TODO(painter, R3): the register's list shows a status as a coloured dot (d139) with no key on the page. Write a key on the right page's foot (a dot and its word for purple, green and strong green), through string keys with Estonian. The art review asked for it; it was left out of ft_1_26's pass 2 to keep the pull request to its look.
+- TODO(builder, R4): the teacher's statistics, the trend chart, the calendar and requests (held until players and a parent have used the first screen); the painter the chart's look.
 - TODO(architect, R3): AX-3 provisional (ft_1_26.AC8): the bar beside a curriculum piece's hat shows the measured level over the expected level, not the trend's predicted level at the deadline; and a piece not yet finished keeps the hat's usual colours (no purple or scaled green on the hat). Confirm with the maintainer.
