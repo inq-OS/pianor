@@ -5,6 +5,9 @@ import { layoutForSettings } from '../core/layout/staffSettings';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
 import { SHAPE_LIVES, SHAPE_XP_PER_NOTE, ShapeRound, shapeChart, type ShapeChoice } from '../core/trainer/shapeTrainer';
 import { switcherChart } from '../core/trainer/scaleSwitcher';
+import chordsJson from '../../content/trainer/chords.json';
+import { nameChord } from '../core/trainer/chordNamer';
+import { chordLabel, loadChordContent, type Chord } from '../core/trainer/chordTrainer';
 import { displayText } from '../core/text/language';
 import { t } from '../core/text/strings';
 import { CANCELLED, openOverlay, startScene } from './scenes';
@@ -23,6 +26,9 @@ const STAFF_TOP = 36;
 const WRONG_FLASH_MS = 400;
 /** After a round ends a key starts the next one, but not the key that ended it (ms of wall time). */
 const AGAIN_PAUSE_MS = 1000;
+/** The live chord name of the keys held (slice D): at the left, level with the words. */
+const HELD_X = 8;
+const CHORDS = loadChordContent(chordsJson);
 
 /**
  * Play a scale or a chord (ft_1_29 slice A): a key, a shape (the scale up and down, or the triad) and a hand, drawn on the
@@ -30,7 +36,8 @@ const AGAIN_PAUSE_MS = 1000;
  * notes (ft_0_17.AC1); every right note's XP is saved at once, so a lost round keeps it. The rules are `core/trainer/
  * shapeTrainer.ts`; this scene draws the staff and the hearts and hands each key to the round. The key is chosen on the
  * circle of fifths; the shape and the hand are buttons on the toolbar. The shape button's third choice is the scale switcher
- * (slice C, `core/trainer/scaleSwitcher.ts`): a scale a bar, the key changing every bar, its name above the staff.
+ * (slice C, `core/trainer/scaleSwitcher.ts`): a scale a bar, the key changing every bar, its name above the staff. The
+ * chord the keys held make is named live at the left (slice D, `core/trainer/chordNamer.ts`).
  */
 export class ShapeTrainerScene extends PixelScene {
   protected override keyboardNavigation = false;
@@ -41,6 +48,8 @@ export class ShapeTrainerScene extends PixelScene {
   /** The switcher's key of every bar, as fifths; empty for a shape. */
   private barKeys: number[] = [];
   private roundCount = 0;
+  /** The chord the keys held make, named live at the left (ft_1_29 slice D); null when they make none. */
+  private held: Chord | null = null;
   private round!: ShapeRound;
   private staff: StaffView | null = null;
   /** The last key was wrong: its reason, and the names stand on the notes; null until then. */
@@ -94,6 +103,7 @@ export class ShapeTrainerScene extends PixelScene {
     const layout = layoutForSettings(this.round.chart, options, profiles.staffSettings);
     this.staff = new StaffView(this, layout, undefined, { noteNames: this.wrong !== null, fingers: false }, { x: 0, y: top }, []);
     this.staff.applyProgress(play.noteProgress, play.awaiting);
+    if (this.held) this.label(HELD_X, WORDS_Y, chordLabel(this.held, profiles.noteNaming), C.white);
   }
 
   /** A new round of the current choice: three lives, no XP, the cursor on the first note. */
@@ -102,6 +112,7 @@ export class ShapeTrainerScene extends PixelScene {
     this.overAtMs = null;
     this.stopListening();
     this.roundCount += 1;
+    this.held = null;
     if (this.switcher) {
       const { chart, keys } = switcherChart(`${Date.now()}-${this.roundCount}`, this.choice.hand);
       this.round = new ShapeRound(chart);
@@ -114,11 +125,22 @@ export class ShapeTrainerScene extends PixelScene {
       // nothing is judged while the circle of fifths is open over the trainer
       if (!this.scene.isActive()) return;
       if (this.round.state().outcome !== 'playing') {
+        // the round no longer follows the keys: the held chord's name goes with the first key after it
+        if (this.held) {
+          this.held = null;
+          this.redraw();
+        }
         if (event.kind === 'on' && event.velocity > 0) this.againIfOver();
         return;
       }
       const result = this.round.press(event);
-      if (result.verdict === 'ignored') return;
+      const held = nameChord(CHORDS, this.round.play().heldKeys);
+      const heldChanged = held?.name !== this.held?.name;
+      this.held = held;
+      if (result.verdict === 'ignored') {
+        if (heldChanged) this.redraw();
+        return;
+      }
       if (result.verdict === 'wrong') this.wrong = { reason: result.reason };
       // the XP of a right note is saved at once, so a lost round cannot take it away
       else if (result.verdict === 'correct') void contextOf(this).profiles.addTrainerXp(SHAPE_XP_PER_NOTE);

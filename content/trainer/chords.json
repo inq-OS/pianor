@@ -1,12 +1,16 @@
 {
   "schemaVersion": 1,
-  "note": "Chord trainer (ft_1_29 slice B). A chord name is a root letter (capital for a major quality, small for a minor one), an optional sign (b or #) and a suffix; the qualities give each suffix its intervals in semitones above the root. Steps list the chords the trainer asks for, in order of difficulty. Provisional until playtests.",
+  "note": "Chord trainer and chord namer (ft_1_29 slices B and D). A chord name is a root letter (capital for a major quality, small for a minor one), an optional sign (b or #) and a suffix; the qualities give each suffix its intervals in semitones above the root. Steps list the chords the trainer asks for, in order of difficulty. Provisional until playtests.",
   "qualities": [
     { "id": "major", "minor": false, "suffix": "", "intervals": [0, 4, 7] },
     { "id": "minor", "minor": true, "suffix": "", "intervals": [0, 3, 7] },
     { "id": "dominant-seventh", "minor": false, "suffix": "7", "intervals": [0, 4, 7, 10] },
     { "id": "minor-seventh", "minor": true, "suffix": "7", "intervals": [0, 3, 7, 10] },
-    { "id": "major-seventh", "minor": false, "suffix": "maj7", "intervals": [0, 4, 7, 11] }
+    { "id": "major-seventh", "minor": false, "suffix": "maj7", "intervals": [0, 4, 7, 11] },
+    { "id": "diminished", "minor": true, "suffix": "dim", "intervals": [0, 3, 6] },
+    { "id": "augmented", "minor": false, "suffix": "+", "intervals": [0, 4, 8] },
+    { "id": "half-diminished", "minor": true, "suffix": "7b5", "intervals": [0, 3, 6, 10] },
+    { "id": "diminished-seventh", "minor": true, "suffix": "dim7", "intervals": [0, 3, 6, 9] }
   ],
   "steps": [
     { "id": "c1", "name": "Triads on white keys", "chords": ["C", "F", "G", "a", "d", "e"] },

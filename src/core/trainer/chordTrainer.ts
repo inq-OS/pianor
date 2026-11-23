@@ -79,7 +79,7 @@ export function chordLabel(chord: Chord, naming: NoteNaming): string {
   // font has a flat sign and no sharp sign, so a sharp stays #
   const root = noteLabel(chord.root, naming).replace('b', '♭');
   const letter = chord.minor ? root.slice(0, 1).toLowerCase() + root.slice(1) : root;
-  return letter + chord.suffix;
+  return letter + chord.suffix.replace('b', '♭');
 }
 
 export type ChordPress =
