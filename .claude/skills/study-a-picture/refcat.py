@@ -20,6 +20,11 @@ fingerprints them and keeps one JSON catalogue beside them.
     python3 -I refcat.py map   [OUT.png]                     the grid with every pin
 
 The MI2 atlas (study-a-picture section 9):
+    python3 -I refcat.py init                        make the empty library on a new machine
+                               (folders, a README per shelf, an empty catalogue); never overwrites
+    python3 -I refcat.py import DIR --shelf mi2-bg|mi2-screen|mi3-bg|mi3-inv [--source TEXT]
+                               catalogue every picture in DIR in one go; a room the gauge
+                               already measured gets its tags back from mi2-gauge.json
     python3 -I refcat.py tag   ID... --tags outdoor,night,sea [--remove] [--new]
     python3 -I refcat.py find  --tags outdoor,night [--without blurry] [--kind KIND] [--long]
                                a tag, a family (stones, plants, water, buildings, furniture, sky,
@@ -1181,6 +1186,11 @@ def cmd_baseline(args):
             old = json.load(f)
     except FileNotFoundError:
         pass
+    lost = sorted({r["id"] for r in old.get("rooms", [])} - {r["id"] for r in rows})
+    if lost and not args.shrink:
+        # A half-filled library on a new machine would wipe the numbers git keeps.
+        sys.exit(f"refcat: {len(lost)} rooms of {GAUGE} are not in the library "
+                 f"(such as {', '.join(lost[:5])}); import them first, or --shrink to drop them")
     out = {
         "schemaVersion": 1,
         "about": "MI2 (1991) traits measured by refcat.py baseline from the painter's library; "
@@ -1418,6 +1428,160 @@ def cmd_sheet(args):
         draw([(None, picks[page:page + args.per_sheet])], f"{base}-{page // args.per_sheet + 1}.png")
 
 
+# --- setting the atlas up ----------------------------------------------------
+# The library lives only on the machine that studies it (d223). On a new
+# machine `init` makes the empty shelves and `import` fills them in one go.
+# The words and numbers that survive in git (mi2-gauge.json: each measured
+# room's id and tags) give a re-imported room its tags back.
+
+SHELVES = {
+    # shelf: (folder under the catalogue, id prefix, tags every picture gets, title)
+    "mi2-bg": ("game-1990s/mi2-1991/backgrounds", "mi2-bg", ["mi2"],
+               "Monkey Island 2 (1991), VGA background"),
+    "mi2-screen": ("game-1990s/mi2-1991/screens", "mi2-screen", ["mi2", "screenshot"],
+                   "Monkey Island 2 (1991), PC VGA screenshot"),
+    "mi3-bg": ("game-1990s/mi3-1997/backgrounds", "mi3-bg", ["mi3"],
+               "The Curse of Monkey Island (1997), background"),
+    "mi3-inv": ("game-1990s/mi3-1997/inventory", "mi3-inv", ["mi3", "item"],
+                "The Curse of Monkey Island (1997), inventory item"),
+}
+PICTURE_EXT = (".png", ".gif", ".bmp", ".pcx", ".jpg", ".jpeg", ".webp")
+
+README_ROOT = """# The painter's reference library (local only, never committed: d223)
+
+`refcat.py` keeps its catalogue here (`catalog.json`). Every picture is studied
+for its approach and never copied, traced or named in the game.
+
+- `game-1990s/mi2-1991/backgrounds/`: Monkey Island 2 as released in 1991, the VGA
+  backgrounds without characters (at most 256 colours; the 2010 remake is refused).
+- `game-1990s/mi2-1991/screens/`: PC VGA screenshots with characters and the verb band.
+- `game-1990s/mi3-1997/backgrounds/part0..4/`, `inventory/`, `sheets/`: the second shelf.
+- `questions/`: marked sheets for asking the maintainer (`refcat.py mark`).
+- Keri's photographs and the photo map: `private/keri/` (`photos.json`).
+
+Fill a shelf: drop the pictures in its folder, then
+`python3 -I .claude/skills/study-a-picture/refcat.py import <folder> --shelf <shelf> --source "<where from>"`.
+Name a room `<part>-<room>` (`0-004.png`) so its id is `mi2-bg-0-004`, the id the gauge knows.
+"""
+
+README_SHELF = """# {title}
+
+Where these pictures came from (write it down for each batch):
+
+- Source:
+- Version (release and platform):
+- Added:
+
+Shelf `{shelf}`: ids `{prefix}-<file name>`, filed with
+`python3 -I .claude/skills/study-a-picture/refcat.py import private/painter/references/{folder} --shelf {shelf} --source "<the source above>"`.
+Never in git (d223).
+"""
+
+
+def cmd_init(args):
+    made = []
+
+    def write_new(path, text):
+        if os.path.exists(path):
+            return
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(text)
+        made.append(path)
+
+    for sub in ("questions", "game-1990s/mi3-1997/sheets",
+                *(f"game-1990s/mi3-1997/backgrounds/part{n}" for n in range(5))):
+        d = os.path.join(CATALOG, sub)
+        if not os.path.isdir(d):
+            os.makedirs(d)
+            made.append(d + os.sep)
+    write_new(os.path.join(CATALOG, "README.md"), README_ROOT)
+    for shelf, (folder, prefix, _tags, title) in SHELVES.items():
+        write_new(os.path.join(CATALOG, folder, "README.md"),
+                  README_SHELF.format(title=title, shelf=shelf, prefix=prefix, folder=folder))
+    if not os.path.exists(catalog_path()):
+        save(load())
+        made.append(catalog_path())
+    keri = os.path.dirname(KERI_MAP)
+    if not os.path.isdir(keri):
+        os.makedirs(keri)
+        made.append(keri + os.sep)
+    for m in made:
+        print(f"made {m}")
+    print(f"refcat: the library is at {CATALOG} ({len(made)} new, nothing overwritten)")
+
+
+def gauge_rooms():
+    try:
+        with open(GAUGE, encoding="utf-8") as f:
+            return {r["id"]: r["tags"] for r in json.load(f).get("rooms", [])}
+    except FileNotFoundError:
+        return {}
+
+
+def shelf_id(prefix, path, root):
+    """`<prefix>-<path below root, folders joined by dashes>`, lower case; a name
+    that already starts with the prefix is kept (`part0/004.png` gives `mi3-bg-part0-004`,
+    `mi2-bg-0-004.png` stays `mi2-bg-0-004`)."""
+    import re
+    rel = os.path.splitext(os.path.relpath(path, root))[0]
+    stem = re.sub(r"[^a-z0-9]+", "-", rel.lower().replace(os.sep, "-")).strip("-")
+    return stem if stem.startswith(prefix + "-") else f"{prefix}-{stem}"
+
+
+def cmd_import(args):
+    folder, prefix, base_tags, title = SHELVES[args.shelf]
+    known = gauge_rooms()
+    cat = load()
+    ids = {e["id"] for e in cat["entries"]}
+    pixels = {e["pixel"]: e["id"] for e in cat["entries"]}
+    files = sorted(os.path.join(d, n) for d, _, ns in os.walk(args.dir) for n in ns
+                   if n.lower().endswith(PICTURE_EXT))
+    added = skipped = restored = 0
+    for path in files:
+        eid = shelf_id(prefix, path, args.dir)
+        try:
+            fp = fingerprint(path)
+            colours = look(path)["colours"]
+        except OSError as err:
+            print(f"skip {path}: {err}", file=sys.stderr); skipped += 1; continue
+        if eid in ids or fp["pixel"] in pixels:
+            print(f"skip {path}: already {eid if eid in ids else pixels[fp['pixel']]}", file=sys.stderr)
+            skipped += 1; continue
+        if "mi2" in base_tags and colours > 256:
+            print(f"skip {path}: {colours} colours, not the 1991 original", file=sys.stderr)
+            skipped += 1; continue
+        tags = list(base_tags)
+        if eid in known:
+            tags += [t for t in known[eid] if t not in tags and t in ALL_TAGS]
+            restored += 1
+        tags += [t for t in split_tags(args.tags) if t not in tags]
+        check_tags(tags, args.new)
+        dest = os.path.abspath(path)
+        if args.copy:
+            dest = os.path.join(CATALOG, folder, os.path.basename(path))
+            if os.path.abspath(path) != os.path.abspath(dest):
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                shutil.copyfile(path, dest)
+        cat["entries"].append({
+            "id": eid, "kind": "game-1990s", "title": f"{title} {eid[len(prefix) + 1:]}",
+            "source": args.source or "", "path": dest, "pixel": fp["pixel"], "dhash": fp["dhash"],
+            "size": fp["size"], "pixelScale": look(path)["pixelScale"], "colours": colours,
+            "tags": tags, "fed": []})
+        ids.add(eid); pixels[fp["pixel"]] = eid; added += 1
+        print(f"{eid:<34} {' '.join(tags)}")
+    save(cat)
+    missing = [r for r in known if r.startswith(prefix + "-") and r not in ids]
+    print(f"refcat: {added} added ({restored} with their tags back from the gauge), {skipped} skipped")
+    if missing:
+        print(f"refcat: the gauge knows {len(missing)} {prefix} rooms not in the library yet, "
+              f"such as {', '.join(missing[:5])}")
+    untagged = added - restored
+    if untagged and prefix.startswith("mi2"):
+        print(f"refcat: {untagged} new pictures carry only {' '.join(base_tags)}: tag them "
+              "(refcat.py tag ID --tags outdoor,night,...) before refcat.py baseline")
+
+
 def cmd_list(args):
     for e in load()["entries"]:
         if args.kind and e["kind"] != args.kind:
@@ -1505,7 +1669,17 @@ def main():
     s.add_argument("--ours", action="append", metavar="FILE", help="our own picture(s), as a last part of the sheet")
     s.set_defaults(f=cmd_sheet)
     s = sub.add_parser("baseline", help="measure the MI2 rooms into the gauge's ranges")
+    s.add_argument("--shrink", action="store_true", help="allow rooms the library lacks to drop out")
     s.set_defaults(f=cmd_baseline)
+    s = sub.add_parser("init", help="make the empty library on a new machine; never overwrites")
+    s.set_defaults(f=cmd_init)
+    s = sub.add_parser("import", help="catalogue a folder of pictures on one shelf in one go")
+    s.add_argument("dir"); s.add_argument("--shelf", required=True, choices=tuple(SHELVES))
+    s.add_argument("--source", help="where the batch came from (also in the shelf's README)")
+    s.add_argument("--tags", help="extra tags for every picture of the batch")
+    s.add_argument("--new", action="store_true", help="allow a tag not in TAGS")
+    s.add_argument("--copy", action="store_true", help="copy each picture into its shelf's folder")
+    s.set_defaults(f=cmd_import)
     s = sub.add_parser("gauge", help="how MI2 a picture is, trait by trait")
     s.add_argument("files", nargs="+"); s.add_argument("--tags", default="")
     s.add_argument("--json", action="store_true")
