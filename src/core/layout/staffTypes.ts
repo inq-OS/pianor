@@ -14,6 +14,11 @@ export interface StaffLayoutOptions {
   trackId?: string;
   /** Draw every played track, also one without notes (the piece editor: a hand with nothing written yet still has its staff). */
   allPlayTracks?: boolean;
+  /**
+   * Also draw these tracks, which are not played (the hand that rests in a hand step of learning, ft_1_32 rule 13), on
+   * their own staves marked `resting`, so the player sees both hands and the view greys the resting one.
+   */
+  restingTracks?: readonly string[];
   /** Distance between two staff lines in pixels, or "auto" for the largest size that fits. */
   staffSpace?: number | 'auto';
   /**
@@ -288,6 +293,8 @@ export interface KeyAccidentalGlyph {
 export interface StaffInfo {
   index: number;
   trackId: string;
+  /** A track drawn for reading only, not played (`restingTracks`): the view draws its notes grey. */
+  resting?: true;
   clef: Clef;
   topLineY: number;
   bottomLineY: number;

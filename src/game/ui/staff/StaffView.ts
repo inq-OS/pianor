@@ -662,8 +662,14 @@ export class StaffView {
     } else this.stroke(g, QUARTER_REST_STROKE, x - S * 0.5, y - S * 1.5, S * 0.28);
   }
 
+  /** Whether a staff of a system is a resting hand's, drawn to be read and not played (ft_1_32.AC18). */
+  private resting(system: number, staff: number): boolean {
+    return this.layout.systems[system]?.staves[staff]?.resting === true;
+  }
+
   private noteColor(slot: number): number {
     const note = this.layout.notes[slot]!;
+    if (this.resting(note.system, note.staff)) return PAST_GREY;
     if (this.wrong.has(note.index)) return this.theme.wrong;
     // a played or missed note keeps its timing colour (objective feedback); only the rest of the past goes grey
     const scored = this.scoreColours[slot];
@@ -817,7 +823,7 @@ export class StaffView {
     const slots = beam.notes.map((index) => this.layout.notes.findIndex((n) => n.index === index));
     const wrong = beam.notes.some((index) => this.wrong.has(index));
     const correct = slots.every((slot) => this.states[slot] === 'correct');
-    const color = wrong ? this.theme.wrong : correct ? this.theme.correct : this.theme.ink;
+    const color = this.resting(beam.system, beam.staff) ? PAST_GREY : wrong ? this.theme.wrong : correct ? this.theme.correct : this.theme.ink;
     const half = Math.max(2, S * 0.13) / 2;
     const top = beam.up ? beam.y : beam.y - beam.thickness;
     this.notesGfx.fillStyle(color, 1).fillRect(beam.x1 - half, top, beam.x2 - beam.x1 + half * 2, beam.thickness);

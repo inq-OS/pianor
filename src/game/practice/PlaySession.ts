@@ -54,6 +54,8 @@ export interface PlaySessionOptions {
   chart: Chart;
   /** While a section is played: the whole piece (it sets the size of the staff) and the section's first bar (its bar numbers). */
   section?: { whole: Chart; first: number };
+  /** Tracks drawn grey on their own staves and not played: the resting hand of a hand step in learning (ft_1_32.AC18). */
+  restingTracks?: readonly string[];
   keyboard: KeyboardInput;
   callbacks: PlaySessionCallbacks;
   hints?: Hints;
@@ -200,7 +202,7 @@ export class PlaySession {
     const settings = prefs.staffSettings;
     // in Tempo mode with the Scores view, room above chords for their stacked scores, so none goes off the page
     // the staff space range counts CSS pixels, so Windows display scaling keeps the notes as big as the player had them
-    const options = { viewport: { width: area.width, height: area.height }, ...staffSpaceLimits(this.scene.scale.zoom), scoreRoom: this.transport !== null && this.scoreView === 'number', staffGap: prefs.staffGap, noteNaming: prefs.noteNaming };
+    const options = { viewport: { width: area.width, height: area.height }, ...staffSpaceLimits(this.scene.scale.zoom), scoreRoom: this.transport !== null && this.scoreView === 'number', staffGap: prefs.staffGap, noteNaming: prefs.noteNaming, ...(this.options.restingTracks ? { restingTracks: this.options.restingTracks } : {}) };
     this.naming = prefs.noteNaming;
     const section = this.options.section;
     const whole = layoutForSettings(section?.whole ?? this.written, options, settings);

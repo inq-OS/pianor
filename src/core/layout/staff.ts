@@ -277,13 +277,13 @@ function planAccidentals(chart: Chart, staves: readonly StaffSpec[], fifths: num
 }
 
 /** The tracks to draw, top staff first. */
-function pickTracks(chart: Chart, trackId: string | undefined, allPlayTracks = false): ChartTrack[] {
+function pickTracks(chart: Chart, trackId: string | undefined, allPlayTracks = false, resting: readonly string[] = []): ChartTrack[] {
   if (trackId !== undefined) {
     const track = chart.tracks.find((t) => t.id === trackId);
     if (!track) throw new UnsupportedNotationError(`unknown track "${trackId}"`);
     return [track];
   }
-  const played = chart.tracks.filter((t) => t.role === 'play' && (allPlayTracks || chart.notes.some((n) => n.track === t.id)));
+  const played = chart.tracks.filter((t) => (t.role === 'play' || resting.includes(t.id)) && (allPlayTracks || chart.notes.some((n) => n.track === t.id)));
   if (played.length === 0) {
     const any = chart.tracks.find((t) => t.role === 'play');
     if (!any) throw new UnsupportedNotationError('chart has no play track');
@@ -655,7 +655,7 @@ function layoutSystemStaves(staves: readonly StaffSpec[], frame: Frame, fifths: 
     const arrow: StaffInfo['arrow'] = grand && i === 0
       ? { tipY: topLineY - (above[i]! - GLYPH.arrowInset) * S, direction: 'down' }
       : { tipY: bottomLineY + (below[i]! - GLYPH.arrowInset) * S, direction: 'up' };
-    infos.push({ index: i, trackId: staff.track.id, clef: staff.track.clef, topLineY, bottomLineY, arrow });
+    infos.push({ index: i, trackId: staff.track.id, clef: staff.track.clef, topLineY, bottomLineY, arrow, ...(staff.track.role === 'play' ? {} : { resting: true }) });
     cursorY = bottomLineY + below[i]! * S;
     for (let line = 0; line < 5; line++) out.staffLines.push({ system: s, staff: i, y: bottomLineY - line * S, x1: staffLeft, x2: right });
     out.clefs.push(staff.track.clef === 'treble'
@@ -1337,7 +1337,7 @@ function layoutStaffRests(p: Placer, staffSpec: StaffSpec, staffIndex: number): 
 
 export function layoutStaff(chart: Chart, options: StaffLayoutOptions): StaffLayout {
   const vp = options.viewport;
-  const tracks = pickTracks(chart, options.trackId, options.allPlayTracks);
+  const tracks = pickTracks(chart, options.trackId, options.allPlayTracks, options.restingTracks);
   if (chart.meterMap.length !== 1) throw new UnsupportedNotationError('meter changes are not drawn yet');
   if (chart.keyMap.length !== 1) throw new UnsupportedNotationError('key changes inside a piece are not drawn yet');
   const fifths = chart.keyMap[0]!.fifths;

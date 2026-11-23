@@ -65,6 +65,8 @@ const RAMP_BAR = 16;
 const BOTTOM_BAR = 32;
 /** The stats pane under the bottom bar, in place of the on-screen keyboard (ft_1_12.AC5), and the registry key of its switch (session only, no save). */
 const STATS_PANE = 40;
+/** Room at the stats pane's left edge for a learning run's live tempo lines, the longer Estonian ones included. */
+const LIVE_TEMPO_WIDTH = 86;
 export const STATS_PANE_KEY = 'statsPane';
 
 /** Typing a bar number: how long a number that could still grow waits before it is taken (Enter takes it at once). */
@@ -135,6 +137,8 @@ export interface PracticeData {
    * the room's next stage, and Back returns to the room's stage that opened it.
    */
   intro?: { stage: PlayStage; passes: number; shown?: boolean };
+  /** Reopening a half-learned piece asked already whether to go on or start over (ft_1_32.AC16): not asked again on a restart. */
+  resumeAsked?: boolean;
   /**
    * Practise bars `first` to `last` (0-based, inclusive) of the piece as a loop that earns no XP. `from`: started by a tap on
    * bar `first`, so it runs to the piece's end and carries a start mark instead of A and B.
@@ -254,6 +258,8 @@ export class PracticeScene extends PixelScene {
   private lastResult: PieceResult | null = null;
   /** The stats pane as drawn (kept for the tests); null while it is off. */
   protected paneData: StatsPane | null = null;
+  /** The live tempo lines of a learning run in the stats pane (ft_1_32.AC17), while it is shown. */
+  private liveLabels: PixelText[] | null = null;
   /** Turns the judge's events into the practice log's bar plays; null for a draft preview. */
   private barRecorder: BarRecorder | null = null;
   private session: FreePlaySession = emptyFreePlay();
@@ -338,7 +344,8 @@ export class PracticeScene extends PixelScene {
     // the wrap, the step-up note and the summary belong to this start only: a later restart (a tempo change, Whole
     // piece) must not wrap on from an old time or say them again
     this.wrap = data.wrap ?? null;
-    this.startData = { ...data };
+    // a restart between learning runs carries Kiur's line: the piece was open already, so it never asks to go on (ft_1_32.AC16)
+    this.startData = { ...data, ...(data.learnLine !== undefined ? { resumeAsked: true } : {}) };
     delete this.startData.sectionSummary;
     delete this.startData.learnLine;
     delete this.startData.passSummary;
@@ -426,6 +433,7 @@ export class PracticeScene extends PixelScene {
       keyboard: this.guarded,
       hints: this.hints,
       chordFingers: contextOf(this).profiles.chordFingers,
+      ...this.restingOption(),
       ...(play.mode === 'tempo' ? { tempo: this.tempoOptions(play) } : {}),
       callbacks: {
         onJudged: (event, state) => this.onJudged(event, state),
@@ -495,6 +503,7 @@ export class PracticeScene extends PixelScene {
     super.create();
     if (this.listening) this.startListening();
     else this.introAfterCreate();
+    this.resumeAfterCreate();
   }
 
   /** The teacher's check-up (ft_1_27.AC2) or the intro's lesson (ft_1_31.AC3) of this start; neither for any other play. */
@@ -513,6 +522,29 @@ export class PracticeScene extends PixelScene {
   private playSettings(): PlaySettings {
     const own = contextOf(this).profiles.playSettings;
     return this.locked ? { ...own, mode: 'wait' } : own;
+  }
+
+  /**
+   * A piece left halfway through learning, opened again (not a restart between runs): the screen pauses and asks with two
+   * pictures whether to go on or start over from the first bar (ft_1_32.AC16, `LearnResumeScene`). Start over saves the
+   * learning from its first step and opens it again; go on, or Esc, plays where it stopped.
+   */
+  private resumeAfterCreate(): void {
+    const learn = this.learn;
+    if (!learn?.halfway || this.startData.resumeAsked) return;
+    this.startData = { ...this.startData, resumeAsked: true };
+    this.time.delayedCall(0, () => {
+      if (this.leaving || this.atDoor || !this.scene.isActive()) return;
+      this.atDoor = true;
+      this.guarded.setMuted(true);
+      void openOverlay(this, 'learnResume').then((choice) => {
+        this.atDoor = false;
+        this.guarded.setMuted(false);
+        if (choice !== 'over' || this.leaving) return;
+        this.leaving = true;
+        void learn.startOver().then(() => this.scene.restart({ ...this.startData, ...this.carry() }));
+      });
+    });
   }
 
   /** The intro's spotlight over the screen before its first lap, once the screen is drawn with its band (ft_1_31.AC3). */
@@ -743,6 +775,7 @@ export class PracticeScene extends PixelScene {
     const learn = this.learn;
     if (!learn || this.leaving || this.listening || this.atDoor) return;
     const verdict = learn.push(events, this.playSession.chart);
+    this.showLiveTempo();
     if (verdict.state === 'stopped') this.stopLearnRun(verdict.wrong);
     else if (verdict.state === 'rushed') this.stopRushedRun();
   }
@@ -961,6 +994,7 @@ export class PracticeScene extends PixelScene {
     const staffTop = this.mainTop + (TOP_BAR + this.toolRows) * scale;
     const paneRows = this.paneShown ? STATS_PANE : 0;
     this.paneData = null;
+    this.liveLabels = null;
     const staffHeight = Math.max(1, (rows - TOP_BAR - this.toolRows - BOTTOM_BAR - paneRows) * scale);
     // A section is drawn at the size of the whole piece, and marking one keeps the player's own view, page by page: the
     // clef and the notes never change size when a section is chosen.
@@ -1027,6 +1061,7 @@ export class PracticeScene extends PixelScene {
     this.sky();
     const paneRows = this.paneShown ? STATS_PANE : 0;
     this.paneData = null;
+    this.liveLabels = null;
     const foot = rows - paneRows;
     const strip = this.cornerStrip;
     this.staffOrigin = this.mainTop + strip.rows * scale;
@@ -1156,7 +1191,9 @@ export class PracticeScene extends PixelScene {
     this.root.add(new PixelImage(this, 0, top, panelBitmap(Math.max(5, width), height, 'panel')));
     const plotWidth = Math.min(width - 60, 200);
     // the plot starts low enough that the wrong key count over a full bar stays inside the panel
-    const plot = { x: Math.floor((width - plotWidth) / 2), y: top + 3 + STATS_PANE_COUNT_HEIGHT, w: plotWidth, h: height - 5 - 3 - STATS_PANE_COUNT_HEIGHT };
+    // in learning the run's live tempo lines stand at the pane's left edge (ft_1_32.AC17), and the plot moves right of them
+    const plotX = this.learn ? Math.max(LIVE_TEMPO_WIDTH, Math.floor((width - plotWidth) / 2)) : Math.floor((width - plotWidth) / 2);
+    const plot = { x: plotX, y: top + 3 + STATS_PANE_COUNT_HEIGHT, w: plotWidth, h: height - 5 - 3 - STATS_PANE_COUNT_HEIGHT };
     this.paneData = statsPane(contextOf(this).profiles.historyFor(this.fullChart.id), plot);
     const box = createBitmap(plot.w, plot.h + 1);
     const set = (x: number, y: number, color: number) => {
@@ -1178,11 +1215,33 @@ export class PracticeScene extends PixelScene {
     this.root.add(new PixelImage(this, plot.x, plot.y, box));
     // each play's wrong keys as a bare number over its bar: how many wrong keys were pressed
     for (const bar of this.paneData.bars) this.label(0, bar.count.y, String(bar.mistakes), bar.mistakes > 0 ? C.redLight : C.green).centerAt(bar.count.x);
+    if (this.learn) this.liveLabels = [0, 1, 2].map((row) => this.label(4, top + 4 + row * 11, '', C.cream));
+    this.showLiveTempo();
     const latest = this.paneData.bars.at(-1);
     if (latest) {
       const text = t('practice.paneLatest', { percent: Math.round(latest.accuracy * 100) });
       this.label(latest.x + latest.w + 3, Math.max(top + 2, latest.y - 3), text, C.white);
     }
+  }
+
+  /** The resting hand of a learning hand step, drawn grey on its own staff (ft_1_32.AC18); nothing otherwise. */
+  private restingOption(): { restingTracks?: string[] } {
+    const resting = this.learn?.restingTracks ?? [];
+    return resting.length > 0 ? { restingTracks: resting } : {};
+  }
+
+  /**
+   * The learning run measured while it is played (ft_1_32.AC17), at the stats pane's left edge: the pace, the spread and the
+   * wobble of the notes so far, as the learning stats screen names them; a dash before three notes are played.
+   */
+  private showLiveTempo(): void {
+    const labels = this.liveLabels;
+    if (!labels || !this.learn) return;
+    const live = this.learn.liveTempo;
+    const percent = (share: number): string => (live ? `${Math.round(share * 100)}%` : '-');
+    labels[0]!.setText(t('practice.liveBpm', { bpm: live ? String(live.bpm) : '-' }));
+    labels[1]!.setText(t('practice.liveSpread', { value: percent(live?.spread ?? 0) }));
+    labels[2]!.setText(t('practice.liveWobble', { value: percent(live?.robust ?? 0) }));
   }
 
   /**

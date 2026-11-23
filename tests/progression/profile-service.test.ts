@@ -295,7 +295,7 @@ describe('ProfileService', () => {
 
   it('learning a piece (ft_1_32): progress per piece and the learning settings survive a restart; an older save reads as nothing started', async () => {
     const { service, repository } = await setup();
-    expect(service.learnSettings).toEqual({ stepBars: 1, markers: true, markersFrom: 2 });
+    expect(service.learnSettings).toEqual({ stepBars: 1, markers: true, markersFrom: 2, handsApart: false });
     expect(service.learnProgressOf('a')).toEqual({ step: 0, wholeStreak: 0, recall: false, confirm: false, misses: 0, medals: [], lastDay: null });
     const progress = { step: 3, wholeStreak: 0, recall: false, confirm: true, misses: 1, medals: ['gold', 'silver', 'gold'] as const, lastDay: '1998-11-22', bpm: [60, 72], unsteady: 1,
       tests: [{ day: '1998-11-22', step: 2, bpm: 60, sd: 12, mad: 9, drift: -4, halts: 0, steady: true }] };
@@ -304,7 +304,7 @@ describe('ProfileService', () => {
     const restarted = await ProfileService.create({ repository, config, catalogue: () => CATALOGUE, now: () => new Date('1998-10-05T12:00:00.000Z') });
     expect(restarted.learnProgressOf('a')).toEqual(progress);
     expect(restarted.learnProgressOf('b').step).toBe(0);
-    expect(restarted.learnSettings).toEqual({ stepBars: 2, markers: true, markersFrom: 1 });
+    expect(restarted.learnSettings).toEqual({ stepBars: 2, markers: true, markersFrom: 1, handsApart: false });
     await expect(restarted.updateLearnSettings({ markersFrom: 9 })).rejects.toThrow();
     // a save from before ft_1_32 has neither field
     const loaded = await repository.load(restarted.profile.id);

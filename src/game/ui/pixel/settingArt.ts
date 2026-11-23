@@ -107,3 +107,124 @@ export function durationSymbol(mark: DurationMark, forHand: 'RH' | 'LH'): Bitmap
   }
   return b;
 }
+
+/** A bar line from row `top` down a staff of `gap` 3. */
+const barLine = (b: Canvas, x: number, top: number) => vline(b, x, top, top + 12);
+
+/**
+ * The bars a learning step adds (ft_1_32 rule 2): a staff with one bar of notes, or two, a bar line after the step's notes
+ * and the bars still to come left empty.
+ */
+export function learnStepSymbol(bars: 1 | 2): Bitmap {
+  const b = paper();
+  const top = 5;
+  staff(b, top);
+  barLine(b, 1, top);
+  barLine(b, SYMBOL_WIDTH - 2, top);
+  barLine(b, 12, top);
+  barLine(b, 22, top);
+  // the step's notes: bar 1, and with two also bar 2
+  note(b, 4, top + 9);
+  note(b, 8, top + 6);
+  if (bars === 2) {
+    note(b, 15, top + 9);
+    note(b, 19, top + 6);
+  }
+  return b;
+}
+
+/** A small ring over a note head at (x, y), as the practice staff marks a note missed again (ft_1_32 rule 6). */
+const ring = (b: Canvas, x: number, y: number, c: number) => {
+  for (const [dx, dy] of [[0, -2], [1, -2], [-1, -1], [2, -1], [-1, 0], [2, 0], [0, 1], [1, 1]] as const) put(b, x + dx, y + dy, c);
+};
+
+/** The rings over missed notes (ft_1_32 rule 6): two notes, one with a red ring over it, or none. */
+export function markersSymbol(on: boolean): Bitmap {
+  const b = paper();
+  const top = 7;
+  staff(b, top);
+  note(b, 10, top + 9);
+  note(b, 22, top + 6);
+  if (on) ring(b, 23, top - 5, C.red);
+  return b;
+}
+
+/** The miss a ring comes at (1 to 5): that many red crosses, the misses, then the ring over a note. */
+export function markersFromSymbol(misses: number): Bitmap {
+  const b = paper();
+  const top = 9;
+  staff(b, top, { x0: 22 });
+  note(b, 26, top + 9);
+  ring(b, 27, top - 5, C.red);
+  for (let i = 0; i < misses; i++) {
+    const x = 2 + (i % 3) * 6, y = i < 3 ? 4 : 12;
+    for (let d = 0; d < 4; d++) {
+      put(b, x + d, y + d, C.red);
+      put(b, x + 3 - d, y + d, C.red);
+    }
+  }
+  return b;
+}
+
+/**
+ * A two-hand piece learned (ft_1_32 rule 13): the grand staff with three chords of both hands, played together; or hands
+ * apart, the right hand alone, then the left hand alone, then both.
+ */
+export function learnHandsSymbol(apart: boolean): Bitmap {
+  const b = paper();
+  const upper = 1, lower = 12;
+  staff(b, upper, { x0: 5, gap: 2 });
+  staff(b, lower, { x0: 5, gap: 2 });
+  vline(b, 4, upper, lower + 8);
+  const columns: readonly ['both' | 'RH' | 'LH', number][] = apart ? [['RH', 9], ['LH', 18], ['both', 27]] : [['both', 9], ['both', 18], ['both', 27]];
+  for (const [hands, x] of columns) {
+    if (hands !== 'LH') note(b, x, upper + 5, INK, 4);
+    if (hands !== 'RH') note(b, x, lower + 5, INK, 4);
+  }
+  return b;
+}
+
+/** Letters 3 x 5 for the note naming picture. */
+const LETTERS: Readonly<Record<'B' | 'H', readonly string[]>> = {
+  B: ['##.', '#.#', '##.', '#.#', '##.'],
+  H: ['#.#', '#.#', '###', '#.#', '#.#'],
+};
+
+/** The letter naming (ft_0_17.AC4): the note on the middle line of the treble staff, named under it as B or H, letters drawn twice as large. */
+export function namingSymbol(naming: 'B' | 'H'): Bitmap {
+  const b = paper();
+  const top = 2;
+  staff(b, top, { gap: 2 });
+  note(b, 10, top + 4, INK, 5);
+  LETTERS[naming].forEach((row, dy) => [...row].forEach((bit, dx) => {
+    if (bit !== '#') return;
+    for (const [ex, ey] of [[0, 0], [1, 0], [0, 1], [1, 1]] as const) put(b, 20 + dx * 2 + ex, 11 + dy * 2 + ey, C.blue);
+  }));
+  return b;
+}
+
+/** The practice staff's blue pointer, a line down the staff at x. */
+const pointer = (b: Canvas, x: number, top: number) => {
+  vline(b, x, top - 2, top + 14, C.blue);
+  vline(b, x + 1, top - 2, top + 14, C.blue);
+};
+
+/**
+ * Reopening a half-learned piece (ft_1_32.AC16): go on, the bars learned in gold and the pointer after them; or start
+ * over, every note still to learn and the pointer back at the first bar.
+ */
+export function resumeSymbol(choice: 'continue' | 'over'): Bitmap {
+  const b = paper();
+  const top = 5;
+  staff(b, top);
+  barLine(b, 1, top);
+  barLine(b, 17, top);
+  barLine(b, SYMBOL_WIDTH - 2, top);
+  const learned = choice === 'continue' ? C.gold : INK;
+  note(b, 5, top + 9, learned);
+  note(b, 11, top + 6, learned);
+  note(b, 22, top + 9);
+  note(b, 28, top + 6);
+  pointer(b, choice === 'continue' ? 19 : 2, top);
+  return b;
+}

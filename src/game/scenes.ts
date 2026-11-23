@@ -57,6 +57,7 @@ export interface SceneData {
   'staff-demo': undefined;
   'art-demo': undefined;
   'kiurDoor': undefined;
+  'learnResume': undefined;
   'intro': IntroData;
   'circle': CircleData | undefined;
   'keriMap': MapData | undefined;
@@ -92,6 +93,8 @@ export function freshData<T extends object>(data: T | undefined): T | Record<str
 export interface SceneResult {
   /** Kiur at the door after key bashing (ft_1_15): back to the piece, or out through the door. */
   'kiurDoor': 'back' | 'door';
+  /** Reopening a half-learned piece (ft_1_32.AC16): go on where it stopped, or start over from the first bar. */
+  'learnResume': 'continue' | 'over';
   /** The first-run intro's spotlight (ft_1_31): Kiur's steps were all read (Esc gives `cancelled`: skip the intro). */
   'intro': 'read' | 'skip';
   /** The circle of fifths (ft_1_28): it closed, or (opened to choose, from the piece maker) the key chosen. */

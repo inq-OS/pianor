@@ -12,7 +12,7 @@ import type { Bitmap } from './ui/pixel/bitmap';
 import { C } from './ui/pixel/palette';
 import { Mascot } from './ui/pixel/PixelObjects';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
-import { SYMBOL_HEIGHT, SYMBOL_WIDTH, durationSymbol, linesSymbol, scoreSymbol, staffGapSymbol } from './ui/pixel/settingArt';
+import { SYMBOL_HEIGHT, SYMBOL_WIDTH, durationSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, scoreSymbol, staffGapSymbol } from './ui/pixel/settingArt';
 import { freshData, startScene } from './scenes';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 
@@ -234,16 +234,26 @@ export class SettingsScene extends PixelScene {
 
   /**
    * The second page: how a piece is learned bar by bar (ft_1_32 rules 2 and 6): the bars a step adds, which applies to the
-   * next piece begun (a piece in progress keeps its own, `learnStepBars`), and the mistake markers with the miss they come at.
+   * next piece begun (a piece in progress keeps its own, `learnStepBars`), the mistake markers with the miss they come at, and
+   * both hands together or hands apart for the next two-hand piece begun (`learnHandsApart`).
    */
   private learnPage(profiles: ProfileService): void {
     const learn = profiles.learnSettings;
-    const steps = ([1, 2] as const).map((value): Choice<LearnSettings['stepBars']> => ({ value, label: t(value === 1 ? 'settings.learnStepOne' : 'settings.learnStepTwo'), text: String(value) }));
+    // every choice is a picture, its words in the tooltip (d285)
+    const steps = ([1, 2] as const).map((value): Choice<LearnSettings['stepBars']> => ({ value, label: t(value === 1 ? 'settings.learnStepOne' : 'settings.learnStepTwo'), symbol: learnStepSymbol(value) }));
     this.setting(0, 0, t('settings.learnStep'), steps, learn.stepBars, (value) => profiles.updateLearnSettings({ stepBars: value }));
-    const markers = ([[true, t('settings.learnMarkersOn'), t('settings.learnMarkersOnShort')], [false, t('settings.learnMarkersOff'), t('settings.fingerNumbersOffShort')]] as const)
-      .map(([value, label, text]): Choice<boolean> => ({ value, label, text }));
+    const markers = ([[true, t('settings.learnMarkersOn')], [false, t('settings.learnMarkersOff')]] as const)
+      .map(([value, label]): Choice<boolean> => ({ value, label, symbol: markersSymbol(value) }));
     this.setting(1, 0, t('settings.learnMarkers'), markers, learn.markers, (value) => profiles.updateLearnSettings({ markers: value }));
-    const from = ([1, 2, 3, 4, 5] as const).map((n): Choice<number> => ({ value: n, label: t('settings.learnMarkersFromN', { n }), text: String(n) }));
+    const from = ([1, 2, 3, 4, 5] as const).map((n): Choice<number> => ({ value: n, label: t('settings.learnMarkersFromN', { n }), symbol: markersFromSymbol(n) }));
     this.setting(0, 1, t('settings.learnMarkersFrom'), from, learn.markersFrom, (value) => profiles.updateLearnSettings({ markersFrom: value }));
+    // a two-hand piece: both hands together (the default) or each step by one hand, then the other, then both (rule 13)
+    const hands = ([[false, t('settings.learnHandsTogether')], [true, t('settings.learnHandsApart')]] as const)
+      .map(([value, label]): Choice<boolean> => ({ value, label, symbol: learnHandsSymbol(value) }));
+    this.setting(1, 1, t('settings.learnHands'), hands, learn.handsApart ?? false, (value) => profiles.updateLearnSettings({ handsApart: value }));
+    // the letter naming, B or H (ft_0_17.AC4): the note names, the circle of fifths and the key names follow it
+    const namings = (['H', 'B'] as const).map((value): Choice<'B' | 'H'> => ({ value, label: t(value === 'H' ? 'settings.namingH' : 'settings.namingB'), symbol: namingSymbol(value) }));
+    this.setting(0, 2, t('settings.naming'), namings, profiles.noteNaming, (value) => profiles.updateNoteNaming(value));
   }
+
 }

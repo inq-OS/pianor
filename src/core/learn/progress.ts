@@ -124,11 +124,16 @@ export const learnSettingsSchema = z.object({
   stepBars: z.union([z.literal(1), z.literal(2)]),
   markers: z.boolean(),
   markersFrom: z.int().min(1).max(5),
+  /**
+   * Learn a new two-hand piece hands apart (ft_1_32 rule 13): each growing step by the right hand, the left, then both.
+   * Absent (saved before it) or false: both hands together, the default. An optional field, no version bump (d069.3).
+   */
+  handsApart: z.boolean().optional(),
 });
 
 export type LearnSettings = z.infer<typeof learnSettingsSchema>;
 
-export const DEFAULT_LEARN_SETTINGS: LearnSettings = { stepBars: 1, markers: true, markersFrom: 2 };
+export const DEFAULT_LEARN_SETTINGS: LearnSettings = { stepBars: 1, markers: true, markersFrom: 2, handsApart: false };
 
 /**
  * The step size to plan a piece with: the player's setting for a piece not started yet, else the size its learning began
@@ -138,9 +143,12 @@ export function learnStepBars(progress: LearnProgress, settings: LearnSettings):
   return progress.lastDay === null ? settings.stepBars : (progress.stepBars ?? 1);
 }
 
-/** Whether to plan a piece with hands-apart steps: yes for a piece not begun yet, else as its learning began. */
-export function learnHandsApart(progress: LearnProgress): boolean {
-  return progress.lastDay === null ? true : (progress.handsApart ?? false);
+/**
+ * Whether to plan a piece with hands-apart steps: the player's setting for a piece not begun yet (both hands together when
+ * unset), else as its learning began, so a change of the setting applies to the next piece.
+ */
+export function learnHandsApart(progress: LearnProgress, settings: LearnSettings): boolean {
+  return progress.lastDay === null ? (settings.handsApart ?? false) : (progress.handsApart ?? false);
 }
 
 export const START_PROGRESS: LearnProgress = { step: 0, wholeStreak: 0, recall: false, confirm: false, misses: 0, medals: [], lastDay: null };
@@ -352,4 +360,20 @@ export function learnRewards(
   const allGolden = units.every((_, u) => shines(u));
   const piece = learned ? (allGolden ? 'gold' : lowest([...chunks.map((c) => c.merged?.medal ?? 'bronze'), ...measured])) : null;
   return { chunks, piece };
+}
+
+/** Whether a piece's learning has begun and is past its first step: reopening it asks to continue or start over (ft_1_32.AC16). */
+export function halfLearned(progress: LearnProgress): boolean {
+  return progress.lastDay !== null && progress.step > 0;
+}
+
+/**
+ * The learning of a piece started over on `today` (ft_1_32.AC16): the first step again with no medals, planned with the
+ * player's settings now; the measured paces and runs stay, as they are true numbers of what was played.
+ */
+export function startOver(progress: LearnProgress, settings: LearnSettings, today: DayString): LearnProgress {
+  return {
+    ...START_PROGRESS, lastDay: today, stepBars: settings.stepBars, handsApart: settings.handsApart ?? false,
+    ...(progress.bpm ? { bpm: progress.bpm } : {}), ...(progress.tests ? { tests: progress.tests } : {}),
+  };
 }
