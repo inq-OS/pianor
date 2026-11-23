@@ -1,4 +1,4 @@
-// Covers ft_0_15.AC1.
+// Covers ft_0_15.AC1, ft_1_32.AC18.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import handsTogether from '../../../tests/golden/hands-together.chart.json';
@@ -6,6 +6,7 @@ import { chartWith } from '../../../tests/helpers/charts';
 import { chartSchema, type Chart } from '../chart';
 import { toChart } from '../editor/chart';
 import { emptyPiece } from '../editor/model';
+import { handChart } from '../learn/plan';
 import { UnsupportedNotationError, layoutStaff, type NoteGlyph, type StaffLayout } from './staff';
 
 const VIEWPORTS = [
@@ -248,6 +249,18 @@ describe('a hand with no notes', () => {
       for (const system of staves(l)) expect(system).toEqual(['treble', 'bass']);
       expect(l.braces).toHaveLength(l.systems.length);
     }
+  });
+});
+
+describe('a hand that rests in a learning step', () => {
+  it('ft_1_32.AC18 keeps its staff with restingTracks, marked resting, while the played hand\'s staff is not', () => {
+    const right = handChart(together, 'RH');
+    expect(lay(right).systems[0]!.staves.map((st) => st.clef)).toEqual(['treble']);
+    const resting = right.tracks.filter((t) => t.role !== 'play').map((t) => t.id);
+    const l = layoutStaff(right, { viewport: { width: 1366, height: 768 }, restingTracks: resting });
+    for (const system of l.systems) expect(system.staves.map((st) => [st.clef, st.resting === true])).toEqual([['treble', false], ['bass', true]]);
+    // every note of both hands is drawn, as in the whole piece
+    expect(l.notes).toHaveLength(lay(together).notes.length);
   });
 });
 
