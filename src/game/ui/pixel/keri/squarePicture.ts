@@ -115,7 +115,7 @@ function inside(pts: readonly Pt[], x: number, y: number): boolean {
 }
 
 /** The plaza's rings of flagstones: each ring's outer edge, in units of the lamp's step (`RX` wide, `RY` high). */
-const RINGS = [10, 19, 30, 43, 58, 76, 98, 124] as const;
+const RINGS = [10, 19, 30, 43, 58, 76, 98, 124, 154, 190] as const;
 const RX = 3.9, RY = 0.86;
 
 /** The lanterns: the side building's corner. Each by its hook (fine pixels, flat plan). */
@@ -255,7 +255,7 @@ class SquarePainter {
     switch (this.phase) {
       case 'day':
         // the sun in the south, to the right: the boat shed's corner throws its shade over the plaza's right, the lamp a thin one
-        if (within([[640, 172], [590, 182], [380, 212], [170, 252], [640, 252]])) return 1;
+        if (within([[640, 172], [590, 182], [380, 212], [170, 252], [120, 300], [150, 372], [640, 372]])) return 1;
         // the bush in the flower bed and the bench throw theirs to the left
         if (within([[300, 198], [262, 202], [248, 210], [280, 216], [304, 213]])) return 0.9;
         if (within([[452, 206], [430, 212], [436, 219], [500, 214]])) return 0.8;
@@ -264,10 +264,13 @@ class SquarePainter {
         // the sun ahead over the sea: every shade comes toward the viewer
         if (within([[112, 164], [250, 160], [304, 204], [84, 218]])) return 1;
         if (within([[452, 204], [524, 204], [560, 236], [470, 236]])) return 0.7;
+        // the bush in the flower bed throws its own at the viewer, and the things at the viewer's feet theirs
+        if (within([[300, 214], [372, 214], [396, 262], [286, 262]])) return 0.8;
+        if (within([[470, 318], [640, 300], [640, 372], [440, 372]])) return 0.9;
         return 0;
       case 'dusk':
         // the sun behind the viewer: the lighthouse's own long shadow lies across the square, its lantern at the far end
-        if (within([[30, 248], [176, 248], [322, 190], [304, 186]])) return 1;
+        if (within([[-10, 372], [250, 372], [322, 190], [304, 186]])) return 1;
         if (within([[298, 190], [328, 192], [336, 184], [318, 178], [300, 182]])) return 1;
         return 0;
       default:
@@ -609,8 +612,8 @@ class SquarePainter {
   /** The lighthouse's own foot at the viewer's left hand: a low curve of big limestone blocks in the shade, dark and near. */
   private lighthouseFoot(): void {
     this.as(() => {
-      this.poly([[-10, 262], [-10, 170], [34, 174], [88, 194], [130, 228], [146, 262]], this.blocks(0.1, 14, 30, 11), 1.2);
-      this.poly([[-10, 170], [34, 174], [88, 194], [130, 228], [126, 236], [84, 202], [32, 182], [-10, 178]], (x, y) => tone(F.stone, 0.34, x, y), 0.8);
+      this.poly([[-10, 372], [-10, 170], [34, 174], [88, 194], [130, 228], [152, 268], [164, 316], [168, 372]], this.blocks(0.1, 14, 30, 11), 1.2);
+      this.poly([[-10, 170], [34, 174], [88, 194], [130, 228], [152, 268], [164, 316], [168, 372], [160, 372], [156, 318], [145, 274], [124, 236], [84, 202], [32, 182], [-10, 178]], (x, y) => tone(F.stone, 0.34, x, y), 0.8);
     });
   }
 
@@ -618,13 +621,13 @@ class SquarePainter {
   private boatShed(): void {
     const { hour } = this;
     this.as(() => {
-      this.poly([[590, 262], [660, 262], [660, 30], [604, 58]], (x, y) => {
+      this.poly([[582, 372], [660, 372], [660, 30], [604, 58]], (x, y) => {
         const board = Math.floor((x + 3 * noise2(y / 50, 1, 910)) / 9), inBoard = x + 3 * noise2(y / 50, 1, 910) - board * 9;
         if (inBoard < 1.2) return R.boards[0]!;
         return this.worn(F.boards, hour.north + (hash2(board, 4, 911) - 0.5) * 0.14 + (inBoard < 2.6 ? 0.08 : 0), x, y, 0.07, 9);
       }, 1.2);
       // its corner post catches the light
-      this.poly([[588, 262], [598, 262], [610, 58], [602, 58]], (x, y) => this.worn(F.boards, hour.north + 0.34, x, y, 0.06, 10), 0.8);
+      this.poly([[580, 372], [591, 372], [610, 58], [602, 58]], (x, y) => this.worn(F.boards, hour.north + 0.34, x, y, 0.06, 10), 0.8);
     });
     this.as(() => {
       this.poly([[574, 66], [660, 22], [660, -10], [606, 6]], (x, y) => this.worn(F.boards, 0.2 + (((x + y) >> 3) % 2 ? 0.08 : 0), x, y, 0.08, 12), 1.2);
@@ -647,7 +650,7 @@ class SquarePainter {
   /** The ground round the plaza: trodden earth and thin grass, broken marks of every tone (rule 23). */
   private ground(): void {
     const { hour } = this;
-    this.poly([[-10, 262], [-10, 190], [120, 168], [250, 160], ...Array.from({ length: 21 }, (_, k): Pt => [250 + k * 20, k === 0 ? 160 : brow(250 + k * 20)]), [650, 262]], (x, y) => {
+    this.poly([[-10, 372], [-10, 190], [120, 168], [250, 160], ...Array.from({ length: 21 }, (_, k): Pt => [250 + k * 20, k === 0 ? 160 : brow(250 + k * 20)]), [650, 372]], (x, y) => {
       const sh = this.shade(x, y);
       const grassy = fbm(x / 37, y / 11, 3, 920) + 0.12 * smooth(200, 150, y);
       // the hill is a fat belly: its brow is the picture's strongest edge on the land
@@ -745,11 +748,11 @@ class SquarePainter {
     if (ring < 0) return null;
     const inner = ring === 0 ? 0 : RINGS[ring - 1]!, outer = RINGS[ring]!;
     const perUnit = RX * Math.abs(Math.cos(a)) + RY * Math.abs(Math.sin(a));
-    const count = 7 + ring * 4;
+    const count = 7 + ring * 4 + (ring > 7 ? 10 : 0);
     const turn = (a / (Math.PI * 2) + 1 + ring * 0.137) * count;
     const stone = Math.floor(turn), inStone = turn - stone;
     const arc = ((r * Math.PI * 2) / count) * (RX * Math.abs(Math.sin(a)) + RY * Math.abs(Math.cos(a)));
-    const fat = y > 214 ? 2 : 1.3;
+    const fat = y > 290 ? 3 : y > 214 ? 2 : 1.3;
     const seam = (r - inner) * perUnit < 1.2 * fat || Math.min(inStone, 1 - inStone) * arc < fat;
     // a stone's far edge catches the light: the row or two just inside its seam on the side away from the viewer
     const top = dy < 0 ? (outer - r) * perUnit < 2.6 : (r - inner) * perUnit < 2.6;
@@ -759,7 +762,7 @@ class SquarePainter {
   private plaza(): void {
     const { hour } = this;
     this.as(() => {
-      this.poly([[124, 194], [244, 170], [344, 158], [392, 178], [600, 186], [606, 262], [24, 262]], (x, y) => {
+      this.poly([[124, 194], [244, 170], [344, 158], [392, 178], [600, 186], [612, 372], [-10, 372], [-10, 290]], (x, y) => {
         const f = this.flag(x, y);
         const sh = this.shade(x, y);
         const light = hour.ground + 0.06 - sh * 0.74;
@@ -774,7 +777,7 @@ class SquarePainter {
         if (hash2(f.stone, f.ring, 934) > 0.93) return this.worn(F.earth, light + 0.04, x, y, 0.12);
         // each stone mottled in two or three flat patches of its own, worn pale in its middle
         const mottle = Math.round((fbm(x / 9 + f.stone * 7.3, y / 5 + f.ring * 3.1, 2, 936) - 0.5) * 5) / 5;
-        return this.worn(hash2(f.stone, f.ring, 935) > 0.62 ? F.shingle : F.plaster, light + own + mottle * 0.3 + (f.top ? 0.1 : 0), x, y, 0.08, f.ring);
+        return this.worn(hash2(f.stone, f.ring, 935) > (f.ring > 5 ? 0.84 : 0.62) ? F.shingle : F.plaster, light + own + mottle * 0.3 + (f.top ? 0.1 : 0), x, y, 0.08, f.ring);
       }, 2.2);
     });
     this.tufts();
@@ -783,10 +786,10 @@ class SquarePainter {
   /** Tufts in the joints and at the plaza's edge: growth of every height, most of it low (rule 23). */
   private tufts(): void {
     const { hour } = this;
-    for (let k = 0; k < 150; k++) {
-      const x = 20 + hash2(k, 1, 940) * 580, y = 172 + hash2(k, 2, 940) ** 0.7 * 74;
+    for (let k = 0; k < 280; k++) {
+      const x = 20 + hash2(k, 1, 940) * 580, y = 172 + hash2(k, 2, 940) ** 0.8 * 186;
       const f = this.flag(x, y);
-      if (f && !f.seam && f.ring < 6) continue;
+      if (f && !f.seam && f.ring < 8) continue;
       if (!F.shingle.includes(this.at(x, y)) && !F.earth.includes(this.at(x, y)) && !F.grass.includes(this.at(x, y)) && !F.stone.includes(this.at(x, y))) continue;
       const tall = 2 + Math.floor(hash2(k, 3, 940) ** 2 * (4 + (y - 170) * 0.09));
       const light = hour.ground - this.shade(x, y) * 0.36;
@@ -912,6 +915,12 @@ class SquarePainter {
     this.barrel(552, 238, 12, 28, 1);
     this.barrel(574, 246, 11, 24, 2);
     this.barrel(530, 247, 10, 20, 3);
+    // at the viewer's feet, big and in the near shade: boulders off the lighthouse's foot, a fish crate and barrels by the shed
+    this.boulder(214, 352, 30, 30, 5);
+    this.boulder(262, 362, 18, 16, 6);
+    this.crate(484, 356, 56, 40);
+    this.barrel(566, 352, 20, 48, 5);
+    this.barrel(604, 366, 17, 40, 6);
   }
 
   /** A string of pennants from the side building's corner to the boat shed's eave; bulbs between them, lit at dusk and night. */

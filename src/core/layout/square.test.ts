@@ -3,18 +3,24 @@ import keriJson from '../../../content/world/keri.json';
 import { insideRing, loadWorld } from '../world/world';
 import { ART_DETAIL } from './frame';
 import { ROOM_PICTURE } from './room';
-import { bend, SQUARE, SQUARE_ID, SQUARE_PICTURE, SQUARE_SPOTS, SQUARE_VIEW, squarePlan } from './square';
+import { bend, SQUARE, SQUARE_ID, SQUARE_PICTURE, SQUARE_SPOTS, SQUARE_VIEW, squarePlan, squareView } from './square';
 
 const KERI = loadWorld(keriJson);
 const plan = squarePlan();
 
 describe('the village square: its plan', () => {
-  it('ft_1_19.AC1 the picture is the room\'s low wide band, the horizon high because the eye stands on the hill', () => {
-    expect(SQUARE_PICTURE).toEqual(ROOM_PICTURE);
-    expect(plan.fine).toEqual({ w: ROOM_PICTURE.w * ART_DETAIL, h: ROOM_PICTURE.h * ART_DETAIL });
-    expect(plan.horizon).not.toBe(plan.fine.h / 2);
-    expect(plan.horizon / plan.fine.h).toBeGreaterThan(0.3);
-    expect(plan.horizon / plan.fine.h).toBeLessThan(0.5);
+  it('ft_1_19.AC1 the picture fills a scene\'s whole main area, 180 rows, the horizon high because the eye stands on the hill', () => {
+    expect(SQUARE_PICTURE).toEqual({ w: ROOM_PICTURE.w, h: 180 });
+    expect(plan.fine).toEqual({ w: 320 * ART_DETAIL, h: 180 * ART_DETAIL });
+    expect(plan.horizon / plan.fine.h).toBeGreaterThan(0.2);
+    expect(plan.horizon / plan.fine.h).toBeLessThan(0.4);
+  });
+
+  it('ft_1_20 the picture lies from the top where it does not fit, and what is pressed keeps to its upper 124 rows', () => {
+    expect(squareView({ w: 320, h: 124 }, 0).picture).toEqual({ x: 0, y: 0, w: 320, h: 180 });
+    expect(squareView({ w: 320, h: 180 }, 0).picture).toEqual({ x: 0, y: 0, w: 320, h: 180 });
+    for (const spot of plan.spots) expect(spot.button.y + spot.button.h).toBeLessThanOrEqual(ROOM_PICTURE.h);
+    expect((plan.pier.y + plan.pier.h) / ART_DETAIL).toBeLessThanOrEqual(ROOM_PICTURE.h);
   });
 
   it('ft_1_19.AC1 the square is a scene of the world model, on the island between the side building and the old boat shed, and the viewer stands at the lighthouse\'s foot', () => {

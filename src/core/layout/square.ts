@@ -1,6 +1,6 @@
 import { ART_DETAIL } from './frame';
 import type { Rect } from './rect';
-import { ROOM_PICTURE, roomView } from './room';
+import { STRIP_ROWS } from './room';
 
 /**
  * The plan of the village square (ft_1_19): the open ground between the houses at the lighthouse, seen from the
@@ -14,9 +14,20 @@ import { ROOM_PICTURE, roomView } from './room';
 /** The scene's id in the world model (`scenes` in content/world/keri.json). */
 export const SQUARE_ID = 'square';
 
-/** The scene's picture has the room's size: a low wide band over the same strip. */
-export const SQUARE_PICTURE = ROOM_PICTURE;
-export const squareView = roomView;
+/**
+ * The scene's picture fills a scene's whole main area (ft_1_20: no band under a scene): 180 rows. What is pressed lies in
+ * its upper 124 rows, so a board that opens over the foot (a conversation's choices, the tug) hides none of it.
+ */
+export const SQUARE_PICTURE = { w: 320, h: 180 } as const;
+
+/** Where the picture and the strip under it go on a main area of `screen` layout cells: the picture from the top when it does not fit above the strip. */
+export function squareView(screen: { w: number; h: number }, stripRows: number = STRIP_ROWS): { picture: Rect; strip: Rect } {
+  const above = screen.h - stripRows;
+  return {
+    picture: { x: Math.floor((screen.w - SQUARE_PICTURE.w) / 2), y: Math.max(0, Math.floor((above - SQUARE_PICTURE.h) / 2)), w: SQUARE_PICTURE.w, h: SQUARE_PICTURE.h },
+    strip: { x: 0, y: above, w: screen.w, h: stripRows },
+  };
+}
 
 export interface SquarePlan {
   /** The picture, in fine pixels. */
@@ -35,6 +46,8 @@ export const SQUARE_VIEW = { x: -3, y: -11, bearing: 113 } as const;
 export const SQUARE = {
   w: SQUARE_PICTURE.w * ART_DETAIL,
   h: SQUARE_PICTURE.h * ART_DETAIL,
+  /** The row the view's bend ends at: under it, at the viewer's feet, the plan is flat. */
+  fold: 248,
   /** The horizon's row: high, for the eye stands on the island's highest ground and looks down over the square. */
   horizon: 92,
   /** How far the picture's level lines bow down at its sides, fine pixels. */
@@ -51,7 +64,7 @@ export const SQUARE = {
  */
 export function bend(x: number, y: number): [number, number] {
   const side = (x - SQUARE.w / 2) / (SQUARE.w / 2);
-  const up = Math.max(0, (SQUARE.h - y) / SQUARE.h);
+  const up = Math.max(0, (SQUARE.fold - y) / SQUARE.fold);
   return [x + (x - SQUARE.w / 2) * SQUARE.splay * up * up, y + SQUARE.bow * side * side * Math.min(1, up * 1.6)];
 }
 

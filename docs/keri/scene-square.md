@@ -36,7 +36,8 @@ The world model's buildings (`content/world/keri.json`), which agree with the pu
 ## What is open
 
 - TODO(builder, R2): pressing the pier walks to the port (`squarePlan().pier` is its box in fine pixels); the scene has no exit yet.
-- TODO(painter, R2): scenes lose the band (ft_1_20), so the picture is to fill the screen's full height in place of today's 124 rows. Repaint the square at that height once the band's rework is in: everything that can be pressed lies in the upper two thirds, and the near foreground runs down to the screen's foot.
+- The picture is 180 rows tall, a scene's whole main area once the band is gone (ft_1_20); the other scenes are still 124. What is pressed lies in its upper 124 rows, and the near foreground (the lighthouse's foot, boulders, a crate and barrels by the shed, in the near shade) runs down to the screen's foot. While the band is still drawn it covers the lower 56 rows.
+- TODO(painter, R2): the near foreground of the taller picture is a first pass: the big near slabs, the crate and the boulders want the finish the rest has.
 - TODO(painter, R3): what stands still (`sceneLiving.ts`): the far sea, the pennants on the string, the grass on the brow.
 - KERI-TODO: the real colours of the cinema house and of the side building, and what stands on the real square, if the painted plaza should follow them.
 - NEEDS-HUMAN: the look of the scene in the game on the laptop; the level it opens at (2 is AX-3 provisional).
