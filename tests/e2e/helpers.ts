@@ -120,14 +120,32 @@ export async function toPieceList(page: Page): Promise<void> {
   await waitForScene(page, 'menu');
 }
 
-/** The index of the button with this label on a scene shown now, or -1. */
+/**
+ * The index of the button with this label on a scene shown now, or -1. A label that is not on the screen may be an option
+ * of the bubble (ft_1_20, d282): the bubble is opened from More (as a player would press it) and its options are looked at too.
+ */
 export async function sceneButton(page: Page, sceneKey: string, label: string): Promise<number> {
-  // a band cell cuts a long word short and keeps it whole in its tooltip (ft_1_20), so the label and tooltip count too
-  return page.evaluate(
+  // a cell keeps its whole word in its tooltip too, so the label and tooltip count
+  const find = () => page.evaluate(
     ({ key, text }) => (window.__game.scene.getScene(key).buttons as { objects: { text?: string }[]; options: { label: string; tooltip?: string } }[])
       .findIndex((b) => b.objects.some((o) => o.text === text) || b.options.label === text || b.options.tooltip === text),
     { key: sceneKey, text: label },
   );
+  const found = await find();
+  if (found >= 0) return found;
+  const opened = await openBubbleFromMore(page, sceneKey);
+  return opened ? find() : -1;
+}
+
+/** Press More on the scene's strip, as a player would, when it has one; true when the bubble opened. */
+export async function openBubbleFromMore(page: Page, sceneKey: string): Promise<boolean> {
+  const more = await page.evaluate(
+    (key) => (window.__game.scene.getScene(key).buttons as { options: { label: string } }[]).findIndex((b) => b.options.label === 'More' || b.options.label === 'Veel'),
+    sceneKey,
+  );
+  if (more < 0) return false;
+  await clickButton(page, sceneKey, more);
+  return page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as { bubbleIsOpen: boolean }).bubbleIsOpen, sceneKey);
 }
 
 /**
@@ -483,12 +501,9 @@ export async function letGameRun(page: Page, frames: number, ms = 0): Promise<vo
   if (left > 0) await page.waitForTimeout(left);
 }
 
-/** Click the practice screen's button with this label with the real mouse. */
+/** Click the practice screen's button with this label with the real mouse (a pinned action, or an option of the bubble). */
 export async function pressPracticeButton(page: Page, label: string): Promise<void> {
-  const index = await page.evaluate(
-    (text) => (window.__game.scene.getScene('practice').buttons as { objects: { text?: string }[] }[]).findIndex((b) => b.objects.some((o) => o.text === text)),
-    label,
-  );
+  const index = await sceneButton(page, 'practice', label);
   expect(index, `a button ${label}`).toBeGreaterThanOrEqual(0);
   await clickButton(page, 'practice', index);
 }

@@ -2,8 +2,7 @@ import Phaser from 'phaser';
 import { pagerBoxes } from '../../../core/layout/cardGrid';
 import type { PageSlice } from '../../../core/layout/paging';
 import { ART_DETAIL, FRAME_ROWS, VINE_ROWS, frameCorners, frameView, toolbarLayout, type FrameView } from '../../../core/layout/frame';
-import { wheelChoice } from '../../../core/layout/band';
-import { BUBBLE_SLOTS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows } from '../../../core/layout/bubble';
+import { BUBBLE_SLOTS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, wheelChoice } from '../../../core/layout/bubble';
 import type { PixelView } from '../../../core/layout/pixelView';
 import { rectCentre, type Rect } from '../../../core/layout/rect';
 import { dropMenuLayout } from '../../../core/layout/dropMenu';
@@ -953,6 +952,11 @@ export abstract class PixelScene extends Phaser.Scene {
   /** A status picture left of the gear (the piano on the practice screen): lit while all is well, what it means in its tooltip; none by default. */
   protected cornerStatus(): { label: string; icon: Bitmap; lit: boolean } | null {
     return null;
+  }
+
+  /** The strip's rows on this screen (none without a strip). */
+  protected get stripHeight(): number {
+    return this.screenFrame.band?.rows ?? 0;
   }
 
   /** Whether the screen has a bubble (More is then drawn at the end of the strip's left group). */

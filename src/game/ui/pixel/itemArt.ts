@@ -287,7 +287,8 @@ export function signOnly(picture: Bitmap, maxWidth: number, maxHeight: number): 
     const x = i % picture.width, y = Math.floor(i / picture.width);
     [x0, y0, x1, y1] = [Math.min(x0, x), Math.min(y0, y), Math.max(x1, x + 1), Math.max(y1, y + 1)];
   });
-  if (x1 <= x0) return picture;
+  // a blank scrap (no dynamic) has no sign: nothing is drawn
+  if (x1 <= x0) return createBitmap(1, 1);
   const k = Math.min(1, maxWidth / (x1 - x0), maxHeight / (y1 - y0));
   const out = createBitmap(Math.max(1, Math.round((x1 - x0) * k)), Math.max(1, Math.round((y1 - y0) * k)));
   for (let y = 0; y < out.height; y++) {

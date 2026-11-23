@@ -123,3 +123,21 @@ export function pinFlow(input: { spans: readonly number[]; width?: number; main?
   placed.sort((a, b) => a.rect.x - b.rect.x);
   return { placed, toBubble };
 }
+
+/**
+ * The wheel over a strip cell with choices (ft_1_20.AC16, such as the piece maker's writer): the index of the next choice that can be picked,
+ * down the list for a wheel turned toward the person (`dy` > 0), up for away; null at the end (no wrap, as the length wheel).
+ * With no choice lit it takes the first that can be picked.
+ */
+export function wheelChoice(choices: readonly ({ active?: boolean; disabled?: boolean } | null)[], dy: number): number | null {
+  if (dy === 0) return null;
+  const pickable = (i: number) => choices[i] !== null && choices[i] !== undefined && !choices[i].disabled;
+  const at = choices.findIndex((c) => c?.active);
+  if (at < 0) {
+    const first = choices.findIndex((_, i) => pickable(i));
+    return first < 0 ? null : first;
+  }
+  const step = dy > 0 ? 1 : -1;
+  for (let i = at + step; i >= 0 && i < choices.length; i += step) if (pickable(i)) return i;
+  return null;
+}

@@ -361,7 +361,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
     expectNoErrors(errors);
   });
 
-  test('the band\'s cells do not overlap, with a section and the BPM of Tempo mode (ft_1_20.AC1)', async ({ page }) => {
+  test('the strip\'s cells do not overlap and none is cut off, with a section and the BPM of Tempo mode (ft_1_20.AC18)', async ({ page }) => {
     const errors = await openGame(page);
     await page.evaluate(() => window.__game.registry.get('context').profiles.updatePlaySettings({ mode: 'tempo' }));
     await openPiece(page, 'Little Steps');
@@ -376,7 +376,8 @@ test.describe('practice tools (core_02 and core_03)', () => {
       const rects = scene.buttons.map((b: { rect: { x: number; y: number; width: number; height: number } }) => b.rect).filter((r: { y: number }) => r.y >= (scene.px.height as number));
       return { width: scene.px.width as number, rects: rects as { x: number; y: number; width: number; height: number }[] };
     });
-    expect(band.rects.length).toBeGreaterThanOrEqual(9);
+    // Listen, Start again, the mode, slower, the tempo, faster and More
+    expect(band.rects.length).toBeGreaterThanOrEqual(7);
     for (const [i, a] of band.rects.entries()) {
       expect(a.x + a.width, `cell ${i}`).toBeLessThanOrEqual(band.width);
       for (const b of band.rects.slice(i + 1)) expect(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y, `cells ${i}`).toBe(true);

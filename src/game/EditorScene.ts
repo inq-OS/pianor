@@ -3,7 +3,6 @@ import { repeatAround, toggleRepeatEnd, toggleRepeatStart } from '../core/editor
 import { mouseAction, type MouseAction } from '../core/editor/mouse';
 import { HELP_CARDS, KEY_CAP, KEY_TOUR, type HeldKey, type KeyTourSpot } from '../core/editor/help';
 import { helpGridLayout } from '../core/layout/helpCards';
-import { BAND_ROWS } from '../core/layout/band';
 import type { Rect } from '../core/layout/rect';
 import { moveBar, moveInTime, movePitch, otherStaff, startKeyCursor, withPitch, type KeyCursor } from '../core/editor/keyCursor';
 import { nextLength } from '../core/editor/nextLength';
@@ -1203,7 +1202,7 @@ export class EditorScene extends PixelScene {
     const fromScreen = (x1: number, y1: number, x2: number, y2: number): Rect => ({ x: Math.floor(x1 / scale), y: Math.floor(y1 / scale), w: Math.ceil((x2 - x1) / scale), h: Math.ceil((y2 - y1) / scale) });
     if (spot === 'band') {
       const bandTop = this.bandTop;
-      if (this.bandShown && bandTop !== null) return { x: 0, y: this.mainTopRows + bandTop, w: this.px.width, h: BAND_ROWS };
+      if (this.bandShown && bandTop !== null) return { x: 0, y: this.mainTopRows + bandTop, w: this.px.width, h: this.stripHeight };
       return { x: 0, y: this.mainTopRows, w: this.px.width, h: OPTIONS };
     }
     const c = this.keyCursor;
