@@ -1,4 +1,4 @@
-// Covers ft_1_32.AC4, ft_1_32.AC5, ft_1_32.AC6, ft_1_32.AC11, ft_1_32.AC12, ft_1_32.AC13, ft_1_32.AC14, ft_1_32.AC16, ft_1_32.AC17.
+// Covers ft_1_32.AC4, ft_1_32.AC5, ft_1_32.AC6, ft_1_32.AC11, ft_1_32.AC12, ft_1_32.AC13, ft_1_32.AC14, ft_1_32.AC16, ft_1_32.AC17, ft_1_32.AC18.
 import { expect, test, type Page } from '@playwright/test';
 import { clickButton, clickToolbar, expectNoErrors, sceneTexts, isPieceLabel, menuLabels, letGameRun, openGame, openPiece, playWithKeys, sceneButton, showMenuPageWith, waitForScene } from './helpers';
 
@@ -135,12 +135,16 @@ test('ft_1_32.AC12 a two-hand piece is learned with both hands together by defau
   expectNoErrors(errors);
 });
 
-test('ft_1_32.AC12 with hands apart chosen, a two-hand piece is learned hands apart: one staff for the right hand first', async ({ page }) => {
+test('ft_1_32.AC12 ft_1_32.AC18 with hands apart chosen, the right hand is learned first, the left hand\'s staff shown grey and not awaited', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
   await page.evaluate(() => window.__game.registry.get('context').profiles.updateLearnSettings({ handsApart: true }));
   await learnPiece(page, 'Both Hands');
   expect(await kiurSays(page)).toBe('Bar 1, right hand alone: every note right');
   expect(await playStaves(page)).toEqual(['RH']);
+  // both staves are drawn, the resting left hand's marked so the view greys it
+  const staves = await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { layout: { systems: { staves: { clef: string; resting?: boolean }[] }[] } } })
+    .playSession.layout.systems[0]!.staves.map((st) => [st.clef, st.resting === true]));
+  expect(staves).toEqual([['treble', false], ['bass', true]]);
   await playWithKeys(page, (await shown(page)).midis);
   await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toBe('Every note right! Bar 1, left hand alone: every note right');
   expectNoErrors(errors);

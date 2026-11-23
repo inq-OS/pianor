@@ -81,6 +81,15 @@ export class LearnSession {
     return handChart(sliceChart(this.piece, this.run.firstBar, this.run.lastBar), this.run.step.hand);
   }
 
+  /**
+   * The tracks of the hand that rests in a hand step (ft_1_32.AC18): drawn grey on their own staff, so both hands are read,
+   * and never awaited. None outside a hand step.
+   */
+  get restingTracks(): string[] {
+    const hand = this.run.step.hand;
+    return hand === undefined ? [] : this.piece.tracks.filter((t) => t.role === 'play' && t.hand !== hand).map((t) => t.id);
+  }
+
   /** Whether the note names must stay off for this run (the run after one with names shown). */
   get namesHidden(): boolean {
     return this.run.noteNames === 'hidden';

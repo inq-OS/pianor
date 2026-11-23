@@ -172,6 +172,8 @@ describe('LearnSession', () => {
     const session = LearnSession.open(profileOf, both, '1998-11-22')!;
     expect(session.run.step.hand).toBe('RH');
     expect(session.chart.tracks.filter((t) => t.role === 'play').map((t) => t.hand)).toEqual(['RH']);
+    // ft_1_32.AC18 the left hand rests: its staff is drawn grey and not awaited
+    expect(session.restingTracks).toEqual(both.tracks.filter((t) => t.hand === 'LH').map((t) => t.id));
     expect(session.startLine()).toBe('Bar 1, right hand alone: every note right');
     await session.finish('perfect');
     expect(kept.progress.handsApart).toBe(true);

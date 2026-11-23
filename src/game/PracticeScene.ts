@@ -432,6 +432,7 @@ export class PracticeScene extends PixelScene {
       keyboard: this.guarded,
       hints: this.hints,
       chordFingers: contextOf(this).profiles.chordFingers,
+      ...(this.learn && this.learn.restingTracks.length > 0 ? { restingTracks: this.learn.restingTracks } : {}),
       ...(play.mode === 'tempo' ? { tempo: this.tempoOptions(play) } : {}),
       callbacks: {
         onJudged: (event, state) => this.onJudged(event, state),
