@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, describe, expect, it } from 'vitest';
 import { collectItems, groupOf, itemsOf, renderHumanBoard } from './humanBoard';
 
 describe('the board of what waits on the maintainer', () => {
@@ -22,12 +25,19 @@ describe('the board of what waits on the maintainer', () => {
     expect(groupOf('lamps at dusk: one house rule, or each scene\'s choice?')).toBe('other');
   });
 
-  it('finds the real tags of the repository and links each to its line', () => {
-    const items = collectItems('.');
-    expect(items.some((i) => i.file === 'docs/features/core_08-difficulty-estimator.md' && i.group === 'outside')).toBe(true);
+  it('finds the tags under docs and projects of a repository, in file order, and links each to its line', () => {
+    const root = mkdtempSync(join(tmpdir(), 'pianor-human-'));
+    afterAll(() => rmSync(root, { recursive: true, force: true }));
+    mkdirSync(join(root, 'docs', 'features'), { recursive: true });
+    mkdirSync(join(root, 'projects', 'painter'), { recursive: true });
+    writeFileSync(join(root, 'docs', 'features', 'f.md'), '# F\n\n- NEEDS-HUMAN: request the CIPI files.\n');
+    writeFileSync(join(root, 'projects', 'painter', 'n.md'), '- NEEDS-HUMAN: look at it on the laptop.\n');
+    writeFileSync(join(root, 'docs', 'skip.txt'), '- NEEDS-HUMAN: not Markdown.\n');
+    const items = collectItems(root);
+    expect(items.map((i) => `${i.file}:${i.line} ${i.group}`)).toEqual(['docs/features/f.md:3 outside', 'projects/painter/n.md:1 laptop']);
     const html = renderHumanBoard(items, 'https://github.com/o/r');
-    expect(html).toContain(`${items.length} item(s)`);
-    expect(html).toContain('https://github.com/o/r/blob/main/docs/features/core_08-difficulty-estimator.md#L');
+    expect(html).toContain('2 item(s)');
+    expect(html).toContain('https://github.com/o/r/blob/main/docs/features/f.md#L3');
     expect(html.indexOf('id="outside"')).toBeLessThan(html.indexOf('id="laptop"'));
   });
 
