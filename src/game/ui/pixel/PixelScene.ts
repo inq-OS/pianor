@@ -1462,6 +1462,9 @@ export abstract class PixelScene extends Phaser.Scene {
     this.rebuild();
   }
 
+  /** True while `rebuild` frames the screen a second time (its strip was set while it drew). */
+  private reframing = false;
+
   private rebuild(): void {
     const previous = this.lastFocusRect;
     this.teardown();
@@ -1478,6 +1481,16 @@ export abstract class PixelScene extends Phaser.Scene {
     this.loading = false;
     this.draw();
     this.inkWriting = false;
+    // a screen that sets its actions while it draws (the score screen) is framed again once its strip is known
+    if (cells !== null && !this.reframing && pinRows(this.stripCells().length) !== pinRows(cells.length)) {
+      this.reframing = true;
+      try {
+        this.rebuild();
+      } finally {
+        this.reframing = false;
+      }
+      return;
+    }
     if (this.framed) this.drawFrame();
     if (this.keyboardNavigation) {
       this.focusIndex = refocus(previous, this.focusables().map((b) => ({ ...b.rect, disabled: b.disabled })));
