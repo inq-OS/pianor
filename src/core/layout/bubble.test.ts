@@ -15,7 +15,12 @@ describe('the bubble (ft_1_20, d282)', () => {
       expect(o.h).toBeGreaterThanOrEqual(15);
       expect(inside(o)).toBe(true);
     }
-    for (let i = 0; i < b.options.length; i++) for (let j = i + 1; j < b.options.length; j++) expect(overlap(b.options[i]!, b.options[j]!)).toBe(false);
+    // two cells at least between neighbours, and none over the Close target in the centre
+    const grown = (r: Rect): Rect => ({ x: r.x - 1, y: r.y - 1, w: r.w + 2, h: r.h + 2 });
+    for (let i = 0; i < b.options.length; i++) {
+      expect(overlap(b.options[i]!, b.close)).toBe(false);
+      for (let j = i + 1; j < b.options.length; j++) expect(overlap(grown(b.options[i]!), grown(b.options[j]!))).toBe(false);
+    }
     // slot 0 is straight above the centre, slot 2 to its right, slot 4 below, slot 6 to its left
     const mid = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
     expect(mid(b.options[0]!).x).toBeCloseTo(b.centre.x, 0);
@@ -83,11 +88,11 @@ describe('the pinned strip (ft_1_20, d282)', () => {
   });
 
   it('ft_1_20.AC21 lays the pinned actions left to right in their order; those that do not fit go to the bubble', () => {
-    const flow = pinFlow({ spans: [2, 2, 1, 2] });
+    const flow = pinFlow({ spans: [2, 2, 3, 2] });
     expect(flow.placed).toEqual([
       { action: 0, rect: flow.placed[0]!.rect, span: 2 },
       { action: 1, rect: flow.placed[1]!.rect, span: 2 },
-      { action: 2, rect: flow.placed[2]!.rect, span: 1 },
+      { action: 2, rect: flow.placed[2]!.rect, span: 3 },
     ]);
     expect(flow.toBubble).toEqual([3]);
     for (const p of flow.placed) {
@@ -95,5 +100,14 @@ describe('the pinned strip (ft_1_20, d282)', () => {
       expect(rectBottom(p.rect)).toBeLessThanOrEqual(PIN_ROWS);
     }
     for (let i = 1; i < flow.placed.length; i++) expect(flow.placed[i]!.rect.x).toBeGreaterThan(rectRight(flow.placed[i - 1]!.rect));
+  });
+
+  it('ft_1_20.AC21 the main action stands at the right end of the strip on every screen, the rest from the left', () => {
+    for (const width of [320, 427]) {
+      const flow = pinFlow({ spans: [1, 1], width, main: 1 });
+      expect(flow.placed.map((p) => p.action)).toEqual([0, 1]);
+      expect(rectRight(flow.placed[1]!.rect)).toBe(width - 2);
+      expect(flow.placed[0]!.rect.x).toBe(2);
+    }
   });
 });
