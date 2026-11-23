@@ -3,7 +3,7 @@ id: "ft_1_35"
 title: "Autotrainer"
 scope: "One tool that trains a whole piece to its tempo with no bar left behind: it plays the piece through in the clock that follows the student, sends a bar with a wrong note into a short loop until it is clean and then goes on from that bar, brings in the metronome and the beat helpers to walk the student through a bar that clearly loses the pace, raises the tempo only when every bar holds at the current one, and learns the piece bar by bar first when it is new; a practice tool, not part of the game"
 effort: "large"
-status: "designed, not started"
+status: "designed, held until the maintainer starts it"
 completeness: 0
 depends_on: ["ft_1_32", "core_01", "core_02", "core_03", "core_08", "core_10", "core_13", "ft_Y_06"]
 ---
@@ -53,7 +53,9 @@ AX-0: every lap is read from the staff and played; a mistake is fixed at once, s
 
 ## TODO
 
-- TODO(builder, R2): slice 1, the pure core (a new src/core/autotrain), test first.
-- TODO(builder, R2): slices 2 to 5 in order, after slice 1; the button takes its place in the band with the band's item model (ft_1_20).
-- TODO(architect, R2): set `AUTOTRAIN_RULES` from the student's first runs, with the learning numbers of ft_1_32.
+Building waits for the maintainer's word, given once the core features are polished; no slice starts before it.
+
+- TODO(builder, Later): slice 1, the pure core (a new src/core/autotrain), test first.
+- TODO(builder, Later): slices 2 to 5 in order, after slice 1; the button takes its place in the band with the band's item model (ft_1_20).
+- TODO(architect, Later): set `AUTOTRAIN_RULES` from the student's first runs, with the learning numbers of ft_1_32.
 - NEEDS-HUMAN: try the autotrainer on one learned piece on the real keyboard: does the fix feel short enough, and does the walk come in when it should?
