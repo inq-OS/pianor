@@ -1,6 +1,6 @@
 # Architect
 
-The architect is one Claude project that holds the direction of the game: the barrel (every area of the game at a similar level, d279), the axioms ([axioms.md](../axioms.md)), design answers, and deleting what nobody used ([work-model.md](../automation/work-model.md), d153). It brings the maintainer only taste calls the axioms do not decide.
+The architect is one Claude project that holds the direction of the game: the barrel (every area of the game at a similar level, d283), the axioms ([axioms.md](../axioms.md)), design answers, and deleting what nobody used ([work-model.md](../automation/work-model.md), d153). It brings the maintainer only taste calls the axioms do not decide.
 
 | File | What |
 |---|---|

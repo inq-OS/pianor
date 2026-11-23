@@ -1,4 +1,4 @@
-// Covers ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
+// Covers ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
 import { readFileSync } from 'node:fs';
 import { encode as encodePng } from 'fast-png';
 import { expect, test, type Page } from '@playwright/test';
@@ -217,6 +217,15 @@ test.describe('piece editor (preliminary)', () => {
     await pressSignature(page, 'time');
     await expect.poll(() => panelOf(page)).toBe(null);
     expect(await barStep(page, '+')).toBeGreaterThanOrEqual(0);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_29.AC4 a note selected in a column of C, E and G names the chord, C', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    for (const step of ['C', 'E', 'G'] as const) await clickNote(page, 0, 0, step);
+    await selectNote(page, 0, 0, 'E');
+    await expect.poll(() => status(page)).toContain('Chord: C');
     expectNoErrors(errors);
   });
 
@@ -1146,6 +1155,41 @@ test.describe('slim tool row with menus', () => {
     await page.keyboard.press('Control+KeyC');
     await page.keyboard.press('Control+KeyV');
     expect((await notes(page)).sort()).toEqual(['0:0:E:quarter', '1:0:G:quarter', '2:0:E:quarter', '3:0:G:quarter']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC24 the grip at the selection\'s right edge, dragged three bar lengths right, puts in three copies, and one Ctrl+Z takes them out', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'E');
+    await clickNote(page, 1, 0, 'G');
+    await selectNote(page, 0, 0, 'E');
+    await selectNote(page, 0, 0, 'E', 4, ['Shift']);
+    expect(await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { barSel: unknown }).barSel)).toEqual({ from: 0, to: 0 });
+    // the grip: centred on the right edge of the selection's last bar, halfway down the grand staff
+    const grip = await page.evaluate(() => {
+      type Layout = { staffSpace: number; bars: { x: number; width: number; system: number }[]; systems: { staves: { topLineY: number; bottomLineY: number }[] }[] };
+      const scene = window.__game.scene.getScene('editor') as unknown as { layout: Layout; staffLeft: number; staffTop: number };
+      const bar = scene.layout.bars[0]!;
+      const staves = scene.layout.systems[bar.system]!.staves;
+      const middle = (Math.min(...staves.map((s) => s.topLineY)) + Math.max(...staves.map((s) => s.bottomLineY))) / 2;
+      const canvas = document.querySelector('canvas')!;
+      const rect = canvas.getBoundingClientRect();
+      const x = scene.staffLeft + bar.x + bar.width;
+      const y = scene.staffTop + middle;
+      return { x: rect.left + (x / canvas.width) * rect.width, y: rect.top + (y / canvas.height) * rect.height };
+    });
+    const to = await canvasPoint(page, { bar: 3, start: 480, step: 'B' });
+    await page.mouse.move(grip.x, grip.y);
+    await page.mouse.down();
+    await page.mouse.move((grip.x + to.x) / 2, to.y, { steps: 4 });
+    await page.mouse.move(to.x, to.y, { steps: 4 });
+    await expect.poll(() => status(page)).toContain('3 copies');
+    await page.mouse.up();
+    // three copies of bar 0 right after it; the G moves on to bar 4
+    expect((await notes(page)).sort()).toEqual(['0:0:E:quarter', '1:0:E:quarter', '2:0:E:quarter', '3:0:E:quarter', '4:0:G:quarter']);
+    await page.keyboard.press('Control+KeyZ');
+    expect((await notes(page)).sort()).toEqual(['0:0:E:quarter', '1:0:G:quarter']);
     expectNoErrors(errors);
   });
 

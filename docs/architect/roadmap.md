@@ -2,7 +2,7 @@
 
 ## The barrel
 
-The game is a barrel: it holds only as much as its shortest stave (d279). Each area of the game has a level, the mean `completeness` of its features (`docs/features/FEATURES.md`), lowest first; how it feels in play can rank an area lower than its number. What comes next is raising the shortest stave the maintainer feels in play, chosen with the maintainer, never a fixed goal for a week.
+The game is a barrel: it holds only as much as its shortest stave (d283). Each area of the game has a level, the mean `completeness` of its features (`docs/features/FEATURES.md`), lowest first; how it feels in play can rank an area lower than its number. What comes next is raising the shortest stave the maintainer feels in play, chosen with the maintainer, never a fixed goal for a week.
 
 | Area | Features | Level | What holds it back |
 |---|---|---|---|

@@ -20,6 +20,8 @@ import { ProfilesScene } from './game/ProfilesScene';
 import { ProfileDashboardScene } from './game/ProfileDashboardScene';
 import { NoteTrainerScene } from './game/NoteTrainerScene';
 import { EarTrainerScene } from './game/EarTrainerScene';
+import { ShapeTrainerScene } from './game/ShapeTrainerScene';
+import { ChordTrainerScene } from './game/ChordTrainerScene';
 import { AdminScene } from './game/AdminScene';
 import { NameScene } from './game/NameScene';
 import { PartsScene } from './game/PartsScene';
@@ -103,7 +105,7 @@ async function startGame(): Promise<void> {
     ...(appConfig.flags.timerLoop ? { fps: { forceSetTimeOut: true, target: 60, panicMax: 0 } } : {}),
     // sized by `fitGame` below in physical pixels, not by Phaser's RESIZE mode (which uses CSS pixels)
     scale: { mode: Phaser.Scale.NONE },
-    scene: [BootScene, MenuScene, ProfilesScene, ProfileDashboardScene, NoteTrainerScene, EarTrainerScene, AdminScene, AdminGateScene, AdminPagesScene, AdminPasswordScene, AdminDeleteScene, TeacherScene, TeacherPieceScene, TeacherTestsScene, TeacherGateScene, TeacherPasswordScene, NameScene, PartsScene, CreditsScene, SettingsScene, PiecesScene, AnalyzeScene, LearnStatsScene, PracticeScene, ResultsScene, EditorScene, StaffDemoScene, ArtDemoScene, KiurDoorScene, IntroScene, CircleOfFifthsScene, KeriMapScene, ...adventureScenes()],
+    scene: [BootScene, MenuScene, ProfilesScene, ProfileDashboardScene, NoteTrainerScene, EarTrainerScene, ShapeTrainerScene, ChordTrainerScene, AdminScene, AdminGateScene, AdminPagesScene, AdminPasswordScene, AdminDeleteScene, TeacherScene, TeacherPieceScene, TeacherTestsScene, TeacherGateScene, TeacherPasswordScene, NameScene, PartsScene, CreditsScene, SettingsScene, PiecesScene, AnalyzeScene, LearnStatsScene, PracticeScene, ResultsScene, EditorScene, StaffDemoScene, ArtDemoScene, KiurDoorScene, IntroScene, CircleOfFifthsScene, KeriMapScene, ...adventureScenes()],
   });
   game.registry.set(CONTEXT_KEY, context);
   debug?.watch(game, inputs.keyboard);

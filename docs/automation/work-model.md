@@ -12,7 +12,7 @@ The measure of all work is what the student plays, not what the process produces
 
 ## The barrel
 
-1. **Raise the shortest stave** (d279): every area of the game is kept at a similar level, and the next work is the area that lags most in play, picked with the maintainer when they feel it, not a fixed weekly goal. The levels are at the top of [roadmap.md](../architect/roadmap.md). When the maintainer pivots to another area, the work follows; nothing queued is pushed as the current focus.
+1. **Raise the shortest stave** (d283): every area of the game is kept at a similar level, and the next work is the area that lags most in play, picked with the maintainer when they feel it, not a fixed weekly goal. The levels are at the top of [roadmap.md](../architect/roadmap.md). When the maintainer pivots to another area, the work follows; nothing queued is pushed as the current focus.
 2. **Playtest notes show which stave is short:** three lines, what worked, what bored, what broke, kept in the gitignored `private/playtests/` (never committed).
 3. **Work items** are tags in the doc they belong to: `TODO(builder)`, `TODO(painter)`, `NEEDS-HUMAN` ([todo-tags.md](todo-tags.md)). The maintainer's issues are taken as they are; no triage, no dispatch labels. A part of a feature is named by its feature id and slice (d275).
 4. **Builder and painter talk through the code**: a tag in the feature file, or a line in the pull request. No mailboxes.

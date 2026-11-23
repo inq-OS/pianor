@@ -95,6 +95,24 @@ describe('sliceChart with grace notes (core_09.AC32)', () => {
   });
 });
 
+describe('sliceChart with slurs (core_09.AC26)', () => {
+  const slur = (startTick: number, endTick: number) => ({ track: 'rh', voice: 1, startTick, endTick });
+  // C4 quarters in bars 1 to 3; one slur in bar 1, one from bar 2 into bar 3
+  const slurred = chartWith([0, 480, 1920, 2400, 3840, 4320].map((tick) => ({ tick, dur: 480, midi: 60 })), { slurs: [slur(0, 480), slur(2400, 3840)] });
+
+  it('core_09.AC26 a section of a piece with slurs is a valid chart: a slur inside it is moved, one it cuts is left out', () => {
+    expect(sliceChart(slurred, 0, 0).slurs).toEqual([slur(0, 480)]);
+    expect(sliceChart(slurred, 1, 1).slurs).toEqual([]);
+    expect(sliceChart(slurred, 1, 2).slurs).toEqual([slur(480, 1920)]);
+    expect(sliceChart(slurred, 2, 2).slurs).toEqual([]);
+    expect(sliceChart(slurred, 0, 2).slurs).toEqual(slurred.slurs);
+  });
+
+  it('keeps a chart without slurs without the field (core_09.AC26)', () => {
+    expect(sliceChart(chartWith([{ tick: 0, dur: 480, midi: 60 }]), 0, 0)).not.toHaveProperty('slurs');
+  });
+});
+
 describe('sectionHasNotes', () => {
   // bar 0: a note, bar 1: nothing (rests), bar 2: only the accompaniment, bar 3: a left-hand note
   const chart = chartWith([

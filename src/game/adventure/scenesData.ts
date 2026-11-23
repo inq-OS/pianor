@@ -1,7 +1,7 @@
 import { sceneDataSchema, type SceneData } from '../../core/scene/scene';
 import { actorDefSchema, type ActorDef } from '../../core/scene/actor';
 import { scriptSchema, type Script } from '../../core/scene/script';
-import { characterDefSchema, type CharacterDef } from '../../core/character/character';
+import { characterDefSchema, phrasePieceCharacters, type CharacterDef } from '../../core/character/character';
 import { conversationSchema, type Conversation } from '../../core/dialogue/conversation';
 import { parseTugRules, type TugRules } from '../../core/exchange/tug';
 import tugRulesJson from '../../../content/challenge/rules.json';
@@ -39,6 +39,9 @@ export const CHARACTERS: ReadonlyMap<string, CharacterDef> = new Map(Object.valu
   const character = characterDefSchema.parse(raw);
   return [character.id, character];
 }));
+
+/** The characters' phrase pieces, by piece id: the character that teaches each. */
+export const CHARACTER_PIECES = phrasePieceCharacters(CHARACTERS.values());
 
 /** Every conversation of `content/conversations/` by its id, validated once (ft_1_22.AC1; the linter runs in a unit test). */
 export const CONVERSATIONS: ReadonlyMap<string, Conversation> = new Map(Object.values(conversationFiles).map((raw) => {

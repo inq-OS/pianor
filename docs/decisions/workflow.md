@@ -159,7 +159,7 @@ Check: `tools/docs/ledger.test.ts` "reads one item per entry with its id, title,
 
 ## d153
 
-**Lean: a builder and a painter, an architect that sets one playable goal a week; no work packages, mailboxes, board, scan or triage.** Features: none. The weekly goal changed by d279.
+**Lean: a builder and a painter, an architect that sets one playable goal a week; no work packages, mailboxes, board, scan or triage.** Features: none. The weekly goal changed by d283.
 
 One builder builds a feature top to bottom, the painter owns how screens look, and the architect keeps one weekly thread ([work-model.md](../automation/work-model.md)). There are no work packages, mailboxes, daily scan, board, triage or dispatch labels, friction or decision logs, or dated reviews; the axioms, CLAUDE.md, feature files, tests and CI, the decision ledgers and flags over long branches (d147) are the process. New process only after the same thing broke twice. Every code pull request gets a fresh `reviewer` agent as a second reader before it merges (d166, [labels.md](../architect/labels.md)).
 
@@ -271,9 +271,9 @@ Check: untestable: label discipline on GitHub, checked by the reviewer and the m
 
 ## d199
 
-**The architect writes one playable goal at the top of `docs/architect/roadmap.md` each week, deletes once a month what nobody read or used, and keeps the roadmap ordered by gates with no dates.** Features: none. The weekly goal and the weekly run superseded by d279; the monthly deletion and the gates still hold.
+**The architect writes one playable goal at the top of `docs/architect/roadmap.md` each week, deletes once a month what nobody read or used, and keeps the roadmap ordered by gates with no dates.** Features: none. The weekly goal and the weekly run superseded by d283; the monthly deletion and the gates still hold.
 
-The weekly run (retired by d279) wrote the goal in play terms with the two or three tags it needs, deletes one unused thing in the same docs-only pull request and asks the maintainer at most one question the axioms do not decide. Releases R1 to R5 and `Later pool` follow order and gates, a milestone and the roadmap change together, roadmap questions are the architect's, and when the week's goal and a maintainer's issue collide the goal wins (`docs/automation/work-model.md`, `docs/architect/roadmap.md`).
+The weekly run (retired by d283) wrote the goal in play terms with the two or three tags it needs, deletes one unused thing in the same docs-only pull request and asks the maintainer at most one question the axioms do not decide. Releases R1 to R5 and `Later pool` follow order and gates, a milestone and the roadmap change together, roadmap questions are the architect's, and when the week's goal and a maintainer's issue collide the goal wins (`docs/automation/work-model.md`, `docs/architect/roadmap.md`).
 
 Check: untestable: the architect's routine and roadmap upkeep, judged by the maintainer
 
@@ -517,7 +517,7 @@ Adds to d166: code needs a fresh `reviewer` run with `VERDICT: APPROVE` and gree
 
 Check: untestable: a merge rule for threads and a repository setting
 
-## d279
+## d283
 
 **Work raises the shortest stave: every area of the game is kept at a similar level, and the next work is the area that lags most in play, chosen with the maintainer; there is no weekly goal.** Features: none.
 

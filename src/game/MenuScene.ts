@@ -10,8 +10,8 @@ import { groupsOf, piecesInShownGroups, piecesThatAreOn, PIECE_GROUPS, type Piec
 import { curriculumMark, type CurriculumMark } from '../core/curriculum/bookMark';
 import { dayNumber } from '../core/curriculum/evaluate';
 import type { Medal } from '../core/curriculum/play';
-import { phrasePieceCharacters } from '../core/character/character';
-import { CHARACTERS } from './adventure/scenesData';
+import { CHARACTER_PIECES } from './adventure/scenesData';
+import { pieceLearned } from '../core/learn/route';
 import { CHARACTER_INK } from './ui/pixel/talkArt';
 import { teacherStatuses } from './teacher/teacherStatuses';
 import { dayString } from '../io/teacher/teacherDesk';
@@ -34,9 +34,12 @@ import { startScene } from './scenes';
 /** Piece maker (from the main menu): the Make list opens directly, with Back to the main menu. Saves no progress. */
 export const MAKER_KEY = 'maker';
 
-/** `forKiur`: the piece picked goes to Kiur the trainer in the room for a tug (ft_1_21.AC14), not to the piano. */
+/**
+ * `forKiur`: the piece picked goes to Kiur, not to the piano: `learn` opens it to be learned bar by bar (ft_1_32 rule 14),
+ * `tug` takes it to the room for his tug (ft_1_21.AC14).
+ */
 export interface MenuData {
-  forKiur?: boolean;
+  forKiur?: 'learn' | 'tug';
 }
 
 const CARD_HEIGHT = 32;
@@ -62,8 +65,6 @@ const FINISHED_HAT: Readonly<Record<Medal | 'none', readonly [number, number, nu
   bronze: [C.orangeLight, C.orange, C.orangeDark],
   none: [C.leafLight, C.leaf, C.leafDark],
 };
-/** The characters' phrase pieces, by piece id: the character that teaches each. */
-const CHARACTER_PIECES = phrasePieceCharacters(CHARACTERS.values());
 /** The group signs, also the filter's pictures in the band. */
 const GROUP_ICON: Readonly<Record<PieceGroup, () => Bitmap>> = { own: () => ICONS.maker, curriculum: hatPicture, character: () => BUBBLE };
 
@@ -123,8 +124,8 @@ export class MenuScene extends PixelScene {
   protected infoClose: PixelButton | null = null;
   /** Piece maker (from the main menu): the Make list is shown, and Back goes to the main menu. Kept across restarts. */
   private maker = false;
-  /** Picking for Kiur the trainer (`MenuData.forKiur`): a piece picked opens his tug in the room. */
-  private forKiur = false;
+  /** Picking for Kiur (`MenuData.forKiur`): a piece picked is learned with him, or taken to the room for his tug. */
+  private forKiur: 'learn' | 'tug' | null = null;
   /** The title line of each piece on this page (and New piece), in reading order: what the wheel moves along. */
   private pieceButtons: PixelButton[] = [];
   /** How the list was cut into pages, as last drawn: the wheel and Page Up / Page Down turn its pages. */
@@ -195,7 +196,7 @@ export class MenuScene extends PixelScene {
   init(data?: MenuData): void {
     this.infoId = null;
     this.maker = this.registry.get(MAKER_KEY) === true && contextOf(this).flags.editor;
-    this.forKiur = data?.forKiur === true && !this.maker;
+    this.forKiur = this.maker ? null : (data?.forKiur ?? null);
     // the piece maker saves nothing for a player: the toolbar shows no name, level or settings
     this.toolbarPlayer = !this.maker;
     if (this.maker) {
@@ -270,8 +271,12 @@ export class MenuScene extends PixelScene {
     // One list (ft_1_12): a card plays its piece, an own piece's pencil opens it in the editor. The piece maker (main
     // menu, no player) lists only own pieces, and a card opens the editor, so nothing is played (and saved) from it.
     const editable = context.flags.editor;
-    const on = this.maker ? offered.filter((p) => p.own) : piecesInShownGroups(piecesThatAreOn(offered, profiles.hiddenPieces), (p) => this.groups(p), this.hiddenGroups);
-    const pieces: (Piece | 'new')[] = editable ? ['new', ...on] : on;
+    const listed = this.maker ? offered.filter((p) => p.own) : piecesInShownGroups(piecesThatAreOn(offered, profiles.hiddenPieces), (p) => this.groups(p), this.hiddenGroups);
+    // picking for Kiur's tug: only the pieces that may be tugged, the learned ones (ft_1_32 rule 15; all with learning off)
+    const tuggable = (p: Piece) => !context.flags.learn || pieceLearned(p.chart, profiles.learnProgressOf(p.chart.id), profiles.learnSettings);
+    const on = this.forKiur === 'tug' ? listed.filter(tuggable) : listed;
+    // a new piece is made from the piano's book only, never while picking for Kiur
+    const pieces: (Piece | 'new')[] = editable && this.forKiur === null ? ['new', ...on] : on;
     this.sky();
 
     // one list for everything (ft_1_12): no mode tabs and no hint
@@ -279,7 +284,8 @@ export class MenuScene extends PixelScene {
     if (!context.savesPersist) this.label(MARGIN, listTop - 1, t('menu.noSave'), C.gold, { shadow: false, maxWidth: width - 2 * MARGIN });
 
     if (pieces.length === 0) {
-      this.label(MARGIN, listTop + 16, t(offered.length > 0 ? 'menu.allOff' : 'menu.noPieces'), C.dim, { maxWidth: width - 2 * MARGIN });
+      const why = this.forKiur === 'tug' && listed.length > 0 ? 'menu.noneLearned' : offered.length > 0 ? 'menu.allOff' : 'menu.noPieces';
+      this.label(MARGIN, listTop + 16, t(why), C.dim, { maxWidth: width - 2 * MARGIN });
       return;
     }
 
@@ -367,7 +373,8 @@ export class MenuScene extends PixelScene {
       x: x - signRoom / 2, y: y - this.cardRow / 4, width: width - signRoom, height: CARD_HEIGHT / 2, label: title, look: 'ink', align: 'left', labelWidth: room,
       onClick: () => {
         if (this.maker) startScene(this, 'editor', { id: piece.chart.id });
-        else if (this.forKiur) startScene(this, 'profile', { kiurTug: piece.chart.id });
+        else if (this.forKiur === 'tug') startScene(this, 'profile', { kiurTug: piece.chart.id });
+        else if (this.forKiur === 'learn') startScene(this, 'practice', { chartId: piece.chart.id, learn: true });
         else startScene(this, 'practice', { chartId: piece.chart.id });
       },
     });
