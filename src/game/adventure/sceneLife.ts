@@ -2,7 +2,7 @@ import type { Rect } from '../../core/layout/rect';
 import { crossroadsPlan, crossroadsView } from '../../core/layout/crossroads';
 import { docksPlan, docksView } from '../../core/layout/docks';
 import { KNOLL_MOON, knollPlan, knollView } from '../../core/layout/knoll';
-import { PORT_AT_LADDER, PORT_LADDER_BERTH, PORT_MOORED, portPlan, portView } from '../../core/layout/port';
+import { PORT_AT_LANDING, PORT_LANDING_BERTH, PORT_MOORED, portPlan, portView } from '../../core/layout/port';
 import { terracePlan, terraceView, TORCH_SPARKS } from '../../core/layout/terrace';
 import type { SceneLook } from '../../core/sky/sceneLook';
 import type { SkyPhase } from '../../core/sky/skyPhase';
@@ -245,10 +245,10 @@ const PORT_LIFE: SceneLife<NonNullable<ReturnType<typeof PAINTED.port.ready>>> =
       return { overlay: { x: boat.x + x, y: boat.y + y, frames: boat.frames }, ms: 0, bob: (time: number) => bobAt(time, k, look.wind, seed), blown: boat.blown };
     }),
     { overlay: picture.front, ms: 0, cover: true },
-    // the fisherman's rowing boat in the near water by the ladder, before the quay
-    ...(PORT_AT_LADDER ? [(() => {
-      const boat = picture.boats[PORT_AT_LADDER];
-      return { overlay: { x: boat.x + PORT_LADDER_BERTH.x, y: boat.y + PORT_LADDER_BERTH.water, frames: boat.frames }, ms: 0, bob: (time: number) => bobAt(time, PORT_MOORED.length, look.wind, seed), blown: boat.blown };
+    // the fisherman's rowing boat in the near water at the low landing, before the quay
+    ...(PORT_AT_LANDING ? [(() => {
+      const boat = picture.boats[PORT_AT_LANDING];
+      return { overlay: { x: boat.x + PORT_LANDING_BERTH.x, y: boat.y + PORT_LANDING_BERTH.water, frames: boat.frames }, ms: 0, bob: (time: number) => bobAt(time, PORT_MOORED.length, look.wind, seed), blown: boat.blown };
     })()] : []),
     { overlay: picture.lamp, ms: 0, level: (time) => glowAt(time, picture.lamp.frames.length, 7) },
   ],

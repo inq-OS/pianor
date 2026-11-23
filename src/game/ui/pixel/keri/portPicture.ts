@@ -1,4 +1,4 @@
-import { BOAT_KINDS, PORT, PORT_AT_LADDER, PORT_LADDER_BERTH, portWaterAt, type BoatKind, type PortPlan } from '../../../../core/layout/port';
+import { BOAT_KINDS, PORT, PORT_AT_LANDING, PORT_LANDING_BERTH, portWaterAt, type BoatKind, type PortPlan } from '../../../../core/layout/port';
 import type { SkyPhase } from '../../../../core/sky/skyPhase';
 import { blit, createBitmap, type Bitmap } from '../bitmap';
 import { cropTogether, type Overlay } from '../pack';
@@ -257,6 +257,8 @@ const RINGS = [150, 312, 470] as const;
  * the water.
  */
 export const PORT_LANDING = { l: 514, r: 600, top: PORT.water - 10, back: 6, face: 9 } as const;
+/** The ring in the quay's face over the low landing, for a small boat's line. */
+const LANDING_RING = { x: PORT_LANDING.l + 24, y: PORT_LANDING.top - 16 } as const;
 /** The row where the landing's foot meets the near water at a column: lumpy, as the quay's is. */
 const landingFoot = (x: number): number => PORT.water + PORT_LANDING.face + Math.round(1.2 * Math.sin(x / 11 + 0.8));
 /** Whether a column is the landing's, its seaward end with it. */
@@ -791,7 +793,7 @@ class PortPainter {
         }
       }
     });
-    this.as(() => this.ring(l + 24, top - 16));
+    this.as(() => this.ring(LANDING_RING.x, LANDING_RING.y));
   }
 
   private bollard(x: number): void {
@@ -1538,13 +1540,13 @@ export function portBoats(plan: PortPlan, phase: SkyPhase): Record<BoatKind, Boa
 
 function boatsOf(p: PortPainter): Record<BoatKind, BoatPicture> {
   const runs = p.boatRuns();
-  return Object.fromEntries(BOAT_KINDS.map((kind) => [kind, paintBoat(kind, runs, kind === PORT_AT_LADDER ? LADDER_TIES : undefined)])) as Record<BoatKind, BoatPicture>;
+  return Object.fromEntries(BOAT_KINDS.map((kind) => [kind, paintBoat(kind, runs, kind === PORT_AT_LANDING ? LANDING_TIES : undefined)])) as Record<BoatKind, BoatPicture>;
 }
 
-/** The boat at the ladder ties its stern back to the ladder's foot and its bow up to the next iron ring in the face beyond it. */
-const LADDER_TIES: BoatTies = {
-  stern: { x: LADDER + 3 - PORT_LADDER_BERTH.x, y: PORT.water - PORT_LADDER_BERTH.water },
-  bow: { x: RINGS[2] - PORT_LADDER_BERTH.x, y: PORT.deck + 22 - PORT_LADDER_BERTH.water },
+/** The boat at the landing ties its stern back to an iron ring in the quay's face and its bow to the ring over the landing. */
+const LANDING_TIES: BoatTies = {
+  stern: { x: RINGS[1] - PORT_LANDING_BERTH.x, y: PORT.deck + 22 - PORT_LANDING_BERTH.water },
+  bow: { x: LANDING_RING.x - PORT_LANDING_BERTH.x, y: LANDING_RING.y - PORT_LANDING_BERTH.water },
 };
 
 /** Where each moored boat's picture goes: at its berth, the berth's point being the boat's stern at the water. */
@@ -1567,7 +1569,7 @@ export function portDeepStill(picture: PortPicture, look = 0): Bitmap {
   return out;
 }
 
-export function portStill(picture: PortPicture, plan: PortPlan, moored: readonly BoatKind[], atLadder: BoatKind | null = PORT_AT_LADDER): Bitmap {
+export function portStill(picture: PortPicture, plan: PortPlan, moored: readonly BoatKind[], atLanding: BoatKind | null = PORT_AT_LANDING): Bitmap {
   const base = picture.frames[0]!;
   const out = createBitmap(base.width, base.height);
   out.pixels.set(base.pixels);
@@ -1579,7 +1581,7 @@ export function portStill(picture: PortPicture, plan: PortPlan, moored: readonly
   blit(out, water.bitmap, water.x, water.y);
   for (const m of portMoorings(plan, moored)) { const boat = picture.boats[m.kind]; blit(out, boatStill(boat), boat.x + m.x, boat.y + m.y); }
   lay(picture.front, 0);
-  if (atLadder) { const boat = picture.boats[atLadder]; blit(out, boatStill(boat), boat.x + PORT_LADDER_BERTH.x, boat.y + PORT_LADDER_BERTH.water); }
+  if (atLanding) { const boat = picture.boats[atLanding]; blit(out, boatStill(boat), boat.x + PORT_LANDING_BERTH.x, boat.y + PORT_LANDING_BERTH.water); }
   lay(picture.lamp, Math.min(1, picture.lamp.frames.length - 1));
   return out;
 }

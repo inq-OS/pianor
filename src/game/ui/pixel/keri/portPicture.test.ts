@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { BOAT_KINDS, PORT, PORT_AT_LADDER, PORT_LADDER_BERTH, PORT_MOORED, portPlan } from '../../../../core/layout/port';
+import portScene from '../../../../../content/scenes/port.json';
+import { BOAT_KINDS, PORT, PORT_AT_LANDING, PORT_LANDING_BERTH, PORT_MOORED, portPlan } from '../../../../core/layout/port';
 import { SKY_PHASES } from '../../../../core/sky/skyPhase';
 import { PALETTE } from '../palette';
 import { packPort, unpackPort } from './portPack';
@@ -114,30 +115,32 @@ describe('the painted harbour (ft_1_19.AC10)', () => {
     for (const m of portMoorings(plan, PORT_MOORED)) expect(covered(m.x + 20, m.y)).toBe(true);
   });
 
-  it('ft_1_19.AC10 the fisherman\'s rowing boat lies before the quay by the ladder, whole over the quay\'s face, tied to the ladder and a ring, clear of the first standing place', () => {
-    expect(PORT_AT_LADDER).toBe('row');
+  it('ft_1_19.AC10 the fisherman\'s rowing boat lies before the quay at the low landing, whole over the quay\'s face, tied to two rings, clear of where he stands on the landing', () => {
+    expect(PORT_AT_LANDING).toBe('row');
     const { front } = pictures.day;
     const boat = pictures.day.boats.row, frame = boat.frames[0]!;
     const still = portStill(pictures.day, plan, PORT_MOORED);
     const bare = portStill(pictures.day, plan, PORT_MOORED, null);
+    const left = boat.x + PORT_LANDING_BERTH.x, top = boat.y + PORT_LANDING_BERTH.water;
     // the boat shows where the quay's face is painted: it lies before it, not behind
     let over = 0;
     for (let y = 0; y < frame.height; y++) for (let x = 0; x < frame.width; x++) {
-      const gx = boat.x + PORT_LADDER_BERTH.x + x, gy = boat.y + PORT_LADDER_BERTH.water + y;
+      const gx = left + x, gy = top + y;
       const f = front.frames[0]!, fx = gx - front.x, fy = gy - front.y;
       const face = fx >= 0 && fy >= 0 && fx < f.width && fy < f.height && f.pixels[fy * f.width + fx] !== 0;
       if (frame.pixels[y * frame.width + x] && face && still.pixels[gy * still.width + gx] !== bare.pixels[gy * bare.width + gx]) over++;
     }
     expect(over).toBeGreaterThan(500);
-    // its picture is wide enough to hold both lines, out to the ladder on the left and the ring on the right
-    expect(boat.x + PORT_LADDER_BERTH.x).toBeLessThanOrEqual(180);
-    expect(boat.x + PORT_LADDER_BERTH.x + frame.width).toBeGreaterThanOrEqual(470);
-    // nothing of it stands over the quay where the first figure stands (feet at x 210)
-    const quayTop = PORT_LADDER_BERTH.water + boat.y;
-    for (let y = 0; y < frame.height && quayTop + y < plan.quay[0]!.y; y++) for (let x = 0; x < frame.width; x++) {
-      const gx = boat.x + PORT_LADDER_BERTH.x + x;
-      if (frame.pixels[y * frame.width + x] && Math.abs(gx - plan.quay[0]!.x) < 14) expect.fail(`the boat stands over the first place at ${gx}`);
-    }
+    // its picture holds both lines, back to the ring in the face and on to the ring over the landing
+    expect(left).toBeLessThanOrEqual(312);
+    expect(left + frame.width).toBeGreaterThanOrEqual(PORT_LANDING.l + 24);
+    // nothing of it but its bow line stands where he stands on the landing
+    const landing = portScene.places.find((p) => p.id === 'landing')!;
+    expect(landing.x).toBeGreaterThan(PORT_LANDING.l);
+    expect(landing.x).toBeLessThan(PORT_LANDING.r);
+    let under = 0;
+    for (let y = 0; y < frame.height; y++) for (let x = 0; x < frame.width; x++) if (frame.pixels[y * frame.width + x] && Math.abs(left + x - landing.x) < 12 && top + y < landing.y) under++;
+    expect(under).toBe(0);
   });
 
   it('ft_1_19.AC10 the boats painted alone, for a script\'s figures, are the boats the port paints, by day and lit at night', () => {

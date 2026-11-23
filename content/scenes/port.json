@@ -40,6 +40,12 @@
       "x": 400,
       "y": 138,
       "facing": "left"
+    },
+    {
+      "id": "landing",
+      "x": 572,
+      "y": 190,
+      "facing": "left"
     }
   ],
   "exits": []
