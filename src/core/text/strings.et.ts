@@ -672,6 +672,7 @@ export const stringsEt: Record<StringKey, string> = {
   'learn.recallOne': 'Kõigepealt eelmise korra takt {n}',
   'learn.hidden': 'Veel kord, nüüd ilma noodinimedeta',
   'learn.namesOff': 'Noodinimed jäävad seekord peitu',
+  'learn.rushed': 'Ära kiirusta, proovime uuesti!',
   'learn.stopped': '{reason}, takt {bar}. Uuesti algusest',
   'learn.reason.wrongOctave': 'Õige täht, vale oktav',
   'learn.reason.neighbourKey': 'Kõrvalklahv',
