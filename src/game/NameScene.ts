@@ -125,7 +125,7 @@ export class NameScene extends PixelScene {
   private actions(): ToolbarItem[] {
     return [
       { label: t('name.delete'), icon: TOOL_ICONS.backspace, tooltip: t('name.delete'), onClick: () => this.delete() },
-      { label: t('name.done'), icon: TOOL_ICONS.tick, tooltip: t('name.done'), onClick: () => this.finish() },
+      { label: t('name.done'), icon: TOOL_ICONS.tick, tooltip: t('name.done'), main: true, onClick: () => this.finish() },
     ];
   }
 

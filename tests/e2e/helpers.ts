@@ -120,14 +120,94 @@ export async function toPieceList(page: Page): Promise<void> {
   await waitForScene(page, 'menu');
 }
 
-/** The index of the button with this label on a scene shown now, or -1. */
+/**
+ * The index of the button with this label on a scene shown now, or -1. A label that is not on the screen may be an option
+ * of the bubble (ft_1_20, d282): the bubble is opened from More (as a player would press it) and its options are looked at too.
+ */
 export async function sceneButton(page: Page, sceneKey: string, label: string): Promise<number> {
-  // a band cell cuts a long word short and keeps it whole in its tooltip (ft_1_20), so the label and tooltip count too
-  return page.evaluate(
+  // a cell keeps its whole word in its tooltip too, so the label and tooltip count
+  const find = () => page.evaluate(
     ({ key, text }) => (window.__game.scene.getScene(key).buttons as { objects: { text?: string }[]; options: { label: string; tooltip?: string } }[])
       .findIndex((b) => b.objects.some((o) => o.text === text) || b.options.label === text || b.options.tooltip === text),
     { key: sceneKey, text: label },
   );
+  const found = await find();
+  if (found >= 0) return found;
+  const opened = await openBubbleFromMore(page, sceneKey);
+  return opened ? find() : -1;
+}
+
+/** The index of the last button with this word, label or tooltip on a scene (an open menu's choices come after the screen's buttons), or -1. */
+export function lastButton(page: Page, sceneKey: string, label: string): Promise<number> {
+  return page.evaluate(({ key, text }) => {
+    const buttons = window.__game.scene.getScene(key).buttons as { objects: { text?: string }[]; options: { label: string; tooltip?: string } }[];
+    for (let i = buttons.length - 1; i >= 0; i--) {
+      const b = buttons[i]!;
+      if (b.objects.some((o) => o.text === text) || b.options.label === text || b.options.tooltip === text) return i;
+    }
+    return -1;
+  }, { key: sceneKey, text: label });
+}
+
+/** Press a strip cell or bubble option with choices (`cell`), then its choice `choice` (ft_1_20.AC20), as a player would. */
+export async function pickChoice(page: Page, sceneKey: string, cell: string, choice: string): Promise<void> {
+  // a choice before may have started the screen again: wait for the cell
+  await waitForScene(page, sceneKey);
+  await expect.poll(() => lastButton(page, sceneKey, cell), cell).toBeGreaterThanOrEqual(0);
+  await clickButton(page, sceneKey, await sceneButton(page, sceneKey, cell));
+  await expect.poll(() => lastButton(page, sceneKey, choice), choice).toBeGreaterThanOrEqual(0);
+  await clickButton(page, sceneKey, await lastButton(page, sceneKey, choice));
+}
+
+/** Press More on the scene's strip, as a player would, when it has one; true when the bubble opened. */
+export async function openBubbleFromMore(page: Page, sceneKey: string): Promise<boolean> {
+  if (await bubbleOpen(page, sceneKey)) return true;
+  const more = await page.evaluate(
+    (key) => (window.__game.scene.getScene(key).buttons as { options: { label: string } }[]).findIndex((b) => b.options.label === 'More' || b.options.label === 'Veel'),
+    sceneKey,
+  );
+  if (more < 0) return false;
+  await clickButton(page, sceneKey, more);
+  return bubbleOpen(page, sceneKey);
+}
+
+/** Open the scene's bubble from More when it is shut (ft_1_20, d282). */
+export async function openBubble(page: Page, key: string): Promise<void> {
+  expect(await openBubbleFromMore(page, key), `the bubble of ${key}`).toBe(true);
+}
+
+/** Press the bubble's option `label` on scene `key`, opening the bubble with More first when it is shut. */
+export async function pressInBubble(page: Page, key: string, label: string): Promise<void> {
+  await openBubble(page, key);
+  const index = await lastButton(page, key, label);
+  expect(index, `an option ${label} in the bubble`).toBeGreaterThanOrEqual(0);
+  await clickButton(page, key, index);
+}
+
+/**
+ * The index of the button `label` (its word, label or tooltip) on scene `key`, reaching into the bubble when it is not on
+ * the screen (ft_1_20, d282): an open bubble that lacks it is closed with Esc first; then the bubble is opened with More.
+ * -1 when it is nowhere.
+ */
+export async function reachButton(page: Page, key: string, label: string): Promise<number> {
+  const index = await lastButton(page, key, label);
+  if (index >= 0) return index;
+  await closeBubble(page, key);
+  const again = await lastButton(page, key, label);
+  if (again >= 0) return again;
+  return (await openBubbleFromMore(page, key)) ? lastButton(page, key, label) : -1;
+}
+
+/** Whether the scene's bubble is open (ft_1_20, d282). */
+export function bubbleOpen(page: Page, sceneKey: string): Promise<boolean> {
+  return page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as { bubbleIsOpen: boolean }).bubbleIsOpen, sceneKey);
+}
+
+/** Close the scene's bubble with Escape when it is open, as a player would; nothing otherwise. */
+export async function closeBubble(page: Page, sceneKey: string): Promise<void> {
+  if (!(await bubbleOpen(page, sceneKey))) return;
+  await page.keyboard.press('Escape');
+  await expect.poll(() => bubbleOpen(page, sceneKey)).toBe(false);
 }
 
 /**
@@ -483,10 +563,9 @@ export async function letGameRun(page: Page, frames: number, ms = 0): Promise<vo
   if (left > 0) await page.waitForTimeout(left);
 }
 
-/** Click the practice screen's button with this label with the real mouse. */
+/** Click the practice screen's button with this label with the real mouse (a pinned action, or an option of the bubble). */
 export async function pressPracticeButton(page: Page, label: string): Promise<void> {
-  // a button of the bubble is reached through More (ft_1_20, d282)
-  const index = await reachButton(page, 'practice', label);
+  const index = await sceneButton(page, 'practice', label);
   expect(index, `a button ${label}`).toBeGreaterThanOrEqual(0);
   await clickButton(page, 'practice', index);
 }
@@ -498,50 +577,3 @@ export const pieceXp = (page: Page, pieceId: string) => page.evaluate((id) => (w
 
 /** The active player's name. */
 export const playerName = (page: Page) => page.evaluate(() => window.__game.registry.get('context').profiles.profile.name as string);
-
-/** Whether the bubble (ft_1_20, d282) is open on scene `key`. */
-export const bubbleOpen = (page: Page, key: string): Promise<boolean> =>
-  page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { bubbleOpen: boolean }).bubbleOpen, key);
-
-/** Open the bubble of scene `key` with the strip's More, as a student who never right-clicks does (ft_1_20.AC22). */
-export async function openBubble(page: Page, key: string): Promise<void> {
-  if (await bubbleOpen(page, key)) return;
-  await clickButton(page, key, await sceneButton(page, key, 'More'));
-  await expect.poll(() => bubbleOpen(page, key)).toBe(true);
-}
-
-/** Press the bubble's option `label` on scene `key`, opening the bubble with More first when it is shut. */
-export async function pressInBubble(page: Page, key: string, label: string): Promise<void> {
-  await openBubble(page, key);
-  const index = await sceneButton(page, key, label);
-  expect(index, `an option ${label} in the bubble`).toBeGreaterThanOrEqual(0);
-  await clickButton(page, key, index);
-}
-
-/**
- * The index of the button `label` (its word, label or tooltip) on scene `key`, reaching into the bubble when it is not on
- * the screen (ft_1_20, d282): an open bubble is searched first and closed with Esc when it lacks the button; then the
- * screen; then the bubble is opened with More. -1 when it is nowhere.
- */
-export async function reachButton(page: Page, key: string, label: string): Promise<number> {
-  const find = () => page.evaluate(({ k, l }) => {
-    const s = window.__game.scene.getScene(k) as unknown as { buttons: { objects: { text?: string }[]; options: { label: string; tooltip?: string } }[]; openRing: { buttons: unknown[] } | null };
-    const pool = s.openRing ? s.buttons.filter((b) => s.openRing!.buttons.includes(b)) : s.buttons;
-    for (let i = pool.length - 1; i >= 0; i--) {
-      const b = pool[i]!;
-      if (b.objects.some((o) => o.text === l) || b.options.label === l || b.options.tooltip === l) return s.buttons.indexOf(b);
-    }
-    return -1;
-  }, { k: key, l: label });
-  let index = await find();
-  if (index >= 0) return index;
-  if (await bubbleOpen(page, key)) {
-    await page.keyboard.press('Escape');
-    await expect.poll(() => bubbleOpen(page, key)).toBe(false);
-    index = await find();
-    if (index >= 0) return index;
-  }
-  if ((await sceneButton(page, key, 'More')) < 0) return -1;
-  await openBubble(page, key);
-  return find();
-}

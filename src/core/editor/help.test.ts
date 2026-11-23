@@ -8,7 +8,7 @@ describe('the piece maker help as pictures (ft_1_33)', () => {
   it('ft_1_33.AC1 every card that is a press shows what that press does', () => {
     for (const card of HELP_CARDS) if (card.press) expect(mouseAction(card.press)).toBe(card.press.action);
     const actions = HELP_CARDS.map((c) => c.press?.action);
-    for (const action of ['place', 'select', 'bubble'] as const) expect(actions).toContain(action);
+    for (const action of ['place', 'select'] as const) expect(actions).toContain(action);
     // the touchpad's way to place a note, and the wheel's two turns
     expect(HELP_CARDS.some((c) => c.key === 'alt' && c.press?.action === 'place')).toBe(true);
     expect(HELP_CARDS.filter((c) => c.gesture === 'wheelUp').map((c) => c.key ?? 'none')).toEqual(['none', 'ctrl']);

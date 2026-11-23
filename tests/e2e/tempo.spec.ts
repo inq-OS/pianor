@@ -1,11 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { clickButton, clickToolbar, expectNoErrors, openGame, openPiece, sceneButton, sceneTexts, toPieceList, toScoreScreen, waitForScene, reachButton } from './helpers';
-
-/** Press the practice button `label` once it is drawn: the mode button starts the screen over, so wait for the new one. */
-async function pressWhenShown(page: Page, label: string): Promise<void> {
-  await expect.poll(() => sceneButton(page, 'practice', label)).toBeGreaterThanOrEqual(0);
-  await clickButton(page, 'practice', await sceneButton(page, 'practice', label));
-}
+import { clickButton, clickToolbar, expectNoErrors, openGame, openPiece, pickChoice, sceneButton, sceneTexts, toPieceList, toScoreScreen, waitForScene } from './helpers';
 
 /** The settings screen's buttons, in the order it makes them: the timing view's button comes after the staff settings and the chord fingers (d088). */
 const SCORE = 5;
@@ -18,9 +12,9 @@ test.describe('tempo mode (slice c)', () => {
     expect(await playSettings(page)).toEqual({ mode: 'wait', scoreView: 'colour' });
     await openPiece(page, 'Little Steps');
     expect(await page.evaluate(() => window.__game.scene.getScene('practice').transport)).toBeNull();
-    await pressWhenShown(page, 'Wait'); // the fermata: a press switches to the following clock
+    await pickChoice(page, 'practice', 'Wait', 'Tempo that follows you'); // the mode cell opens its choices: the following clock
     await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'tempo', tempoClock: 'follow' });
-    await pressWhenShown(page, 'Tempo that follows you'); // and the next to Tempo
+    await pickChoice(page, 'practice', 'Tempo that follows you', 'Tempo'); // and Tempo
     await expect.poll(() => playSettings(page)).toEqual({ mode: 'tempo', scoreView: 'colour', tempoStart: 'anyKey', tempoClock: 'strict' });
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').transport !== null)).toBe(true);
     expect(await sceneTexts(page, 'practice')).toContain('Press any key to start. One bar is counted in.');
@@ -176,7 +170,7 @@ test.describe('tempo mode: the clock that follows the player (core_01 slice h)',
   test('core_01.AC12 core_01.AC13: the mode button gives the following clock; a note played long after its time is still that note, and there is no click', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
-    await pressWhenShown(page, 'Wait');
+    await pickChoice(page, 'practice', 'Wait', 'Tempo that follows you');
     await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'tempo', tempoStart: 'firstNote', tempoClock: 'follow' });
     await expect.poll(() => tempoState(page).then((s) => s.countInBars)).toBe(0);
     expect(await sceneButton(page, 'practice', 'Tempo that follows you')).toBeGreaterThanOrEqual(0);
@@ -202,7 +196,7 @@ test.describe('tempo mode: the clock that follows the player (core_01 slice h)',
     await expect.poll(() => look()).toMatchObject({ progress: ['correct', 'correct', 'pending'], verdicts: ['on-time', 'late', undefined] });
 
     // the click's button says why it stays off
-    await clickButton(page, 'practice', await reachButton(page, 'practice', 'Click'));
+    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Click'));
     expect((await look()).clickOn).toBe(false);
     expect(await sceneTexts(page, 'practice')).toContain('No click while the tempo follows you.');
     expectNoErrors(errors);
@@ -213,12 +207,12 @@ test.describe('tempo mode: the start on the first note and the auto reset (core_
   test('core_01.AC10: the mode button cycles to Tempo from the first note; a wrong key waits, the first note starts it with no count-in', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
-    await pressWhenShown(page, 'Wait');
+    await pickChoice(page, 'practice', 'Wait', 'Tempo that follows you');
     await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'tempo', tempoClock: 'follow' });
-    await pressWhenShown(page, 'Tempo that follows you');
+    await pickChoice(page, 'practice', 'Tempo that follows you', 'Tempo');
     await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'tempo', tempoStart: 'anyKey' });
     await expect.poll(() => tempoState(page).then((s) => s.tempo)).toBe(true);
-    await pressWhenShown(page, 'Tempo');
+    await pickChoice(page, 'practice', 'Tempo', 'Tempo from the first note');
     await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'tempo', tempoStart: 'firstNote' });
     await expect.poll(() => tempoState(page).then((s) => s.countInBars)).toBe(0);
     expect(await sceneTexts(page, 'practice')).not.toContain('Press any key to start. One bar is counted in.');
@@ -235,8 +229,8 @@ test.describe('tempo mode: the start on the first note and the auto reset (core_
     expect((await tempoState(page)).firstVerdict).toBe('on-time');
     await page.evaluate(() => window.__virtualDevice!.release(60));
 
-    // a third press: back to Wait
-    await pressWhenShown(page, 'Tempo from the first note');
+    // and back to Wait
+    await pickChoice(page, 'practice', 'Tempo from the first note', 'Wait');
     await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'wait' });
     expectNoErrors(errors);
   });
@@ -246,8 +240,8 @@ test.describe('tempo mode: the start on the first note and the auto reset (core_
     const errors = await openGame(page);
     await page.evaluate(() => window.__game.registry.get('context').profiles.updatePlaySettings({ mode: 'tempo', tempoStart: 'firstNote' }));
     await openPiece(page, 'Little Steps');
-    // the switch is a lit item in Tempo mode only, and is saved for the player
-    await pressWhenShown(page, 'Start over after 2 bars not played');
+    // the switch is a lit choice of the mode cell in Tempo mode only, and is saved for the player
+    await pickChoice(page, 'practice', 'Tempo from the first note', 'Start over after 2 bars not played');
     await expect.poll(() => playSettings(page)).toMatchObject({ autoReset: true });
     await expect.poll(() => tempoState(page).then((s) => s.watching)).toBe(true);
 

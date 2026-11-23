@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { activeScene, bubbleOpen, buttonPoint, clickButton, expectNoErrors, openBubble, openGame, pressInBubble, sceneButton, waitForScene } from './helpers';
+import { activeScene, bubbleOpen, buttonPoint, clickButton, expectNoErrors, lastButton, openBubble, openGame, pressInBubble, sceneButton, waitForScene } from './helpers';
 
 /**
  * The bubble and the strip in place of the band (ft_1_20, d282) on practice and the piece maker: the strip holds the most
@@ -34,7 +34,7 @@ test.describe('the bubble and the strip (ft_1_20, d282)', () => {
     // the strip is 17 rows: 163 of the 180 rows are the screen's
     expect((await practice(page)).rows).toBe(163);
     expect(await stripLabels(page, 'practice')).toEqual(['Listen', 'Start again', 'Wait', '-', '100%', '+']);
-    expect(await sceneButton(page, 'practice', 'Note names')).toBe(-1);
+    expect(await lastButton(page, 'practice', 'Note names')).toBe(-1);
     // a right click on the staff opens the bubble round the pointer
     const staff = await artPoint(page, 'practice', 160, 80);
     await page.mouse.click(staff.x, staff.y, { button: 'right' });
@@ -49,10 +49,11 @@ test.describe('the bubble and the strip (ft_1_20, d282)', () => {
     await page.keyboard.press('Escape');
     await expect.poll(() => bubbleOpen(page, 'practice')).toBe(false);
     expect(await activeScene(page)).toBe('practice');
-    // the strip has eight cells at most: Fingers stays in the bubble
-    expect(await stripLabels(page, 'practice')).toEqual(['Listen', 'Start again', 'Wait', '-', '100%', '+', 'Note names']);
-    // a press on a lit one in the strip turns it off
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Note names'));
+    // the strip keeps its cells; the two that are on stand as small lit pictures beside More
+    expect(await stripLabels(page, 'practice')).toEqual(['Listen', 'Start again', 'Wait', '-', '100%', '+']);
+    expect(await lastButton(page, 'practice', 'Fingers')).toBeGreaterThanOrEqual(0);
+    // a press on a lit one beside More turns it off
+    await clickButton(page, 'practice', await lastButton(page, 'practice', 'Note names'));
     await expect.poll(async () => (await practice(page)).names).toBe(false);
     expectNoErrors(errors);
   });
@@ -156,8 +157,8 @@ test.describe('the bubble and the strip (ft_1_20, d282)', () => {
     await page.mouse.click(corner.x, corner.y, { button: 'right' });
     await expect.poll(() => bubbleOpen(page, 'practice')).toBe(true);
     const inside = await page.evaluate(() => {
-      const s = window.__game.scene.getScene('practice') as unknown as { openRing: { buttons: { rect: { x: number; y: number; width: number; height: number } }[] }; px: { width: number }; mainRows: number };
-      return s.openRing.buttons.every((b) => b.rect.x >= 0 && b.rect.y >= 0 && b.rect.x + b.rect.width <= s.px.width && b.rect.y + b.rect.height <= s.mainRows + 17);
+      const s = window.__game.scene.getScene('practice') as unknown as { menu: { buttons: { rect: { x: number; y: number; width: number; height: number } }[] }; px: { width: number }; mainRows: number };
+      return s.menu.buttons.every((b) => b.rect.x >= 0 && b.rect.y >= 0 && b.rect.x + b.rect.width <= s.px.width && b.rect.y + b.rect.height <= s.mainRows + 17);
     });
     expect(inside).toBe(true);
     const point = await buttonPoint(page, 'practice', await sceneButton(page, 'practice', 'Close'));

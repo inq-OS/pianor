@@ -7,7 +7,7 @@ import { C } from './palette';
  * hints; for the editor's toolbar (d088) a floppy disk for Save and an arrow into or out of a tray for Import and
  * Export; a loop for the ear trainer's repeat and the note trainer's new round, stairs for the note trainer's step, and undo, redo, a bin, play, stop, backspace and a tick for the piece maker and the name box. Original, drawn for this project (the Kenney pack page refused the download, and these are a few pixels each). Each fits inside a 14 pixel bar button with its frame (10 rows at most).
  */
-export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle';
+export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'backpack' | 'analyse' | 'staff' | 'shortTap' | 'timePanel';
 
 const LEGEND = { k: C.ink, w: C.white, g: C.gold, G: C.goldDark, s: C.skin } as const;
 
@@ -73,6 +73,20 @@ function fingers(): Bitmap {
 }
 
 export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
+  /** More (ft_1_20, d282): the bubble's own shape, a ring of eight dots round a centre, so the picture matches what opens. */
+  more: art(['....ww....', '.ww....ww.', '.ww....ww.', '..........', 'ww..ww..ww', 'ww..ww..ww', '..........', '.ww....ww.', '.ww....ww.', '....ww....']),
+  /** The bubble's centre: close it without doing anything. */
+  /** The staff played notes go on: five lines. */
+  staff: art(['wwwwwwwwww', '..........', 'wwwwwwwwww', '..........', 'wwwwwwwwww', '..........', 'wwwwwwwwww', '..........', 'wwwwwwwwww']),
+  /** The short tap: an eighth note, what a short tap can write. */
+  shortTap: art(['...w...', '...ww..', '...w.w.', '...w..w', '...w...', '.www...', 'wwww...', '.ww....']),
+  /** The time panel: a 4 over a 4. */
+  timePanel: art(['w..w', 'w..w', 'wwww', '...w', '....', 'w..w', 'w..w', 'wwww', '...w']),
+  close: art(['w.....w', '.w...w.', '..w.w..', '...w...', '..w.w..', '.w...w.', 'w.....w']),
+  /** The backpack the student's kept items are in (ft_1_20, d282): a bag with a flap and a buckle. */
+  backpack: fromAscii(['...kkkk...', '..k....k..', '.kkkkkkkk.', 'kggggggggk', 'kgGGGGGGgk', 'kgGGkkGGgk', 'kggggggggk', 'kggggggggk', 'kGGGGGGGGk', '.kkkkkkkk.'], LEGEND),
+  /** Analyse the piece (core_10): a magnifying glass. */
+  analyse: art(['.www.....', 'w...w....', 'w...w....', 'w...w....', '.www.....', '....ww...', '.....ww..', '......ww.', '.......w.']),
   // a fermata: the sign that says hold, wait
   wait: art(['..wwwwwww..', '.w.......w.', 'w.........w', 'w...www...w', '....www....']),
   // a note running forward

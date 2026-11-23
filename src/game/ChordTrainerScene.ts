@@ -115,7 +115,7 @@ export class ChordTrainerScene extends PixelScene {
     const items: ToolbarItem[] = [
       { label: displayText(t('theory.step', { n: this.stepIndex + 1 })), icon: TOOL_ICONS.steps, tooltip: t('chords.stepTip'), onClick: () => this.startRound((this.stepIndex + 1) % content.steps.length) },
     ];
-    if (this.round.state().over) items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), onClick: () => this.startRound(this.stepIndex) });
+    if (this.round.state().over) items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), main: true, onClick: () => this.startRound(this.stepIndex) });
     return items;
   }
 

@@ -3,7 +3,6 @@ import { repeatAround, toggleRepeatEnd, toggleRepeatStart } from '../core/editor
 import { mouseAction, type MouseAction } from '../core/editor/mouse';
 import { HELP_CARDS, KEY_CAP, KEY_TOUR, type HeldKey, type KeyTourSpot } from '../core/editor/help';
 import { helpGridLayout } from '../core/layout/helpCards';
-import { BAND_ROWS } from '../core/layout/band';
 import type { Rect } from '../core/layout/rect';
 import { moveBar, moveInTime, movePitch, otherStaff, startKeyCursor, withPitch, type KeyCursor } from '../core/editor/keyCursor';
 import { nextLength } from '../core/editor/nextLength';
@@ -55,8 +54,7 @@ import { PixelImage, PixelText, type PixelButton, type PixelButtonOptions } from
 import { SpeechBubble } from './ui/pixel/SpeechBubble';
 import { drawnText, measure } from './ui/pixel/font';
 import { BAR_BUTTON_HEIGHT, BAR_EDGE } from './ui/pixel/playBars';
-import { PIN_ROWS } from '../core/layout/bubble';
-import { PixelScene, type BubbleOption, type BubblePoint, type MenuItem, type StripCell, type ToolbarItem } from './ui/pixel/PixelScene';
+import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
 import { itemPicture, type ItemSign } from './ui/pixel/itemArt';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { ICONS } from './ui/pixel/iconArt';
@@ -169,7 +167,6 @@ export interface EditorData {
  * draws the piece with the game's own staff, and saves it as an own piece (ABC plus meta, licence "NaN") on this device.
  */
 export class EditorScene extends PixelScene {
-  protected override bubbleScreen = true;
   /** The piece being written survives a "Try it" visit to the practice screen. */
   private static returning: Session | null = null;
   /** What the piece maker says when it opens a piece a photo import just made: the bars to fill by hand (ft_Y_04 slice 4). */
@@ -300,8 +297,6 @@ export class EditorScene extends PixelScene {
   private pageButtonsDrawn = false;
   /** Where the bar buttons after the last bar were drawn, to draw them again when it moves. */
   private barEndKey = '';
-  /** The screen is drawn again for a page turn (`refreshStaff`): it stays on the page turned to. */
-  private pageTurnRedraw = false;
   private shortTapButton: PixelButton | null = null;
   /** The piece the staff was last drawn with, so live growth redraws it only when the piece changed. */
   private drawnPiece: EditorPiece | null = null;
@@ -462,11 +457,6 @@ export class EditorScene extends PixelScene {
     this.photo.setVisible(!this.menuOpen && this.panel === null && !this.scene.isPaused());
   }
 
-  protected override bubbleShown(open: boolean): void {
-    if (open) this.photo?.setVisible(false);
-    else this.drawPhoto();
-  }
-
   protected override openMenu(...args: Parameters<PixelScene['openMenu']>): void {
     super.openMenu(...args);
     this.photo?.setVisible(false);
@@ -525,7 +515,7 @@ export class EditorScene extends PixelScene {
 
   // ------------------------------------------------------------------------------------------------------------ input
 
-  private hit(p: Phaser.Input.Pointer): Hit | null {
+  private hit(p: { x: number; y: number }): Hit | null {
     if (!this.layout || !this.chart) return null;
     const y = p.y - this.staffTop;
     if (y < 0 || y > this.staffHeight) return null;
@@ -577,7 +567,7 @@ export class EditorScene extends PixelScene {
 
   /**
    * A press on the staff: the middle button (or Alt + left) places and changes notes, the left
-   * button selects, Shift + left extends the bar selection, a left drag is the lasso, and the right button removes.
+   * button selects, Shift + left extends the bar selection, a left drag is the lasso; the right button opens the bubble.
    */
   private press(p: Phaser.Input.Pointer): void {
     const event = p.event as MouseEvent | undefined;
@@ -586,12 +576,7 @@ export class EditorScene extends PixelScene {
     this.endLassoState();
     if (action === 'select' && this.grabRepeatHandle(p)) return;
     const hit = this.hit(p);
-    // the right button opens the bubble (ft_1_20, d282: `bubbleOptions`); it ends a waiting repeat pick as before
-    if (action === 'bubble' && this.repeatPick) {
-      this.disarm();
-      return this.refreshStaff();
-    }
-    if (!hit || action === 'none' || action === 'bubble' || this.meterAsk !== null) return;
+    if (!hit || action === 'none' || this.meterAsk !== null) return;
     if (this.repeatPick) {
       const bar = this.barOf(hit);
       if (bar === null) {
@@ -1217,10 +1202,7 @@ export class EditorScene extends PixelScene {
     const fromScreen = (x1: number, y1: number, x2: number, y2: number): Rect => ({ x: Math.floor(x1 / scale), y: Math.floor(y1 / scale), w: Math.ceil((x2 - x1) / scale), h: Math.ceil((y2 - y1) / scale) });
     if (spot === 'band') {
       const bandTop = this.bandTop;
-      if (this.bandShown && bandTop !== null) return { x: 0, y: this.mainTopRows + bandTop, w: this.px.width, h: BAND_ROWS };
-      // the strip along the foot (ft_1_20, d282)
-      const stripTop = this.stripTop;
-      if (stripTop !== null) return { x: 0, y: this.mainTopRows + stripTop, w: this.px.width, h: PIN_ROWS };
+      if (this.bandShown && bandTop !== null) return { x: 0, y: this.mainTopRows + bandTop, w: this.px.width, h: this.stripHeight };
       return { x: 0, y: this.mainTopRows, w: this.px.width, h: OPTIONS };
     }
     const c = this.keyCursor;
@@ -1470,7 +1452,9 @@ export class EditorScene extends PixelScene {
   private toggleEntry(): void {
     this.entry = this.entry === 'note' ? 'rest' : 'note';
     if (this.bandShown) {
-      // the strip's writer shows notes or rests (`showLength`, below)
+      // with the band, the item a click writes with is on a purple ground
+      this.lengthItem?.setArmed(this.entry === 'note');
+      this.restItem?.setArmed(this.entry === 'rest');
     } else {
       this.entryButton?.setLabel(t(`editor.entry.${this.entry}`));
       this.entryButton?.setIcon(this.entry === 'rest' ? REST_ICONS.quarter : NOTE_ICONS.quarter);
@@ -1478,11 +1462,6 @@ export class EditorScene extends PixelScene {
     // the length buttons show what a click writes: notes, or rests of those lengths
     for (const [l, button] of this.lengthButtons) button.setIcon((this.entry === 'rest' ? REST_ICONS : NOTE_ICONS)[l]);
     this.showLength();
-  }
-
-  /** The strip's and the bubble's small picture of a length: the note or the rest a click writes (`lengthArt.ts`). */
-  private smallLength(length: EditorLength, kind: EntryMode = this.entry): Bitmap {
-    return (kind === 'rest' ? REST_ICONS : NOTE_ICONS)[length];
   }
 
   /** The band's picture of a length: the note or the rest a click writes, on its scrap of parchment (`itemArt.ts`). */
@@ -1504,9 +1483,8 @@ export class EditorScene extends PixelScene {
   /** The Length item (with the band) shows the length a click writes, as a note or a rest. */
   private showLength(): void {
     if (this.bandShown) {
-      // the strip's writer shows what a click writes: a note or a rest of the length
-      this.lengthItem?.setIcon(this.smallLength(this.length));
-      this.lengthItem?.setLabel(t(`editor.entry.${this.entry}`));
+      this.lengthItem?.setIcon(this.lengthPicture(this.length, 'note'));
+      this.restItem?.setIcon(this.lengthPicture(this.length, 'rest'));
       return;
     }
     this.lengthItem?.setIcon(this.lengthPicture(this.length));
@@ -2149,7 +2127,13 @@ export class EditorScene extends PixelScene {
    * Draw the staff again for the current piece (after every edit), keeping the rest of the screen. A page turn keeps its
    * page: a selected note on another page keeps its mark but does not pull the page back to it.
    */
+  /** Whether the next `refreshStaff` keeps the page shown (a page turn that drew the screen again). */
+  private pageTurnPending = false;
+
   private refreshStaff(pageTurn = false): void {
+    // a page turned that drew the screen again (its page buttons or the bar buttons changed) stays turned
+    if (this.pageTurnPending) pageTurn = true;
+    this.pageTurnPending = false;
     this.nameSelectedChord();
     this.staffView?.destroy();
     this.drawnPiece = this.piece;
@@ -2202,9 +2186,7 @@ export class EditorScene extends PixelScene {
     this.meterText?.setText(this.meterLabel());
     // with the band, the page buttons over the staff are there only while the piece has more than one page
     if (this.bandShown && ((this.layout.pageCount > 1) !== this.pageButtonsDrawn || this.barEndKey !== spotKey(this.barEnd(this.layout)))) {
-      // a page turned onto the last bar's page moves + and -: the screen is drawn again on the page turned to, not pulled
-      // back to the selected note's page
-      this.pageTurnRedraw = pageTurn;
+      this.pageTurnPending = pageTurn;
       this.redraw();
       return;
     }
@@ -2257,107 +2239,129 @@ export class EditorScene extends PixelScene {
   }
 
   /**
-   * The strip (ft_1_20, d282): Listen or Stop, Try it, Undo, Redo, the writer (notes or rests with the length a click writes,
-   * armed; a press opens the lengths), More. Save, Import and Export are in the top strip. Pictures, their words in the tooltips.
+   * The strip along the foot (ft_1_20, d282): Listen or Stop, Try it, Undo, Redo and the writer: the note or rest a click
+   * writes, with its length, armed (purple); a press opens the eight lengths, the wheel over it turns them. Save, Import
+   * and Export stay in the top strip; everything else is in the bubble (`bubbleOptions`).
    */
-  protected override stripCells(): StripCell[] {
+  protected override stripActions(): ToolbarItem[] {
     const playing = this.player?.isPlaying === true;
     const action = (key: StringKey, icon: Bitmap, shortcut: string, onClick: () => void): ToolbarItem => ({ label: t(key), icon, shortcut, onClick });
+    const kind = this.entry;
     return [
-      { label: t(playing ? 'editor.stop' : 'editor.listen'), icon: playing ? TOOL_ICONS.stop : ICONS.ear, shortcut: EDITOR_KEYS.listen.label, onClick: () => this.listen(), ref: (b: PixelButton) => (this.listenButton = b) },
+      { label: t(playing ? 'editor.stop' : 'editor.listen'), icon: playing ? TOOL_ICONS.stop : ICONS.ear, shortcut: EDITOR_KEYS.listen.label, onClick: () => this.listen(), ref: (b) => (this.listenButton = b) },
       action('editor.try', TOOL_ICONS.play, EDITOR_KEYS.tryIt.label, () => this.tryIt()),
       action('editor.undo', TOOL_ICONS.undo, EDITOR_KEYS.undo.label, () => this.undo()),
       action('editor.redo', TOOL_ICONS.redo, EDITOR_KEYS.redo.label, () => this.redo()),
       {
-        label: t(`editor.entry.${this.entry}`), icon: this.smallLength(this.length), armed: true, tooltip: t(`editor.entry.${this.entry}.tip`),
-        shortcut: (this.entry === 'note' ? EDITOR_KEYS.notes : EDITOR_KEYS.rests).label, onClick: () => undefined, ref: (b: PixelButton) => (this.lengthItem = b),
-        menu: { items: () => this.lengthItems(this.entry), cell: ITEM_MENU_CELL, columns: LENGTH_ORDER.length },
+        label: t(`editor.entry.${kind}`), icon: this.lengthPicture(this.length, kind), fineIcon: true, armed: true, tooltip: t(`editor.entry.${kind}.tip`),
+        shortcut: (kind === 'note' ? EDITOR_KEYS.notes : EDITOR_KEYS.rests).label, onClick: () => undefined, ref: (b) => (this.lengthItem = b),
+        menu: { items: () => this.lengthItems(kind), cell: ITEM_MENU_CELL, columns: LENGTH_ORDER.length },
       },
-      'more',
     ];
   }
 
   /**
-   * The bubble (ft_1_20, d282), by what is under the pointer. On a note (selected by the press; inside a bar selection it
-   * acts on the selection): 0 length, 1 accidental, 2 delete, 3 tie or slur, 4 dynamic, 5 fingers, 6 grace note, 7 copy; with
-   * bars selected 5 paste and 6 repeat instead. On an empty place: 0 notes or rests, 1 paste, 2 repeat, 3 the staff for
-   * played notes, 4 the short tap, 5 take away a placed rest, 6 the key, 7 ties and slurs (ALL needs no note). On the time signature the time panel opens. From More
-   * or the keys: the note's bubble while a note is selected, else the place's.
+   * The bubble (ft_1_20, d282) for what is under the pointer, each option in its fixed slot. On a note (it becomes the
+   * selected note, unless it is in the selected bars, which the options then act on): 0 length, 1 accidental, 2 delete, 3 tie
+   * or slur, 4 dynamic, 5 fingers, 6 grace note, 7 copy; with bars selected also paste and repeat. On the time signature: 0
+   * the time panel. Elsewhere on the staff (the entry cursor moves there): 0 notes or rests, 1 paste at that bar, 2 repeat, 3
+   * the staff for played notes, 4 the short tap, 6 the key. From More (`at` null): the note's options while one is
+   * selected, else the place's.
    */
-  protected override bubbleOptions(point: BubblePoint): BubbleOption[] {
-    const hit = point ? this.hit(point.screen as Phaser.Input.Pointer) : null;
-    // on the time signature the time panel opens at once: it is its one option
-    if (hit?.kind === 'time') {
-      this.openPanel('time');
-      return [];
-    }
+  /** A bubble opens anywhere unless the time is being asked for; asked before the bubble opens, so it selects nothing. */
+  protected override hasBubbleAt(): boolean {
+    return this.meterAsk === null;
+  }
+
+  protected override bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
+    if (this.meterAsk !== null) return null;
+    const hit = at ? this.hit({ x: this.root.x + at.x * this.px.scale, y: this.root.y + at.y * this.px.scale }) : null;
+    if (hit?.kind === 'time') return [{ label: t('editor.timePanel'), icon: TOOL_ICONS.timePanel, onClick: () => this.openPanel('time') }];
     if (hit?.kind === 'note') {
       const ref = this.refOf(hit.noteIndex);
-      const inSelection = ref !== null && this.barSel !== null && ref.bar >= this.barSel.from && ref.bar <= this.barSel.to;
-      if (ref && !inSelection) {
+      const sel = this.barSel;
+      if (ref && !(sel && ref.bar >= sel.from && ref.bar <= sel.to)) {
         this.barSel = null;
         this.keyCursor = ref;
-        this.select(ref);
+        if (this.selected?.bar !== ref.bar || this.selected.start !== ref.start || this.selected.step !== ref.step || this.selected.octave !== ref.octave || this.selected.hand !== ref.hand) this.select(ref);
       }
       return this.noteOptions();
     }
-    if (!point && (this.selected || this.barSel)) return this.noteOptions();
-    return this.placeOptions(hit?.kind === 'place' ? hit : null);
-  }
-
-  /** What can be done with the selected note, or the selected bars (`bubbleOptions`). */
-  private noteOptions(): BubbleOption[] {
-    const dynamic = this.selected ? findNote(this.piece, this.selected)?.dynamic : undefined;
-    const sign = ACCIDENTAL_SIGN[this.selectedAlter() ?? 1];
-    const alters: readonly Alter[] = [1, -1, 0];
-    const options: BubbleOption[] = [
-      { slot: 0, label: t(`editor.length.${this.length}` as StringKey), icon: this.smallLength(this.length, 'note'), choices: () => this.lengthItems(this.entry).map((item, i) => ({ ...item, icon: this.smallLength(LENGTH_ORDER[i]!), fineIcon: false })), onClick: () => undefined },
-      {
-        slot: 1, label: t(`editor.acc.${sign}`), icon: ACCIDENTAL_ICONS[sign], tooltip: t('editor.acc.tip'), shortcut: EDITOR_KEYS.accidentals.label, onClick: () => undefined,
-        choices: () => alters.map((alter) => ({ label: t(`editor.acc.${ACCIDENTAL_SIGN[alter]}`), icon: ACCIDENTAL_ICONS[ACCIDENTAL_SIGN[alter]], active: this.selectedAlter() === alter, onPick: () => this.accidental(alter) })),
-      },
-      { slot: 2, label: t('editor.delete'), icon: TOOL_ICONS.trash, shortcut: EDITOR_KEYS.delete.label, onClick: () => (this.barSel ? this.change(clearBars(this.piece, this.barSel)) : this.deleteSelected()) },
-      {
-        slot: 3, label: t('editor.arc.menu'), icon: TOOL_ICONS.tie, shortcut: EDITOR_KEYS.ties.label, onClick: () => undefined,
-        choices: () => this.arcBubbleItems(),
-      },
-      { slot: 4, label: dynamic ?? '-', keepCase: true, tooltip: t('editor.dyn.tip'), shortcut: EDITOR_KEYS.dynamics.label, choices: () => this.dynamicItems(), onClick: () => undefined },
-      { slot: 7, label: t('editor.copy'), icon: TOOL_ICONS.copy, shortcut: EDITOR_KEYS.copy.label, onClick: () => this.copyBar() },
-    ];
-    if (this.barSel) {
-      options.push(
-        { slot: 5, label: t('editor.paste'), icon: TOOL_ICONS.paste, shortcut: EDITOR_KEYS.paste.label, choices: () => this.pasteItems(), onClick: () => undefined },
-        { slot: 6, label: t('editor.repeat'), tooltip: t('editor.repeat.tip'), shortcut: EDITOR_KEYS.repeats.label, onClick: () => this.pressRepeat() },
-      );
-    } else {
-      options.push(
-        { slot: 5, label: t('editor.finger.menu'), icon: TOOL_ICONS.fingers, shortcut: EDITOR_KEYS.fingers.label, choices: () => this.fingerItems(), onClick: () => undefined },
-        { slot: 6, label: t('editor.grace'), icon: TOOL_ICONS.grace, tooltip: t('editor.grace.tip'), onClick: () => this.pressGrace() },
-      );
+    if (hit?.kind === 'place') {
+      this.barSel = null;
+      this.barAnchor = hit.bar;
+      this.selectSpot(hit);
+      return this.placeOptions();
     }
-    return options;
+    if (at === null && (this.selected || this.barSel)) return this.noteOptions();
+    return this.placeOptions();
   }
 
-  /** The tie and slur choices with the bubble's small pictures. */
-  private arcBubbleItems(): MenuItem[] {
-    return this.arcItems().map((item, i) => ({ ...item, icon: [TOOL_ICONS.tie, TOOL_ICONS.tiePick, TOOL_ICONS.tieAll][i]!, fineIcon: false }));
-  }
-
-  /** What can be done on an empty place of the staff (`bubbleOptions`); `hit` the place pressed, null from More or the keys. */
-  private placeOptions(hit: Extract<Hit, { kind: 'place' }> | null): BubbleOption[] {
-    const other: EntryMode = this.entry === 'note' ? 'rest' : 'note';
-    const options: BubbleOption[] = [
-      { slot: 0, worn: true, label: t(`editor.entry.${other}`), icon: this.smallLength(this.length, other), tooltip: t(`editor.entry.${other}.tip`), onClick: () => this.toggleEntry() },
-      { slot: 1, label: t('editor.paste'), icon: TOOL_ICONS.paste, shortcut: EDITOR_KEYS.paste.label, choices: () => this.pasteItems(), onClick: () => undefined },
-      { slot: 2, label: t('editor.repeat'), active: this.repeatPick !== null, tooltip: t('editor.repeat.tip'), shortcut: EDITOR_KEYS.repeats.label, onClick: () => this.pressRepeat() },
-      { slot: 3, label: t(STAFF_LABEL[this.staffMode]), tooltip: t('editor.staff.tip'), shortcut: EDITOR_KEYS.staff.label, choices: () => this.staffItems(), onClick: () => undefined },
-      { slot: 4, worn: true, label: t(this.shortTapEighth ? SHORT_TAP_LABEL.on : SHORT_TAP_LABEL.off), icon: this.smallLength(this.shortTapEighth ? 'eighth' : 'quarter', 'note'), tooltip: t('editor.shortTap.tip'), active: this.shortTapEighth, shortcut: EDITOR_KEYS.shortTap.label, onClick: () => this.toggleShortTap() },
-      { ...circleItem(() => this.openCircle()), slot: 6 },
-      // ALL ties every repeat of the piece, with no note selected
-      { slot: 7, label: t('editor.arc.menu'), icon: TOOL_ICONS.tie, shortcut: EDITOR_KEYS.ties.label, choices: () => this.arcBubbleItems(), onClick: () => undefined },
+  /** The bubble on a note or the selected bars: what is done to them. */
+  private noteOptions(): (ToolbarItem | null)[] {
+    const note = this.selected ? findNote(this.piece, this.selected) : undefined;
+    const sign = ACCIDENTAL_SIGN[note?.alter ?? 1];
+    const sel = this.barSel;
+    const options: (ToolbarItem | null)[] = [
+      { label: t(`editor.length.${this.length}` as StringKey), icon: this.lengthPicture(this.length, 'note'), fineIcon: true, onClick: () => undefined, menu: { items: () => this.lengthItems('note'), cell: ITEM_MENU_CELL, columns: LENGTH_ORDER.length } },
+      { label: t(`editor.acc.${sign}`), icon: itemPicture(sign), fineIcon: true, tooltip: t('editor.acc.tip'), shortcut: EDITOR_KEYS.accidentals.label, onClick: () => undefined, menu: { items: () => this.accidentalItems(), cell: ITEM_MENU_CELL, columns: 3 } },
+      { label: t('editor.delete'), icon: TOOL_ICONS.trash, shortcut: EDITOR_KEYS.delete.label, onClick: () => (sel ? this.change(clearBars(this.piece, sel)) : this.deleteSelected()) },
+      { label: t('editor.arc.menu'), icon: itemPicture('tie'), fineIcon: true, shortcut: EDITOR_KEYS.ties.label, onClick: () => undefined, menu: { items: () => this.arcItems(), cell: ITEM_MENU_CELL, columns: 3 } },
+      { label: note?.dynamic ?? '-', icon: dynamicPicture(note?.dynamic ?? 'mf'), fineIcon: true, keepCase: true, tooltip: t('editor.dyn.tip'), shortcut: EDITOR_KEYS.dynamics.label, onClick: () => undefined, menu: { items: () => this.dynamicItems(), cell: ITEM_MENU_CELL, columns: 7 } },
+      { label: t('editor.finger.menu'), icon: TOOL_ICONS.fingers, shortcut: EDITOR_KEYS.fingers.label, onClick: () => undefined, menu: { items: () => this.fingerItems(), cell: FINGER_MENU_CELL, columns: 6 } },
+      { label: t('editor.grace'), icon: TOOL_ICONS.grace, tooltip: t('editor.grace.tip'), onClick: () => this.pressGrace() },
+      { label: t('editor.copy'), icon: TOOL_ICONS.copy, shortcut: EDITOR_KEYS.copy.label, onClick: () => this.copyBar() },
     ];
-    if (hit) options.push({ slot: 5, label: t('editor.rest.remove'), icon: TOOL_ICONS.trash, onClick: () => this.apply(removeRest(this.piece, { hand: this.handOf(hit.trackId), bar: hit.bar, start: hit.start }), null) });
+    if (sel) options.push(this.pasteOption(), this.repeatOption());
     return options;
+  }
+
+  /** The bubble on an empty place of the staff: how the next notes are written. */
+  private placeOptions(): (ToolbarItem | null)[] {
+    return [
+      { label: t(`editor.entry.${this.entry}`), icon: this.lengthPicture(this.length), fineIcon: true, onClick: () => undefined, menu: { items: () => this.entryItems(), cell: ITEM_MENU_CELL, columns: 2 } },
+      this.pasteOption(),
+      this.repeatOption(),
+      { label: t(STAFF_LABEL[this.staffMode]), icon: TOOL_ICONS.staff, tooltip: t('editor.staff.tip'), shortcut: EDITOR_KEYS.staff.label, onClick: () => undefined, menu: { items: () => this.staffItems(), cell: { w: 40, h: BAR_BUTTON_HEIGHT }, columns: 3 } },
+      {
+        label: t(this.shortTapEighth ? SHORT_TAP_LABEL.on : SHORT_TAP_LABEL.off), icon: TOOL_ICONS.shortTap, tooltip: t('editor.shortTap.tip'), shortcut: EDITOR_KEYS.shortTap.label, onClick: () => undefined,
+        menu: { items: () => this.shortTapItems(), cell: { w: 40, h: BAR_BUTTON_HEIGHT }, columns: 2 } },
+      null,
+      circleItem(() => this.openCircle()),
+      null,
+    ];
+  }
+
+  private pasteOption(): ToolbarItem {
+    return { label: t('editor.paste'), icon: TOOL_ICONS.paste, shortcut: EDITOR_KEYS.paste.label, onClick: () => undefined, menu: { items: () => this.pasteItems(), cell: { w: PASTE_ITEM_WIDTH, h: BAR_BUTTON_HEIGHT }, columns: 3 } };
+  }
+
+  private repeatOption(): ToolbarItem {
+    return { label: t('editor.repeat'), icon: itemPicture('repeat'), fineIcon: true, active: this.repeatPick !== null, tooltip: t('editor.repeat.tip'), shortcut: EDITOR_KEYS.repeats.label, onClick: () => this.pressRepeat() };
+  }
+
+  /** Sharp, flat and natural for the selected note, its own lit. */
+  private accidentalItems(): MenuItem[] {
+    const now = this.selectedAlter();
+    return ([1, -1, 0] as const).map((alter) => {
+      const sign = ACCIDENTAL_SIGN[alter];
+      return { label: t(`editor.acc.${sign}`), icon: itemPicture(sign), fineIcon: true, active: alter === now, onPick: () => this.accidental(alter) };
+    });
+  }
+
+  /** Notes or rests from now on, the one in use lit, each at the length in use. */
+  private entryItems(): MenuItem[] {
+    return (['note', 'rest'] as const).map((kind) => ({ label: t(`editor.entry.${kind}`), icon: this.lengthPicture(this.length, kind), fineIcon: true, active: kind === this.entry, tooltip: t(`editor.entry.${kind}.tip`), onPick: () => {
+      this.setEntry(kind);
+      this.redraw();
+    } }));
+  }
+
+  /** What a short tap writes: an eighth or a quarter, the one in use lit. */
+  private shortTapItems(): MenuItem[] {
+    return ([true, false] as const).map((eighth) => ({ label: t(eighth ? SHORT_TAP_LABEL.on : SHORT_TAP_LABEL.off), active: eighth === this.shortTapEighth, onPick: () => {
+      if (eighth !== this.shortTapEighth) this.toggleShortTap();
+    } }));
   }
 
   /** The finger menu (with the band): 1 to 5 set the selected note's finger, AUTO fills the notes that have none (ft_1_02d.AC4, AC13). */
@@ -2431,9 +2435,7 @@ export class EditorScene extends PixelScene {
     this.placeTitleInput(titleAt, titleRight - titleAt, y);
     // what the piece maker says goes just under the strip, over the top of the sheet
     this.bubble = new SpeechBubble(this, layer, { x: strip.left, y: strip.rows + 1, width: Math.min(width, strip.right) - strip.left }, '');
-    const pageTurn = this.pageTurnRedraw;
-    this.pageTurnRedraw = false;
-    this.refreshStaff(pageTurn);
+    this.refreshStaff();
   }
 
   /**
@@ -2517,9 +2519,14 @@ export class EditorScene extends PixelScene {
     this.titleInput = input;
   }
 
-  /** The paste menu: the copied bar once, twice or four times at the end. */
+  /**
+   * The paste menu: the copied bars once, twice or four times where Ctrl+V puts them (before the bar last pressed, or after
+   * a fresh copy). AX-3 provisional: x2 and x4 are that many pastes, each its own undo step.
+   */
   private pasteItems(): MenuItem[] {
-    return ([1, 2, 4] as const).map((times) => ({ label: t(`editor.paste.${times}`), tooltip: t('editor.paste.tip'), keepCase: true, onPick: () => this.pasteBar(times) }));
+    return ([1, 2, 4] as const).map((times) => ({ label: t(`editor.paste.${times}`), tooltip: t('editor.paste.tip'), keepCase: true, onPick: () => {
+      for (let i = 0; i < times; i++) this.pasteSelection();
+    } }));
   }
 
   /**
