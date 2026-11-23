@@ -10,7 +10,7 @@ import { dropMenuLayout } from '../../../core/layout/dropMenu';
 import { t } from '../../../core/text/strings';
 import { clipToWidth } from '../../../core/text/clip';
 import { initialFocus, moveFocus, refocus, type FocusMove } from '../../../core/layout/focus';
-import { panelBitmap, trayBitmap } from './frames';
+import { panelBitmap } from './frames';
 import { ICONS } from './iconArt';
 import { TOOL_ICONS } from './toolArt';
 import { signOnly } from './itemArt';
@@ -935,7 +935,8 @@ export abstract class PixelScene extends Phaser.Scene {
    * The bubble's options for a right click at `at` (art pixels; null when More opened it), slot by slot (slot 0 straight
    * up, then clockwise; a `null` leaves its slot empty), or null for no bubble there (ft_1_20, d282). None by default.
    */
-  protected bubbleOptions(_at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
+  protected bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
+    void at;
     return null;
   }
 
@@ -998,9 +999,16 @@ export abstract class PixelScene extends Phaser.Scene {
     if (kept) {
       left -= corners.settings.w + BACKPACK_GAP;
       const r = { ...corners.settings, x: left };
+      // the items are read at the press, so one won while the screen is open is there
       const bag: PixelButton = this.buttonOn(layer, {
         ...rectCentre(r), label: t('band.backpack'), picture: TOOL_ICONS.backpack,
-        onClick: () => this.openMenu(bag, kept.length ? kept.map((item) => ({ label: item.label, ...(item.icon ? { icon: item.icon } : {}), ...(item.fineIcon ? { fineIcon: true } : {}), ...(item.tooltip ? { tooltip: item.tooltip } : {}), onPick: item.onClick })) : [{ label: t('band.backpackEmpty'), disabled: true, onPick: () => undefined }], { cell: kept.length ? { w: 30, h: 30 } : { w: 120, h: 15 }, columns: Math.min(4, Math.max(1, kept.length)), open: 'below' }),
+        onClick: () => {
+          const items = this.backpackItems() ?? [];
+          const choices: MenuItem[] = items.length
+            ? items.map((item) => ({ label: item.label, ...(item.icon ? { icon: item.icon } : {}), ...(item.fineIcon ? { fineIcon: true } : {}), ...(item.tooltip ? { tooltip: item.tooltip } : {}), onPick: item.onClick }))
+            : [{ label: t('band.backpackEmpty'), disabled: true, onPick: () => undefined }];
+          this.openMenu(bag, choices, { cell: items.length ? { w: 30, h: 30 } : { w: 120, h: 15 }, columns: Math.min(4, Math.max(1, items.length)), open: 'below' });
+        },
       });
     }
     this.toolbarButtons = { ...this.toolbarButtons, back, settings };
@@ -1394,6 +1402,9 @@ export abstract class PixelScene extends Phaser.Scene {
     this.rebuild();
   }
 
+  /** Set while `rebuild` draws the screen again for its strip's height, so it does so once. */
+  private stripRedrawn = false;
+
   private rebuild(): void {
     const previous = this.lastFocusRect;
     this.teardown();
@@ -1409,6 +1420,14 @@ export abstract class PixelScene extends Phaser.Scene {
     this.loading = false;
     this.draw();
     this.inkWriting = false;
+    // a screen whose strip actions are made in `draw` (the score screen's) has a strip of another height than was guessed:
+    // it is drawn once more with the strip it has
+    if (strip && !this.stripRedrawn && this.stripRows() !== view.band?.rows) {
+      this.stripRedrawn = true;
+      this.rebuild();
+      this.stripRedrawn = false;
+      return;
+    }
     if (this.framed) this.drawFrame();
     if (this.keyboardNavigation) {
       this.focusIndex = refocus(previous, this.focusables().map((b) => ({ ...b.rect, disabled: b.disabled })));

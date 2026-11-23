@@ -12,7 +12,8 @@ import { drawnText, measure, renderText } from './ui/pixel/font';
 import { BAR_BUTTON_HEIGHT } from './ui/pixel/playBars';
 import { clipToWidth } from '../core/text/clip';
 import { playerStats } from '../core/progression/playerStats';
-import { PixelScene } from './ui/pixel/PixelScene';
+import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
+import { backpackOf } from './adventure/backpack';
 import { PAINTED } from './ui/pixel/keri/keriPictures';
 import { type Overlay } from './ui/pixel/pack';
 import { stripArt } from './ui/pixel/keri/stripArt';
@@ -231,6 +232,11 @@ export class ProfileDashboardScene extends PixelScene {
   private showKiur(open: boolean): void {
     this.kiurOpen = open;
     this.redraw();
+  }
+
+  /** The student's items, in the backpack in the top right corner (ft_1_21.AC15, ft_1_20, d282). */
+  protected override backpackItems(): ToolbarItem[] {
+    return backpackOf(this.world);
   }
 
   /** A scene object is reused on every visit: each visit to the room decides its sky again (ft_1_14 AC8). */

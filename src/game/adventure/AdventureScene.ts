@@ -38,11 +38,10 @@ import { readingMs } from '../../core/scene/scriptRunner';
 import { scriptInk, spokenLine, spokenPages, talkColour } from '../ui/pixel/talkArt';
 import type { ScriptView } from '../../core/scene/scriptRunner';
 import { ACTORS, CHARACTERS, CONVERSATIONS, ITEMS, SCENES, SCRIPTS, TUG_RULES } from './scenesData';
-import { bandInventory } from '../../core/item/item';
 import type { ToolbarItem } from '../ui/pixel/PixelScene';
 import { TalkView } from './talkView';
 import { TugView } from './tugView';
-import { prizePicture } from '../ui/pixel/prizeArt';
+import { backpackOf, keptEntries } from './backpack';
 import { TeachView } from './teachView';
 import { learnedTaught, teachAfter, teachLevelOf } from '../../core/exchange/teach';
 import { pieceLearned } from '../../core/learn/route';
@@ -781,28 +780,14 @@ export class AdventureScene extends PixelScene {
     if (this.worldSaves) void profiles.saveWorld(profiles.profile.id, next);
   }
 
-  /**
-   * The student's items in the band's inventory (ft_1_21.AC15, ft_1_20 rule 2): what was won, each named in its tooltip.
-   * A kept item does nothing when pressed. AX-3 provisional: only the scenes of Keri show them (they hold the world). An
-   * item shows its painted picture (`prizeArt.ts`), named in its tooltip; one with no picture yet shows its name.
-   */
-  protected override bandItems(): ToolbarItem[] {
-    return this.bandEntries().map(({ item, rung }) => {
-      const name = t(item.name as StringKey), picture = prizePicture(item.picture);
-      // a ladder's prize says which rung it is (AC18): "TÕRU (2/5)"
-      const tooltip = rung ? t('item.rung', { name, at: rung.at, of: rung.of }) : name;
-      return picture ? { label: name, icon: picture, fineIcon: true, tooltip, onClick: () => undefined } : { label: name, tooltip, onClick: () => undefined };
-    });
-  }
-
-  /** The world's items as the band shows them: each character's prize ladder as its best rung (AC18). */
-  private bandEntries(): ReturnType<typeof bandInventory> {
-    return bandInventory(this.world?.items ?? [], ITEMS, [...CHARACTERS.values()].flatMap((c) => (c.prizes ? [c.prizes] : [])));
+  /** The student's items, in the backpack in the top right corner (ft_1_21.AC15, ft_1_20, d282). */
+  protected override backpackItems(): ToolbarItem[] {
+    return backpackOf(this.world);
   }
 
   /** The items in the band now, by id: for the tests and the self-playing demo. */
   get bandInventory(): string[] {
-    return this.bandEntries().map(({ item }) => item.id);
+    return keptEntries(this.world).map(({ item }) => item.id);
   }
 
   /**

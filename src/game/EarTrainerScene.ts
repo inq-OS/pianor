@@ -137,7 +137,7 @@ export class EarTrainerScene extends PixelScene {
   protected override toolbarItems(): ToolbarItem[] {
     const repeat = t(this.repeatOn ? 'ear.repeatOn' : 'ear.repeatOff');
     return [
-      { label: displayText(t('ear.playAgain')), icon: ICONS.ear, iconOnly: true, tooltip: t('ear.playAgain'), onClick: () => this.play() },
+      { label: displayText(t('ear.playAgain')), icon: ICONS.ear, iconOnly: true, tooltip: t('ear.playAgain'), main: true, onClick: () => this.play() },
       { label: displayText(repeat), icon: TOOL_ICONS.repeat, iconOnly: true, active: this.repeatOn, tooltip: repeat, onClick: () => this.toggleRepeat() },
       { label: displayText(t('ear.length', { n: this.seconds })), tooltip: t('ear.lengthTip'), onClick: () => this.cycleLength() },
     ];

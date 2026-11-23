@@ -7,6 +7,7 @@ import type { SceneLook } from '../core/sky/sceneLook';
 import { t } from '../core/text/strings';
 import { loadWorld, type World } from '../core/world/world';
 import { contextOf } from './context';
+import type { WorldState } from '../core/island/worldState';
 import { openOverlay, startScene } from './scenes';
 import { AFTER_MAP, type MapSpot } from '../core/intro/intro';
 import { INTRO } from './intro/introContent';
@@ -16,7 +17,8 @@ import { blit, createBitmap, type Bitmap } from './ui/pixel/bitmap';
 import { LiveImage, PixelImage } from './ui/pixel/PixelObjects';
 import { drawBeam, type MapBeam } from './ui/pixel/keri/beam';
 import { motionAllowed } from './motion';
-import { PixelScene } from './ui/pixel/PixelScene';
+import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
+import { backpackOf } from './adventure/backpack';
 import { PAINTED } from './ui/pixel/keri/keriPictures';
 import { currentLook } from './ui/pixel/sky/skyLooks';
 import { cloudCourses, daySky } from './ui/pixel/windMotion';
@@ -112,7 +114,20 @@ export class KeriMapScene extends PixelScene {
   /** A scene object is reused on every visit: each visit decides its sky again. */
   override create(): void {
     this.look = null;
+    this.kept = null;
+    const context = contextOf(this);
+    void context.profiles.worldOf(context.profiles.profile.id).then((world) => {
+      this.kept = world;
+    });
     super.create();
+  }
+
+  /** The world read for the backpack; null until it is read. */
+  private kept: WorldState | null = null;
+
+  /** The student's items, in the backpack in the top right corner (ft_1_21.AC15, ft_1_20, d282). */
+  protected override backpackItems(): ToolbarItem[] {
+    return backpackOf(this.kept);
   }
 
   /**
