@@ -3,8 +3,8 @@ id: "ft_1_32"
 title: "Learn a piece bar by bar"
 scope: "Every new piece is learned before it is practised: the staff shows a growing run of bars inside chunks of four, each step needs one perfect run (a mistake ends the run and repeats the step), each finished chunk is confirmed by one more play whose key times measure the player's own tempo, then the whole piece; learned bars give quarter notes that merge into whole notes per chunk and a clef per piece, each gold, silver or bronze by how cleanly it was learned and raised to gold by three perfect plays; mistake markers over notes missed again; a recall check on a later day"
 effort: "large"
-status: "slices 1 to 3 done: the pure core; the learning view on the practice screen with the confirmation play, the measured tempo and the learning settings; the clock that follows the student and the rushing stop. Slices 4 to 6 open"
-completeness: 50
+status: "slices 1 to 3 done: the pure core; the learning view on the practice screen with the confirmation play, the measured tempo and the learning settings; the clock that follows the student and the rushing stop; hands apart in a two-hand piece. Slices 4 to 6 open"
+completeness: 55
 depends_on: ["ft_0_08", "core_03", "core_10"]
 ---
 # ft_1_32: Learn a piece bar by bar
@@ -28,6 +28,7 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 10. **The stats are pictures, and can be filtered** (always shown visually and filterable). A piece with such records has a third button on its stats page (`S`) that opens the learning stats screen (`LearnStatsScene`, rules in `src/core/learn/stats.ts`). A row of buttons chooses the measure (tempo, spread, wobble, drift, stops, hands); two buttons step through which tests (all, chunks, joins, whole) and which days (all, the last seven, today). The graph shows the chosen measure over the runs, oldest left: a dot a run (red for an uneven one), for the tempo a whisker of one standard deviation and the piece's baseline as a dotted line, for the hands the left hand as rings; the Theil-Sen trend as a line once four runs have a value, and in words beside the filters the latest value and the change per test. Under it the piece's bars in a strip, each tinted by its middle pace over the runs shown (four tints, the darkest at 160% of the run's pace or slower; grey for a bar not measured).
 11. **A page says what the numbers mean and what to work on.** The `?` on that screen opens pages in words. The first says what to work on, from the latest three runs, the most telling first and at most three: stops (with the slowest bar), a slow bar, a tempo that rises or falls through a run, the hand that wobbles more, uneven playing, a tempo that differs from test to test; when none shows, that the playing is even and at what tempo. The pages after it say what each measure, the bar strip and the trend line mean, and what to aim for. AX-2.1: every sentence is a measured fact and one thing to do, never a grade.
 12. **The rushing stop.** Once a piece has a baseline tempo, a step run that speeds up beyond it is stopped at once and asked again; Kiur says so ("ÄRA KIIRUSTA, PROOVIME UUESTI!"). Nothing was played wrong, so nothing is lost: it counts as a run asked again, like an uneven measured run, and after `TEMPO_RULES.asks` of those the step's runs count at any speed, so a student who keeps rushing is never held at a step. The recall check is never stopped for speed. `AX-3 provisional:` rushing is the median pace of the latest 3 gaps more than 20% above the baseline (`RUSH_RULES` in `src/core/learn/tempo.ts`).
+13. **Hands apart.** In a piece for both hands each growing step is played by the right hand alone, then the left hand alone, then both; a hand step shows and waits for that hand's staff only (`handChart`), and a step whose bars have only one hand's notes is played once. Confirmation plays, joins and the whole run are always both hands. A piece begun before hands apart keeps the plan it began with (`LearnProgress.handsApart`, optional, d069.3). `AX-3 provisional:` hands apart in every growing step.
 
 ## Slices
 
@@ -53,6 +54,7 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 - **ft_1_32.AC9** A record also keeps the kind of test, the pace of each bar and each hand's spread; the learning stats screen shows every measure as a graph over the runs with its trend, filtered by kind of test and by days, and the piece's bars tinted by their pace (slice 2).
 - **ft_1_32.AC10** The screen's `?` opens pages that say what to work on, from the latest runs, and what each number means and what to aim for (slice 2).
 - **ft_1_32.AC11** With a baseline tempo, a step run whose latest gaps are faster than the baseline by more than the margin is stopped at once and asked again with Kiur's line; it loses nothing and counts as a run asked again, at most `TEMPO_RULES.asks` times a step; never without a baseline or in the recall check (slice 3).
+- **ft_1_32.AC12** In a new two-hand piece each growing step comes three times, the right hand alone, the left hand alone, then both, a hand step showing and judging that hand only; a step with one hand's notes only comes once; a piece begun before keeps its plan (hands apart, beside slices 4 to 6).
 
 ## Slice 2 as built
 
@@ -81,5 +83,4 @@ Weighed against the axioms; they stay as built until real runs of the student sa
 - TODO(builder, R2): a song taught in levels (rule 2): a character's song is cut into pieces of 4 to 16 bars, one per level, each learned by this plan; the final boss is every bar in one sitting in the tug (slice 4, with ft_1_22); then add the rule that a character's final level is its whole song to `src/core/character/rules.ts` (checked over every character by `tests/content/characters.test.ts`).
 - TODO(builder, R3): still open: show the student where they hesitated in a run, and a click that follows the student's pace.
 - TODO(builder, R3): a piece learned before `learnedAt` was kept has none, so its bars never turn gold from later plays; backfill it (the day of its last run) if a screen ever shows the rewards of learned pieces.
-- TODO(builder, R2): hands-separate steps for two-hand pieces (slices 4 to 6): each hand learned alone before the two together.
 - TODO(painter, R2): redraw the reward notes and the clef of `src/game/practice/rewardNotes.ts` in the house manner.

@@ -1,4 +1,5 @@
 import { pickupTicks, sectionHasNotes, type Chart } from '../chart';
+import { chartSchema } from '../chart/schema';
 
 /**
  * The step plan of learning a piece bar by bar (ft_1_32). Pure.
@@ -45,7 +46,11 @@ export interface LearnStep {
   lastBar: number;
   /** Perfect runs in a row the step needs. */
   runs: number;
+  /** A growing step of a two-hand piece played by this hand alone (`handChart`); absent: every hand. */
+  hand?: Hand;
 }
+
+export type Hand = 'RH' | 'LH';
 
 /** The units of a piece: one per bar, a pick-up with the bar after it. */
 export function learnUnits(chart: Chart): LearnUnit[] {
@@ -60,7 +65,32 @@ export function learnUnits(chart: Chart): LearnUnit[] {
   return units;
 }
 
-export function learnPlan(chart: Chart, stepSize: LearnStepSize = 1): LearnStep[] {
+/**
+ * The chart of a step played by `hand` alone (ft_1_32 rule 13): the other hand's tracks become accompaniment, so the staff
+ * shows and the judge waits for that hand only. The chart itself when `hand` is undefined.
+ */
+export function handChart(chart: Chart, hand: Hand | undefined): Chart {
+  if (hand === undefined) return chart;
+  return chartSchema.parse({ ...chart, tracks: chart.tracks.map((t) => (t.role === 'play' && t.hand !== hand ? { ...t, role: 'accompaniment' } : t)) });
+}
+
+/** The hands with notes to play in chart bars `first` to `last`. */
+function handsIn(chart: Chart, first: number, last: number): Hand[] {
+  const handOf = new Map(chart.tracks.filter((t) => t.role === 'play').map((t) => [t.id, t.hand]));
+  const hands = new Set<Hand>();
+  for (const n of chart.notes) {
+    const hand = handOf.get(n.track);
+    if ((hand === 'RH' || hand === 'LH') && n.bar >= first && n.bar <= last) hands.add(hand);
+  }
+  return (['RH', 'LH'] as const).filter((h) => hands.has(h));
+}
+
+/**
+ * `handsApart` (ft_1_32 rule 13): in a piece for both hands each growing step is played first by the right hand alone, then
+ * by the left hand alone, then by both; a step whose bars have only one hand's notes is played once. `AX-3 provisional`: hands apart in
+ * every growing step; confirmation plays, joins and the whole run are always both hands.
+ */
+export function learnPlan(chart: Chart, stepSize: LearnStepSize = 1, handsApart = false): LearnStep[] {
   const rules = LEARN_RULES;
   const units = learnUnits(chart);
   const count = units.length;
@@ -70,6 +100,7 @@ export function learnPlan(chart: Chart, stepSize: LearnStepSize = 1): LearnStep[
     kind, firstUnit, lastUnit, firstBar: units[firstUnit]!.first, lastBar: units[lastUnit]!.last, runs,
   });
   const steps: LearnStep[] = [];
+  const bothHands = handsIn(chart, 0, chart.bars.length - 1).length === 2;
   const chunks = Math.ceil(count / rules.chunkUnits);
   for (let chunk = 0; chunk < chunks; chunk++) {
     const start = chunk * rules.chunkUnits;
@@ -80,7 +111,11 @@ export function learnPlan(chart: Chart, stepSize: LearnStepSize = 1): LearnStep[
       const upTo = Math.min(last, end);
       // a step that adds only bars with nothing to play is left out; the chunk's last bars then come with the confirmation
       if (hasNotes(shown + 1, upTo)) {
-        steps.push(step('grow', start, upTo));
+        const grow = step('grow', start, upTo);
+        const hands = handsApart && bothHands ? handsIn(chart, grow.firstBar, grow.lastBar) : [];
+        // a step with one hand's notes only is that hand alone already
+        if (hands.length === 2) steps.push(...hands.map((hand) => ({ ...grow, hand })));
+        steps.push(grow);
         shown = upTo;
       }
       if (upTo === end) break;

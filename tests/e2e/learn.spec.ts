@@ -1,4 +1,4 @@
-// Covers ft_1_32.AC4, ft_1_32.AC5, ft_1_32.AC6, ft_1_32.AC11.
+// Covers ft_1_32.AC4, ft_1_32.AC5, ft_1_32.AC6, ft_1_32.AC11, ft_1_32.AC12.
 import { expect, test, type Page } from '@playwright/test';
 import { expectNoErrors, letGameRun, openGame, openPiece, playWithKeys } from './helpers';
 
@@ -72,5 +72,17 @@ test('ft_1_32.AC11 a run that speeds up beyond the baseline tempo is stopped and
   await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toBe('Too fast: keep the speed you started with. Once more');
   expect(await shown(page)).toMatchObject({ bars: 1, first: 0 });
   expect(await progress(page)).toMatchObject({ step: 0, misses: 0, unsteady: 1 }); // nothing lost, asked again
+  expectNoErrors(errors);
+});
+
+test('ft_1_32.AC12 a two-hand piece is learned hands apart: one staff for the right hand first', async ({ page }) => {
+  const errors = await openGame(page, '?device=virtual&learn=1');
+  await openPiece(page, 'Both Hands');
+  expect(await kiurSays(page)).toBe('Bar 1, right hand alone: every note right');
+  const staves = await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { chart: { tracks: { role: string; hand: string | null }[] } })
+    .chart.tracks.filter((t) => t.role === 'play').map((t) => t.hand));
+  expect(staves).toEqual(['RH']);
+  await playWithKeys(page, (await shown(page)).midis);
+  await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toBe('Every note right! Bar 1, left hand alone: every note right');
   expectNoErrors(errors);
 });

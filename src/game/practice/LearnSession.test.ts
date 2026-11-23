@@ -146,4 +146,21 @@ describe('LearnSession', () => {
   it('ft_1_32.AC11 never stops for speed before a baseline tempo is measured', () => {
     expect(open().session().rushStops).toBe(false);
   });
+
+  it('ft_1_32.AC12 a new two-hand piece is learned hands apart: the right hand alone first, on its own staff', async () => {
+    const both = chartWith([{ tick: 0, dur: 480, midi: 64 }, { tick: 0, dur: 480, midi: 48, track: 'lh' }, { tick: 480, dur: 1440, midi: 65 }]);
+    const kept = { progress: START_PROGRESS };
+    const profileOf: LearnProfile = {
+      learnSettings: DEFAULT_LEARN_SETTINGS, learnProgressOf: () => kept.progress, practiceFor: () => [], recordFor: () => undefined,
+      saveLearnProgress: (_, progress) => { kept.progress = progress; return Promise.resolve(true); },
+    };
+    const session = LearnSession.open(profileOf, both, '1998-11-22')!;
+    expect(session.run.step.hand).toBe('RH');
+    expect(session.chart.tracks.filter((t) => t.role === 'play').map((t) => t.hand)).toEqual(['RH']);
+    expect(session.startLine()).toBe('Bar 1, right hand alone: every note right');
+    await session.finish('perfect');
+    expect(kept.progress.handsApart).toBe(true);
+    expect(LearnSession.open(profileOf, both, '1998-11-22')!.startLine()).toBe('Bar 1, left hand alone: every note right');
+  });
 });
+

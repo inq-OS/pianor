@@ -3,7 +3,8 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
 import type { Chart } from '../chart';
-import { learnPlan, learnUnits, type LearnStep } from './plan';
+import { buildSteps } from '../judge/steps';
+import { handChart, learnPlan, learnUnits, type LearnStep } from './plan';
 
 /** A chart of `bars` 4/4 bars with one quarter note at the start of each bar listed in `played` (default every bar). */
 function piece(bars: number, played?: readonly number[]): Chart {
@@ -15,7 +16,7 @@ function piece(bars: number, played?: readonly number[]): Chart {
 }
 
 /** Steps as "first-last" in printed bars (1-based), whole steps with their runs. */
-const show = (steps: readonly LearnStep[]) => steps.map((s) => `${s.kind}:${s.firstBar + 1}-${s.lastBar + 1}${s.runs > 1 ? `x${s.runs}` : ''}`);
+const show = (steps: readonly LearnStep[]) => steps.map((s) => `${s.kind}:${s.firstBar + 1}-${s.lastBar + 1}${s.runs > 1 ? `x${s.runs}` : ''}${s.hand ? ` ${s.hand}` : ''}`);
 
 describe('learnUnits', () => {
   it('is one unit per bar', () => {
@@ -111,3 +112,36 @@ describe('learnPlan', () => {
     }));
   });
 });
+
+describe('hands apart', () => {
+  /** `bars` bars, each with a right-hand quarter note and a left-hand one, except the left hand's bars in `lhRests`. */
+  function twoHands(bars: number, lhRests: readonly number[] = []): Chart {
+    const notes = Array.from({ length: bars }, (_, bar) => [
+      { tick: bar * 1920, dur: 480, midi: 64, track: 'rh' },
+      ...(lhRests.includes(bar) ? [] : [{ tick: bar * 1920, dur: 480, midi: 48, track: 'lh' }]),
+    ]).flat();
+    notes.push({ tick: (bars - 1) * 1920, dur: 1920, midi: 52, track: 'bk' }); // the last bar runs to its end
+    return chartWith(notes);
+  }
+
+  it('ft_1_32.AC12 in a two-hand piece each growing step is played by the right hand alone, the left hand alone, then both', () => {
+    expect(show(learnPlan(twoHands(2), 1, true))).toEqual([
+      'grow:1-1 RH', 'grow:1-1 LH', 'grow:1-1', 'grow:1-2 RH', 'grow:1-2 LH', 'grow:1-2', 'confirm:1-2x3',
+    ]);
+  });
+
+  it('ft_1_32.AC12 plays a step once when only one hand has notes in it, and changes nothing without hands apart or for one hand', () => {
+    expect(show(learnPlan(twoHands(2, [0]), 1, true)).slice(0, 2)).toEqual(['grow:1-1', 'grow:1-2 RH']); // bar 1 is the right hand's alone
+    expect(show(learnPlan(twoHands(2), 1, false))).toEqual(['grow:1-1', 'grow:1-2', 'confirm:1-2x3']);
+    expect(show(learnPlan(piece(2), 1, true))).toEqual(['grow:1-1', 'grow:1-2', 'confirm:1-2x3']);
+  });
+
+  it('ft_1_32.AC12 the chart of a hand step shows and waits for that hand only', () => {
+    const chart = twoHands(2);
+    const right = handChart(chart, 'RH');
+    expect(right.tracks.filter((t) => t.role === 'play').map((t) => t.hand)).toEqual(['RH']);
+    expect(buildSteps(right).flatMap((s) => s.noteIndices.map((i) => right.notes[i]!.midi))).toEqual([64, 64]);
+    expect(handChart(chart, undefined)).toBe(chart);
+  });
+});
+
