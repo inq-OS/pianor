@@ -15,7 +15,7 @@ import type { JudgeEvent } from '../judge/types';
  * uneven measured run is asked again at most `asks` times; the next run with every note right then counts with no tempo
  * kept, so a student who cannot yet play evenly is never held at a step (no punishing fail state).
  */
-export const TEMPO_RULES = { tolerance: 0.3, haltFactor: 2, steadyShare: 0.75, roundTo: 5, asks: 2 } as const;
+export const TEMPO_RULES = { tolerance: 0.5, haltFactor: 3, steadyShare: 0.6, roundTo: 5, asks: 1 } as const;
 
 export interface RunTempo {
   /**

@@ -696,7 +696,7 @@ export const strings = {
   'learn.confirm': 'Bars {from} to {to} once more, at an even pace',
   'learn.join': 'Now together: bars {from} to {to}, at an even pace',
   'learn.confirmOne': 'Bar {n} once more, at an even pace',
-  'learn.unsteady': 'Every note right, but the pace was uneven. Once more, slower',
+  'learn.unsteady': 'Every note right. The pace changed a lot: once more, as evenly as you can',
   'learn.pace': 'Every note right, at an even {bpm}!',
   'learn.recall': 'First the bars from last time: {from} to {to}',
   'learn.recallOne': 'First the bar from last time: {n}',

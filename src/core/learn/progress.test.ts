@@ -152,13 +152,11 @@ describe('measuredOutcome', () => {
     expect(measuredOutcome(START_PROGRESS, null)).toEqual({ outcome: 'perfect' });
   });
 
-  it('asks an uneven run again twice at most: the student is never held at a step for the pace (ft_1_32.AC7)', () => {
+  it('ft_1_32.AC7 asks an uneven run again once at most: the student is never held at a step for the pace', () => {
     const atConfirm = play(START_PROGRESS, all(4));
     expect(measuredOutcome(atConfirm, uneven)).toEqual({ outcome: 'unsteady' });
     const once = play(atConfirm, ['unsteady']);
-    expect(measuredOutcome(once, uneven)).toEqual({ outcome: 'unsteady' });
-    const twice = play(once, ['unsteady']);
-    expect(measuredOutcome(twice, uneven)).toEqual({ outcome: 'perfect' }); // counts, with no tempo kept
+    expect(measuredOutcome(once, uneven)).toEqual({ outcome: 'perfect' }); // counts, with no tempo kept
   });
 });
 
