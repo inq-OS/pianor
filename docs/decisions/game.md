@@ -444,3 +444,11 @@ Check: `tests/progression/profile-service.test.ts` "ft_1_07.AC1: a new install m
 Pressing Kiur in the room asks Learn or Tug, and either opens the piece book. Learn opens the piece in learning bar by bar even when it was played to the end before (`PracticeData.learn`); Tug lists only the pieces whose whole learning plan is done (`pieceLearned`) and takes the one picked to the room for his tug. Free plays never count as learning for the tug.
 
 Check: `src/core/learn/route.test.ts` "ft_1_32.AC13 the piano plays any piece in full, and a piece of a character is learned first"; `src/core/learn/route.test.ts` "ft_1_32.AC14 a piece is learned for the tug only once its whole plan is done, never from free plays"
+
+## d279
+
+**An old wall telephone in the room rings while the teacher's curriculum holds a piece whose learning has not begun, and a press on it opens that piece in bar-by-bar learning.** Features: ft_1_34.
+
+The call is about the new piece due first (the higher priority on the same day); with none new, a press picks up the most urgent piece still being learned without a ring; with every curriculum piece learned the telephone is quiet. A curriculum piece picked at the piano plays freely, as any piece not a character's (d278).
+
+Check: `src/core/curriculum/phoneCall.test.ts` "ft_1_34.AC1 rings for a curriculum piece whose learning has not begun"; `src/core/curriculum/phoneCall.test.ts` "ft_1_34.AC2 a call goes to the new piece due first, the higher priority on the same day"

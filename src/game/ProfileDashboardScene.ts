@@ -27,6 +27,9 @@ import { contextOf } from './context';
 import { startScene } from './scenes';
 import { standPanel } from '../core/layout/standPanel';
 import { pieceLearned } from '../core/learn/route';
+import { phoneCall, type PhoneCall } from '../core/curriculum/phoneCall';
+import { phoneAtRest, phoneRinging } from './ui/pixel/phoneArt';
+import { learnBook, tugRope } from './ui/pixel/standArt';
 import { STAND_CHOICES } from './room/standChoices';
 import { motionAllowed } from './motion';
 import { idleLongEnough } from '../core/visit/islandVisit';
@@ -111,6 +114,9 @@ const INTRO_SKIP = { pad: 10, margin: 4 } as const;
  * ft_1_20.AC15); the shield gets a contour instead (ft_1_20.AC14). The picture is a low band; the strip under it is kept free for the verb buttons and the inventory to come.
  * Placement is `core/layout/room.ts`.
  */
+/** How long the ringing telephone shows each look of its shaken bells (ft_1_34). */
+const RING_MS = 120;
+
 export class ProfileDashboardScene extends PixelScene {
   protected override keyboardNavigation = true;
 
@@ -128,6 +134,8 @@ export class ProfileDashboardScene extends PixelScene {
   /** Kiur's question is open over the room (ft_1_32 rule 14): learn a song bar by bar, or tug one; its two buttons are then the only ones the keyboard reaches. */
   private kiurOpen = false;
   private kiurButtons: PixelButton[] = [];
+  /** The player's curriculum, for the telephone's call (ft_1_34); null until read, or when there is none. */
+  private curriculum: Curriculum | null = null;
   /** The player's world (ft_1_21.AC14: whose tug Kiur practises); null until read. */
   private world: WorldState | null = null;
   /** False when the world could not be read: then a practice tug's cool-down is not written over it. */
@@ -242,6 +250,7 @@ export class ProfileDashboardScene extends PixelScene {
     this.onWindowKey(touch);
     this.events.once('shutdown', contextOf(this).keyboard.onNote(touch));
     this.world = null;
+    this.curriculum = null;
     this.worldSaves = false;
     this.tug = null;
     this.talk = null;
@@ -418,6 +427,7 @@ export class ProfileDashboardScene extends PixelScene {
       asleep.forEach((frame) => frame.setAlpha(over ? 0 : 1));
       letters.setAlpha(over ? 0 : 1);
     });
+    this.phone(at, plan.phone);
     const teacher = this.teacherHere ? this.teacher(at, plan.objects.door) : null;
     this.teacherHead = teacher;
     const kiurFrame = picture.kiur.frames[0]!;
@@ -491,7 +501,12 @@ export class ProfileDashboardScene extends PixelScene {
       }
       this.endIntro(player);
     }
+    // the telephone rings once the curriculum is read (ft_1_34)
+    const rings = (c: Curriculum | null) => this.call(c)?.ringing === true;
+    const changed = rings(curriculum) !== rings(this.curriculum);
+    this.curriculum = curriculum;
     if (curriculum !== null) this.speak(player, curriculum, log ?? EMPTY_PRACTICE_LOG, late);
+    if (changed && !this.talk && this.sys.isActive()) this.redraw();
     // drawn again only when the read changed the room: someone speaks (a redraw under the pointer drops its hover)
     if (this.talk && this.sys.isActive()) this.redraw();
   }
@@ -637,11 +652,11 @@ export class ProfileDashboardScene extends PixelScene {
   }
 
   /**
-   * Kiur's question (ft_1_32 rule 14): a board over the room with two choices, learn a song bar by bar or tug one, each
-   * opening the piece book for it. A press beside the board closes it. Placement is the stand's (`standPanel`).
+   * Kiur's question (ft_1_32 rule 14): a board over the room with two pictures, an open music book to learn a song bar by
+   * bar and a rope with its rag to tug one, each opening the piece book for it; their names show only in their bubbles. A press beside the board closes it. Placement is the stand's (`standPanel`).
    */
   private kiurAsks(at: Rect): PixelButton[] {
-    const choices = [{ id: 'learn', name: 'room.kiur.learn' }, { id: 'tug', name: 'room.kiur.tug' }] as const;
+    const choices = [{ id: 'learn', name: 'room.kiur.learn', picture: learnBook }, { id: 'tug', name: 'room.kiur.tug', picture: tugRope }] as const;
     const { panel, cells } = standPanel(at, choices.length);
     const outside = this.add.rectangle(0, 0, this.px.width, this.px.height, 0x000000, 0).setOrigin(0, 0).setInteractive();
     outside.on('pointerup', () => this.showKiur(false));
@@ -655,13 +670,54 @@ export class ProfileDashboardScene extends PixelScene {
         return frame;
       }) as [PixelImage, PixelImage];
       lit.setVisible(false);
-      const word = renderText(t(choice.name), { color: C.ink });
-      this.fineImage(cell.x * ART_DETAIL + Math.floor((cell.w * ART_DETAIL - word.width) / 2), cell.y * ART_DETAIL + Math.floor((cell.h * ART_DETAIL - word.height) / 2), word).setName(`kiur:${choice.id}`);
+      // a picture, its name only in its bubble: every selection is a picture
+      const art = choice.picture();
+      this.fineImage(cell.x * ART_DETAIL + Math.floor((cell.w * ART_DETAIL - art.width) / 2), cell.y * ART_DETAIL + Math.floor((cell.h * ART_DETAIL - art.height) / 2), art).setName(`kiur:${choice.id}`);
       const light = (over: boolean) => {
         rest.setVisible(!over);
         lit.setVisible(over);
       };
       return this.button({ ...rectCentre(cell), label: t(choice.name), picture: createBitmap(cell.w, cell.h), onHover: light, onClick: () => startScene(this, 'menu', { forKiur: choice.id }) });
+    });
+  }
+
+  /** The telephone's call now (ft_1_34): the teacher's piece it is about and whether it rings; null when it is quiet. */
+  private call(curriculum: Curriculum | null = this.curriculum): PhoneCall | null {
+    if (curriculum === null) return null;
+    const { pieces, profiles } = contextOf(this);
+    const chart = (id: string) => pieces.find(id)?.chart;
+    return phoneCall(curriculum, {
+      known: (id) => chart(id) !== undefined,
+      learned: (id) => pieceLearned(chart(id)!, profiles.learnProgressOf(id), profiles.learnSettings),
+      begun: (id) => profiles.learnProgressOf(id).lastDay !== null,
+    });
+  }
+
+  /**
+   * The old wall telephone (ft_1_34): it rings (its bells shaken in turn) while the teacher's curriculum holds a piece
+   * whose learning has not begun; pressed, it opens the piece of its call to be learned bar by bar. Pressed while there is
+   * no piece to learn, Kiur says it is quiet. `place` is its box in the plan, in layout cells of the picture.
+   */
+  private phone(at: Rect, place: Rect): void {
+    const call = this.call();
+    const rest = phoneAtRest();
+    const x = (at.x + place.x) * ART_DETAIL + Math.floor((place.w * ART_DETAIL - rest.width) / 2);
+    const y = (at.y + place.y) * ART_DETAIL + Math.floor((place.h * ART_DETAIL - rest.height) / 2);
+    const looks = call?.ringing ? phoneRinging() : [rest];
+    const images = looks.map((look, i) => this.fineImage(x, y, look).setName(call?.ringing ? `phone:ringing:${i}` : 'phone'));
+    this.cycle(images, RING_MS);
+    const r = { x: at.x + place.x, y: at.y + place.y, w: place.w, h: place.h };
+    this.button({
+      ...rectCentre(r), label: t(call?.ringing ? 'room.phone.ringing' : 'room.phone'), picture: createBitmap(r.w, r.h),
+      onClick: () => {
+        if (this.tug || this.talk || this.cardOpen || this.standOpen || this.kiurOpen || this.introStage) return;
+        const now = this.call();
+        if (now) startScene(this, 'practice', { chartId: now.piece, learn: true });
+        else {
+          this.openTalk([{ who: 'kiur', text: t('room.phone.quiet') }]);
+          this.redraw();
+        }
+      },
     });
   }
 

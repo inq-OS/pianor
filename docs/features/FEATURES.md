@@ -32,10 +32,10 @@ Every feature file carries `completeness: N` (an integer, 0 to 100) in its front
 | Scope | Features at 100 | Done % |  |
 |---|---|---|---|
 | MVP, iteration 0 | 15 of 19 | 88 | `##################..` |
-| Iteration 1 | 4 of 32 | 68 | `##############......` |
+| Iteration 1 | 4 of 33 | 68 | `##############......` |
 | Core behaviour | 0 of 12 | 69 | `##############......` |
 | Iteration not defined yet | 0 of 15 | 19 | `####................` |
-| Overall | 19 of 78 | 60 | `############........` |
+| Overall | 19 of 79 | 60 | `############........` |
 <!-- /docs:completeness -->
 
 ## MVP, iteration 0 (ft_0_00 to ft_0_17)
@@ -125,6 +125,7 @@ Every feature file carries `completeness: N` (an integer, 0 to 100) in its front
 | [ft_1_31](ft_1_31-first-run-intro.md) | First-run intro: Kiur's tour and the teacher's first lesson | Every new player is shown the game once: Kiur shows the room and the practice screen one thing at a time under a spotlight (the rest darkened, an arrow, his line), then the teacher visits and walks the student through learn, practise and the tug on the first four bars of Twinkle | medium | 80 | 1 | built: the spotlight, the room's and the map's tour, the practice screen's tour, the teacher's lesson (learn, practise, tug) and the world flags, with unit and end-to-end tests; open: the maintainer's look and wording, the painter's arrow and the teacher's figure |
 | [ft_1_32](ft_1_32-learn-a-piece-bar-by-bar.md) | Learn a piece bar by bar | Every new piece is learned before it is practised: the staff shows a growing run of bars inside chunks of four, each step needs one perfect run (a mistake ends the run and repeats the step), each finished chunk is confirmed by one more play whose key times measure the player's own tempo, then the whole piece; learned bars give quarter notes that merge into whole notes per chunk and a clef per piece, each gold, silver or bronze by how cleanly it was learned and raised to gold by three perfect plays; mistake markers over notes missed again; a recall check on a later day | large | 55 |  | slices 1 to 3 done: the pure core; the learning view on the practice screen with the confirmation play, the measured tempo and the learning settings; the clock that follows the student and the rushing stop; hands apart in a two-hand piece. Slices 4 to 6 open |
 | [ft_1_33](ft_1_33-piece-maker-picture-help.md) | Piece maker help as pictures | F1 in the piece maker shows each simple mouse action as a picture (a small mouse with what is pressed, the staff before, an arrow, the staff after), and Kiur shows the keyboard keys on the staff under the intro's spotlight, in place of the list of lines | simple | 75 | 1 | built: eight cards of mouse actions on sketched staves, Alt + left for the touchpad, the Keys button and Kiur's spotlight tour of the cursor, the bar and the band, with unit and end-to-end tests; open: the maintainer's look, the wheel on the band once ft_1_20 has it |
+| [ft_1_34](ft_1_34-curriculum-telephone.md) | The telephone: the teacher's new piece calls the student to learn it | An old wall telephone in the room rings while the teacher's curriculum holds a piece whose learning has not begun; pressed, it opens that piece in bar-by-bar learning (ft_1_32) | simple | 70 |  | built: the call's rule, the builder's first picture on the room's wall with its ringing look, the press that opens the learning, with unit and end-to-end tests; open: the painter's picture in the room and a ring that is heard |
 <!-- /docs:index -->
 
 ## Iteration not defined yet (ft_Y_XX; outlines, write a plan before starting)
