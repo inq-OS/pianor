@@ -1,9 +1,9 @@
-// Covers ft_1_29.AC1.
+// Covers ft_1_29.AC1, ft_1_29.AC3.
 // The stand's panel opens the scales and chords trainer (ft_1_29 slice A): the scale of the chosen key on the staff, played
 // in Wait mode with three lives; a wrong key costs a heart and says why, the names come on the notes, and the XP of the
 // right notes is kept after a lost round. The key comes from the circle of fifths, the shape and the hand from the toolbar.
 import { expect, test, type Page } from '@playwright/test';
-import { clickButton, expectNoErrors, openFromStand, openGame, playWithVirtualPiano, profileButton, sceneButton, totalXp, waitForScene } from './helpers';
+import { clickButton, expectNoErrors, openFromStand, openGame, playWithVirtualPiano, profileButton, sceneButton, sceneTexts, totalXp, waitForScene } from './helpers';
 
 const SCENE = 'shapeTrainer';
 type View = { round: { state(): { lives: number; xp: number; outcome: string }; chart: { notes: { midi: number }[] } }; wrong: unknown; choice: { shape: string; hand: string; fifths: number } };
@@ -52,7 +52,7 @@ test.describe('scales and chords trainer (ft_1_29)', () => {
 
   test('ft_1_29.AC1 the toolbar switches to the triad and to the left hand; the circle of fifths sets the key', async ({ page }) => {
     const errors = await openTrainer(page);
-    await clickButton(page, SCENE, await sceneButton(page, SCENE, 'Scale up and down, or the triad'));
+    await clickButton(page, SCENE, await sceneButton(page, SCENE, 'Scale up and down, the triad, or the scale switcher'));
     await expect.poll(() => keys(page)).toEqual([60, 64, 67, 60, 64, 67]);
     await clickButton(page, SCENE, await sceneButton(page, SCENE, 'Which hand plays: right or left'));
     await expect.poll(() => keys(page)).toEqual([48, 52, 55, 48, 52, 55]);
@@ -63,6 +63,22 @@ test.describe('scales and chords trainer (ft_1_29)', () => {
     await clickButton(page, 'circle', await sceneButton(page, 'circle', 'Set the key: G major'));
     await waitForScene(page, SCENE);
     await expect.poll(() => keys(page)).toEqual([43, 47, 50, 43, 47, 50]);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_29.AC3 the third shape is the scale switcher: the key named above the staff changes after each bar, and the next note is the new scale\'s', async ({ page }) => {
+    const errors = await openTrainer(page);
+    const shape = 'Scale up and down, the triad, or the scale switcher';
+    await clickButton(page, SCENE, await sceneButton(page, SCENE, shape));
+    await clickButton(page, SCENE, await sceneButton(page, SCENE, shape));
+    await expect.poll(() => sceneTexts(page, SCENE)).toContain('C major');
+    // bar 0 is C major up; then the cursor is in bar 1, G major down from G5
+    await playWithVirtualPiano(page, [60, 62, 64, 65, 67, 69, 71, 72]);
+    await expect.poll(() => sceneTexts(page, SCENE)).toContain('G major');
+    await playWithVirtualPiano(page, [79, 77]);
+    await expect.poll(() => state(page)).toMatchObject({ lives: 2, outcome: 'playing' });
+    await playWithVirtualPiano(page, [78]);
+    await expect.poll(() => state(page)).toMatchObject({ xp: 100 });
     expectNoErrors(errors);
   });
 });

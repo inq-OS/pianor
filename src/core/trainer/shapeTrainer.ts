@@ -45,10 +45,11 @@ export function nextShapeKey(fifths: number, step: 1 | -1): number {
   return ((((fifths + MOST_FIFTHS + step) % span) + span) % span) - MOST_FIFTHS;
 }
 
-function tonicOctave(choice: ShapeChoice): number {
-  if (choice.hand === 'RH') return RH_OCTAVE;
-  const tonic = scaleSpellings(choice.fifths, choice.mode)[0]!.step;
-  return LH_LOW_TONICS.has(tonic) ? RH_OCTAVE - 2 : RH_OCTAVE - 1;
+/** The eight notes of the key's scale, tonic to tonic, in the octave the hand plays it in. */
+export function handScale(fifths: number, mode: KeyMode, hand: ShapeHand): Spelling[] {
+  if (hand === 'RH') return scaleSpellings(fifths, mode, RH_OCTAVE);
+  const tonic = scaleSpellings(fifths, mode)[0]!.step;
+  return scaleSpellings(fifths, mode, LH_LOW_TONICS.has(tonic) ? RH_OCTAVE - 2 : RH_OCTAVE - 1);
 }
 
 /**
@@ -57,7 +58,7 @@ function tonicOctave(choice: ShapeChoice): number {
  * note (two bars). The major scale, and the natural minor for a minor key (`scaleSpellings`).
  */
 export function shapeChart(choice: ShapeChoice): Chart {
-  const scale = scaleSpellings(choice.fifths, choice.mode, tonicOctave(choice));
+  const scale = handScale(choice.fifths, choice.mode, choice.hand);
   const track = 'play';
   const note = (spelling: Spelling, tick: number, dur: number): ChartNote => ({ tick, dur, midi: spellingToMidi(spelling), spelling, track, voice: 1, bar: Math.floor(tick / BAR) });
   let notes: ChartNote[];

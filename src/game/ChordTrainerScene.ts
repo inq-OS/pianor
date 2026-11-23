@@ -1,6 +1,6 @@
 import chordsJson from '../../content/trainer/chords.json';
 import { midiToSpelling } from '../core/chart/pitch';
-import { CHORD_LIVES, CHORD_XP_PER_NOTE, ChordRound, chordLabel, loadChordContent } from '../core/trainer/chordTrainer';
+import { CHORD_LIVES, ChordRound, chordLabel, loadChordContent } from '../core/trainer/chordTrainer';
 import { displayText } from '../core/text/language';
 import { noteLabel } from '../core/text/noteName';
 import { t } from '../core/text/strings';
@@ -89,6 +89,7 @@ export class ChordTrainerScene extends PixelScene {
         if (event.kind === 'on' && event.velocity > 0) this.againIfOver();
         return;
       }
+      const xpBefore = this.round.state().xp;
       const result = this.round.press(event);
       if (result.verdict === 'wrong') {
         this.wrong = result.midi;
@@ -96,7 +97,7 @@ export class ChordTrainerScene extends PixelScene {
       } else if (result.verdict === 'correct') {
         this.wrong = null;
         // the XP of a right chord is saved at once, so a lost round cannot take it away
-        void contextOf(this).profiles.addTrainerXp(result.chord.pitchClasses.length * CHORD_XP_PER_NOTE);
+        void contextOf(this).profiles.addTrainerXp(this.round.state().xp - xpBefore);
       } else {
         return;
       }
