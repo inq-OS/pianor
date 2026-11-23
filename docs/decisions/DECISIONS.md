@@ -261,4 +261,5 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d275](workflow.md#d275) | A part of a feature is named by its feature id and slice; the work-package ids (WP-nn) are retired |  |
 | [d276](workflow.md#d276) | Every thread approves and merges its own pull requests once its checks pass; no pull request waits for the maintainer |  |
 | [d277](game.md#d277) | A new instance of the game starts with no players; the first screen asks for the first player's name, and players are only ever added by the person | ft_1_07 |
+| [d278](game.md#d278) | The piano is a sandbox: a piece picked there plays in full with no learning gate, except a character's piece, which is still learned bar by bar first; learning and tugging go through Kiur, and a tug needs a learned piece | ft_1_32, ft_1_21 |
 <!-- /docs:index -->
