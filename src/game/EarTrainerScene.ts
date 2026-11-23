@@ -144,13 +144,12 @@ export class EarTrainerScene extends PixelScene {
   }
 
   /** With the band (ft_1_20): play again and the length are actions; repeat is a worn item, lit while on. */
-  protected override bandActions(): ToolbarItem[] {
-    return this.toolbarItems().filter((_, i) => i !== 1);
+  /** The strip (ft_1_20, d282): the length, Repeat, and Play again at the right end. */
+  protected override stripCells(): ToolbarItem[] {
+    const [again, repeat, length] = this.toolbarItems();
+    return [length!, repeat!, { ...again!, main: true }];
   }
 
-  protected override bandItems(): ToolbarItem[] {
-    return [this.toolbarItems()[1]!];
-  }
 
   protected draw(): void {
     const { width } = this.px;

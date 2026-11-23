@@ -1,8 +1,8 @@
-// Covers ft_1_21.AC15 (a won tug's item stands in the band's inventory) on ft_1_20's item model.
+// Covers ft_1_21.AC15 (a won tug's item stands in the backpack) on ft_1_20's item model.
 import { describe, expect, it } from 'vitest';
 import itemsJson from '../../../content/items/items.json';
 import { strings } from '../text/strings';
-import { bandInventory, inventoryOf, parseItems } from './item';
+import { backpackInventory, inventoryOf, parseItems } from './item';
 
 const characters = import.meta.glob<{ prizes?: string[] }>('../../../content/characters/*.json', { eager: true, import: 'default' });
 
@@ -35,15 +35,15 @@ describe('the items (ft_1_20 item model)', () => {
     expect(inventoryOf([], two)).toEqual([]);
   });
 
-  it('ft_1_21.AC18 a ladder stands in the band once, as its highest rung held, in the place its first rung came, with its rung and the ladder\'s length', () => {
+  it('ft_1_21.AC18 a ladder stands in the backpack once, as its highest rung held, in the place its first rung came, with its rung and the ladder\'s length', () => {
     const kept = (id: string) => ({ id, kind: 'kept', name: `item.${id}` });
     const five = parseItems({ schemaVersion: 1, items: ['leaf', 'acorn', 'gold', 'branch', 'seed', 'shell'].map(kept) });
     const ladder = ['leaf', 'acorn', 'gold', 'branch', 'seed'];
-    const shown = bandInventory(['shell', 'leaf', 'gold', 'acorn', 'gone'], five, [ladder]);
+    const shown = backpackInventory(['shell', 'leaf', 'gold', 'acorn', 'gone'], five, [ladder]);
     expect(shown.map((e) => [e.item.id, e.rung])).toEqual([['shell', undefined], ['gold', { at: 3, of: 5 }]]);
     // a rung on its own is the ladder too; an item on no ladder stands as it is
-    expect(bandInventory(['seed'], five, [ladder]).map((e) => [e.item.id, e.rung])).toEqual([['seed', { at: 5, of: 5 }]]);
-    expect(bandInventory(['shell', 'shell'], five, [ladder]).map((e) => e.item.id)).toEqual(['shell']);
-    expect(bandInventory([], five, [ladder])).toEqual([]);
+    expect(backpackInventory(['seed'], five, [ladder]).map((e) => [e.item.id, e.rung])).toEqual([['seed', { at: 5, of: 5 }]]);
+    expect(backpackInventory(['shell', 'shell'], five, [ladder]).map((e) => e.item.id)).toEqual(['shell']);
+    expect(backpackInventory([], five, [ladder])).toEqual([]);
   });
 });

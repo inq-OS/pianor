@@ -1,6 +1,6 @@
 // Covers ft_1_21.AC7 (the standing is shown at all times as one marker between the two; the look is the painter's).
 import { describe, expect, it } from 'vitest';
-import { BAND_ROWS } from '../../../core/layout/band';
+import { BOARD_ROWS } from '../../../core/layout/board';
 import { ropeTop, TUG, tugBoard } from '../../../core/layout/tug';
 import { inkCount } from './bitmap';
 import { C } from './palette';
@@ -13,7 +13,7 @@ const at = (b: { width: number; pixels: Uint8Array }, x: number, y: number) => b
 describe('the tug\'s look (ft_1_21.AC7, CT-P6)', () => {
   it('ft_1_21.AC7 the board fills the band and carries the rope from token to token', () => {
     const picture = tugBoardPicture(320, 3, ENDS);
-    expect([picture.width, picture.height]).toEqual([320, BAND_ROWS]);
+    expect([picture.width, picture.height]).toEqual([320, BOARD_ROWS]);
     const board = tugBoard(320, 3);
     for (const x of [board.rope.x0 + 5, 160, board.rope.x1 - 5]) {
       const top = ropeTop(board, x);

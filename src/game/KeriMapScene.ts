@@ -16,7 +16,9 @@ import { blit, createBitmap, type Bitmap } from './ui/pixel/bitmap';
 import { LiveImage, PixelImage } from './ui/pixel/PixelObjects';
 import { drawBeam, type MapBeam } from './ui/pixel/keri/beam';
 import { motionAllowed } from './motion';
-import { PixelScene } from './ui/pixel/PixelScene';
+import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
+import { keptItems } from './adventure/backpack';
+import type { WorldState } from '../core/island/worldState';
 import { PAINTED } from './ui/pixel/keri/keriPictures';
 import { currentLook } from './ui/pixel/sky/skyLooks';
 import { cloudCourses, daySky } from './ui/pixel/windMotion';
@@ -110,7 +112,18 @@ export class KeriMapScene extends PixelScene {
   }
 
   /** A scene object is reused on every visit: each visit decides its sky again. */
+  /** The player's world, for the backpack (ft_1_20, d282); empty until read. */
+  private world: WorldState | null = null;
+
+  /** The items the student keeps, in the backpack (ft_1_21.AC15, ft_1_20). */
+  protected override backpackItems(): ToolbarItem[] {
+    return keptItems(this.world);
+  }
+
   override create(): void {
+    this.world = null;
+    const { profiles } = contextOf(this);
+    void profiles.worldOf(profiles.profile.id).then((world) => { if (this.sys.isActive()) this.world = world; }).catch(() => undefined);
     this.look = null;
     super.create();
   }

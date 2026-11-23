@@ -1,6 +1,6 @@
 // Covers ft_1_32.AC9, ft_1_32.AC10.
 import { expect, test, type Page } from '@playwright/test';
-import { clickButton, expectNoErrors, openGame, sceneTexts, showMenuPageWith, waitForScene, bandAction } from './helpers';
+import { clickButton, expectNoErrors, openGame, sceneTexts, showMenuPageWith, waitForScene, stripAction } from './helpers';
 
 /** Give the active player measured runs of Little Steps over three days: uneven with stops at first, even at the end. */
 async function seedRuns(page: Page): Promise<void> {
@@ -57,7 +57,7 @@ async function openLearnStats(page: Page): Promise<void> {
   });
   await page.mouse.click(point.x, point.y);
   await waitForScene(page, 'results');
-  await clickButton(page, 'results', await bandAction(page, 'results', 2)); // Learning tempo
+  await clickButton(page, 'results', await stripAction(page, 'results', 2)); // Learning tempo
   await waitForScene(page, 'learn-stats');
 }
 

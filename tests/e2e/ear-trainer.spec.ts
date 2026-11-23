@@ -10,7 +10,7 @@ const ear = (page: Page) => page.evaluate(() => {
   const scene = window.__game.scene.getScene('earTrainer') as unknown as EarView;
   return { notes: scene.notes, questionNumber: scene.questionNumber, misses: scene.question.misses, done: scene.question.done, stars: [scene.shownStars.lit, scene.shownStars.total] };
 });
-/** Every text on the screen with no question found: the ear level and, in the band, the note length (the player is in the room, ft_1_20.AC13). */
+/** Every text on the screen with no question found: the ear level and, in the strip, the note length (the player is in the room, ft_1_20.AC13). */
 const ONLY_TEXTS = ['Ear level 1', '1 s'];
 /** A note name on the staff (H or B naming, a sharp or flat after it). */
 const isNoteName = (text: string) => /^[A-H](#|b|♯|♭)?$/.test(text);
@@ -145,10 +145,10 @@ test.describe('pitch trainer by ear (ft_1_10)', () => {
     expect((await ear(page)).questionNumber).toBe(first.questionNumber + 1);
     const seconds = () => page.evaluate(() => (window.__game.scene.getScene('earTrainer') as unknown as { seconds: number }).seconds);
     expect(await seconds()).toBe(1);
-    // the length button is the last of the screen's own toolbar items; a real click on it
+    // the length is the strip's first cell (ft_1_20); a real click on it
     const lengthButton = () => page.evaluate(() => {
       const scene = window.__game.scene.getScene('earTrainer') as unknown as { buttons: unknown[]; toolbarButtons: { items: unknown[] } };
-      return scene.buttons.indexOf(scene.toolbarButtons.items[scene.toolbarButtons.items.length - 1]);
+      return scene.buttons.indexOf(scene.toolbarButtons.items[0]);
     });
     for (const expected of [2, 3, 1]) {
       await clickButton(page, 'earTrainer', await lengthButton());

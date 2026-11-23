@@ -487,7 +487,7 @@ export class PracticeScene extends PixelScene {
         return pointer.x >= r.left && pointer.x < r.right && pointer.y >= r.top && pointer.y < r.bottom;
       });
       // over the band's inventory the wheel is the band's (ft_1_20.AC16)
-      if (dy === 0 || this.pointerOnInventory(pointer)) return;
+      if (dy === 0 || this.pointerOnStrip(pointer)) return;
       if (hit) hit.scroll(dy < 0 ? 1 : -1);
       // elsewhere the wheel turns the staff's pages: down is the next page
       else this.turnPage(dy > 0 ? 1 : -1);
@@ -603,7 +603,7 @@ export class PracticeScene extends PixelScene {
       const room = 2 * layout.staffSpace;
       return fromScreen(x1, origin + y1 - room, x2 - x1, y2 - y1 + 2 * room);
     }
-    // the intro's band has two actions, Listen and Start over, in that order (`bandActions`)
+    // the intro's strip has two actions, Listen and Start over, in that order (`stripCells`)
     const button = spot === 'back' ? this.toolbarButtons.back : this.toolbarButtons.items[spot === 'listen' ? 0 : 1];
     if (!button) return null;
     const r = button.rect;
@@ -1050,8 +1050,8 @@ export class PracticeScene extends PixelScene {
   }
 
   /**
-   * The practice screen over the band (ft_1_20.AC8): no bars of its own, and what was in them is in the band's cells and
-   * slots (`bandActions`, `bandItems`). The staff gets every row under the strip of the door and the gear (less the stats
+   * The practice screen over the strip (ft_1_20.AC8): no bars of its own, and what was in them is in the strip and the
+   * bubble (`stripCells`, `bubbleOptions`). The staff gets every row under the strip of the door and the gear (less the stats
    * pane while it is on). In that strip, between the door and the gear, stand Kiur and his bubble, and the page buttons of a
    * section being marked; the tempo ramp opens as a panel along the staff's foot. The piece's title is not shown (the
    * clean-screen rule). AX-3 provisional: Kiur in the corners' strip, so nothing of his covers a note (AX-0).

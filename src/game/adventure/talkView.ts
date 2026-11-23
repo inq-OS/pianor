@@ -5,15 +5,15 @@ import type { Conversation, Effect } from '../../core/dialogue/conversation';
 import type { Outcome, TalkFacts } from '../../core/dialogue/talk';
 import { chooseInTalk, openTalk, pressInTalk, type TalkFlow } from '../../core/dialogue/talkFlow';
 import { choiceLayout, lineSpot, studentHead, type Point } from '../../core/layout/talk';
+import { BOARD_ROWS } from '../../core/layout/board';
 import { choiceNote, choiceRows, choiceWords, spokenLine, spokenPages, talkBoard, talkColour } from '../ui/pixel/talkArt';
 import { PixelImage } from '../ui/pixel/PixelObjects';
 import { lineText } from './sceneScript';
 import { LINE_HEIGHT } from '../ui/pixel/font';
 
-/** Where the conversation is drawn: the main area's size, the band's top (null with no band) and the speaker's head. */
+/** Where the conversation is drawn: the main area's size and the speaker's head. */
 export interface TalkPlace {
   readonly area: { readonly w: number; readonly h: number };
-  readonly bandTop: number | null;
   /** The character's head, in art pixels of the main area. */
   readonly head: Point;
 }
@@ -186,8 +186,9 @@ export class TalkView {
   }
 
   private drawChoices(f: TalkFlow): void {
-    const { area, bandTop } = this.place;
-    const top = bandTop ?? area.h;
+    const { area } = this.place;
+    // the board along the foot, under the picture (`BOARD_ROWS`)
+    const top = area.h - BOARD_ROWS;
     const width = area.w;
     this.add(new PixelImage(this.scene, 0, top, talkBoard(width)).setName('talkBoard'));
     const texts = f.step.choices.map((c) => lineText(c.text));

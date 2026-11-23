@@ -7,7 +7,7 @@ import { TARGET_VIEW } from './targetView';
  * screen's own items and settings (the on-screen keyboard's switch on the settings screen only, d099); one vine line under it; then the screen. Drawn by every
  * scene, so every screen has it.
  */
-// since the band became the default (ft_1_20.AC10) only the teacher's screens keep the toolbar; the band's frame is in band.spec.ts
+// only the teacher's screens keep the toolbar (ft_1_20.AC10); the frame with the strip is in strip.spec.ts
 const SCREENS = [
   ['teacher', {}],
 ] as const;

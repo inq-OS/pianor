@@ -691,9 +691,9 @@ export const strings = {
   'ui.back': 'Back',
   // the action and inventory band (ft_1_20): the cell that turns the grid to the next actions, and the inventory's arrows
   'bubble.close': 'Close',
-  'band.more': 'More',
-  'band.itemsUp': 'Items before',
-  'band.itemsDown': 'More items',
+  'strip.more': 'More',
+  'backpack.name': 'Backpack',
+  'backpack.empty': 'Nothing in it yet',
   'ui.hint.names': 'Note names',
   'ui.hint.fingers': 'Fingers',
   'staff.dyn.pp': 'very soft',

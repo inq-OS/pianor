@@ -33,7 +33,7 @@ export abstract class OutcomeScene extends PixelScene {
   /** With the band: play again and back to the pieces, set by `againAndBack` while the screen draws. */
   private outcomeActions: ToolbarItem[] = [];
 
-  protected override bandActions(): ToolbarItem[] {
+  protected override stripCells(): ToolbarItem[] {
     return this.outcomeActions;
   }
 
@@ -47,7 +47,7 @@ export abstract class OutcomeScene extends PixelScene {
     // with the band (ft_1_20) the two (and a screen's third, `more`) are its actions, not buttons on the screen
     if (this.bandShown) {
       this.outcomeActions = [
-        { label: againLabel, icon: TOOL_ICONS.repeat, onClick: onAgain },
+        { label: againLabel, icon: TOOL_ICONS.repeat, main: true, onClick: onAgain },
         { label: t('results.pieces'), icon: TOOL_ICONS.pieces, onClick: () => startScene(this, 'menu') },
         ...(more ? [{ label: more.label, icon: more.icon, onClick: more.onClick }] : []),
       ];

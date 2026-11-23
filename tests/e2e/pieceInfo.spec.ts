@@ -7,7 +7,7 @@ type Target = { info: string } | 'close' | 'outside';
 /**
  * Click a thing of the menu with the real mouse, at its on-screen position: a card's "i" button, the card's Close button, or
  * a point left of the info card halfway down the main area, over the first column of piece cards (outside the info card,
- * which under the band takes almost the whole height of the main area, ft_1_20).
+ * which over the strip takes almost the whole height of the main area, ft_1_20).
  */
 async function click(page: Page, target: Target): Promise<void> {
   const point = await page.evaluate(

@@ -189,14 +189,11 @@ export class ShapeTrainerScene extends PixelScene {
       { label: displayText(t(shapeLabel)), tooltip: t('shapes.shapeTip'), onClick: nextShape },
       { label: displayText(t(choice.hand === 'RH' ? 'shapes.rh' : 'shapes.lh')), tooltip: t('shapes.handTip'), onClick: () => this.choose({ hand: choice.hand === 'RH' ? 'LH' : 'RH' }) },
     ];
-    if (this.round.state().outcome !== 'playing') items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), onClick: () => this.startRound() });
+    if (this.round.state().outcome !== 'playing') items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), main: true, onClick: () => this.startRound() });
     return items;
   }
 
   /** With the band (ft_1_20): every choice and Again are actions, each starts a round. */
-  protected override bandActions(): ToolbarItem[] {
-    return this.toolbarItems();
-  }
 
   private stopListening(): void {
     this.unsubscribe?.();

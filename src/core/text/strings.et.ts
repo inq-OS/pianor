@@ -681,9 +681,9 @@ export const stringsEt: Record<StringKey, string> = {
 
   'ui.back': 'Tagasi',
   'bubble.close': 'Sulge',
-  'band.more': 'Veel',
-  'band.itemsUp': 'Eelmised asjad',
-  'band.itemsDown': 'Järgmised asjad',
+  'strip.more': 'Veel',
+  'backpack.name': 'Seljakott',
+  'backpack.empty': 'Siin pole veel midagi',
   'ui.hint.names': 'Noodinimed',
   'ui.hint.fingers': 'Sõrmed',
   'staff.dyn.pp': 'VÄGA VAIKSELT',

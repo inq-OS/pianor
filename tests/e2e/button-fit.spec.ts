@@ -18,7 +18,7 @@ async function overflowing(page: Page, key: string): Promise<string[]> {
 async function offScreen(page: Page, key: string): Promise<string[]> {
   return page.evaluate((k) => {
     const scene = window.__game.scene.getScene(k) as unknown as { px: { width: number; height: number; scale: number }; scale: { height: number }; root: { list: { pixelText?: boolean; visible: boolean; text: string; x: number; y: number; width: number; height: number }[] } };
-    // the band (ft_1_20) lies under the main area: the screen runs on to the canvas's foot
+    // the strip (ft_1_20) lies under the main area: the screen runs on to the canvas's foot
     const bottom = Math.floor(scene.scale.height / scene.px.scale);
     return scene.root.list
       // a picture button keeps its name as a hidden label: only what is drawn counts

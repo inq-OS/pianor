@@ -1,6 +1,6 @@
 // Covers ft_1_20 (actions in a bubble, a pinned strip and a backpack, d282).
 import { describe, expect, it } from 'vitest';
-import { BUBBLE_SLOTS, LONG_PRESS, PIN_COLUMNS, PIN_ROWS, bubbleLayout, bubblePage, cellSpan, longPress, pinFlow, pinRows, slotStep } from './bubble';
+import { BUBBLE_SLOTS, LONG_PRESS, PIN_COLUMNS, PIN_ROWS, bubbleLayout, bubblePage, cellSpan, longPress, pinFlow, pinRows, slotStep, wheelChoice } from './bubble';
 import { rectBottom, rectRight, type Rect } from './rect';
 
 const SCREEN = { w: 320, h: 180 };
@@ -141,5 +141,19 @@ describe('the bubble\'s row of choices (ft_1_20, d282)', () => {
       expect(inside(c)).toBe(true);
       for (const o of b.options) expect(overlap(c, o)).toBe(false);
     }
+  });
+});
+
+describe('the wheel over a strip cell with choices (ft_1_20.AC16)', () => {
+  it('ft_1_20.AC16 the wheel over a cell with choices steps to the next choice that can be picked, and stops at the ends', () => {
+    const choices = [{}, { active: true }, { disabled: true }, {}];
+    expect(wheelChoice(choices, 1)).toBe(3);
+    expect(wheelChoice(choices, -1)).toBe(0);
+    expect(wheelChoice([{}, {}, { active: true }], 1)).toBeNull();
+    expect(wheelChoice([{ active: true }, {}], -1)).toBeNull();
+    // no choice lit: the first one that can be picked, either way
+    expect(wheelChoice([null, { disabled: true }, {}, {}], 1)).toBe(2);
+    expect(wheelChoice([], 1)).toBeNull();
+    expect(wheelChoice([{}], 0)).toBeNull();
   });
 });

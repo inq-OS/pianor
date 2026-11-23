@@ -2,18 +2,19 @@ import { expect, test, type Page } from '@playwright/test';
 import { activeScene, buttonPoint, clickButton, clickToolbar, expectNoErrors, openGame, reachButton, waitForScene } from './helpers';
 
 /**
- * The action and inventory band (ft_1_20, d115), now the default (AC10): every screen but the teacher's gets the band at its foot in place of
- * the toolbar, with no text on it and the screen's toolbar items in its action cells until the screen is moved. Back (the door) and Settings (the gear) stay in the top corners where the toolbar had them, faded
- * until the pointer is on them. The player is in the room: the name on the shield, the shield opens
- * the player's card.
+ * The frame with no toolbar (ft_1_20, d282): every screen but the teacher's pins its actions in one slim strip at its foot,
+ * with no text on it, or has no strip when it pins nothing (the room, the map, the scenes, which have the backpack). Back (the
+ * door) and Settings (the gear) stay in the top corners where the toolbar had them, faded until the pointer is on them. The
+ * player is in the room: the name on the shield, the shield opens the player's card.
  */
+/** Each screen and the rows its strip takes: none in the room (it pins nothing), 17 elsewhere. */
 const SCREENS = [
-  // not the main menu: it paints every row itself, with its own board of plates in the band's wood (ft_1_07)
-  ['profile', {}],
-  ['menu', {}],
-  ['settings', {}],
-  // not practice and the piece maker: they have the strip and the bubble in place of the band (ft_1_20, d282; bubble.spec.ts)
-  ['noteTrainer', {}],
+  // not the main menu: it paints every row itself, with its own board of plates (ft_1_07)
+  ['profile', {}, 0],
+  ['menu', {}, 17],
+  ['settings', {}, 17],
+  // practice and the piece maker add the bubble (bubble.spec.ts)
+  ['noteTrainer', {}, 17],
 ] as const;
 
 type Box = { x: number; y: number; width: number; height: number };
@@ -21,8 +22,8 @@ type Box = { x: number; y: number; width: number; height: number };
 const startScene = (page: Page, key: string, data: object = {}) =>
   page.evaluate(({ k, d }) => (window.__game.scene.getScenes(true)[0] as unknown as { scene: { start(key: string, data: unknown): void } }).scene.start(k, d), { k: key, d: data });
 
-/** The frame as the scene drew it: the main area, Back and Settings, the band's action cells and every button, and the texts drawn on the band. */
-const band = (page: Page) =>
+/** The frame as the scene drew it: the main area, Back and Settings, the strip's cells and every button, and the texts drawn on the strip. */
+const frame = (page: Page) =>
   page.evaluate(() => {
     const scene = window.__game.scene.getScenes(true)[0] as unknown as {
       px: { width: number; height: number };
@@ -38,28 +39,28 @@ const band = (page: Page) =>
       settings: scene.toolbarButtons.settings?.rect ?? null,
       items: scene.toolbarButtons.items.map((b) => b.rect),
       all: scene.buttons.map((b) => b.rect),
-      bandTexts: scene.root.list.filter((o) => o.pixelText === true && o.visible && o.text !== '' && o.y >= scene.px.height && !scene.buttons.some((btn) => btn.objects.includes(o))).map((o) => o.text),
+      stripTexts: scene.root.list.filter((o) => o.pixelText === true && o.visible && o.text !== '' && o.y >= scene.mainRows && !scene.buttons.some((btn) => btn.objects.includes(o))).map((o) => o.text),
     };
   });
 
 const gearAlpha = (page: Page) =>
   page.evaluate(() => (window.__game.scene.getScene('menu') as unknown as { toolbarButtons: { settings: { objects: { alpha: number }[] } } }).toolbarButtons.settings.objects[0]!.alpha);
 
-test.describe('the action and inventory band (ft_1_20, d115)', () => {
-  test('ft_1_20.AC10 ft_1_20.AC2 every screen has the band at its foot, Back and Settings in the same top corners and nothing above the main area', async ({ page }) => {
+test.describe('the frame with no toolbar (ft_1_20, d282)', () => {
+  test('ft_1_20.AC9 ft_1_20.AC2 every screen has its strip at its foot or none, Back and Settings in the same top corners and nothing above the main area', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
-    let first: Awaited<ReturnType<typeof band>> | null = null;
-    for (const [key, data] of SCREENS) {
+    let first: Awaited<ReturnType<typeof frame>> | null = null;
+    for (const [key, data, strip] of SCREENS) {
       await startScene(page, key, data);
       await waitForScene(page, key);
-      const f = await band(page);
-      // the main area is every row above the band: 124 on the target screen
-      expect(f.px.height, key).toBe(124);
-      expect(f.rows, key).toBe(124);
+      const f = await frame(page);
+      // the main area is every row above the strip: 163 on the target screen, 180 with nothing pinned
+      expect(f.rows, key).toBe(180 - strip);
       for (const r of f.all) expect(r.y, key).toBeGreaterThanOrEqual(0);
-      // no text on the band: only the words on its buttons, which are not loose texts
-      expect(f.bandTexts, key).toEqual([]);
-      for (const r of f.items) expect(r.y, key).toBeGreaterThanOrEqual(f.px.height);
+      // no text on the strip: only the words on its buttons, which are not loose texts
+      expect(f.stripTexts, key).toEqual([]);
+      for (const r of f.items) expect(r.y, key).toBeGreaterThanOrEqual(f.rows);
+      if (strip === 0) expect(f.items, key).toEqual([]);
       // the door and the gear where the toolbar had them: the top corners
       for (const r of [f.back, f.settings].filter((b): b is Box => b !== null)) expect(r.y + r.height, key).toBeLessThanOrEqual(20);
       if (f.back) expect(f.back.x, key).toBe(4);
@@ -140,7 +141,7 @@ test.describe('the action and inventory band (ft_1_20, d115)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_20.AC2 the Settings cell opens the settings screen and its Back cell returns to the screen it came from', async ({ page }) => {
+  test('ft_1_20.AC2 the gear opens the settings screen and its door returns to the screen it came from', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await startScene(page, 'noteTrainer');
     await waitForScene(page, 'noteTrainer');
@@ -151,18 +152,18 @@ test.describe('the action and inventory band (ft_1_20, d115)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_20.AC10 the band needs no switch, and the teacher screen keeps the toolbar and draws no band', async ({ page }) => {
+  test('ft_1_20.AC10 the strip needs no switch, and the teacher screen keeps the toolbar and draws no strip', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual&band=0');
     await startScene(page, 'menu');
     await waitForScene(page, 'menu');
-    expect((await band(page)).rows).toBe(124);
+    expect((await frame(page)).rows).toBe(163);
     await page.evaluate(() => window.__game.registry.get('context').teacher.lock.check('pianor')); // her password (ft_1_26.AC1)
     await startScene(page, 'teacher', {});
     await waitForScene(page, 'teacher');
-    const f = await band(page);
+    const f = await frame(page);
     // the toolbar's Back above the main area (her screen has no Settings), and the main area runs to the screen's foot
     expect(f.back!.y + f.back!.height).toBeLessThanOrEqual(0);
-    expect(f.rows).toBeGreaterThan(124);
+    expect(f.rows).toBe(157);
     expect(await page.evaluate(() => (window.__game.scene.getScene('teacher') as unknown as { bandShown: boolean }).bandShown)).toBe(false);
     expectNoErrors(errors);
   });
@@ -178,7 +179,7 @@ async function press(page: Page, key: string, label: string): Promise<void> {
   await clickButton(page, key, await labelled(page, key, label));
 }
 
-test.describe('the screens\' buttons in the band (ft_1_20.AC8)', () => {
+test.describe('the screens\' buttons in the strip and the bubble (ft_1_20.AC8)', () => {
   test('ft_1_20.AC22 a section\'s tempo ramp is in the bubble: its panel opens over the staff\'s foot and Esc closes it', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await startScene(page, 'practice', { chartId: 'little-steps', section: { first: 0, last: 1 } });
@@ -195,15 +196,63 @@ test.describe('the screens\' buttons in the band (ft_1_20.AC8)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_20.AC9 the score screen\'s two buttons are the band\'s actions', async ({ page }) => {
+  test('ft_1_20.AC9 the score screen\'s two buttons are the strip\'s cells', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await startScene(page, 'results', { chartId: 'little-steps' });
     await waitForScene(page, 'results');
-    const f = await band(page);
+    const f = await frame(page);
     expect(f.items.length).toBe(2);
-    for (const r of f.items) expect(r.y).toBeGreaterThanOrEqual(f.px.height);
+    for (const r of f.items) expect(r.y).toBeGreaterThanOrEqual(f.rows);
     await press(page, 'results', 'Play');
     await waitForScene(page, 'practice');
+    expectNoErrors(errors);
+  });
+});
+
+/** The backpack's button on scene `key`, and whether its page is open. */
+const backpack = (page: Page, key: string) =>
+  page.evaluate((k) => {
+    const scene = window.__game.scene.getScene(k) as unknown as { buttons: { labelFit(): { label: string } }[]; backpackShown: boolean };
+    return { index: scene.buttons.findIndex((b) => b.labelFit().label === 'Backpack'), open: scene.backpackShown };
+  }, key);
+
+test.describe('the backpack (ft_1_20, d282)', () => {
+  test('ft_1_20.AC23 the room, the map and the scenes have the backpack from the start, and no strip; a press opens its page and Esc closes it', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    for (const key of ['profile', 'keriMap', 'knoll']) {
+      await startScene(page, key);
+      await waitForScene(page, key);
+      expect((await frame(page)).rows, key).toBe(180);
+      const bag = await backpack(page, key);
+      expect(bag.index, key).toBeGreaterThanOrEqual(0);
+      expect(bag.open, key).toBe(false);
+      await clickButton(page, key, bag.index);
+      await expect.poll(async () => (await backpack(page, key)).open, key).toBe(true);
+      // nothing kept yet: the page says so in a line, no empty slots
+      expect(await page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { children: { list: { list?: { name: string }[] }[] } }).children.list.some((c) => c.list?.some((o) => o.name === 'backpackEmpty')), key), key).toBe(true);
+      await page.keyboard.press('Escape');
+      await expect.poll(async () => (await backpack(page, key)).open, key).toBe(false);
+      expect(await activeScene(page), key).toBe(key);
+    }
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_20.AC23 a kept prize stands in the backpack\'s page, named in its tooltip, and a second press closes the page', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await page.evaluate(async () => {
+      const { profiles } = window.__game.registry.get('context');
+      await profiles.saveWorld(profiles.profile.id, { flags: [], items: ['acorn'], met: {}, teacherVisits: [] });
+    });
+    await startScene(page, 'profile');
+    await waitForScene(page, 'profile');
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('profile') as unknown as { world: { items: string[] } | null }).world?.items ?? [])).toEqual(['acorn']);
+    await clickButton(page, 'profile', (await backpack(page, 'profile')).index);
+    await expect.poll(async () => (await backpack(page, 'profile')).open).toBe(true);
+    const acorn = await labelled(page, 'profile', 'Acorn');
+    expect(acorn).toBeGreaterThanOrEqual(0);
+    await clickButton(page, 'profile', (await backpack(page, 'profile')).index);
+    await expect.poll(async () => (await backpack(page, 'profile')).open).toBe(false);
+    expect(await labelled(page, 'profile', 'Acorn')).toBe(-1);
     expectNoErrors(errors);
   });
 });

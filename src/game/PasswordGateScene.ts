@@ -83,8 +83,8 @@ export abstract class PasswordGateScene extends PixelScene {
     }
   }
 
-  protected override bandActions(): ToolbarItem[] {
-    return [this.enter()];
+  protected override stripCells(): ToolbarItem[] {
+    return [{ ...this.enter(), main: true }];
   }
 
   private enter(): ToolbarItem {

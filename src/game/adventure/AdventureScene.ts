@@ -3,7 +3,7 @@ import { campaignMapView } from '../../core/campaign/mapView';
 import { beingsInScenes, isTester, localDay, openScenes } from '../../core/campaign/sceneBeings';
 import { ART_DETAIL } from '../../core/layout/frame';
 import { rectCentre, type Rect } from '../../core/layout/rect';
-import { STRIP_ROWS } from '../../core/layout/room';
+import { BOARD_ROWS } from '../../core/layout/board';
 import type { ActorDef, ActorState } from '../../core/scene/actor';
 import { actorFrame, actorStateOf, placeActor } from '../../core/scene/actorRuntime';
 import type { SceneData, StandingPlace } from '../../core/scene/scene';
@@ -38,11 +38,10 @@ import { readingMs } from '../../core/scene/scriptRunner';
 import { scriptInk, spokenLine, spokenPages, talkColour } from '../ui/pixel/talkArt';
 import type { ScriptView } from '../../core/scene/scriptRunner';
 import { ACTORS, CHARACTERS, CONVERSATIONS, ITEMS, SCENES, SCRIPTS, TUG_RULES } from './scenesData';
-import { bandInventory } from '../../core/item/item';
+import { keptEntries, keptItems } from './backpack';
 import type { ToolbarItem } from '../ui/pixel/PixelScene';
 import { TalkView } from './talkView';
 import { TugView } from './tugView';
-import { prizePicture } from '../ui/pixel/prizeArt';
 import { TeachView } from './teachView';
 import { learnedTaught, teachAfter, teachLevelOf } from '../../core/exchange/teach';
 import { pieceLearned } from '../../core/learn/route';
@@ -228,8 +227,8 @@ export class AdventureScene extends PixelScene {
   protected draw(): void {
     const screen = { w: this.px.width, h: this.px.height };
     this.sky();
-    // under the band the band itself is the strip kept free (ft_1_20)
-    const { picture: at, strip } = this.life.view(screen, this.bandShown ? 0 : STRIP_ROWS);
+    // the picture keeps its place over the conversation's board (ft_1_20, AX-3 provisional until it is painted taller)
+    const { picture: at, strip } = this.life.view(screen, BOARD_ROWS);
     const context = contextOf(this);
     const sky = context.flags.sky;
     const now = sky.now ?? Date.now();
@@ -422,7 +421,7 @@ export class AdventureScene extends PixelScene {
     const things = dive.things?.(picture);
     if (things?.frames[0]) blit(tall, things.frames[0], things.x, dive.depth + things.y);
     for (const weed of dive.blown?.(picture) ?? []) blit(tall, weed.bitmap, weed.x, dive.depth + weed.y);
-    const { picture: at } = this.life.view({ w: this.px.width, h: this.px.height }, this.bandShown ? 0 : STRIP_ROWS);
+    const { picture: at } = this.life.view({ w: this.px.width, h: this.px.height }, BOARD_ROWS);
     const image = this.fineImage(at.x * ART_DETAIL, at.y * ART_DETAIL, tall, picture.palette);
     this.panning = true;
     let start: number | null = null, landed = false;
@@ -701,7 +700,7 @@ export class AdventureScene extends PixelScene {
     const facts = talkFactsOf(meetCharacter(before, def.id, dayString(new Date())), profiles.progress.level.level, false);
     const save = () => { if (this.world && this.worldSaves) void profiles.saveWorld(id, this.world); };
     this.talkLayer ??= this.overlayLayer();
-    this.talk = TalkView.open(this, this.talkLayer, conversation, def, facts, { area: { w: this.px.width, h: this.mainRows }, bandTop: this.bandTop, head }, {
+    this.talk = TalkView.open(this, this.talkLayer, conversation, def, facts, { area: { w: this.px.width, h: this.mainRows }, head }, {
       effects: (effects) => {
         if (!this.world) return;
         const next = applyTalkEffects(this.world, effects);
@@ -781,28 +780,19 @@ export class AdventureScene extends PixelScene {
     if (this.worldSaves) void profiles.saveWorld(profiles.profile.id, next);
   }
 
-  /**
-   * The student's items in the band's inventory (ft_1_21.AC15, ft_1_20 rule 2): what was won, each named in its tooltip.
-   * A kept item does nothing when pressed. AX-3 provisional: only the scenes of Keri show them (they hold the world). An
-   * item shows its painted picture (`prizeArt.ts`), named in its tooltip; one with no picture yet shows its name.
-   */
-  protected override bandItems(): ToolbarItem[] {
-    return this.bandEntries().map(({ item, rung }) => {
-      const name = t(item.name as StringKey), picture = prizePicture(item.picture);
-      // a ladder's prize says which rung it is (AC18): "TÕRU (2/5)"
-      const tooltip = rung ? t('item.rung', { name, at: rung.at, of: rung.of }) : name;
-      return picture ? { label: name, icon: picture, fineIcon: true, tooltip, onClick: () => undefined } : { label: name, tooltip, onClick: () => undefined };
-    });
+  /** The items the student keeps, in the backpack (ft_1_21.AC15, ft_1_20, d282). */
+  protected override backpackItems(): ToolbarItem[] {
+    return keptItems(this.world);
   }
 
-  /** The world's items as the band shows them: each character's prize ladder as its best rung (AC18). */
-  private bandEntries(): ReturnType<typeof bandInventory> {
-    return bandInventory(this.world?.items ?? [], ITEMS, [...CHARACTERS.values()].flatMap((c) => (c.prizes ? [c.prizes] : [])));
+  /** The stripless scene pins nothing: things are pressed in the picture (ft_1_20 rule 7). */
+  protected override stripCells(): ToolbarItem[] {
+    return [];
   }
 
-  /** The items in the band now, by id: for the tests and the self-playing demo. */
-  get bandInventory(): string[] {
-    return this.bandEntries().map(({ item }) => item.id);
+  /** The items in the backpack now, by id: for the tests and the self-playing demo. */
+  get backpackInventory(): string[] {
+    return keptEntries(this.world).map(({ item }) => item.id);
   }
 
   /**
@@ -832,7 +822,7 @@ export class AdventureScene extends PixelScene {
       character: def,
       level,
       rules: TUG_RULES,
-      place: { area: { w: this.px.width, h: this.mainRows }, bandTop: this.bandTop, head },
+      place: { area: { w: this.px.width, h: this.mainRows }, head },
       devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome },
     }, {
       playing: (on) => this.figures.get(def.id)?.(on ? 'talk' : 'idle'),
@@ -868,7 +858,7 @@ export class AdventureScene extends PixelScene {
       character: def,
       level: teachLevelOf(def, piece),
       rules: TUG_RULES,
-      place: { area: { w: this.px.width, h: this.mainRows }, bandTop: this.bandTop, head },
+      place: { area: { w: this.px.width, h: this.mainRows }, head },
       devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard },
       staff: (c) => this.teachStaff(c),
     }, {

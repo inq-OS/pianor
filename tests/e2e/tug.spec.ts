@@ -8,7 +8,7 @@ interface TalkState { showing: 'line' | 'student' | 'choices'; node: string }
 const knoll = 'knoll';
 const tug = (page: Page) => page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { tugState: TugView | null }).tugState, knoll);
 const talk = (page: Page) => page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { talkState: TalkState | null }).talkState, knoll);
-const inventory = (page: Page) => page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { bandInventory: string[] }).bandInventory, knoll);
+const inventory = (page: Page) => page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { backpackInventory: string[] }).backpackInventory, knoll);
 const endPhrase = (page: Page) => page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { endTugPhrase(): void }).endTugPhrase(), knoll);
 const world = (page: Page) => page.evaluate(async () => {
   const { profiles } = window.__game.registry.get('context');

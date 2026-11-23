@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BAND_ROWS } from './band';
+import { BOARD_ROWS } from './board';
 import { TALK, choiceLayout, lineSpot, studentHead, talkPages } from './talk';
 
 /** A stand-in for the game's font: every letter 6 cells wide, words split at spaces. */
@@ -109,7 +109,7 @@ describe('the student\'s choices in the band (ft_1_22.AC1: at most three)', () =
     for (let i = 1; i < 3; i++) expect(choices[i]!.text.y).toBeGreaterThan(choices[i - 1]!.text.y);
     expect(choices[0]!.hit.y).toBeGreaterThanOrEqual(0);
     const last = choices[2]!;
-    expect(last.hit.y + last.hit.h).toBeLessThanOrEqual(BAND_ROWS);
+    expect(last.hit.y + last.hit.h).toBeLessThanOrEqual(BOARD_ROWS);
   });
 
   it('every choice is pressed anywhere along its row, and the rows do not overlap', () => {

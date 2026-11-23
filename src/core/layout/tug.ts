@@ -1,4 +1,4 @@
-import { BAND_ROWS } from './band';
+import { BOARD_ROWS } from './board';
 import type { Point } from './talk';
 
 /**
@@ -54,7 +54,7 @@ export function tugBoard(width: number, steps: number): TugBoard {
   const first = x0 + TUG.placeIn, last = x1 - TUG.placeIn;
   const count = 2 * steps + 1;
   const places = Array.from({ length: count }, (_, i) => Math.round(first + ((last - first) * i) / (count - 1)));
-  if (BAND_ROWS < TUG.chalkY + TUG.chalkLong) throw new RangeError('the chalk runs off the band');
+  if (BOARD_ROWS < TUG.chalkY + TUG.chalkLong) throw new RangeError('the chalk runs off the board');
   return { student, character, rope: { x0, x1, y: TUG.ropeY }, places };
 }
 

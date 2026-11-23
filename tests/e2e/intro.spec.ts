@@ -221,14 +221,14 @@ test.describe('the first-run intro (ft_1_31)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_31.AC5 the lesson on the practice screen has the skip button in its band, back to the room with the intro ended', async ({ page }) => {
+  test('ft_1_31.AC5 the lesson on the practice screen has the skip button in its strip, back to the room with the intro ended', async ({ page }) => {
     test.setTimeout(60_000);
     const errors = await newPlayer(page);
     const spotlight = spotlights(page);
     await toTheKnock(page, spotlight);
     await readTalk(page);
     await practiceUnderSpotlight(page);
-    // Esc there skips only Kiur's tour of the practice screen; the band's skip ends the intro
+    // Esc there skips only Kiur's tour of the practice screen; the strip's skip ends the intro
     await page.keyboard.press('Escape');
     await expect.poll(() => showing(page)).toBeNull();
     await clickSkip(page, 'practice');

@@ -1,7 +1,7 @@
 /**
  * The items a student can have (ft_1_20's item model, the part ft_1_21.AC15 needs): an id, its kind, the string key that
  * names it and, once the painter has drawn it, its picture key. `content/items/items.json`. Pure.
- * AX-3 provisional: one kind, `kept` (it stands in the band's inventory for what was won and does nothing more); the held,
+ * AX-3 provisional: one kind, `kept` (it stands in the backpack for what was won and does nothing more); the held,
  * worn and opening kinds and a held item's target come with ft_1_20.AC4 and AC5.
  */
 import { z } from 'zod';
@@ -12,7 +12,7 @@ export const itemDefSchema = z.object({
   kind: z.enum(['kept']),
   /** Its name's string key. */
   name: z.string().min(1),
-  /** Its picture in the band (`src/game/ui/pixel`); without one the band shows its name. */
+  /** Its picture in the backpack (`src/game/ui/pixel`); without one the backpack shows its name. */
   picture: z.exactOptional(z.string().min(1)),
 }).strict();
 
@@ -35,7 +35,7 @@ export function parseItems(raw: unknown): ReadonlyMap<ItemId, ItemDef> {
   return byId;
 }
 
-/** The student's items (`WorldState.items`) as the band shows them: in the order they came, each once, known ones only. */
+/** The student's items (`WorldState.items`) as the backpack shows them: in the order they came, each once, known ones only. */
 export function inventoryOf(ids: readonly ItemId[], catalog: ReadonlyMap<ItemId, ItemDef>): ItemDef[] {
   const seen = new Set<ItemId>();
   return ids.flatMap((id) => {
@@ -46,19 +46,19 @@ export function inventoryOf(ids: readonly ItemId[], catalog: ReadonlyMap<ItemId,
   });
 }
 
-/** One thing the band shows: an item, and for a rung of a prize ladder which rung it is of how many (1 the first). */
+/** One thing the backpack shows: an item, and for a rung of a prize ladder which rung it is of how many (1 the first). */
 export interface InventoryEntry {
   readonly item: ItemDef;
   readonly rung?: { readonly at: number; readonly of: number };
 }
 
 /**
- * The band's inventory with the characters' prize ladders (ft_1_21.AC18: the prize is
+ * The backpack's items with the characters' prize ladders (ft_1_21.AC18: the prize is
  * upgraded for every level of a character beaten): a ladder stands once, as the highest rung the student holds, in the
  * place its first held rung came, so an upgrade takes the old prize's slot. Every rung stays in `WorldState.items`
- * (nothing earned is taken away, AX-1.1); only the band shows the best. Items on no ladder stand as `inventoryOf` gives.
+ * (nothing earned is taken away, AX-1.1); only the backpack shows the best. Items on no ladder stand as `inventoryOf` gives.
  */
-export function bandInventory(ids: readonly ItemId[], catalog: ReadonlyMap<ItemId, ItemDef>, ladders: Iterable<readonly ItemId[]>): InventoryEntry[] {
+export function backpackInventory(ids: readonly ItemId[], catalog: ReadonlyMap<ItemId, ItemDef>, ladders: Iterable<readonly ItemId[]>): InventoryEntry[] {
   const ladderOf = new Map<ItemId, readonly ItemId[]>();
   for (const ladder of ladders) for (const id of ladder) ladderOf.set(id, ladder);
   const held = inventoryOf(ids, catalog);

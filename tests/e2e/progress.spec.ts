@@ -1,6 +1,6 @@
 // Covers ft_0_10.AC2, ft_0_10.AC4, ft_0_15.AC5.
 import { expect, test, type Page } from '@playwright/test';
-import { LITTLE_STEPS, addPlayer, clickButton, clickToolbar, expectNoErrors, goToMainMenu, openAdminPage, openGame, openPiece, pickProfile, playWithKeys, profileButton, nameDone, sceneButton, sceneTexts, showMenuPageWith, toPieceList, toScoreScreen, waitForScene, bandAction, reachButton } from './helpers';
+import { LITTLE_STEPS, addPlayer, clickButton, clickToolbar, expectNoErrors, goToMainMenu, openAdminPage, openGame, openPiece, pickProfile, playWithKeys, profileButton, nameDone, sceneButton, sceneTexts, showMenuPageWith, toPieceList, toScoreScreen, waitForScene, stripAction, reachButton } from './helpers';
 
 const progress = (page: Page) =>
   page.evaluate(() => {
@@ -29,12 +29,12 @@ test.describe('earning XP and levels', () => {
   test('playing the same piece again earns 30%, and the card shows the piece level (ft_1_13.AC1)', async ({ page }) => {
     const errors = await openGame(page);
     await finish(page, 'Little Steps', LITTLE_STEPS);
-    await clickButton(page, 'results', await bandAction(page, 'results', 0)); // Play again
+    await clickButton(page, 'results', await stripAction(page, 'results', 0)); // Play again
     await waitForScene(page, 'practice');
     await playWithKeys(page, LITTLE_STEPS);
     await toScoreScreen(page);
     expect(await sceneTexts(page, 'results')).toEqual(expect.arrayContaining(['+15 XP']));
-    await clickButton(page, 'results', await bandAction(page, 'results', 1)); // More pieces
+    await clickButton(page, 'results', await stripAction(page, 'results', 1)); // More pieces
     await waitForScene(page, 'menu');
     await showMenuPageWith(page, 'Little Steps');
     expect(await sceneTexts(page, 'menu')).toEqual(expect.arrayContaining(['Level 2'])); // the card's piece level (the player's is in the room, ft_1_20.AC13)
@@ -64,7 +64,7 @@ test.describe('earning XP and levels', () => {
   test('stars earned are shown on the piece in the menu', async ({ page }) => {
     await openGame(page);
     await finish(page, 'Little Steps', LITTLE_STEPS);
-    await clickButton(page, 'results', await bandAction(page, 'results', 1));
+    await clickButton(page, 'results', await stripAction(page, 'results', 1));
     await waitForScene(page, 'menu');
     expect(await page.evaluate(() => window.__game.registry.get('context').profiles.recordFor('little-steps').bestStars)).toBe(3);
   });
@@ -161,7 +161,7 @@ test.describe('saves', () => {
   test('ft_1_07.AC2: a second player has separate progress, and switching back keeps the first', async ({ page }) => {
     const errors = await openGame(page);
     await finish(page, 'Little Steps', LITTLE_STEPS);
-    await clickButton(page, 'results', await bandAction(page, 'results', 1));
+    await clickButton(page, 'results', await stripAction(page, 'results', 1));
     await waitForScene(page, 'menu');
 
     await goToMainMenu(page);

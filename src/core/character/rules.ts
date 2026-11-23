@@ -130,7 +130,7 @@ function textProblems(facts: CharacterFacts, key: string, what: string, say: Say
   for (const stem of LABEL_STEMS) if (words.some((word) => word.startsWith(stem))) say(`${what}: the label word "${stem.toUpperCase()}" on screen`);
 }
 
-/** Problems across the cast: a prize on two ladders would show the wrong rung in the band (`bandInventory`). */
+/** Problems across the cast: a prize on two ladders would show the wrong rung in the backpack (`backpackInventory`). */
 export function castProblems(defs: readonly Pick<CharacterDef, 'id' | 'prizes'>[]): string[] {
   const owner = new Map<ItemId, string>();
   const out: string[] = [];

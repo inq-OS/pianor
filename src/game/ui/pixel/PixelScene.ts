@@ -2,15 +2,15 @@ import Phaser from 'phaser';
 import { pagerBoxes } from '../../../core/layout/cardGrid';
 import type { PageSlice } from '../../../core/layout/paging';
 import { ART_DETAIL, FRAME_ROWS, VINE_ROWS, frameCorners, frameView, toolbarLayout, type FrameView } from '../../../core/layout/frame';
-import { BAND_ROWS, bandCells, bandItemPage, bandLayout, wheelChoice, wheelPage, type BandCell } from '../../../core/layout/band';
-import { BUBBLE_SLOTS, PIN_CELL, bubbleLayout, cellSpan, longPress, pinFlow, pinRows, slotStep } from '../../../core/layout/bubble';
+import { backpackPage } from '../../../core/layout/backpack';
+import { BUBBLE_SLOTS, PIN_CELL, bubbleLayout, cellSpan, longPress, pinFlow, pinRows, slotStep, wheelChoice } from '../../../core/layout/bubble';
 import type { PixelView } from '../../../core/layout/pixelView';
 import { rectCentre, type Rect } from '../../../core/layout/rect';
 import { dropMenuLayout } from '../../../core/layout/dropMenu';
 import { clipToWidth } from '../../../core/text/clip';
 import { t } from '../../../core/text/strings';
 import { initialFocus, moveFocus, refocus, type FocusMove } from '../../../core/layout/focus';
-import { panelBitmap, trayBitmap } from './frames';
+import { panelBitmap } from './frames';
 import { ICONS } from './iconArt';
 import { PALETTE, C } from './palette';
 import { createBitmap, recolor, type Bitmap } from './bitmap';
@@ -42,11 +42,11 @@ export interface ToolbarItem {
   width?: number;
   /** Lit, like a tab that is chosen. */
   active?: boolean;
-  /** A band slot on a purple ground: the item a click on the staff writes with (`setArmed`). */
+  /** A strip cell on a purple ground: the item a click on the staff writes with (`setArmed`). */
   armed?: boolean;
   /** Always the picture only, 22 wide, with the label as its name (a hint switch); otherwise only when the bar is full. */
   iconOnly?: boolean;
-  /** The icon is on the fine grid (d110): an item's picture in a slot of the band (`itemArt.ts`). */
+  /** The icon is on the fine grid (d110): an item's picture in a slot of the backpack or the bubble (`itemArt.ts`). */
   fineIcon?: boolean;
   tooltip?: string;
   /** Dim and pressing it does nothing (a step that is at its end, a tempo at its slowest). */
@@ -86,7 +86,7 @@ export type BubblePoint = { art: { x: number; y: number }; screen: { x: number; 
 const OVER_STAFF_DEPTH = 20;
 
 const TOOLBAR_ICON_WIDTH = 22;
-/** Room a band cell keeps round its word (the frame and a margin); a longer word shows its picture instead. */
+/** Room a strip cell keeps round its word (the frame and a margin); a longer word shows its picture instead. */
 const CELL_PAD = 4;
 /**
  * How solid the door and the gear in the top corners are while the pointer is elsewhere (clear when
@@ -180,24 +180,22 @@ export abstract class PixelScene extends Phaser.Scene {
   protected toolbarBack = true;
   /** True on the settings screen only: the on-screen keyboard switch at the toolbar's right end (d099, a developer's tool now). */
   protected toolbarKeys = false;
-  /** True on a screen that paints every row itself (the main menu, ft_1_07): no toolbar, no vine and no band are drawn, and the main area is the whole screen. */
+  /** True on a screen that paints every row itself (the main menu, ft_1_07): no toolbar, no vine and no strip are drawn, and the main area is the whole screen. */
   protected wholeScreen = false;
   /** False on an overlay (d070): no frame and no background of its own, so the paused screen under it shows through. */
   protected framed = true;
   /**
-   * True on a screen that keeps the toolbar and draws no band: the teacher's screens, administrative with no gameplay.
-   * Every other framed screen has the band (ft_1_20.AC9).
+   * True on a screen that keeps the toolbar and draws no strip: the teacher's screens, administrative with no gameplay.
+   * Every other framed screen has the door, the gear and its strip (ft_1_20.AC9).
    */
   protected keepsToolbar = false;
   /** What the toolbar's Back does; `back()` by default (the play screens set it through `topBar`). */
   private backAction: (() => void) | null = null;
-  /** The frame this screen is drawn in: with or without the toolbar and the band (ft_1_20), set before `draw`. */
+  /** The frame this screen is drawn in: with the toolbar, or with the door, the gear and the strip (ft_1_20), set before `draw`. */
   private screenFrame!: FrameView;
-  /** The band's state (ft_1_20): which set of actions More has turned to and which page of items the arrows show; kept over redraws. */
-  private bandPages = { actions: 0, items: 0 };
-  /** Where the inventory is drawn (art pixels) and its items by slot, for the wheel (ft_1_20.AC16); null without the band. */
-  private inventoryBand: { area: Rect; slots: { rect: Rect; item: ToolbarItem }[]; items: number; perPage: number } | null = null;
-  /** The door and the gear over the top corners with the band and no toolbar: faded until the pointer or the focus is on them. */
+  /** The strip's area and its cells (art pixels), for the wheel over a cell with choices (ft_1_20.AC16); null without a strip. */
+  private stripArea: { area: Rect; cells: { rect: Rect; item: ToolbarItem }[] } | null = null;
+  /** The door and the gear over the top corners with no toolbar: faded until the pointer or the focus is on them. */
   private corners: PixelButton[] = [];
   /** Everything of the scene goes in here, positions in art pixels. */
   protected root!: Phaser.GameObjects.Container;
@@ -228,11 +226,13 @@ export abstract class PixelScene extends Phaser.Scene {
   private holding: { pointer: Phaser.Input.Pointer; since: number; x: number; y: number; ring: Phaser.GameObjects.Graphics | null } | null = null;
   /** Whether this screen pins its actions in the strip (`stripCells` gave cells), set before `draw`. */
   private stripMode = false;
+  /** Whether the backpack's page is open (ft_1_20, d282); kept over redraws, shut when the screen is left. */
+  private backpackOpen = false;
   /** The pinned actions that did not fit the strip: they go into the bubble's free slots (ft_1_20.AC21). */
   private stripOverflow: ToolbarItem[] = [];
-  /** F1 in the piece maker: every band item with a key shows it in its corner. */
+  /** F1 in the piece maker: every strip cell with a key shows it in its corner. */
   protected shortcutsShown = false;
-  /** The band's buttons by their key, as last drawn: a key opens its item's menu from the item. */
+  /** The strip's buttons by their key, as last drawn: a key opens its item's menu from the item. */
   protected shortcutButtons = new Map<string, PixelButton>();
 
   /**
@@ -537,12 +537,12 @@ export abstract class PixelScene extends Phaser.Scene {
     this.focusIndex = -1;
     this.focusShown = false;
     this.lastFocusRect = null;
-    this.bandPages = { actions: 0, items: 0 };
+    this.backpackOpen = false;
     if (this.framed) this.cameras.main.setBackgroundColor(PALETTE[C.night]);
     // the pointer left the canvas (up into the toolbar, or down to the on-screen keys): no button stays lit or keeps its tooltip
     this.input.on('gameout', () => this.buttons.forEach((b) => b.leave()));
-    // the wheel over the inventory pages it, and over an item with choices steps through them (ft_1_20.AC16)
-    this.input.on('wheel', (p: Phaser.Input.Pointer, _over: unknown, _dx: number, dy: number) => this.inventoryWheel(p, dy));
+    // the wheel over a strip cell with choices steps through them (ft_1_20.AC16)
+    this.input.on('wheel', (p: Phaser.Input.Pointer, _over: unknown, _dx: number, dy: number) => this.stripWheel(p, dy));
     // the keyboard switch on the toolbar lights while the on-screen keyboard is shown, whoever changed it
     const keys = contextOf(this).keyboardSwitch;
     const stop = keys.onChange(() => this.lightKeys(keys.shown()));
@@ -556,6 +556,8 @@ export abstract class PixelScene extends Phaser.Scene {
     // handled navigation keys stop in `onNavigationKey`, so the arrows do not also shift the computer keyboard's octave
     if (this.keyboardNavigation) this.onWindowKey((e) => this.onNavigationKey(e));
     if (this.bubbleScreen) this.listenForBubble();
+    // Esc closes the backpack's page, ahead of the screen's own keys
+    if (this.backpackItems && !this.windowKeyed) this.onWindowKey(() => undefined);
     this.rebuild();
   }
 
@@ -567,7 +569,7 @@ export abstract class PixelScene extends Phaser.Scene {
   protected onWindowKey(handler: (event: KeyboardEvent) => void): void {
     // the bubble takes its keys first (ft_1_20.AC22): the arrows, Enter and Esc while it is open, Shift + F10 to open it
     const listener = (e: KeyboardEvent) => {
-      if (this.bubbleKey(e)) return;
+      if (this.bubbleKey(e) || this.backpackKey(e)) return;
       handler(e);
     };
     this.windowKeyed = true;
@@ -699,18 +701,13 @@ export abstract class PixelScene extends Phaser.Scene {
     return this.openRing?.buttons ?? this.menu?.buttons ?? this.buttons;
   }
 
-  /** The band's top, in art rows of the main area (it starts under the main area), or null on a screen with no band. */
-  protected get bandTop(): number | null {
-    return this.screenFrame.band?.top ?? null;
-  }
-
   /** The strip's top, in art rows of the main area, or null on a screen with no strip (ft_1_20, d282). */
   protected get stripTop(): number | null {
     return this.screenFrame.strip?.top ?? null;
   }
 
   /**
-   * A layer over the whole screen, above the scene and its band, at the root's place and scale (a conversation drawn over a
+   * A layer over the whole screen, above the scene and its strip, at the root's place and scale (a conversation drawn over a
    * scene, ft_1_22): the caller fills it and destroys it, at the latest when the screen is drawn again (`clear`).
    */
   protected overlayLayer(): Phaser.GameObjects.Container {
@@ -729,12 +726,18 @@ export abstract class PixelScene extends Phaser.Scene {
 
   /**
    * The screen's pinned strip (ft_1_20, d282), left to right: its actions and More (`'more'`, on a screen with a bubble);
-   * an item with `main` stands at the right end. Null (the default) keeps the band until the screen moves to the strip; an
-   * empty list pins nothing, so the screen has no strip and its main area every row.
+   * an item with `main` stands at the right end. Its toolbar items by default (the trainers, the forms); an empty list pins
+   * nothing, so the screen has no strip and its main area every row (the room, the map, the scenes).
    */
-  protected stripCells(): StripCell[] | null {
-    return null;
+  protected stripCells(): StripCell[] {
+    return this.toolbarItems();
   }
+
+  /**
+   * The items the student keeps, in the backpack (ft_1_20, d282): a screen that gives them (the room, the map, the scenes)
+   * gets the backpack left of the gear, there from the start; a press opens its page of items, a second press or Esc closes it.
+   */
+  protected backpackItems?(): ToolbarItem[];
 
   /**
    * The bubble's options for a press at `point` (null: from More or the keyboard), each in its fixed slot (ft_1_20, d282). A
@@ -826,12 +829,12 @@ export abstract class PixelScene extends Phaser.Scene {
    */
   private drawBubble(state: { point: BubblePoint; centre: { x: number; y: number }; open: number | null; options: BubbleOption[]; focusBefore: number }): void {
     const above = this.screenFrame.top;
-    const foot = this.screenFrame.strip?.rows ?? this.screenFrame.band?.rows ?? 0;
+    const foot = this.screenFrame.strip?.rows ?? 0;
     const screen = { w: this.px.width, h: above + this.mainRows + foot };
     const openOption = state.open === null ? undefined : state.options.find((o) => o.slot === state.open);
     const choices = openOption?.choices?.() ?? [];
     const width = (s: string) => measure(drawnText(s));
-    // the bubble's cells are small: a picture drawn for the band's large slots (`fineIcon`) gives way to its word
+    // the bubble's cells are small: a picture drawn for the backpack's large slots (`fineIcon`) gives way to its word
     const pictured = (item: { icon?: Bitmap; fineIcon?: boolean }) => item.icon !== undefined && item.fineIcon !== true;
     const widths = choices.map((item) => (item === null || pictured(item) ? 0 : width(item.label) + 2 * CELL_PAD));
     const layout = bubbleLayout({ at: { x: state.centre.x, y: state.centre.y + above }, options: BUBBLE_SLOTS, screen, ...(openOption && choices.length > 0 ? { open: { option: openOption.slot, choices: choices.length, widths } } : {}) });
@@ -891,7 +894,7 @@ export abstract class PixelScene extends Phaser.Scene {
   protected openMenu(anchor: { rect: { x: number; y: number; width: number; height: number } }, items: readonly (MenuItem | null)[], options: { cell: { w: number; h: number }; columns: number; open?: 'below' | 'above'; paper?: (width: number, height: number) => Bitmap }): void {
     this.closeMenu();
     const above = this.screenFrame.top;
-    const bounds = { x: 0, y: -above, w: this.px.width, h: above + this.mainRows + (this.screenFrame.band?.rows ?? 0) };
+    const bounds = { x: 0, y: -above, w: this.px.width, h: above + this.mainRows };
     const a = anchor.rect;
     const layout = dropMenuLayout({ anchor: { x: a.x, y: a.y, w: a.width, h: a.height }, cell: options.cell, count: items.length, columns: options.columns, gap: MENU_GAP, pad: MENU_PAD, bounds, ...(options.open ? { open: options.open } : {}) });
     const container = this.add.container(this.root.x, this.root.y).setScale(this.px.scale).setDepth(MENU_DEPTH);
@@ -1045,25 +1048,12 @@ export abstract class PixelScene extends Phaser.Scene {
     return [];
   }
 
-  /**
-   * The screen's actions in the band's grid (ft_1_20.AC2), in cell order; Back and Settings come in their own cells. Until a
-   * screen is moved to the band its toolbar items are its actions, so every screen works in the band at once.
-   */
-  protected bandActions(): ToolbarItem[] {
-    return this.toolbarItems();
-  }
-
-  /** The screen's items in the band's slots (ft_1_20 rule 2), in order; `active` draws one lit (a worn item that is on). None yet. */
-  protected bandItems(): ToolbarItem[] {
-    return [];
-  }
-
-  /** Whether the screen has somewhere to go back to: the toolbar's or the band's Back is shown. */
+  /** Whether the screen has somewhere to go back to: the toolbar's Back or the door is shown. */
   private get hasBack(): boolean {
     return this.toolbarBack && (this.backAction !== null || this.back !== PixelScene.prototype.back);
   }
 
-  /** What the Settings button does, on the toolbar or in the band. */
+  /** What the Settings button does, on the toolbar or as the gear. */
   private openSettingsScreen(): void {
     this.beforeSettings();
     this.scene.start('settings', { returnTo: { key: this.scene.key, data: this.sys.settings.data } });
@@ -1105,18 +1095,21 @@ export abstract class PixelScene extends Phaser.Scene {
     keys.setIcon(shown ? ICONS.freePlay : recolor(ICONS.freePlay, { [C.white]: C.lock }));
   }
 
-  /** Rows of screen pixels above the main area (the toolbar and the vine, none under the band alone): add it to a screen position made from art rows. */
+  /** Rows of screen pixels above the main area (the toolbar and the vine, none without the toolbar): add it to a screen position made from art rows. */
   protected get mainTop(): number {
     return this.screenFrame.top * this.px.scale;
   }
 
-  /** Whether the action and inventory band is drawn under the main area (ft_1_20): a painted place then keeps no strip of its own. */
+  /**
+   * Whether the screen has no toolbar and its door and gear stand over the top corners (ft_1_20, d282): every framed screen
+   * but the teacher's. A painted place then keeps no strip of its own.
+   */
   protected get bandShown(): boolean {
-    return this.screenFrame.band !== null || this.stripMode;
+    return this.stripMode;
   }
 
   /**
-   * With the band and no toolbar: the strip along the main area's top that the door and the gear stand in (`rows` high), and
+   * With no toolbar: the strip along the main area's top that the door and the gear stand in (`rows` high), and
    * the room between them (`left` to `right`). A staff starts under it; Kiur and his bubble, or a page turner, may use the room.
    */
   protected get cornerStrip(): { rows: number; left: number; right: number } {
@@ -1124,36 +1117,34 @@ export abstract class PixelScene extends Phaser.Scene {
     return { rows: Math.max(back.y + back.h, settings.y + settings.h) + 1, left: back.x + back.w + 2, right: settings.x - 2 };
   }
 
-  /** Where a screen's title starts: `margin`, or right of the door when the band puts the door in the top left corner (ft_1_20). */
+  /** Where a screen's title starts: `margin`, or right of the door when the door stands in the top left corner (ft_1_20). */
   protected titleX(margin: number): number {
     return this.bandShown ? Math.max(margin, this.cornerStrip.left + 2) : margin;
   }
 
-  /** Whether the toolbar is drawn, with the player's name, rank and XP on it (d088); not under the band alone (ft_1_20). */
+  /** Whether the toolbar is drawn, with the player's name, rank and XP on it (d088); only on the teacher's screens (ft_1_20). */
   protected get toolbarShown(): boolean {
     return this.screenFrame.toolbar;
   }
 
-  /** Art rows above the main area: the toolbar and the vine, or none with the band alone (ft_1_20). */
+  /** Art rows above the main area: the toolbar and the vine, or none without the toolbar (ft_1_20). */
   protected get mainTopRows(): number {
     return this.screenFrame.top;
   }
 
-  /** Whole art rows the main area has (a staff that must fit counts these, not the rounded-up `px.height`); with the band, every row above it. */
+  /** Whole art rows the main area has (a staff that must fit counts these, not the rounded-up `px.height`); without the toolbar, every row above the strip. */
   protected get mainRows(): number {
-    if (this.screenFrame.band || this.stripMode || !this.screenFrame.toolbar) return this.screenFrame.height;
+    if (this.stripMode || !this.screenFrame.toolbar) return this.screenFrame.height;
     return Math.floor(this.scale.height / this.px.scale) - FRAME_ROWS;
   }
 
   /**
-   * The frame of every screen: the toolbar and the vine on top (d088) unless the band alone is drawn, and the action and
-   * inventory band at the foot (ft_1_20, d115). Drawn after the screen, so a screen's buttons keep their order.
+   * The frame of every screen: the door, the gear and the pinned strip (ft_1_20, d282), or on the teacher's screens the
+   * toolbar and the vine (d088). Drawn after the screen, so a screen's buttons keep their order.
    */
   private drawFrame(): void {
-    const band = this.screenFrame.band;
-    if (this.stripMode) return this.drawPinStrip(this.stripCells() ?? []);
-    if (this.screenFrame.toolbar) this.drawToolbar(band ? [] : this.toolbarItems());
-    if (band) this.drawBand(band.top);
+    if (this.stripMode) return this.drawPinStrip(this.stripCells());
+    if (this.screenFrame.toolbar) this.drawToolbar(this.toolbarItems());
   }
 
   /**
@@ -1183,17 +1174,20 @@ export abstract class PixelScene extends Phaser.Scene {
   private drawPinStrip(cells: readonly StripCell[]): void {
     const context = contextOf(this);
     const { back, settings } = this.drawCorners();
+    if (this.backpackItems) this.drawBackpack(this.backpackItems());
     const strip = this.screenFrame.strip;
     this.stripOverflow = [];
-    const items: ToolbarItem[] = [];
+    this.toolbarButtons = { back, settings, keys: null, items: [] };
     if (strip) {
       const width = this.px.width;
       const ground = createBitmap(Math.max(5, width), strip.rows);
       ground.pixels.fill(C.panel);
       ground.pixels.fill(C.groove, 0, ground.width);
       this.root.add(new PixelImage(this, 0, strip.top, ground));
-      const more: ToolbarItem = { label: t('band.more'), tooltip: t('band.more'), onClick: () => undefined };
-      const shown = cells.map((cell) => (cell === 'more' ? more : cell));
+      const more: ToolbarItem = { label: t('strip.more'), tooltip: t('strip.more'), onClick: () => undefined };
+      // the settings screen's keyboard switch (d099), a developer's tool, at the end of its strip
+      const keys: ToolbarItem | null = this.toolbarKeys ? { label: t('settings.keyboard'), icon: ICONS.freePlay, onClick: () => context.keyboardSwitch.toggle() } : null;
+      const shown = [...cells.map((cell) => (cell === 'more' ? more : cell)), ...(keys ? [keys] : [])];
       const words = (s: string) => measure(drawnText(s)) + CELL_PAD;
       const spans = shown.map((item) => (item.icon ? 1 : cellSpan(words(item.label), PIN_CELL.w)));
       const main = shown.findIndex((item) => item.main === true);
@@ -1201,26 +1195,68 @@ export abstract class PixelScene extends Phaser.Scene {
       const made = new Map<number, PixelButton>();
       for (const placed of flow.placed) {
         const item = shown[placed.action]!;
-        const at = { ...rectCentre(placed.rect), y: strip.top + placed.rect.y + placed.rect.h / 2, width: placed.rect.w, height: placed.rect.h };
-        const button: PixelButton = item === more
-          ? this.bandButton({ ...more, onClick: () => this.openBubble(null, { x: at.x, y: strip.top - BUBBLE_ABOVE_STRIP }) }, at, 'bandCell', at.width - CELL_PAD)
-          : this.bandButton(item, at, 'bandCell', at.width - CELL_PAD);
-        made.set(placed.action, button);
+        const at = { ...rectCentre(placed.rect), y: strip.top + placed.rect.y + placed.rect.h / 2 };
+        const pinned = item === more ? { ...more, onClick: () => this.openBubble(null, { x: at.x, y: strip.top - BUBBLE_ABOVE_STRIP }) } : item;
+        made.set(placed.action, this.stripButton(pinned, at, 'bandCell', at.width - CELL_PAD));
       }
-      this.stripOverflow = flow.toBubble.map((i) => shown[i]!).filter((item) => item !== more);
-      shown.forEach((item, i) => {
-        if (item !== more && made.has(i)) items.push(item);
-      });
-      this.toolbarButtons = { back, settings, keys: null, items: shown.flatMap((item, i) => (item !== more && made.has(i) ? [made.get(i)!] : [])) };
-    } else {
-      this.toolbarButtons = { back, settings, keys: null, items: [] };
+      this.stripOverflow = flow.toBubble.map((i) => shown[i]!).filter((item) => item !== more && item !== keys);
+      this.stripArea = {
+        area: { x: 0, y: strip.top, w: width, h: strip.rows },
+        cells: flow.placed.map((placed) => ({ rect: { ...placed.rect, y: strip.top + placed.rect.y }, item: shown[placed.action]! })),
+      };
+      const keysButton = keys ? made.get(shown.length - 1) ?? null : null;
+      keysButton?.setDisabled(!context.keyboardSwitch.enabled());
+      this.toolbarButtons = { back, settings, keys: keysButton, items: shown.flatMap((item, i) => (item !== more && item !== keys && made.has(i) ? [made.get(i)!] : [])) };
     }
     this.lightKeys(context.keyboardSwitch.shown());
   }
 
+  /** Whether the backpack's page is open (ft_1_20): for the tests. */
+  get backpackShown(): boolean {
+    return this.backpackOpen;
+  }
+
+  /**
+   * The backpack (ft_1_20, d282) left of the gear, there from the start, and its page of items under it while open: one
+   * board of filled slots, each item's picture named in its tooltip, or a line when nothing is kept yet. A press on the
+   * backpack opens and closes the page. Today's plain board and slots: the look is the painter's.
+   */
+  private drawBackpack(items: readonly ToolbarItem[]): void {
+    const page = backpackPage({ width: this.px.width, height: this.mainRows, items: items.length });
+    const layer = this.overStaff();
+    const toggle = () => {
+      this.backpackOpen = !this.backpackOpen;
+      this.redraw();
+    };
+    const bag = this.buttonOn(layer, { ...rectCentre(page.button), label: t('backpack.name'), picture: ICONS.backpack, onClick: toggle });
+    if (this.backpackOpen) bag.setActive(true);
+    if (!this.backpackOpen) return;
+    if (items.length === 0) {
+      const line = new PixelText(this, 0, 0, t('backpack.empty'), { color: C.white });
+      const w = line.letterBox.right - line.letterBox.left + 8, h = 15;
+      const x = page.button.x + page.button.w - w;
+      layer.add(new PixelImage(this, x, page.board.y, panelBitmap(w, h, 'panel')));
+      line.setPosition(x + 4 - line.letterBox.left, page.board.y + Math.floor((h - (line.letterBox.bottom - line.letterBox.top)) / 2) - line.letterBox.top);
+      layer.add(line.setName('backpackEmpty'));
+      return;
+    }
+    layer.add(new PixelImage(this, page.board.x, page.board.y, panelBitmap(page.board.w, page.board.h, 'panel')));
+    page.slots.forEach((slot, i) => this.stripButton(items[i]!, rectCentre(slot), 'bandSlot', slot.w - CELL_PAD, layer));
+  }
+
+  /** Esc closes the backpack's page (ft_1_20). */
+  private backpackKey(e: KeyboardEvent): boolean {
+    if (!this.backpackOpen || e.key !== 'Escape' || this.sys.isPaused()) return false;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    this.backpackOpen = false;
+    this.redraw();
+    return true;
+  }
+
   /**
    * The toolbar (d088): Back, the player's name, rank and XP, the screen's own `items`, settings and the keyboard switch, and
-   * the vine under it. Under the band it keeps only the global items: the screen's own go in the band's grid.
+   * the vine under it: the teacher's screens only (ft_1_20).
    */
   private drawToolbar(items: ToolbarItem[]): void {
     const context = contextOf(this);
@@ -1258,104 +1294,23 @@ export abstract class PixelScene extends Phaser.Scene {
   }
 
   /**
-   * The action and inventory band at the foot (ft_1_20, d115), `top` rows below the main area's top, with no text on it:
-   * the 3 x 3 grid of the screen's actions with Back bottom left and Settings bottom right, the
-   * arrows and the item slots. Today's plain panels and buttons: the painter draws the band's look.
+   * One cell of the strip or slot of the backpack: its picture (pictures, not words) with its word in a tooltip bubble, or
+   * its word when it has no picture yet (the strip gives a word the cells it needs, `cellSpan`). An item with a `menu`
+   * opens its choices from the button; `layer` puts it over the picture (the backpack's page).
    */
-  private drawBand(top: number): void {
-    const context = contextOf(this);
-    const width = this.px.width;
-    const keepsToolbar = this.screenFrame.toolbar;
-    // the band's ground: one warm board with a dark line along its top; the plates are cut into it
-    const ground = createBitmap(Math.max(5, width), BAND_ROWS);
-    ground.pixels.fill(C.panel);
-    ground.pixels.fill(C.groove, 0, ground.width);
-    this.root.add(new PixelImage(this, 0, top, ground));
-    const layout = bandLayout(width);
-    const box = (r: Rect) => ({ ...rectCentre(r), y: top + r.y + r.h / 2 });
-
-    // Back and Settings: the door and the gear where the toolbar had them, over the screen's top corners
-    const { back, settings } = keepsToolbar ? { back: null, settings: null } : this.drawCorners();
-
-    // the action grid: the screen's actions, and the keyboard switch on the settings screen (d099)
-    const actions = this.bandActions();
-    const keysAction = !keepsToolbar && this.toolbarKeys;
-    if (keysAction) actions.push({ label: t('settings.keyboard'), icon: ICONS.freePlay, onClick: () => context.keyboardSwitch.toggle() });
-    const grid = bandCells({ actions: actions.length, page: this.bandPages.actions });
-    this.bandPages.actions = grid.page;
-    const made = grid.cells.map((cell, i) => this.bandCell(cell, actions, box(layout.cells[i]!)));
-    const actionButtons = grid.cells.flatMap((cell, i) => (cell !== null && typeof cell === 'object' ? [{ action: cell.action, button: made[i]! }] : []));
-    if (!keepsToolbar) {
-      this.toolbarButtons = {
-        back,
-        settings,
-        keys: keysAction ? actionButtons.find((a) => a.action === actions.length - 1)?.button ?? null : null,
-        items: actionButtons.filter((a) => !keysAction || a.action < actions.length - 1).map((a) => a.button),
-      };
-      if (keysAction) this.toolbarButtons.keys?.setDisabled(!context.keyboardSwitch.enabled());
-      this.lightKeys(context.keyboardSwitch.shown());
-    }
-
-    // the inventory: the arrows page it, a page of slots at a time (rule 5)
-    const items = this.bandItems();
-    const page = bandItemPage({ items: items.length, slots: layout.slots.length, page: this.bandPages.items });
-    this.bandPages.items = page.page;
-    const turn = (by: number) => () => {
-      this.bandPages.items = page.page + by;
-      this.redraw();
-    };
-    this.button({ ...box(layout.arrows.up), label: t('band.itemsUp'), icon: ICONS.up, iconOnly: true, look: 'bandCell', disabled: !page.up, onClick: turn(-1) });
-    this.button({ ...box(layout.arrows.down), label: t('band.itemsDown'), icon: ICONS.down, iconOnly: true, look: 'bandCell', disabled: !page.down, onClick: turn(1) });
-    const shown: { rect: Rect; item: ToolbarItem }[] = [];
-    layout.slots.forEach((slot, i) => {
-      const item = items[page.first + i];
-      if (i >= page.count || !item) {
-        this.root.add(new PixelImage(this, slot.x, top + slot.y, trayBitmap(slot.w, slot.h, 'slotEmpty')));
-        return;
-      }
-      this.bandButton(item, box(slot), 'bandSlot', slot.w - CELL_PAD);
-      shown.push({ rect: { ...slot, y: top + slot.y }, item });
-    });
-    const parts = [layout.arrows.up, layout.arrows.down, ...layout.slots];
-    const left = Math.min(...parts.map((r) => r.x)), right = Math.max(...parts.map((r) => r.x + r.w));
-    const upper = Math.min(...parts.map((r) => r.y)), lower = Math.max(...parts.map((r) => r.y + r.h));
-    this.inventoryBand = { area: { x: left, y: top + upper, w: right - left, h: lower - upper }, slots: shown, items: items.length, perPage: layout.slots.length };
-  }
-
-  /** One cell of the action grid: an action, More, or an empty panel. */
-  private bandCell(cell: BandCell, actions: readonly ToolbarItem[], at: { x: number; y: number; width: number; height: number }): PixelButton | null {
-    // a cell with no action is not drawn: the band shows only what can be done (AX-3 provisional, asked of the architect)
-    if (cell === null) return null;
-    const make = (item: ToolbarItem): PixelButton => this.bandButton(item, at, 'bandCell', at.width - CELL_PAD);
-    if (cell === 'more') {
-      return make({
-        label: t('band.more'),
-        onClick: () => {
-          this.bandPages.actions += 1;
-          this.redraw();
-        },
-      });
-    }
-    return make(actions[cell.action]!);
-  }
-
-  /**
-   * One action cell or item slot of the band: its picture (pictures, not words) with its word in a tooltip
-   * bubble, or its word when it has no picture yet (cut short when it does not fit `room`, the whole word in the tooltip).
-   * An opening item with a `menu` opens its choices from the button.
-   */
-  private bandButton(item: ToolbarItem, at: { x: number; y: number; width: number; height: number }, look: 'bandCell' | 'bandSlot', room: number): PixelButton {
+  private stripButton(item: ToolbarItem, at: { x: number; y: number; width: number; height: number }, look: 'bandCell' | 'bandSlot', room: number, layer?: Phaser.GameObjects.Container): PixelButton {
     const width = (s: string) => measure(drawnText(s));
     const fits = width(item.label) <= room;
     const label = fits || item.icon ? item.label : clipToWidth(item.label, room, width);
     const tooltip = item.tooltip ?? (fits || item.icon ? undefined : item.label);
     const menu = item.menu;
-    const button: PixelButton = this.button({
+    const options: PixelButtonOptions = {
       ...at, label, labelWidth: room, look, ...(item.icon ? { icon: item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}), ...(tooltip ? { tooltip } : {}),
       ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}),
-      // a band item's menu opens above it, toward the staff, where the pointer goes next
+      // a strip cell's menu opens above it, toward the staff, where the pointer goes next
       onClick: menu ? () => this.openMenu(button, menu.items(), { cell: menu.cell, columns: menu.columns, open: 'above' }) : item.onClick,
-    });
+    };
+    const button: PixelButton = layer ? this.buttonOn(layer, options) : this.button(options);
     if (item.active) button.setActive(true);
     if (item.armed) button.setArmed(true);
     if (item.shortcut) this.markKey(button, item.shortcut);
@@ -1381,7 +1336,7 @@ export abstract class PixelScene extends Phaser.Scene {
   }
 
   /**
-   * A layer over the staff (ft_1_20): with the band the staff fills the whole main area, so what used to sit in a bar beside
+   * A layer over the staff (ft_1_20): with no toolbar the staff fills the whole main area, so what used to sit in a bar beside
    * it (Kiur and his bubble, the page buttons of a section, an open panel) is drawn on top of it here. Same origin and zoom as
    * `root`; removed when the scene is drawn again.
    */
@@ -1398,38 +1353,32 @@ export abstract class PixelScene extends Phaser.Scene {
     return button;
   }
 
-  /** The pointer in art pixels, as the buttons and the band are laid out. */
+  /** The pointer in art pixels, as the buttons and the strip are laid out. */
   private artPoint(pointer: { x: number; y: number }): { x: number; y: number } {
     return { x: (pointer.x - this.root.x) / this.px.scale, y: (pointer.y - this.root.y) / this.px.scale };
   }
 
-  /** Whether the pointer is over the band's inventory (its arrows and slots): a screen's own wheel leaves it to the band (ft_1_20.AC16). */
-  protected pointerOnInventory(pointer: { x: number; y: number }): boolean {
-    const area = this.inventoryBand?.area;
+  /** Whether the pointer is over the pinned strip: a screen's own wheel leaves it to the strip (ft_1_20.AC16). */
+  protected pointerOnStrip(pointer: { x: number; y: number }): boolean {
+    const area = this.stripArea?.area;
     if (!area) return false;
     const { x, y } = this.artPoint(pointer);
     return x >= area.x && x < area.x + area.w && y >= area.y && y < area.y + area.h;
   }
 
   /**
-   * The wheel over the inventory (ft_1_20.AC16): over an item with choices (a menu) it picks the next or
-   * previous one as a click in its menu would; elsewhere on the inventory it turns the page. Down is the next.
+   * The wheel over the strip (ft_1_20.AC16): over a cell with choices (a menu, the piece maker's writer) it picks the next
+   * or previous one as a click in its menu would. Down is the next.
    */
-  private inventoryWheel(pointer: Phaser.Input.Pointer, dy: number): void {
-    const inventory = this.inventoryBand;
-    if (!inventory || dy === 0 || this.menuOpen || !this.pointerOnInventory(pointer)) return;
+  private stripWheel(pointer: Phaser.Input.Pointer, dy: number): void {
+    const strip = this.stripArea;
+    if (!strip || dy === 0 || this.menuOpen || !this.pointerOnStrip(pointer)) return;
     const { x, y } = this.artPoint(pointer);
-    const over = inventory.slots.find(({ rect: r }) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
-    if (over?.item.menu && !over.item.disabled) {
-      const choices = over.item.menu.items();
-      const next = wheelChoice(choices, dy);
-      if (next !== null) choices[next]!.onPick();
-      return;
-    }
-    const page = wheelPage({ items: inventory.items, slots: inventory.perPage, page: this.bandPages.items }, dy);
-    if (page === null) return;
-    this.bandPages.items = page;
-    this.redraw();
+    const over = strip.cells.find(({ rect: r }) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
+    if (!over?.item.menu || over.item.disabled) return;
+    const choices = over.item.menu.items();
+    const next = wheelChoice(choices, dy);
+    if (next !== null) choices[next]!.onPick();
   }
 
   /** Whether the pointer is on one of the screen's buttons: a screen that takes presses on its staff leaves those to the button. */
@@ -1520,7 +1469,7 @@ export abstract class PixelScene extends Phaser.Scene {
     // an overlay (d070) keeps the plain frame: it draws over the whole paused screen under it
     const cells = this.framed && !this.keepsToolbar && !this.wholeScreen ? this.stripCells() : null;
     this.stripMode = cells !== null;
-    const view = frameView(width, height, { band: this.framed && !this.keepsToolbar, whole: this.wholeScreen, ...(cells ? { strip: pinRows(cells.length) } : {}) });
+    const view = frameView(width, height, { whole: this.wholeScreen, ...(cells ? { strip: pinRows(cells.length + (this.toolbarKeys ? 1 : 0)) } : {}) });
     this.screenFrame = view;
     this.px = { scale: view.scale, fine: view.fine, width: view.width, height: view.height };
     this.backAction = null;
@@ -1537,7 +1486,7 @@ export abstract class PixelScene extends Phaser.Scene {
   }
 
   private teardown(): void {
-    this.inventoryBand = null;
+    this.stripArea = null;
     this.closeMenu();
     this.closeBubble(false);
     this.endHolding();

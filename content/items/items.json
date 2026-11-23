@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "note": "The items a student can have (ft_1_20 item model; ft_1_21.AC15 prizes, AC18 ladders: the order of a ladder is the character's `prizes`). `kind` kept: it stands in the band's inventory and does nothing more (AX-3 provisional; held, worn and opening items come with ft_1_20.AC4, AC5). `name` is its string key; `picture` its picture in the band, when the painter has drawn one (until then the band shows its name).",
+  "note": "The items a student can have (ft_1_20 item model; ft_1_21.AC15 prizes, AC18 ladders: the order of a ladder is the character's `prizes`). `kind` kept: it stands in the backpack and does nothing more (AX-3 provisional; held, worn and opening items come with ft_1_20.AC4, AC5). `name` is its string key; `picture` its picture in the backpack, when the painter has drawn one (until then the backpack shows its name).",
   "items": [
     { "id": "oak-leaf", "kind": "kept", "name": "item.oakLeaf", "picture": "oak-leaf" },
     { "id": "acorn", "kind": "kept", "name": "item.acorn", "picture": "acorn" },

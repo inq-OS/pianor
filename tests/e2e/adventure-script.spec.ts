@@ -79,7 +79,7 @@ test.describe('scripts in adventure scenes (ft_1_24.AC6, WP-07)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_24.AC6 an item a script gives goes to the player\'s world: it stands in the band at once and again after the scene is opened anew', async ({ page }) => {
+  test('ft_1_24.AC6 an item a script gives goes to the player\'s world: it stands in the backpack at once and again after the scene is opened anew', async ({ page }) => {
     const errors = await openGame(page);
     await openDocksWithBoat(page);
     await expect.poll(() => scriptState(page)).not.toBeNull();
@@ -89,7 +89,7 @@ test.describe('scripts in adventure scenes (ft_1_24.AC6, WP-07)', () => {
       const scene = window.__game.scene.getScene('docks') as unknown as { keepGiven(item: string, visit: number): Promise<void>; talkVisit: number };
       return scene.keepGiven('golden-leaf', scene.talkVisit);
     });
-    const inventory = () => page.evaluate(() => (window.__game.scene.getScene('docks') as unknown as { bandInventory: string[] }).bandInventory);
+    const inventory = () => page.evaluate(() => (window.__game.scene.getScene('docks') as unknown as { backpackInventory: string[] }).backpackInventory);
     await expect.poll(inventory).toEqual(['golden-leaf']);
     await page.evaluate(() => { window.__game.scene.stop('docks'); window.__game.scene.start('docks'); });
     await waitForScene(page, 'docks');

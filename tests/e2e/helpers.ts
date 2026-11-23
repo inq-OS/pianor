@@ -122,7 +122,7 @@ export async function toPieceList(page: Page): Promise<void> {
 
 /** The index of the button with this label on a scene shown now, or -1. */
 export async function sceneButton(page: Page, sceneKey: string, label: string): Promise<number> {
-  // a band cell cuts a long word short and keeps it whole in its tooltip (ft_1_20), so the label and tooltip count too
+  // a strip cell cuts a long word short and keeps it whole in its tooltip (ft_1_20), so the label and tooltip count too
   return page.evaluate(
     ({ key, text }) => (window.__game.scene.getScene(key).buttons as { objects: { text?: string }[]; options: { label: string; tooltip?: string } }[])
       .findIndex((b) => b.objects.some((o) => o.text === text) || b.options.label === text || b.options.tooltip === text),
@@ -165,10 +165,10 @@ export async function clickToolbar(page: Page, which: 'back' | 'settings' | 'key
 }
 
 /**
- * The index in `buttons` of the band's action `n` on scene `key` (ft_1_20: its cells in order, 0 the first): the score
+ * The index in `buttons` of the strip's action `n` on scene `key` (ft_1_20: its cells in the screen's order, 0 the first): the score
  * screen's play again (0) and back to the pieces (1), a trainer's step or loop. The door and the gear are not actions.
  */
-export async function bandAction(page: Page, key: string, n: number): Promise<number> {
+export async function stripAction(page: Page, key: string, n: number): Promise<number> {
   await page.waitForFunction(({ k, i }) => (window.__game.scene.getScene(k) as unknown as { toolbarButtons: { items: unknown[] } }).toolbarButtons.items.length > i, { k: key, i: n });
   return page.evaluate(({ k, i }) => {
     const scene = window.__game.scene.getScene(k) as unknown as { buttons: unknown[]; toolbarButtons: { items: unknown[] } };
@@ -220,7 +220,7 @@ export async function sceneTexts(page: Page, key: string): Promise<string[]> {
 }
 
 /**
- * What a scene says: its visible texts and, after them, every button's word and tooltip (a picture's word is hidden). Under the band (ft_1_20) a cell or item says
+ * What a scene says: its visible texts and, after them, every button's word and tooltip (a picture's word is hidden). On the strip (ft_1_20) a cell says
  * its state in its tooltip bubble (the piano's name, the BPM, the section), not in a line of text.
  */
 export async function sceneWords(page: Page, key: string): Promise<string[]> {
@@ -345,7 +345,7 @@ export async function openAdminPage(page: Page, password = 'pianor'): Promise<vo
 
 /** The name box's letters are buttons 0 to 29 in NAME_LETTERS order; Done is 31. */
 const NAME_LETTER_ORDER = 'ABCDEFGHIJKLMNOPRSŠZŽTUVÕÄÖÜXY';
-/** The name box's Done: a band action since ft_1_20 (after the 30 letters, the door and Delete). */
+/** The name box's Done: a strip action since ft_1_20 (after the 30 letters, the door and Delete). */
 export const nameDone = (page: Page): Promise<number> => sceneButton(page, 'name', 'DONE');
 
 /** Types `name` (capitals from the name box's letters) on the name box and presses Done. */
@@ -402,7 +402,7 @@ export async function menuLabels(page: Page): Promise<string[]> {
 export const isPieceLabel = (label: string) => label !== '' && !['Previous', 'Next', 'Back', 'Settings', '+ New piece'].includes(label);
 
 /** Go back to the first page of the menu, clicking Previous as a player would. */
-/** The menu's Previous or Next in either language (the band leaves fewer cards on a page, so Estonian runs turn pages too). */
+/** The menu's Previous or Next in either language (the strip and the corners leave fewer cards on a page, so Estonian runs turn pages too). */
 async function pagerButton(page: Page, which: 'Previous' | 'Next'): Promise<number> {
   const words = which === 'Next' ? ['Next', 'Järgmine', 'JÄRGMINE'] : ['Previous', 'Eelmine', 'EELMINE'];
   for (const word of words) {

@@ -3,7 +3,7 @@
 // (song list) and the admin page with its name picker. progress.spec.ts covers the first checks; these tests add the
 // buttons and the paths it did not reach.
 import { expect, test, type Page } from '@playwright/test';
-import { addPlayer, bandAction, clickButton, clickToolbar, expectNoErrors, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene } from './helpers';
+import { addPlayer, stripAction, clickButton, clickToolbar, expectNoErrors, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene } from './helpers';
 
 /** The main menu: from the piece list, the room's Quit goes there (`goToMainMenu`). */
 const openProfiles = async (page: Page) => {
@@ -579,7 +579,7 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
     expectNoErrors(errors);
   });
 
-  test("ft_1_12.AC10 the band's filter hides the teacher's pieces and shows them again", async ({ page }) => {
+  test("ft_1_12.AC10 the strip's filter hides the teacher's pieces and shows them again", async ({ page }) => {
     const errors = await openGame(page);
     const title: string = await page.evaluate(async () => {
       const context = window.__game.registry.get('context');
@@ -590,10 +590,10 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
     });
     await waitForScene(page, 'menu');
     await expect.poll(() => menuButton(page, title)).toBeGreaterThanOrEqual(0);
-    // the band's switches: own, curriculum, character
-    await clickButton(page, 'menu', await bandAction(page, 'menu', 1));
+    // the strip's switches: own, curriculum, character
+    await clickButton(page, 'menu', await stripAction(page, 'menu', 1));
     await expect.poll(() => menuButton(page, title)).toBe(-1);
-    await clickButton(page, 'menu', await bandAction(page, 'menu', 1));
+    await clickButton(page, 'menu', await stripAction(page, 'menu', 1));
     await expect.poll(() => menuButton(page, title)).toBeGreaterThanOrEqual(0);
     expectNoErrors(errors);
   });

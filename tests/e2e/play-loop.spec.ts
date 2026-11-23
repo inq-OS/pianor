@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { LITTLE_STEPS, activeScenes, clickButton, expectNoErrors, openGame, openPiece, pieceXp, playWithVirtualPiano, sceneTexts, totalXp, waitForScene, bandAction } from './helpers';
+import { LITTLE_STEPS, activeScenes, clickButton, expectNoErrors, openGame, openPiece, pieceXp, playWithVirtualPiano, sceneTexts, totalXp, waitForScene, stripAction } from './helpers';
 
 /** The looping play of the training piano (ft_1_12, slice 2). */
 
@@ -39,14 +39,14 @@ test.describe('looping play (ft_1_12)', () => {
     await waitForScene(page, 'results');
     const texts = await sceneTexts(page, 'results');
     expect(texts).toEqual(expect.arrayContaining(['You played it to the end 2 times!', 'Best round: 100% right the first time', 'Wrong keys: 1']));
-    // the graph, when the 124 rows under the band leave it room (TODO in ft_1_12), shows both passes
+    // the graph, when the rows over the strip leave it room (TODO in ft_1_12), shows both passes
     const graph = await page.evaluate(() => (window.__game.scene.getScene('results').graph as { shown: number } | null)?.shown ?? null);
     if (graph !== null) expect(graph).toBe(2);
     expect(texts.some((line) => /^\+\d+ XP$/.test(line))).toBe(true);
     expect(await page.evaluate(() => window.__game.scene.getScene('results').summary.rounds as number)).toBe(2);
 
     // Play again starts the piece afresh
-    await clickButton(page, 'results', await bandAction(page, 'results', 0));
+    await clickButton(page, 'results', await stripAction(page, 'results', 0));
     await waitForScene(page, 'practice');
     expect(await scene.lap()).toBe(0);
     expectNoErrors(errors);

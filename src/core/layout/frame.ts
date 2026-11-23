@@ -1,4 +1,3 @@
-import { BAND_ROWS } from './band';
 import { pixelView } from './pixelView';
 import { rectRight, type Rect } from './rect';
 
@@ -57,53 +56,35 @@ export interface FrameView {
   top: number;
   /** Whether the toolbar and the vine are drawn above the main area. */
   toolbar: boolean;
-  /** The action and inventory band under the main area (ft_1_20): its top in rows from the main area's top; null without it. */
-  band: { top: number; rows: number } | null;
-  /** The pinned strip under the main area in place of the band (ft_1_20, d282): its top in rows from the main area's top; null without it. */
+  /** The pinned strip under the main area (ft_1_20, d282): its top in rows from the main area's top; null without it. */
   strip: { top: number; rows: number } | null;
 }
 
-/**
- * The one flag of the frame's layout for the top toolbar under the band (d115, ft_1_20.AC12; the
- * toolbar is set aside for now, kept in the code so it can come back). Off: the band holds Back, Settings and the
- * player, and the main area has every row above it (124 on the target screen). On: the toolbar and the vine are drawn as
- * before d115 and hold them, and the main area has 101 rows. No scene changes when it flips.
- */
-export const BAND_KEEPS_TOOLBAR = false;
-
 export interface FrameOptions {
-  /** Draw the action and inventory band at the foot (ft_1_20): every framed screen but the battle screens (d129). */
-  band: boolean;
-  /** With the band: keep the toolbar too. `BAND_KEEPS_TOOLBAR` by default; only tests pass it. */
-  toolbar?: boolean;
   /**
    * The screen paints every row itself (the main menu, ft_1_07: its picture and its own board of plates): no toolbar, no
-   * vine and no band, whatever `band` says. AX-3 provisional: asked of the architect (d088 has a toolbar on every screen).
+   * vine and no strip. AX-3 provisional: asked of the architect (d088 has a toolbar on every screen).
    */
   whole?: boolean;
   /**
-   * The screen pins its actions in a strip of so many rows along its foot in place of the band (ft_1_20, d282): no
-   * toolbar and no band, and with 0 (nothing pinned) the main area has every row.
+   * The screen pins its actions in a strip of so many rows along its foot (ft_1_20, d282): no toolbar, the door and the
+   * gear over the top corners, and with 0 (nothing pinned) the main area has every row. Without it the toolbar and the
+   * vine are drawn (the teacher's screens, overlays).
    */
   strip?: number;
 }
 
-export function frameView(screenWidth: number, screenHeight: number, options: FrameOptions = { band: false }): FrameView {
+export function frameView(screenWidth: number, screenHeight: number, options: FrameOptions = {}): FrameView {
   const fine = pixelView(screenWidth, screenHeight, { minWidth: ART_CANVAS.width, minHeight: ART_CANVAS.height, maxScale: MAX_FINE_ZOOM }).scale;
   const scale = fine * ART_DETAIL;
   const width = Math.ceil(screenWidth / scale);
-  if (options.whole) return { scale, fine, width, height: Math.floor(screenHeight / scale), top: 0, toolbar: false, band: null, strip: null };
+  if (options.whole) return { scale, fine, width, height: Math.floor(screenHeight / scale), top: 0, toolbar: false, strip: null };
   if (options.strip !== undefined) {
-    // the strip stands on the last whole row, as the band did
+    // the strip stands on the last whole row, so none of it is cut off at the screen's foot
     const height = Math.floor(screenHeight / scale) - options.strip;
-    return { scale, fine, width, height, top: 0, toolbar: false, band: null, strip: options.strip > 0 ? { top: height, rows: options.strip } : null };
+    return { scale, fine, width, height, top: 0, toolbar: false, strip: options.strip > 0 ? { top: height, rows: options.strip } : null };
   }
-  if (!options.band) return { scale, fine, width, height: Math.ceil(screenHeight / scale) - FRAME_ROWS, top: FRAME_ROWS, toolbar: true, band: null, strip: null };
-  // the band stands on the last whole row, so none of it is cut off at the screen's foot
-  const toolbar = options.toolbar ?? BAND_KEEPS_TOOLBAR;
-  const top = toolbar ? FRAME_ROWS : 0;
-  const height = Math.floor(screenHeight / scale) - BAND_ROWS - top;
-  return { scale, fine, width, height, top, toolbar, band: { top: height, rows: BAND_ROWS }, strip: null };
+  return { scale, fine, width, height: Math.ceil(screenHeight / scale) - FRAME_ROWS, top: FRAME_ROWS, toolbar: true, strip: null };
 }
 
 /** What a screen puts on the toolbar; widths in art pixels, the texts measured by the caller. */
@@ -221,7 +202,7 @@ function place(input: ToolbarInput, xpNumbers: boolean, iconsOnly: boolean): Too
 }
 
 /**
- * Where Back (the door) and Settings (the gear) go with the band and no toolbar (Back and Settings
+ * Where Back (the door) and Settings (the gear) go with no toolbar (Back and Settings
  * stay as the door and the gear in the places they had in the toolbar): the toolbar's own places, now over the
  * top corners of the main area. In rows from the screen's top.
  */

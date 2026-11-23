@@ -9,7 +9,7 @@ import { HEART } from './sprites';
  */
 const LEGEND = { k: C.ink, w: C.white, s: C.dim, g: C.gold, y: C.goldLight, p: C.pink, c: C.cream, n: C.brown } as const;
 
-export type IconId = 'maker' | 'freePlay' | 'newPlayer' | 'credits' | 'admin' | 'settings' | 'quit' | 'ear' | 'up' | 'down';
+export type IconId = 'maker' | 'freePlay' | 'newPlayer' | 'credits' | 'admin' | 'settings' | 'quit' | 'ear' | 'up' | 'down' | 'backpack';
 
 const ROWS: Readonly<Record<Exclude<IconId, 'credits'>, readonly string[]>> = {
   // a pencil writing a note on staff lines (own art)
@@ -27,6 +27,8 @@ const ROWS: Readonly<Record<Exclude<IconId, 'credits'>, readonly string[]>> = {
   // the inventory's arrows (ft_1_20): a plain triangle each way (own art; the painter draws the band's kit)
   up: ['....k....', '...kwk...', '..kwwwk..', '.kwwwwwk.', 'kkkkkkkkk'],
   down: ['kkkkkkkkk', '.kwwwwwk.', '..kwwwk..', '...kwk...', '....k....'],
+  // a backpack with its strap, flap and buckle (own art; the painter draws its look, ft_1_20)
+  backpack: ['....kkkk....', '...kk..kk...', '..kkkkkkkk..', '.knnnnnnnnk.', 'kcccccccccck', 'knnnnggnnnnk', 'knnnnggnnnnk', 'knnnnnnnnnnk', 'knccccccccnk', 'knnnnnnnnnnk', 'knnnnnnnnnnk', '.kkkkkkkkkk.'],
   // a door with an arrow going out (own art)
   quit: ['kkkkkkk....', 'knnnnnk....', 'knnnnnk..k.', 'knnnnnkkkwk', 'knnngnwwwwk', 'knnnnnkkkwk', 'knnnnnk..k.', 'knnnnnk....', 'knnnnnk....', 'kkkkkkk....'],
 };

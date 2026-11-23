@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { clickButton, expectNoErrors, letGameRun, openGame, openPiece, playWithVirtualPiano, pieceXp, pressPracticeButton as press, sceneTexts, toScoreScreen, useOneLine, waitForScene, bandAction, sceneWords, openBubble, bubbleOpen } from './helpers';
+import { clickButton, expectNoErrors, letGameRun, openGame, openPiece, playWithVirtualPiano, pieceXp, pressPracticeButton as press, sceneTexts, toScoreScreen, useOneLine, waitForScene, stripAction, sceneWords, openBubble, bubbleOpen } from './helpers';
 
 /** The practice screen's tools strip: the metronome click, the tempo percent, and a section to practise. */
 
@@ -115,7 +115,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
     await tapBar(page, 2);
     await expect.poll(() => chartId(page)).toBe('little-steps#bars-2-3');
     expect(await page.evaluate(() => window.__game.scene.getScene('practice').chart.title as string)).toBe('Little Steps (bars 2 to 3)');
-    // no title on the practice screen under the band (ft_1_20, AX-3 provisional): the section is said by Whole piece
+    // no title on the practice screen over the strip (ft_1_20, AX-3 provisional): the section is said by Whole piece
     expect(await buttonNames(page)).toContain('Whole piece [Shift+R]');
 
     // play the six notes of bars 2 and 3: no results screen, no XP, and it starts over
@@ -168,7 +168,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
     await tapBar(page, 1);
     await tapBar(page, 2);
     await expect.poll(() => chartId(page)).toBe('little-steps#bars-2-3');
-    // the ramp is an opening item of the band (ft_1_20.AC5): its panel opens over the staff's foot
+    // the ramp is an opening option of the bubble (ft_1_20.AC5): its panel opens over the staff's foot
     await press(page, 'Tempo ramp');
     expect(await buttonLabels(page)).toEqual(expect.arrayContaining(['+0', 'BPM', 'every 1', 'Clean', 'to 100', '%']));
     await press(page, 'BPM'); // the step's unit: now %
@@ -268,7 +268,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
     await playWithVirtualPiano(page, [60, 62, 64, 65, 67, 65, 65, 64, 62, 60, 60]);
     await toScoreScreen(page);
     expect(await page.evaluate(() => window.__game.registry.get('context').profiles.profile.attempts[0].play)).toEqual({ mode: 'wait', tempoPercent: 110 });
-    await clickButton(page, 'results', await bandAction(page, 'results', 0)); // Play again
+    await clickButton(page, 'results', await stripAction(page, 'results', 0)); // Play again
     await waitForScene(page, 'practice');
     expect(await percent(page)).toBe(110);
     expectNoErrors(errors);

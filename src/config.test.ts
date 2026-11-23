@@ -95,8 +95,8 @@ describe('the beings switch (ft_1_19.AC8)', () => {
   });
 });
 
-describe('the band is the default (ft_1_20.AC10)', () => {
-  it('ft_1_20.AC10 has no band switch any more: the band is drawn on every screen, whatever the URL says', () => {
+describe('the strip needs no switch (ft_1_20.AC10)', () => {
+  it('ft_1_20.AC10 has no band switch any more: every screen has its strip, whatever the URL says', () => {
     for (const query of ['', '?band=0', '?band=1']) expect('band' in createConfig(query, true).flags).toBe(false);
   });
 });

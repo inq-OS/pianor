@@ -50,7 +50,7 @@ async function eAndGQuarters(page: Page): Promise<void> {
 
 const notes = (page: Page) =>
   page.evaluate(() => (window.__game.scene.getScene('editor').history.present.notes as { bar: number; start: number; length: string; step: string }[]).map((n) => `${n.bar}:${n.start}:${n.step}:${n.length}`));
-/** What the piece maker says: its texts and the band's tooltips (Save says which levels the piece fits, ft_1_20). */
+/** What the piece maker says: its texts and the strip's tooltips (Save says which levels the piece fits, ft_1_20). */
 const status = async (page: Page) => (await sceneWords(page, 'editor')).join(' | ');
 
 /** How many cards the F1 help shows (ft_1_33): each card's small mouse is named `helpMouse.<n>`. */
@@ -306,8 +306,8 @@ test.describe('piece editor (preliminary)', () => {
   for (const lang of ['en', 'et'] as const) {
     // At 320x180 the editor's staff also had to be as tall as the practice screen's; with one size (d105) the staff
     // has room to spare, and the test keeps what still matters: it fits, and nothing is off the screen or on the staff.
-    // With the band (ft_1_20.AC8) there are no rows of options: the staff runs from the corners' strip down to the band.
-    test(`the staff fits above the band, and nothing overlaps (${lang}) (ft_1_20.AC8)`, async ({ page }) => {
+    // With the strip (ft_1_20.AC8) there are no rows of options: the staff runs from the corners' strip down to the strip.
+    test(`the staff fits above the strip, and nothing overlaps (${lang}) (ft_1_20.AC8)`, async ({ page }) => {
       const errors = await openGame(page, EDITOR, lang, 'profiles');
       await page.evaluate(() => (window.__game.scene.getScenes(true)[0] as unknown as { scene: { start(key: string, data: unknown): void } }).scene.start('editor', {}));
       await waitForScene(page, 'editor');
@@ -319,7 +319,7 @@ test.describe('piece editor (preliminary)', () => {
           root: { list: { pixelText?: boolean; visible: boolean; text: string; x: number; y: number; width: number; height: number }[] };
         };
         const s = scene.px.scale;
-        // the staff's rows in the main area; the band's cells lie under it
+        // the staff's rows in the main area; the strip's cells lie under it
         const screenRows = Math.floor(scene.scale.height / s);
         const staff = { top: (scene.staffTop - scene.mainTop) / s, bottom: (scene.staffTop - scene.mainTop + scene.staffHeight) / s };
         const name = (b: { objects: { text?: string }[] }, i: number) => b.objects.find((o) => o.text)?.text ?? `button ${i}`;
@@ -1309,7 +1309,7 @@ test.describe('finger buttons and AUTO (ft_1_02d.AC13)', () => {
     await clickNote(page, 0, 480, 'D');
     // a click on a note that is not selected selects it: D is the one the finger buttons change
     await clickNote(page, 0, 480, 'D');
-    // the fingers are a menu item of the band (ft_1_20): F opens it from the keyboard too
+    // the fingers are an option of the bubble (ft_1_20): F opens it from the keyboard too
     const at = async (label: string) => {
       const labels = await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { buttons: { objects: { text?: string }[] }[] }).buttons.map((b) => b.objects.map((o) => o.text ?? '').join('')));
       return labels.lastIndexOf(label);
@@ -1625,7 +1625,7 @@ test.describe('piece maker keys on the tools (ft_1_02d.AC19)', () => {
     const texts = () => sceneTexts(page, 'editor');
     expect(await texts()).not.toContain('^S');
     await page.keyboard.press('F1');
-    // the keys on the tools (the lengths show their number keys), and the mouse picture over the staff (ft_1_33.AC1); the band
+    // the keys on the tools (the lengths show their number keys), and the mouse picture over the staff (ft_1_33.AC1); the strip
     // shows a page of items and a set of actions at a time (ft_1_20 rules 4 and 5), so every page is looked at
     expect(await helpCards(page)).toBe(8);
     expect(await texts()).toContain('Keys');
@@ -1653,7 +1653,7 @@ test.describe('piece maker keys on the tools (ft_1_02d.AC19)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_33.AC3 Enter on the F1 help starts Kiur\'s tour of the keys: the cursor, its bar and the band under the spotlight; it ends back on the help, the piece unchanged', async ({ page }) => {
+  test('ft_1_33.AC3 Enter on the F1 help starts Kiur\'s tour of the keys: the cursor, its bar and the strip under the spotlight; it ends back on the help, the piece unchanged', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
     await page.keyboard.press('F1');
@@ -1668,7 +1668,7 @@ test.describe('piece maker keys on the tools (ft_1_02d.AC19)', () => {
       // a long line has more than one page; Enter turns each
       while ((await showing())?.step === step) await page.keyboard.press('Enter');
     }
-    // every step has its thing lit: the cursor (three times), its bar (wider), the band (the whole width)
+    // every step has its thing lit: the cursor (three times), its bar (wider), the strip (the whole width)
     for (const spot of spots) expect(spot).not.toBeNull();
     expect(spots[3]!.w).toBeGreaterThan(spots[0]!.w);
     expect(spots[4]!.w).toBeGreaterThan(spots[3]!.w);

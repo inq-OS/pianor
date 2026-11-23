@@ -1,6 +1,6 @@
 // Covers ft_1_21.AC7 (the standing is shown at all times as one marker between the two; the look is the painter's).
 import { describe, expect, it } from 'vitest';
-import { BAND_ROWS } from './band';
+import { BOARD_ROWS } from './board';
 import { chalkOf, ragPlace, risingNotes, ropeTop, TUG, tugBoard, turnNoteBob } from './tug';
 
 const BOARD = tugBoard(320, 3);
@@ -44,7 +44,7 @@ describe('the tug\'s board (ft_1_21.AC7, CT-P6 look)', () => {
 
   it('the chalk marks the middle and both ends apart from the steps, and fits in the band', () => {
     expect(BOARD.places.map((_, i) => chalkOf(BOARD, i))).toEqual(['end', 'step', 'step', 'middle', 'step', 'step', 'end']);
-    expect(TUG.chalkY + TUG.chalkLong).toBeLessThanOrEqual(BAND_ROWS);
+    expect(TUG.chalkY + TUG.chalkLong).toBeLessThanOrEqual(BOARD_ROWS);
   });
 
   it('a wider board spreads its places, a narrower one keeps them on the rope', () => {

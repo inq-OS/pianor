@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { STAFF_INK } from '../../../core/layout/scoreColour';
-import { bandLayout } from '../../../core/layout/band';
+import { BACKPACK_SLOT } from '../../../core/layout/backpack';
 import { ART_DETAIL } from '../../../core/layout/frame';
 import type { Bitmap } from './bitmap';
 import { ITEM_INK, ITEM_SIGNS, ITEM_SIZE, ITEM_SKIN, itemPicture } from './itemArt';
@@ -11,8 +11,8 @@ const at = (b: Bitmap, x: number, y: number): number => (x < 0 || y < 0 || x >= 
 const skin = new Set<number>(ITEM_SKIN);
 
 describe('the piece maker\'s items: parchment scraps written in the staff\'s ink (ft_1_20, pick B)', () => {
-  it('fits every picture inside a slot of the band, on the fine grid', () => {
-    const slot = bandLayout(320).slots[0]!;
+  it('fits every picture inside a slot of the backpack, on the fine grid', () => {
+    const slot = BACKPACK_SLOT;
     // the slot's groove and ridge take two cells on each side
     expect(ITEM_SIZE.width).toBeLessThanOrEqual((slot.w - 4) * ART_DETAIL);
     expect(ITEM_SIZE.height).toBeLessThanOrEqual((slot.h - 4) * ART_DETAIL);

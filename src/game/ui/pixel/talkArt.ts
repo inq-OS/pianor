@@ -1,5 +1,5 @@
 import type { Speaker } from '../../../core/dialogue/conversation';
-import { BAND_ROWS } from '../../../core/layout/band';
+import { BOARD_ROWS } from '../../../core/layout/board';
 import { TALK, talkPages } from '../../../core/layout/talk';
 import { createBitmap, fromAscii, type Bitmap } from './bitmap';
 import { drawnText, renderText, wrap } from './font';
@@ -94,11 +94,11 @@ export function choiceRows(text: string, width: number): number {
 }
 
 /**
- * The band while the student chooses (`BAND_ROWS` high): the band's own frame (the groove and the walnut lip), and inside it
+ * The band while the student chooses (`BOARD_ROWS` high): the band's own frame (the groove and the walnut lip), and inside it
  * one dark board instead of the cells and slots, as MI2's interface turns into the list of lines.
  */
 export function talkBoard(width: number): Bitmap {
-  const h = BAND_ROWS;
+  const h = BOARD_ROWS;
   const board = createBitmap(width, h);
   const fill = (x0: number, y0: number, w: number, hh: number, colour: number) => {
     for (let y = y0; y < y0 + hh; y++) for (let x = x0; x < x0 + w; x++) board.pixels[y * width + x] = colour;

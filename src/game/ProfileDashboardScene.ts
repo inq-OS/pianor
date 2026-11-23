@@ -1,7 +1,8 @@
 import { firstPrintedBar } from '../core/chart';
 import { ART_DETAIL } from '../core/layout/frame';
 import { strings, t, type StringKey as TextKey } from '../core/text/strings';
-import { ROOM_OBJECTS, STRIP_ROWS, roomPlan, roomView, type RoomObject } from '../core/layout/room';
+import { BOARD_ROWS } from '../core/layout/board';
+import { ROOM_OBJECTS, roomPlan, roomView, type RoomObject } from '../core/layout/room';
 import { rectCentre, type Rect } from '../core/layout/rect';
 import { PixelButton, PixelImage } from './ui/pixel/PixelObjects';
 import { KIUR_ZZZ_FROM, plantStage } from './ui/pixel/keri/roomLife';
@@ -12,7 +13,8 @@ import { drawnText, measure, renderText } from './ui/pixel/font';
 import { BAR_BUTTON_HEIGHT } from './ui/pixel/playBars';
 import { clipToWidth } from '../core/text/clip';
 import { playerStats } from '../core/progression/playerStats';
-import { PixelScene } from './ui/pixel/PixelScene';
+import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
+import { keptItems } from './adventure/backpack';
 import { PAINTED } from './ui/pixel/keri/keriPictures';
 import { type Overlay } from './ui/pixel/pack';
 import { stripArt } from './ui/pixel/keri/stripArt';
@@ -278,6 +280,11 @@ export class ProfileDashboardScene extends PixelScene {
     super.create();
   }
 
+  /** The items the student keeps, in the backpack (ft_1_21.AC15, ft_1_20, d282). */
+  protected override backpackItems(): ToolbarItem[] {
+    return keptItems(this.world);
+  }
+
   override update(time: number): void {
     super.update(time);
     // the practice tug's judge follows the song clock (Tempo mode); while it is open the room is not left alone
@@ -335,8 +342,8 @@ export class ProfileDashboardScene extends PixelScene {
   protected draw(): void {
     const screen = { w: this.px.width, h: this.px.height };
     this.sky();
-    // under the band the band itself is the strip kept free (ft_1_20)
-    const { picture: at, strip } = roomView(screen, this.bandShown ? 0 : STRIP_ROWS);
+    // the picture keeps its place over the conversation's board (ft_1_20, AX-3 provisional until it is painted taller)
+    const { picture: at, strip } = roomView(screen, BOARD_ROWS);
     const plan = roomPlan();
     const sky = contextOf(this).flags.sky;
     this.look ??= currentLook(sky.now ?? Date.now(), sky.phase, sky.wind);
@@ -843,7 +850,7 @@ export class ProfileDashboardScene extends PixelScene {
       kind: 'practiceTug',
       level: 1,
       rules: trainerRules(TUG_RULES),
-      place: { area: { w: this.px.width, h: this.mainRows }, bandTop: this.bandTop, head: this.teacherHead ?? { x: Math.round(this.px.width / 2), y: 20 } },
+      place: { area: { w: this.px.width, h: this.mainRows }, head: this.teacherHead ?? { x: Math.round(this.px.width / 2), y: 20 } },
       devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome },
     }, {
       playing: () => undefined,
@@ -886,7 +893,7 @@ export class ProfileDashboardScene extends PixelScene {
       kind: 'practiceTug',
       level,
       rules: trainerRules(TUG_RULES),
-      place: { area: { w: this.px.width, h: this.mainRows }, bandTop: this.bandTop, head },
+      place: { area: { w: this.px.width, h: this.mainRows }, head },
       devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome },
     }, {
       playing: () => undefined,

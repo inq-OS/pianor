@@ -146,7 +146,7 @@ export class MenuScene extends PixelScene {
   override create(): void {
     // the wheel moves along the pieces, Ctrl + wheel turns the pages; Ctrl also keeps the browser from zooming
     this.input.on('wheel', (p: Phaser.Input.Pointer, _over: unknown, _dx: number, dy: number) => {
-      if (dy !== 0 && !this.pointerOnInventory(p)) this.wheelStep(dy > 0 ? 1 : -1, p.event.ctrlKey || p.event.metaKey);
+      if (dy !== 0 && !this.pointerOnStrip(p)) this.wheelStep(dy > 0 ? 1 : -1, p.event.ctrlKey || p.event.metaKey);
     });
     super.create();
   }
@@ -242,7 +242,7 @@ export class MenuScene extends PixelScene {
   }
 
   /** The filter (ft_1_12.AC10): a switch in the band for each group, lit while its pieces are shown. Not in the piece maker. */
-  protected override bandActions(): ToolbarItem[] {
+  protected override stripCells(): ToolbarItem[] {
     if (this.maker) return [];
     return PIECE_GROUPS.map((group) => ({
       label: t(`menu.group.${group}`), icon: this.hiddenGroups.has(group) ? struckThrough(GROUP_ICON[group]()) : GROUP_ICON[group](), iconOnly: true, active: !this.hiddenGroups.has(group),

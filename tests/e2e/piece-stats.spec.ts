@@ -1,6 +1,6 @@
 // Covers core_04.AC5.
 import { expect, test, type Page } from '@playwright/test';
-import { LITTLE_STEPS, clickButton, expectNoErrors, openGame, openPiece, playWithKeys, playWithVirtualPiano, sceneTexts, showMenuPageWith, toScoreScreen, waitForScene, bandAction } from './helpers';
+import { LITTLE_STEPS, clickButton, expectNoErrors, openGame, openPiece, playWithKeys, playWithVirtualPiano, sceneTexts, showMenuPageWith, toScoreScreen, waitForScene, stripAction } from './helpers';
 
 /** Click a card's "S" button with the real mouse, at its on-screen position. */
 async function openStats(page: Page, chartId: string): Promise<void> {
@@ -35,7 +35,7 @@ test.describe('the stats of a piece on the score screen (ft_1_12.AC4)', () => {
     await page.keyboard.press('Escape');
     await waitForScene(page, 'menu');
     await openStats(page, 'little-steps');
-    await clickButton(page, 'results', await bandAction(page, 'results', 1)); // More pieces
+    await clickButton(page, 'results', await stripAction(page, 'results', 1)); // More pieces
     await waitForScene(page, 'menu');
     expectNoErrors(errors);
   });
@@ -55,19 +55,19 @@ test.describe('the stats of a piece on the score screen (ft_1_12.AC4)', () => {
     // leaving after keys were played shows the score screen of the session (ft_1_12), with no pass to the end
     await page.keyboard.press('Escape');
     await waitForScene(page, 'results');
-    await clickButton(page, 'results', await bandAction(page, 'results', 1)); // More pieces
+    await clickButton(page, 'results', await stripAction(page, 'results', 1)); // More pieces
     await waitForScene(page, 'menu');
     await showMenuPageWith(page, 'Little Steps');
     await openStats(page, 'little-steps');
     expect(await sceneTexts(page, 'results')).toContain('Not played yet. Play the whole piece, and your graph starts here!');
-    await clickButton(page, 'results', await bandAction(page, 'results', 1));
+    await clickButton(page, 'results', await stripAction(page, 'results', 1));
     await waitForScene(page, 'menu');
 
     // the whole piece, played clean
     await openPiece(page, 'Little Steps');
     await playWithKeys(page, LITTLE_STEPS);
     await toScoreScreen(page);
-    await clickButton(page, 'results', await bandAction(page, 'results', 1)); // More pieces
+    await clickButton(page, 'results', await stripAction(page, 'results', 1)); // More pieces
     await waitForScene(page, 'menu');
     await showMenuPageWith(page, 'Little Steps');
     await openStats(page, 'little-steps');

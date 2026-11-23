@@ -128,18 +128,11 @@ export class NoteTrainerScene extends PixelScene {
       // the circle of fifths, with no key marked (ft_1_28 rule 3)
       circleItem(() => void openOverlay(this, 'circle', { key: null }).then(() => this.redraw())),
     ];
-    if (this.round.over) items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), onClick: () => this.startRound(this.stepIndex) });
+    if (this.round.over) items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), main: true, onClick: () => this.startRound(this.stepIndex) });
     return items;
   }
 
   /** With the band (ft_1_20): the step and, after the last life, Again are actions; the letter naming and the circle of fifths are items (they stay as set). */
-  protected override bandActions(): ToolbarItem[] {
-    return this.toolbarItems().filter((_, i) => i !== 1 && i !== 2);
-  }
-
-  protected override bandItems(): ToolbarItem[] {
-    return this.toolbarItems().slice(1, 3);
-  }
 
   /** A key or a click after the last life starts a new round, once the pause is over (AC3: the student can retry at once). */
   private againIfOver(): void {

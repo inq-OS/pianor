@@ -1,7 +1,7 @@
 // Covers ft_0_09.AC1.
 import { expect, test } from '@playwright/test';
 import {
-  LITTLE_STEPS, activeScenes, allMenuTitles, clickButton, clickToolbar, expectNoErrors, isPieceLabel, menuButton, menuLabels, openGame, openPiece, playWithKeys, playWithVirtualPiano, results, sceneButton, sceneTexts, showMenuPageWith, toScoreScreen, turnMenuPage, waitForScene, bandAction, sceneWords, reachButton } from './helpers';
+  LITTLE_STEPS, activeScenes, allMenuTitles, clickButton, clickToolbar, expectNoErrors, isPieceLabel, menuButton, menuLabels, openGame, openPiece, playWithKeys, playWithVirtualPiano, results, sceneButton, sceneTexts, showMenuPageWith, toScoreScreen, turnMenuPage, waitForScene, stripAction, sceneWords, reachButton } from './helpers';
 
 test.describe('menu', () => {
   test('lists the pieces, shows the piano credit on the credits screen, and opens a piece with a real click @smoke', async ({ page }) => {
@@ -194,7 +194,7 @@ test.describe('moving around', () => {
     await openPiece(page, 'Little Steps');
     await playWithKeys(page, LITTLE_STEPS);
     await toScoreScreen(page);
-    await clickButton(page, 'results', await bandAction(page, 'results', 0));
+    await clickButton(page, 'results', await stripAction(page, 'results', 0));
     await waitForScene(page, 'practice');
     expect(await page.evaluate(() => window.__game.scene.getScene('practice').playSession.controller.getState())).toMatchObject({ stepIndex: 0, done: false });
     expectNoErrors(errors);
@@ -205,7 +205,7 @@ test.describe('moving around', () => {
     await openPiece(page, 'Little Steps');
     await playWithKeys(page, LITTLE_STEPS);
     await toScoreScreen(page);
-    await clickButton(page, 'results', await bandAction(page, 'results', 1));
+    await clickButton(page, 'results', await stripAction(page, 'results', 1));
     await waitForScene(page, 'menu');
     expect(await activeScenes(page)).toContain('menu');
     expectNoErrors(errors);

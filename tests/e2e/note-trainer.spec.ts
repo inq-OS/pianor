@@ -21,13 +21,12 @@ const openTrainer = async (page: Page) => {
 
 /** The hearts as drawn, lit of total. */
 const hearts = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('noteTrainer') as unknown as { shownHearts: { lit: number; total: number } }).shownHearts);
-/** The index of the toolbar item `n` (0 = the step, 1 = the letters, 2 = the new round's loop). */
-/** The band's action `n` (0 the step, 1 New round once the lives are gone): its button's index. */
-const bandAction = (page: Page, n: number) => page.evaluate((i) => {
+/** The strip's cell `n` (0 the step, 1 the letters, 2 the circle of fifths, 3 New round once the lives are gone): its button's index. */
+const stripAction = (page: Page, n: number) => page.evaluate((i) => {
   const scene = window.__game.scene.getScene('noteTrainer') as unknown as { buttons: unknown[]; toolbarButtons: { items: unknown[] } };
   return scene.buttons.indexOf(scene.toolbarButtons.items[i]);
 }, n);
-/** The letter naming, an item in the band (ft_1_20 rule 2): the button whose word is B or H. */
+/** The letter naming, a cell of the strip (ft_1_20): the button whose word is B or H. */
 const namingItem = (page: Page) => page.evaluate(() =>
   (window.__game.scene.getScene('noteTrainer').buttons as { objects: { text?: string }[] }[]).findIndex((b) => b.objects.some((o) => o.text === 'B' || o.text === 'H')));
 const stepIndex = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('noteTrainer') as unknown as { stepIndex: number }).stepIndex);
@@ -39,7 +38,7 @@ const lives = (page: Page) => page.evaluate(() => (window.__game.scene.getScene(
 test.describe('note-name trainer (ft_0_17)', () => {
   test('the room opens it, and the note name stays hidden until a wrong press', async ({ page }) => {
     const errors = await openTrainer(page);
-    // only the band's letter naming has a word (the player is in the room, ft_1_20.AC13); no title, hint or lives text
+    // only the strip's letter naming has a word (the player is in the room, ft_1_20.AC13); no title, hint or lives text
     const texts = await sceneTexts(page, 'noteTrainer');
     expect(texts).toEqual(['B']);
     expect(await hearts(page)).toEqual({ lit: 3, total: 3 });
@@ -75,7 +74,7 @@ test.describe('note-name trainer (ft_0_17)', () => {
     expectNoErrors(errors);
   });
 
-  test('three lost lives end the round, and the band loop starts a new one with three lives (AC3)', async ({ page }) => {
+  test('three lost lives end the round, and the strip loop starts a new one with three lives (AC3)', async ({ page }) => {
     const errors = await openTrainer(page);
     await playWithVirtualPiano(page, [await target(page)]);
     const earned = await totalXp(page);
@@ -85,7 +84,7 @@ test.describe('note-name trainer (ft_0_17)', () => {
     expect(await lives(page)).toBe(0);
     expect(await totalXp(page)).toBe(earned);
     expect(await hearts(page)).toEqual({ lit: 0, total: 3 });
-    await clickButton(page, 'noteTrainer', await bandAction(page, 1));
+    await clickButton(page, 'noteTrainer', await stripAction(page, 3));
     expect(await lives(page)).toBe(3);
     // Again keeps the XP already saved (AC3)
     expect(await totalXp(page)).toBe(earned);
@@ -107,7 +106,7 @@ test.describe('note-name trainer (ft_0_17)', () => {
   test('the step button cycles the four steps, each a new round', async ({ page }) => {
     const errors = await openTrainer(page);
     for (const expected of [1, 2, 3, 0]) {
-      await clickButton(page, 'noteTrainer', await bandAction(page, 0));
+      await clickButton(page, 'noteTrainer', await stripAction(page, 0));
       expect(await stepIndex(page)).toBe(expected);
     }
     expectNoErrors(errors);

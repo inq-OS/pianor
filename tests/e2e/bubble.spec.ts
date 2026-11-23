@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { activeScene, bubbleOpen, buttonPoint, clickButton, expectNoErrors, openBubble, openGame, pressInBubble, sceneButton, waitForScene } from './helpers';
 
 /**
- * The bubble and the strip in place of the band (ft_1_20, d282) on practice and the piece maker: the strip holds the most
+ * The bubble and the strip (ft_1_20, d282) on practice and the piece maker: the strip holds the most
  * used actions and More, the bubble the rest; a right click, More or Shift + F10 opens it, and closing it hits nothing under it.
  */
 const startScene = (page: Page, key: string, data: object = {}) =>

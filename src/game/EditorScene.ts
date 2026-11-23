@@ -3,7 +3,6 @@ import { repeatAround, toggleRepeatEnd, toggleRepeatStart } from '../core/editor
 import { mouseAction, type MouseAction } from '../core/editor/mouse';
 import { HELP_CARDS, KEY_CAP, KEY_TOUR, type HeldKey, type KeyTourSpot } from '../core/editor/help';
 import { helpGridLayout } from '../core/layout/helpCards';
-import { BAND_ROWS } from '../core/layout/band';
 import type { Rect } from '../core/layout/rect';
 import { moveBar, moveInTime, movePitch, otherStaff, startKeyCursor, withPitch, type KeyCursor } from '../core/editor/keyCursor';
 import { nextLength } from '../core/editor/nextLength';
@@ -978,7 +977,7 @@ export class EditorScene extends PixelScene {
    */
   private wheel(p: Phaser.Input.Pointer, dy: number): void {
     // over the band's inventory the wheel is the band's (ft_1_20.AC16), the notes' and the rests' items too
-    if (this.menuOpen || this.pointerOnInventory(p)) return;
+    if (this.menuOpen || this.pointerOnStrip(p)) return;
     if (this.wheelOverControls(p, dy)) return;
     const target = this.targetAt(this.hit(p));
     const ref = target?.notes[0] ?? null;
@@ -1216,8 +1215,6 @@ export class EditorScene extends PixelScene {
     const scale = this.px.scale;
     const fromScreen = (x1: number, y1: number, x2: number, y2: number): Rect => ({ x: Math.floor(x1 / scale), y: Math.floor(y1 / scale), w: Math.ceil((x2 - x1) / scale), h: Math.ceil((y2 - y1) / scale) });
     if (spot === 'band') {
-      const bandTop = this.bandTop;
-      if (this.bandShown && bandTop !== null) return { x: 0, y: this.mainTopRows + bandTop, w: this.px.width, h: BAND_ROWS };
       // the strip along the foot (ft_1_20, d282)
       const stripTop = this.stripTop;
       if (stripTop !== null) return { x: 0, y: this.mainTopRows + stripTop, w: this.px.width, h: PIN_ROWS };
