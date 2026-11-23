@@ -38,6 +38,15 @@ async function learnPiece(page: Page, title: string): Promise<void> {
   await openPiece(page, title);
 }
 
+/** A half-learned piece opened through Kiur's Learn: the practice screen pauses under the go-on-or-start-over question (ft_1_32.AC16). */
+async function learnPieceAsked(page: Page, title: string): Promise<void> {
+  await askKiur(page);
+  await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Learn'));
+  await waitForScene(page, 'menu');
+  await clickButton(page, 'menu', await showMenuPageWith(page, title));
+  await waitForScene(page, 'learnResume');
+}
+
 test('ft_1_32.AC13 the piano is a sandbox: a piece picked there plays in full with no learning', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
   await openPiece(page, 'Little Steps');
@@ -104,7 +113,9 @@ test('the learning is kept: the piece opens again on the step the player reached
   await expect.poll(async () => (await shown(page)).bars, { timeout: 10_000 }).toBe(2);
   await page.keyboard.press('Escape');
   await expect.poll(() => page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key)), { timeout: 10_000 }).toContain('menu');
-  await learnPiece(page, 'Little Steps');
+  await learnPieceAsked(page, 'Little Steps');
+  await page.keyboard.press('Escape'); // go on
+  await waitForScene(page, 'practice');
   expect(await shown(page)).toMatchObject({ bars: 2, first: 0 });
   expectNoErrors(errors);
 });
@@ -156,20 +167,18 @@ test('ft_1_32.AC16 a half-learned piece opened again asks to go on or start over
     step: 3, wholeStreak: 0, recall: false, confirm: false, misses: 0, medals: ['gold', 'gold', 'gold'], lastDay: '2999-01-01', stepBars: 1, handsApart: false,
   }));
   await halfway();
-  await learnPiece(page, 'Little Steps');
-  await waitForScene(page, 'learnResume');
+  await learnPieceAsked(page, 'Little Steps');
   // go on: Esc, the learning where it stopped
   await page.keyboard.press('Escape');
   await expect.poll(async () => (await shown(page)).first).toBeGreaterThanOrEqual(0);
   expect(await progress(page)).toMatchObject({ step: 3 });
   // opened again: start over, from bar 1 with nothing learned
   await clickToolbar(page, 'back');
-  await learnPiece(page, 'Little Steps');
-  await waitForScene(page, 'learnResume');
+  await learnPieceAsked(page, 'Little Steps');
   await clickButton(page, 'learnResume', await sceneButton(page, 'learnResume', 'Start over from bar 1'));
   await expect.poll(async () => (await progress(page)).step).toBe(0);
-  await expect.poll(async () => (await shown(page)).first, { timeout: 10_000 }).toBe(0);
-  expect((await shown(page)).bars).toBe(1);
+  // the screen starts again on the first step: one bar from bar 1
+  await expect.poll(async () => { const now = await shown(page); return [now.first, now.bars]; }, { timeout: 10_000 }).toEqual([0, 1]);
   expectNoErrors(errors);
 });
 

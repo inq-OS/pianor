@@ -344,7 +344,8 @@ export class PracticeScene extends PixelScene {
     // the wrap, the step-up note and the summary belong to this start only: a later restart (a tempo change, Whole
     // piece) must not wrap on from an old time or say them again
     this.wrap = data.wrap ?? null;
-    this.startData = { ...data };
+    // a restart between learning runs carries Kiur's line: the piece was open already, so it never asks to go on (ft_1_32.AC16)
+    this.startData = { ...data, ...(data.learnLine !== undefined ? { resumeAsked: true } : {}) };
     delete this.startData.sectionSummary;
     delete this.startData.learnLine;
     delete this.startData.passSummary;
@@ -530,7 +531,7 @@ export class PracticeScene extends PixelScene {
    */
   private resumeAfterCreate(): void {
     const learn = this.learn;
-    if (!learn?.halfway || this.startData.learnLine !== undefined || this.startData.resumeAsked) return;
+    if (!learn?.halfway || this.startData.resumeAsked) return;
     this.startData = { ...this.startData, resumeAsked: true };
     this.time.delayedCall(0, () => {
       if (this.leaving || this.atDoor || !this.scene.isActive()) return;
