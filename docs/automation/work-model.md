@@ -19,7 +19,7 @@ The measure of every week is what the student plays, not what the process produc
 
 ## Rules that stay
 
-The axioms, CLAUDE.md, a feature file with acceptance criteria for each feature, tests and CI, the decision ledgers (one short entry when something a later reader would ask "why?" about is decided), docs-only pull requests merged without asking, a fresh `reviewer` agent on every code pull request before it merges, save-format changes merged by the thread only after the reviewer approves and CI with the end-to-end tests is green (d166), sensitive paths (`.github/`, `.claude/`, `CLAUDE.md`, package files) merged by the maintainer ([labels.md](../architect/labels.md)).
+The axioms, CLAUDE.md, a feature file with acceptance criteria for each feature, tests and CI, the decision ledgers (one short entry when something a later reader would ask "why?" about is decided), docs-only pull requests merged without asking, a fresh `reviewer` agent on every code pull request before it merges, save-format changes merged by the thread only after the reviewer approves and CI with the end-to-end tests is green (d166), every pull request merged by its own thread once its checks pass, the maintainer's approval never awaited (d276, [labels.md](../architect/labels.md)).
 
 ## Process is added only when it hurts
 

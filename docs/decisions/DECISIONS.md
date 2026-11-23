@@ -259,4 +259,5 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d273](game.md#d273) | Each level's piece has its background in one line, said in the talk that teaches it, and the talk teaches something of the character's specialty | ft_1_21, ft_1_22 |
 | [d274](game.md#d274) | Every level beaten gives a new, named, drawn rung of the character's prize ladder, and no rung is on two characters' ladders | ft_1_21 |
 | [d275](workflow.md#d275) | A part of a feature is named by its feature id and slice; the work-package ids (WP-nn) are retired |  |
+| [d276](workflow.md#d276) | Every thread approves and merges its own pull requests once its checks pass; no pull request waits for the maintainer |  |
 <!-- /docs:index -->
