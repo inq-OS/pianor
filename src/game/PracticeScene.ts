@@ -135,6 +135,8 @@ export interface PracticeData {
    * the room's next stage, and Back returns to the room's stage that opened it.
    */
   intro?: { stage: PlayStage; passes: number; shown?: boolean };
+  /** Reopening a half-learned piece asked already whether to go on or start over (ft_1_32.AC16): not asked again on a restart. */
+  resumeAsked?: boolean;
   /**
    * Practise bars `first` to `last` (0-based, inclusive) of the piece as a loop that earns no XP. `from`: started by a tap on
    * bar `first`, so it runs to the piece's end and carries a start mark instead of A and B.
@@ -495,6 +497,7 @@ export class PracticeScene extends PixelScene {
     super.create();
     if (this.listening) this.startListening();
     else this.introAfterCreate();
+    this.resumeAfterCreate();
   }
 
   /** The teacher's check-up (ft_1_27.AC2) or the intro's lesson (ft_1_31.AC3) of this start; neither for any other play. */
@@ -513,6 +516,29 @@ export class PracticeScene extends PixelScene {
   private playSettings(): PlaySettings {
     const own = contextOf(this).profiles.playSettings;
     return this.locked ? { ...own, mode: 'wait' } : own;
+  }
+
+  /**
+   * A piece left halfway through learning, opened again (not a restart between runs): the screen pauses and asks with two
+   * pictures whether to go on or start over from the first bar (ft_1_32.AC16, `LearnResumeScene`). Start over saves the
+   * learning from its first step and opens it again; go on, or Esc, plays where it stopped.
+   */
+  private resumeAfterCreate(): void {
+    const learn = this.learn;
+    if (!learn?.halfway || this.startData.learnLine !== undefined || this.startData.resumeAsked) return;
+    this.startData = { ...this.startData, resumeAsked: true };
+    this.time.delayedCall(0, () => {
+      if (this.leaving || this.atDoor || !this.scene.isActive()) return;
+      this.atDoor = true;
+      this.guarded.setMuted(true);
+      void openOverlay(this, 'learnResume').then((choice) => {
+        this.atDoor = false;
+        this.guarded.setMuted(false);
+        if (choice !== 'over' || this.leaving) return;
+        this.leaving = true;
+        void learn.startOver().then(() => this.scene.restart({ ...this.startData, ...this.carry() }));
+      });
+    });
   }
 
   /** The intro's spotlight over the screen before its first lap, once the screen is drawn with its band (ft_1_31.AC3). */

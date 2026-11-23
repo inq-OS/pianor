@@ -1,6 +1,6 @@
-// Covers ft_1_32.AC4, ft_1_32.AC5, ft_1_32.AC6, ft_1_32.AC11, ft_1_32.AC12, ft_1_32.AC13, ft_1_32.AC14.
+// Covers ft_1_32.AC4, ft_1_32.AC5, ft_1_32.AC6, ft_1_32.AC11, ft_1_32.AC12, ft_1_32.AC13, ft_1_32.AC14, ft_1_32.AC16.
 import { expect, test, type Page } from '@playwright/test';
-import { clickButton, expectNoErrors, isPieceLabel, menuLabels, letGameRun, openGame, openPiece, playWithKeys, sceneButton, showMenuPageWith, waitForScene } from './helpers';
+import { clickButton, clickToolbar, expectNoErrors, isPieceLabel, menuLabels, letGameRun, openGame, openPiece, playWithKeys, sceneButton, showMenuPageWith, waitForScene } from './helpers';
 
 /** The bars the practice screen shows now (0-based, of the whole piece), and the notes to play in them in order. */
 async function shown(page: Page): Promise<{ bars: number; first: number; midis: number[] }> {
@@ -124,14 +124,47 @@ test('ft_1_32.AC11 a run that speeds up beyond the baseline tempo is stopped and
   expectNoErrors(errors);
 });
 
-test('ft_1_32.AC12 a two-hand piece is learned hands apart: one staff for the right hand first', async ({ page }) => {
+const playStaves = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { chart: { tracks: { role: string; hand: string | null }[] } })
+  .chart.tracks.filter((t) => t.role === 'play').map((t) => t.hand));
+
+test('ft_1_32.AC12 a two-hand piece is learned with both hands together by default', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
   await learnPiece(page, 'Both Hands');
+  expect(await kiurSays(page)).toBe('Bar 1: every note right');
+  expect((await playStaves(page)).sort()).toEqual(['LH', 'RH']);
+  expectNoErrors(errors);
+});
+
+test('ft_1_32.AC12 with hands apart chosen, a two-hand piece is learned hands apart: one staff for the right hand first', async ({ page }) => {
+  const errors = await openGame(page, '?device=virtual&learn=1');
+  await page.evaluate(() => window.__game.registry.get('context').profiles.updateLearnSettings({ handsApart: true }));
+  await learnPiece(page, 'Both Hands');
   expect(await kiurSays(page)).toBe('Bar 1, right hand alone: every note right');
-  const staves = await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { chart: { tracks: { role: string; hand: string | null }[] } })
-    .chart.tracks.filter((t) => t.role === 'play').map((t) => t.hand));
-  expect(staves).toEqual(['RH']);
+  expect(await playStaves(page)).toEqual(['RH']);
   await playWithKeys(page, (await shown(page)).midis);
   await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toBe('Every note right! Bar 1, left hand alone: every note right');
+  expectNoErrors(errors);
+});
+
+test('ft_1_32.AC16 a half-learned piece opened again asks to go on or start over, with two pictures', async ({ page }) => {
+  const errors = await openGame(page, '?device=virtual&learn=1');
+  const halfway = () => page.evaluate(() => window.__game.registry.get('context').profiles.saveLearnProgress('little-steps', {
+    step: 3, wholeStreak: 0, recall: false, confirm: false, misses: 0, medals: ['gold', 'gold', 'gold'], lastDay: '2999-01-01', stepBars: 1, handsApart: false,
+  }));
+  await halfway();
+  await learnPiece(page, 'Little Steps');
+  await waitForScene(page, 'learnResume');
+  // go on: Esc, the learning where it stopped
+  await page.keyboard.press('Escape');
+  await expect.poll(async () => (await shown(page)).first).toBeGreaterThanOrEqual(0);
+  expect(await progress(page)).toMatchObject({ step: 3 });
+  // opened again: start over, from bar 1 with nothing learned
+  await clickToolbar(page, 'back');
+  await learnPiece(page, 'Little Steps');
+  await waitForScene(page, 'learnResume');
+  await clickButton(page, 'learnResume', await sceneButton(page, 'learnResume', 'Start over from bar 1'));
+  await expect.poll(async () => (await progress(page)).step).toBe(0);
+  await expect.poll(async () => (await shown(page)).first, { timeout: 10_000 }).toBe(0);
+  expect((await shown(page)).bars).toBe(1);
   expectNoErrors(errors);
 });

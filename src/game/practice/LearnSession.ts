@@ -4,7 +4,7 @@ import type { JudgeEvent, WrongNoteJudged, WrongReason } from '../../core/judge'
 import { markersByNote, mistakeMarkers } from '../../core/learn/markers';
 import { handChart, learnPlan, learnUnits, type LearnStep } from '../../core/learn/plan';
 import {
-  afterRun, currentRun, goldenBars, isLearned, isMeasured, learnHandsApart, learnRewards, learnStepBars, measuredOutcome, sitDown, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
+  afterRun, currentRun, goldenBars, halfLearned, isLearned, isMeasured, learnHandsApart, learnRewards, learnStepBars, measuredOutcome, sitDown, startOver, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
 } from '../../core/learn/progress';
 import { LearnRunJudge, type LearnRunVerdict } from '../../core/learn/run';
 import { baselineBpm, runTempo, TEMPO_RULES, type RunTempo } from '../../core/learn/tempo';
@@ -60,7 +60,7 @@ export class LearnSession {
   static open(profile: LearnProfile, piece: Chart, today: string, now: () => Date = () => new Date(), asked = false): LearnSession | null {
     const kept = profile.learnProgressOf(piece.id);
     const stepBars = learnStepBars(kept, profile.learnSettings);
-    const handsApart = learnHandsApart(kept);
+    const handsApart = learnHandsApart(kept, profile.learnSettings);
     const plan = learnPlan(piece, stepBars, handsApart);
     const saved = { ...kept, stepBars, handsApart };
     if (plan.length === 0 || isLearned(plan, saved)) return null;
@@ -142,6 +142,20 @@ export class LearnSession {
     if (noteNames) return { outcome: 'hinted' };
     this.measured = isMeasured(this.run) ? runTempo(played, this.events) : null;
     return measuredOutcome(this.progress, this.measured);
+  }
+
+  /** The learning has begun and is past its first step: opening it asks to go on or start over (ft_1_32.AC16). */
+  get halfway(): boolean {
+    return halfLearned(this.progress);
+  }
+
+  /** Start the learning over from the first step, on the player's settings now, and keep it (ft_1_32.AC16). */
+  startOver(): Promise<boolean> {
+    this.progress = startOver(this.progress, this.profile.learnSettings, this.today);
+    return this.profile.saveLearnProgress(this.piece.id, this.progress).catch((error: unknown) => {
+      console.error('saveLearnProgress failed', error);
+      return false;
+    });
   }
 
   /** The run ended: keep where the student is now, and save it (a failed save is reported, never shown to the player). */
