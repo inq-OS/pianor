@@ -1,4 +1,4 @@
-import { DECK, GRILL, LONG_EYE, REACH, TERRACE, TORCHES, TOWER, TERRACE_LAND, TERRACE_ROCKS, deckOf, lampHook, onDeck, onReach, onTorch, onTower, reachSides, terraceFloor, underReach, terraceGrassy, terraceGroundAt, terracePlace, terraceProject, terraceShore, type P3, type TerracePlan, type TerraceShore } from '../../../../core/layout/terrace';
+import { DECK, GRILL, HOUSE, LONG_EYE, MAST, REACH, TERRACE, TORCHES, TOWER, TERRACE_LAND, onHouse, onRoof, TERRACE_ROCKS, deckOf, lampHook, onDeck, onReach, onTorch, onTower, reachSides, terraceFloor, underReach, terraceGrassy, terraceGroundAt, terraceInland, terracePlace, terraceProject, terraceShore, type P3, type TerracePlan, type TerraceShore } from '../../../../core/layout/terrace';
 import type { SkyPhase } from '../../../../core/sky/skyPhase';
 import type { World } from '../../../../core/world/world';
 import { createBitmap, type Bitmap } from '../bitmap';
@@ -20,38 +20,35 @@ import { reflection, rings, sea, type SeaGround, type SeaOptions, type SeaStand 
 import { fillQuad, KIT_WOOD, planks, post, type Plank, type PlanksOptions, type PostStep, type Pt } from './kit/wood';
 
 /**
- * The picture of the terrace (ft_1_19): the wooden deck before the main door of the warden's house, seen from its end
- * by the door, looking away from the house over the shingle to the sea (marks on a drone photograph:
- * the terrace, looking away from the house, slightly south-west). Painted as pixel art as the docks are (d111), in
- * the manner of the 1991 game's decks and docks, never as the place is. The real terrace is a plain deck with a pipe
- * rail, red benches with gulls cut in their backs, a lifebuoy and a barrel grill (the photographs of keri.ee, studied
- * only). This one has more on it and reaches further (the terrace should have more features than it
- * actually does and extend further out over the beach): from its seaward edge a walk of grey boards on piles
- * runs out over the beach, a step lower, to a head over the water, and on the head's seaward corner stands a small
- * thatched watchtower, a storey up, with a long brass spyglass fixed on its floor, a lantern at its corner and a
- * pennant on its roof (a roofed section, perhaps a small watchtower that goes up to the second floor
- * with a static long-eye to scan the horizon). The rails are stout wood (the handrails should be made of wood, as
- * the old ones were too thin and looked as if you could fall down). A string of paper lanterns and flags hangs along
- * the walk, and on the deck stand a picnic table between two of the benches, the grill, and a barrel and crates. A boat's bow stood there in passes 1 and 2 (the deck
- * has more features and character, and the boat was too much). The walk and what is on it are the painter's,
- * not Keri's (docs/keri.md, section 9).
+ * The picture of the terrace (ft_1_19), staged as the 1991 game stages a place (d279): the viewer stands on the head
+ * of a walk over the water and looks back, north-north-east, at the warden's house in the middle of the picture, a
+ * long low house of cream plaster under a sagging tin roof, with a porch at its door, a chimney and the lattice mast
+ * behind its far end. Before it lies the deck (the real terrace: a plain deck with red benches with gulls cut in
+ * their backs and a barrel grill, the photographs of keri.ee, studied only), and from the deck a walk of brown boards on
+ * piles, a step lower, leads out over the beach to the head. On the head's left stands a small thatched watchtower
+ * framing the picture's left, a storey up, with a long brass spyglass on its floor, a lantern at its corner and a
+ * pennant on its roof (a roofed section, perhaps a small watchtower that goes up to the second floor with a static
+ * long-eye to scan the horizon); a dog rose thicket frames the right. The rails are stout wood (the handrails should
+ * be made of wood, as the old ones were too thin and looked as if you could fall down). Three torches, and nothing
+ * more on the boards (d278). The walk, the watchtower and the head are the painter's, not Keri's (docs/keri.md,
+ * section 9).
  *
- * Laid on back to front: the bare sky (its clouds are their own pictures and drift over it), the sea, the shingle with
- * its pebbles and the boulders in the shallows, the thicket on the right, the walk on its piles, the deck with its rail and
- * what stands on it, and the dark things near the viewer that close the corners. The hour changes the colours, not the
- * drawing; only the moon, the stars, the glints, the coals and the lamp are drawn for an hour. Nothing is painted in a
- * loop of looks: the water is live (`paint/live.ts`), and the smoke, the pennant, the lamp's light, the gulls and the
- * moths are drawn by the game (`sceneLife.ts`).
+ * Laid on back to front: the bare sky (its clouds are their own pictures and drift over it), the sea, the beach with
+ * its pebbles and boulders, the mast and the house, the deck, the thicket on the right, the walk and the head on
+ * their piles, the watchtower, and the near water. The hour changes the colours, not the drawing; only the moon, the
+ * stars, the glints, the windows, the coals and the lamp are drawn for an hour. Nothing is painted in a loop of looks:
+ * the water is live (`paint/live.ts`), and the smoke, the pennant, the lamp's light, the gulls and the moths are drawn
+ * by the game (`sceneLife.ts`).
  */
 
-/** Keri's shared palette, the kit's wood, a boat's white paint and its red (the harbour's two, `portPicture.ts`). */
+/** Keri's shared palette, the kit's wood, the benches' red and the house's plaster. */
 const SHARED = scenePalette({
   wood: KIT_WOOD,
-  // white paint: its shade blue-grey, its light warm
-  hull: [0x3c4058, 0x646c84, 0x9aa2b2, 0xcfd0cc, 0xf8f4e6],
-  // the benches' and the boat's red, the lifebuoy, the pennant
+  // the benches' red, the lifebuoy, the pennant
   red: [0x380a16, 0x741622, 0xb42c2a, 0xe0603a, 0xffae72],
-}, ['dry', 'far', 'shingle', 'stone', 'earth', 'bush', 'near', 'rose', 'bloom', 'smoke'], { sky: 3 });
+  // the house's plaster and white paint (the window frames, the gulls on the benches, the lifebuoy), limewashed and weathered: its shade a cool brown, its light a warm cream
+  plaster: [0x4a3c3a, 0x7a6658, 0xa89478, 0xd2c2a0, 0xf2e8cc],
+}, ['dry', 'shingle', 'stone', 'earth', 'bush', 'near', 'far', 'rose', 'bloom', 'smoke'], { sky: 3 });
 const R = SHARED.run;
 const F = SHARED.fine;
 
@@ -77,25 +74,28 @@ export function terracePalette(phase: SkyPhase): readonly number[] {
 /** The terrace's runs, for the art tools and the rules' test: Keri's shared runs, the wood and the paint. */
 export const terraceRuns = (): Readonly<Record<string, readonly number[]>> => SHARED.fine;
 
-/** The wind of Keri blows mostly from the west (docs/keri.md): looking west-south-west, that is toward the viewer and to the left. */
-export const TERRACE_WAY: WindWay = -1;
+/** The wind of Keri blows mostly from the west (docs/keri.md): looking north-north-east, that is from the left to the right. */
+export const TERRACE_WAY: WindWay = 1;
 /** The lamp's flicker: how many looks its light has. */
 export const LAMP_LOOKS = 3;
 
 /** The moon's place in the night's sky: high on the right, away from the lantern. */
-export const TERRACE_MOON = { x: 474, y: 24, r: 8 } as const;
+export const TERRACE_MOON = { x: 528, y: 32, r: 8 } as const;
 const MOON = TERRACE_MOON;
 
 /**
- * Where the light is in this view (west-south-west) at each hour: the side it comes from (-1 left, 1 right), the column
- * where it lies on the water (under 0: nowhere), and whether a low sun warms the sky on the right. By day the sun stands
- * in the south, to the left; at dusk it sets ahead and to the right; at dawn it rises behind the viewer.
+ * Where the light is in this view (north-north-east) at each hour: the side it comes from (-1 left, 1 right), the
+ * column where it lies on the water (under 0: nowhere), whether a low sun warms the sky, and how lit the house's front
+ * is. By day the sun stands in the south, behind the viewer: the front in full light; at dusk it sets in the west, on the left.
  */
-const LIGHT: Record<SkyPhase, { side: number; glint: number; warm: number }> = {
-  day: { side: -0.7, glint: 96, warm: 0 },
-  dawn: { side: -0.4, glint: -1, warm: 0 },
-  dusk: { side: 1, glint: 566, warm: 1 },
-  night: { side: 0.5, glint: MOON.x, warm: 0 },
+const LIGHT: Record<SkyPhase, { side: number; glint: number; warm: number; facade: number }> = {
+  // by day the sun stands in the south, behind the viewer and to the right: the house's front (facing south-south-west) in full light
+  day: { side: 0.6, glint: -1, warm: 0, facade: 0.78 },
+  // at dawn it rises ahead and to the right, over the sea past the house's end: the front in shade
+  dawn: { side: 0.8, glint: 560, warm: 0, facade: 0.42 },
+  // at dusk it sets on the left, in the west: the front lit low and warm from the side
+  dusk: { side: -0.8, glint: 20, warm: 1, facade: 0.5 },
+  night: { side: -0.5, glint: MOON.x, warm: 0, facade: 0.3 },
 };
 
 /**
@@ -126,7 +126,7 @@ export interface TerracePicture {
   palette: readonly number[];
   /** The whole picture, the sky bare: the clouds drift over it. One look: what moves is live or drawn by the game. */
   frames: Bitmap[];
-  /** What stands before the sky where the clouds go (the watchtower, the string of lanterns and its poles, the thicket's top). */
+  /** What stands before the sky where the clouds go (the watchtower, the torches' heads, the thicket's top). */
   fore: Overlay;
   /** The clouds, back to front (`TERRACE_CLOUDS`). */
   clouds: TerraceCloud[];
@@ -156,6 +156,8 @@ const LENS = TERRACE.lens;
 const BOARD = 0.44;
 /** The deck's oiled boards' tones: most of them dark. */
 const OILED_TONES: PlanksOptions = { light: 5, dark: 55 };
+/** The walk's grey boards: few of them much lighter or darker than the rest, so the near boards read as one floor and not as stripes. */
+const REACH_TONES: PlanksOptions = { light: 12, dark: 18 };
 /** A board of the deck worn pale by feet and weather. */
 const WORN_TONES: PlanksOptions = { light: 0, dark: 0 };
 /** No board is drawn nearer than this far ahead of the eye (metres): the picture's foot is further. */
@@ -235,7 +237,7 @@ class TerracePainter {
       this.darkest.set(c, run[0]!);
       this.lit.set(c, run[Math.max(0, run.length - 2)]!);
     }
-    for (const run of [F.wood, GREY.fine, F.shingle, F.stone, F.dry, F.far]) run.forEach((c, k) => { if (!this.shadeOf.has(c)) this.shadeOf.set(c, run[Math.max(0, k - Math.max(2, Math.round(run.length * 0.3)))]!); });
+    for (const run of [F.wood, GREY.fine, F.shingle, F.stone, F.dry, F.plaster]) run.forEach((c, k) => { if (!this.shadeOf.has(c)) this.shadeOf.set(c, run[Math.max(0, k - Math.max(2, Math.round(run.length * 0.3)))]!); });
     // the floor under every pixel, once
     const { w, h } = this, place = terracePlace(world);
     this.kind = new Uint8Array(w * h);
@@ -288,18 +290,13 @@ class TerracePainter {
     this.sky.put(y * this.w + x);
   }
 
-  /** How far ahead the water's edge is in a column (metres). */
-  private edge(x: number): number {
-    return this.shore[Math.max(0, Math.min(this.w - 1, Math.round(x)))]!.far;
-  }
-
   /** Where a point of the plan lands on the picture. */
   private at(p: P3): { x: number; y: number; far: number } {
     return terraceProject(p[0], p[1], p[2]);
   }
 
   cloud(spec: CurlSpec): Bitmap {
-    return tintedCloud(spec, true, R.cloud);
+    return tintedCloud(spec, TERRACE_WAY < 0, R.cloud);
   }
 
   /**
@@ -328,7 +325,7 @@ class TerracePainter {
     for (let x = 0; x < w; x++) for (let y = 0; y <= hz; y++) {
       let t = Math.min(1, Math.pow(y / hz, 0.85));
       // at dusk the sky warms on the right, where the sun goes down
-      if (hour.warm !== 0) t += 0.3 * clamp01((x - w * 0.25) / (w * 0.75)) * (y / hz) ** 2 - 0.1;
+      if (hour.warm !== 0) t += 0.3 * clamp01(1 - Math.abs(x - w * 0.25) / (w * 0.75)) * (y / hz) ** 2 - 0.1;
       this.put(x, y, tone(F.sky, clamp01(t), x, y));
     }
     if (hour.night) this.stars();
@@ -379,13 +376,13 @@ class TerracePainter {
         // the island's grass, dry and gold by the shore, paler far off
         // patches a stride across, and tussocks a hand across inside them, so the ground near the eye is not one flat tone
         const far = smooth(18, 50, z), patch = fbm(gx * 0.9, z * 0.9, 3, 712), fine = fbm(gx * 7, z * 4, 2, 714);
-        c = patch > 0.6 ? tone(F.far, 0.15 + 0.7 * fine + 0.2 * far, x, y, 0.3) : patch > 0.44 ? tone(F.dry, 0.0 + 0.85 * fine + 0.2 * far, x, y, 0.3) : tone(PEBBLE, 0.2 + 0.4 * band + 0.3 * fine, x, y, 0.25);
+        c = patch > 0.6 ? tone(F.bush, 0.35 + 0.5 * fine + 0.15 * far, x, y, 0.3) : patch > 0.44 ? tone(F.dry, 0.0 + 0.85 * fine + 0.2 * far, x, y, 0.3) : tone(PEBBLE, 0.2 + 0.4 * band + 0.3 * fine, x, y, 0.25);
       } else {
         // the shingle: pale and dry up the bank, greyer toward the water
         const up = smooth(1.5, TERRACE_LAND.beach, inland);
         c = tone(PEBBLE, 0.1 + 0.5 * smooth(0.18, 0.82, band) + 0.16 * up, x, y, 0.25);
       }
-      if (this.underBow(gx, z)) c = hash2(x >> 1, y, 713) > 0.75 ? R.near[1]! : tone(F.stone, 0.05 + 0.2 * band, x, y, 0);
+      if (this.underBow(gx, z)) c = hash2(x >> 1, y, 713) > 0.75 ? R.stone[0]! : tone(F.stone, 0.05 + 0.2 * band, x, y, 0);
       this.put(x, y, c);
     }
     sea.paint(this.brush(), this.seaGround(), this.seaOptions(), 0);
@@ -455,7 +452,7 @@ class TerracePainter {
     const out: SeaStand[] = [];
     for (const r of TERRACE_ROCKS) {
       const p = terraceProject(r.x, 0, r.z);
-      if (r.z > this.edge(p.x) + 0.2 && p.x > -40 && p.x < this.w + 40) out.push({ x: p.x, y: p.y, r: Math.max(2, (LENS * r.r) / r.z), leg: false });
+      if (terraceInland(this.shore, r.x, r.z) < -0.2 && p.x > -40 && p.x < this.w + 40) out.push({ x: p.x, y: p.y, r: Math.max(2, (LENS * r.r) / r.z), leg: false });
     }
     for (const pile of this.piles()) if (pile.wet) {
       const p = terraceProject(pile.x, 0, pile.z);
@@ -511,9 +508,9 @@ class TerracePainter {
       }
     }
     // a boat far out
-    for (let k = 0; k < 5; k++) this.put(410 + k, hz + 4, R.shingle[3]!);
-    for (let k = 0; k < 2; k++) this.put(412 + k, hz + 3, R.stone[1]!);
-    for (let k = 0; k < 7; k++) this.live.glint(404 + k - (k >> 1), hz + 5, R.foam, hash2(k, 0, 764));
+    for (let k = 0; k < 5; k++) this.put(190 + k, hz + 3, R.shingle[3]!);
+    for (let k = 0; k < 2; k++) this.put(192 + k, hz + 2, R.stone[1]!);
+    for (let k = 0; k < 7; k++) this.live.glint(184 + k - (k >> 1), hz + 4, R.foam, hash2(k, 0, 764));
     // the surf: a white line at the water's edge and a broken one further out, coming and going as the game runs
     for (let x = 0; x < w; x++) {
       let y = hz + 1;
@@ -533,7 +530,7 @@ class TerracePainter {
       const x = gx + hash2(kx, kz, 721) * 0.5, z = gz + hash2(kx, kz, 722) * 0.5;
       const px = this.w / 2 + (LENS * x) / z;
       if (px < -8 || px > this.w + 8) continue;
-      const inland = this.edge(px) - z;
+      const inland = terraceInland(this.shore, x, z);
       // on the beach, thinning out up the bank where the grass begins
       if (inland < 0.3 || (inland > TERRACE_LAND.beach * 0.8 && pick < 0.74)) continue;
       const r = (0.08 + 0.16 * hash2(kx, kz, 723) ** 2) * (pick > 0.95 ? 2.3 : 1);
@@ -552,7 +549,7 @@ class TerracePainter {
 
   /** A boulder of the plan (metres), in the water or on the shingle (the kit's `stones/boulder`). */
   private rock(x: number, z: number, r: number): void {
-    const wet = z > this.edge(this.w / 2 + (LENS * x) / z);
+    const wet = terraceInland(this.shore, x, z) < 0;
     const y = wet ? 0 : terraceGroundAt(this.shore, x, z);
     const p = terraceProject(x, y, z), top = terraceProject(x, y + r * 0.8, z);
     boulder.paint(this.brush(), p.x, Math.round(p.y), optionsOf(boulder, undefined, { wide: (LENS * r) / z, high: Math.max(2, p.y - top.y), wet, dark: 0 }), Math.round(x * 13 + z * 7));
@@ -565,7 +562,7 @@ class TerracePainter {
       const x = -20 + hash2(n, 1, 730) * 52, z = 4.6 + hash2(n, 2, 731) ** 1.8 * 42;
       const px = this.w / 2 + (LENS * x) / z;
       if (px < -10 || px > this.w + 10) continue;
-      const inland = this.edge(px) - z;
+      const inland = terraceInland(this.shore, x, z);
       if (inland < 5 + 4 * hash2(n, 5, 734) || this.underBow(x, z)) continue;
       // none under the boards, and only a few close under the deck's edge, so their tips are blades and not a band
       const on = deckOf(x, z);
@@ -602,7 +599,7 @@ class TerracePainter {
     const mirrored: KitBrush = { ...this.brush(), put: (x, y, c) => this.put(w - 1 - x, y, c), side: -this.hour.side };
     delete mirrored.under;
     delete mirrored.live;
-    rose.paint(mirrored, 58, 170, optionsOf(rose, 'low', { wide: 150, high: 96, lumps: 12, deep: 60 }), 7);
+    rose.paint(mirrored, 30, 150, optionsOf(rose, 'low', { wide: 110, high: 60, lumps: 9, deep: 40 }), 7);
   }
 
   // ---- lines, poles and faces of the plan
@@ -724,11 +721,11 @@ class TerracePainter {
 
   /** The piles under the reach, a row across it every few metres and three rows under the head: each its place on the plan, its top, and whether it stands in the water. */
   private piles(): { x: number; z: number; top: number; wet: boolean; seed: number; row: number }[] {
-    const walk = [REACH.u0 + 0.3, REACH.u1 - 0.3], head = [REACH.head.u0 + 0.3, 3.1, 5.6, REACH.head.u1 - 0.3];
-    const rows: (readonly [number, readonly number[]])[] = [[2.4, walk], [4.8, walk], [7.2, walk], [REACH.long + 0.4, head], [REACH.long + REACH.deep / 2, head], [REACH.long + REACH.deep - 0.4, head]];
+    const walk = [REACH.u0 + 0.3, REACH.u1 - 0.3], head = [REACH.head.u0 + 0.3, 22.4, 24.4, REACH.head.u1 - 0.3];
+    const rows: (readonly [number, readonly number[]])[] = [[2.6, walk], [5.4, walk], [8.2, walk], [REACH.long + 0.4, head], [REACH.long + REACH.deep / 2, head], [REACH.long + REACH.deep - 0.4, head]];
     return rows.flatMap(([t, us], row) => us.map((u, k) => {
       const [x, , z] = onReach(u + 0.2 * (hash2(row, k, 801) - 0.5), t + 0.3 * (hash2(row, k, 802) - 0.5));
-      return { x, z, top: DECK.y - REACH.drop - 0.1, wet: z > this.edge(this.w / 2 + (LENS * x) / z), seed: 800 + row * 11 + k * 7, row };
+      return { x, z, top: DECK.y - REACH.drop - 0.1, wet: terraceInland(this.shore, x, z) < 0, seed: 800 + row * 11 + k * 7, row };
     }));
   }
 
@@ -736,12 +733,13 @@ class TerracePainter {
   private pilework(): void {
     const piles = this.piles();
     const foot = (p: { x: number; z: number; wet: boolean }): number => (p.wet ? 0 : terraceGroundAt(this.shore, p.x, p.z));
-    for (let row = Math.max(...piles.map((p) => p.row)); row >= 0; row--) {
+    // far to near: the rows nearest the deck first
+    for (let row = 0; row <= Math.max(...piles.map((p) => p.row)); row++) {
       const mine = piles.filter((p) => p.row === row);
       this.as(() => {
         for (let k = 0; k + 1 < mine.length; k++) {
           const a = mine[k]!, b = mine[k + 1]!;
-          if (a.top - foot(a) < 0.7) continue;
+          if (a.top - foot(a) < 0.7 || a.wet || b.wet) continue;
           const from = k % 2 ? a : b, to = k % 2 ? b : a;
           // a level tie from pile to pile, a little askew: never a diagonal, which reads as a stair down to the shingle
           // (art review 3; no way down)
@@ -759,31 +757,34 @@ class TerracePainter {
    * Under their near ends runs the beam they are nailed to, and the head's near side shows its own.
    */
   private reachDeck(): void {
-    const grey: KitBrush = { ...this.brush(), run: { ...R, wood: GREY.run }, fine: { ...F, wood: GREY.fine } };
+    // the boards gone silver in the weather, in the darker half of the greys
+    const grey: KitBrush = { ...this.brush(), run: { ...R, wood: GREY.run.slice(0, 5) }, fine: { ...F, wood: GREY.fine.slice(0, GREY.fine.indexOf(R.shingle[2]!) + 1) } };
     const fresh = this.brush();
     const end = REACH.long + REACH.deep, wide = 0.42, { head } = REACH;
     const at = (u: number, t: number): Pt => this.at(onReach(u, t));
     const beam = (o: P3, along: P3): void => this.face(add(o, [0, -0.26, 0]), [0, 0.22, 0], along, (s, _t, x, y) => (s > 0.82 ? R.wood[0]! : hash2(x >> 2, y, 815) > 0.85 ? R.wood[2]! : R.wood[1]!));
     const span = (a: P3, b: P3): P3 => [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
-    // the beams that show: the head's seaward-left side and its near side either side of the walk, then the walk's left side
-    beam(onReach(head.u0, REACH.long), span(onReach(head.u0, REACH.long), onReach(head.u0, end)));
-    beam(onReach(head.u0, REACH.long), span(onReach(head.u0, REACH.long), onReach(REACH.u0, REACH.long)));
-    beam(onReach(REACH.u1, REACH.long), span(onReach(REACH.u1, REACH.long), onReach(head.u1, REACH.long)));
+    // the beams that show under the walk's sides
+    beam(onReach(REACH.u1, 0), span(onReach(REACH.u1, 0), onReach(REACH.u1, REACH.long)));
     beam(onReach(REACH.u0, 0), span(onReach(REACH.u0, 0), onReach(REACH.u0, REACH.long)));
     const n = Math.ceil(end / wide);
-    for (let i = n - 1; i >= 0; i--) {
+    // far to near: from the deck out to the head, where the eye stands
+    for (let i = 0; i < n; i++) {
       const t0 = i * wide, t1 = Math.min(end, t0 + wide);
       const { u0, u1 } = reachSides((t0 + t1) / 2);
       const ua = u0 - 0.03 - 0.16 * hash2(i, 1, 810), ub = u1 + 0.03 + 0.16 * hash2(i, 2, 810), skew = 0.07 * (hash2(i, 3, 810) - 0.5);
       const c0 = at(ua, t0 - skew), c1 = at(ua, t1 - skew), c2 = at(ub, t1 + skew), c3 = at(ub, t0 + skew);
-      const isNew = hash2(i, 4, 810) > 0.9;
+      // most boards in the wood's own brown, tarred dark at the gaps; one in four gone silver in the weather
+      const silver = hash2(i, 4, 810) > 0.76;
       const plank: Plank = { i: 300 + i, corners: [c0, c1, c2, c3], ends: [c0.x, c3.x], edge: [c1, c2], tall: Math.abs(c0.y - c1.y) };
-      planks.paint(isNew ? fresh : grey, { width: this.w, height: this.h, planks: [plank] }, isNew ? WORN_TONES : planks.options, 0);
+      planks.paint(silver ? grey : fresh, { width: this.w, height: this.h, planks: [plank] }, silver ? WORN_TONES : REACH_TONES, 0);
       // the gap before it, where it is broad enough to show one
-      if (Math.abs(c0.y - c1.y) > 1.6) this.line(c0, c3, isNew ? R.wood[0]! : R.stone[0]!);
+      if (Math.abs(c0.y - c1.y) > 1.1) this.line(c0, c3, silver ? R.stone[0]! : R.wood[0]!);
     }
     // the deck's edge over the step down to the walk: a dark line under a pale nosing
     this.line(this.at(onDeck(REACH.u0 - 0.1, DECK.v1 + 0.04)), this.at(onDeck(REACH.u1 + 0.1, DECK.v1 + 0.04)), R.wood[0]!);
+    // the head's near edge, over the water: the beam its boards are nailed to
+    beam(onReach(head.u0 - 0.1, end + 0.02), span(onReach(head.u0 - 0.1, end + 0.02), onReach(head.u1 + 0.1, end + 0.02)));
   }
 
   /**
@@ -820,15 +821,15 @@ class TerracePainter {
   }
 
   /**
-   * The watchtower on the head's seaward corner (a roofed section, perhaps a small watchtower
+   * The watchtower on the head's left, toward the eye (a roofed section, perhaps a small watchtower
    * that goes up to the second floor with a static long-eye to scan the horizon): four crooked posts, a floor a storey up with a
    * boarded parapet and a ladder to it, a long brass spyglass fixed on a post there, and a thatched roof with a staff
-   * for the pennant; a bench in its shade below. Painted back to front.
+   * for the pennant. Painted back to front.
    */
   private tower(): void {
     const T = TOWER, side = this.hour.side;
     const lean: Record<string, number> = { '00': -0.05, '10': 0.07, '01': 0.04, '11': -0.06 };
-    const post = (a: number, b: number): void => this.pole(onTower(a, b), add(onTower(a, b, T.eave), [lean[`${a}${b}`]!, 0, 0]), 0.2, SILVER4, 0.17, lean[`${a}${b}`]! * 1.5);
+    const post = (a: number, b: number): void => this.pole(onTower(a, b, -1.5), add(onTower(a, b, T.eave), [lean[`${a}${b}`]!, 0, 0]), 0.22, DARK4, 0.18, lean[`${a}${b}`]! * 1.5);
     const span = (a: P3, b: P3): P3 => [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
     const boards = (base: number, seed: number) => (s: number, t: number, x: number, y: number): number => (Math.abs(((s * 7) % 1) - 0.5) > 0.42 || t < 0.08 ? R.stone[0]! : tone(GREY.fine, base + 0.12 * (hash2(Math.floor(s * 7), seed, 880) - 0.5) + 0.05 * (hash2(x >> 1, y, 881) - 0.5), x, y, 0));
     // the far posts, and a cross of braces between them
@@ -836,10 +837,6 @@ class TerracePainter {
     post(0, 1);
     this.line3(onTower(0, 1, 0.25), onTower(1, 1, T.floor - 0.3), R.stone[1]!);
     this.line3(onTower(1, 1, 0.25), onTower(0, 1, T.floor - 0.3), R.stone[1]!);
-    // the bench in the tower's shade, its back to the sea
-    this.base = -REACH.drop;
-    this.bench(T.u0 + 0.3, DECK.v1 + T.t1 - 0.35, [1, 0], [0, -1], T.u1 - T.u0 - 0.6, true, 4);
-    this.base = 0;
     // the floor a storey up: its underside dark, the beams that carry it on the two near sides
     this.quad([onTower(-0.06, -0.06, T.floor), onTower(1.06, -0.06, T.floor), onTower(1.06, 1.06, T.floor), onTower(-0.06, 1.06, T.floor)], () => R.wood[0]!);
     // the far parapet, seen over the near one
@@ -932,67 +929,13 @@ class TerracePainter {
     }
   }
 
-  /**
-   * A string of paper lanterns and small flags from pole to pole (the painter's: a deck dressed for a summer evening):
-   * it hangs slack between its fastenings, a flag and a lantern in turn. The lanterns are pale paper by day and glow
-   * from dusk on.
-   */
-  private festoon(points: readonly P3[]): void {
-    const lit = lampLit(this.brush());
-    let item = 0;
-    for (let k = 0; k + 1 < points.length; k++) {
-      const a = points[k]!, b = points[k + 1]!;
-      const long = Math.hypot(b[0] - a[0], b[2] - a[2]), sag = 0.12 * long;
-      const hang = (s: number): P3 => [a[0] + (b[0] - a[0]) * s, a[1] + (b[1] - a[1]) * s - sag * 4 * s * (1 - s), a[2] + (b[2] - a[2]) * s];
-      const n = Math.max(8, Math.ceil(long * 14));
-      for (let i = 0; i <= n; i++) { const q = this.at(hang(i / n)); this.put(q.x, q.y, R.earth[0]!); }
-      const things = Math.max(2, Math.round(long / 0.8));
-      for (let i = 1; i < things; i++, item++) {
-        const q = this.at(hang(i / things)), x = Math.round(q.x), y = Math.round(q.y);
-        if (item % 2) {
-          // a flag: red, white and gold in turn
-          const run = [F.red, F.hull, F.dry][(item >> 1) % 3]!, size = Math.max(3, Math.round((LENS * 0.3) / q.far));
-          for (let dy = 0; dy < size; dy++) for (let dx = -Math.floor((size - dy) / 2); dx <= Math.floor((size - dy - 1) / 2); dx++) this.put(x + dx, y + 1 + dy, tone(run, dx < 0 ? 0.55 : 0.72, x, y, 0));
-        } else {
-          // a paper lantern: a round of pale paper with a dark cap, lit from inside when the lamps are
-          this.paperLantern(x, y, Math.max(1.6, (LENS * 0.13) / q.far), [F.red, F.dry, F.hull][(item >> 1) % 3]!, lit);
-          this.put(x, y + 1, R.ink);
-        }
-      }
-    }
-  }
-
-  /** One paper lantern of the string, hung at (`x`, `y`): a round of `paper`, or of the embers' light when `lit`. */
-  private paperLantern(x: number, y: number, r: number, paper: readonly number[], lit: boolean): void {
-    for (let dy = -Math.ceil(r); dy <= Math.ceil(r); dy++) for (let dx = -Math.ceil(r); dx <= Math.ceil(r); dx++) {
-      const d = Math.hypot(dx, dy * 0.85) / r;
-      if (d > 1) continue;
-      this.put(x + dx, y + 2 + Math.ceil(r) + dy, lit ? (d < 0.5 ? F.ember[10]! : d < 0.8 ? F.ember[8]! : F.ember[5]!) : tone(paper, 0.75 - 0.3 * d - 0.15 * (dx / r) * this.hour.side, x, y, 0));
-    }
-  }
-
-  /** Fishing rods leaning in the head's corner, a float hanging from one (the painter's). */
-  private rods(u: number, t: number): void {
-    for (const [k, lean] of [[0, -0.5], [1, 0.25]] as const) {
-      const foot = onReach(u + 0.18 * k, t), tip = onReach(u + lean + 0.18 * k, t + 0.3, 3.3 - 0.5 * k);
-      this.line3(foot, mix(foot, tip, 0.45), R.earth[1]!);
-      this.line3(mix(foot, tip, 0.45), tip, R.dry[1]!);
-      if (k === 0) {
-        const end = this.at(tip);
-        for (let d = 1; d < 9; d++) this.put(end.x - 1, end.y + d, R.hull[2]!);
-        this.put(end.x - 1, end.y + 9, R.red[2]!);
-        this.put(end.x - 1, end.y + 10, R.hull[4]!);
-      }
-    }
-  }
-
   /** The pennant on the watchtower's staff, painted standing out straight to the left (its hoist at the staff): the game flaps it on the wind (`sway.ts`). */
   pennant(): Blown {
     const wide = 22, high = 9;
     const bitmap = createBitmap(wide, high);
     for (let x = 0; x < wide; x++) {
-      // its hoist is its right end; it tapers to a swallow tail
-      const from = (wide - 1 - x) / (wide - 1), half = 4 - 2.4 * from;
+      // its hoist is its left end, at the staff; it streams to the right on the west wind and tapers to a swallow tail
+      const from = x / (wide - 1), half = 4 - 2.4 * from;
       for (let y = 0; y < high; y++) {
         const d = y - 4;
         if (Math.abs(d) > half) continue;
@@ -1001,73 +944,180 @@ class TerracePainter {
         bitmap.pixels[y * wide + x] = d > 1 ? R.red[1]! : d < -1 ? R.red[3]! : R.red[2]!;
       }
     }
-    return { kind: 'flag', x: this.plan.pennant.x - wide - 1, y: this.plan.pennant.y - 2, bitmap };
+    return { kind: 'flag', x: this.plan.pennant.x + 1, y: this.plan.pennant.y - 2, bitmap };
+  }
+
+  // ---- the warden's house
+
+  /**
+   * A sheet of the plan painted point by point: `at` gives the point for `s` and `t` (0 to 1 each), `colour` the colour
+   * there (or -1 for a hole). `corners` are four points of the sheet, used only to choose how finely to step it.
+   */
+  private sheet(at: (s: number, t: number) => P3, colour: (s: number, t: number, x: number, y: number) => number): void {
+    const c = [at(0, 0), at(1, 0), at(0, 1), at(1, 1), at(0.5, 0.5)].map((p) => this.at(p));
+    const d = (a: Pt, b: Pt): number => Math.hypot(b.x - a.x, b.y - a.y);
+    const ns = Math.ceil(Math.max(d(c[0]!, c[1]!), d(c[2]!, c[3]!)) * 1.6) + 1, nt = Math.ceil(Math.max(d(c[0]!, c[2]!), d(c[1]!, c[3]!)) * 1.6) + 1;
+    for (let i = 0; i <= ns; i++) for (let j = 0; j <= nt; j++) {
+      const p = this.at(at(i / ns, j / nt));
+      const col = colour(i / ns, j / nt, Math.round(p.x), Math.round(p.y));
+      if (col >= 0) this.put(p.x, p.y, col);
+    }
+  }
+
+  /**
+   * The lattice mast by the house's north-west gable (the world model's landmark): three legs that close upward, braced
+   * in a zigzag, thin against the sky behind the house's far end and out of the picture's top.
+   */
+  private mast(): void {
+    const foot = onDeck(MAST.u, MAST.v), up = MAST.high - HOUSE.ground;
+    const leg = (k: number, h: number): P3 => {
+      const spread = 1.1 * (1 - 0.75 * (h / up)), a = (k * 2 * Math.PI) / 3 + 0.4;
+      return [foot[0] + spread * Math.cos(a), HOUSE.ground + h, foot[2] + spread * Math.sin(a)];
+    };
+    const steel = this.hour.night ? R.stone[1]! : R.stone[2]!, dark = R.stone[1]!;
+    for (let k = 0; k < 3; k++) this.line3(leg(k, 0), leg(k, up), k === 1 ? dark : steel);
+    for (let h = 0, n = 0; h < up; h += 2.2, n++) for (let k = 0; k < 3; k++) if (k !== 2) this.line3(leg(k, h), leg((k + 1) % 3, h + 2.2), n % 2 ? dark : steel);
+  }
+
+  /**
+   * The warden's house, the right wing of the stage (a house of the 1991 game, crooked with age, on the real one's
+   * plan): its long plastered front with a stone plinth, the six windows and the door under the porch in the middle,
+   * the grey tin roof with its sagging ridge, ribs and rust, a chimney leaning on the ridge. The front faces the sea's
+   * side, lit by day and in shade at dawn; at dusk and night its windows glow, the living room's two with their
+   * flowered curtains.
+   */
+  private house(): void {
+    const H = HOUSE, lit = lampLit(this.brush()), face = this.hour.facade;
+    const window = (wu: number): { u0: number; u1: number; y0: number; y1: number } => ({ u0: wu - 0.5, u1: wu + 0.5, y0: H.floor + 0.85, y1: H.floor + 2.05 });
+    const door = { u0: H.door - 0.55, u1: H.door + 0.55, y0: H.floor, y1: H.floor + 2.1 };
+    // the wall: a stone plinth, then plaster, streaked under the eaves where the rain runs off, worn through to the stone here and there
+    this.as(() => this.sheet((s, t) => onHouse(H.u0 + (H.u1 - H.u0) * s, H.ground + (H.eave - H.ground) * t), (s, t, x, y) => {
+      const u = H.u0 + (H.u1 - H.u0) * s, up = H.ground + (H.eave - H.ground) * t;
+      if (up < H.floor + 0.12) {
+        const joint = Math.abs(((u * 1.6 + (Math.floor(up * 5) % 2) * 0.5) % 1) - 0.5) > 0.44 || Math.abs(((up - H.ground) * 5) % 1 - 0.5) > 0.4;
+        return joint ? R.stone[0]! : tone(F.stone, face * 0.6 + 0.12 * hash2(Math.floor(u * 1.6), Math.floor(up * 5), 901), x, y, 0);
+      }
+      // the eaves' own shade along the wall's top
+      if (t > 0.9 - 0.03 * hash2(Math.round(u * 3), 1, 902)) return tone(F.plaster, face * 0.45, x, y, 0);
+      const worn = fbm(u * 0.55, up * 0.9, 3, 903);
+      if (worn > 0.7 && up > H.floor + 0.4 && up < H.eave - 0.4) {
+        const brick = Math.abs(((u * 3.2 + (Math.floor(up * 6) % 2) * 0.5) % 1) - 0.5) > 0.4 || Math.abs(((up * 6) % 1) - 0.5) > 0.38;
+        return worn > 0.73 ? (brick ? R.stone[1]! : tone(F.stone, face * 0.75, x, y, 0)) : tone(F.plaster, face * 0.6, x, y, 0);
+      }
+      const streak = fbm(u * 2.2, 0.5, 2, 904) > 0.58 ? smooth(0.45, 0.88, t) * 0.14 : 0;
+      return tone(F.plaster, face - streak - 0.05 * (1 - t) + 0.06 * (fbm(u * 1.3, up * 2, 2, 905) - 0.5), x, y, 0.2);
+    }));
+    // the windows: a white frame, a cross of bars, the glass dark with the sky in it by day, warm from within at dusk and night
+    H.windows.forEach((wu, k) => this.as(() => {
+      const w = window(wu), tilt = 0.05 * (hash2(k, 1, 910) - 0.5);
+      this.sheet((s, t) => onHouse(w.u0 + (w.u1 - w.u0) * s, w.y0 + (w.y1 - w.y0) * t + tilt * (s - 0.5), 0.03), (s, t, x, y) => {
+        const fs = Math.min(s, 1 - s) * (w.u1 - w.u0), ft = Math.min(t, 1 - t) * (w.y1 - w.y0);
+        if (fs < 0.09 || ft < 0.09 || Math.abs(s - 0.5) * (w.u1 - w.u0) < 0.035 || Math.abs(t - 0.62) * (w.y1 - w.y0) < 0.035) return fs < 0.03 || ft < 0.03 ? R.plaster[1]! : tone(F.plaster, Math.max(face, 0.5) + 0.12, x, y, 0);
+        if (lit) {
+          // the living room's flowered curtains at its two windows' sides; the others plain warm light
+          if (k < 2 && (s < 0.24 || s > 0.76)) return hash2(x >> 1, y >> 1, 911 + k) > 0.78 ? R.dry[3]! : tone(F.red, 0.45 + 0.3 * t, x, y, 0);
+          return F.ember[Math.min(F.ember.length - 1, 4 + Math.round(4 * (1 - t)) + (hash2(x >> 2, y >> 2, 912) > 0.8 ? 1 : 0))]!;
+        }
+        const sky = ((s * 0.9 + (1 - t) * 0.7 + k * 0.13) % 1);
+        return sky > 0.18 && sky < 0.34 ? tone(F.sky, 0.75, x, y, 0) : tone(F.stone, 0.06 + 0.08 * t, x, y, 0);
+      });
+      // the sill, a lit ledge with its shade under it
+      this.sheet((s, t) => onHouse(w.u0 - 0.08 + (w.u1 - w.u0 + 0.16) * s, w.y0 - 0.08 + 0.08 * t, 0.06 + 0.06 * t), (_s, t) => (t > 0.5 ? tone(F.plaster, Math.max(face, 0.5) + 0.15, 0, 0, 0) : R.plaster[1]!));
+    }));
+    // the door: boards of oiled wood in a white frame, a dark gap between them, its handle
+    this.as(() => this.sheet((s, t) => onHouse(door.u0 + (door.u1 - door.u0) * s, door.y0 + (door.y1 - door.y0) * t, 0.02), (s, t, x, y) => {
+      const fs = Math.min(s, 1 - s) * 1.1, ft = (1 - t) * 2.1;
+      if (fs < 0.08 || ft < 0.08) return tone(F.plaster, Math.max(face, 0.5) + 0.1, x, y, 0);
+      if (Math.abs(((s * 1.1) / 0.18) % 1 - 0.5) > 0.42) return R.wood[0]!;
+      if (Math.abs(s - 0.8) < 0.05 && Math.abs(t - 0.48) < 0.03) return R.stone[3]!;
+      return tone(F.wood, 0.3 + 0.1 * face + 0.08 * hash2(Math.floor(s * 6), Math.floor(t * 9), 915), x, y, 0);
+    }));
+    // a drainpipe from the eaves down the wall left of the porch
+    this.as(() => this.pole(onHouse(H.door - 2.3, H.eave - 0.1, 0.12), onHouse(H.door - 2.25, H.ground + 0.1, 0.12), 0.1, [R.stone[0]!, R.stone[1]!, R.stone[2]!, R.stone[3]!]));
+    // the roof: grey tin in ribs from the eave to the ridge, sheets of it, one newer and paler, rust running down from the ridge
+    const roofTone = 0.3 + 0.35 * face + (this.hour.night ? 0.05 : 0);
+    this.as(() => this.sheet((s, b) => onRoof(H.u0 - 0.35 + (H.u1 - H.u0 + 0.7) * s, b), (s, b, x, y) => {
+      const u = H.u0 - 0.35 + (H.u1 - H.u0 + 0.7) * s;
+      if (b < 0.035) return R.stone[0]!;
+      if (b > 0.955) return tone(F.stone, roofTone - 0.12, x, y, 0);
+      if (s < 0.004 || s > 0.996) return R.stone[0]!;
+      const rib = (u / 0.62) % 1, sheet = Math.floor(u / 2.4);
+      const fresh = hash2(sheet, 1, 920) > 0.86 ? 0.1 : 0;
+      const rust = hash2(Math.floor(u / 0.62), 2, 921) > 0.82 && b > 0.35 + 0.4 * hash2(Math.floor(u / 0.62), 3, 922) ? 1 : 0;
+      if (rust && rib > 0.2) return tone(F.earth, 0.35 + 0.3 * b, x, y, 0);
+      if (rib < 0.14) return tone(F.stone, roofTone + 0.18 + fresh, x, y, 0);
+      if (rib < 0.24) return tone(F.stone, roofTone - 0.14, x, y, 0);
+      // the sheets' laps across the slope
+      if (Math.abs(((b * 2.2 + 0.3 * hash2(sheet, 4, 923)) % 1) - 0.5) > 0.47) return tone(F.stone, roofTone - 0.1, x, y, 0);
+      return tone(F.stone, roofTone + fresh + 0.06 * (b - 0.5), x, y, 0);
+    }));
+    // the chimney: brick, leaning a little off the ridge, a stone cap
+    this.as(() => {
+      const base = onRoof(H.chimney, 0.82), lean = 0.08, high = 1.25, half = 0.32;
+      const at = (du: number, dv: number, h: number): P3 => {
+        const [x, , z] = onDeck(H.chimney + du, H.front - H.deep * 0.41 + dv);
+        return [x + lean * h, base[1] - 0.3 + h, z];
+      };
+      const brick = (s: number, t: number, x: number, y: number, light: number): number => (Math.abs(((t * high * 7) % 1) - 0.5) > 0.4 || Math.abs(((s * 3 + (Math.floor(t * high * 7) % 2) * 0.5) % 1) - 0.5) > 0.44 ? R.red[0]! : tone(F.red, light, x, y, 0));
+      this.sheet((s, t) => at(-half + 2 * half * s, half, t * high), (s, t, x, y) => brick(s, t, x, y, 0.2 + 0.25 * face));
+      this.sheet((s, t) => at(-half, half - 2 * half * s, t * high), (s, t, x, y) => brick(s, t, x, y, 0.1 + 0.2 * face));
+      this.sheet((s, t) => at(-half - 0.06 + (2 * half + 0.12) * s, half + 0.06 - (2 * half + 0.12) * t, high), () => tone(F.stone, 0.3 + 0.3 * face, 0, 0, 0));
+    });
+    // the porch over the door: its near slope of tin, its gable of boards facing the sea, two posts
+    this.as(() => {
+      const eave = H.floor + 2.45, apex = H.floor + 3.15, out = 1.8, wide = 1.4;
+      const pt = (du: number, o: number, up: number): P3 => onHouse(H.door + du, up, o);
+      this.sheet((s, t) => pt(-wide + wide * t, out * (1 - s), eave + (apex - eave) * t), (s, t, x, y) => (t < 0.06 ? R.stone[0]! : ((s * out) / 0.5) % 1 < 0.2 ? tone(F.stone, roofTone + 0.15, x, y, 0) : tone(F.stone, roofTone - 0.04, x, y, 0)));
+      this.sheet((s, t) => pt(-wide + 2 * wide * s, out, eave + (apex - eave) * t * (1 - Math.abs(s - 0.5) * 2)), (s, t, x, y) => (t < 0.08 ? R.wood[0]! : Math.abs(((s * 2 * wide) / 0.22) % 1 - 0.5) > 0.42 ? R.wood[1]! : tone(F.wood, 0.35 + 0.15 * face, x, y, 0)));
+      for (const du of [wide - 0.15, -wide + 0.15]) this.pole(pt(du, out - 0.1, H.floor), pt(du + 0.03, out - 0.1, eave), 0.14, WOOD4, 0.12);
+    });
   }
 
   // ---- the deck and what stands on it
 
   /**
-   * One board lying along the deck's `v` (the kit's `wood/planks`): `near` its two edges across the deck at `va`, where
-   * it begins, `far` its two edges at its far end (`fa` on its near edge, `fb` on its far one), so no board need be
-   * straight. The dark gap along its far edge and the pale line of its lit edge are drawn here, since the kit lays
-   * those for boards that lie across a walk.
-   */
-  private board(brush: KitBrush, near: readonly [number, number], far: readonly [number, number], va: number, fa: number, fb: number, i: number, gap: number, pale: number, tones: PlanksOptions = planks.options): void {
-    const at = (u: number, v: number): Pt => this.at(onDeck(u, v));
-    const c0 = at(far[0], fa), c1 = at(far[1], fb), c2 = at(near[1], va), c3 = at(near[0], va);
-    const plank: Plank = { i, corners: [c0, c1, c2, c3], ends: [c0.x, c3.x], edge: [c1, c2], tall: 0 };
-    planks.paint(brush, { width: this.w, height: this.h, planks: [plank] }, tones, 0);
-    // the gap beyond its far edge, and its lit edge a pixel inside it, broken
-    this.line(c1, c2, gap);
-    const mid = at((near[0] + near[1] + far[0] + far[1]) / 4, (va + fa) / 2), on = at((near[1] + far[1]) / 2, (va + fb) / 2);
-    const n = Math.hypot(mid.x - on.x, mid.y - on.y);
-    if (n > 2.2) {
-      const dx = (mid.x - on.x) / n, dy = (mid.y - on.y) / n;
-      const steps = Math.ceil(Math.max(Math.abs(c2.x - c1.x), Math.abs(c2.y - c1.y)));
-      for (let k = 0; k <= steps; k++) {
-        const x = c1.x + ((c2.x - c1.x) * k) / steps + dx * 1.2, y = c1.y + ((c2.y - c1.y) * k) / steps + dy * 1.2;
-        if (hash2(Math.round(x) >> 3, i, 812) > 0.62) this.put(x, y, pale);
-      }
-    }
-    // its butt end toward the eye, and a nail either side of it
-    this.line(c2, c3, gap);
-    if (n > 3) for (const k of [0.25, 0.75]) {
-      const nail = at(near[0] + (near[1] - near[0]) * k, va + 0.12);
-      this.put(nail.x, nail.y, gap);
-    }
-  }
-
-  /**
-   * The terrace's boards, far to near: long warm boards running out toward the sea, each strip of two or three end to
-   * end, ragged at the seaward edge, and none quite straight: every seam between two strips wanders its own way (the
-   * 1991 game's decks are laid by eye).
+   * The terrace's boards, far to near: long warm boards running along the house's front, away from the eye toward the
+   * walk, each strip of two or three end to end, and none quite straight: every seam between two strips wanders its own
+   * way (the 1991 game's decks are laid by eye). Under the seaward edge the deck's fascia shows down to the shingle.
    */
   private deck(): void {
     const brush = this.brush();
     const turn = (DECK.turn * Math.PI) / 180;
-    // how near a strip comes: to the house's wall, or to the picture's foot
-    const near = (u: number): number => Math.max(DECK.v0, (NEAR - u * Math.cos(turn)) / Math.sin(turn));
-    const count = Math.ceil((DECK.u1 - DECK.u0) / BOARD);
-    /** The seam on the near side of strip `k` (counted from the deck's far end), at `v`: it wanders up to a hand's width. */
-    const seam = (k: number, v: number): number => {
-      const base = DECK.u1 - k * BOARD;
-      if (k <= 0 || k >= count) return k <= 0 ? DECK.u1 : DECK.u0;
-      return base + 0.07 * (hash2(k, 3, 832) - 0.5) + 0.05 * (hash2(k, 4, 833) - 0.5) * (v / DECK.v1) + 0.025 * Math.sin(v * 1.3 + k * 2.1);
+    // how near a strip comes: to the picture's foot
+    const near = (v: number): number => Math.max(DECK.u0, (NEAR - v * Math.sin(turn)) / Math.cos(turn));
+    const count = Math.ceil((DECK.v1 - DECK.v0) / BOARD);
+    /** The seam on the house's side of strip `k` (counted from the seaward edge), at `u`: it wanders up to a hand's width. */
+    const seam = (k: number, u: number): number => {
+      if (k <= 0) return DECK.v1;
+      if (k >= count) return DECK.v0;
+      return DECK.v1 - k * BOARD + 0.07 * (hash2(k, 3, 832) - 0.5) + 0.05 * (hash2(k, 4, 833) - 0.5) * (u / DECK.u1) + 0.025 * Math.sin(u * 0.9 + k * 2.1);
     };
-    for (let i = 0; i < count; i++) {
-      const ub = DECK.u1 - i * BOARD, ua = Math.max(DECK.u0, ub - BOARD);
-      const from = Math.max(near(ua), near(ub));
-      const joins = ua > REACH.u0 - 0.2 && ub < REACH.u1 + 0.2;
-      const end = DECK.v1 + (joins ? 0 : (hash2(i, 1, 830) - 0.4) * 0.24);
-      // one floor: the terrace's boards are oiled red-brown from the house to the step (the real deck's grey half is
-      // the walk's here), each strip two or three boards end to end, their joins nowhere in a row
-      const cuts = [from, from + (end - from) * (0.3 + 0.16 * (hash2(i, 0, 831) - 0.5)), from + (end - from) * (0.68 + 0.2 * (hash2(i, 1, 831) - 0.5))]
-        .filter((c, j) => j === 0 || (c > from + 0.8 && c < end - 0.5));
+    const at = (u: number, v: number): Pt => this.at(onDeck(u, v));
+    // the fascia along the seaward edge, from the boards down to the shingle, dark under the boards' lip
+    const lip = onDeck(DECK.u0, DECK.v1 + 0.02, -0.02), along = onDeck(DECK.u1, DECK.v1 + 0.02, -0.02);
+    this.face(lip, [along[0] - lip[0], 0, along[2] - lip[2]], [0, HOUSE.ground - DECK.y, 0], (_s, t, x, y) => (t < 0.15 ? R.wood[0]! : t > 0.7 ? R.wood[1]! : tone(F.wood, 0.22 + 0.1 * hash2(x >> 3, y >> 2, 829), x, y, 0)));
+    // far strips first: the house's side is further on the right, but every strip runs from the foot to the far end, so
+    // they are laid from the house out to the sea's side, each over the one before only at its seaward seam
+    for (let i = count - 1; i >= 0; i--) {
+      const va = seam(i + 1, DECK.u0), vb = seam(i, DECK.u0);
+      const from = Math.max(near(va), near(vb));
+      const end = DECK.u1 + (hash2(i, 1, 830) - 0.4) * 0.3;
+      const cuts = [from, from + (end - from) * (0.32 + 0.16 * (hash2(i, 0, 831) - 0.5)), from + (end - from) * (0.66 + 0.2 * (hash2(i, 1, 831) - 0.5))]
+        .filter((c, j) => j === 0 || (c > from + 1.2 && c < end - 1));
       for (let j = cuts.length - 1; j >= 0; j--) {
-        const va = cuts[j]!, far = j === cuts.length - 1 ? end : cuts[j + 1]!;
-        // a board in seven has lost its oil to feet and weather, and lies paler
+        const ua = cuts[j]!, ub = j === cuts.length - 1 ? end : cuts[j + 1]!;
         const worn = hash2(i, j, 836) > 0.86;
-        this.board(brush, [seam(i + 1, va), seam(i, va)], [seam(i + 1, far), seam(i, far)], va, far, far, i * 5 + j, R.wood[0]!, R.wood[3]!, worn ? WORN_TONES : OILED_TONES);
+        const c0 = at(ub, seam(i + 1, ub)), c1 = at(ub, seam(i, ub)), c2 = at(ua, seam(i, ua)), c3 = at(ua, seam(i + 1, ua));
+        const plank: Plank = { i: i * 5 + j, corners: [c0, c1, c2, c3], ends: [c0.x, c3.x], edge: [c1, c2], tall: 0 };
+        planks.paint(brush, { width: this.w, height: this.h, planks: [plank] }, worn ? WORN_TONES : OILED_TONES, 0);
+        // the gap along its seaward edge, its butt joint, and its lit edge a pixel inside, broken
+        this.line(c1, c2, R.wood[0]!);
+        this.line(c2, c3, R.wood[0]!);
+        const steps = Math.ceil(Math.max(Math.abs(c2.x - c1.x), Math.abs(c2.y - c1.y)));
+        for (let k = 0; k <= steps; k++) {
+          const x = c1.x + ((c2.x - c1.x) * k) / steps, y = c1.y + ((c2.y - c1.y) * k) / steps - 1;
+          if (hash2(Math.round(x) >> 3, i, 812) > 0.62) this.put(x, y, R.wood[3]!);
+        }
       }
     }
   }
@@ -1081,7 +1131,7 @@ class TerracePainter {
       if (d > r || d < r * 0.46) continue;
       const turn = Math.floor((Math.atan2(dy, dx) + Math.PI / 8 + Math.PI * 2) / (Math.PI / 4)) % 2;
       const lit = 0.62 - 0.22 * ((dx / r) * -side) - 0.2 * (dy / r);
-      this.put(c.x + dx, c.y + dy, turn ? tone(F.red, lit - 0.1, 0, 0, 0) : tone(F.hull, lit + 0.2, 0, 0, 0));
+      this.put(c.x + dx, c.y + dy, turn ? tone(F.red, lit - 0.1, 0, 0, 0) : tone(F.plaster, lit + 0.2, 0, 0, 0));
     }
   }
 
@@ -1153,7 +1203,7 @@ class TerracePainter {
       const drawn = this.at(at(long / 2, 0, 0)).far < 14;
       // the back board, a dark line where its two planks meet, the gulls across both
       this.face(at(0, 0, SEAT + 0.12), [0, BACK - SEAT, 0], a, (s, t, x, y) => {
-        if (drawn && TerracePainter.gull(t * gulls, s)) return dark ? R.hull[2]! : R.hull[4]!;
+        if (drawn && TerracePainter.gull(t * gulls, s)) return dark ? R.plaster[2]! : R.plaster[4]!;
         if (Math.abs(s - 0.5) < 0.035 || t < 0.012 || t > 0.988) return run[0]!;
         return tone(run, low + 0.14 + 0.26 * (dark ? 1 - lit : lit) * (dark ? 0.4 : 1) + 0.07 * (hash2(x >> 2, y, 873 + seed) - 0.5) + (s > 0.9 ? 0.1 : 0), x, y, 0);
       });
@@ -1162,7 +1212,7 @@ class TerracePainter {
     if (this.at(at(long / 2, 0, 0)).far > this.at(at(long / 2, 0.44, 0)).far) { back(); seat(); } else { seat(); back(); }
   }
 
-  /** The picnic table between the benches (the painter's): a top of pale scrubbed boards on crossed legs, a jug and two mugs on it. */
+  /** The picnic table between the benches (the painter's): a top of pale scrubbed boards on crossed legs, a jug on it. */
   private table(u: number, v: number, long: number, wide: number, seed: number): void {
     const high = 0.74, lit = clamp01(0.55 - 0.3 * this.hour.side);
     const at = (s: number, d: number, up: number): P3 => this.floor(u + s, v + d, up);
@@ -1175,16 +1225,12 @@ class TerracePainter {
     const o = at(0, 0, high);
     this.face(o, span(o, at(long, 0, high)), span(o, at(0, wide, high)), (s, t, x, y) => (s < 0.015 || s > 0.985 ? R.wood[1]! : Math.abs(((t * 4) % 1) - 0.5) > 0.44 ? R.wood[1]! : tone(F.wood, 0.72 + 0.2 * lit + 0.08 * (hash2(x >> 2, y, 876 + seed) - 0.5), x, y, 0)));
     this.face(at(0, 0, high - 0.07), [0, 0.07, 0], span(o, at(long, 0, high)), (_s, _t, x, y) => tone(F.wood, 0.3 + 0.06 * hash2(x >> 2, seed, 877), x, y, 0));
-    // a jug and two mugs on it
+    // a jug on it
     const jug = this.at(at(long * 0.42, wide * 0.5, high));
     const jar = Math.max(2, Math.round((LENS * 0.09) / jug.far)), tall = Math.max(4, Math.round((LENS * 0.26) / jug.far));
-    for (let dy = 0; dy < tall; dy++) for (let dx = -jar; dx <= jar; dx++) this.put(jug.x + dx, jug.y - dy, dy > tall - 2 ? R.hull[4]! : dx * this.hour.side > 0 ? R.hull[3]! : R.hull[2]!);
-    this.put(jug.x + jar + 1, jug.y - tall + 2, R.hull[1]!);
-    this.put(jug.x + jar + 1, jug.y - tall + 3, R.hull[1]!);
-    for (const k of [0.68, 0.2]) {
-      const mug = this.at(at(long * k, wide * (k > 0.5 ? 0.3 : 0.6), high));
-      for (let dy = 0; dy < Math.max(2, tall / 2); dy++) for (let dx = -1; dx <= 1; dx++) this.put(mug.x + dx, mug.y - dy, dx > 0 ? R.dry[1]! : R.dry[3]!);
-    }
+    for (let dy = 0; dy < tall; dy++) for (let dx = -jar; dx <= jar; dx++) this.put(jug.x + dx, jug.y - dy, dy > tall - 2 ? R.plaster[4]! : dx * this.hour.side > 0 ? R.plaster[3]! : R.plaster[2]!);
+    this.put(jug.x + jar + 1, jug.y - tall + 2, R.plaster[1]!);
+    this.put(jug.x + jar + 1, jug.y - tall + 3, R.plaster[1]!);
   }
 
   /** A barrel standing at a point of the plan: bulging staves lit on the light's side, two iron hoops, its lid seen from above; `dark` near the viewer. */
@@ -1216,38 +1262,13 @@ class TerracePainter {
   }
 
   /** A wooden crate on the deck at a point of its frame, `half` metres to each side: boarded faces, a darker frame, a lit top. */
-  private crate(u: number, v: number, half: number, seed: number, float = true): void {
+  private crate(u: number, v: number, half: number, seed: number): void {
     const o = this.floor(u - half, v - half), du = add(onDeck(2 * half, 0), [0, -DECK.y, 0]), dv = add(onDeck(0, 2 * half), [0, -DECK.y, 0]), up: P3 = [0, 2 * half, 0];
     const boards = (base: number) => (s: number, t: number, x: number, y: number): number => (s < 0.06 || s > 0.94 || t < 0.06 || t > 0.94 ? R.wood[0]! : Math.abs(((t * 4) % 1) - 0.5) > 0.42 ? R.wood[Math.max(0, base - 1)]! : hash2(x >> 2, y, seed) > 0.85 ? R.wood[Math.max(0, base - 1)]! : R.wood[base]!);
     // the side along the deck's `v` toward the eye, the side across, the top
     this.face(o, dv, up, boards(this.hour.side < 0 ? 3 : 2));
     this.face(o, du, up, boards(this.hour.side < 0 ? 2 : 3));
     this.face(add(o, up), du, dv, (s, t) => (s < 0.06 || s > 0.94 || t < 0.06 || t > 0.94 ? R.wood[1]! : Math.abs(((s * 3) % 1) - 0.5) > 0.44 ? R.wood[1]! : R.wood[3]!));
-    if (!float) return;
-    // a net float lying on it: a ball in the benches' red, a white band round it
-    const c = this.at(this.floor(u + 0.02, v - 0.03, 2 * half + 0.13)), r = (LENS * 0.14) / c.far;
-    for (let dy = -Math.ceil(r); dy <= Math.ceil(r); dy++) for (let dx = -Math.ceil(r); dx <= Math.ceil(r); dx++) {
-      if (Math.hypot(dx, dy) > r) continue;
-      const lit = 0.55 - 0.3 * (dx / r) * -this.hour.side - 0.3 * (dy / r);
-      this.put(c.x + dx, c.y + dy, Math.abs(dx + dy * 0.4) < r * 0.28 ? tone(F.hull, lit + 0.2, 0, 0, 0) : tone(F.red, lit, 0, 0, 0));
-    }
-  }
-
-  /** A coil of rope lying on the boards at a point of the deck's frame. */
-  private coil(u: number, v: number, r: number): void {
-    // a fat flat coil: a body of rope's tan filled turn on turn, dark between the turns and where the rope is laid
-    const c = this.at(onDeck(u, v, 0.05)), rx = (LENS * r) / c.far, ry = (rx * (c.y - this.hz)) / LENS;
-    for (let dy = -Math.ceil(ry) - 1; dy <= Math.ceil(ry); dy++) for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++) {
-      const d = Math.hypot(dx / rx, dy / ry);
-      if (d > 1 || d < 0.16) continue;
-      const turn = (d * 4.2) % 1, strand = Math.sin(Math.atan2(dy / ry, dx / rx) * 11 + d * 9) > 0.6;
-      this.put(c.x + dx, c.y + dy, turn < 0.22 ? R.earth[0]! : strand ? R.earth[1]! : dx * this.hour.side > 0 === turn > 0.6 ? R.dry[2]! : R.dry[1]!);
-    }
-    // its thickness toward the eye
-    for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++) {
-      const edge = ry * Math.sqrt(Math.max(0, 1 - (dx / rx) ** 2));
-      for (let k = 1; k <= 2; k++) this.put(c.x + dx, c.y + edge + k, R.earth[0]!);
-    }
   }
 
   // ---- the picture
@@ -1264,62 +1285,41 @@ class TerracePainter {
     this.seaBands();
     this.seaLights();
     this.pebbles();
-    // far to near: the boulders, the tufts on the bank, the thicket on the right
+    // far to near: the boulders, the tufts on the bank
     for (const r of [...TERRACE_ROCKS].sort((a, b) => b.z - a.z)) this.as(() => this.rock(r.x, r.z, r.r));
     this.tufts();
-    this.as(() => this.thicket());
-    // the reach over the beach: its piles, its boards, its far rail, what stands on its head, then its near rail
-    const end = REACH.long + REACH.deep, { head } = REACH;
-    this.pilework();
-    this.as(() => { this.reachThing = this.thing; this.reachDeck(); });
-    const feet = TerracePainter.reachFeet;
-    // the head's seaward rail from its far right corner to the tower, and the rail down the walk's right side and round the head's
-    this.woodRail(feet([[head.u1 - 0.12, end - 0.12], [6.3, end - 0.1], [4.9, end - 0.1]]), 870, onTower(1, 1));
-    this.woodRail(feet([[REACH.u1 - 0.1, 0.5], [REACH.u1 - 0.1, 2.7], [REACH.u1 - 0.1, 4.9], [REACH.u1 - 0.1, 7.1], [REACH.u1 - 0.1, REACH.long - 0.05], [head.u1 - 0.12, REACH.long + 0.15], [head.u1 - 0.12, REACH.long + 2], [head.u1 - 0.12, REACH.long + 3.8], [head.u1 - 0.12, end - 0.12]]), 880);
-    this.base = -REACH.drop;
-    this.as(() => this.rods(head.u1 - 0.5, end - 0.2));
-    this.as(() => this.crate(head.u1 - 0.75, DECK.v1 + end - 0.8, 0.3, 905));
-    this.base = 0;
-    this.as(() => this.tower());
-    // the string of lanterns: from a pole at the deck's edge, by a pole half way out the walk and one at the head's corner, to the tower
-    const poles: P3[] = [onDeck(8.9, DECK.v1 - 0.25), onReach(REACH.u1 - 0.1, 4.7), onReach(head.u1 - 0.12, REACH.long + 0.15)];
-    const tops = poles.map((foot, k): P3 => [foot[0] + 0.12 * (hash2(k, 1, 848) - 0.5), foot[1] + 2.75 - 0.15 * k, foot[2]]);
-    poles.forEach((foot, k) => { if (k > 0) this.as(() => this.pole(foot, tops[k]!, 0.13, WOOD4, 0.08, 0.1 * (hash2(k, 2, 849) - 0.5))); });
-    this.as(() => this.festoon([...tops, onTower(1, 0, TOWER.eave - 0.5)]));
-    // the walk's torches, at its right rail
-    this.as(() => this.torch(2));
-    this.as(() => this.torch(1));
-    // the rail down the walk's left side and along the head's to the tower, nearest the eye
-    this.woodRail(feet([[REACH.u0 + 0.1, 0.5], [REACH.u0 + 0.1, 2.7], [REACH.u0 + 0.1, 4.9], [REACH.u0 + 0.1, 7.1], [REACH.u0 + 0.1, REACH.long - 0.05], [head.u0 + 0.12, REACH.long + 0.15], [head.u0 + 0.12, REACH.long + 1.5]]), 890, onTower(0, 0));
-    // the terrace: its boards, the rail and what hangs on it, the grill, the picnic table and its benches
+    // behind the stage: the mast by the house's far gable, then the house in the middle
+    this.as(() => this.mast());
+    this.house();
+    // the terrace before its door: its boards, the rail along its seaward edge, a barrel by the porch, the picnic set, the grill
+    const { head } = REACH;
     let deck = 0;
     this.as(() => { deck = this.thing; this.deck(); });
     this.deckThing = deck;
     this.shadowAt(GRILL.u, GRILL.v, 0.5, 0.4, deck);
-    this.shadowAt(6.6, 3.0, 1.7, 1.4, deck);
-    // the corner by the barrel and the crate lies in their shade: a dark wing
-    this.shadowAt(0.1, 4.7, 1.2, 1.9, deck);
-    // the deck's own rail along its seaward edge: right of the walk round the far corner and back along the deck's end, and left of the walk out of the picture
-    this.woodRail([[REACH.u1 + 0.35, DECK.v1 - 0.1], [7.7, DECK.v1 - 0.1], [8.75, DECK.v1 - 0.1], [9.65, DECK.v1 - 0.1], [DECK.u1 - 0.12, DECK.v1 - 0.12], [DECK.u1 - 0.12, 5.3], [DECK.u1 - 0.12, 4.2], [DECK.u1 - 0.12, 3.05]].map(([u, v]) => onDeck(u!, v!)), 850);
-    this.woodRail([[REACH.u0 - 0.35, DECK.v1 - 0.1], [0.9, DECK.v1 - 0.1], [-0.2, DECK.v1 - 0.1], [-1.1, DECK.v1 - 0.1]].map(([u, v]) => onDeck(u!, v!)), 860);
-    this.as(() => this.pole(poles[0]!, tops[0]!, 0.14, WOOD4, 0.09, 0.08));
-    // the deck's torches, on posts of its rail, far to near: at the far corner, right of the walk's mouth, on the
-    // right side, left of the mouth and on the left by the barrel
-    for (const k of [3, 6, 4, 5, 0]) this.as(() => this.torch(k));
+    this.shadowAt(-3.4, -26.9, 1.6, 1.4, deck);
+    this.as(() => this.barrel(onDeck(HOUSE.door - 1.9, HOUSE.front + 0.45), 0.3, 0.84, 901, false));
+    // the deck's rail only either side of the walk's mouth, a gate: a rail the deck's whole length made a fence across the picture
+    this.woodRail([[-4.2, DECK.v1 - 0.1], [REACH.u0 - 0.35, DECK.v1 - 0.1]].map(([u, v]) => onDeck(u!, v!)), 850);
+    this.woodRail([[REACH.u1 + 0.35, DECK.v1 - 0.1], [4.8, DECK.v1 - 0.1]].map(([u, v]) => onDeck(u!, v!)), 860);
+    this.as(() => this.bench(-4.6, -28.3, [1, 0], [0, 1], 2.8, false, 3));
+    this.as(() => this.table(-4.4, -27.5, 2.4, 0.85, 5));
+    this.as(() => this.bench(-4.6, -25.9, [1, 0], [0, -1], 2.8, false, 2));
     this.as(() => this.grill());
-    // the walk's lifebuoy, on a post of its near rail (the real terrace's hangs on a post, with a sign)
-    this.base = -REACH.drop;
-    this.as(() => this.lifebuoy(REACH.u0 + 0.1, DECK.v1 + 3.3));
-    this.base = 0;
-    // near the viewer: a barrel, a crate and a coil of rope on the left; on the right the picnic set, a bench facing
-    // the eye, the table, and a bench with its back to the eye, the darkest
-    this.as(() => this.crate(0.3, 5.95, 0.26, 907, false));
-    this.as(() => this.coil(1.55, 4.35, 0.36));
-    this.as(() => this.crate(0.62, 4.2, 0.27, 903));
-    this.as(() => this.barrel(onDeck(-0.25, 4.75), 0.31, 0.86, 901, true));
-    this.as(() => this.bench(5.5, 4.0, [1, 0], [0, -1], 2.4, false, 3));
-    this.as(() => this.table(5.4, 2.55, 2.4, 0.85, 5));
-    this.as(() => this.bench(4.9, 1.75, [1, 0], [0, 1], 3.0, true, 2));
+    this.as(() => this.torch(2));
+    // the walk over the beach to the head where the eye stands: its piles, its boards, its rails, the watchtower on the
+    // head's left, the pair of torches where the walk meets the head
+    this.pilework();
+    this.as(() => { this.reachThing = this.thing; this.reachDeck(); });
+    const feet = TerracePainter.reachFeet;
+    this.woodRail(feet([[REACH.u1 - 0.1, 0.4], [REACH.u1 - 0.1, 4.4], [REACH.u1 - 0.1, REACH.long - 0.05]]), 880);
+    this.woodRail(feet([[REACH.u0 + 0.1, 0.4], [REACH.u0 + 0.1, 4.4], [REACH.u0 + 0.1, REACH.long - 0.05]]), 890);
+    // the head's right side, nearest the eye on the right: a rail that frames the picture's right edge
+    this.woodRail(feet([[head.u0 + 0.12, REACH.long + 0.2], [head.u0 + 0.12, REACH.long + 2.6], [head.u0 + 0.12, REACH.long + REACH.deep - 0.1]]), 895);
+    this.as(() => this.tower());
+    this.as(() => this.lifebuoy(head.u0 + 0.12, REACH.long + 2.6 + 0.1));
+    this.as(() => this.thicket());
+    for (const k of [1, 0]) this.as(() => this.torch(k));
     this.water = this.live.seal(bitmap);
     this.live.on = false;
     // the grain of scanned paint over the things' runs (not the sky, the sea, the clouds or a light)
@@ -1459,7 +1459,7 @@ class TerracePainter {
   private warmed(bitmap: Bitmap, look: number, at: { x: number; y: number }, far: number): void {
     const { w, h } = this;
     const takes = new Map<number, number>();
-    for (const run of [F.red, F.hull]) run.forEach((c, k) => takes.set(c, k / (run.length - 1)));
+    for (const run of [F.red, F.plaster]) run.forEach((c, k) => takes.set(c, k / (run.length - 1)));
     const reach = far + 2 * look;
     for (let y = Math.max(0, at.y - reach); y < Math.min(h, at.y + reach); y++) for (let x = Math.max(0, at.x - reach); x < Math.min(w, at.x + reach); x++) {
       const i = y * w + x, lightness = takes.get(this.px[i]!);

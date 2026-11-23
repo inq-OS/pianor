@@ -372,3 +372,19 @@ Check: untestable: a look on the real machine
 The atlas gauge (`refcat.py gauge`) and `art:check` measure; what goes into a picture is decided by looking (art direction section 5) and by the scene's rules, not by raising a number.
 
 Check: untestable: a painting judgement, held by the art review
+
+## d278
+
+**The terrace is calm: the deck, the walk, the watchtower, the picnic set, the grill and three torches, and no small props round them.** Features: ft_1_19.
+
+The terrace read as too busy and out of character, so it carries only what d176 asked for and the real terrace has: no string of paper lanterns and flags, no rods, crates or bench on the head, no coil of rope or net float, no mugs. Three torches stand at rails, none down the walk, whose rails have a post every four metres or so, so they do not stand one behind another as a lattice.
+
+Check: `src/core/layout/terrace.test.ts` "the torches are few"; `src/game/ui/pixel/keri/terracePicture.test.ts` "a watchtower stands on the head"
+
+## d279
+
+**The terrace is seen from the head of its walk over the water, looking back at the warden's house in the middle of the picture, as the 1991 game stages a place.** Features: ft_1_19.
+
+The painter is free to choose a scene's point of view and to move what stands in it when that gives the picture the 1991 game's character. The terrace's eye stands on the head over high water (`TERRACE_TIDE`), bearing 35; the house stands in the middle, crooked with age, the walk leads in to it, the watchtower frames the left and a dog rose thicket the right. The boards are the wood's own brown, a few gone silver.
+
+Check: `src/core/layout/terrace.test.ts` "over the water and looks back"; `src/game/ui/pixel/keri/terracePicture.test.ts` "the house stands in the middle"

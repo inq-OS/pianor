@@ -271,7 +271,7 @@ const PORT_LIFE: SceneLife<NonNullable<ReturnType<typeof PAINTED.port.ready>>> =
 const terrace = terracePlan();
 
 /**
- * The terrace before the warden's house (ft_1_19): the walk out over the beach to its watchtower, the pennant on the
+ * The terrace before the warden's house (ft_1_19), seen from the walk's head: the watchtower on the head, the pennant on the
  * tower's staff on the wind and the tower's lantern flickering at dusk and night; the grill's smoke by day, its sparks when the coals glow;
  * the plaza's torches burning at dusk and night.
  */
@@ -299,10 +299,10 @@ const TERRACE_LIFE: SceneLife<NonNullable<ReturnType<typeof PAINTED.terrace.read
     // moths round the lantern while it is lit, and a spark off the coals now and then
     { source: (time: number) => mothsAt(time, terrace.lamp, 4, seed), most: 4 },
     { source: (time: number) => sparksAt(time, terrace.fire, air, (t) => 0.25 + 0.2 * glowAt(t, 3, 11) / 2, seed, 6), most: 6 },
-    // and off the two torches nearest the eye, on the left by the barrel and left of the walk's mouth
+    // and off the two torches nearest the eye, at the head's near corners
     ...TORCH_SPARKS.map((k) => ({ source: (time: number) => sparksAt(time, { x: terrace.torches[k]!.x, y: terrace.torches[k]!.y - 4 }, air, (t) => 0.2 + 0.25 * glowAt(t, 3, 21 + k) / 2, seed + k, 5), most: 5 })),
   ] : []),
-  gulls: { n: 3, span: 3, box: { x: 260, y: 14, w: 360, h: 50 } },
+  gulls: { n: 3, span: 3, box: { x: 420, y: 12, w: 200, h: 54 } },
   spots: terrace.spots,
 };
 
