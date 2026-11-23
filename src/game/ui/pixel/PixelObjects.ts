@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { blit, createBitmap, recolor, toRgba, type Bitmap } from './bitmap';
-import { barBitmap, focusRingBitmap, inkBarBitmap, inkStar, labelOverflow, panelBitmap, tinted, trayBitmap, type BarColors, type PanelKind, type TrayKind } from './frames';
+import { barBitmap, focusRingBitmap, inkBarBitmap, inkStar, labelOverflow, panelBitmap, roundTrayBitmap, tinted, trayBitmap, type BarColors, type PanelKind, type TrayKind } from './frames';
 import { C } from './palette';
 import { drawnText, letterBoxOf, renderText, type TextOptions } from './font';
 import { MASCOT, STAR_EMPTY, STAR_FULL, type MascotFrame } from './sprites';
@@ -179,7 +179,7 @@ export interface PixelButtonOptions {
    * parchment (the main menu, ft_1_07): no panel at all, letters in dark ink that turn red under the pointer, with a red
    * line drawn under them; its icon is drawn in the same ink.
    */
-  look?: 'button' | 'card' | 'tab' | 'bandCell' | 'bandSlot' | 'ink';
+  look?: 'button' | 'card' | 'tab' | 'bandCell' | 'bandSlot' | 'ink' | 'bubble';
   /** With the `ink` look: a box drawn round it by hand, so a small button written on paper reads as something to press (d130). */
   inkBox?: boolean;
   /** Letters twice as big, for headings. */
@@ -417,7 +417,7 @@ export class PixelButton {
   private labelStyle(): TextOptions {
     const align = this.options.align === 'left' ? 'left' : 'center';
     const base = { maxWidth: this.maxLabelWidth, align, ...(this.options.keepCase ? { keepCase: true } : {}) } as const;
-    if (this.look === 'bandCell' || this.look === 'bandSlot') return { color: this.disabled ? C.honeyDark : this.active ? C.goldLight : this.hover ? C.cream : C.honey, ...base };
+    if (this.look === 'bandCell' || this.look === 'bandSlot' || this.look === 'bubble') return { color: this.disabled ? C.honeyDark : this.active ? C.goldLight : this.hover ? C.cream : C.honey, ...base };
     if (this.look === 'ink') return { color: this.inkColour(), ...base };
     if (this.disabled) return { color: C.dim, ...base };
     if (this.active && this.look === 'tab') return { color: C.gold, shadow: C.groove, ...base };
@@ -466,6 +466,7 @@ export class PixelButton {
     const { width, height } = this.box;
     const picture = this.options.picture;
     if (!picture && this.look === 'ink') return this.inkFace();
+    if (!picture && this.look === 'bubble') return roundTrayBitmap(width, height, this.armed ? 'slotArmed' : this.active && !this.disabled ? 'slotOn' : this.trayKind());
     if (!picture && (this.look === 'bandCell' || this.look === 'bandSlot')) return trayBitmap(width, height, this.trayKind());
     if (!picture) return panelBitmap(width, height, this.panelKind());
     const face = createBitmap(width, height);
@@ -479,7 +480,7 @@ export class PixelButton {
     // a drawing on its own slip of paper (the settings' pictures): the slip goes, the drawing is inked onto the page, its colours kept
     if (this.look === 'ink' && this.options.inkBox && icon.pixels.includes(C.cream)) return recolor(icon, { [C.cream]: 0, [C.ink]: this.inkColour() });
     if (this.look === 'ink') return icon.pixels.includes(C.ink) ? tinted(icon, C.buffLight, this.inkColour()) : tinted(icon, this.inkColour());
-    return this.look === 'bandCell' ? tinted(icon, this.labelStyle().color ?? C.honey) : icon;
+    return this.look === 'bandCell' || this.look === 'bubble' ? tinted(icon, this.labelStyle().color ?? C.honey) : icon;
   }
 
   /** The band's trays (ft_1_20): a cell or a slot, lit under the pointer, darker while pressed, marked when switched on. */
@@ -508,7 +509,7 @@ export class PixelButton {
 
   private paint(): void {
     this.panel.setBitmap(this.face());
-    if (this.icon && this.iconArt && (this.look === 'bandCell' || this.look === 'ink')) this.icon.setBitmap(this.iconShown(this.iconArt));
+    if (this.icon && this.iconArt && (this.look === 'bandCell' || this.look === 'bubble' || this.look === 'ink')) this.icon.setBitmap(this.iconShown(this.iconArt));
     this.label.setOptions(this.labelStyle());
     this.sublabel?.setOptions(this.subStyle());
     this.layout();

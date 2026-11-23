@@ -8,18 +8,19 @@ const overlap = (a: Rect, b: Rect) => a.x < rectRight(b) && b.x < rectRight(a) &
 const inside = (r: Rect, s = SCREEN) => r.x >= 0 && r.y >= 0 && rectRight(r) <= s.w && rectBottom(r) <= s.h;
 
 describe('the bubble (ft_1_20, d282)', () => {
-  it('ft_1_20.AC19 opens round the pointer with each option in its own fixed slot, 15 rows high at least, none overlapping', () => {
+  it('ft_1_20.AC19 opens round the pointer with each round option in its own fixed slot, 15 rows high at least, none touching', () => {
     const b = bubbleLayout({ at: { x: 160, y: 90 }, options: BUBBLE_SLOTS, screen: SCREEN });
     expect(b.options).toHaveLength(BUBBLE_SLOTS);
     for (const o of b.options) {
       expect(o.h).toBeGreaterThanOrEqual(15);
       expect(inside(o)).toBe(true);
     }
-    // two cells at least between neighbours, and none over the Close target in the centre
-    const grown = (r: Rect): Rect => ({ x: r.x - 1, y: r.y - 1, w: r.w + 2, h: r.h + 2 });
+    // the options are round: a cell and a half at least between neighbours, and two from the round Close target in the centre
+    const middle = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+    const apart = (a: Rect, c: Rect) => Math.hypot(middle(a).x - middle(c).x, middle(a).y - middle(c).y) - a.w / 2 - c.w / 2;
     for (let i = 0; i < b.options.length; i++) {
-      expect(overlap(b.options[i]!, b.close)).toBe(false);
-      for (let j = i + 1; j < b.options.length; j++) expect(overlap(grown(b.options[i]!), grown(b.options[j]!))).toBe(false);
+      expect(apart(b.options[i]!, b.close)).toBeGreaterThanOrEqual(2);
+      for (let j = i + 1; j < b.options.length; j++) expect(apart(b.options[i]!, b.options[j]!)).toBeGreaterThanOrEqual(1.5);
     }
     // slot 0 is straight above the centre, slot 2 to its right, slot 4 below, slot 6 to its left
     const mid = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });

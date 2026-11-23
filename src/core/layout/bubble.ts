@@ -6,12 +6,12 @@ import { rectRight, type Rect } from './rect';
  * opens them in a row beside the bubble. A screen may pin its few most-used actions in one slim row along its foot; the
  * items a student keeps are in the backpack. Pure: the scenes only draw these boxes. Coordinates are layout cells.
  *
- * AX-3 provisional: eight slots, options 18 x 18 on a ring of radius 29 (two cells at least between neighbours, so a small
+ * AX-3 provisional: eight slots, options 18 x 18 on a ring of radius 26 (a cell and a half between neighbouring round options, so a small
  * hand does not slip onto the next), a Close target in the centre, choices 18 x 18, cells of the strip 30 x 15.
  */
 export const BUBBLE_SLOTS = 8;
 const OPTION = 18;
-const RING = 29;
+const RING = 26;
 const HALF = RING + OPTION / 2;
 const CHOICE = 18;
 const CHOICE_GAP = 2;

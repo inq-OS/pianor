@@ -332,6 +332,7 @@ export const stringsEt: Record<StringKey, string> = {
   'editor.staff.auto': 'Auto',
   'editor.staff.treble': 'Diskant',
   'editor.staff.bass': 'Bass',
+  'editor.timePanel': 'Taktimõõt ja tempo',
   'editor.staff.tip': 'Mängitud noodid: auto (helikõrguse järgi), diskant või bass',
   'editor.shortTap.on': 'Lühike = 1/8',
   'editor.shortTap.off': 'Lühike = 1/4',

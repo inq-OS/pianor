@@ -108,6 +108,8 @@ const CHIP = 15;
 /** Room between the backpack and the gear, so the two are not taken for each other. */
 const BACKPACK_GAP = 2;
 /** A long press opens the bubble after this long (ft_1_20, d282); moving the finger farther than `LONG_PRESS_SLIP` screen pixels cancels it. */
+/** How much of the bubble's ground covers what is under it. */
+const BUBBLE_GROUND_ALPHA = 0.45;
 const LONG_PRESS_MS = 450;
 const LONG_PRESS_SLIP = 12;
 
@@ -1162,11 +1164,12 @@ export abstract class PixelScene extends Phaser.Scene {
       }
       this.closeMenu();
     });
-    container.add([catcher, new PixelImage(this, layout.area.x, layout.area.y, ringBitmap(layout.area.w))]);
+    // the ground is see-through: the staff under it still reads while the bubble is open
+    container.add([catcher, new PixelImage(this, layout.area.x, layout.area.y, ringBitmap(layout.area.w)).setAlpha(BUBBLE_GROUND_ALPHA)]);
     const buttons: PixelButton[] = [];
     const make = (r: Rect, item: ToolbarItem, onClick: () => void): PixelButton => {
       const button = new PixelButton(this, container, {
-        ...rectCentre(r), label: item.label, labelWidth: r.w - CELL_PAD, look: 'bandCell', ...(item.icon ? { icon: item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}),
+        ...rectCentre(r), label: item.label, labelWidth: r.w - CELL_PAD, look: 'bubble', ...(item.icon ? { icon: item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}),
         tooltip: item.tooltip ?? item.label, ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}), onClick,
       });
       if (item.active) button.setActive(true);

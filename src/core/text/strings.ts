@@ -337,6 +337,7 @@ export const strings = {
   'editor.staff.auto': 'Auto',
   'editor.staff.treble': 'Treble',
   'editor.staff.bass': 'Bass',
+  'editor.timePanel': 'Time and tempo',
   'editor.staff.tip': 'Staff for played notes: auto (by pitch), treble or bass',
   'editor.shortTap.on': 'Short = 1/8',
   'editor.shortTap.off': 'Short = 1/4',
