@@ -7,17 +7,18 @@ import { pickupTicks, sectionHasNotes, type Chart } from '../chart';
  * `LEARN_RULES.chunkUnits`; inside a chunk the run grows by the step size (bars 1, 1-2, 1-3, 1-4). The finished chunk is
  * then played once more, the confirmation play. After every second chunk the two are joined (bars 1-8), and joins double
  * while they are shorter than the piece. Last comes the whole piece, `LEARN_RULES.wholeRuns` times perfectly in a row; a
- * piece of one chunk ends on its confirmation play, which is the whole piece. Each other step needs one perfect run.
+ * piece of one chunk ends on its confirmation play, which is the whole piece and so is asked as often. Each other step
+ * needs one perfect run.
  *
  * Every step is so confirmed by a final test that puts it together, a bar, a chunk, a pair of chunks at a time; the confirmation plays, joins and whole run are measured for the tempo the player keeps (`tempo.ts`).
  * What is learned is short: a character teaches a piece of a song (4 to 16 bars), not the song.
  */
 
 /**
- * AX-3 provisional (ft_1_32 rule 7): the chunk length in units and the perfect whole runs that finish the learning
- * (TODO(architect, R2) in ft_1_32).
+ * The chunk length in units (`AX-3 provisional`, ft_1_32 rule 7) and the perfect runs of the whole piece in a row that
+ * finish the learning (ft_1_32 rule 2: three, AX-1).
  */
-export const LEARN_RULES = { chunkUnits: 4, wholeRuns: 1 } as const;
+export const LEARN_RULES = { chunkUnits: 4, wholeRuns: 3 } as const;
 
 /** Units a step adds: 1 bar (the beginner's step), or 2. Slice 5 takes it from a difficulty budget. */
 export type LearnStepSize = 1 | 2;
@@ -84,7 +85,8 @@ export function learnPlan(chart: Chart, stepSize: LearnStepSize = 1): LearnStep[
       }
       if (upTo === end) break;
     }
-    steps.push(step('confirm', start, end));
+    // the confirmation play of a piece of one chunk is the whole piece: it is asked as often as the whole run
+    steps.push(step('confirm', start, end, chunks === 1 ? rules.wholeRuns : 1));
   }
   // after every second chunk the pair is joined, then pairs of pairs, while shorter than the piece: each join comes right
   // after the confirmation play of its last chunk

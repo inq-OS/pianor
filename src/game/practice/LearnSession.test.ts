@@ -69,10 +69,16 @@ describe('LearnSession', () => {
     const counted = playRun(even, [0, 1000, 2000, 3000]);
     expect(counted).toEqual({ outcome: 'perfect', bpm: 60 });
     await even.finish(counted.outcome, counted.bpm);
-    expect(even.learned).toBe(true);
+    expect(even.learned).toBe(false); // the whole piece is asked three times in a row
     expect(even.baseline).toBe(60);
     expect(kept.progress.tests).toHaveLength(2);
     expect(kept.progress.tests![1]).toEqual({ day: '1998-11-22', step: 1, bpm: 60, sd: 0, mad: 0, drift: 0, halts: 0, steady: true, kind: 'confirm', firstBar: 0, bars: [100] });
+    for (let run = 2; run <= 3; run++) {
+      const again = session();
+      const played = playRun(again, [0, 1000, 2000, 3000]);
+      await again.finish(played.outcome, played.bpm);
+    }
+    expect(kept.progress).toMatchObject({ step: 2, bpm: [60, 60, 60] });
     expect(session()).toBeNull();
   });
 
@@ -108,7 +114,9 @@ describe('LearnSession', () => {
       practiceFor: () => [0, 1, 2].map((i) => ({ ...play(0, []), at: `1998-11-22T10:0${i}:00Z` })),
       saveLearnProgress: (_, progress) => { kept.progress = progress; return Promise.resolve(true); },
     }, piece, '1998-11-22', () => clock)!;
-    await last.finish('perfect'); // the confirmation play: learned
+    await last.finish('perfect');
+    await last.finish('perfect');
+    await last.finish('perfect'); // the confirmation play, three times in a row: learned
     expect(kept.progress.learnedAt).toBe('1998-11-22T10:05:00.000Z');
     // the bar's three perfect plays were learning runs, before it was learned: they do not raise it to gold
     expect(last.rewards().piece).toBe('silver');

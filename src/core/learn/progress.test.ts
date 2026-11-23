@@ -10,9 +10,10 @@ import {
 
 const bars = (n: number) => chartWith(Array.from({ length: n }, (_, bar) => ({ tick: bar * 1920, dur: 480, midi: 60 + bar })));
 const eightBars = bars(8);
-const plan = learnPlan(eightBars); // per chunk four grow steps and its confirmation play, then the whole piece
-/** The same plan with the whole piece asked three times in a row. */
-const three = plan.map((s) => (s.kind === 'whole' ? { ...s, runs: 3 } : s));
+/** The plan: per chunk four grow steps and its confirmation play, then the whole piece asked three times in a row. */
+const three = learnPlan(eightBars);
+/** The same plan with the whole piece asked once, so a test of one rule needs fewer runs. */
+const plan = three.map((s) => (s.kind === 'whole' ? { ...s, runs: 1 } : s));
 
 /** Play runs (true perfect, false stopped, or an outcome) on one day. */
 const play = (from: LearnProgress, runs: readonly (boolean | RunOutcome)[], day = '1998-11-22', on = plan) =>
