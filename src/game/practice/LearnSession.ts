@@ -54,10 +54,10 @@ export class LearnSession {
 
   /**
    * The learning of `piece` for this player on `today`, or null when there is nothing to learn: the piece is learned, has
-   * no notes to play, or was played to the end `KNOWN_COMPLETIONS` times before its learning began. A piece in progress
-   * keeps the step size its learning began with (`learnStepBars`).
+   * no notes to play, or was played to the end `KNOWN_COMPLETIONS` times before its learning began (unless the player
+   * `asked` for its learning, from Kiur). A piece in progress keeps the step size its learning began with (`learnStepBars`).
    */
-  static open(profile: LearnProfile, piece: Chart, today: string, now: () => Date = () => new Date()): LearnSession | null {
+  static open(profile: LearnProfile, piece: Chart, today: string, now: () => Date = () => new Date(), asked = false): LearnSession | null {
     const kept = profile.learnProgressOf(piece.id);
     const stepBars = learnStepBars(kept, profile.learnSettings);
     const handsApart = learnHandsApart(kept);
@@ -65,7 +65,7 @@ export class LearnSession {
     const saved = { ...kept, stepBars, handsApart };
     if (plan.length === 0 || isLearned(plan, saved)) return null;
     const started = saved.lastDay !== null;
-    if (!started && (profile.recordFor(piece.id)?.completions ?? 0) >= KNOWN_COMPLETIONS) return null;
+    if (!asked && !started && (profile.recordFor(piece.id)?.completions ?? 0) >= KNOWN_COMPLETIONS) return null;
     return new LearnSession(profile, piece, plan, sitDown(plan, saved, today), today, now);
   }
 

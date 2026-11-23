@@ -2,7 +2,9 @@ import { firstPrintedBar, isSection, sectionHasNotes, sliceChart, writtenNotes, 
 import { pieceTitle } from '../core/text/pieceTitle';
 import { MissedBars, type Hints, type JudgeEvent, type NoteJudged, type PieceResult, type PlayState, type WrongNoteJudged } from '../core/judge';
 import type { LearnRewards } from '../core/learn/progress';
+import { learnsOnOpen } from '../core/learn/route';
 import { baselinePercent } from '../core/learn/tempo';
+import { CHARACTER_PIECES } from './adventure/scenesData';
 import { dayString } from '../io/teacher/teacherDesk';
 import { followsPlayer, nextPlayChoice, playChoiceOf, type PlayChoice, type PlaySettings } from '../core/judge/playSettings';
 import { barAtPoint } from '../core/layout/barPick';
@@ -116,6 +118,11 @@ export interface PracticeData {
   checkup?: { since: string };
   /** Learning bar by bar (ft_1_32): what Kiur says as this start begins, about the run just ended. */
   learnLine?: string;
+  /**
+   * Kiur was asked to teach this piece bar by bar (ft_1_32 rule 14): it opens in learning even when it was played to the end
+   * before. Without it the piano is a sandbox: only a character's piece is learned before it is played in full.
+   */
+  learn?: boolean;
   /**
    * One play of the first-run intro (ft_1_31.AC3, AC4): the lesson's bars as a section in Wait mode, with only Listen and
    * Start over; Kiur's spotlight shows the screen before the first lap (`shown` once it was); after `passes` laps back to
@@ -360,13 +367,16 @@ export class PracticeScene extends PixelScene {
   }
 
   /**
-   * The learning of this piece (ft_1_32), or null: not for a draft preview, the check-up, a section, with `?learn=0`, or for a
-   * piece that is learned (or was played well before learning came, `LearnSession.open`).
+   * The learning of this piece (ft_1_32), or null: not for a draft preview, the check-up, a section, with `?learn=0`, for a
+   * piece picked at the piano that is not a character's (the piano is a sandbox, rule 14), or for a piece that is learned
+   * (or, unless Kiur was asked, was played well before learning came, `LearnSession.open`).
    */
   private openLearning(data: PracticeData): LearnSession | null {
     const context = contextOf(this);
     if (this.preview || this.checkup || data.section || !context.flags.learn) return null;
-    return LearnSession.open(context.profiles, this.fullChart, dayString(new Date()));
+    const asked = data.learn === true;
+    if (!learnsOnOpen({ route: asked ? 'kiur' : 'piano', mustLearn: CHARACTER_PIECES.has(this.fullChart.id) })) return null;
+    return LearnSession.open(context.profiles, this.fullChart, dayString(new Date()), undefined, asked);
   }
 
   /** The check-up, the intro and learning play the piece as given: Wait mode, no mode, tempo or section buttons. */

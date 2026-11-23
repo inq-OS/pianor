@@ -436,3 +436,11 @@ Check: `src/core/character/rules.test.ts` "ft_1_21.AC18 the prize ladder has a n
 The same holds when every saved player is damaged: the damaged saves are kept and shown, and no default player is made in their place. Only the end-to-end tests' `?players=test` (dev only) and dev pages that keep a player in memory start with players.
 
 Check: `tests/progression/profile-service.test.ts` "ft_1_07.AC1: a new install makes no player, and nothing is written until the first name is given"; `tests/progression/profile-service.test.ts` "ft_1_07.AC1: a start whose only saves cannot be read makes no player either: it asks for a name and keeps the damaged save"
+
+## d278
+
+**The piano is a sandbox: a piece picked there plays in full with no learning gate, except a character's piece, which is still learned bar by bar first; learning and tugging go through Kiur, and a tug needs a learned piece.** Features: ft_1_32, ft_1_21. Changes d160 (pressing Kiur).
+
+Pressing Kiur in the room asks Learn or Tug, and either opens the piece book. Learn opens the piece in learning bar by bar even when it was played to the end before (`PracticeData.learn`); Tug lists only the pieces whose whole learning plan is done (`pieceLearned`) and takes the one picked to the room for his tug. Free plays never count as learning for the tug.
+
+Check: `src/core/learn/route.test.ts` "ft_1_32.AC13 the piano plays any piece in full, and a piece of a character is learned first"; `src/core/learn/route.test.ts` "ft_1_32.AC14 a piece is learned for the tug only once its whole plan is done, never from free plays"

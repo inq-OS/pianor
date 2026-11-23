@@ -22,6 +22,7 @@ export const strings = {
   'hand.LH': 'Left hand',
   'hand.both': 'Both hands',
   'menu.noPieces': 'No pieces yet.',
+  'menu.noneLearned': 'No piece is learned yet. Press Kiur and pick Learn first.',
   'menu.allOff': 'All pieces are off. Turn some on in Settings.',
   'menu.xp': '{xp} / {next} XP',
   'menu.xpTop': '{xp} XP (top level)',
@@ -39,6 +40,10 @@ export const strings = {
   'scene.rise': 'Back up',
   'room.piano': 'Piano',
   'room.kiur': 'Kiur',
+  // Kiur's question in the room (ft_1_32 rule 14): learn a song bar by bar, or tug one; a tug waits for the song to be learned
+  'room.kiur.learn': 'Learn',
+  'room.kiur.tug': 'Tug',
+  'room.kiur.learnFirst': 'We tug {piece} once you have learned it. Press me and pick Learn.',
   // the player's card behind the shield in the room (ft_1_20.AC13): the shield's name and the card's lines
   'room.shield': 'Your card',
   'card.close': 'Close',
