@@ -148,11 +148,6 @@ export class ProfileRepository {
     return profile;
   }
 
-  /** True on a new install: no player at all, not even one whose save cannot be read. */
-  async hasNoPlayers(): Promise<boolean> {
-    return (await this.playerIds()).length === 0;
-  }
-
   async load(id: string): Promise<LoadResult> {
     const profileText = await this.store.get(documentKey(id, 'profile'));
     if (profileText === null) return this.moveRecord(id);

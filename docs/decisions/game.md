@@ -428,3 +428,11 @@ Check: `src/core/character/rules.test.ts` "each piece has its background in one 
 Checked by `characterProblems` (d169) for every character and across all characters by the content test.
 
 Check: `src/core/character/rules.test.ts` "ft_1_21.AC18 the prize ladder has a new, named, drawn rung for every level"
+
+## d277
+
+**A new instance of the game starts with no players; the first screen asks for the first player's name, and players are only ever added by the person.** Features: ft_1_07.
+
+The same holds when every saved player is damaged: the damaged saves are kept and shown, and no default player is made in their place. Only the end-to-end tests' `?players=test` (dev only) and dev pages that keep a player in memory start with players.
+
+Check: `tests/progression/profile-service.test.ts` "ft_1_07.AC1: a new install makes no player, and nothing is written until the first name is given"; `tests/progression/profile-service.test.ts` "ft_1_07.AC1: a start whose only saves cannot be read makes no player either: it asks for a name and keeps the damaged save"
