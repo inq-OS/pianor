@@ -57,3 +57,21 @@ export function teachLevelOf(def: Pick<CharacterDef, 'phrases'>, piece: PieceId)
   }
   return 1;
 }
+
+/**
+ * The world once the pieces the student has learned bar by bar are kept as taught (ft_1_32.AC15): a character teaches its
+ * piece through learning, so each piece of a met character's `phrases` that `learned` says is learned joins its `taught`
+ * on `day`, once. The same world when nothing is new.
+ */
+export function learnedTaught(world: WorldState, characters: Iterable<Pick<CharacterDef, 'id' | 'phrases'>>, learned: (piece: PieceId) => boolean, day: DayString): WorldState {
+  let met = world.met;
+  for (const def of characters) {
+    const record = met[def.id];
+    if (record === undefined) continue;
+    const pieces = Object.values(def.phrases).flatMap((p) => p ?? []).filter((piece) => !record.taught.includes(piece) && learned(piece));
+    if (pieces.length === 0) continue;
+    const taughtOn = { ...record.taughtOn, ...Object.fromEntries(pieces.map((piece) => [piece, day])) };
+    met = { ...met, [def.id]: { ...record, taught: [...record.taught, ...pieces], taughtOn } };
+  }
+  return met === world.met ? world : { ...world, met };
+}
