@@ -3,8 +3,8 @@ id: "ft_1_20"
 title: "Actions in a bubble at the pointer, a pinned strip and a backpack, in place of the band under every screen"
 scope: "A right click (a long press on a tablet) opens a bubble of what can be done with the thing under the pointer; a screen pins its few most-used actions in one slim strip along its foot; the items a student keeps are in a backpack. It replaces the band of the classic point-and-click games (3 x 3 actions and an inventory) under every screen. Functions only; the look is the painter's"
 effort: "large"
-status: "in progress: the band is still drawn on every screen but the battle screens (d129); the bubble, the strip and the backpack (d282) are laid out in core (AC18 to AC21) and not drawn yet; held items (AC4) are open"
-completeness: 25
+status: "in progress: practice and the piece maker have the strip and the bubble (d282, AC22 but the pulse of More and the touch long press on a real tablet); the band is still drawn on the other screens; the backpack is not built; held items (AC4) are open"
+completeness: 40
 depends_on: ["ft_0_13", "ft_Y_13", "ft_1_18", "core_09"]
 ---
 # ft_1_20: Actions in a bubble, a pinned strip and a backpack
@@ -36,6 +36,8 @@ A screen whose actions all fit the strip and has nothing to point at pins them a
 | Room, map, scenes | none (things are pressed in the picture, rule 7) | none; the backpack in the top right corner |
 
 The door (Back) and the gear (Settings) stay in the top corners (rule 3). The piano's status (lit while connected, its name in the tooltip) is a small picture in the top strip left of the gear, not an action. Keys do what they did; every action keeps its key, and a key that is free may be added (faster and slower on the arrows, a selected note's length on the number keys) when no other use of it is lost.
+
+Built on practice and the piece maker (`PixelScene`: `stripCells`, `bubbleOptions`, `openBubble`; `tests/e2e/bubble.spec.ts`). AX-3 provisional, where the table leaves a gap: Tempo's start over after two bars is a strip cell (the bubble's slots are full); with bars selected the note's bubble has paste and repeat in place of fingers and grace note; on an empty place slot 5 takes a placed rest away and slot 7 holds ties and slurs (ALL needs no note); a right click on the time signature opens the time panel at once; the bubble's cells are 18 x 18, so an option drawn for the band's large slots shows its small picture (`lengthArt.ts`) or its word.
 
 AX-3 provisional: the painted places keep their 124-row picture centred in the rows they get until the painter paints them taller; while a conversation's choices or the tug are open (they use the old 56-row board, `BAND_ROWS`) the picture moves up so the board stands under it.
 
@@ -128,7 +130,8 @@ A held mark is put on a note by clicking it (a tie: the first note, then the one
 
 Work tags ([todo-tags.md](../automation/todo-tags.md)); the closed issue in brackets keeps the earlier discussion.
 
-- TODO(builder, R2): build the bubble, the strip and the backpack (d282) in `PixelScene`: a screen declares its pinned actions, its bubble options per target (note, staff place, bar number, the screen) and its kept items; `frameView` takes `pinRows`; the band, `bandLayout`, `bandCells`, `bandItemPage`, the 3 x 3 rows of this file and the band's sections below go. Practice and the piece maker first, then every screen of the table, the end-to-end helpers (`bandAction`) and the help cards of ft_1_33. Look at every screen at 1920 x 1080 before saying done.
+- TODO(builder, R2): the strip on every other screen of the table and the backpack (d282); then the band, `bandLayout`, `bandCells`, `bandItemPage`, the 3 x 3 rows of this file and the band's sections below go, with `bandAction` in the end-to-end helpers. Practice and the piece maker have the strip and the bubble. Look at every screen at 1920 x 1080 before saying done.
+- TODO(builder, R2): More pulses gently on a player's first three visits of practice and the piece maker; the touch long press is built but not tried on a tablet.
 - TODO(builder, R2): Kiur's first-run intro (ft_1_31) shows the More cell and a right click on the staff once; the help cards of ft_1_33 show the bubble.
 - TODO(painter, R2): the bubble's look (a ring of plates round the pointer, the choices row, the More cell of three dots), the strip's cells at 30 x 15, the backpack and its page of items, and a picture for every action that is a word today (Analyse, the percent, the shape trainer's choices, Report a bug, Learning); free packs first (`use-free-art-packs`). Then paint the places taller, so no wood shows under a picture once the band is gone.
 - TODO(builder, R2): items as a pure model in `src/core/` (id, kind held, worn or opening, target kind, string and picture keys); the piece maker's marks (length, rest, accidentals, tie, tie to a note, dynamics), now items in the band that act on the selected note, also become held items that ride on the pointer and are put on a note with a click (AC4). Waits on the painter's cursor that carries an item.

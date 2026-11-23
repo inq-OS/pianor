@@ -59,6 +59,8 @@ export interface FrameView {
   toolbar: boolean;
   /** The action and inventory band under the main area (ft_1_20): its top in rows from the main area's top; null without it. */
   band: { top: number; rows: number } | null;
+  /** The pinned strip under the main area in place of the band (ft_1_20, d282): its top in rows from the main area's top; null without it. */
+  strip: { top: number; rows: number } | null;
 }
 
 /**
@@ -79,19 +81,29 @@ export interface FrameOptions {
    * vine and no band, whatever `band` says. AX-3 provisional: asked of the architect (d088 has a toolbar on every screen).
    */
   whole?: boolean;
+  /**
+   * The screen pins its actions in a strip of so many rows along its foot in place of the band (ft_1_20, d282): no
+   * toolbar and no band, and with 0 (nothing pinned) the main area has every row.
+   */
+  strip?: number;
 }
 
 export function frameView(screenWidth: number, screenHeight: number, options: FrameOptions = { band: false }): FrameView {
   const fine = pixelView(screenWidth, screenHeight, { minWidth: ART_CANVAS.width, minHeight: ART_CANVAS.height, maxScale: MAX_FINE_ZOOM }).scale;
   const scale = fine * ART_DETAIL;
   const width = Math.ceil(screenWidth / scale);
-  if (options.whole) return { scale, fine, width, height: Math.floor(screenHeight / scale), top: 0, toolbar: false, band: null };
-  if (!options.band) return { scale, fine, width, height: Math.ceil(screenHeight / scale) - FRAME_ROWS, top: FRAME_ROWS, toolbar: true, band: null };
+  if (options.whole) return { scale, fine, width, height: Math.floor(screenHeight / scale), top: 0, toolbar: false, band: null, strip: null };
+  if (options.strip !== undefined) {
+    // the strip stands on the last whole row, as the band did
+    const height = Math.floor(screenHeight / scale) - options.strip;
+    return { scale, fine, width, height, top: 0, toolbar: false, band: null, strip: options.strip > 0 ? { top: height, rows: options.strip } : null };
+  }
+  if (!options.band) return { scale, fine, width, height: Math.ceil(screenHeight / scale) - FRAME_ROWS, top: FRAME_ROWS, toolbar: true, band: null, strip: null };
   // the band stands on the last whole row, so none of it is cut off at the screen's foot
   const toolbar = options.toolbar ?? BAND_KEEPS_TOOLBAR;
   const top = toolbar ? FRAME_ROWS : 0;
   const height = Math.floor(screenHeight / scale) - BAND_ROWS - top;
-  return { scale, fine, width, height, top, toolbar, band: { top: height, rows: BAND_ROWS } };
+  return { scale, fine, width, height, top, toolbar, band: { top: height, rows: BAND_ROWS }, strip: null };
 }
 
 /** What a screen puts on the toolbar; widths in art pixels, the texts measured by the caller. */

@@ -323,6 +323,7 @@ export const stringsEt: Record<StringKey, string> = {
   'editor.length.dottedEighth': '3/16',
   'editor.length.eighth': '1/8',
   'editor.length.sixteenth': '1/16',
+  'editor.rest.remove': 'Võta paus ära',
   'editor.delete': 'Kustuta',
   'editor.undo': 'Tühista',
   'editor.redo': 'Uuesti',
@@ -679,6 +680,7 @@ export const stringsEt: Record<StringKey, string> = {
   'demo.audio.help': 'Vajuta klahve (ekraanil või Z X C V B), et kuulda klaverit. Käivita metronoom ja jälgi lööki.',
 
   'ui.back': 'Tagasi',
+  'bubble.close': 'Sulge',
   'band.more': 'Veel',
   'band.itemsUp': 'Eelmised asjad',
   'band.itemsDown': 'Järgmised asjad',

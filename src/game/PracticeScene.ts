@@ -21,7 +21,7 @@ import { contextOf, MIDI_CHANGED } from './context';
 import { BarRecorder } from './practice/BarRecorder';
 import { ListenAlong } from './practice/ListenAlong';
 import { MESSAGE_MS, PlaySession, type PlaySessionOptions } from './practice/PlaySession';
-import { IDLE, actionForCode, chordStep, hotkeyLabel, typedBarRange, type Chord, type ChordContext, type ChordInput } from './practice/hotkeys';
+import { HOTKEYS, IDLE, actionForCode, chordStep, hotkeyLabel, typedBarRange, type Chord, type ChordContext, type ChordInput } from './practice/hotkeys';
 import { carryOver, metronomeAtCreate } from './practice/metronomeStart';
 import { CountInGrace } from './practice/countInGrace';
 import { stripBpmLabel } from './practice/clickSpeed';
@@ -32,7 +32,7 @@ import { ICONS } from './ui/pixel/iconArt';
 import { Mascot, PixelImage, PixelText, type PixelButton, type PixelButtonOptions } from './ui/pixel/PixelObjects';
 import { MASCOT_SIZE } from './ui/pixel/sprites';
 import { BAR_BUTTON_HEIGHT, BAR_EDGE, BAR_GAP, BUBBLE_X, TITLE_X, TOP_BAR } from './ui/pixel/playBars';
-import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
+import { PixelScene, type BubbleOption, type StripCell, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { openOverlay, startScene, type OverlayOutcome } from './scenes';
 import type { KeriScreen } from './visit/islandVisit';
@@ -201,6 +201,7 @@ export interface PracticeData {
  * bar); the staff itself is drawn at the full screen resolution so its lines stay thin and sharp.
  */
 export class PracticeScene extends PixelScene {
+  protected override bubbleScreen = true;
   private chart!: Chart;
   /** The whole piece; `chart` is a section of it while one is being practised. */
   private fullChart!: Chart;
@@ -1087,7 +1088,12 @@ export class PracticeScene extends PixelScene {
     this.playSession.setMascot(this.mascot);
     const paging = this.picking !== null && layout.pageCount > 1;
     const pageY = strip.rows / 2;
-    const nextRight = strip.right - 2;
+    // the piano's status left of the gear (ft_1_20): its picture, clear while one is connected, its name in the tooltip
+    const piano = ICONS.freePlay;
+    const pianoX = strip.right - piano.width - 2;
+    const connected = contextOf(this).midi?.getStatus().state === 'connected';
+    make({ x: pianoX + piano.width / 2, y: pageY, width: piano.width + 2, height: piano.height + 2, label: this.pianoStatus(), picture: piano, onClick: () => undefined }).setAlpha(connected ? 1 : 0.45);
+    const nextRight = pianoX - 4;
     const previousRight = nextRight - PAGE_BUTTON_WIDTH - BAR_GAP;
     if (paging) {
       const page = staffView.currentPage;
@@ -1109,66 +1115,93 @@ export class PracticeScene extends PixelScene {
   }
 
   /**
-   * The screen's actions in the band's grid (ft_1_20 rule 1), three to a row: Listen, Again, Wait or Tempo; Slower, the
-   * tempo, Faster; the section and Analyse. The tempo cell shows the percent (its BPM in the tooltip) and a press puts it back
-   * to 100. Each cell's word is its label (read by tests) and its tooltip, with the key that does the same.
+   * The strip (ft_1_20, d282): Listen or Stop, Start again, Wait or Tempo, slower, the percent (its BPM in the tooltip, a
+   * press back to 100), faster and, in Tempo, starting over after two bars with nothing right; then More and the worn
+   * options that are on (a section, note names, fingers, the click), lit, a press turning one off. The intro's lesson and
+   * learning keep Listen and Start again only; the check-up only Start again. Each word is its label (read by tests).
    */
-  protected override bandActions(): ToolbarItem[] {
-    // the check-up is the piece as written: only starting over is left
+  protected override stripCells(): StripCell[] {
     const restart: ToolbarItem = { label: t('practice.restart'), icon: TOOL_ICONS.repeat, tooltip: hotkeyLabel(t('practice.restart'), 'reset'), onClick: () => this.resetPlay() };
     if (this.checkup) return [restart];
-    // the intro's lesson and learning (ft_1_31.AC3, ft_1_32): Listen and Start over, nothing that changes the play
     // the intro's lesson also has its skip button, last
     if (this.intro) return [this.listenAction(), restart, { label: t('intro.skipShort'), tooltip: t('intro.skip'), onClick: () => this.skipIntro() }];
     if (this.learn) return [this.listenAction(), restart];
     const choice = playChoiceOf(contextOf(this).profiles.playSettings);
-    const section = this.startData.section;
-    const sectionName = t(section ? 'practice.whole' : 'practice.section');
     const bpm = stripBpmLabel(this.chart.tempoMap[0]!.bpm, { tempoMode: this.transport !== null, percent: this.percent, clickOn: this.clickOn, offset: this.clickOffset });
-    const actions: ToolbarItem[] = [
+    const cells: StripCell[] = [
       this.listenAction(),
       restart,
       { label: t(MODE_LABEL[choice]), icon: TOOL_ICONS[choice], tooltip: modeTooltip(choice), onClick: () => this.switchMode() },
       { label: '-', tooltip: t('practice.slower'), disabled: this.percent <= TEMPO_PERCENT.min, onClick: () => this.setPercent(this.percent - TEMPO_PERCENT.step) },
       { label: t('practice.percent', { n: Math.round(this.percent) }), tooltip: bpm, keepCase: true, onClick: () => this.setPercent(100) },
       { label: '+', tooltip: t('practice.faster'), disabled: this.percent >= TEMPO_PERCENT.max, onClick: () => this.setPercent(this.percent + TEMPO_PERCENT.step) },
-      {
-        label: sectionName, icon: TOOL_ICONS.section, tooltip: hotkeyLabel(sectionName, 'section'), active: this.picking !== null || section !== undefined,
-        onClick: () => (section ? this.backToWhole() : this.startPicking()),
-      },
     ];
-    // the analysis of the whole piece: where it is tricky and what to practise (core_10)
-    if (!this.preview) actions.push({ label: t('analyze.button'), onClick: () => this.openAnalysis() });
-    return actions;
+    // Tempo mode: start over after two bars with nothing played right, lit while on (core_01.AC11). AX-3 provisional: in the
+    // strip, as the bubble's eight slots are taken
+    if (this.transport) cells.push({ label: t('practice.autoReset'), icon: TOOL_ICONS.autoReset, active: contextOf(this).profiles.playSettings.autoReset === true, onClick: () => this.toggleAutoReset() });
+    cells.push('more');
+    // the worn options that are on stand lit right of More, a press turns one off
+    const section = this.startData.section;
+    if (section !== undefined || this.picking !== null) cells.push(this.sectionOption(0));
+    if (this.hints.noteNames) cells.push(this.namesOption(6));
+    if (this.hints.fingers) cells.push(this.fingersOption(7));
+    if (this.clickOn) cells.push(this.clickOption(2));
+    return cells;
   }
 
-  /** Kuula in the band: listen to the piece (or the bars shown), or stop the game playing it. */
+  /**
+   * The bubble (ft_1_20, d282), anywhere on the screen: 0 Section or Whole piece; 1 the tempo ramp (while a section plays);
+   * 2 the click; 3 the circle of fifths; 4 the latest plays; 5 Analyse; 6 note names and 7 fingers (worn: they switch and
+   * leave the bubble open). None in the intro's lesson, learning or the check-up, which change nothing of the play.
+   */
+  protected override bubbleOptions(): BubbleOption[] {
+    if (this.checkup || this.intro || this.learn) return [];
+    const options: BubbleOption[] = [this.sectionOption(0)];
+    if (this.rampShown) options.push({ slot: 1, label: t('practice.ramp'), icon: TOOL_ICONS.steps, active: this.rampOpen, onClick: () => this.toggleRamp() });
+    options.push(this.clickOption(2));
+    options.push({ ...circleItem(() => this.openCircle()), slot: 3, disabled: this.listening });
+    if (!this.preview) {
+      options.push({ slot: 4, label: t('practice.statsPane'), icon: TOOL_ICONS.statsPane, active: this.paneShown, onClick: () => this.toggleStatsPane() });
+      // the analysis of the whole piece: where it is tricky and what to practise (core_10)
+      options.push({ slot: 5, label: t('analyze.button'), onClick: () => this.openAnalysis() });
+    }
+    options.push(this.namesOption(6), this.fingersOption(7));
+    return options;
+  }
+
+  private sectionOption(slot: number): BubbleOption {
+    const section = this.startData.section;
+    const name = t(section ? 'practice.whole' : 'practice.section');
+    return {
+      slot, label: name, icon: TOOL_ICONS.section, tooltip: hotkeyLabel(name, 'section'), shortcut: HOTKEYS.section.code.slice(3), active: this.picking !== null || section !== undefined,
+      onClick: () => (section ? this.backToWhole() : this.picking !== null ? this.resetPlay() : this.startPicking()),
+    };
+  }
+
+  private namesOption(slot: number): BubbleOption {
+    return {
+      slot, worn: true, label: t('ui.hint.names'), icon: TOOL_ICONS[this.hints.noteNames ? 'noteNamesOn' : 'noteNames'], active: this.hints.noteNames,
+      tooltip: hotkeyLabel(t('ui.hint.names'), 'noteNames'), shortcut: HOTKEYS.noteNames.code.slice(3), onClick: () => this.toggle('noteNames'),
+    };
+  }
+
+  private fingersOption(slot: number): BubbleOption {
+    return {
+      slot, worn: true, label: t('ui.hint.fingers'), icon: TOOL_ICONS.fingers, active: this.hints.fingers,
+      tooltip: hotkeyLabel(t('ui.hint.fingers'), 'fingers'), shortcut: HOTKEYS.fingers.code.slice(3), onClick: () => this.toggle('fingers'),
+    };
+  }
+
+  private clickOption(slot: number): BubbleOption {
+    return { slot, worn: true, label: t('practice.click'), icon: TOOL_ICONS.click, active: this.clickOn, tooltip: hotkeyLabel(t('practice.click'), 'click'), shortcut: HOTKEYS.click.code.slice(3), onClick: () => this.toggleClick() };
+  }
+
+  /** Kuula in the strip: listen to the piece (or the bars shown), or stop the game playing it. */
   private listenAction(): ToolbarItem {
     return {
       label: t(this.listening ? 'practice.listenStop' : 'practice.listen'), icon: this.listening ? TOOL_ICONS.stop : ICONS.ear, active: this.listening,
       onClick: () => this.listen(!this.listening),
     };
-  }
-
-  /**
-   * The screen's items in the band's slots (ft_1_20 rule 2): worn items lit while on (note names, fingers, the click, the
-   * stats pane), the tempo ramp as an opening item while a section is played, and the piano, lit while one is connected,
-   * its name or what to do without one in the tooltip. AX-3 provisional: the piano as an item, in place of the status line.
-   */
-  protected override bandItems(): ToolbarItem[] {
-    const midi = contextOf(this).midi?.getStatus();
-    const items: ToolbarItem[] = [
-      { label: t('ui.hint.names'), icon: TOOL_ICONS[this.hints.noteNames ? 'noteNamesOn' : 'noteNames'], active: this.hints.noteNames, tooltip: hotkeyLabel(t('ui.hint.names'), 'noteNames'), onClick: () => this.toggle('noteNames') },
-      { label: t('ui.hint.fingers'), icon: TOOL_ICONS.fingers, active: this.hints.fingers, tooltip: hotkeyLabel(t('ui.hint.fingers'), 'fingers'), onClick: () => this.toggle('fingers') },
-      { label: t('practice.click'), icon: TOOL_ICONS.click, active: this.clickOn, tooltip: hotkeyLabel(t('practice.click'), 'click'), onClick: () => this.toggleClick() },
-    ];
-    // Tempo mode: start over after two bars with nothing played right, lit while on (core_01.AC11)
-    if (this.transport) items.push({ label: t('practice.autoReset'), icon: TOOL_ICONS.autoReset, active: contextOf(this).profiles.playSettings.autoReset === true, onClick: () => this.toggleAutoReset() });
-    if (!this.preview) items.push({ label: t('practice.statsPane'), icon: TOOL_ICONS.statsPane, active: this.paneShown, onClick: () => this.toggleStatsPane() });
-    if (this.rampShown) items.push({ label: t('practice.ramp'), icon: TOOL_ICONS.steps, active: this.rampOpen, onClick: () => this.toggleRamp() });
-    items.push({ ...circleItem(() => this.openCircle()), disabled: this.listening });
-    items.push({ label: this.pianoStatus(), icon: ICONS.freePlay, active: midi?.state === 'connected', onClick: () => undefined });
-    return items;
   }
 
   /** The tempo ramp's panel over the staff's foot (with the band): opened and closed by its item, or closed by Esc. */
@@ -1523,8 +1556,9 @@ export class PracticeScene extends PixelScene {
   private onTap(pointer: Phaser.Input.Pointer): void {
     const { layout, staffView } = this.playSession;
     if (!layout || !staffView) return;
-    // a press on a button over the staff (the page buttons, with the band) is the button's
-    if (this.pointerOnButton(pointer)) return;
+    // a press on a button over the staff (the page buttons, with the band) is the button's; the right button and a press
+    // while the bubble is open are the bubble's (ft_1_20)
+    if (this.pointerOnButton(pointer) || this.menuOpen || pointer.rightButtonDown()) return;
     const top = this.mainTop + (this.bandShown ? this.cornerStrip.rows : TOP_BAR + this.toolRows) * this.px.scale;
     const bar = barAtPoint(layout, pointer.x, pointer.y - top, staffView.currentPage);
     if (bar === null) return;

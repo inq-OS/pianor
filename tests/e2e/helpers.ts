@@ -485,10 +485,8 @@ export async function letGameRun(page: Page, frames: number, ms = 0): Promise<vo
 
 /** Click the practice screen's button with this label with the real mouse. */
 export async function pressPracticeButton(page: Page, label: string): Promise<void> {
-  const index = await page.evaluate(
-    (text) => (window.__game.scene.getScene('practice').buttons as { objects: { text?: string }[] }[]).findIndex((b) => b.objects.some((o) => o.text === text)),
-    label,
-  );
+  // a button of the bubble is reached through More (ft_1_20, d282)
+  const index = await reachButton(page, 'practice', label);
   expect(index, `a button ${label}`).toBeGreaterThanOrEqual(0);
   await clickButton(page, 'practice', index);
 }
@@ -500,3 +498,50 @@ export const pieceXp = (page: Page, pieceId: string) => page.evaluate((id) => (w
 
 /** The active player's name. */
 export const playerName = (page: Page) => page.evaluate(() => window.__game.registry.get('context').profiles.profile.name as string);
+
+/** Whether the bubble (ft_1_20, d282) is open on scene `key`. */
+export const bubbleOpen = (page: Page, key: string): Promise<boolean> =>
+  page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { bubbleOpen: boolean }).bubbleOpen, key);
+
+/** Open the bubble of scene `key` with the strip's More, as a student who never right-clicks does (ft_1_20.AC22). */
+export async function openBubble(page: Page, key: string): Promise<void> {
+  if (await bubbleOpen(page, key)) return;
+  await clickButton(page, key, await sceneButton(page, key, 'More'));
+  await expect.poll(() => bubbleOpen(page, key)).toBe(true);
+}
+
+/** Press the bubble's option `label` on scene `key`, opening the bubble with More first when it is shut. */
+export async function pressInBubble(page: Page, key: string, label: string): Promise<void> {
+  await openBubble(page, key);
+  const index = await sceneButton(page, key, label);
+  expect(index, `an option ${label} in the bubble`).toBeGreaterThanOrEqual(0);
+  await clickButton(page, key, index);
+}
+
+/**
+ * The index of the button `label` (its word, label or tooltip) on scene `key`, reaching into the bubble when it is not on
+ * the screen (ft_1_20, d282): an open bubble is searched first and closed with Esc when it lacks the button; then the
+ * screen; then the bubble is opened with More. -1 when it is nowhere.
+ */
+export async function reachButton(page: Page, key: string, label: string): Promise<number> {
+  const find = () => page.evaluate(({ k, l }) => {
+    const s = window.__game.scene.getScene(k) as unknown as { buttons: { objects: { text?: string }[]; options: { label: string; tooltip?: string } }[]; openRing: { buttons: unknown[] } | null };
+    const pool = s.openRing ? s.buttons.filter((b) => s.openRing!.buttons.includes(b)) : s.buttons;
+    for (let i = pool.length - 1; i >= 0; i--) {
+      const b = pool[i]!;
+      if (b.objects.some((o) => o.text === l) || b.options.label === l || b.options.tooltip === l) return s.buttons.indexOf(b);
+    }
+    return -1;
+  }, { k: key, l: label });
+  let index = await find();
+  if (index >= 0) return index;
+  if (await bubbleOpen(page, key)) {
+    await page.keyboard.press('Escape');
+    await expect.poll(() => bubbleOpen(page, key)).toBe(false);
+    index = await find();
+    if (index >= 0) return index;
+  }
+  if ((await sceneButton(page, key, 'More')) < 0) return -1;
+  await openBubble(page, key);
+  return find();
+}

@@ -1,6 +1,6 @@
 // Covers ft_1_20 (actions in a bubble, a pinned strip and a backpack, d282).
 import { describe, expect, it } from 'vitest';
-import { BUBBLE_SLOTS, PIN_COLUMNS, PIN_ROWS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows } from './bubble';
+import { BUBBLE_SLOTS, LONG_PRESS, PIN_COLUMNS, PIN_ROWS, bubbleLayout, bubblePage, cellSpan, longPress, pinFlow, pinRows, slotStep } from './bubble';
 import { rectBottom, rectRight, type Rect } from './rect';
 
 const SCREEN = { w: 320, h: 180 };
@@ -108,6 +108,38 @@ describe('the pinned strip (ft_1_20, d282)', () => {
       expect(flow.placed.map((p) => p.action)).toEqual([0, 1]);
       expect(rectRight(flow.placed[1]!.rect)).toBe(width - 2);
       expect(flow.placed[0]!.rect.x).toBe(2);
+    }
+  });
+});
+
+describe('the bubble from the keyboard and on a touch screen (ft_1_20, d282)', () => {
+  it('ft_1_20.AC22 walks the used slots clockwise with the arrows, round the ring, skipping empty slots', () => {
+    const used = [true, false, true, true, false, false, true, false];
+    expect(slotStep(used, 0, 1)).toBe(2);
+    expect(slotStep(used, 3, 1)).toBe(6);
+    expect(slotStep(used, 6, 1)).toBe(0);
+    expect(slotStep(used, 0, -1)).toBe(6);
+    expect(slotStep(used, -1, 1)).toBe(0);
+    expect(slotStep(used.map(() => false), 0, 1)).toBe(-1);
+  });
+
+  it('ft_1_20.AC22 opens on a long press at 450 ms, a ring filling from 150 ms, and a move of more than 12 pixels cancels it', () => {
+    expect(longPress(100, 0)).toEqual({ state: 'wait' });
+    expect(longPress(150, 0)).toEqual({ state: 'ring', fill: 0 });
+    expect(longPress(300, 5)).toEqual({ state: 'ring', fill: 0.5 });
+    expect(longPress(LONG_PRESS.openMs, 12)).toEqual({ state: 'open' });
+    expect(longPress(200, 13)).toEqual({ state: 'cancel' });
+  });
+});
+
+describe('the bubble\'s row of choices (ft_1_20, d282)', () => {
+  it('ft_1_20.AC18 a choice that is a word is as wide as its word, and the row stays inside the screen over no option', () => {
+    const b = bubbleLayout({ at: { x: 280, y: 90 }, options: BUBBLE_SLOTS, screen: SCREEN, open: { option: 2, choices: 3, widths: [10, 40, 18] } });
+    expect(b.choices.map((c) => c.w)).toEqual([18, 40, 18]);
+    for (let i = 1; i < b.choices.length; i++) expect(b.choices[i]!.x).toBeGreaterThan(rectRight(b.choices[i - 1]!));
+    for (const c of b.choices) {
+      expect(inside(c)).toBe(true);
+      for (const o of b.options) expect(overlap(c, o)).toBe(false);
     }
   });
 });

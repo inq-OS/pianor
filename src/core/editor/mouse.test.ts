@@ -16,9 +16,9 @@ describe('mouse buttons in the piece editor', () => {
     expect(mouseAction({ button: 0, altKey: false, shiftKey: true })).toBe('extend');
   });
 
-  it('the right button removes, as before', () => {
-    expect(mouseAction({ button: 2, altKey: false, shiftKey: false })).toBe('remove');
-    expect(mouseAction({ button: 2, altKey: true, shiftKey: true })).toBe('remove');
+  it('ft_1_20.AC22 the right button opens the bubble of what can be done with the thing under it, and removes nothing itself', () => {
+    expect(mouseAction({ button: 2, altKey: false, shiftKey: false })).toBe('bubble');
+    expect(mouseAction({ button: 2, altKey: true, shiftKey: true })).toBe('bubble');
   });
 
   it('other buttons (back, forward) do nothing', () => {

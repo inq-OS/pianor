@@ -328,6 +328,7 @@ export const strings = {
   'editor.length.dottedEighth': '3/16',
   'editor.length.eighth': '1/8',
   'editor.length.sixteenth': '1/16',
+  'editor.rest.remove': 'Take the rest away',
   'editor.delete': 'Delete',
   'editor.undo': 'Undo',
   'editor.redo': 'Redo',
@@ -689,6 +690,7 @@ export const strings = {
 
   'ui.back': 'Back',
   // the action and inventory band (ft_1_20): the cell that turns the grid to the next actions, and the inventory's arrows
+  'bubble.close': 'Close',
   'band.more': 'More',
   'band.itemsUp': 'Items before',
   'band.itemsDown': 'More items',

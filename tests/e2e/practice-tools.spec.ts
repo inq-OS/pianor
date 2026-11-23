@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { clickButton, expectNoErrors, letGameRun, openGame, openPiece, playWithVirtualPiano, pieceXp, pressPracticeButton as press, sceneTexts, toScoreScreen, useOneLine, waitForScene, bandAction, sceneWords } from './helpers';
+import { clickButton, expectNoErrors, letGameRun, openGame, openPiece, playWithVirtualPiano, pieceXp, pressPracticeButton as press, sceneTexts, toScoreScreen, useOneLine, waitForScene, bandAction, sceneWords, openBubble, bubbleOpen } from './helpers';
 
 /** The practice screen's tools strip: the metronome click, the tempo percent, and a section to practise. */
 
@@ -46,7 +46,10 @@ test.describe('practice tools (core_02 and core_03)', () => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
     expect(await sceneTexts(page, 'practice')).toEqual(expect.arrayContaining(['-', '100%', '+']));
-    expect(await buttonNames(page)).toEqual(expect.arrayContaining(['Click [Shift+M]', 'Section [Shift+R]'])); // the metronome and A | -> | B
+    // the metronome and A | -> | B are in the bubble, which More opens (ft_1_20, d282)
+    expect(await buttonNames(page)).toContain('More');
+    await openBubble(page, 'practice');
+    expect(await buttonNames(page)).toEqual(expect.arrayContaining(['Click [Shift+M]', 'Section [Shift+R]']));
     expectNoErrors(errors);
   });
 
@@ -92,6 +95,9 @@ test.describe('practice tools (core_02 and core_03)', () => {
     await expect.poll(running).toBe(true);
     await press(page, 'Click');
     await expect.poll(running).toBe(false);
+    // the first Esc closes the bubble the click stood in, the second leaves
+    await page.keyboard.press('Escape');
+    await expect.poll(() => bubbleOpen(page, 'practice')).toBe(false);
     await page.keyboard.press('Escape');
     await waitForScene(page, 'menu');
     expect(await running()).toBe(false); // leaving stops it
@@ -345,7 +351,9 @@ test.describe('practice tools (core_02 and core_03)', () => {
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').hints)).toEqual({ noteNames: true, fingers: false });
     await page.keyboard.press('KeyF');
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').hints)).toEqual({ noteNames: true, fingers: true });
+    await openBubble(page, 'practice');
     expect(await buttonNames(page)).toEqual(expect.arrayContaining(['Note names [A]', 'Fingers [F]']));
+    await page.keyboard.press('Escape');
     // the note names button is a note, and shows a name beside it once names are on
     const namesIcon = () => page.evaluate(() => (window.__game.scene.getScene('practice').buttons as { options: { label: string; icon?: { width: number } } }[]).find((b) => b.options.label === 'Note names')!.options.icon!.width);
     expect(await namesIcon()).toBe(10);
@@ -361,7 +369,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
     expectNoErrors(errors);
   });
 
-  test('the band\'s cells do not overlap, with a section and the BPM of Tempo mode (ft_1_20.AC1)', async ({ page }) => {
+  test('ft_1_20.AC21 the strip\'s cells do not overlap, with a section and the BPM of Tempo mode (ft_1_20.AC1)', async ({ page }) => {
     const errors = await openGame(page);
     await page.evaluate(() => window.__game.registry.get('context').profiles.updatePlaySettings({ mode: 'tempo' }));
     await openPiece(page, 'Little Steps');
@@ -376,7 +384,8 @@ test.describe('practice tools (core_02 and core_03)', () => {
       const rects = scene.buttons.map((b: { rect: { x: number; y: number; width: number; height: number } }) => b.rect).filter((r: { y: number }) => r.y >= (scene.px.height as number));
       return { width: scene.px.width as number, rects: rects as { x: number; y: number; width: number; height: number }[] };
     });
-    expect(band.rects.length).toBeGreaterThanOrEqual(9);
+    // the strip holds eight cells at most (ft_1_20, d282)
+    expect(band.rects.length).toBe(8);
     for (const [i, a] of band.rects.entries()) {
       expect(a.x + a.width, `cell ${i}`).toBeLessThanOrEqual(band.width);
       for (const b of band.rects.slice(i + 1)) expect(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y, `cells ${i}`).toBe(true);
