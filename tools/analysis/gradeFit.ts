@@ -40,6 +40,7 @@ export interface TailFit {
  * AX-3 provisional: no published table maps Henle onto our grades (TODO(architect) in core_08).
  */
 export function targetPoints(label: number, range: { min: number; max: number }): number {
+  if (range.max <= range.min) return 10;
   return Math.round(10 + ((label - range.min) / (range.max - range.min)) * 88);
 }
 
@@ -104,7 +105,7 @@ export function gradeFitReport(name: string, fit: TailFit, skipped: readonly { i
     `${name}: ${fit.items} item(s), ${fit.used} scored above Beginner, ${fit.belowBeginnerEnd} graded above Beginner but scored as Beginner`,
     `  rank correlation of score and label ${fit.spearman.toFixed(2)} (1 orders the set perfectly)`,
     fit.used > 0
-      ? `  suggested tail ${Math.round(fit.tail)} (today ${DIFFICULTY_WEIGHTS.tail}): mean error ${fit.mae.toFixed(1)} points, same grade ${pct(fit.sameGrade)}`
+      ? `  suggested tail ${fit.tail} (today ${DIFFICULTY_WEIGHTS.tail}): mean error ${fit.mae.toFixed(1)} points, same grade ${pct(fit.sameGrade)}`
       : `  nothing scored above Beginner: tail stays ${DIFFICULTY_WEIGHTS.tail}`,
     `  to accept it, write it into DIFFICULTY_WEIGHTS.tail in src/core/piece/difficulty.ts and run npm test`,
     ...(skipped.length > 0 ? [`${skipped.length} item(s) not read:`, ...skipped.map((s) => `  ${s.id}: ${s.reason}`)] : []),
