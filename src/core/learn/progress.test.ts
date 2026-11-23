@@ -4,15 +4,16 @@ import { chartWith } from '../../../tests/helpers/charts';
 import type { BarPlay } from '../progression/practiceLog';
 import { learnPlan } from './plan';
 import {
-  afterRun, currentRun, goldenBars, isLearned, learnProgressSchema, learnRewards, MAX_LEARN_TESTS, measuredOutcome, medalOf, sitDown, START_PROGRESS, withTest,
+  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, goldenBars, isLearned, learnProgressSchema, learnRewards, MAX_LEARN_TESTS, learnStepBars, measuredOutcome, medalOf, sitDown, START_PROGRESS, withTest,
   type LearnProgress, type RunOutcome,
 } from './progress';
 
 const bars = (n: number) => chartWith(Array.from({ length: n }, (_, bar) => ({ tick: bar * 1920, dur: 480, midi: 60 + bar })));
 const eightBars = bars(8);
-const plan = learnPlan(eightBars); // per chunk four grow steps and its confirmation play, then the whole piece
-/** The same plan with the whole piece asked three times in a row. */
-const three = plan.map((s) => (s.kind === 'whole' ? { ...s, runs: 3 } : s));
+/** The plan: per chunk four grow steps and its confirmation play, then the whole piece asked three times in a row. */
+const three = learnPlan(eightBars);
+/** The same plan with the whole piece asked once, so a test of one rule needs fewer runs. */
+const plan = three.map((s) => (s.kind === 'whole' ? { ...s, runs: 1 } : s));
 
 /** Play runs (true perfect, false stopped, or an outcome) on one day. */
 const play = (from: LearnProgress, runs: readonly (boolean | RunOutcome)[], day = '1998-11-22', on = plan) =>
@@ -172,7 +173,27 @@ describe('medals', () => {
     const at = (bar: number, firstTry: number, pieceId = 'p'): BarPlay => ({
       at: '1998-11-22T10:00:00Z', pieceId, bar, notes: 2, firstTry, timing: null, mode: 'wait', tempoPercent: 100, section: null, misses: [],
     });
-    expect([...goldenBars([at(0, 2), at(0, 2), at(0, 2), at(1, 2), at(1, 1), at(1, 2), at(1, 2), at(2, 2), at(2, 2), at(0, 2, 'q')], 'p')]).toEqual([0]);
+    expect([...goldenBars([at(0, 2), at(0, 2), at(0, 2), at(1, 2), at(1, 1), at(1, 2), at(1, 2), at(2, 2), at(2, 2), at(0, 2, 'q')], 'p', '1998-11-21T00:00:00Z')]).toEqual([0]);
+  });
+
+  it('ft_1_32.AC4 only plays after the piece was learned raise a bar to gold, never the learning runs themselves', () => {
+    const at = (time: string): BarPlay => ({
+      at: time, pieceId: 'p', bar: 0, notes: 2, firstTry: 2, timing: null, mode: 'wait', tempoPercent: 100, section: null, misses: [],
+    });
+    const learning = ['1998-11-22T10:00:00Z', '1998-11-22T10:01:00Z', '1998-11-22T10:02:00Z'].map(at);
+    expect(goldenBars(learning, 'p', null).size).toBe(0); // not learned yet
+    expect(goldenBars(learning, 'p', '1998-11-22T10:02:00Z').size).toBe(0); // all three were learning runs
+    const after = ['1998-11-22T11:00:00Z', '1998-11-23T09:00:00Z', '1998-11-23T09:01:00Z'].map(at);
+    expect([...goldenBars([...learning, ...after], 'p', '1998-11-22T10:02:00Z')]).toEqual([0]);
+  });
+
+  it('ft_1_32.AC4 the progress keeps when the piece was learned', () => {
+    const learned = play(START_PROGRESS, all(10), '1998-11-22', plan);
+    expect(learned.learnedAt).toBeUndefined(); // one run short
+    const done = afterRun(plan, learned, 'perfect', '1998-11-22', 60, '1998-11-22T10:05:00Z');
+    expect(done.learnedAt).toBe('1998-11-22T10:05:00Z');
+    expect(afterRun(plan, done, 'perfect', '1998-11-23', 60, '1998-11-23T08:00:00Z').learnedAt).toBe('1998-11-22T10:05:00Z');
+    expect(learnProgressSchema.parse(done).learnedAt).toBe('1998-11-22T10:05:00Z');
   });
 });
 
@@ -228,3 +249,14 @@ describe('learnRewards', () => {
     expect(learnRewards(plan, play(p, [false]), eightBars).chunks[0]!.quarters).toHaveLength(2);
   });
 });
+
+describe('the step size a piece is learned in', () => {
+  it('ft_1_32.AC2 a piece started keeps the step size it began with, so its step index never points elsewhere', () => {
+    expect(learnStepBars(START_PROGRESS, { ...DEFAULT_LEARN_SETTINGS, stepBars: 2 })).toBe(2); // not started: the setting
+    const started = afterRun(learnPlan(eightBars, 1), START_PROGRESS, 'perfect', '1998-11-22', undefined);
+    expect(learnStepBars({ ...started, stepBars: 1 }, { ...DEFAULT_LEARN_SETTINGS, stepBars: 2 })).toBe(1);
+    expect(learnStepBars(started, { ...DEFAULT_LEARN_SETTINGS, stepBars: 2 })).toBe(1); // kept before the field: step 1, the only size offered then
+    expect(learnProgressSchema.parse({ ...started, stepBars: 2 }).stepBars).toBe(2);
+  });
+});
+

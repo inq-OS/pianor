@@ -4,7 +4,7 @@ import type { JudgeEvent, WrongNoteJudged, WrongReason } from '../../core/judge'
 import { markersByNote, mistakeMarkers } from '../../core/learn/markers';
 import { learnPlan, learnUnits, type LearnStep } from '../../core/learn/plan';
 import {
-  afterRun, currentRun, goldenBars, isLearned, isMeasured, learnRewards, measuredOutcome, sitDown, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
+  afterRun, currentRun, goldenBars, isLearned, isMeasured, learnRewards, learnStepBars, measuredOutcome, sitDown, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
 } from '../../core/learn/progress';
 import { LearnRunJudge, type LearnRunVerdict } from '../../core/learn/run';
 import { baselineBpm, runTempo, type RunTempo } from '../../core/learn/tempo';
@@ -48,19 +48,23 @@ export class LearnSession {
     private readonly plan: readonly LearnStep[],
     private progress: LearnProgress,
     private readonly today: string,
+    private readonly now: () => Date,
   ) {}
 
   /**
    * The learning of `piece` for this player on `today`, or null when there is nothing to learn: the piece is learned, has
-   * no notes to play, or was played to the end `KNOWN_COMPLETIONS` times before its learning began.
+   * no notes to play, or was played to the end `KNOWN_COMPLETIONS` times before its learning began. A piece in progress
+   * keeps the step size its learning began with (`learnStepBars`).
    */
-  static open(profile: LearnProfile, piece: Chart, today: string): LearnSession | null {
-    const plan = learnPlan(piece, profile.learnSettings.stepBars);
-    const saved = profile.learnProgressOf(piece.id);
+  static open(profile: LearnProfile, piece: Chart, today: string, now: () => Date = () => new Date()): LearnSession | null {
+    const kept = profile.learnProgressOf(piece.id);
+    const stepBars = learnStepBars(kept, profile.learnSettings);
+    const plan = learnPlan(piece, stepBars);
+    const saved = { ...kept, stepBars };
     if (plan.length === 0 || isLearned(plan, saved)) return null;
     const started = saved.lastDay !== null;
     if (!started && (profile.recordFor(piece.id)?.completions ?? 0) >= KNOWN_COMPLETIONS) return null;
-    return new LearnSession(profile, piece, plan, sitDown(plan, saved, today), today);
+    return new LearnSession(profile, piece, plan, sitDown(plan, saved, today), today, now);
   }
 
   /** The run being played now (never null: a learned piece has no session). */
@@ -127,7 +131,7 @@ export class LearnSession {
   /** The run ended: keep where the student is now, and save it (a failed save is reported, never shown to the player). */
   finish(outcome: RunOutcome, bpm?: number): Promise<boolean> {
     const kept = this.measured ? withTest(this.progress, this.measured, this.today, { kind: this.run.step.kind, firstBar: this.run.firstBar }) : this.progress;
-    this.progress = afterRun(this.plan, kept, outcome, this.today, bpm);
+    this.progress = afterRun(this.plan, kept, outcome, this.today, bpm, this.now().toISOString());
     this.measured = null;
     return this.profile.saveLearnProgress(this.piece.id, this.progress).catch((error: unknown) => {
       console.error('saveLearnProgress failed', error);
@@ -169,7 +173,7 @@ export class LearnSession {
 
   /** The notes earned so far, each in its medal (ft_1_32.AC4). */
   rewards(): LearnRewards {
-    return learnRewards(this.plan, this.progress, this.piece, goldenBars(this.profile.practiceFor(this.piece.id), this.piece.id));
+    return learnRewards(this.plan, this.progress, this.piece, goldenBars(this.profile.practiceFor(this.piece.id), this.piece.id, this.progress.learnedAt ?? null));
   }
 }
 

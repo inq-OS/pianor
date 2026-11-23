@@ -465,6 +465,16 @@ export const strings = {
   // A monster in a scene of Keri (ft_1_19) with nothing to play now. Gentle, never "failed".
 
   // Monster campaign, find the key (ft_1_06). Gentle: a broken key is never "failed".
+  'settings.pageLearn': 'Learning',
+  'settings.learnStep': 'New bars in learning',
+  'settings.learnStepOne': 'One bar at a time',
+  'settings.learnStepTwo': 'Two bars at a time',
+  'settings.learnMarkers': 'Rings over missed notes',
+  'settings.learnMarkersOn': 'Rings on',
+  'settings.learnMarkersOnShort': 'ON',
+  'settings.learnMarkersOff': 'No rings',
+  'settings.learnMarkersFrom': 'Ring after misses',
+  'settings.learnMarkersFromN': 'After {n} misses',
   'settings.title': 'Settings',
   'settings.player': 'For {name}',
   'settings.lines': 'Lines of music on the screen',

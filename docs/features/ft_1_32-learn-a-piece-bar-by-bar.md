@@ -3,8 +3,8 @@ id: "ft_1_32"
 title: "Learn a piece bar by bar"
 scope: "Every new piece is learned before it is practised: the staff shows a growing run of bars inside chunks of four, each step needs one perfect run (a mistake ends the run and repeats the step), each finished chunk is confirmed by one more play whose key times measure the player's own tempo, then the whole piece; learned bars give quarter notes that merge into whole notes per chunk and a clef per piece, each gold, silver or bronze by how cleanly it was learned and raised to gold by three perfect plays; mistake markers over notes missed again; a recall check on a later day"
 effort: "large"
-status: "slice 2 in progress: the learning view on the practice screen with the confirmation play and the measured tempo; slice 1 (the pure core) done"
-completeness: 35
+status: "slices 1 and 2 done: the pure core, and the learning view on the practice screen with the confirmation play, the measured tempo and the learning settings; slice 3 has its following clock, the rushing stop and slices 4 to 6 are open"
+completeness: 40
 depends_on: ["ft_0_08", "core_03", "core_10"]
 ---
 # ft_1_32: Learn a piece bar by bar
@@ -16,7 +16,7 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 ## Rules
 
 1. **Units.** A piece is learned in printed bars; a pick-up belongs to the first full bar. A piece of one bar is one unit.
-2. **Chunks and steps.** Units are cut into chunks of 4 (the last chunk may be shorter). Inside a chunk the run grows by the step size (1 bar, or 2 for a player set to 2): bars 1, 1-2, 1-3, 1-4. A step that adds only bars with nothing to play is skipped. The finished chunk is then played once more, the **confirmation play**. After every second chunk the two are joined (bars 1-8), and joins double while they are shorter than the piece. Last comes the whole piece, three perfect runs in a row (AX-1: more correct repetitions for the same clef; a miss takes nothing away and the run starts over); a piece of one chunk ends on its confirmation play. So every step is confirmed by a final test that puts it together, a bar, a chunk, a pair of chunks at a time. Confirmation plays, joins and the whole run are measured (rule 8).
+2. **Chunks and steps.** Units are cut into chunks of 4 (the last chunk may be shorter). Inside a chunk the run grows by the step size (1 bar, or 2 for a player set to 2): bars 1, 1-2, 1-3, 1-4. A step that adds only bars with nothing to play is skipped. The finished chunk is then played once more, the **confirmation play**. After every second chunk the two are joined (bars 1-8), and joins double while they are shorter than the piece. Last comes the whole piece, three perfect runs in a row (AX-1: more correct repetitions for the same clef; a miss takes nothing away and the run starts over); a piece of one chunk ends on its confirmation play, which is the whole piece and so is asked three times in a row as well. So every step is confirmed by a final test that puts it together, a bar, a chunk, a pair of chunks at a time. Confirmation plays, joins and the whole run are measured (rule 8).
    What is learned is short: a character teaches a **piece of a song**, 4 bars (one chunk) or 8 (two) for now, up to about 16, as a level of that character; a 64-bar song is four levels of 16 bars, and the character's final boss is all its bars in one sitting, in the tug (slice 4).
 3. **A perfect run.** Wait mode with the staff showing only the step's bars. Every note is right the first time. The first wrong key ends the run at once, Kiur (or the character teaching it) names the mistake, and the same step starts again; no new bar appears until it is perfect. Note names may be shown (for students who do not read the staff yet), but a run with them does not count: the next run hides them. Finger numbers always count.
 4. **Progress** is kept per player and piece. On a later day than the last run, the bars of the step before the current one are played once, perfectly, before the next bar appears (the recall check, AX-1). The check is at most one chunk: after a join it is the last chunk joined, never the join's 8 or 16 bars (the recall rule is the builder's; AX-3 provisional).
@@ -41,7 +41,7 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 
 ## Acceptance criteria
 
-- **ft_1_32.AC1** The step plan of a piece: growing steps inside chunks of 4 units, a confirmation play of each finished chunk, joins that double, the whole piece last (a piece of one chunk ends on its confirmation play); a pick-up joins the first bar; steps that add only empty bars are skipped; step size 1 or 2 (slice 1).
+- **ft_1_32.AC1** The step plan of a piece: growing steps inside chunks of 4 units, a confirmation play of each finished chunk, joins that double, the whole piece last, three perfect runs in a row (a piece of one chunk ends on its confirmation play, asked as often); a pick-up joins the first bar; steps that add only empty bars are skipped; step size 1 or 2 (slice 1).
 - **ft_1_32.AC2** Progress: a perfect run moves to the next step, a stopped run repeats the step, and a stopped or note-name run breaks a run of whole-piece plays; the piece is learned after its last step (a step asked several times needs them in a row); on a later day the step before is played once first (slice 1).
 - **ft_1_32.AC3** A run is perfect when every note was right the first time with no note names shown; the first wrong key ends it; a run with note names counts nothing and hides them for the next run (slice 1).
 - **ft_1_32.AC4** Rewards: a quarter note per secured bar, merged into one note per finished chunk, a clef for the learned piece, each with a gold, silver or bronze medal from the runs that did not count, raised to gold by three perfect plays in a row (slice 1 core, slice 2 screen).
@@ -59,6 +59,8 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 - The first wrong key stops the judge; the wrong key stays on the staff, Kiur names the mistake and its bar, the bar is logged with its miss (`BarRecorder.stop`), and the step starts again. A perfect run says so and opens the next step; a measured run says the pace it was played at, and one of the whole piece is also saved as a pass (XP as before).
 - The reward notes are a row in the tools strip, or with the band at the right end of Kiur's strip (`rewardNotes.ts`); the mistake markers are rings over the notes (`StaffView.setMarkers`), on every practice screen of a piece while the player's setting is on.
 - Progress (with the measured paces, `bpm`, and the measured runs, `tests`) and settings are optional save fields (`learning`, `settings.learn`; d069.3, no version bump).
+- A piece keeps the step size its learning began with (`LearnProgress.stepBars`, `learnStepBars`): a changed setting applies to the next piece, so the saved step index and medals never point at other steps. The moment a piece is learned is kept (`learnedAt`), and only plays after it raise a bar to gold (`goldenBars`); the learning runs themselves never do. Both are optional save fields (d069.3).
+- The learning settings are the second page of the settings screen (the Learning action in the band, lit while the page shows): the bars a step adds (1 or 2), the rings over missed notes on or off, and the miss they come at (1 to 5). `AX-3 provisional:` a second page, since the first one's four rows are full with the band.
 
 ## Numbers kept by the architect
 
@@ -73,12 +75,9 @@ Weighed against the axioms; they stay as built until real runs of the student sa
 - TODO(architect, R2): after two weeks of the student's learning runs, look at their records in the learning stats and set the numbers above, and the following clock's ([core_01](core_01-tempo-mode.md)), from them.
 
 - TODO(builder, R2): the same records on the teacher's screen (ft_1_26 statistics).
-- TODO(builder, R2): the learning settings on the settings screen (step 1 or 2 bars, markers on or off and their threshold); they are saved and read, but the screen's four rows are full with the band.
+- TODO(painter, R2): an icon for the settings screen's Learning action (a band cell with a word now, `SettingsScene.ts`).
 - TODO(builder, R2): a song taught in levels (rule 2): a character's song is cut into pieces of 4 to 16 bars, one per level, each learned by this plan; the final boss is every bar in one sitting in the tug (slice 4, with ft_1_22); then add the rule that a character's final level is its whole song to `src/core/character/rules.ts` (checked over every character by `tests/content/characters.test.ts`).
-- TODO(builder, R2): the three-plays-to-gold rule counts the learning runs themselves, so the first bars of a chunk turn gold for free; count only plays after the piece is learned (`goldenBars`).
-- TODO(builder, R2): progress keeps a step index, which points elsewhere when the step size changes mid-piece; fix before the settings screen offers the step size.
 - TODO(builder, R3): still open: show the student where they hesitated in a run, and a click that follows the student's pace.
 - TODO(builder, R2): the rushing stop in learning (slice 3): a run that speeds up beyond the baseline is stopped and asked again; the rule is not built yet.
 - TODO(builder, R2): hands-separate steps for two-hand pieces (slices 4 to 6): each hand learned alone before the two together.
-- TODO(builder, R2): three perfect whole runs in a row finish the learning (rule 2): set `LEARN_RULES.wholeRuns` to 3 in `src/core/learn/plan.ts` with its test, and drop its `AX-3 provisional` comment. A piece already learned stays learned.
 - TODO(painter, R2): redraw the reward notes and the clef of `src/game/practice/rewardNotes.ts` in the house manner.

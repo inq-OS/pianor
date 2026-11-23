@@ -34,47 +34,47 @@ describe('learnPlan', () => {
     expect(show(learnPlan(piece(8)))).toEqual([
       'grow:1-1', 'grow:1-2', 'grow:1-3', 'grow:1-4', 'confirm:1-4',
       'grow:5-5', 'grow:5-6', 'grow:5-7', 'grow:5-8', 'confirm:5-8',
-      'whole:1-8',
+      'whole:1-8x3',
     ]);
   });
 
   it('joins chunks by doubling on longer pieces, right after the confirmation play of each pair', () => {
     expect(show(learnPlan(piece(16))).filter((s) => !s.startsWith('grow'))).toEqual([
-      'confirm:1-4', 'confirm:5-8', 'join:1-8', 'confirm:9-12', 'confirm:13-16', 'join:9-16', 'whole:1-16',
+      'confirm:1-4', 'confirm:5-8', 'join:1-8', 'confirm:9-12', 'confirm:13-16', 'join:9-16', 'whole:1-16x3',
     ]);
     expect(show(learnPlan(piece(32))).filter((s) => s.startsWith('join'))).toEqual(['join:1-8', 'join:9-16', 'join:1-16', 'join:17-24', 'join:25-32', 'join:17-32']);
   });
 
   it('never joins a pair that is the whole piece', () => {
     expect(show(learnPlan(piece(8))).some((s) => s.startsWith('join'))).toBe(false);
-    expect(show(learnPlan(piece(12))).filter((s) => !s.startsWith('grow'))).toEqual(['confirm:1-4', 'confirm:5-8', 'join:1-8', 'confirm:9-12', 'whole:1-12']);
+    expect(show(learnPlan(piece(12))).filter((s) => !s.startsWith('grow'))).toEqual(['confirm:1-4', 'confirm:5-8', 'join:1-8', 'confirm:9-12', 'whole:1-12x3']);
   });
 
   it('ends on a shorter chunk', () => {
-    expect(show(learnPlan(piece(6)))).toEqual(['grow:1-1', 'grow:1-2', 'grow:1-3', 'grow:1-4', 'confirm:1-4', 'grow:5-5', 'grow:5-6', 'confirm:5-6', 'whole:1-6']);
+    expect(show(learnPlan(piece(6)))).toEqual(['grow:1-1', 'grow:1-2', 'grow:1-3', 'grow:1-4', 'confirm:1-4', 'grow:5-5', 'grow:5-6', 'confirm:5-6', 'whole:1-6x3']);
   });
 
-  it('a piece of one chunk ends on its confirmation play, which is the whole piece', () => {
-    expect(show(learnPlan(piece(4)))).toEqual(['grow:1-1', 'grow:1-2', 'grow:1-3', 'grow:1-4', 'confirm:1-4']);
-    expect(show(learnPlan(piece(1)))).toEqual(['grow:1-1', 'confirm:1-1']);
+  it('a piece of one chunk ends on its confirmation play, which is the whole piece and asked as often', () => {
+    expect(show(learnPlan(piece(4)))).toEqual(['grow:1-1', 'grow:1-2', 'grow:1-3', 'grow:1-4', 'confirm:1-4x3']);
+    expect(show(learnPlan(piece(1)))).toEqual(['grow:1-1', 'confirm:1-1x3']);
   });
 
   it('adds two bars a step when the step size is 2', () => {
-    expect(show(learnPlan(piece(8), 2))).toEqual(['grow:1-2', 'grow:1-4', 'confirm:1-4', 'grow:5-6', 'grow:5-8', 'confirm:5-8', 'whole:1-8']);
-    expect(show(learnPlan(piece(5), 2)).slice(3)).toEqual(['grow:5-5', 'confirm:5-5', 'whole:1-5']);
+    expect(show(learnPlan(piece(8), 2))).toEqual(['grow:1-2', 'grow:1-4', 'confirm:1-4', 'grow:5-6', 'grow:5-8', 'confirm:5-8', 'whole:1-8x3']);
+    expect(show(learnPlan(piece(5), 2)).slice(3)).toEqual(['grow:5-5', 'confirm:5-5', 'whole:1-5x3']);
   });
 
   it('skips a step that adds only bars with nothing to play', () => {
     expect(show(learnPlan(piece(8, [0, 2, 3, 4, 5, 6, 7]))).slice(0, 4)).toEqual(['grow:1-1', 'grow:1-3', 'grow:1-4', 'confirm:1-4']);
     // an empty first bar is learned with the bar after it
-    expect(show(learnPlan(piece(4, [1, 2, 3])))).toEqual(['grow:1-2', 'grow:1-3', 'grow:1-4', 'confirm:1-4']);
+    expect(show(learnPlan(piece(4, [1, 2, 3])))).toEqual(['grow:1-2', 'grow:1-3', 'grow:1-4', 'confirm:1-4x3']);
     // empty last bars come with the confirmation play
-    expect(show(learnPlan(piece(4, [0, 1])))).toEqual(['grow:1-1', 'grow:1-2', 'confirm:1-4']);
+    expect(show(learnPlan(piece(4, [0, 1])))).toEqual(['grow:1-1', 'grow:1-2', 'confirm:1-4x3']);
   });
 
   it('never plays a chunk with nothing to play on its own (a run that could not end)', () => {
     const lateStart = show(learnPlan(piece(16, [8, 9, 10, 11, 12, 13, 14, 15])));
-    expect(lateStart.filter((s) => !s.startsWith('grow'))).toEqual(['confirm:9-12', 'confirm:13-16', 'join:9-16', 'whole:1-16']);
+    expect(lateStart.filter((s) => !s.startsWith('grow'))).toEqual(['confirm:9-12', 'confirm:13-16', 'join:9-16', 'whole:1-16x3']);
   });
 
   it('has no step for a piece with nothing to play', () => {
@@ -87,6 +87,14 @@ describe('learnPlan', () => {
     const steps = learnPlan(pickup);
     expect(steps[0]).toMatchObject({ kind: 'grow', firstBar: 0, lastBar: 1, firstUnit: 0, lastUnit: 0 });
     expect(steps.at(-1)).toMatchObject({ kind: 'confirm', firstBar: 0, lastBar: 4 });
+  });
+
+  it('ft_1_32.AC1 the whole piece is asked three times perfectly in a row; every other step once', () => {
+    const steps = learnPlan(piece(8));
+    expect(steps.at(-1)).toMatchObject({ kind: 'whole', runs: 3 });
+    expect(steps.slice(0, -1).every((s) => s.runs === 1)).toBe(true);
+    // a piece of one chunk ends on its confirmation play, which is the whole piece: asked three times too (AX-1)
+    expect(learnPlan(piece(4)).at(-1)).toMatchObject({ kind: 'confirm', firstBar: 0, lastBar: 3, runs: 3 });
   });
 
   it('property: every plan ends on the whole piece, every chunk is confirmed, and every grow step starts its chunk and grows', () => {

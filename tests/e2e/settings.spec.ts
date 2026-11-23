@@ -1,4 +1,4 @@
-// Covers ft_0_16.AC3, ft_0_16.AC4, ft_1_11.AC1, ft_1_11.AC6, ft_1_16.AC1.
+// Covers ft_1_32.AC2 (the learning settings), ft_0_16.AC3, ft_0_16.AC4, ft_1_11.AC1, ft_1_11.AC6, ft_1_16.AC1.
 import { expect, test, type Page } from '@playwright/test';
 import { addPlayer, clickAndRedraw, clickButton, clickToolbar, expectNoErrors, goToMainMenu, menuButton, openGame, openPiece, pickProfile, playerName, results, sceneButton, sceneTexts, toScoreScreen, useOneLine, waitForScene } from './helpers';
 
@@ -80,6 +80,23 @@ test.describe('settings', () => {
     }, index);
   /** The text a settings button draws (a number, or blank). */
   const buttonText = (page: Page, index: number) => page.evaluate((i) => (window.__game.scene.getScene('settings').buttons[i] as { options: { label: string } }).options.label, index);
+
+  test('ft_1_32.AC2 the second page sets how a piece is learned: the step size, the rings and their threshold', async ({ page }) => {
+    const errors = await openGame(page);
+    await openSettings(page);
+    await clickAndRedraw(page, 'settings', await sceneButton(page, 'settings', 'Learning'));
+    expect(await sceneTexts(page, 'settings')).toEqual(expect.arrayContaining(['New bars in learning', 'Rings over missed notes', 'Ring after misses']));
+    const learn = () => page.evaluate(() => window.__game.registry.get('context').profiles.learnSettings as unknown);
+    expect([await shows(page, 0), await shows(page, 1), await shows(page, 2)]).toEqual(['One bar at a time', 'Rings on', 'After 2 misses']);
+    await clickAndRedraw(page, 'settings', 0);
+    await clickAndRedraw(page, 'settings', 1);
+    await clickAndRedraw(page, 'settings', 2);
+    await expect.poll(learn).toEqual({ stepBars: 2, markers: false, markersFrom: 3 });
+    // the same button turns back to the first page: its rows are where they were
+    await clickAndRedraw(page, 'settings', await sceneButton(page, 'settings', 'Learning'));
+    expect(await shows(page, LINES)).toBe('2');
+    expectNoErrors(errors);
+  });
 
   test('are changed with real clicks, and the practice screen follows them', async ({ page }) => {
     const errors = await openGame(page);
