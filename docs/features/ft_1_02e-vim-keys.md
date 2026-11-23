@@ -39,5 +39,5 @@ Part of ft_1_02. For an author who knows vim, the piece maker reads keys the vim
 Work tags ([todo-tags.md](../automation/todo-tags.md)).
 
 - NEEDS-HUMAN: write a piece with the vim keys on a laptop keyboard: whether the keys and the mode line feel right, and Ctrl-A in Chrome.
-- TODO(builder, R2): once the bubble of ft_1_20 is built, the vim switch goes in slot 7 of the piece maker's empty-place bubble.
+- TODO(builder, R2): build the vim switch into slot 7 of the piece maker's empty-place bubble (ft_1_20's slot map) when the bubble is built.
 - IDEA(builder, Later): from the ergonomics review: `x` and `yl` fill a note register so `xp` swaps two notes; note-wise operators (`dl`, `d$`, `c`); `>>` and `<<` an octave in normal mode; a `:keys` page listing the vim keys; `e` as the bar's end.
