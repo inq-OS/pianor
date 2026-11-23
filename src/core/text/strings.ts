@@ -54,6 +54,7 @@ export const strings = {
   'room.theory': 'Note names',
   'room.ear': 'Ear training',
   'room.shapes': 'Scales and chords',
+  'room.chords': 'Chord from its name',
   // the stand in the room, which opens the panel of trainers (ft_1_08.AC11)
   'room.stand': 'Exercises',
   'theory.step': '{n}',
@@ -71,6 +72,10 @@ export const strings = {
   'shapes.lh': 'Left',
   'shapes.handTip': 'Which hand plays: right or left',
   'shapes.won': 'All {n} notes played',
+  // chord from its name (ft_1_29 slice B)
+  'chords.notIn': '{note} is not in {chord}',
+  'chords.solved': '{n} chords played',
+  'chords.stepTip': 'Step: which chords come',
   'ear.level': 'Ear level {n}',
   'ear.playAgain': 'Play again',
   'ear.repeatOn': 'Repeat: on',

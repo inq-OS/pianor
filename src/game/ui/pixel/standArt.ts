@@ -218,3 +218,19 @@ export function scaleSteps(): Bitmap {
   for (let step = 0; step < 3; step++) pen(2 + step * STEP_W + 7, FLOOR - RISE * (step + 1) - 6, C.silver);
   return bitmap;
 }
+
+/**
+ * Chord from its name (ft_1_29 slice B): three black notes stacked on one stem, a chord, on a wooden board. AX-3
+ * provisional: a first sketch from shapes; the painter draws the real one (the TODO in the feature file).
+ */
+export function chordBoard(): Bitmap {
+  const { bitmap, pen } = canvas();
+  for (let y = 4; y < 46; y++) for (let x = 6; x < 58; x++) if (within(x, y, 32, 25, 27, 22)) pen(x, y, y < 10 ? C.goldLight : C.gold);
+  for (const cy of [33, 26, 19]) {
+    for (let y = cy - 3; y <= cy + 3; y++) for (let x = 22; x <= 34; x++) if (within(x, y, 28, cy, 5, 3)) pen(x, y, C.ink);
+  }
+  for (let y = 8; y <= 33; y++) { pen(33, y, C.ink); pen(34, y, C.ink); }
+  rimmed(bitmap, (c) => (c === C.goldLight ? C.goldDark : c === C.gold ? C.brown : C.brownDark));
+  for (const cy of [33, 26, 19]) pen(26, cy - 2, C.silver);
+  return bitmap;
+}
