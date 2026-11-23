@@ -38,6 +38,7 @@ export const stringsEt: Record<StringKey, string> = {
   'map.scene.docks': 'Paadisild',
   'map.scene.port': 'Sadam',
   'map.scene.terrace': 'Terrass',
+  'map.scene.square': 'Külaplats',
   'scene.dive': 'Sukeldu',
   'scene.rise': 'Tagasi üles',
   'room.piano': 'Klaver',

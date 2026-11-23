@@ -62,6 +62,13 @@ export const SCENE_LIVING: Readonly<Record<string, Living>> = {
     birds: 'three gulls fly as a flock over the sea by day and in the half light',
     small: 'moths circle the lantern while it is lit',
   },
+  square: {
+    fire: 'the lantern on the side building\'s corner and the light from the cinema\'s doors on the stones wander in strength at dusk and night',
+    water: 'none: the sea lies far below the hill and stands still until its strokes are lit live as the other places\' are',
+    wind: 'clouds surge with the gusts; the pennants on the string and the grass on the brow stand still until their looks are painted',
+    birds: 'three gulls fly as a flock over the sea by day and in the half light',
+    small: 'moths circle the corner lantern while it is lit',
+  },
 };
 
 /** What is wrong with a place's list: an answer missing, too short to say anything, or a `none:` with no reason. Empty when it is in order. */

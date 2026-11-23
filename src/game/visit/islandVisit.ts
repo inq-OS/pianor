@@ -15,7 +15,7 @@ const KERI: World = loadWorld(keriJson);
  * round (ft_1_17.AC4). A scene without one is painted on the map but is no button and is not visited.
  */
 /** The scenes of Keri that have a screen, by their scene key. */
-export type KeriScreen = 'knoll' | 'docks' | 'crossroads' | 'port' | 'terrace';
+export type KeriScreen = 'knoll' | 'docks' | 'crossroads' | 'port' | 'terrace' | 'square';
 
 export const SCENE_SCREENS: Readonly<Record<string, { scene: KeriScreen; label: () => string }>> = {
   knoll: { scene: 'knoll', label: () => t('map.scene.knoll') },
@@ -23,6 +23,7 @@ export const SCENE_SCREENS: Readonly<Record<string, { scene: KeriScreen; label: 
   crossroads: { scene: 'crossroads', label: () => t('map.scene.crossroads') },
   port: { scene: 'port', label: () => t('map.scene.port') },
   terrace: { scene: 'terrace', label: () => t('map.scene.terrace') },
+  square: { scene: 'square', label: () => t('map.scene.square') },
 };
 
 /** What a scene of Keri is started with: `visiting` when the screensaver shows it (ft_1_17.AC4). */

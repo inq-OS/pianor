@@ -3,6 +3,7 @@ import { crossroadsPlan, crossroadsView } from '../../core/layout/crossroads';
 import { docksPlan, docksView } from '../../core/layout/docks';
 import { KNOLL_MOON, knollPlan, knollView } from '../../core/layout/knoll';
 import { PORT_MOORED, portPlan, portView } from '../../core/layout/port';
+import { squarePlan, squareView } from '../../core/layout/square';
 import { terracePlan, terraceView, TORCH_SPARKS } from '../../core/layout/terrace';
 import type { SceneLook } from '../../core/sky/sceneLook';
 import type { SkyPhase } from '../../core/sky/skyPhase';
@@ -11,6 +12,7 @@ import { DOCKS_WAY } from '../ui/pixel/keri/docksPicture';
 import { PAINTED } from '../ui/pixel/keri/keriPictures';
 import { boatStill } from '../ui/pixel/keri/portBoats';
 import { PORT_WAY, portMoorings, portStill, type PortSwimmers } from '../ui/pixel/keri/portPicture';
+import { SQUARE_LANTERN } from '../ui/pixel/keri/squarePicture';
 import { TERRACE_MOON, TERRACE_SMOKE_RISE, TERRACE_WAY } from '../ui/pixel/keri/terracePicture';
 import type { LoadedPictures, Overlay } from '../ui/pixel/pack';
 import type { LiveWater } from '../ui/pixel/paint/live';
@@ -306,6 +308,26 @@ const TERRACE_LIFE: SceneLife<NonNullable<ReturnType<typeof PAINTED.terrace.read
   spots: terrace.spots,
 };
 
+const square = squarePlan();
+
+/**
+ * The village square (ft_1_19): the lantern on the side building's corner and the cinema's lit doors flicker at dusk
+ * and night; the clouds and the gulls are the sky's.
+ */
+const SQUARE_LIFE: SceneLife<NonNullable<ReturnType<typeof PAINTED.square.ready>>> = {
+  pictures: PAINTED.square,
+  living: SCENE_LIVING.square!,
+  view: squareView,
+  horizon: square.horizon,
+  // the wind of this view blows from the south-west, to the viewer's left
+  way: -1,
+  leastClouds: 4,
+  layers: (picture) => [{ overlay: picture.lamp, ms: 0, level: (time) => glowAt(time, picture.lamp.frames.length, 7) }],
+  motes: (_picture, look, _air, seed) => (lampLitAt(look.phase) ? [{ source: (time) => mothsAt(time, SQUARE_LANTERN, 3, seed), most: 3 }] : []),
+  gulls: { n: 3, span: 3, box: { x: 160, y: 14, w: 420, h: 60 } },
+  spots: square.spots,
+};
+
 /** Each painted place's life by its picture id (`SceneData.picture`). */
 export const SCENE_LIVES: Readonly<Record<string, SceneLife>> = {
   knoll: KNOLL_LIFE,
@@ -313,4 +335,5 @@ export const SCENE_LIVES: Readonly<Record<string, SceneLife>> = {
   crossroads: CROSSROADS_LIFE,
   port: PORT_LIFE,
   terrace: TERRACE_LIFE,
+  square: SQUARE_LIFE,
 };

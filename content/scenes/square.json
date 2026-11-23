@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "square",
+  "picture": "square",
+  "hotspots": [],
+  "places": [
+    {
+      "id": "spot-1",
+      "x": 232,
+      "y": 226,
+      "facing": "right"
+    },
+    {
+      "id": "spot-2",
+      "x": 430,
+      "y": 236,
+      "facing": "left"
+    },
+    {
+      "id": "spot-3",
+      "x": 292,
+      "y": 192,
+      "facing": "right"
+    },
+    {
+      "id": "spot-4",
+      "x": 404,
+      "y": 198,
+      "facing": "left"
+    }
+  ],
+  "exits": []
+}

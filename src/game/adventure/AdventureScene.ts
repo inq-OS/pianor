@@ -1020,8 +1020,8 @@ export class AdventureScene extends PixelScene {
 }
 
 /** A scene an exit can lead to: one of the adventure scenes the game registers. */
-function isAdventureScene(id: string): id is 'knoll' | 'crossroads' | 'docks' | 'terrace' {
-  return id === 'knoll' || id === 'crossroads' || id === 'docks' || id === 'terrace';
+function isAdventureScene(id: string): id is 'knoll' | 'crossroads' | 'docks' | 'terrace' | 'square' {
+  return id === 'knoll' || id === 'crossroads' || id === 'docks' || id === 'terrace' || id === 'square';
 }
 
 /** Where actor `id` stands in the view's back-to-front order; one off the stage sorts first (it is hidden). */

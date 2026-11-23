@@ -1,3 +1,7 @@
+import { ART_DETAIL } from './frame';
+import type { Rect } from './rect';
+import { ROOM_PICTURE, roomView } from './room';
+
 /**
  * The plan of the village square (ft_1_19): the open ground between the houses at the lighthouse, seen from the
  * lighthouse's south-west foot, looking east-south-east over the square to the southern pier. Pure: no Phaser, no DOM.
@@ -7,6 +11,13 @@
  * picture's lines are bent (`bend`).
  */
 
+/** The scene's id in the world model (`scenes` in content/world/keri.json). */
+export const SQUARE_ID = 'square';
+
+/** The scene's picture has the room's size: a low wide band over the same strip. */
+export const SQUARE_PICTURE = ROOM_PICTURE;
+export const squareView = roomView;
+
 export interface SquarePlan {
   /** The picture, in fine pixels. */
   fine: { w: number; h: number };
@@ -14,14 +25,16 @@ export interface SquarePlan {
   horizon: number;
   /** The pier's box, for the screen's button (pressing the pier walks to the port). */
   pier: { x: number; y: number; w: number; h: number };
+  /** For each place of `SQUARE_SPOTS`: where a being's feet are (fine pixels) and its button (layout cells from the picture's top-left corner). */
+  spots: { feet: { x: number; y: number }; button: Rect }[];
 }
 
 /** Where the viewer stands, metres east and north of the lighthouse, and the bearing of the picture's middle. */
 export const SQUARE_VIEW = { x: -3, y: -11, bearing: 113 } as const;
 
 export const SQUARE = {
-  w: 640,
-  h: 248,
+  w: SQUARE_PICTURE.w * ART_DETAIL,
+  h: SQUARE_PICTURE.h * ART_DETAIL,
   /** The horizon's row: high, for the eye stands on the island's highest ground and looks down over the square. */
   horizon: 92,
   /** How far the picture's level lines bow down at its sides, fine pixels. */
@@ -42,10 +55,30 @@ export function bend(x: number, y: number): [number, number] {
   return [x + (x - SQUARE.w / 2) * SQUARE.splay * up * up, y + SQUARE.bow * side * side * Math.min(1, up * 1.6)];
 }
 
+/**
+ * Where the beings stand, feet in fine pixels of the flat plan: on the open flagstones, clear of the flower bed, the
+ * benches and the barrels, none before the pier or a door.
+ */
+export const SQUARE_SPOTS: readonly { x: number; y: number }[] = [
+  { x: 232, y: 226 },
+  { x: 430, y: 236 },
+  { x: 292, y: 192 },
+  { x: 404, y: 198 },
+];
+
+/** A being's button: its body and the name over it, in layout cells. */
+const SPOT_HIT = { w: 26, h: 44 } as const;
+
 export function squarePlan(): SquarePlan {
   return {
     fine: { w: SQUARE.w, h: SQUARE.h },
     horizon: SQUARE.horizon,
     pier: { x: 436, y: 88, w: 130, h: 58 },
+    spots: SQUARE_SPOTS.map((spot) => {
+      const [fx, fy] = bend(spot.x, spot.y);
+      const feet = { x: Math.round(fx), y: Math.round(fy) };
+      const x = Math.round(feet.x / ART_DETAIL - SPOT_HIT.w / 2), bottom = Math.round(feet.y / ART_DETAIL) + 2;
+      return { feet, button: { x, y: bottom - SPOT_HIT.h, w: SPOT_HIT.w, h: SPOT_HIT.h } };
+    }),
   };
 }
