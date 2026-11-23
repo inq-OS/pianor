@@ -15,7 +15,7 @@ The game is a barrel: it holds only as much as its shortest stave (d283). Each a
 | Theory and ear | ft_0_17, ft_1_10, ft_1_28, ft_1_29 | 65 | scales and chords not started |
 | The world of Keri | ft_1_18, ft_1_19, ft_1_24, ft_1_25 | 70 | pictures loaded per hour; walkers held |
 | The piece maker | ft_1_02b, ft_1_02d, ft_1_30, ft_1_33 | 75 | the drag-repeat handle |
-| Reading and playing | ft_0_05 to ft_0_16, core_01, core_03, core_10, ft_1_12 | 85 | Tempo latency, rhythm practice |
+| Reading and playing | ft_0_05 to ft_0_16, core_01, core_03, core_10, ft_1_12, ft_1_35, core_13 | 85 | Tempo latency, rhythm practice; the autotrainer and the beat helpers designed, not started |
 | Progress and rewards | ft_0_10, ft_1_09, ft_1_13, core_12 | 90 | earned trophies (Later) |
 
 The architect's working tool (roadmap questions are the architect's to decide). Each release is a GitHub milestone (R1 to R5, `Later pool`); when a grouping changes, change this file and the milestone together. Tracking rules: [labels.md](labels.md).
