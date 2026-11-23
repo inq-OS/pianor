@@ -59,6 +59,7 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 - The first wrong key stops the judge; the wrong key stays on the staff, Kiur names the mistake and its bar, the bar is logged with its miss (`BarRecorder.stop`), and the step starts again. A perfect run says so and opens the next step; a measured run says the pace it was played at, and one of the whole piece is also saved as a pass (XP as before).
 - The reward notes are a row in the tools strip, or with the band at the right end of Kiur's strip (`rewardNotes.ts`); the mistake markers are rings over the notes (`StaffView.setMarkers`), on every practice screen of a piece while the player's setting is on.
 - Progress (with the measured paces, `bpm`, and the measured runs, `tests`) and settings are optional save fields (`learning`, `settings.learn`; d069.3, no version bump).
+- A piece keeps the step size its learning began with (`LearnProgress.stepBars`, `learnStepBars`): a changed setting applies to the next piece, so the saved step index and medals never point at other steps. The moment a piece is learned is kept (`learnedAt`), and only plays after it raise a bar to gold (`goldenBars`); the learning runs themselves never do. Both are optional save fields (d069.3).
 
 ## TODO
 
@@ -69,8 +70,6 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 - TODO(painter, R2): redraw the reward notes and the clef in the house manner (`src/game/practice/rewardNotes.ts`).
 - TODO(architect, R2): confirm the AX-3 provisional default that is now built: a piece played to the end three times before its learning began counts as learned (`KNOWN_COMPLETIONS` in `src/game/practice/LearnSession.ts`), so learning never gates Tempo mode or sections for it.
 - TODO(builder, R2): a song taught in levels (rule 2): a character's song is cut into pieces of 4 to 16 bars, one per level, each learned by this plan; the final boss is every bar in one sitting in the tug (slice 4, with ft_1_22); then add the rule that a character's final level is its whole song to `src/core/character/rules.ts` (checked over every character by `tests/content/characters.test.ts`).
-- TODO(builder, R2): the three-plays-to-gold rule counts the learning runs themselves, so the first bars of a chunk turn gold for free; count only plays after the piece is learned (`goldenBars`).
-- TODO(builder, R2): progress keeps a step index, which points elsewhere when the step size changes mid-piece; fix before the settings screen offers the step size.
 - TODO(architect, R2): confirm the AX-3 provisional tempo rules (`TEMPO_RULES` in `src/core/learn/tempo.ts`): a gap is even within 30% of the run's own pace, a stop is twice a note's length, a measured run needs three gaps in four even and no stop, and an uneven one is asked again at most twice.
 - TODO(builder, R3): still open: show the student where they hesitated in a run, and a click that follows the student's pace. The following clock's numbers (leaning up to 15 percent toward the student's pace, waiting without limit) are first guesses, tuned after playtests.
 - TODO(builder, R2): the rushing stop in learning (slice 3): a run that speeds up beyond the baseline is stopped and asked again; the rule is not built yet.
