@@ -305,7 +305,7 @@ export const stringsEt: Record<StringKey, string> = {
   'editor.acc.flat': 'b',
   'editor.acc.natural': '=',
   'editor.acc.none': 'Puuduta kõigepealt noodit, siis vali diees, bemoll või bekar.',
-  'editor.acc.tip': 'Diees, bemoll või bekar valitud noodil: iga vajutus annab järgmise',
+  'editor.acc.tip': 'Diees, bemoll või bekar valitud noodil',
   'editor.dyn.none': 'Puuduta kõigepealt noodit, siis vali dünaamika.',
   'editor.dyn.tip': 'Dünaamika: märgi valitud noodile (pp, p, mp, mf, f, ff) või eemalda',
   'editor.dyn.set': 'Dünaamika: {mark}',

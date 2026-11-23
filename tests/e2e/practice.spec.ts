@@ -1,7 +1,7 @@
 // Covers ft_0_09.AC1.
 import { expect, test } from '@playwright/test';
 import {
-  LITTLE_STEPS, activeScenes, allMenuTitles, clickButton, clickToolbar, expectNoErrors, isPieceLabel, menuButton, menuLabels, openGame, openPiece, playWithKeys, playWithVirtualPiano, results, sceneButton, sceneTexts, showMenuPageWith, toScoreScreen, turnMenuPage, waitForScene, bandAction, sceneWords } from './helpers';
+  LITTLE_STEPS, activeScenes, allMenuTitles, clickButton, clickToolbar, expectNoErrors, isPieceLabel, lastButton, menuButton, menuLabels, openGame, openPiece, playWithKeys, playWithVirtualPiano, results, sceneButton, sceneTexts, showMenuPageWith, toScoreScreen, turnMenuPage, waitForScene, bandAction, sceneWords } from './helpers';
 
 test.describe('menu', () => {
   test('lists the pieces, shows the piano credit on the credits screen, and opens a piece with a real click @smoke', async ({ page }) => {
@@ -142,8 +142,12 @@ test.describe('playing a whole piece without a real keyboard', () => {
   test('a hint can be switched off again and then costs nothing', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
+    const fingers = () => page.evaluate(() => window.__game.scene.getScene('practice').hints.fingers as boolean);
     await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Fingers'));
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Fingers'));
+    await expect.poll(fingers).toBe(true);
+    // a worn hint keeps the bubble open: the second press is on the same option
+    await clickButton(page, 'practice', await lastButton(page, 'practice', 'Fingers'));
+    await expect.poll(fingers).toBe(false);
     await playWithKeys(page, LITTLE_STEPS);
     await toScoreScreen(page);
     expect((await results(page)).hints).toEqual({ noteNames: 0, fingers: 0 });

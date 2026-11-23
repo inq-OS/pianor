@@ -137,15 +137,47 @@ export async function sceneButton(page: Page, sceneKey: string, label: string): 
   return opened ? find() : -1;
 }
 
+/** The index of the last button with this word, label or tooltip on a scene (an open menu's choices come after the screen's buttons), or -1. */
+export function lastButton(page: Page, sceneKey: string, label: string): Promise<number> {
+  return page.evaluate(({ key, text }) => {
+    const buttons = window.__game.scene.getScene(key).buttons as { objects: { text?: string }[]; options: { label: string; tooltip?: string } }[];
+    for (let i = buttons.length - 1; i >= 0; i--) {
+      const b = buttons[i]!;
+      if (b.objects.some((o) => o.text === text) || b.options.label === text || b.options.tooltip === text) return i;
+    }
+    return -1;
+  }, { key: sceneKey, text: label });
+}
+
+/** Press a strip cell or bubble option with choices (`cell`), then its choice `choice` (ft_1_20.AC20), as a player would. */
+export async function pickChoice(page: Page, sceneKey: string, cell: string, choice: string): Promise<void> {
+  await clickButton(page, sceneKey, await sceneButton(page, sceneKey, cell));
+  await expect.poll(() => lastButton(page, sceneKey, choice), choice).toBeGreaterThanOrEqual(0);
+  await clickButton(page, sceneKey, await lastButton(page, sceneKey, choice));
+}
+
 /** Press More on the scene's strip, as a player would, when it has one; true when the bubble opened. */
 export async function openBubbleFromMore(page: Page, sceneKey: string): Promise<boolean> {
+  if (await bubbleOpen(page, sceneKey)) return true;
   const more = await page.evaluate(
     (key) => (window.__game.scene.getScene(key).buttons as { options: { label: string } }[]).findIndex((b) => b.options.label === 'More' || b.options.label === 'Veel'),
     sceneKey,
   );
   if (more < 0) return false;
   await clickButton(page, sceneKey, more);
+  return bubbleOpen(page, sceneKey);
+}
+
+/** Whether the scene's bubble is open (ft_1_20, d282). */
+export function bubbleOpen(page: Page, sceneKey: string): Promise<boolean> {
   return page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as { bubbleIsOpen: boolean }).bubbleIsOpen, sceneKey);
+}
+
+/** Close the scene's bubble with Escape when it is open, as a player would; nothing otherwise. */
+export async function closeBubble(page: Page, sceneKey: string): Promise<void> {
+  if (!(await bubbleOpen(page, sceneKey))) return;
+  await page.keyboard.press('Escape');
+  await expect.poll(() => bubbleOpen(page, sceneKey)).toBe(false);
 }
 
 /**

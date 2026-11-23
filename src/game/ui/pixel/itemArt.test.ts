@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { STAFF_INK } from '../../../core/layout/scoreColour';
-import { ART_DETAIL } from '../../../core/layout/frame';
 import type { Bitmap } from './bitmap';
 import { ITEM_INK, ITEM_SIGNS, ITEM_SIZE, ITEM_SKIN, itemPicture, signOnly } from './itemArt';
 import { contrast } from './paint/lab';

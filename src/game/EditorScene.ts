@@ -2127,7 +2127,13 @@ export class EditorScene extends PixelScene {
    * Draw the staff again for the current piece (after every edit), keeping the rest of the screen. A page turn keeps its
    * page: a selected note on another page keeps its mark but does not pull the page back to it.
    */
+  /** Whether the next `refreshStaff` keeps the page shown (a page turn that drew the screen again). */
+  private pageTurnPending = false;
+
   private refreshStaff(pageTurn = false): void {
+    // a page turned that drew the screen again (its page buttons or the bar buttons changed) stays turned
+    if (this.pageTurnPending) pageTurn = true;
+    this.pageTurnPending = false;
     this.nameSelectedChord();
     this.staffView?.destroy();
     this.drawnPiece = this.piece;
@@ -2180,6 +2186,7 @@ export class EditorScene extends PixelScene {
     this.meterText?.setText(this.meterLabel());
     // with the band, the page buttons over the staff are there only while the piece has more than one page
     if (this.bandShown && ((this.layout.pageCount > 1) !== this.pageButtonsDrawn || this.barEndKey !== spotKey(this.barEnd(this.layout)))) {
+      this.pageTurnPending = pageTurn;
       this.redraw();
       return;
     }

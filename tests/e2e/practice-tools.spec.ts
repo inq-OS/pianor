@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { clickButton, expectNoErrors, letGameRun, openGame, openPiece, playWithVirtualPiano, pieceXp, pressPracticeButton as press, sceneTexts, toScoreScreen, useOneLine, waitForScene, bandAction, sceneWords } from './helpers';
+import { clickButton, expectNoErrors, letGameRun, openBubbleFromMore, openGame, openPiece, playWithVirtualPiano, pieceXp, pressPracticeButton as press, sceneTexts, toScoreScreen, useOneLine, waitForScene, bandAction, sceneWords } from './helpers';
 
 /** The practice screen's tools strip: the metronome click, the tempo percent, and a section to practise. */
 
@@ -42,10 +42,11 @@ const chartId = (page: Page) => page.evaluate(() => window.__game.scene.getScene
 const percent = (page: Page) => page.evaluate(() => window.__game.scene.getScene('practice').percent as number);
 
 test.describe('practice tools (core_02 and core_03)', () => {
-  test('the strip has the click, the tempo percent and the section button @smoke', async ({ page }) => {
+  test('the strip has the tempo percent, the bubble the click and the section button @smoke', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
     expect(await sceneTexts(page, 'practice')).toEqual(expect.arrayContaining(['-', '100%', '+']));
+    expect(await openBubbleFromMore(page, 'practice')).toBe(true);
     expect(await buttonNames(page)).toEqual(expect.arrayContaining(['Click [Shift+M]', 'Section [Shift+R]'])); // the metronome and A | -> | B
     expectNoErrors(errors);
   });
@@ -109,7 +110,8 @@ test.describe('practice tools (core_02 and core_03)', () => {
     await tapBar(page, 2);
     await expect.poll(() => chartId(page)).toBe('little-steps#bars-2-3');
     expect(await page.evaluate(() => window.__game.scene.getScene('practice').chart.title as string)).toBe('Little Steps (bars 2 to 3)');
-    // no title on the practice screen under the band (ft_1_20, AX-3 provisional): the section is said by Whole piece
+    // no title on the practice screen (ft_1_20, AX-3 provisional): the section is said by Whole piece in the bubble
+    expect(await openBubbleFromMore(page, 'practice')).toBe(true);
     expect(await buttonNames(page)).toContain('Whole piece [Shift+R]');
 
     // play the six notes of bars 2 and 3: no results screen, no XP, and it starts over
@@ -307,7 +309,9 @@ test.describe('practice tools (core_02 and core_03)', () => {
     await expect.poll(() => sceneTexts(page, 'practice')).toContain('Now tap its last bar.');
     await page.keyboard.press('Digit3');
     await expect.poll(() => chartId(page)).toBe('little-steps#bars-2-3');
+    expect(await openBubbleFromMore(page, 'practice')).toBe(true);
     expect(await buttonNames(page)).toContain('Whole piece [Shift+R]');
+    await page.keyboard.press('Escape'); // closes the bubble
     await page.keyboard.press('Shift+KeyR');
     await expect.poll(() => chartId(page)).toBe('little-steps');
     expectNoErrors(errors);

@@ -310,7 +310,7 @@ export const strings = {
   'editor.acc.flat': 'b',
   'editor.acc.natural': '=',
   'editor.acc.none': 'Tap a note first, then choose sharp, flat or natural.',
-  'editor.acc.tip': 'Sharp, flat or natural on the selected note: each press gives the next',
+  'editor.acc.tip': 'Sharp, flat or natural on the selected note',
   'editor.dyn.none': 'Tap a note first, then choose a dynamic mark.',
   'editor.dyn.tip': 'Dynamic mark for the selected note (pp, p, mp, mf, f, ff) or none',
   'editor.dyn.set': 'Dynamic: {mark}',

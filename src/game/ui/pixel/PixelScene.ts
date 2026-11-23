@@ -1102,6 +1102,8 @@ export abstract class PixelScene extends Phaser.Scene {
   private pulseMore(button: PixelButton): void {
     // once a visit: a screen drawn again (a tempo change, a hint) does not pulse again
     if (this.moreVisitCounted) return;
+    // a self-playing demo keeps the browser's storage as it was (ft_Y_09.AC4)
+    if (contextOf(this).flags.autoplay) return;
     const key = `pianor.morePulse.${this.scene.key}`;
     let seen = MORE_PULSE_VISITS;
     try {

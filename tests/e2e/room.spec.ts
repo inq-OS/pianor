@@ -224,7 +224,7 @@ test.describe('the player room', () => {
         const scene = window.__game.scene.getScene('keriMap') as unknown as {
           px: { width: number; height: number };
           animators: unknown[];
-          buttons: { rect: { x: number; y: number; width: number; height: number } }[];
+          buttons: { rect: { x: number; y: number; width: number; height: number }; options: { label: string } }[];
           toolbarButtons: { back: unknown; settings: unknown };
           root: { list: { type: string; visible: boolean; x: number; y: number; width: number; height: number; scaleX: number }[] };
         };
@@ -236,8 +236,8 @@ test.describe('the player room', () => {
           // the clouds: wide, low pictures (under the band no toolbar beam stands above the map; a cloud's middle may lie above its top)
           clouds: fine.filter((o) => o.height < 70 && o.width > 80).map((o) => o.x),
           animators: scene.animators.length,
-          // on the picture: not the door and the gear over its corners, nor the band under it (ft_1_20)
-          buttons: scene.buttons.filter((b) => b !== scene.toolbarButtons.back && b !== scene.toolbarButtons.settings).map((b) => b.rect).filter((r) => r.y >= 0 && r.y < scene.px.height),
+          // on the picture: not the door, the gear and the backpack over its corners (ft_1_20)
+          buttons: scene.buttons.filter((b) => b !== scene.toolbarButtons.back && b !== scene.toolbarButtons.settings && b.options.label !== 'Backpack').map((b) => b.rect).filter((r) => r.y >= 0 && r.y < scene.px.height),
         };
       });
     const first = await seen();
@@ -346,29 +346,32 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_18.AC3 the room is a painted picture that fills the main area above the band, and every object\'s button lies on the picture (ft_1_20)', async ({ page }) => {
+  test('ft_1_18.AC3 the room is a painted picture in the middle of the screen, and every object\'s button lies on the picture (ft_1_20)', async ({ page }) => {
     const errors = await toRoom(page);
-    const { looks, buttons, height } = await page.evaluate(() => {
+    const { looks, sky, buttons, height } = await page.evaluate(() => {
       const scene = window.__game.scene.getScene('profile') as unknown as {
-        px: { height: number };
-        buttons: { rect: { x: number; y: number; width: number; height: number } }[];
+        px: { width: number; height: number };
+        buttons: { rect: { x: number; y: number; width: number; height: number }; options: { label: string } }[];
         toolbarButtons: { back: unknown; settings: unknown };
         root: { list: { type: string; visible: boolean; x: number; y: number; width: number; height: number; scaleX: number }[] };
       };
-      const looks = scene.root.list.filter((o) => o.type === 'Image' && o.width === 640 && o.height === 248).map((o) => ({ shown: o.visible, x: o.x, y: o.y }));
-      // not the door and the gear over the picture's corners, nor the band under it (ft_1_20)
-      const own = scene.buttons.filter((b) => b !== scene.toolbarButtons.back && b !== scene.toolbarButtons.settings).map((b) => b.rect);
-      return { looks, buttons: own.filter((r) => r.y >= 0 && r.y < scene.px.height), height: scene.px.height };
+      const images = scene.root.list.filter((o) => o.type === 'Image');
+      const looks = images.filter((o) => o.width === 640 && o.height === 248).map((o) => ({ shown: o.visible, x: o.x, y: o.y }));
+      const sky = images.filter((o) => o.width === scene.px.width * 2 && o.height === scene.px.height * 2).length;
+      // not the door, the gear and the backpack over the picture's corners (ft_1_20)
+      const own = scene.buttons.filter((b) => b !== scene.toolbarButtons.back && b !== scene.toolbarButtons.settings && b.options.label !== 'Backpack').map((b) => b.rect);
+      return { looks, sky, buttons: own.filter((r) => r.y >= 0 && r.y < scene.px.height), height: scene.px.height };
     });
-    // the sky behind the main area (as large as it under the band), then one picture for each strength of the fire's light:
+    // the sky behind the whole screen, then one picture for each strength of the fire's light:
     // one of them shows, or two while the light dissolves from one strength into the next
-    expect(looks).toHaveLength(4);
-    const shown = looks.slice(1).filter((l) => l.shown).length;
+    expect(sky).toBe(1);
+    expect(looks).toHaveLength(3);
+    const shown = looks.filter((l) => l.shown).length;
     expect(shown).toBeGreaterThanOrEqual(1);
     expect(shown).toBeLessThanOrEqual(2);
-    const picture = { x: looks[1]!.x, y: looks[1]!.y, w: 320, h: 124 };
-    // no strip of empty felt under the picture: it is the whole main area above the band (ft_1_20, d111)
-    expect(picture.y + picture.h).toBe(height);
+    const picture = { x: looks[0]!.x, y: looks[0]!.y, w: 320, h: 124 };
+    // with no strip (nothing pinned, ft_1_20.AC21) the picture stands in the middle of the screen, the sky round it (d111)
+    expect(picture.y).toBe(Math.floor((height - picture.h) / 2));
     // piano, door, stand, the shield, which opens the player's card (ft_1_20.AC13), Kiur the trainer (ft_1_21.AC14) and
     // the wall telephone (ft_1_34); the window is no button since d117
     expect(buttons).toHaveLength(6);

@@ -700,7 +700,7 @@ export class AdventureScene extends PixelScene {
     const facts = talkFactsOf(meetCharacter(before, def.id, dayString(new Date())), profiles.progress.level.level, false);
     const save = () => { if (this.world && this.worldSaves) void profiles.saveWorld(id, this.world); };
     this.talkLayer ??= this.overlayLayer();
-    this.talk = TalkView.open(this, this.talkLayer, conversation, def, facts, { area: { w: this.px.width, h: this.mainRows }, bandTop: this.bandTop, head }, {
+    this.talk = TalkView.open(this, this.talkLayer, conversation, def, facts, { area: { w: this.px.width, h: this.mainRows }, head }, {
       effects: (effects) => {
         if (!this.world) return;
         const next = applyTalkEffects(this.world, effects);
@@ -817,7 +817,7 @@ export class AdventureScene extends PixelScene {
       character: def,
       level,
       rules: TUG_RULES,
-      place: { area: { w: this.px.width, h: this.mainRows }, bandTop: this.bandTop, head },
+      place: { area: { w: this.px.width, h: this.mainRows }, head },
       devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome },
     }, {
       playing: (on) => this.figures.get(def.id)?.(on ? 'talk' : 'idle'),
@@ -853,7 +853,7 @@ export class AdventureScene extends PixelScene {
       character: def,
       level: teachLevelOf(def, piece),
       rules: TUG_RULES,
-      place: { area: { w: this.px.width, h: this.mainRows }, bandTop: this.bandTop, head },
+      place: { area: { w: this.px.width, h: this.mainRows }, head },
       devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard },
       staff: (c) => this.teachStaff(c),
     }, {

@@ -56,7 +56,7 @@ export const E2E_AREAS: E2eArea[] = [
   {
     // Screenshot tests; they skip without a baseline for the platform (on CI and in cloud sessions), so they cost little.
     name: 'visual',
-    specs: ['visual', 'button-fit', 'toolbar', 'band', 'screen-guard'],
+    specs: ['visual', 'button-fit', 'toolbar', 'strip', 'screen-guard'],
     sources: ['src/game/'],
   },
 ];

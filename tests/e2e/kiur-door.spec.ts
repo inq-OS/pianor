@@ -1,6 +1,6 @@
 // Covers ft_1_15.AC4, ft_1_15.AC5.
 import { expect, test, type Page } from '@playwright/test';
-import { clickButton, expectNoErrors, openGame, openPiece, sceneButton, waitForScene } from './helpers';
+import { clickButton, expectNoErrors, openGame, openPiece, pickChoice, sceneButton, waitForScene } from './helpers';
 
 /** Palms on the keys: eleven keys down at once on the virtual EZ-220, away from the awaited note, then all up. */
 async function bash(page: Page, release = true): Promise<void> {
@@ -67,7 +67,7 @@ test.describe('Kiur at the door', () => {
   test('ft_1_15.AC4 in Tempo mode Back starts the pass again with a fresh clock', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Wait')); // to Tempo mode (its following clock, started by the first note)
+    await pickChoice(page, 'practice', 'Wait', 'Tempo that follows you'); // to Tempo mode (its following clock, started by the first note)
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').transport !== null)).toBe(true);
     await page.evaluate(() => { window.__virtualDevice!.press(60, 80); window.__virtualDevice!.release(60); }); // the first note starts the clock
     await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice').transport as { started: boolean }).started)).toBe(true);

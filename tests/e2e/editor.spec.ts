@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { encode as encodePng } from 'fast-png';
 import { expect, test, type Page } from '@playwright/test';
-import { activeScenes, clickButton, clickToolbar, expectNoErrors, menuButton, openGame, openPiece, letGameRun, playWithVirtualPiano, sceneButton, sceneTexts, sceneWords, showMenuPageWith, toScoreScreen, waitForScene } from './helpers';
+import { activeScenes, clickButton, clickToolbar, bubbleOpen, closeBubble, expectNoErrors, lastButton, menuButton, openBubbleFromMore, openGame, openPiece, letGameRun, playWithVirtualPiano, sceneButton, sceneTexts, sceneWords, showMenuPageWith, toScoreScreen, waitForScene } from './helpers';
 
 /** The editor is preliminary, on in the menu; `?editor=0` hides it. */
 const EDITOR = '?device=virtual';
@@ -112,22 +112,18 @@ const barStep = (page: Page, sign: '-' | '+') => page.evaluate((s) => {
 }, sign);
 
 /**
- * The index of the band button with this label, turning the band to the page that shows it first: the action grid's More
- * set (Export, Import) or the second page of items (ft_1_20 rules 4 and 5).
+ * The index of a button with this label on the screen or in the bubble (ft_1_20, d282): first the bubble from More (the
+ * selected note's options, or the place's), then the bubble opened with the right button on an empty place of the staff
+ * (high A in bar `bar`, the first by default), whose options say how the next notes are written.
  */
-async function bandButton(page: Page, label: string): Promise<number> {
-  for (const pages of [null, { actions: 0, items: 1 }, { actions: 1, items: 0 }]) {
-    if (pages) {
-      await page.evaluate((p) => {
-        const scene = window.__game.scene.getScene('editor') as unknown as { bandPages: { actions: number; items: number }; redraw(): void };
-        scene.bandPages = p;
-        scene.redraw();
-      }, pages);
-    }
-    const index = await editorButton(page, label);
-    if (index >= 0) return index;
-  }
-  return -1;
+async function bubbleButton(page: Page, label: string, bar = 0): Promise<number> {
+  const found = await editorButton(page, label);
+  if (found >= 0) return found;
+  await closeBubble(page, 'editor');
+  const place = await canvasPoint(page, { bar, start: 0, step: 'A', octave: 5 });
+  await page.mouse.click(place.x, place.y, { button: 'right' });
+  await expect.poll(() => bubbleOpen(page, 'editor')).toBe(true);
+  return lastButton(page, 'editor', label);
 }
 
 /** Types the piece's title into its field in the top strip. */
@@ -135,17 +131,29 @@ async function setTitle(page: Page, title: string): Promise<void> {
   await page.fill('#editor-title', title);
 }
 
-/** The index of the editor button with this label (the last one: an open menu's choices come after the screen's buttons). */
-const editorButton = (page: Page, label: string) => page.evaluate((l) => {
-  const buttons = window.__game.scene.getScene('editor').buttons as { objects: { text?: string }[] }[];
-  for (let i = buttons.length - 1; i >= 0; i--) if (buttons[i]!.objects.some((o) => o.text === l)) return i;
-  return -1;
-}, label);
+/**
+ * The index of the editor button with this word or label (the last one: an open menu's choices come after the screen's
+ * buttons); one that is not on the screen may be an option of the bubble, which is then opened from More (ft_1_20, d282):
+ * on the selected note's options while a note is selected, else on the place's.
+ */
+async function editorButton(page: Page, label: string): Promise<number> {
+  const found = await lastButton(page, 'editor', label);
+  if (found >= 0) return found;
+  return (await openBubbleFromMore(page, 'editor')) ? lastButton(page, 'editor', label) : -1;
+}
+
+/** Opens the bubble's option `option` (from More) and presses its choice `choice` (ft_1_20.AC20). */
+async function pickInBubble(page: Page, option: string, choice: string): Promise<void> {
+  await clickButton(page, 'editor', await editorButton(page, option));
+  await expect.poll(() => lastButton(page, 'editor', choice), choice).toBeGreaterThanOrEqual(0);
+  await clickButton(page, 'editor', await lastButton(page, 'editor', choice));
+}
 
 /** Opens the tie and slur menu (core_09.AC30; one item now) and returns its choices' labels by button index. */
 async function openTieMenu(page: Page): Promise<string[]> {
   await clickButton(page, 'editor', await editorButton(page, 'Ties and slurs'));
-  return page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { buttons: { objects: { text?: string }[] }[] }).buttons.map((b) => b.objects.map((o) => o.text ?? '').join('')));
+  // a choice drawn as a picture says its word in its label
+  return page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { buttons: { objects: { text?: string }[]; options: { label: string } }[] }).buttons.map((b) => b.objects.map((o) => o.text ?? '').join('') || b.options.label));
 }
 
 test.describe('piece editor (preliminary)', () => {
@@ -189,6 +197,7 @@ test.describe('piece editor (preliminary)', () => {
     // no start screen and no Piece item: the title is in the top strip, with Save, Import and Export
     for (const gone of ['Start writing', 'Piece', 'D major / B minor']) expect(await editorButton(page, gone)).toBe(-1);
     for (const there of ['Save', 'Import', 'Export', 'Circle of fifths']) expect(await sceneButton(page, 'editor', there)).toBeGreaterThanOrEqual(0);
+    await closeBubble(page, 'editor'); // the circle is an option of the bubble
     expect(await page.locator('#editor-title').inputValue()).toBe('');
     // the clef opens the circle, which sets the key (ft_1_28.AC7)
     await pressSignature(page, 'key');
@@ -229,20 +238,24 @@ test.describe('piece editor (preliminary)', () => {
     expectNoErrors(errors);
   });
 
-  test('notes and rests are two items, the one a click writes on a purple ground; a press on the other switches', async ({ page }) => {
+  test('the writer is one armed cell of the strip; notes or rests are chosen in the bubble on the staff, and the writer shows the one in use', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
     const state = () => page.evaluate(() => {
-      const scene = window.__game.scene.getScene('editor') as unknown as { entry: string; lengthItem: { armed: boolean }; restItem: { armed: boolean } };
-      return { entry: scene.entry, note: scene.lengthItem.armed, rest: scene.restItem.armed };
+      const scene = window.__game.scene.getScene('editor') as unknown as { entry: string; lengthItem: { armed: boolean; options: { label: string } } };
+      return { entry: scene.entry, armed: scene.lengthItem.armed, writer: scene.lengthItem.options.label };
     });
-    expect(await state()).toEqual({ entry: 'note', note: true, rest: false });
-    // opening the rests' lengths writes rests from now on
-    await clickButton(page, 'editor', await editorButton(page, 'Rests'));
-    expect(await state()).toEqual({ entry: 'rest', note: false, rest: true });
-    await page.keyboard.press('Escape');
-    await clickButton(page, 'editor', await editorButton(page, 'Notes'));
-    expect(await state()).toEqual({ entry: 'note', note: true, rest: false });
+    expect(await state()).toEqual({ entry: 'note', armed: true, writer: 'Notes' });
+    // the bubble on an empty place: its first option holds notes and rests
+    expect(await openBubbleFromMore(page, 'editor')).toBe(true);
+    await clickButton(page, 'editor', await lastButton(page, 'editor', 'Notes'));
+    await clickButton(page, 'editor', await lastButton(page, 'editor', 'Rests'));
+    await expect.poll(state).toEqual({ entry: 'rest', armed: true, writer: 'Rests' });
+    await closeBubble(page, 'editor');
+    expect(await openBubbleFromMore(page, 'editor')).toBe(true);
+    await clickButton(page, 'editor', await lastButton(page, 'editor', 'Rests'));
+    await clickButton(page, 'editor', await lastButton(page, 'editor', 'Notes'));
+    await expect.poll(state).toEqual({ entry: 'note', armed: true, writer: 'Notes' });
     expectNoErrors(errors);
   });
 
@@ -455,14 +468,14 @@ test.describe('piece editor (preliminary)', () => {
     await clickButton(page, 'circle', await sceneButton(page, 'circle', 'Set the key: G major'));
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('editor').history.present.fifths)).toBe(1);
 
-    // a note on F is F sharp in G; the accidental item goes sharp, flat, natural: two presses make the selected note natural
+    // a note on F is F sharp in G; the accidental option in the bubble on the note opens sharp, flat and natural
     const alters = () => page.evaluate(() => (window.__game.scene.getScene('editor').history.present.notes as { step: string; alter: number }[]).map((n) => `${n.step}:${n.alter}`));
     await clickNote(page, 0, 0, 'F');
     expect(await alters()).toEqual(['F:1']);
     await selectNote(page, 0, 0, 'F'); // a left click on the note selects it
-    await clickButton(page, 'editor', await editorButton(page, '#'));
+    await pickInBubble(page, '#', 'b');
     expect(await alters()).toEqual(['F:-1']);
-    await clickButton(page, 'editor', await editorButton(page, 'b'));
+    await pickInBubble(page, 'b', '=');
     expect(await alters()).toEqual(['F:0']);
 
     await clickButton(page, 'editor', await page.evaluate(() => (window.__game.scene.getScene('editor').buttons as { objects: { text?: string }[] }[]).findIndex((b) => b.objects.some((o) => o.text === 'Save'))));
@@ -629,7 +642,7 @@ test.describe('piece editor (preliminary)', () => {
     await eAndGQuarters(page);
     // Export saves the piece first and downloads one file
     const download = page.waitForEvent('download');
-    await clickButton(page, 'editor', await bandButton(page, 'Export'));
+    await clickButton(page, 'editor', await bubbleButton(page, 'Export'));
     const file = await download;
     expect(file.suggestedFilename()).toBe('own-carry-me.pianor-piece.json');
     const path = await file.path();
@@ -639,7 +652,7 @@ test.describe('piece editor (preliminary)', () => {
 
     // Import adds the piece from the file as a new own piece, and the piece being written stays as it is
     const chooser = page.waitForEvent('filechooser');
-    await clickButton(page, 'editor', await bandButton(page, 'Import'));
+    await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
     await (await chooser).setFiles(path);
     await expect.poll(() => status(page)).toContain('Added "Carry Me" to your pieces.');
     expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().map((r: { id: string }) => r.id))).toEqual(['own-carry-me', 'own-carry-me-2']);
@@ -647,7 +660,7 @@ test.describe('piece editor (preliminary)', () => {
 
     // a file that is not a piece file is refused with a sentence
     const refused = page.waitForEvent('filechooser');
-    await clickButton(page, 'editor', await bandButton(page, 'Import'));
+    await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
     await (await refused).setFiles({ name: 'oops.json', mimeType: 'application/json', buffer: Buffer.from('{ nope') });
     await expect.poll(() => status(page)).toContain('That file is not a piece file.');
     expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list())).toHaveLength(2);
@@ -691,11 +704,11 @@ test.describe('piece maker: a photo of a sheet (ft_Y_04 slices 4 and 5)', () => 
     await eAndGQuarters(page);
     // the server's answer is a piece file: the one this piece exports (Export saves the piece, so the import may go ahead)
     const download = page.waitForEvent('download');
-    await clickButton(page, 'editor', await bandButton(page, 'Export'));
+    await clickButton(page, 'editor', await bubbleButton(page, 'Export'));
     file = readFileSync(await (await download).path(), 'utf-8');
     await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { photoReady: boolean }).photoReady)).toBe(true);
     const chooser = page.waitForEvent('filechooser');
-    await clickButton(page, 'editor', await bandButton(page, 'Import'));
+    await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
     await (await chooser).setFiles({ name: 'From_Paper.png', mimeType: 'image/png', buffer: photoPng() });
     // the tool over the piece maker, the photo in it; a drag marks the part to read (the photo is shown at its own size, centred)
     const canvas = page.locator('#photo-tool-canvas');
@@ -765,7 +778,7 @@ test.describe('piece maker: a photo of a sheet (ft_Y_04 slices 4 and 5)', () => 
     const editorRuns = () => page.evaluate(() => (window.__game.scene as unknown as { isActive(key: string): boolean }).isActive('editor'));
     const openTool = async () => {
       const chooser = page.waitForEvent('filechooser');
-      await clickButton(page, 'editor', await bandButton(page, 'Import'));
+      await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
       await (await chooser).setFiles({ name: 'sheet.png', mimeType: 'image/png', buffer: photoPng() });
       await expect(page.locator('#photo-tool-canvas')).toBeVisible();
       // the piece maker waits behind the tool
@@ -905,6 +918,7 @@ test.describe('tie drawn', () => {
     expect(await noteList()).toEqual(['0:E:quarter']);
     await clickNote(page, 0, 480, 'E');
     expect(await noteList()).toEqual(['0:E:quarter', '480:E:quarter']);
+    await selectNote(page, 0, 0, 'E'); // the ties are options of the bubble on a note
     const allAt = (await openTieMenu(page)).findIndex((l) => l === 'ALL' || l === 'KÕIK');
     expect(allAt).toBeGreaterThanOrEqual(0);
     await clickButton(page, 'editor', allAt);
@@ -1006,7 +1020,7 @@ test.describe('one item each for the accidentals, ties and slurs, and repeats', 
     // one repeat item: a press asks for the start bar (it is lit), a click in bar 2 is the start, a click in bar 3 the end
     const repeats = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { history: { present: { repeats?: unknown[] } } }).history.present.repeats ?? []);
     expect(await editorButton(page, '|:')).toBe(-1);
-    await clickButton(page, 'editor', await bandButton(page, '|: :|'));
+    await clickButton(page, 'editor', await bubbleButton(page, '|: :|'));
     expect(await status(page)).toContain('Click the bar the repeat starts on.');
     await selectNote(page, 1, 0, 'C');
     expect(await status(page)).toContain('Now click the bar the repeat ends on.');
@@ -1030,9 +1044,10 @@ test.describe('one item each for the accidentals, ties and slurs, and repeats', 
 
 test.describe('pages with a note selected', () => {
   // with a note selected, the page buttons and Page Down drew the staff again on the selected note's page
-  test('the note that spills a 7-bar piece onto a second page draws the page buttons at once, with no freeze', async ({ page }) => {
+  test('the note that spills a piece onto a second page draws the page buttons at once, with no freeze', async ({ page }) => {
     // the page buttons were counted on a staff wider than the one drawn: one page there, two on the staff, and each redraw
-    // asked for another until the stack ran out after about a minute. At the target size, 7 bars of quarters spill at the 11th.
+    // asked for another until the stack ran out after about a minute. The quarters are written one more at a time, in 24 bars,
+    // until the one that spills onto a second page.
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
     await clickNote(page, 0, 0, 'E');
@@ -1046,11 +1061,14 @@ test.describe('pages with a note selected', () => {
       const piece = scene.history.present;
       const note = piece.notes[0]!;
       const started = performance.now();
-      scene.apply({ ok: true, piece: { ...piece, bars: 7, notes: Array.from({ length: count }, (_, i) => ({ ...note, bar: Math.floor(i / 4), start: (i % 4) * 480 })) } }, null);
+      scene.apply({ ok: true, piece: { ...piece, bars: 24, notes: Array.from({ length: count }, (_, i) => ({ ...note, bar: Math.floor(i / 4), start: (i % 4) * 480 })) } }, null);
       return { ms: performance.now() - started, pages: scene.layout.pageCount, buttons: scene.pageButtonsDrawn };
     }, count);
-    expect(await write(10)).toMatchObject({ pages: 1, buttons: false });
-    const spilled = await write(11);
+    let count = 1;
+    while (count < 96 && (await write(count + 1)).pages === 1) count++;
+    expect(count).toBeLessThan(96);
+    expect(await write(count)).toMatchObject({ pages: 1, buttons: false });
+    const spilled = await write(count + 1);
     expect(spilled).toMatchObject({ pages: 2, buttons: true });
     expect(spilled.ms).toBeLessThan(3000);
     expectNoErrors(errors);
@@ -1068,7 +1086,7 @@ test.describe('pages with a note selected', () => {
       };
       const piece = scene.history.present;
       const note = piece.notes[0]!;
-      scene.apply({ ok: true, piece: { ...piece, bars: 24, notes: Array.from({ length: 24 }, (_, bar) => ({ ...note, bar })) } }, null);
+      scene.apply({ ok: true, piece: { ...piece, bars: 48, notes: Array.from({ length: 48 }, (_, bar) => ({ ...note, bar })) } }, null);
     });
     const state = () => page.evaluate(() => {
       const scene = window.__game.scene.getScene('editor') as unknown as { page: number; selected: unknown; layout: { pageCount: number } };
@@ -1259,22 +1277,27 @@ test.describe('slim tool row with menus', () => {
     const bars = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { history: { present: { bars: number } } }).history.present.bars);
     const menuOpen = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { menuOpen: boolean }).menuOpen);
     for (const old of ['COPY', 'PASTE', 'TIE', 'PICK', 'ALL', 'x2', 'x4']) expect(await editorButton(page, old)).toBe(-1);
+    await closeBubble(page, 'editor');
     await clickNote(page, 0, 0, 'E');
     await selectNote(page, 0, 0, 'E');
+    // copy is in the bubble on the note, paste in the bubble on a place: there, in the second bar, twice
     await clickButton(page, 'editor', await editorButton(page, 'Copy'));
     const before = await bars();
-    await clickButton(page, 'editor', await editorButton(page, 'Paste'));
+    await closeBubble(page, 'editor');
+    await clickButton(page, 'editor', await bubbleButton(page, 'Paste', 1));
     expect(await menuOpen()).toBe(true);
     await clickButton(page, 'editor', await editorButton(page, 'x2'));
     expect(await menuOpen()).toBe(false);
-    expect(await bars()).toBe(before + 2);
+    expect(await notes(page)).toEqual(['0:0:E:quarter', '1:0:E:quarter', '2:0:E:quarter']);
+    expect(await bars()).toBe(before);
     // a press on the staff while the menu is open closes the menu and writes nothing
     const notesBefore = await notes(page);
-    await clickButton(page, 'editor', await editorButton(page, 'Paste'));
+    await clickButton(page, 'editor', await bubbleButton(page, 'Paste'));
     await clickNote(page, 1, 480, 'G');
     expect(await menuOpen()).toBe(false);
     expect(await notes(page)).toEqual(notesBefore);
     // Esc closes a menu and stays in the editor
+    await selectNote(page, 0, 0, 'E');
     await openTieMenu(page);
     expect(await menuOpen()).toBe(true);
     await page.keyboard.press('Escape');
@@ -1318,7 +1341,7 @@ test.describe('finger buttons and AUTO (ft_1_02d.AC13)', () => {
       return labels.lastIndexOf(label);
     };
     const fingers = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { history: { present: { notes: { finger?: number }[] } } }).history.present.notes.map((n) => n.finger ?? null));
-    await clickButton(page, 'editor', await bandButton(page, 'Fingers'));
+    await clickButton(page, 'editor', await bubbleButton(page, 'Fingers'));
     expect(await at('3')).toBeGreaterThanOrEqual(0);
     await clickButton(page, 'editor', await at('3'));
     expect(await fingers()).toEqual([null, 3]);
@@ -1358,7 +1381,7 @@ test.describe('pre-notes (grace notes, core_09.AC35, core_09.AC36, d121)', () =>
     for (const dx of [-1, 0, 1]) for (const dy of [-1, 0, 1]) min = Math.min(min, await pixelSum(page, x + dx, y + dy));
     return min;
   };
-  const graceButton = (page: Page) => bandButton(page, 'GRACE NOTE');
+  const graceButton = (page: Page) => bubbleButton(page, 'GRACE NOTE');
 
   test('(core_09.AC35) (core_09.AC36) place a note, select it, press GRACE NOTE, play a key: the small head is drawn where the layout put it; a staff click works too; it survives save, reopen and play', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
@@ -1626,31 +1649,31 @@ test.describe('piece maker keys on the tools (ft_1_02d.AC19)', () => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
     const texts = () => sceneTexts(page, 'editor');
+    // a B written from the keyboard
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Enter');
     expect(await texts()).not.toContain('^S');
     await page.keyboard.press('F1');
-    // the keys on the tools (the lengths show their number keys), and the mouse picture over the staff (ft_1_33.AC1); the band
-    // shows a page of items and a set of actions at a time (ft_1_20 rules 4 and 5), so every page is looked at
-    expect(await helpCards(page)).toBe(8);
+    // the keys on the tools (the lengths show their number keys), and the mouse picture over the staff (ft_1_33.AC1); the
+    // bubble's options show theirs too while the help is up: on the note and on an empty place (ft_1_20, d282)
+    expect(await helpCards(page)).toBe(7);
     expect(await texts()).toContain('Keys');
     expect((await texts()).join(' ')).not.toContain('Ctrl + Enter');
     const seen = new Set(await texts());
-    const turn = (pages: { actions: number; items: number }) => page.evaluate((p) => {
-      const scene = window.__game.scene.getScene('editor') as unknown as { bandPages: { actions: number; items: number }; redraw(): void };
-      scene.bandPages = p;
-      scene.redraw();
-    }, pages);
-    for (const pages of [{ actions: 0, items: 1 }, { actions: 1, items: 0 }, { actions: 0, items: 0 }]) {
-      await turn(pages);
+    for (const at of [{ bar: 0, step: 'B' as const, octave: 4 }, { bar: 1, step: 'A' as const, octave: 5 }]) {
+      const p = await canvasPoint(page, { ...at, start: 0 });
+      await page.mouse.click(p.x, p.y, { button: 'right' });
+      await expect.poll(() => bubbleOpen(page, 'editor')).toBe(true);
       for (const text of await texts()) seen.add(text);
+      await closeBubble(page, 'editor');
     }
-    for (const key of ['R', 'A', 'T', 'K', 'F', 'D', 'P', 'Y', 'V', 'M', 'U', 'Del', '^S', '^C', '^Z', '^Y', '^E', '^O']) expect([...seen]).toContain(key);
+    for (const key of ['N', 'A', 'T', 'K', 'F', 'D', 'P', 'Y', 'V', 'M', 'U', 'Del', '^S', '^C', '^Z', '^Y', '^E', '^O']) expect([...seen]).toContain(key);
     await page.keyboard.press('Escape');
     expect(await texts()).not.toContain('^S');
     // still in the editor: Esc closed the list, it did not leave
     expect(await activeScenes(page)).toContain('editor');
-    await page.keyboard.press('ArrowRight');
-    await page.keyboard.press('Enter');
-    // A is the accidental item: the natural B goes sharp at once
+    // A is the accidental key: the natural B under the cursor goes sharp at once
+    await selectNote(page, 0, 0, 'B');
     await page.keyboard.press('KeyA');
     const alter = await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { history: { present: { notes: { alter: number }[] } } }).history.present.notes[0]?.alter);
     expect(alter).toBe(1);
@@ -1678,12 +1701,12 @@ test.describe('piece maker keys on the tools (ft_1_02d.AC19)', () => {
     expect(spots[4]!.w).toBeGreaterThan(spots[3]!.w);
     await expect.poll(() => activeScenes(page)).not.toContain('intro');
     // back on the help, and Esc in the tour also ends it there
-    expect(await helpCards(page)).toBe(8);
+    expect(await helpCards(page)).toBe(7);
     await page.keyboard.press('Enter');
     await expect.poll(() => activeScenes(page)).toContain('intro');
     await page.keyboard.press('Escape');
     await expect.poll(() => activeScenes(page)).not.toContain('intro');
-    expect(await helpCards(page)).toBe(8);
+    expect(await helpCards(page)).toBe(7);
     const after = await page.evaluate(() => JSON.stringify((window.__game.scene.getScene('editor') as unknown as { history: { present: unknown } }).history.present));
     expect(after).toBe(before);
     await page.keyboard.press('Escape');
@@ -1691,17 +1714,18 @@ test.describe('piece maker keys on the tools (ft_1_02d.AC19)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_02d.AC19 a key menu closed by a click is gone: Enter in a tie menu opened next with the mouse neither takes its default nor writes', async ({ page }) => {
+  test('ft_1_02d.AC19 a key menu closed by a click is gone: Enter in a menu opened next with the mouse neither takes its default nor writes', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
     await page.keyboard.press('ArrowRight');
     await page.keyboard.press('Digit8');
     await page.keyboard.press('KeyN');
     expect(await menuOpen(page)).toBe(true);
-    // a click off the menu closes it (the click goes no further)
-    await clickButton(page, 'editor', await editorButton(page, 'Ties and slurs'));
+    // a click off the menu closes it (the click goes no further: Undo has nothing to undo)
+    await clickButton(page, 'editor', await editorButton(page, 'Undo'));
     expect(await menuOpen(page)).toBe(false);
-    await openTieMenu(page);
+    // the writer's lengths, opened with the mouse
+    await clickButton(page, 'editor', await editorButton(page, 'Notes'));
     expect(await menuOpen(page)).toBe(true);
     await page.keyboard.press('Enter');
     expect(await lengthNow(page)).toBe('eighth');
@@ -1717,12 +1741,12 @@ test.describe('piece maker keys on the tools (ft_1_02d.AC19)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_02d.AC19 the band layout shows the keys on its tools, and N then 3 picks the dotted half there', async ({ page }) => {
+  test('ft_1_02d.AC19 the strip and the top strip show the keys on their tools, and N then 3 picks the dotted half there', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
     const texts = () => sceneTexts(page, 'editor');
     await page.keyboard.press('F1');
-    for (const key of ['^S', 'N', 'A', 'V', 'P', '^Z']) expect(await texts()).toContain(key);
+    for (const key of ['^S', '^E', '^O', 'N', 'P', 'Y', '^Z', '^Y']) expect(await texts()).toContain(key);
     await page.keyboard.press('Escape');
     await page.keyboard.press('KeyN');
     expect(await menuOpen(page)).toBe(true);
