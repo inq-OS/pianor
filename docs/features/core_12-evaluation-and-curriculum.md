@@ -15,7 +15,7 @@ Plan F11 and section 4. Later slices: requirement rules per bar and hand with AN
 
 ## Rules
 
-- The model of d139 is pure functions in `src/core/curriculum/evaluate.ts` with defaults in `content/curriculum/evaluation.json` (AC1, AC3 to AC8). `playResultsFromLog` (`src/core/curriculum/fromLog.ts`) reads the practice log as plays. The teacher's screen reads `curriculumStatuses` (WP-14, ft_1_26).
+- The model of d139 is pure functions in `src/core/curriculum/evaluate.ts` with defaults in `content/curriculum/evaluation.json` (AC1, AC3 to AC8). `playResultsFromLog` (`src/core/curriculum/fromLog.ts`) reads the practice log as plays. The teacher's screen reads `curriculumStatuses` (ft_1_26, ft_1_26).
 - Each bar in the practice log keeps its share per hand (`hands` on `BarPlay`, by the hand of each note's track): notes, first tries, and in Tempo mode the notes on time and the signed onset deviation of every note pressed in time, as count, sum and sum of squares in ticks at the written tempo (AC2). `playResultsFromLog` sums them into each play's `hands` (A.11 `HandMeasure`, exact mean and spread); a play with a bar kept before this has no hands. An optional field: older saves read as before, no version step (d069.3).
 
 ## Acceptance criteria
@@ -32,10 +32,8 @@ All AX-3 provisional until built and tried; numbers are content, not code.
 - **core_12.AC8** Colour (purple, scaled green, strong green) and medal (bronze 85 to 95, silver 96 to 105, gold above, of achieved over expected) are pure functions with tests.
 - **core_12.AC9** The curriculum document per player (core_11): curriculum pieces with deadline, priority, overrides of the numbers, calendar entries and notes; only the teacher's screen writes it.
 
-## Work packages
+## Parts
 
-WP-nn names a part of the plan ([parts and contracts](../architect/program-characters-teacher.md#3-parts), d153).
-
-- TODO(builder, R3): WP-04 a wrong key's onset counted for rhythm (core_12.AC2's last words): `WrongNoteJudged` carries no timing, so today only the notes pressed right (first try or later) give onsets. Needs a judge event change (`docs/futureproofing.md` 1.3, the event version as in d093): ask the architect first.
-- WP-14 (released early): the teacher's first screen reads this feature's statuses (ft_1_26); the query part is tagged there.
+- TODO(builder, R3): a wrong key's onset counted for rhythm (core_12.AC2's last words): `WrongNoteJudged` carries no timing, so today only the notes pressed right (first try or later) give onsets. Needs a judge event change (`docs/futureproofing.md` 1.3, the event version as in d093): ask the architect first.
+- ft_1_26 (released early): the teacher's first screen reads this feature's statuses (ft_1_26); the query part is tagged there.
 - Later (stage 3): requirement rules per bar and hand with AND/OR, the test, spaced repetition and the memory trainer.

@@ -1,6 +1,6 @@
 # The template character: how it is made and what is set
 
-WP-05 (d142, d144). Code: `src/game/ui/pixel/actors/`. Sheet: `npm run art:render -- figures [day|dawn|dusk|night]` (written to `test-logs/art/figures-<hour>.png`). The passes shown for review are, `painter/characters/` (sketch 1, pass 1 with its art review, pass 2).
+ft_1_24 (d142, d144). Code: `src/game/ui/pixel/actors/`. Sheet: `npm run art:render -- figures [day|dawn|dusk|night]` (written to `test-logs/art/figures-<hour>.png`). The passes shown for review are, `painter/characters/` (sketch 1, pass 1 with its art review, pass 2).
 
 ## Direction
 
@@ -41,7 +41,7 @@ The players look like a young student. Three proportions on the template were sh
 
 ## Still to do
 
-- The small map version for WP-06 (walkers on the map).
+- The small map version for the walkers of ft_1_24 (walkers on the map).
 - `ActorDef.template` in the core contract (the 10x dev, d142).
 - From the student's art review 1, for when figures stand in scenes for real: the red ramp's light tone is salmon and reads as a pink stripe on a red sweater; a bonfire or lamp beside a figure should warm it at dusk and night; the template lights from the upper front, so at dusk a figure can be lit from the side away from the sun.
 - More held things as characters need them (a rake, a fishing net, an accordion), each when its character is built.

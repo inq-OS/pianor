@@ -14,12 +14,12 @@ The measure of every week is what the student plays, not what the process produc
 
 1. **One goal, in play terms** ("the student can win a tug against Puuvaim"), written at the top of [roadmap.md](../architect/roadmap.md) by the architect. The builder and the painter work toward it.
 2. **Playtest notes steer the next goal:** three lines, what worked, what bored, what broke, kept in the gitignored `private/playtests/` (never committed).
-3. **Work items** are tags in the doc they belong to: `TODO(builder)`, `TODO(painter)`, `NEEDS-HUMAN` ([todo-tags.md](todo-tags.md)). The maintainer's issues are taken as they are; no triage, no dispatch labels. The `WP-nn` ids in the characters' features (ft_1_21 to ft_1_27, core_11, core_12) are only names for their open parts ([parts and contracts](../architect/program-characters-teacher.md)); nobody plans or dispatches them.
+3. **Work items** are tags in the doc they belong to: `TODO(builder)`, `TODO(painter)`, `NEEDS-HUMAN` ([todo-tags.md](todo-tags.md)). The maintainer's issues are taken as they are; no triage, no dispatch labels. A part of a feature is named by its feature id and slice (d275).
 4. **Builder and painter talk through the code**: a tag in the feature file, or a line in the pull request. No mailboxes.
 
 ## Rules that stay
 
-The axioms, CLAUDE.md, a feature file with acceptance criteria for each feature, tests and CI, the decision ledgers (one short entry when something a later reader would ask "why?" about is decided), docs-only pull requests merged without asking, a fresh `reviewer` agent on every code pull request before it merges, save-format changes merged by the thread only after the reviewer approves and CI with the end-to-end tests is green (d166), sensitive paths (`.github/`, `.claude/`, `CLAUDE.md`, package files) merged by the maintainer ([labels.md](../architect/labels.md)).
+The axioms, CLAUDE.md, a feature file with acceptance criteria for each feature, tests and CI, the decision ledgers (one short entry when something a later reader would ask "why?" about is decided), docs-only pull requests merged without asking, a fresh `reviewer` agent on every code pull request before it merges, save-format changes merged by the thread only after the reviewer approves and CI with the end-to-end tests is green (d166), every pull request merged by its own thread once its checks pass, the maintainer's approval never awaited (d276, [labels.md](../architect/labels.md)).
 
 ## Process is added only when it hurts
 
