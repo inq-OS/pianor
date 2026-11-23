@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { loadLevelsFile } from '../piece/levels';
-import { ABCJS_URL, applyPicks, boardPieces, parsePicks, pieceHash, renderBoard, scriptJson } from './board';
+import { ABCJS_SRI, ABCJS_URL, applyPicks, boardPieces, parsePicks, pieceHash, renderBoard, scriptJson } from './board';
 
 const root = join(__dirname, '../..');
 const LEVELS = join(root, 'content/curriculum/levels.json');
@@ -64,7 +64,7 @@ describe('boardPieces', () => {
 describe('renderBoard', () => {
   it('writes one page that loads the pinned renderer and carries the pieces as data', () => {
     const html = renderBoard(boardPieces(dir, levels), 'today');
-    expect(html).toContain(`<script src="${ABCJS_URL}"></script>`);
+    expect(html).toContain(`<script src="${ABCJS_URL}" integrity="${ABCJS_SRI}" crossorigin="anonymous"></script>`);
     expect(html).toContain('"id":"little-steps"');
     expect(html).not.toContain('__DATA__');
   });

@@ -93,6 +93,8 @@ export function boardPieces(piecesDir: string, levels: readonly LevelDefinition[
 
 /** The pinned renderer the page loads (MIT; the only script it fetches). */
 export const ABCJS_URL = 'https://cdn.jsdelivr.net/npm/abcjs@6.7.2/dist/abcjs-basic-min.js';
+/** Its fingerprint, so a changed file on the CDN is refused (the page then shows the ABC text). */
+export const ABCJS_SRI = 'sha384-Krv/BCaWJLV9H685MWfrINhbvpWvnnBfQds5IVDXSsFtjUG5UzAV9x1dvqNhASXV';
 
 /** JSON safe to put inside a `<script>` element: no `</script>` or `<!--` can end or open anything. */
 export function scriptJson(value: unknown): string {
@@ -101,7 +103,7 @@ export function scriptJson(value: unknown): string {
 
 /** The whole board page: the pieces as data, drawn and played by the page's own script. */
 export function renderBoard(content: BoardContent, made: string): string {
-  return BOARD_HTML.replace('__ABCJS__', ABCJS_URL).replace('__DATA__', () => scriptJson({ made, ...content }));
+  return BOARD_HTML.replace('__ABCJS__', ABCJS_URL).replace('__SRI__', ABCJS_SRI).replace('__DATA__', () => scriptJson({ made, ...content }));
 }
 
 /** A pick as the board stores it, one document per piece in the `picks` collection. */
@@ -192,7 +194,7 @@ pre{white-space:pre-wrap;font-size:.8rem;margin:.3rem 0 0}
 <div id="list"></div>
 <div id="refused"></div>
 </main>
-<script src="__ABCJS__"></script>
+<script src="__ABCJS__" integrity="__SRI__" crossorigin="anonymous"></script>
 <script>
 const BOARD = __DATA__;
 const picks = {};
