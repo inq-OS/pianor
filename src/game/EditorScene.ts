@@ -586,7 +586,7 @@ export class EditorScene extends PixelScene {
     const up = !(from.stem?.up ?? true);
     const start = { x: from.x, y: this.staffTop + from.y + (up ? -1 : 1) * from.headRy };
     const end = { x: p.x - this.staffLeft, y: p.y };
-    strokePolyline(g.lineStyle(Math.max(1, S * 0.1), ink, 0.45), pendingArc(start, end, up, S * 2));
+    strokePolyline(g.lineStyle(Math.max(2, S * 0.12), ink, 0.7), pendingArc(start, end, up, S * 2));
   }
 
   /** A waiting pre-note (ft_1_02d.AC26): the small head the click would write, at the pitch under the pointer. */
