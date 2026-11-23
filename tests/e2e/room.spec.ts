@@ -476,7 +476,7 @@ test.describe('the player room', () => {
   test('ft_1_08.AC11 the stand opens a panel over the room, not darkened, with one picture per trainer whose names are not written; the keyboard reaches only them', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Exercises'));
-    await expect.poll(() => standState(page)).toEqual({ open: true, pictures: ['stand:notes', 'stand:ear', 'stand:shapes'], darkened: false, reach: ['Note names', 'Ear training', 'Scales and chords'] });
+    await expect.poll(() => standState(page)).toEqual({ open: true, pictures: ['stand:notes', 'stand:ear', 'stand:shapes', 'stand:chords'], darkened: false, reach: ['Note names', 'Ear training', 'Scales and chords', 'Chord from its name'] });
     // still the room, with no text under the pictures
     expect(await page.evaluate(() => window.__game.scene.getScenes(true).map((x) => x.scene.key))).toContain('profile');
     const texts = await sceneTexts(page, 'profile');

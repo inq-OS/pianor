@@ -3,8 +3,8 @@ id: "ft_1_29"
 title: "Scales and chords trainer"
 scope: "The rest of the theory trainer under Practice theory: play a scale or chord of a chosen key from the staff, play a chord from its name, a scale switcher, and a chord namer for the keys pressed"
 effort: "large"
-status: "slice A built: play a scale or triad of a chosen key and hand in Wait mode, three lives; slices B to D planned; verified on the virtual device only"
-completeness: 25
+status: "slices A and B built: a scale or triad of a chosen key and hand in Wait mode, and a chord from its name in three steps; the staff-note step and slices C and D planned; verified on the virtual device only"
+completeness: 45
 depends_on: ["ft_0_17", "ft_1_28"]
 ---
 # ft_1_29: Scales and chords trainer
@@ -30,6 +30,13 @@ Chord and key names in Estonian follow the way Estonian music teaching writes th
 - The toolbar holds the key (the circle of fifths opened to choose), the shape (scale or triad) and the hand (right or left); each change starts a new round. A wrong key flashes the awaited note and puts the names on the notes; a right note's XP (10) goes at once to the trainer XP of ft_0_17, which the player's card now calls XP from theory.
 - `AX-3 provisional:` the scale is one octave up and down in quarters with a long last tonic, the natural minor for a minor key; the triad is its three notes one by one, then together. The right hand plays from octave 4 on the treble staff, the left hand on the bass staff from octave 3 (tonics C to E) or 2 (F to B), one staff at a time rather than the grand staff. TODO(architect, R2): ask the maintainer after a week of use whether the harmonic and melodic minor, both hands together or the grand staff are wanted.
 
+## Slice B as built
+
+- A fourth picture on the stand's panel, three notes on one stem (`chordBoard`, a first sketch), opens `ChordTrainerScene`; the rules are `src/core/trainer/chordTrainer.ts` (`loadChordContent`, `parseChord`, `chordLabel`, `ChordRound`), the chords `content/trainer/chords.json` (`schemaVersion` 1).
+- A chord name is a root letter, capital for major and small for minor, an optional `b` or `#` and a suffix the dictionary knows (`7`, `maj7`); a step with a name the dictionary does not know fails to load. Steps: triads on white keys, all twelve major and minor triads, seventh chords.
+- The chord counts once every one of its pitch classes is among the keys pressed for it and still down, in any octave or inversion; keys still down from the last chord do not count. A key outside the chord costs a life and is named (spelled with flats for a flat chord). XP is 10 per note of a right chord, kept on a loss.
+- `AX-3 provisional:` any key of the keyboard counts, not only the level's range; the pixel font has no sharp sign, so a sharp is written #.
+
 ## Acceptance criteria
 
 - **ft_1_29.AC1** Slice A: a chosen key and shape is shown on the staff and judged in Wait mode; a wrong press costs a life and says why; XP earned is kept on a loss.
@@ -40,9 +47,9 @@ Chord and key names in Estonian follow the way Estonian music teaching writes th
 
 ## TODO
 
-- TODO(builder, R2): slices B, C and D, each its own pull request, test first in `src/core/trainer/`.
+- TODO(builder, R2): slice B's last step, one note on the staff that must be in the chord; then slices C and D, each its own pull request, test first in `src/core/trainer/`.
 - TODO(painter, R2): the stand panel's pictures for the new trainers (scale, chord, switcher), from the free packs first; slice A's three steps (`scaleSteps`) are a first sketch to repaint.
-- NEEDS-HUMAN: play a scale and a triad on the EZ-220 in the trainer, both hands.
+- NEEDS-HUMAN: play a scale and a triad on the EZ-220 in the trainer, both hands, and a few chords from their names.
 - TODO(builder, Later): light the scale's or chord's keys on the EZ-220 once ft_Y_06's real output works (needs the silent-light test there).
 - IDEA(architect, Later): a two-player game with the keyboard split in half. Not now: it needs two profiles at once and a save answer for whose XP it is.
 - Rejected: skill training that levels a character's attributes; the battles and their attributes are deleted (d151).
