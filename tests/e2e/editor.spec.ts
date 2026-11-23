@@ -1848,6 +1848,12 @@ test.describe('piece maker: vim keys (ft_1_02e)', () => {
     expect((await notes(page))[0]).toBe('0:0:C:quarter');
     await page.keyboard.type('.');
     expect((await notes(page))[0]).toBe('0:0:D:quarter');
+    // 2~ makes the D flat (sharp, then flat) in one edit: one u takes it back
+    await page.keyboard.type('2~');
+    expect(await page.evaluate(() => (window.__game.scene.getScene('editor').history.present.notes as { start: number; alter: number }[]).find((n) => n.start === 0)!.alter)).toBe(-1);
+    await page.keyboard.type('u');
+    expect(await page.evaluate(() => (window.__game.scene.getScene('editor').history.present.notes as { start: number; alter: number }[]).find((n) => n.start === 0)!.alter)).toBe(0);
+    expect((await notes(page))[0]).toBe('0:0:D:quarter');
     // yy and p: the bar again after it; dd takes the copy out again
     await page.keyboard.type('yyp');
     expect((await notes(page)).filter((n) => n.startsWith('1:'))).toHaveLength(4);

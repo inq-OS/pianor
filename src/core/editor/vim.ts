@@ -142,6 +142,8 @@ function insertKey(state: VimState, k: VimKey): { state: VimState; command: VimC
   const upper = NOTE_LETTERS[k.key.toLowerCase()];
   if (upper && k.key !== k.key.toLowerCase()) return done(state, { kind: 'chordNote', step: upper });
   if (k.key === 'r') return done(state, { kind: 'writeRest' });
+  // any other letter is no note: a slip of the finger never reaches a plain tool (playback, short tap) mid-entry
+  if (/^[A-Za-z]$/.test(k.key)) return done(state, { kind: 'wait' });
   if (k.key === '+') return done(state, { kind: 'sharpen', direction: 1 });
   if (k.key === '-') return done(state, { kind: 'sharpen', direction: -1 });
   // ' is a dead key on some layouts (Estonian): . is octave up too, beside , for down
@@ -207,7 +209,8 @@ function normalKey(state: VimState, k: VimKey): Out {
 
 /** Ctrl-R redo, Ctrl-A and Ctrl-X a step up and down (the selected bars' notes in visual mode); any other Ctrl key is the plain one. */
 function ctrlKey(state: VimState, key: string, n: number, visual: boolean): Out {
-  if (key === 'r') return done(state, { kind: 'redo', count: n });
+  // redo in visual mode ends it, as the selection it made may be gone
+  if (key === 'r') return done(visual ? { ...state, mode: 'normal' } : state, { kind: 'redo', count: n });
   if (key !== 'a' && key !== 'x') return done(state, { kind: 'pass' });
   const direction = key === 'a' ? 1 : -1;
   if (visual) return done(state, { kind: 'visualPitch', direction, count: n });

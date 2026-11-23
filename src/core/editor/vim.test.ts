@@ -73,6 +73,7 @@ describe('vim keys: the parser (ft_1_02e)', () => {
     expect(type('vp').commands.at(-1)).toEqual({ kind: 'visualPaste' });
     expect(type('v2<C-x>').commands.at(-1)).toEqual({ kind: 'visualPitch', direction: -1, count: 2 });
     expect(type('v<Esc>').commands.at(-1)).toEqual({ kind: 'normal', from: 'visual' });
+    expect(type('v<C-r>').state.mode).toBe('normal');
   });
 
   it('ft_1_02e.AC5 i, a, o and O go into insert mode, where a to g write notes and Esc comes back', () => {
@@ -85,8 +86,9 @@ describe('vim keys: the parser (ft_1_02e)', () => {
     expect(typed.state.mode).toBe('normal');
     // uppercase stacks a chord, + and - make the last note sharp or flat, . is octave up as ' is
     expect(type('icEG+-.').commands.slice(1).map((c) => c.kind)).toEqual(['write', 'chordNote', 'chordNote', 'sharpen', 'sharpen', 'octave']);
-    // in insert mode the letters are notes, not commands
-    expect(type('ix').commands.at(-1)).toEqual({ kind: 'pass' });
+    // in insert mode a letter that is no note does nothing, so a slip never reaches a plain tool
+    expect(type('ixu').commands).toEqual([{ kind: 'insert', where: 'here' }]);
+    expect(type('i4').commands.at(-1)).toEqual({ kind: 'pass' });
   });
 
   it('ft_1_02e.AC6 a : line gives its word, a ! after it and the rest; Backspace and Esc edit and drop it', () => {

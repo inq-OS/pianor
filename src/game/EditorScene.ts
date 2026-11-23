@@ -2007,9 +2007,10 @@ export class EditorScene extends PixelScene {
       }
       case 'accidental': {
         if (!findNote(this.piece, c)) return this.say(t('editor.cursor.none'), MESSAGE_MS);
-        this.selected = c;
-        // sharp, flat, natural go round: a count past three goes round again
-        for (let i = 0; i < ((command.count - 1) % 3) + 1; i++) this.cycleAccidental();
+        // sharp, flat, natural go round, a count past three round again: one edit, so one u takes it back
+        let alter = findNote(this.piece, c)!.alter;
+        for (let i = 0; i < ((command.count - 1) % 3) + 1; i++) alter = nextAlter(alter);
+        this.apply(setAlter(this.piece, c, alter), c);
         return this.setKeyCursor(c, true);
       }
       case 'undo': case 'redo':
