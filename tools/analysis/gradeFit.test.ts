@@ -24,7 +24,7 @@ describe('fitting the points above Beginner to graded pieces (core_08.AC12)', ()
     expect(targetPoints(9, henle)).toBe(98);
     expect(targetPoints(2, henle)).toBe(21);
     expect(targetPoints(5, henle)).toBe(54);
-    expect(targetPoints(3, { name: 'one', min: 3, max: 3 })).toBe(10);
+    expect(targetPoints(3, { min: 3, max: 3 })).toBe(10);
   });
 
   it('core_08.AC12 names the grade of a number of points, 20 to a grade', () => {
