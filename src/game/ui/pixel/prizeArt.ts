@@ -195,6 +195,239 @@ export function seedOfLife(): Bitmap {
   return out;
 }
 
+/**
+ * Paints a long thing lying aslant from `base` to `tip`: `reach(u, side)` is how far out from its middle line it reaches
+ * at `u` (0 at the base, 1 at the tip; `side` -1 toward the upper left, 1 toward the lower right), in fine pixels; `fill`
+ * picks the ink inside, or 0 to leave a hole. Its edge, and the rim of a hole, are drawn in `line`.
+ */
+function aslant(
+  out: Bitmap, base: { x: number; y: number }, tip: { x: number; y: number }, line: number,
+  reach: (u: number, side: -1 | 1) => number, fill: (u: number, v: number, out01: number) => number,
+): void {
+  const ax = tip.x - base.x, ay = tip.y - base.y;
+  const length = Math.hypot(ax, ay);
+  const along = { x: ax / length, y: ay / length };
+  const across = { x: -along.y, y: along.x };
+  const at = (x: number, y: number) => {
+    const dx = x + 0.5 - base.x, dy = y + 0.5 - base.y;
+    const u = (dx * along.x + dy * along.y) / length, v = dx * across.x + dy * across.y;
+    const r = u <= 0 || u >= 1 ? 0 : reach(u, v < 0 ? -1 : 1);
+    return r > 0 && Math.abs(v) <= r ? { u, v, out01: Math.abs(v) / r } : null;
+  };
+  const solid = (x: number, y: number) => { const p = at(x, y); return p !== null && fill(p.u, p.v, p.out01) !== 0; };
+  for (let y = 0; y < out.height; y++) {
+    for (let x = 0; x < out.width; x++) {
+      const p = at(x, y);
+      if (!p) continue;
+      const c = fill(p.u, p.v, p.out01);
+      if (c === 0) continue;
+      const edge = [[-1, 0], [1, 0], [0, -1], [0, 1]].some(([ex, ey]) => !solid(x + ex!, y + ey!));
+      out.pixels[y * out.width + x] = edge ? line : c;
+    }
+  }
+}
+
+/** A rope's twist along a list of points: every other pixel the light strand, lined above and below where it is bare. */
+function rope(out: Bitmap, points: readonly (readonly [number, number])[], ink: { light: number; dark: number; line: number }, keep = false): void {
+  const free = (x: number, y: number) => x >= 0 && y >= 0 && x < out.width && y < out.height && out.pixels[y * out.width + x] === 0;
+  points.forEach(([x, y], i) => {
+    if (keep && !free(x, y)) return;
+    if (x < 0 || y < 0 || x >= out.width || y >= out.height) return;
+    out.pixels[y * out.width + x] = i % 3 === 0 ? ink.dark : ink.light;
+    if (free(x, y - 1)) out.pixels[(y - 1) * out.width + x] = ink.line;
+    if (free(x, y + 1)) out.pixels[(y + 1) * out.width + x] = ink.line;
+  });
+}
+
+/** The points of a straight run from `a` to `b`, one per column (or per row when it is steeper). */
+function run(a: readonly [number, number], b: readonly [number, number]): [number, number][] {
+  const n = Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1]));
+  return Array.from({ length: n + 1 }, (_, i) => [Math.round(a[0] + ((b[0] - a[0]) * i) / Math.max(1, n)), Math.round(a[1] + ((b[1] - a[1]) * i) / Math.max(1, n))] as [number, number]);
+}
+
+/** The tarred twine of the fisherman's net and his rope: a hemp brown, lined in the deepest umber. */
+const TWINE = { light: C.honey, dark: C.honeyDark, line: C.umberDeep } as const;
+
+/** The cork float's inks: the cork dark to light, its pores, its line, and the headrope's twine. */
+export const FLOAT_INK = { cork: [C.buffDeep, C.buffDark, C.buff], pore: C.umber, line: C.umberDark, twine: TWINE } as const;
+
+/**
+ * The fisherman's cork net float (`net-float`, the first rung, *võrguujuk*): a plain thing from his boat. A fat roll of
+ * cork threaded on the net's headrope, lit from the upper left, pitted with pores; a few meshes of the net hang under
+ * the rope on either side. No glint: the first rung is plain (ft_1_21.AC18).
+ */
+export function netFloat(): Bitmap {
+  const out = createBitmap(ITEM_SIZE.width, ITEM_SIZE.height);
+  const [corkDark, cork, corkLight] = FLOAT_INK.cork;
+  // a few meshes of the net hanging from the headrope at both ends: diamonds of twine
+  const mesh = (x0: number, count: number, y0: number, slope: number) => {
+    for (let i = 0; i < count; i++) {
+      const x = x0 + i * 7, y = Math.round(y0 - i * 7 * slope);
+      const diamond = [...run([x, y], [x + 3, y + 5]), ...run([x + 3, y + 5], [x, y + 10]), ...run([x, y + 10], [x - 3, y + 5]), ...run([x - 3, y + 5], [x, y])];
+      for (const [px, py] of diamond) if (px >= 0 && px < out.width && py < out.height) out.pixels[py * out.width + px] = py > y + 6 ? TWINE.dark : TWINE.light;
+    }
+  };
+  mesh(4, 2, 26, 7 / 55); mesh(46, 2, 20, 7 / 55);
+  // the cork roll: a barrel aslant along the rope, its ends rounded off
+  aslant(out, { x: 11, y: 25 }, { x: 45, y: 16 }, FLOAT_INK.line, (u) => 11 * Math.pow(Math.sin(Math.PI * u), 0.35), (u, v, o) => {
+    if (hash(Math.round(u * 40), Math.round(v)) % 9 === 0 && o < 0.85) return FLOAT_INK.pore;
+    if (v < 0) return o > 0.5 ? corkLight : cork;
+    return o > 0.55 ? corkDark : cork;
+  });
+  // the headrope, two strands thick, across the slot and through the roll: seen only outside it
+  for (const dy of [0, 1]) rope(out, run([0, 25 + dy], [55, 18 + dy]), TWINE, true);
+  return out;
+}
+
+/** A fixed scatter for pores and speckles: the same picture every time. */
+function hash(x: number, y: number): number {
+  return Math.abs(((x * 73856093) ^ (y * 19349663)) >>> 0) % 997;
+}
+
+/** The net needle's inks: its wood dark to light, its line, and the twine wound on it. */
+export const NEEDLE_INK = { wood: [C.brown, C.brownLight, C.buff], line: C.umberDeep, twine: TWINE } as const;
+
+/**
+ * The fisherman's net needle (`net-needle`, the second rung, *võrgunõel*): the flat wooden shuttle a net is knotted and
+ * mended with. Long and aslant, pointed at the upper right, with the open eye and its tongue near the point, a notch at
+ * the heel, and tarred twine wound on it between them.
+ */
+export function netNeedle(): Bitmap {
+  const out = createBitmap(ITEM_SIZE.width, ITEM_SIZE.height);
+  const [woodDark, wood, woodLight] = NEEDLE_INK.wood;
+  const half = 7;
+  aslant(out, { x: 3, y: 36 }, { x: 54, y: 4 }, NEEDLE_INK.line, (u) => (u > 0.8 ? half * Math.pow((1 - u) / 0.2, 0.7) : half), (u, v, o) => {
+    // the heel's notch, the eye round the tongue
+    if (u < 0.07 && Math.abs(v) < 3) return 0;
+    const inEye = u > 0.52 && u < 0.8 && Math.abs(v) < 3.6;
+    const tongue = u > 0.55 && Math.abs(v) < 1.5 * Math.min(1, (0.8 - u) / 0.1);
+    if (inEye && !tongue) return 0;
+    // the twine wound between the heel and the eye, in turns across it
+    if (u > 0.12 && u < 0.48 && o < 0.7) return Math.floor(u * 64) % 2 === 0 ? TWINE.light : TWINE.dark;
+    if (v < 0) return o > 0.45 ? woodLight : wood;
+    return o > 0.5 ? woodDark : wood;
+  });
+  // a short end of twine left hanging from the eye
+  rope(out, [[33, 18], [33, 19], [32, 20], [32, 21], [31, 22], [31, 23], [30, 24]], TWINE, true);
+  return out;
+}
+
+/** The gull's feather's inks: the vane from shade to white, its line, the black of the tip, its white spot, the quill. */
+export const FEATHER_INK = { vane: [C.silver, C.downShade, C.down], line: C.silverDark, tip: [C.ink, C.duskDark], spot: C.downLight, quill: C.downLight } as const;
+
+/**
+ * A gull's feather (`gull-feather`, the third rung, *kajakasulg*): a long flight feather of the gulls over the docks,
+ * aslant, its quill at the lower left. The vane is narrow on the leading side and wide on the trailing one, grey white
+ * with the barbs drawn in, the tip black with the white spot a herring gull has there.
+ */
+export function gullFeather(): Bitmap {
+  const out = createBitmap(ITEM_SIZE.width, ITEM_SIZE.height);
+  const [vaneDark, vane, vaneLight] = FEATHER_INK.vane;
+  const [tipDark, tip] = FEATHER_INK.tip;
+  aslant(out, { x: 4, y: 37 }, { x: 54, y: 5 }, FEATHER_INK.line, (u, side) => {
+    if (u < 0.2) return u > 0.02 ? 1.6 : 0; // the bare quill
+    const t = (u - 0.2) / 0.8;
+    const rise = Math.min(1, t / 0.22), round = t > 0.78 ? Math.sqrt(Math.max(0, 1 - ((t - 0.78) / 0.22) ** 2)) : 1;
+    return Math.max(1.6, (side < 0 ? 3.8 : 8.5) * Math.sqrt(rise) * round);
+  }, (u, v, o) => {
+    const t = (u - 0.2) / 0.8;
+    if (Math.abs(v) < 0.8 || u < 0.2) return t > 0.86 ? tip : FEATHER_INK.quill;
+    // the barbs: thin lines slanting out from the shaft toward the tip
+    const barb = ((Math.floor(u * 70 - Math.abs(v) * 0.8) % 3) + 3) % 3 === 0 && o < 0.92;
+    if (t > 0.72) {
+      if ((t - 0.86) ** 2 / 0.003 + (v - 3.6) ** 2 / 3.2 < 1) return FEATHER_INK.spot;
+      return barb ? tipDark : tip;
+    }
+    if (barb) return vaneDark;
+    if (v < 0) return vaneLight;
+    return o > 0.6 ? vaneDark : vane;
+  });
+  return out;
+}
+
+/** The holed stone's inks: the stone dark to light, its speckles, its line and the glint. */
+export const STONE_INK = { stone: [C.silverDark, C.silver, C.downShade], speck: C.duskLight, line: C.duskDeep, glint: C.downLight } as const;
+
+/**
+ * A sea stone with a hole worn through it (`holed-stone`, the fourth rung, *näkikivi*): a smooth grey beach stone that
+ * the sea bored, the kind kept for luck. Lit from the upper left with a glint; the hole's upper rim
+ * in shade, its lower rim catching the light.
+ */
+export function holedStone(): Bitmap {
+  const out = createBitmap(ITEM_SIZE.width, ITEM_SIZE.height);
+  const [stoneDark, stone, stoneLight] = STONE_INK.stone;
+  const hole = { x: 33, y: 20, rx: 5.6, ry: 4.4 };
+  const inHole = (x: number, y: number) => ((x + 0.5 - hole.x) / hole.rx) ** 2 + ((y + 0.5 - hole.y) / hole.ry) ** 2 <= 1;
+  blob(out, { x: 28, y: 23 }, { x: 19, y: 13 }, STONE_INK.line, (u, v) => {
+    if (hash(Math.round(u * 19), Math.round(v * 13)) % 13 === 0) return STONE_INK.speck;
+    if (u + v * 1.2 < -0.75) return stoneLight;
+    if (u + v * 1.2 > 0.7) return stoneDark;
+    return stone;
+  });
+  // the hole: through to the slot behind; its rim shaded above and lit below
+  for (let y = 0; y < out.height; y++) {
+    for (let x = 0; x < out.width; x++) {
+      if (inHole(x, y)) { out.pixels[y * out.width + x] = 0; continue; }
+      const near = [[-1, 0], [1, 0], [0, -1], [0, 1]].some(([ex, ey]) => inHole(x + ex!, y + ey!));
+      if (!near || out.pixels[y * out.width + x] === 0) continue;
+      out.pixels[y * out.width + x] = y + 0.5 < hole.y ? STONE_INK.line : y + 0.5 < hole.y + 2 ? stoneDark : stoneLight;
+    }
+  }
+  for (const [x, y] of [[17, 16], [16, 16], [18, 16], [17, 15], [17, 17], [19, 15]] as const) out.pixels[y * out.width + x] = STONE_INK.glint;
+  return out;
+}
+
+/** The ship's bell's inks: the brass dark to light, its line, the mouth's dark, the bell rope, and the light round it. */
+export const BELL_INK = { brass: [C.goldDark, C.gold, C.goldLight], line: C.orangeDark, mouth: C.umberDeep, rope: { light: C.cream, dark: C.buffDark, line: C.umberDark }, light: [C.goldLight, C.downLight] } as const;
+
+/**
+ * The ship's bell (`ships-bell`, the top rung, *laevakell*: the whole song): the fisherman's treasure. A brass bell on
+ * its crown loop, a raised band round its waist, flaring to a thick lip, the dark of its mouth and the clapper showing
+ * under it, a white bell rope hanging from the clapper; a glint up its lit side and points of light round it, as the
+ * other characters' treasures have.
+ */
+export function shipsBell(): Bitmap {
+  const out = createBitmap(ITEM_SIZE.width, ITEM_SIZE.height);
+  const [brassDark, brass, brassLight] = BELL_INK.brass;
+  const cx = 26, top = 8, lip = 28;
+  const halfAt = (y: number) => {
+    const t = (y - top) / (lip - top);
+    return 6.5 + 7 * t * t + (y >= lip - 2 ? 2 : 0);
+  };
+  const inside = (x: number, y: number) => y >= top && y <= lip && Math.abs(x + 0.5 - cx) <= halfAt(y) && !(y === top && Math.abs(x + 0.5 - cx) > 5);
+  // the mouth under the lip: a dark half ellipse, and the clapper's ball in it
+  blob(out, { x: cx, y: lip + 1 }, { x: 13, y: 3.5 }, BELL_INK.line, () => BELL_INK.mouth);
+  // the bell rope: from the clapper down and away to the lower right, a knot near its end
+  for (const dx of [0, 1]) rope(out, [...run([cx + dx, lip + 4], [cx + 6 + dx, 36]), ...run([cx + 7 + dx, 36], [cx + 18, 37])], BELL_INK.rope);
+  blob(out, { x: cx + 18, y: 37 }, { x: 2.4, y: 2.2 }, BELL_INK.rope.line, () => BELL_INK.rope.light);
+  blob(out, { x: cx + 1, y: lip + 3 }, { x: 2.6, y: 2.4 }, BELL_INK.line, () => brassDark);
+  for (let y = top; y <= lip; y++) {
+    for (let x = 0; x < out.width; x++) {
+      if (!inside(x, y)) continue;
+      const edge = [[-1, 0], [1, 0], [0, -1], [0, 1]].some(([ex, ey]) => !inside(x + ex!, y + ey!));
+      const s = (x + 0.5 - cx) / halfAt(y); // -1 at the lit side, 1 at the shaded one
+      let c: number = s < -0.55 ? brassLight : s > 0.35 ? brassDark : brass;
+      if (s > -0.48 && s < -0.3 && y > top + 2 && y < lip - 3) c = C.downLight; // the glint running down its lit side
+      if (y === top + 13 || y === top + 14) c = y === top + 13 ? (s < -0.4 ? C.downLight : brassLight) : brassDark; // the raised band
+      if (y >= lip - 1) c = s < -0.3 ? brassLight : brassDark; // the lip's thick rim
+      out.pixels[y * out.width + x] = edge ? BELL_INK.line : c;
+    }
+  }
+  // the crown: a loop of brass on top
+  blob(out, { x: cx, y: top - 3 }, { x: 4, y: 4 }, BELL_INK.line, (u, v) => (u * u + v * v < 0.3 ? 0 : u < 0 ? brassLight : brass));
+  for (let y = 0; y < out.height; y++) for (let x = 0; x < out.width; x++) {
+    const d = ((x + 0.5 - cx) / 4) ** 2 + ((y + 0.5 - (top - 3)) / 4) ** 2;
+    if (d < 0.3 && out.pixels[y * out.width + x] === brass) out.pixels[y * out.width + x] = 0;
+  }
+  // points of light round the treasure
+  const [glow, spark] = BELL_INK.light;
+  for (const at of [{ x: 8, y: 12 }, { x: 46, y: 9 }, { x: 47, y: 26 }] as const) {
+    for (const [x, y] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]] as const) out.pixels[(at.y + y) * out.width + at.x + x] = x === 0 && y === 0 ? spark : glow;
+  }
+  for (const [x, y] of [[6, 27], [41, 4], [52, 17], [13, 35]] as const) out.pixels[y * out.width + x] = glow;
+  return out;
+}
+
 /** The prizes' pictures by their picture key in `content/items/items.json`. */
 export const PRIZE_PICTURES: Readonly<Record<string, () => Bitmap>> = {
   'oak-leaf': oakLeaf,
@@ -202,6 +435,11 @@ export const PRIZE_PICTURES: Readonly<Record<string, () => Bitmap>> = {
   'golden-leaf': goldenLeaf,
   'singing-branch': singingBranch,
   'seed-of-life': seedOfLife,
+  'net-float': netFloat,
+  'net-needle': netNeedle,
+  'gull-feather': gullFeather,
+  'holed-stone': holedStone,
+  'ships-bell': shipsBell,
 };
 
 /** The picture of a prize by its key, or null when the painter has not drawn it (the band then shows its name). */
