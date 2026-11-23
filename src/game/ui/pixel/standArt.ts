@@ -279,7 +279,7 @@ export function tugRope(): Bitmap {
     for (let dy = 0; dy < 7; dy++) {
       const y = 18 + sag + dy;
       const band = ((x + dy * 2) % 6) < 3 ? 2 : 1;
-      pen(x, y, dy === 1 ? C.buffLight : dy === 5 ? C.buffDark : hemp[band]!);
+      pen(x, y, dy === 1 ? C.buffLight : dy === 5 ? C.buffDark : hemp[band]);
     }
   }
   // the rag: knotted on the rope's middle, its two tails hanging down
