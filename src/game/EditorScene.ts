@@ -9,7 +9,8 @@ import { moveBar, moveInTime, movePitch, otherStaff, startKeyCursor, withPitch, 
 import { nextLength } from '../core/editor/nextLength';
 import { beatsFit, confirmBeats, firstBarFull, guessBeats, type Beats } from '../core/editor/meterGuess';
 import { chordKeyPress, moveNoteKeepingLegato, repeatTied } from '../core/editor/keyEdits';
-import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, moveBars, pasteAt, type BarRange, type Clip } from '../core/editor/bars';
+import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, moveBars, pasteAt, replaceBars, type BarRange, type Clip } from '../core/editor/bars';
+import { deleteNotes, eraseBefore, nearestPitch, pitchAbove, snapToNote, stepsTo, VIM_START, vimKey, vimMotion, vimShowCmd, type VimCommand, type VimState } from '../core/editor/vim';
 import { samePitchNotAdjacent, tieAll } from '../core/editor/ties';
 import { arcInto, toggleArc } from '../core/editor/arcs';
 import { graceFromKey, graceFromPlace, graceItem } from '../core/editor/graces';
@@ -35,6 +36,7 @@ import { chordLabel, loadChordContent } from '../core/trainer/chordTrainer';
 import {
   BARS_DEFAULT, BPM_MAX, soundingMidi, EDITOR_LENGTHS, cycleLength, emptyPiece, findNote, lengthen, lengthenRest, lengthsFor, stepChord, placeNote, placeRest, placedRests, removeNote, removeRest, setAlter, nextAlter, longestFit, setDynamic, nextDynamic, setBeats, setPickup, onBothStaves, setKey, setFinger, bpmOf, stepBpm, setLength, setTitle, shorten, shortenRest, stepBars,
   type Edit, type EditorHand, type EditorLength, type EditorPiece, type NoteRef,
+  midiOf,
 } from '../core/editor/model';
 import type { Alter } from '../core/chart/key';
 import { DYNAMICS, type Dynamic } from '../core/chart/dynamics';
@@ -45,7 +47,7 @@ import { fitsLabel, problemLabel } from '../core/text/labels';
 import { strings, t, type StringKey } from '../core/text/strings';
 import { contextOf } from './context';
 import { compileOwn } from './editor/OwnPieces';
-import { digitOf, EDITOR_KEYS, editorKeyOf, type EditorKeyName } from './editor/shortcuts';
+import { digitOf, EDITOR_KEYS, editorKeyOf, vimKeyOf, vimLabelOf, vimWordOf, type EditorKeyName } from './editor/shortcuts';
 import { ChartPlayer } from './preview/ChartPlayer';
 import { panelBitmap } from './ui/pixel/frames';
 import { ACCIDENTAL_ICONS, NOTE_ICONS, REST_ICONS } from './ui/pixel/lengthArt';
@@ -144,6 +146,14 @@ const PIANO_KEYS = /^(Key[A-Z]|Digit[0-9]|Comma|Period|Semicolon|Slash|ArrowLeft
 const dynamicPicture = (mark: Dynamic | undefined): Bitmap => itemPicture(mark ? `dynamic.${mark}` : 'blank');
 /** The accidental item's sign for each alter. */
 const ACCIDENTAL_SIGN: Readonly<Record<Alter, 'sharp' | 'flat' | 'natural'>> = { 1: 'sharp', [-1]: 'flat', 0: 'natural' };
+
+/** The vim commands that act on bars, and those of insert mode (ft_1_02e). */
+type VimBarKind = 'deleteBars' | 'yankBars' | 'paste' | 'visual' | 'visualDelete' | 'visualYank' | 'visualPaste' | 'visualPitch';
+type VimInsertKind = 'write' | 'writeRest' | 'octave' | 'erase' | 'chordNote' | 'sharpen';
+const BAR_COMMANDS: ReadonlySet<string> = new Set<VimBarKind>(['deleteBars', 'yankBars', 'paste', 'visual', 'visualDelete', 'visualYank', 'visualPaste', 'visualPitch']);
+const INSERT_COMMANDS: ReadonlySet<string> = new Set<VimInsertKind>(['write', 'writeRest', 'octave', 'erase', 'chordNote', 'sharpen']);
+const isBarCommand = (c: VimCommand): c is Extract<VimCommand, { kind: VimBarKind }> => BAR_COMMANDS.has(c.kind);
+const isInsertCommand = (c: VimCommand): c is Extract<VimCommand, { kind: VimInsertKind }> => INSERT_COMMANDS.has(c.kind);
 
 const KEY_LENGTHS: Readonly<Record<string, EditorLength>> = {
   Digit1: 'whole', Digit3: 'dottedHalf', Digit2: 'half', Digit5: 'dottedQuarter', Digit4: 'quarter', Digit9: 'dottedEighth', Digit8: 'eighth', Digit6: 'sixteenth',
@@ -274,6 +284,12 @@ export class EditorScene extends PixelScene {
   private staffMode: StaffMode = 'auto';
   /** A short tap writes an eighth note; kept on this device (ENTRY_PREFS_KEY). */
   private shortTapEighth = DEFAULT_ENTRY_PREFS.shortTapEighth;
+  /** The vim keys (ft_1_02e): their state while they are on, null while off; on or off is kept on this device (ENTRY_PREFS_KEY). */
+  private vim: VimState | null = null;
+  /** In vim's insert mode, the note written last: ' and , move it an octave. */
+  private vimLast: NoteRef | null = null;
+  /** The vim mode line at the top left of the staff, drawn again with each key. */
+  private vimText: PixelText | null = null;
   private staffButton: PixelButton | null = null;
   /** The dynamic mark of the selected note, cycled pp to ff then none (core_09.AC16). */
   private dynamicButton: PixelButton | null = null;
@@ -338,6 +354,8 @@ export class EditorScene extends PixelScene {
     this.message = '';
     this.staffMode = 'auto';
     this.shortTapEighth = this.loadEntryPrefs();
+    this.vim = this.loadVimPref() ? VIM_START : null;
+    this.vimLast = null;
     if (back) {
       ({ id: this.id, history: this.history, saved: this.saved, length: this.length, meterAuto: this.meterAuto } = back);
       this.message = '';
@@ -1006,7 +1024,10 @@ export class EditorScene extends PixelScene {
       e.preventDefault();
       e.stopPropagation();
     };
-    if (this.menuOrPanelKey(e) || this.shortcutKey(e)) return;
+    if (this.menuOrPanelKey(e)) return;
+    // the vim keys come before the plain ones; a key vim does not use goes on to them (ft_1_02e)
+    if (this.vim && this.vimKeyDown(e)) return;
+    if (this.shortcutKey(e)) return;
     if (ctrl && (e.code === 'KeyZ' || e.code === 'KeyY')) {
       handled();
       if (e.code === 'KeyY' || e.shiftKey) this.redo();
@@ -1074,6 +1095,7 @@ export class EditorScene extends PixelScene {
       repeats: () => this.pressRepeat(),
       staff: () => this.openKeyMenu('staff', this.staffItems(), (STAFF_ORDER.indexOf(this.staffMode) + 1) % STAFF_ORDER.length, { w: 40, h: BAR_BUTTON_HEIGHT }, 3),
       shortTap: () => this.toggleShortTap(),
+      vimKeys: () => this.toggleVim(),
       paste: () => this.openKeyMenu('paste', this.pasteItems(), 0, { w: PASTE_ITEM_WIDTH, h: BAR_BUTTON_HEIGHT }, 3, ['1', '2', '4']),
     };
     return acts[name] ?? null;
@@ -1873,7 +1895,7 @@ export class EditorScene extends PixelScene {
   private toggleShortTap(): void {
     this.shortTapEighth = !this.shortTapEighth;
     try {
-      window.localStorage.setItem(ENTRY_PREFS_KEY, serializeEntryPrefs({ ...DEFAULT_ENTRY_PREFS, shortTapEighth: this.shortTapEighth }));
+      window.localStorage.setItem(ENTRY_PREFS_KEY, serializeEntryPrefs({ ...DEFAULT_ENTRY_PREFS, shortTapEighth: this.shortTapEighth, vimKeys: this.vim !== null }));
     } catch {
       // storage is blocked: the setting holds for this visit only
     }
@@ -1887,6 +1909,328 @@ export class EditorScene extends PixelScene {
     } catch {
       return DEFAULT_ENTRY_PREFS.shortTapEighth;
     }
+  }
+
+  /** Whether the vim keys are on on this device; storage that is blocked or broken reads as off. */
+  private loadVimPref(): boolean {
+    try {
+      return parseEntryPrefs(window.localStorage.getItem(ENTRY_PREFS_KEY)).vimKeys === true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ------------------------------------------------------------------------------------------------------- vim keys
+
+  /** Ctrl + Shift + V, `:set vim` or `:set novim` (ft_1_02e.AC1): the vim keys on or off, kept on this device. */
+  private toggleVim(on = this.vim === null): void {
+    this.vim = on ? VIM_START : null;
+    this.vimLast = null;
+    try {
+      window.localStorage.setItem(ENTRY_PREFS_KEY, serializeEntryPrefs({ ...DEFAULT_ENTRY_PREFS, shortTapEighth: this.shortTapEighth, vimKeys: on }));
+    } catch {
+      // storage is blocked: the setting holds for this visit only
+    }
+    if (on && !this.keyCursor) this.setKeyCursor(this.defaultCursor());
+    this.say(t(on ? 'editor.vim.on' : 'editor.vim.off'), MESSAGE_MS * 2);
+    // F1 names the keys the vim way while they are on
+    if (this.shortcutsShown) this.redraw();
+    this.drawVimLine();
+  }
+
+  protected override keyName(key: string): string {
+    return this.vim ? vimLabelOf(key) : key;
+  }
+
+  /** A key with the vim keys on: true when vim took it, false when it goes on to the plain keys. */
+  private vimKeyDown(e: KeyboardEvent): boolean {
+    const out = vimKey(this.vim!, vimKeyOf(e));
+    this.vim = out.state;
+    if (out.command.kind === 'pass') {
+      this.drawVimLine();
+      return false;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    this.runVim(out.command);
+    this.drawVimLine();
+    return true;
+  }
+
+  /** The cursor the vim keys act from: shown, or where it would appear first. */
+  private vimCursor(): KeyCursor {
+    return this.keyCursor ?? this.defaultCursor();
+  }
+
+  /** The bars from the cursor's bar, `count` of them, as far as the piece goes. */
+  private vimBars(count: number): BarRange {
+    const from = this.vimCursor().bar;
+    return { from, to: Math.min(this.piece.bars - 1, from + Math.max(1, count) - 1) };
+  }
+
+  /** Carries out one vim command with the piece maker's own moves, edits and tools (ft_1_02e). */
+  private runVim(command: VimCommand): void {
+    if (command.kind === 'pass' || command.kind === 'wait') return;
+    if (command.kind === 'ex') return this.vimEx(command.name, command.bang, command.arg);
+    if (isBarCommand(command)) return this.runVimBars(command);
+    if (isInsertCommand(command)) return this.runVimInsert(command);
+    this.runVimNote(command);
+  }
+
+  /** The moves, the note edits, undo and redo, and the changes of mode. */
+  private runVimNote(command: Exclude<VimCommand, { kind: 'pass' | 'wait' | 'ex' | VimBarKind | VimInsertKind }>): void {
+    const c = this.vimCursor();
+    const visual = this.vim?.mode === 'visual';
+    switch (command.kind) {
+      case 'move': {
+        const next = vimMotion(this.piece, c, command.motion, command.count, this.length);
+        if (visual) {
+          this.keyCursor = next;
+          this.follow = next.bar;
+          return this.extendBarSelection(next.bar);
+        }
+        const hadBars = this.barSel !== null;
+        this.barSel = null;
+        return this.setKeyCursor(next, hadBars);
+      }
+      case 'deleteNote': {
+        const edit = deleteNotes(this.piece, c, command.count, this.length);
+        if (!edit.ok) return this.say(t('editor.cursor.none'), MESSAGE_MS);
+        this.apply(edit, null);
+        return this.setKeyCursor(c, true);
+      }
+      case 'pitch': return this.vimPitch(c, command.direction * command.count);
+      case 'replace': {
+        const note = findNote(this.piece, c);
+        if (!note) return this.say(t('editor.cursor.none'), MESSAGE_MS);
+        return this.vimPitch(c, stepsTo(note, command.step));
+      }
+      case 'accidental': {
+        if (!findNote(this.piece, c)) return this.say(t('editor.cursor.none'), MESSAGE_MS);
+        this.selected = c;
+        // sharp, flat, natural go round: a count past three goes round again
+        for (let i = 0; i < ((command.count - 1) % 3) + 1; i++) this.cycleAccidental();
+        return this.setKeyCursor(c, true);
+      }
+      case 'undo': case 'redo':
+        for (let i = 0; i < command.count; i++) {
+          const can = command.kind === 'undo' ? canUndo(this.history) : canRedo(this.history);
+          if (i > 0 && !can) break;
+          if (command.kind === 'undo') this.undo();
+          else this.redo();
+        }
+        // the cursor stands on what is there now, as vim's undo puts it on the change
+        return this.setKeyCursor(snapToNote(this.piece, { ...c, bar: Math.min(c.bar, this.piece.bars - 1) }), true);
+      case 'insert': return this.vimInsert(c, command.where);
+      case 'normal':
+        // Esc: out of insert or visual mode; in normal mode it ends a waiting pick and the bar selection, and never leaves
+        this.flushEntry();
+        if (command.from !== 'insert') {
+          this.disarm();
+          this.barSel = null;
+          this.refreshStaff();
+        }
+        return;
+    }
+  }
+
+  /** The bar commands: dd, yy, p and P, and visual mode. */
+  private runVimBars(command: Extract<VimCommand, { kind: VimBarKind }>): void {
+    const c = this.vimCursor();
+    switch (command.kind) {
+      case 'deleteBars': {
+        this.barSel = this.vimBars(command.count);
+        this.cutSelection();
+        return this.setKeyCursor({ ...c, bar: Math.min(c.bar, this.piece.bars - 1), start: 0 }, true);
+      }
+      case 'yankBars': {
+        const range = this.vimBars(command.count);
+        this.barClip = copyBars(this.piece, range);
+        this.clipRange = null;
+        return this.say(t('editor.copy.done'), MESSAGE_MS);
+      }
+      case 'paste': {
+        if (!this.barClip) return this.say(t('editor.paste.none'), MESSAGE_MS);
+        const at = command.before ? c.bar : c.bar + 1;
+        const edit = insertBars(this.piece, at, this.barClip, command.count);
+        this.apply(edit, null);
+        if (edit.ok) this.setKeyCursor({ ...c, bar: at, start: 0 }, true);
+        return;
+      }
+      case 'visual':
+        this.barAnchor = c.bar;
+        this.keyCursor = c;
+        return this.extendBarSelection(c.bar);
+      case 'visualDelete':
+        if (!this.barSel) return;
+        this.cutSelection();
+        return this.setKeyCursor({ ...c, bar: Math.min(this.barAnchor ?? c.bar, this.piece.bars - 1), start: 0 }, true);
+      case 'visualYank':
+        this.copyBar();
+        this.barSel = null;
+        return this.refreshStaff();
+      case 'visualPaste': {
+        const sel = this.barSel;
+        this.barSel = null;
+        if (!this.barClip) return this.say(t('editor.paste.none'), MESSAGE_MS);
+        if (sel) this.apply(replaceBars(this.piece, sel, this.barClip), null);
+        return this.refreshStaff();
+      }
+      case 'visualPitch': {
+        const sel = this.barSel;
+        if (!sel) return;
+        let piece = this.piece;
+        for (let i = 0; i < command.count; i++) {
+          const moved = moveBars(piece, sel, command.direction, 'step');
+          if (!moved.ok) {
+            if (i === 0) return this.apply(moved, null);
+            break;
+          }
+          piece = moved.piece;
+        }
+        return this.apply({ ok: true, piece }, null);
+      }
+    }
+  }
+
+  /** Insert mode: the notes, rests and octaves typed, and Backspace. */
+  private runVimInsert(command: Extract<VimCommand, { kind: VimInsertKind }>): void {
+    const c = this.vimCursor();
+    switch (command.kind) {
+      case 'write': {
+        const pitch = nearestPitch(c, command.step);
+        return this.vimWrite({ ...c, ...pitch }, 'note');
+      }
+      case 'writeRest': return this.vimWrite(c, 'rest');
+      case 'octave': {
+        const last = this.vimLast;
+        if (!last || !findNote(this.piece, last)) return this.say(t('editor.cursor.none'), MESSAGE_MS);
+        const moved = moveNoteKeepingLegato(this.piece, last, command.direction, true);
+        if (!moved.ok) return this.apply(moved, last);
+        this.vimLast = moved.to;
+        this.apply({ ok: true, piece: moved.piece }, null);
+        // the next letter is read from the moved note's pitch
+        return this.setKeyCursor(withPitch(c, moved.to), true);
+      }
+      case 'chordNote': return this.vimChordNote(command.step);
+      case 'sharpen': {
+        const last = this.vimLast;
+        const note = last ? findNote(this.piece, last) : null;
+        if (!last || !note) return this.say(t('editor.cursor.none'), MESSAGE_MS);
+        const alter = Math.max(-1, Math.min(1, note.alter + command.direction)) as Alter;
+        if (alter === note.alter) return;
+        return this.apply(setAlter(this.piece, last, alter), null);
+      }
+      case 'erase': {
+        const out = eraseBefore(this.piece, c, this.length);
+        if (out.edit.ok) this.apply(out.edit, null);
+        return this.setKeyCursor(out.cursor, true);
+      }
+    }
+  }
+
+  /** Ctrl-A, Ctrl-X and r: the note under the cursor `steps` staff steps up (or down), one edit, the cursor going with it. */
+  private vimPitch(c: KeyCursor, steps: number): void {
+    if (!findNote(this.piece, c)) return this.say(t('editor.cursor.none'), MESSAGE_MS);
+    if (steps === 0) return;
+    const direction = steps > 0 ? 1 : -1;
+    let piece = this.piece;
+    let ref: NoteRef = c;
+    for (let i = 0; i < Math.abs(steps); i++) {
+      const moved = moveNoteKeepingLegato(piece, ref, direction, false);
+      if (!moved.ok) {
+        if (i === 0) return this.apply(moved, c);
+        break;
+      }
+      piece = moved.piece;
+      ref = moved.to;
+    }
+    this.apply({ ok: true, piece }, ref);
+    this.setKeyCursor(withPitch(c, ref), true);
+  }
+
+  /** i, a, o and O: insert mode at the cursor, after it, or in a new empty bar after or before the cursor's bar. */
+  private vimInsert(c: KeyCursor, where: 'here' | 'after' | 'barAfter' | 'barBefore'): void {
+    this.vimLast = null;
+    if (where === 'here') return this.setKeyCursor(c);
+    if (where === 'after') return this.setKeyCursor(moveInTime(this.piece, c, 1, this.length));
+    const at = where === 'barAfter' ? c.bar + 1 : c.bar;
+    const edit = insertBlankBars(this.piece, at, 1);
+    this.apply(edit, null);
+    if (edit.ok) this.setKeyCursor({ ...c, bar: at, start: 0 }, true);
+  }
+
+  /** Insert mode: a note (or a rest) of the selected length at `c`, as Ctrl + Enter writes it, the cursor moving on. */
+  private vimWrite(c: KeyCursor, entry: EntryMode): void {
+    const kept = this.entry;
+    this.entry = entry;
+    try {
+      this.enterKey(c, false, true);
+    } finally {
+      this.entry = kept;
+    }
+    this.vimLast = entry === 'note' && findNote(this.piece, c) ? c : null;
+  }
+
+  /**
+   * Insert mode, an uppercase letter: that note joins the chord just written, the next of its letter above the chord's top
+   * head, as a click on that place adds a head; the cursor stays where writing goes on.
+   */
+  private vimChordNote(step: Step): void {
+    const last = this.vimLast;
+    if (!last || !findNote(this.piece, last)) return this.say(t('editor.cursor.none'), MESSAGE_MS);
+    const heads = this.piece.notes.filter((n) => n.hand === last.hand && n.bar === last.bar && n.start === last.start);
+    const top = heads.reduce((a, b) => (midiOf(b.step, b.octave) > midiOf(a.step, a.octave) ? b : a));
+    const pitch = pitchAbove(top, step);
+    const clef = last.hand === 'LH' ? 'bass' : 'treble';
+    const length = top.length;
+    const after = this.keyCursor;
+    this.placeAt(length, { kind: 'place', staff: 0, trackId: last.hand.toLowerCase(), clef, bar: last.bar, start: last.start, position: staffPosition({ ...pitch, alter: 0 }, clef), ...pitch });
+    // + and - and the octave keys act on the head just added
+    const added = { ...last, ...pitch };
+    if (findNote(this.piece, added)) this.vimLast = added;
+    if (after) {
+      this.keyCursor = after;
+      this.drawKeyCursor();
+    }
+  }
+
+  /** A `:` line (ft_1_02e.AC6): w, q, q!, wq, x, set vim and set novim, a bar number, or any tool by its name. */
+  private vimEx(name: string, bang: boolean, arg: string): void {
+    const word = name.toLowerCase();
+    if (word === 'w') return void this.save();
+    if (word === 'q') return bang ? startScene(this, 'menu') : this.leave();
+    if (word === 'wq' || word === 'x') {
+      void this.save().then(() => {
+        if (this.scene.isActive() && !this.dirty()) startScene(this, 'menu');
+      });
+      return;
+    }
+    if (word === 'set' && (arg === 'novim' || arg === 'vim')) return this.toggleVim(arg === 'vim');
+    const tool = vimWordOf(word);
+    const own: Partial<Record<EditorKeyName, () => void>> = {
+      save: () => void this.save(),
+      undo: () => this.undo(),
+      redo: () => this.redo(),
+      delete: () => this.deleteSelected(),
+      copy: () => this.copyBar(),
+      chord: () => this.chordKey(this.vimCursor()),
+    };
+    const act = tool ? own[tool] ?? this.shortcutActs(tool) : null;
+    if (!act) return this.say(t('editor.vim.unknown', { name: `${name}${bang ? '!' : ''}${arg ? ` ${arg}` : ''}` }), MESSAGE_MS);
+    act();
+  }
+
+  /** The mode line: the mode and the keys of a command half typed, or the `:` line; nothing while the vim keys are off. */
+  private drawVimLine(): void {
+    const text = this.vimText;
+    if (!text || !text.active) return;
+    if (!this.vim) {
+      text.setVisible(false);
+      return;
+    }
+    const { mode, keys } = vimShowCmd(this.vim);
+    text.setText(t(`editor.vim.${mode}`, { keys }).trimEnd()).setVisible(true);
   }
 
   /** Shows the staff mode and the short-tap state on their buttons. */
@@ -2327,6 +2671,11 @@ export class EditorScene extends PixelScene {
     if (this.meterAsk !== null) this.drawMeterAsk(layer, rows);
     else if (this.panel === 'time') this.drawTimePanel(layer, rows);
     this.drawKeyHelp(strip.rows);
+    // the vim mode line at the top left of the staff (ft_1_02e), under the strip
+    // keepCase: the keys typed are shown as typed (G is not g)
+    this.vimText = new PixelText(this, Math.ceil((SHEET.staffInset * this.px.fine) / scale) + 2, strip.rows + 2, '', { color: C.ink, keepCase: true });
+    layer.add(this.vimText);
+    this.drawVimLine();
     // the top strip between the door and the gear: Save after the door, the title, the page buttons,
     // then Import and Export before the gear
     const y = strip.rows / 2;

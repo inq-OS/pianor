@@ -994,7 +994,12 @@ export abstract class PixelScene extends Phaser.Scene {
   /** Names `key` as the button's key: a key menu opens from it, and its name shows on it while `shortcutsShown`. */
   protected markKey(button: PixelButton, key: string, parent: Phaser.GameObjects.Container = this.root): void {
     this.shortcutButtons.set(key, button);
-    if (this.shortcutsShown) this.keyBadge(parent, button, key);
+    if (this.shortcutsShown) this.keyBadge(parent, button, this.keyName(key));
+  }
+
+  /** The name F1 shows for a key: its own, unless a screen reads its keys another way (the piece maker's vim keys). */
+  protected keyName(key: string): string {
+    return key;
   }
 
   /** A key's name in the top left corner of a button, white on a dark box so it reads on any cell, gone with the button. */

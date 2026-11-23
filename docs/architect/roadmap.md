@@ -35,7 +35,7 @@ Open work is a doc tag (d116). Count a release's work with the grep in [todo-tag
 | R3 | ft_1_21 (challenges with characters, d129), the campaign phase screens (now in the scenes of ft_1_19), the admin settings page, four character songs, harder campaign defaults, EZ-220 sounds; per-piece XP built, try-out open |
 | R4 | "Living characters" (d132): the phrase book, the knowledge layer, question and answer, the birth month (ft_1_22, ft_1_23); the turn battle deleted (d151) |
 | R5 | the cold start (the pictures' weight), the world (open since d112) |
-| Later | the trainers' two-player split (ft_1_29), the rhythm clock, vim-style editing, earned trophies, seasonal looks (ft_Y_14, now with the motion kit's weather seam), EZ-220 command keys |
+| Later | the trainers' two-player split (ft_1_29), the rhythm clock, earned trophies, seasonal looks (ft_Y_14, now with the motion kit's weather seam), EZ-220 command keys |
 | Keri (maintainer-driven, R2) | ft_1_18 and ft_1_19: the room, the map (a caricature of Keri since d125), the knoll, the docks and the crossroads are painted on one painter's kit (d124) and one motion kit; the garden is paused (d252). Each new scene adds about 1.3 MB to the game file until the pictures load per hour |
 
 ## R1 "First lessons": the MVP at the laptop (done)
@@ -145,9 +145,8 @@ The turn battle with classes and spells that R4 used to be is deleted ([d151](..
 |---|---|---|
 | two-player split, lit keys for the trainers (ft_1_29) | ft_1_29 slices A to D; ft_Y_06's real output | Scales, chords, switcher and chord namer moved to R2 |
 | rhythm clock, USB drum kit | rhythm practice done; a drum kit tested (needs human) | Zones as a list (R2) make the kit cheap |
-| vim-style editing (opt-in) | bar selection and keyboard navigation done; a spec with the maintainer | Pure moves in `core/editor` make it a thin key layer |
 | ft_Y_14 seasonal and holiday looks for the campaign scene | ft_1_14 built | Layers on the day phase through `sceneLook` (d097); weigh a seasonal public-domain piece first (AX-0) |
-| EZ-220 command keys (hold an edge key, [key] labels on buttons, mode indicator), record in tempo | recording by playing done; a spec with the maintainer | vim-style editing builds on its latched mode |
+| EZ-220 command keys (hold an edge key, [key] labels on buttons, mode indicator), record in tempo | recording by playing done; a spec with the maintainer | the vim keys (ft_1_02e) can read its latched mode |
 | earned trophies, medals, paintings in the room; piano upgrades with rank | the rank diploma done; an architect design pass (earned only, AX-2) | Awards as content, derived from progress so no save bump if possible |
 | core_09 rest (ties, pick-up bars, repeats) | none | Repeats also let campaign songs be AABA |
 | Android tablets | the maintainer decides | Reopens hosting: Web MIDI needs a secure context, a tablet on the LAN is not `localhost` (HTTPS, PWA) |

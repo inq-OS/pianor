@@ -524,3 +524,11 @@ Check: untestable: a merge rule for threads and a repository setting
 Changes d153 and d199. The top of `docs/architect/roadmap.md` lists each area of the game with its level (the mean `completeness` of its features, lowest first) and what holds it back; the maintainer may rank an area lower by how it feels in play. When the maintainer turns to another area the work follows it, and queued items are not pushed as the current focus. The weekly architect run is retired.
 
 Check: untestable: how work is chosen
+
+## d285
+
+**Every change to how the game is controlled or used (input, keys, buttons, menus, where an action sits) gets an ergonomics review and analysis before it merges; art and look do not.** Features: none.
+
+A fresh reviewer agent, bounded in words, weighs how often each action is used against how far the hand travels, consistency with the keys and places already there, and discoverability for the student and the author; its findings are folded in or written as tags, and the pull request says what changed because of it.
+
+Check: untestable: a review step of the work

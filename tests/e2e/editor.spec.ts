@@ -1,4 +1,4 @@
-// Covers ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
+// Covers ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
 import { readFileSync } from 'node:fs';
 import { encode as encodePng } from 'fast-png';
 import { expect, test, type Page } from '@playwright/test';
@@ -1812,6 +1812,76 @@ test.describe('the next length and the A time', () => {
     expect(await notes(page)).toEqual(['0:0:C:quarter', '0:480:D:quarter', '0:960:E:quarter']);
     await clickNote(page, 1, 0, 'F');
     expect(await notes(page)).toEqual(['0:0:C:quarter', '0:480:D:quarter', '0:960:E:quarter', '1:0:F:quarter']);
+    expectNoErrors(errors);
+  });
+});
+
+test.describe('piece maker: vim keys (ft_1_02e)', () => {
+  /** The vim keys' mode and the keys pending, from the scene. */
+  const vimState = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { vim: { mode: string; pending: string; line: string | null } | null }).vim);
+
+  test('ft_1_02e.AC1 ft_1_02e.AC2 ft_1_02e.AC3 ft_1_02e.AC4 ft_1_02e.AC5 ft_1_02e.AC6 ft_1_02e.AC7 Ctrl+Shift+V turns them on; insert writes letters, normal moves and changes, Esc never leaves', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    // off by default: h is no key of the piece maker and moves nothing
+    expect(await vimState(page)).toBeNull();
+    await page.keyboard.press('Control+Shift+KeyV');
+    expect(await vimState(page)).toMatchObject({ mode: 'normal' });
+    expect(await sceneTexts(page, 'editor')).toContain('vim');
+    // the cursor shows at once on B4; 6j goes down to C4; i, then c d e g writes four quarters, each from the one before
+    expect((await keyState(page)).cursor).toBe('RH:0:0:B4');
+    await page.keyboard.type('6j');
+    expect((await keyState(page)).cursor).toBe('RH:0:0:C4');
+    await page.keyboard.type('icdeg');
+    expect(await vimState(page)).toMatchObject({ mode: 'insert' });
+    expect(await notes(page)).toEqual(['0:0:C:quarter', '0:480:D:quarter', '0:960:E:quarter', '0:1440:G:quarter']);
+    // the bar is full, so the cursor went on to the next bar; Esc back to normal, gg to the first bar, onto its C4 (a move in
+    // time lands on the note there), Ctrl-A a step up: one edit, u takes it back, . does it again
+    expect((await keyState(page)).cursor).toBe('RH:1:0:G4');
+    await page.keyboard.press('Escape');
+    expect(await vimState(page)).toMatchObject({ mode: 'normal' });
+    await page.keyboard.type('gg');
+    expect((await keyState(page)).cursor).toBe('RH:0:0:C4');
+    await page.keyboard.press('Control+KeyA');
+    expect((await notes(page))[0]).toBe('0:0:D:quarter');
+    await page.keyboard.type('u');
+    expect((await notes(page))[0]).toBe('0:0:C:quarter');
+    await page.keyboard.type('.');
+    expect((await notes(page))[0]).toBe('0:0:D:quarter');
+    // yy and p: the bar again after it; dd takes the copy out again
+    await page.keyboard.type('yyp');
+    expect((await notes(page)).filter((n) => n.startsWith('1:'))).toHaveLength(4);
+    expect((await keyState(page)).cursor).toMatch(/^RH:1:0:/);
+    await page.keyboard.type('dd');
+    expect((await notes(page)).filter((n) => n.startsWith('1:'))).toHaveLength(0);
+    // x takes the note under the cursor; a letter vim does not use does nothing, and Esc in normal mode stays
+    await page.keyboard.type('gg');
+    await page.keyboard.type('x');
+    expect(await notes(page)).toEqual(['0:480:D:quarter', '0:960:E:quarter', '0:1440:G:quarter']);
+    await page.keyboard.type('q');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    expect(await activeScenes(page)).toContain('editor');
+    // a : line runs a tool by its word; :set novim turns the keys off
+    await page.keyboard.type(':nonsense');
+    expect(await vimState(page)).toMatchObject({ line: 'nonsense' });
+    await page.keyboard.press('Enter');
+    expect(await status(page)).toContain('No such command: nonsense');
+    await page.keyboard.type(':set novim');
+    await page.keyboard.press('Enter');
+    expect(await vimState(page)).toBeNull();
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02e.AC5 in insert mode an uppercase letter stacks a chord on the note just written, and + makes it sharp', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await page.keyboard.press('Control+Shift+KeyV');
+    await page.keyboard.type('6jicEG+');
+    const chord = await page.evaluate(() => (window.__game.scene.getScene('editor').history.present.notes as { start: number; step: string; octave: number; alter: number }[]).map((n) => `${n.start}:${n.step}${n.octave}:${n.alter}`).sort());
+    expect(chord).toEqual(['0:C4:0', '0:E4:0', '0:G4:1']);
+    // the cursor stayed where writing goes on, after the chord
+    expect((await keyState(page)).cursor).toBe('RH:0:480:C4');
     expectNoErrors(errors);
   });
 });
