@@ -687,9 +687,11 @@ test.describe('the telephone in the room (ft_1_34)', () => {
     for (let i = 0; i < 10 && (await talking()); i++) await page.keyboard.press('Space');
     await clickButton(page, 'profile', await sceneButton(page, 'profile', ringing));
     await waitForScene(page, 'practice');
-    const learning = await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { learn: { run: { firstBar: number } } | null; fullChart: { id: string } }));
-    expect(learning.fullChart.id).toBe('little-steps');
-    expect(learning.learn?.run.firstBar).toBe(0);
+    const learning = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('practice') as unknown as { learn: { run: { firstBar: number } } | null; fullChart: { id: string } };
+      return { piece: scene.fullChart.id, firstBar: scene.learn?.run.firstBar ?? null };
+    });
+    expect(learning).toEqual({ piece: 'little-steps', firstBar: 0 });
     expectNoErrors(errors);
   });
 });
