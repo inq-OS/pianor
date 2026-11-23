@@ -4,7 +4,7 @@ import { chartWith } from '../../../tests/helpers/charts';
 import type { BarPlay } from '../progression/practiceLog';
 import { learnPlan } from './plan';
 import {
-  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, goldenBars, isLearned, learnProgressSchema, learnRewards, MAX_LEARN_TESTS, learnStepBars, measuredOutcome, medalOf, sitDown, START_PROGRESS, withTest,
+  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, goldenBars, isLearned, learnProgressSchema, learnRewards, MAX_LEARN_TESTS, learnHandsApart, learnStepBars, measuredOutcome, medalOf, sitDown, START_PROGRESS, withTest,
   type LearnProgress, type RunOutcome,
 } from './progress';
 
@@ -257,6 +257,16 @@ describe('the step size a piece is learned in', () => {
     expect(learnStepBars({ ...started, stepBars: 1 }, { ...DEFAULT_LEARN_SETTINGS, stepBars: 2 })).toBe(1);
     expect(learnStepBars(started, { ...DEFAULT_LEARN_SETTINGS, stepBars: 2 })).toBe(1); // kept before the field: step 1, the only size offered then
     expect(learnProgressSchema.parse({ ...started, stepBars: 2 }).stepBars).toBe(2);
+  });
+});
+
+describe('hands apart in a piece begun', () => {
+  it('ft_1_32.AC12 a new piece is learned hands apart; a piece begun before keeps the plan it began with', () => {
+    expect(learnHandsApart(START_PROGRESS)).toBe(true);
+    const begun = afterRun(plan, START_PROGRESS, 'perfect', '1998-11-22');
+    expect(learnHandsApart({ ...begun, handsApart: true })).toBe(true);
+    expect(learnHandsApart(begun)).toBe(false); // kept before the field: its plan had no hand steps
+    expect(learnProgressSchema.parse({ ...begun, handsApart: true }).handsApart).toBe(true);
   });
 });
 

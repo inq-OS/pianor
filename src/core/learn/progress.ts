@@ -42,6 +42,11 @@ export interface LearnProgress {
    * step size offered before the field.
    */
   stepBars?: LearnStepSize;
+  /**
+   * The plan of this piece has hands-apart steps (`learnPlan`'s `handsApart`, ft_1_32 rule 13). Absent: no, as in every
+   * piece begun before the field, so its step index keeps pointing at the same steps.
+   */
+  handsApart?: boolean;
   /** When the piece was learned (ISO 8601): only plays after it raise a bar to gold (`goldenBars`). Absent before, and in progress kept before the field. */
   learnedAt?: string;
 }
@@ -108,6 +113,7 @@ export const learnProgressSchema = z.object({
   tests: z.array(learnTestSchema).exactOptional(),
   stepBars: z.union([z.literal(1), z.literal(2)]).exactOptional(),
   learnedAt: z.string().min(1).exactOptional(),
+  handsApart: z.boolean().exactOptional(),
 });
 
 /**
@@ -130,6 +136,11 @@ export const DEFAULT_LEARN_SETTINGS: LearnSettings = { stepBars: 1, markers: tru
  */
 export function learnStepBars(progress: LearnProgress, settings: LearnSettings): LearnStepSize {
   return progress.lastDay === null ? settings.stepBars : (progress.stepBars ?? 1);
+}
+
+/** Whether to plan a piece with hands-apart steps: yes for a piece not begun yet, else as its learning began. */
+export function learnHandsApart(progress: LearnProgress): boolean {
+  return progress.lastDay === null ? true : (progress.handsApart ?? false);
 }
 
 export const START_PROGRESS: LearnProgress = { step: 0, wholeStreak: 0, recall: false, confirm: false, misses: 0, medals: [], lastDay: null };

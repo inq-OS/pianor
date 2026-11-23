@@ -2,9 +2,9 @@ import type { Chart } from '../../core/chart';
 import { sliceChart } from '../../core/chart/section';
 import type { JudgeEvent, WrongNoteJudged, WrongReason } from '../../core/judge';
 import { markersByNote, mistakeMarkers } from '../../core/learn/markers';
-import { learnPlan, learnUnits, type LearnStep } from '../../core/learn/plan';
+import { handChart, learnPlan, learnUnits, type LearnStep } from '../../core/learn/plan';
 import {
-  afterRun, currentRun, goldenBars, isLearned, isMeasured, learnRewards, learnStepBars, measuredOutcome, sitDown, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
+  afterRun, currentRun, goldenBars, isLearned, isMeasured, learnHandsApart, learnRewards, learnStepBars, measuredOutcome, sitDown, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
 } from '../../core/learn/progress';
 import { LearnRunJudge, type LearnRunVerdict } from '../../core/learn/run';
 import { baselineBpm, runTempo, TEMPO_RULES, type RunTempo } from '../../core/learn/tempo';
@@ -60,8 +60,9 @@ export class LearnSession {
   static open(profile: LearnProfile, piece: Chart, today: string, now: () => Date = () => new Date()): LearnSession | null {
     const kept = profile.learnProgressOf(piece.id);
     const stepBars = learnStepBars(kept, profile.learnSettings);
-    const plan = learnPlan(piece, stepBars);
-    const saved = { ...kept, stepBars };
+    const handsApart = learnHandsApart(kept);
+    const plan = learnPlan(piece, stepBars, handsApart);
+    const saved = { ...kept, stepBars, handsApart };
     if (plan.length === 0 || isLearned(plan, saved)) return null;
     const started = saved.lastDay !== null;
     if (!started && (profile.recordFor(piece.id)?.completions ?? 0) >= KNOWN_COMPLETIONS) return null;
@@ -73,9 +74,9 @@ export class LearnSession {
     return currentRun(this.plan, this.progress)!;
   }
 
-  /** The run's bars of the piece: what the staff shows and the judge waits for. */
+  /** The run's bars of the piece, only its hand's notes for a hand step: what the staff shows and the judge waits for. */
   get chart(): Chart {
-    return sliceChart(this.piece, this.run.firstBar, this.run.lastBar);
+    return handChart(sliceChart(this.piece, this.run.firstBar, this.run.lastBar), this.run.step.hand);
   }
 
   /** Whether the note names must stay off for this run (the run after one with names shown). */
@@ -169,13 +170,17 @@ export class LearnSession {
     if (run.step.kind === 'whole') return t('learn.whole');
     if (run.step.kind === 'join') return t('learn.join', { from, to });
     if (run.step.kind === 'confirm') return from === to ? t('learn.confirmOne', { n: from }) : t('learn.confirm', { from, to });
+    if (run.step.hand) {
+      const hand = t(run.step.hand === 'RH' ? 'learn.handRH' : 'learn.handLH');
+      return from === to ? t('learn.handStepOne', { n: from, hand }) : t('learn.handStep', { from, to, hand });
+    }
     return from === to ? t('learn.stepOne', { n: from }) : t('learn.step', { from, to });
   }
 
   /** What Kiur says after a perfect run, about the run that comes next: its bars, or the start line of a whole run or recall. */
   nextLine(): string {
     const run = this.run;
-    if (run.kind === 'recall' || run.step.kind !== 'grow' || this.namesHidden) return this.startLine();
+    if (run.kind === 'recall' || run.step.kind !== 'grow' || run.step.hand || this.namesHidden) return this.startLine();
     const from = run.step.firstUnit + 1;
     const to = run.step.lastUnit + 1;
     return from === to ? t('learn.nextOne', { n: from }) : t('learn.next', { from, to });
