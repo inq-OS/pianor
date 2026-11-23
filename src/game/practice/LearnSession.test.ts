@@ -144,20 +144,36 @@ describe('LearnSession', () => {
     expect(third.verdict).toEqual({ state: 'perfect' });
   });
 
+  it('ft_1_32.AC17 measures the run while it is played: no tempo before three notes, then the pace, spread and wobble so far', () => {
+    const run = open().session();
+    expect(run.liveTempo).toBeNull();
+    const mode = new WaitMode(run.chart);
+    const press = (i: number, timeMs: number) => run.push(mode.handle({ kind: 'on', midi: midis[i]!, velocity: 80, timeMs, source: 'test' }), run.chart);
+    press(0, 0);
+    press(1, 1000);
+    expect(run.liveTempo).toBeNull();
+    press(2, 2000);
+    expect(run.liveTempo).toMatchObject({ bpm: 60, spread: 0, robust: 0 });
+    press(3, 3600);
+    expect(run.liveTempo!.spread).toBeGreaterThan(0);
+  });
+
   it('ft_1_32.AC11 never stops for speed before a baseline tempo is measured', () => {
     expect(open().session().rushStops).toBe(false);
   });
 
-  it('ft_1_32.AC12 a new two-hand piece is learned hands apart: the right hand alone first, on its own staff', async () => {
+  it('ft_1_32.AC12 with hands apart chosen, a new two-hand piece starts with the right hand alone, on its own staff', async () => {
     const both = chartWith([{ tick: 0, dur: 480, midi: 64 }, { tick: 0, dur: 480, midi: 48, track: 'lh' }, { tick: 480, dur: 1440, midi: 65 }]);
     const kept = { progress: START_PROGRESS };
     const profileOf: LearnProfile = {
-      learnSettings: DEFAULT_LEARN_SETTINGS, learnProgressOf: () => kept.progress, practiceFor: () => [], recordFor: () => undefined,
+      learnSettings: { ...DEFAULT_LEARN_SETTINGS, handsApart: true }, learnProgressOf: () => kept.progress, practiceFor: () => [], recordFor: () => undefined,
       saveLearnProgress: (_, progress) => { kept.progress = progress; return Promise.resolve(true); },
     };
     const session = LearnSession.open(profileOf, both, '1998-11-22')!;
     expect(session.run.step.hand).toBe('RH');
     expect(session.chart.tracks.filter((t) => t.role === 'play').map((t) => t.hand)).toEqual(['RH']);
+    // ft_1_32.AC18 the left hand rests: its staff is drawn grey and not awaited
+    expect(session.restingTracks).toEqual(both.tracks.filter((t) => t.hand === 'LH').map((t) => t.id));
     expect(session.startLine()).toBe('Bar 1, right hand alone: every note right');
     await session.finish('perfect');
     expect(kept.progress.handsApart).toBe(true);

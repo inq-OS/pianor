@@ -171,6 +171,33 @@ export async function openBubbleFromMore(page: Page, sceneKey: string): Promise<
   return bubbleOpen(page, sceneKey);
 }
 
+/** Open the scene's bubble from More when it is shut (ft_1_20, d282). */
+export async function openBubble(page: Page, key: string): Promise<void> {
+  expect(await openBubbleFromMore(page, key), `the bubble of ${key}`).toBe(true);
+}
+
+/** Press the bubble's option `label` on scene `key`, opening the bubble with More first when it is shut. */
+export async function pressInBubble(page: Page, key: string, label: string): Promise<void> {
+  await openBubble(page, key);
+  const index = await lastButton(page, key, label);
+  expect(index, `an option ${label} in the bubble`).toBeGreaterThanOrEqual(0);
+  await clickButton(page, key, index);
+}
+
+/**
+ * The index of the button `label` (its word, label or tooltip) on scene `key`, reaching into the bubble when it is not on
+ * the screen (ft_1_20, d282): an open bubble that lacks it is closed with Esc first; then the bubble is opened with More.
+ * -1 when it is nowhere.
+ */
+export async function reachButton(page: Page, key: string, label: string): Promise<number> {
+  const index = await lastButton(page, key, label);
+  if (index >= 0) return index;
+  await closeBubble(page, key);
+  const again = await lastButton(page, key, label);
+  if (again >= 0) return again;
+  return (await openBubbleFromMore(page, key)) ? lastButton(page, key, label) : -1;
+}
+
 /** Whether the scene's bubble is open (ft_1_20, d282). */
 export function bubbleOpen(page: Page, sceneKey: string): Promise<boolean> {
   return page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as { bubbleIsOpen: boolean }).bubbleIsOpen, sceneKey);

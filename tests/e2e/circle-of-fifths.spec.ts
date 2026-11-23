@@ -1,6 +1,6 @@
 // Covers ft_1_28.AC1, ft_1_28.AC2, ft_1_28.AC3, ft_1_28.AC5, ft_1_28.AC7.
 import { expect, test, type Page } from '@playwright/test';
-import { clickButton, expectNoErrors, menuButton, openFromStand, openGame, openPiece, profileButton, sceneButton, sceneTexts, waitForScene } from './helpers';
+import { clickButton, expectNoErrors, menuButton, openFromStand, openGame, openPiece, profileButton, sceneButton, sceneTexts, waitForScene, reachButton } from './helpers';
 
 const SHOTS = process.env.CIRCLE_SHOTS;
 
@@ -14,8 +14,9 @@ const circleState = (page: Page) => page.evaluate(() => {
 
 /** Press the wheel button on the screen `key` and wait for the circle over it. */
 async function openCircle(page: Page, key: string): Promise<void> {
-  await expect.poll(() => sceneButton(page, key, 'Circle of fifths')).toBeGreaterThanOrEqual(0);
-  await clickButton(page, key, await sceneButton(page, key, 'Circle of fifths'));
+  // on practice and the piece maker the wheel is in the bubble (ft_1_20, d282)
+  await expect.poll(() => reachButton(page, key, 'Circle of fifths')).toBeGreaterThanOrEqual(0);
+  await clickButton(page, key, await reachButton(page, key, 'Circle of fifths'));
   await waitForScene(page, 'circle');
   expect(await running(page, key)).toBe(false); // paused under the overlay
 }

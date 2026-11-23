@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { appConfig } from './appConfig';
 import { ArtDemoScene } from './game/ArtDemoScene';
 import { KiurDoorScene } from './game/KiurDoorScene';
+import { LearnResumeScene } from './game/LearnResumeScene';
 import { IntroScene } from './game/IntroScene';
 import { CircleOfFifthsScene } from './game/CircleOfFifthsScene';
 import { BootScene } from './game/BootScene';
@@ -105,7 +106,7 @@ async function startGame(): Promise<void> {
     ...(appConfig.flags.timerLoop ? { fps: { forceSetTimeOut: true, target: 60, panicMax: 0 } } : {}),
     // sized by `fitGame` below in physical pixels, not by Phaser's RESIZE mode (which uses CSS pixels)
     scale: { mode: Phaser.Scale.NONE },
-    scene: [BootScene, MenuScene, ProfilesScene, ProfileDashboardScene, NoteTrainerScene, EarTrainerScene, ShapeTrainerScene, ChordTrainerScene, AdminScene, AdminGateScene, AdminPagesScene, AdminPasswordScene, AdminDeleteScene, TeacherScene, TeacherPieceScene, TeacherTestsScene, TeacherGateScene, TeacherPasswordScene, NameScene, PartsScene, CreditsScene, SettingsScene, PiecesScene, AnalyzeScene, LearnStatsScene, PracticeScene, ResultsScene, EditorScene, StaffDemoScene, ArtDemoScene, KiurDoorScene, IntroScene, CircleOfFifthsScene, KeriMapScene, ...adventureScenes()],
+    scene: [BootScene, MenuScene, ProfilesScene, ProfileDashboardScene, NoteTrainerScene, EarTrainerScene, ShapeTrainerScene, ChordTrainerScene, AdminScene, AdminGateScene, AdminPagesScene, AdminPasswordScene, AdminDeleteScene, TeacherScene, TeacherPieceScene, TeacherTestsScene, TeacherGateScene, TeacherPasswordScene, NameScene, PartsScene, CreditsScene, SettingsScene, PiecesScene, AnalyzeScene, LearnStatsScene, PracticeScene, ResultsScene, EditorScene, StaffDemoScene, ArtDemoScene, KiurDoorScene, LearnResumeScene, IntroScene, CircleOfFifthsScene, KeriMapScene, ...adventureScenes()],
   });
   game.registry.set(CONTEXT_KEY, context);
   debug?.watch(game, inputs.keyboard);

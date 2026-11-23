@@ -237,7 +237,7 @@ export abstract class PixelScene extends Phaser.Scene {
   /** Counts the scene's visits: a picture that arrives after the visit it was asked for has ended draws nothing. */
   private visit = 0;
   /** The open drop-down menu, if any: its container and its choices (which are also in `buttons` while it is open). */
-  private menu: { container: Phaser.GameObjects.Container; buttons: PixelButton[]; focusBefore: number; bubble?: boolean } | null = null;
+  private menu: { container: Phaser.GameObjects.Container; buttons: PixelButton[]; focusBefore: number; bubble?: boolean; ring?: PixelButton[] } | null = null;
   /** F1 in the piece maker: every band item with a key shows it in its corner. */
   protected shortcutsShown = false;
   /** The band's buttons by their key, as last drawn: a key opens its item's menu from the item. */
@@ -1180,6 +1180,23 @@ export abstract class PixelScene extends Phaser.Scene {
       this.closeMenu();
       return;
     }
+    // in the bubble the arrows walk its options round the ring: right and down clockwise, left and up back (ft_1_20, d282)
+    const ring = this.menu?.ring?.filter((b) => !b.disabled) ?? [];
+    const walk = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    // Enter or Space picks the focused option before the screen under the bubble hears the key
+    if (this.bubbleIsOpen && (e.key === 'Enter' || e.key === ' ') && this.focusedButton) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (!e.repeat) this.focusedButton.press();
+      return;
+    }
+    if (walk !== undefined && ring.length > 0) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const at = this.focusedButton ? ring.indexOf(this.focusedButton) : -1;
+      this.focusOn(ring[at < 0 ? 0 : (at + walk + ring.length) % ring.length]);
+      return;
+    }
     if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
       if (!this.screenFrame?.band || this.menuOpen || (!this.hasBubble && this.stripOverflow.length === 0)) return;
       e.preventDefault();
@@ -1253,6 +1270,8 @@ export abstract class PixelScene extends Phaser.Scene {
     // the ground is see-through: the staff under it still reads while the bubble is open
     container.add([catcher, new PixelImage(this, layout.area.x, layout.area.y, ringBitmap(layout.area.w)).setAlpha(BUBBLE_GROUND_ALPHA)]);
     const buttons: PixelButton[] = [];
+    // the options in slot order, for the arrows
+    const ring: PixelButton[] = [];
     const make = (r: Rect, item: ToolbarItem, onClick: () => void): PixelButton => {
       const button = new PixelButton(this, container, {
         ...rectCentre(r), label: item.label, labelWidth: r.w - CELL_PAD, look: 'bubble',
@@ -1271,7 +1290,7 @@ export abstract class PixelScene extends Phaser.Scene {
       const r = layout.options[i]!;
       if (slot === 'more') {
         const turn = () => this.openBubble(at, { page: this.bubblePageNo + 1 });
-        make(r, { label: t('band.more'), icon: TOOL_ICONS.more, onClick: () => undefined }, turn);
+        ring.push(make(r, { label: t('band.more'), icon: TOOL_ICONS.more, onClick: () => undefined }, turn));
         sectorPick[i] = turn;
         return;
       }
@@ -1287,7 +1306,7 @@ export abstract class PixelScene extends Phaser.Scene {
         // a worn option leaves the bubble open, so several can be set in a row
         if (item.worn) this.time.delayedCall(0, () => this.openBubble(at));
       };
-      make(r, item, pick);
+      ring.push(make(r, item, pick));
       if (!item.disabled) sectorPick[i] = pick;
     });
     choices.forEach((choice, j) => {
@@ -1300,13 +1319,9 @@ export abstract class PixelScene extends Phaser.Scene {
       if (choice.active) button.setActive(true);
     });
     make(layout.close, { label: t('band.close'), icon: TOOL_ICONS.close, onClick: () => undefined }, () => this.closeMenu());
-    this.menu = { container, buttons, focusBefore: this.focusIndex, bubble: true };
+    this.menu = { container, buttons, focusBefore: this.focusIndex, bubble: true, ring };
     this.buttons.push(...buttons);
-    if (options.keyboard || this.keyboardNavigation) {
-      this.focusShown = true;
-      this.focusIndex = 0;
-      this.paintFocus();
-    }
+    if (options.keyboard || this.keyboardNavigation) this.focusOn(ring.find((b) => !b.disabled) ?? buttons[0]);
   }
 
   /**
