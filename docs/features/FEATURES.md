@@ -35,7 +35,7 @@ Every feature file carries `completeness: N` (an integer, 0 to 100) in its front
 | Iteration 1 | 4 of 32 | 64 | `#############.......` |
 | Core behaviour | 0 of 12 | 69 | `##############......` |
 | Iteration not defined yet | 0 of 15 | 19 | `####................` |
-| Overall | 19 of 78 | 57 | `###########.........` |
+| Overall | 19 of 78 | 58 | `############........` |
 <!-- /docs:completeness -->
 
 ## MVP, iteration 0 (ft_0_00 to ft_0_17)
@@ -92,11 +92,11 @@ Every feature file carries `completeness: N` (an integer, 0 to 100) in its front
 <!-- docs:index features ft_1 -->
 | ID | Feature | Scope | Effort | Done % | Human | Status |
 |---|---|---|---|---|---|---|
-| [ft_1_02](ft_1_02-piece-editor.md) | Piece editor, pieces on and off | Click notes onto the staff; own pieces private (licence `NaN`); turn pieces on and off per player. Built in four parts: | split | 78 |  | split into four parts, each with its own file |
+| [ft_1_02](ft_1_02-piece-editor.md) | Piece editor, pieces on and off | Click notes onto the staff; own pieces private (licence `NaN`); turn pieces on and off per player. Built in four parts: | split | 79 |  | split into four parts, each with its own file |
 | [ft_1_02a](ft_1_02a-editor-model-and-screen.md) | Editor model and screen | Edit rules, hit testing, ABC output, the editor screen; own pieces in the browser, playable with XP | done (preliminary) | 100 |  | preliminary, in the menu as Make (`?editor=0` hides it); human try-out open |
 | [ft_1_02b](ft_1_02b-own-pieces-as-files.md) | Own pieces as files | Export and import; dev server saves to `private/pieces/`; licence `NaN` for private pieces | simple | 67 |  | slice built: licence rule, export and import; dev-server save open |
 | [ft_1_02c](ft_1_02c-pieces-on-and-off.md) | Pieces on and off | Per-player list; hidden from menu and battles | done | 100 | 1 | done; the real-tablet check is open (Human) |
-| [ft_1_02d](ft_1_02d-editor-extras.md) | Editor extras | Dotted notes; entering notes from the piano; automatic note length; wheel changes the length; finger numbers; BPM on every piece and in the editor | large | 70 |  | partly built: piano entry, automatic length, wheel, BPM, finger numbers, keyboard-only writing, bar editing; dotted half only; per-player helper-mark strength and touch open |
+| [ft_1_02d](ft_1_02d-editor-extras.md) | Editor extras | Dotted notes; entering notes from the piano; automatic note length; wheel changes the length; finger numbers; BPM on every piece and in the editor | large | 72 |  | partly built: piano entry, automatic length, wheel, BPM, finger numbers, keyboard-only writing, bar editing; dotted half only; per-player helper-mark strength and touch open |
 | [ft_1_06](ft_1_06-monster-campaign.md) | Character campaign: learn, practise, show | A sequence of characters (until d129 monsters), one unlocked at a time; each character is a game of three phases on a part of a piece (learn, practise, show; d135: the show is the tug of ft_1_21, opened by practice evidence) and three levels; free play stays open for every piece | large | 55 | 2 | rules, ladder and save built; the practice gate in front of the tug (AC15) built with ft_1_21; the find-the-key and find-the-door screens removed (d135); the piece pick of AC9 not built; the ladder defaults not yet confirmed by the maintainer |
 | [ft_1_07](ft_1_07-profile-selection-and-room.md) | Profile selection and player room | Open the game on a profile chosen from a list (a new install makes no player: it asks for the first player's name); a player's room (the profile screen: name, level, XP, Settings and Quit) with buttons for the training dummy (practice songs), the door (campaign) and the book (song list); add a profile and an admin page. One character per profile for the MVP; three characters per profile is a future idea | medium | 80 | 2 | slices 1 to 4 and the admin page built; bare piano (AC11) not built |
 | [ft_1_08](ft_1_08-organic-menus.md) | Organic menus: staff-line vine, icon buttons, a real room | Softer, more musical menus in three slices: a vine whose stalks are staff lines in the screen corners of the menu screens; icon buttons with a delayed tooltip; the player room as a real room whose objects are the buttons | done | 100 | 1 | built: slices 1 to 5 (vine art, icon buttons, the room as objects, the room lives, the stand panel); the maintainer's look on the laptop (AC8) open |

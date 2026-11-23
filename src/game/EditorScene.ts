@@ -28,6 +28,7 @@ import { cursorAfter, cursorOf, type StaffMode } from '../core/editor/playEntry'
 import type { NoteEvent } from '../core/judge/types';
 import { hitTest, placeClick, pointOf, targetOf, type ActionTarget, type EntryMode, type Hit } from '../core/editor/hitTest';
 import { barBoxes, barsInRect, drawnWhileWriting, editorStaff, pageOfBar, shadowsFor, targetBox } from '../core/editor/staff';
+import { onRepeatHandle, repeatCopies, repeatHandleBox } from '../core/editor/repeatHandle';
 import {
   BARS_DEFAULT, BPM_MAX, EDITOR_LENGTHS, cycleLength, emptyPiece, findNote, lengthen, lengthenRest, lengthsFor, stepChord, placeNote, placeRest, placedRests, removeNote, removeRest, setAlter, nextAlter, longestFit, setDynamic, nextDynamic, setBeats, setPickup, onBothStaves, setKey, setFinger, bpmOf, stepBpm, setLength, setTitle, shorten, shortenRest, stepBars,
   type Edit, type EditorHand, type EditorLength, type EditorPiece, type NoteRef,
@@ -210,6 +211,10 @@ export class EditorScene extends PixelScene {
   /** True once the press moved more than LASSO_START art pixels: it is a drag, not a click. */
   private lassoActive = false;
   private lassoBox: Phaser.GameObjects.Graphics | null = null;
+  /** The drag-repeat handle is held (ft_1_02d.AC24): the bars it repeats and the copies the drag asks for so far. */
+  private repeatDrag: { range: BarRange; copies: number } | null = null;
+  /** The ghost copies of a drag-repeat, over the bars they will take. */
+  private repeatGhost: Phaser.GameObjects.Graphics | null = null;
   /** The keyboard cursor (ft_1_02d.AC15): where Enter, the chord key and Shift + arrows act; null until a key or a left click sets it. */
   private keyCursor: KeyCursor | null = null;
   /** Kiur's tour of the keys runs over the screen (ft_1_33.AC3): the F1 panel is hidden under it. */
@@ -308,6 +313,8 @@ export class EditorScene extends PixelScene {
     this.lassoFrom = null;
     this.lassoActive = false;
     this.lassoBox = null;
+    this.repeatDrag = null;
+    this.repeatGhost = null;
     this.keyCursor = null;
     this.cursorMark = null;
     this.keyMenu = null;
@@ -346,10 +353,11 @@ export class EditorScene extends PixelScene {
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       this.hover(p);
       this.dragLasso(p);
+      this.dragRepeat(p);
     });
-    this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.endLasso(p));
+    this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.endPointerDrag(p));
     // a release off the canvas comes as pointerupoutside: it ends the lasso too, so no half lasso waits for the next click
-    this.input.on('pointerupoutside', (p: Phaser.Input.Pointer) => this.endLasso(p));
+    this.input.on('pointerupoutside', (p: Phaser.Input.Pointer) => this.endPointerDrag(p));
     // the middle button places notes: Chrome would start its autoscroll on it, so the canvas keeps its mousedown
     // (not its pointerdown: that would stop the mousedown Phaser reads)
     const noAutoscroll = (e: MouseEvent) => {
@@ -559,6 +567,7 @@ export class EditorScene extends PixelScene {
     const action = mouseAction({ button: event?.button ?? p.button, altKey: !!event?.altKey, shiftKey: !!event?.shiftKey });
     // every press starts afresh; only a left press on the staff can become a lasso
     this.endLassoState();
+    if (action === 'select' && this.grabRepeatHandle(p)) return;
     const hit = this.hit(p);
     if (!hit || action === 'none' || this.meterAsk !== null) return;
     if (this.repeatPick) {
@@ -640,6 +649,45 @@ export class EditorScene extends PixelScene {
     this.length = next;
     for (const [l, button] of this.lengthButtons) button.setActive(l === next);
     this.showLength();
+  }
+
+  /** A press on the bar selection's drag-repeat handle takes hold of it (ft_1_02d.AC24); true when it did. */
+  private grabRepeatHandle(p: Phaser.Input.Pointer): boolean {
+    if (!this.barSel || !this.layout || this.repeatPick || this.meterAsk !== null) return false;
+    if (!onRepeatHandle(this.layout, this.barSel, this.page, { x: p.x - this.staffLeft, y: p.y - this.staffTop })) return false;
+    this.repeatDrag = { range: this.barSel, copies: 0 };
+    return true;
+  }
+
+  /** While the handle is held: the copies the drag reaches, as ghost bars and a count; dragged back, none. */
+  private dragRepeat(p: Phaser.Input.Pointer): void {
+    const drag = this.repeatDrag;
+    if (!drag || !this.layout || !p.leftButtonDown()) return;
+    const copies = repeatCopies(this.layout, drag.range, this.page, { x: p.x - this.staffLeft, y: p.y - this.staffTop });
+    if (copies === drag.copies) return;
+    drag.copies = copies;
+    this.repeatGhost ??= this.add.graphics().setDepth(5);
+    this.repeatGhost.clear().setX(this.staffLeft);
+    const length = drag.range.to - drag.range.from + 1;
+    for (const box of barBoxes(this.layout, { from: drag.range.to + 1, to: drag.range.to + copies * length })) {
+      if (box.page === this.page) this.repeatGhost.lineStyle(1, DEFAULT_THEME.cursor, 0.7).strokeRect(box.x1, this.staffTop + box.y1, box.x2 - box.x1, box.y2 - box.y1);
+    }
+    this.say(copies > 0 ? t('editor.dragRepeat.copies', { n: copies }) : t('editor.dragRepeat.none'), MESSAGE_MS);
+  }
+
+  /** The handle is let go: its copies go in right after the selection, as paste puts them (one undo step); none, nothing. */
+  private endRepeat(): void {
+    const drag = this.repeatDrag;
+    this.repeatDrag = null;
+    this.repeatGhost?.clear();
+    if (!drag || drag.copies === 0) return;
+    this.apply(insertBars(this.piece, drag.range.to + 1, copyBars(this.piece, drag.range), drag.copies), null);
+  }
+
+  /** The left button comes up: it ends a drag of the repeat handle or of the lasso. */
+  private endPointerDrag(p: Phaser.Input.Pointer): void {
+    if (this.repeatDrag) return this.endRepeat();
+    this.endLasso(p);
   }
 
   /** No lasso waits: no start point, not dragging, no frame drawn. */
@@ -2086,6 +2134,9 @@ export class EditorScene extends PixelScene {
       for (const box of barBoxes(this.layout, this.barSel)) {
         if (box.page === this.page) this.band.fillStyle(DEFAULT_THEME.cursor, 0.18).fillRect(box.x1, this.staffTop + box.y1, box.x2 - box.x1, box.y2 - box.y1);
       }
+      // the drag-repeat handle at the selection's right edge (ft_1_02d.AC24)
+      const grip = repeatHandleBox(this.layout, this.barSel, this.page);
+      if (grip) this.band.fillStyle(DEFAULT_THEME.cursor, 0.9).fillRect(grip.x1, this.staffTop + grip.y1, grip.x2 - grip.x1, grip.y2 - grip.y1);
     }
     this.staffView = new StaffView(this, drawn, undefined, { noteNames: true, fingers: true, chordFingers: contextOf(this).profiles.chordFingers }, { x: this.staffLeft, y: this.staffTop }, numbers, { x: 0, width: this.scale.width });
     this.staffView.setHandShifts(handShiftMap(this.chart, LEVEL_TABLE.find((l) => l.level === contextOf(this).profiles.progress.level.level)));
