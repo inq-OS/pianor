@@ -39,7 +39,7 @@ export default defineConfig({
       // only read arguments and call tested functions.
       include: ['src/core/**/*.ts', 'src/io/**/*.ts', 'tools/**/*.ts'],
       exclude: ['**/*.test.ts', '**/index.ts', 'tools/piece/build.ts', 'tools/piece/lint.ts', 'tools/generate/cli.ts', 'tools/docs/cli.ts', 'tools/docs/touched-cli.ts', 'tools/docs/privacy-cli.ts', 'tools/docs/privacy-ci.ts', 'tools/ci/code-changed-cli.ts', 'tools/vite-pieces.ts', 'tools/vite-keri.ts', 'tools/vite-keri-worker.ts',
-        'tools/e2e/affected-cli.ts', 'tools/e2e/runLogReporter.ts', 'tools/start-local/cli.ts', 'tools/art/render-cli.ts', 'tools/art/check-cli.ts', 'tools/art/pictures.ts', 'tools/board/cli.ts', 'tools/analysis/train-cli.ts', 'tools/import/photo-cli.ts', 'tools/import/audiveris.ts', 'tools/import/piece-cli.ts'],
+        'tools/e2e/affected-cli.ts', 'tools/e2e/runLogReporter.ts', 'tools/start-local/cli.ts', 'tools/art/render-cli.ts', 'tools/art/check-cli.ts', 'tools/art/pictures.ts', 'tools/board/cli.ts', 'tools/analysis/train-cli.ts', 'tools/analysis/fit-grades-cli.ts', 'tools/import/photo-cli.ts', 'tools/import/audiveris.ts', 'tools/import/piece-cli.ts'],
       reporter: ['text', 'html'],
       thresholds: { lines: 90, branches: 90, functions: 90, statements: 90 },
     },

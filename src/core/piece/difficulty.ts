@@ -318,13 +318,21 @@ export function shownPoints(confirmed: number | undefined, proposed: Difficulty)
 }
 
 /**
+ * The points above Beginner, 21 to 100, for a score at or past `beginnerEnd`: 20 + 80 (1 - e^(-(score - beginnerEnd) / tail)),
+ * so they climb towards 100 and never fall. `tools/analysis/gradeFit.ts` fits `tail` to graded pieces (core_08.AC12).
+ */
+export function upperPoints(score: number, beginnerEnd: number, tail: number): number {
+  return Math.min(100, 20 + Math.max(1, Math.round(80 * (1 - Math.exp(-(score - beginnerEnd) / tail)))));
+}
+
+/**
  * The points 1 to 100 of d157 for an estimator score. Below `beginnerEnd` each step N of d138 is the points 2N-1 and 2N (the
  * second for the upper half of its cut-offs), so the Beginner grade is the curriculum; above it they climb towards 100
  * (`tail`, AX-3 provisional). A higher score never gets fewer points.
  */
 export function pointsOf(score: number): number {
   const w = DIFFICULTY_WEIGHTS;
-  if (score >= w.beginnerEnd) return Math.min(100, 20 + Math.max(1, Math.round(80 * (1 - Math.exp(-(score - w.beginnerEnd) / w.tail)))));
+  if (score >= w.beginnerEnd) return upperPoints(score, w.beginnerEnd, w.tail);
   const starts = [0, ...w.scaleStarts, w.beginnerEnd];
   const step = scaleOf(score);
   const within = (score - starts[step - 1]!) / (starts[step]! - starts[step - 1]!);
