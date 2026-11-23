@@ -92,6 +92,12 @@ test.describe('scales and chords trainer (ft_1_29)', () => {
     const withChord = await cs();
     await page.evaluate(() => { for (const midi of [60, 64, 67]) window.__virtualDevice!.release(midi); });
     await expect.poll(cs).toBe(withChord - 1);
+    // the round ends on the chord, held: letting go clears the name although the round no longer judges keys
+    await playWithVirtualPiano(page, [60, 64, 67]);
+    await page.evaluate(() => { for (const midi of [60, 64, 67]) window.__virtualDevice!.press(midi, 80); });
+    await expect.poll(() => state(page)).toMatchObject({ outcome: 'won' });
+    await page.evaluate(() => { for (const midi of [60, 64, 67]) window.__virtualDevice!.release(midi); });
+    await expect.poll(cs).toBe(withChord - 1);
     expectNoErrors(errors);
   });
 });

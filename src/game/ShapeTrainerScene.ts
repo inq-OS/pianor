@@ -112,6 +112,7 @@ export class ShapeTrainerScene extends PixelScene {
     this.overAtMs = null;
     this.stopListening();
     this.roundCount += 1;
+    this.held = null;
     if (this.switcher) {
       const { chart, keys } = switcherChart(`${Date.now()}-${this.roundCount}`, this.choice.hand);
       this.round = new ShapeRound(chart);
@@ -124,6 +125,11 @@ export class ShapeTrainerScene extends PixelScene {
       // nothing is judged while the circle of fifths is open over the trainer
       if (!this.scene.isActive()) return;
       if (this.round.state().outcome !== 'playing') {
+        // the round no longer follows the keys: the held chord's name goes with the first key after it
+        if (this.held) {
+          this.held = null;
+          this.redraw();
+        }
         if (event.kind === 'on' && event.velocity > 0) this.againIfOver();
         return;
       }
