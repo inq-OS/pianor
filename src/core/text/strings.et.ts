@@ -156,7 +156,7 @@ export const stringsEt: Record<StringKey, string> = {
   'adminPages.pianoLight': 'Klaver: kerge',
   'adminPages.pianoFullNote': 'Selles seadmes: terved salvestused.',
   'adminPages.pianoLightNote': 'Selles seadmes: lühemad mono-noodid, umbes viiendik mälust.',
-  'adminPages.pianoKeyboard': 'Klaver: EZ-220',
+  'adminPages.pianoKeyboard': 'Klaver: klahvpill',
   'adminPages.pianoKeyboardNote': 'Mängu noodid kõlavad ühendatud klaviatuuril, salvestusi mällu ei laeta. Ilma selleta: terved salvestused.',
   'adminPages.demo': 'Demo',
   'adminPages.preview': 'Pala ülevaatus',

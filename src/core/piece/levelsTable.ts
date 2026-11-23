@@ -1,9 +1,9 @@
-import { EZ220_HIGH, EZ220_LOW, levelsFileSchema, parseNoteName, type LevelDefinition } from '../chart';
+import { PIECE_HIGH, PIECE_LOW, levelsFileSchema, parseNoteName, type LevelDefinition } from '../chart';
 import { formatIssues } from '../issues';
 import type { Diagnostic } from './diagnostics';
 
-const KEYBOARD_LOW = EZ220_LOW;
-const KEYBOARD_HIGH = EZ220_HIGH;
+const KEYBOARD_LOW = PIECE_LOW;
+const KEYBOARD_HIGH = PIECE_HIGH;
 
 export interface LoadedLevels {
   levels: LevelDefinition[];
@@ -35,7 +35,7 @@ export function parseLevels(text: string, file = 'levels.json'): LoadedLevels {
     seen.add(level.level);
     if (level.range.low > level.range.high) error(`${at}: range low is above high`);
     if (level.range.low < KEYBOARD_LOW || level.range.high > KEYBOARD_HIGH) {
-      error(`${at}: range ${level.range.low} to ${level.range.high} is outside the EZ-220 keys (${KEYBOARD_LOW} to ${KEYBOARD_HIGH})`);
+      error(`${at}: range ${level.range.low} to ${level.range.high} is outside the keys a piece may use (${KEYBOARD_LOW} to ${KEYBOARD_HIGH})`);
     }
     if (level.bars.min > level.bars.max) error(`${at}: bars min is above max`);
     for (const [hand, notes] of Object.entries(level.fingerings)) {

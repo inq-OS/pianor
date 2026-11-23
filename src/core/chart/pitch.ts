@@ -3,9 +3,12 @@ import { MIDI_MAX } from './midi.ts';
 
 export const STEPS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'] as const;
 
-/** The keys of the Yamaha EZ-220 (61 keys, C2 to C7): no piece or level may ask for a note outside them. */
-export const EZ220_LOW = 36;
-export const EZ220_HIGH = 96;
+/**
+ * The keys a piece or level may use: the ones every supported keyboard has (the 61 keys of the EZ-220, C2 to C7; the
+ * 88-key YDP-166 has them all). No piece or level may ask for a note outside them.
+ */
+export const PIECE_LOW = 36;
+export const PIECE_HIGH = 96;
 export type Step = (typeof STEPS)[number];
 
 /** A spelled pitch. `alter`: -2 double flat .. +2 double sharp. */

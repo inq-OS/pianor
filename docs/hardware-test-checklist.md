@@ -2,6 +2,8 @@
 
 For the person at the real keyboard (ft_0_01). It takes about 45 minutes. The spike page measures what it can see (MIDI); you answer what only you can see and hear (lights, sound). Then paste the page's summary into `docs/hardware-notes.md`. An agent can help tidy the notes but never writes a result nobody observed.
 
+For another keyboard (the YDP-166) the same sections apply but key lights (section 4); write its results in its own section of `docs/hardware-notes.md`.
+
 Done so far: sections 1 to 6 in Chrome (results in `docs/hardware-notes.md`; not tried there: C2 and C7, the pedal, power off and on with the page open, section 4 steps 2 and 3). Open: sections 7, 8, 10 and 11, and the go or no-go.
 
 ## Before you start

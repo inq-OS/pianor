@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { NoteEvent } from '../../core/judge/types';
 import { VirtualEz220 } from '../mock/VirtualEz220';
+import { EZ220_PROFILE, UNKNOWN_PROFILE, YDP166_PROFILE } from './keyboardProfiles';
 import { MidiUnavailableError, WebMidiKeyboard } from './WebMidiKeyboard';
 
 async function setup(device = new VirtualEz220({ now: () => 1000 }), extra = {}) {
@@ -173,5 +174,25 @@ describe('WebMidiKeyboard.create failures', () => {
   it('passes an unavailable error through unchanged', async () => {
     const original = new MidiUnavailableError('unsupported', 'x');
     await expect(WebMidiKeyboard.create({ requestAccess: () => Promise.reject(original) })).rejects.toBe(original);
+  });
+});
+
+describe('WebMidiKeyboard with other keyboards (ft_0_06.AC5)', () => {
+  it('ft_0_06.AC5 delivers all 88 keys of a YDP-166, A0 to C8, as for any keyboard', async () => {
+    const { device, events } = await setup(new VirtualEz220({ name: 'Digital Piano', now: () => 1000 }));
+    device.sendRaw([0x90, 21, 64], 1);
+    device.sendRaw([0x90, 21, 0], 2);
+    device.sendRaw([0x90, 108, 100], 3);
+    device.sendRaw([0x80, 108, 0], 4);
+    expect(events.map((e) => [e.kind, e.midi])).toEqual([['on', 21], ['off', 21], ['on', 108], ['off', 108]]);
+  });
+
+  it('ft_0_06.AC5 reports the profile of the keyboard being played, and the unknown one when none is', async () => {
+    const ydp = await setup(new VirtualEz220({ name: 'Digital Piano' }));
+    expect(ydp.keyboard.profile()).toBe(YDP166_PROFILE);
+    const ez = await setup();
+    expect(ez.keyboard.profile()).toBe(EZ220_PROFILE);
+    const none = await setup(new VirtualEz220({ connected: false }));
+    expect(none.keyboard.profile()).toBe(UNKNOWN_PROFILE);
   });
 });

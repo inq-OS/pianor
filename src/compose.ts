@@ -13,7 +13,7 @@ export interface SoundAndInputOptions {
 /**
  * Composition root for sound and input, shared by the game and the dev pages: one audio system and one set of
  * keyboards (on-screen, computer and real or virtual MIDI), with the piano sounding for what is played. The piano plays
- * on the attached EZ-220 when this computer's sound is `keyboard` (ft_0_07.AC4), else on the browser's samples.
+ * on the attached keyboard when this computer's sound is `keyboard` (ft_0_07.AC4), else on the browser's samples.
  */
 export function createSoundAndInput(keyboardHost: HTMLElement, options: SoundAndInputOptions = {}) {
   const system = createAudio({ baseUrl: `${import.meta.env.BASE_URL}audio/salamander/`, deferLoad: true });
@@ -25,7 +25,7 @@ export function createSoundAndInput(keyboardHost: HTMLElement, options: SoundAnd
   });
   const piano = new RoutedPiano(system.piano, new KeyboardPiano({ songNowMs: () => clock.nowMs() }), { waitForSound: options.waitForSound ?? false });
   void inputs.ready.then(() => {
-    const follow = () => piano.attachKeyboard(inputs.keyboardOutput());
+    const follow = () => piano.attachKeyboard(inputs.keyboardOutput(), inputs.keyboardProfile());
     follow();
     inputs.midi?.onStatus(follow);
   });
