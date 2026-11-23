@@ -56,10 +56,10 @@ export const SCENE_LIVING: Readonly<Record<string, Living>> = {
     small: 'moths circle the beacon while it is lit',
   },
   terrace: {
-    fire: 'the lantern at the watchtower\'s corner on the walk\'s head wanders in strength at dusk and night; the grill\'s coals glow then and throw a spark now and then; the three torches at the deck\'s rail burn then, each flame licking on its own beat, the two nearest throwing sparks; a thread of smoke rises from the grill by day and in the half light',
+    fire: 'the lantern at the watchtower\'s corner on the walk\'s head wanders in strength at dusk and night; the grill\'s coals glow then and throw a spark now and then; the three torches, a pair at the head\'s near corners and one at the deck\'s rail, burn then, each flame licking on its own beat, the two nearest throwing sparks; a thread of smoke rises from the grill by day and in the half light',
     water: 'strokes, glints, the rings round the boulders and the surf along the shingle are lit live',
     wind: 'the pennant on the watchtower\'s staff flaps on the gusts and the smoke leans with them; clouds surge with the gusts; the grass tufts stand still',
-    birds: 'three gulls fly as a flock over the sea by day and in the half light',
+    birds: 'three gulls fly as a flock over the sea right of the house by day and in the half light',
     small: 'moths circle the lantern while it is lit',
   },
 };

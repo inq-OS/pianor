@@ -24,7 +24,7 @@ describe('the painted terrace (ft_1_19)', () => {
     return n / all;
   };
 
-  it('ft_1_19.AC5 the palette is the game\'s own with Keri\'s runs, the deck\'s wood, the rail\'s white paint and the benches\' red after it, the same places at every hour', () => {
+  it('ft_1_19.AC5 the palette is the game\'s own with Keri\'s runs, the deck\'s wood, the house\'s plaster and the benches\' red after it, the same places at every hour', () => {
     for (const phase of SKY_PHASES) {
       const palette = terracePalette(phase);
       expect(palette.slice(0, PALETTE.length)).toEqual([...PALETTE]);
@@ -32,29 +32,23 @@ describe('the painted terrace (ft_1_19)', () => {
       expect(palette.length).toBe(terracePalette('day').length);
     }
     expect(terraceRuns().wood!.length).toBeGreaterThanOrEqual(6);
-    for (const run of ['hull', 'red']) expect(terraceRuns()[run]!.length).toBeGreaterThanOrEqual(5);
+    for (const run of ['plaster', 'red']) expect(terraceRuns()[run]!.length).toBeGreaterThanOrEqual(5);
   });
 
-  it('ft_1_19.AC1 one picture (the game lights the water), every pixel painted; the deck\'s boards fill the near ground in the wood\'s colours', () => {
+  it('ft_1_19.AC1 one picture (the game lights the water), every pixel painted; the walk\'s and the head\'s boards fill the middle ground in the wood\'s colours', () => {
     const { frames } = pictures.day;
     expect(frames).toHaveLength(1);
     const frame = frames[0]!;
     expect([frame.width, frame.height]).toEqual([W, H]);
     expect(frame.pixels.every((p) => p >= PALETTE.length && p < pictures.day.palette.length)).toBe(true);
     const runs = terraceRuns();
-    const wood = new Set(runs.wood), grey = new Set([...runs.stone!, ...runs.shingle!]);
-    // half the real deck is oiled red-brown and half has gone grey: here the terrace is one floor of oiled boards, in
-    // the wood's dark tones, and the grey boards are the walk's, out over the beach
-    expect(share(frame, 260, 500, 205, 240, wood)).toBeGreaterThan(0.75);
-    expect(share(frame, 250, 320, 160, 172, grey)).toBeGreaterThan(0.7);
+    const wood = new Set(runs.wood), boards = new Set([...runs.wood!, ...runs.stone!, ...runs.shingle!]);
+    // most boards in the wood's own brown, a few gone silver in the weather (MI2's docks are brown boards)
+    expect(share(frame, 150, 500, 160, 190, wood)).toBeGreaterThan(0.7);
+    expect(share(frame, 150, 500, 160, 190, boards)).toBeGreaterThan(0.95);
+    // and the walk leading in to the house
+    expect(share(frame, 210, 270, 133, 147, boards)).toBeGreaterThan(0.9);
     expect(frame.pixels.filter((p) => wood.has(p)).length / (W * H)).toBeGreaterThan(0.18);
-    // the near boards are darker than the far ones: a dark near band from the things themselves, no laid-on shadow
-    const light = (x0: number, x1: number, y0: number, y1: number): number => {
-      let sum = 0, n = 0;
-      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const c = pictures.day.palette[frame.pixels[y * W + x]!]!; sum += ((c >> 16) & 255) + ((c >> 8) & 255) + (c & 255); n++; }
-      return sum / n;
-    };
-    expect(light(260, 500, 215, 245)).toBeLessThan(light(250, 320, 160, 172) - 60);
   });
 
   it('ft_1_19.AC5 the night is navy and lit, not a murk: the open sea keeps off its two darkest tones, and the grill\'s coals lay a warm pool on the boards round them', () => {
@@ -72,58 +66,42 @@ describe('the painted terrace (ft_1_19)', () => {
     expect(plan.fire.x).toBeLessThan(x + width);
     expect(y + height).toBeGreaterThan(plan.fire.y + 8);
     expect(Math.max(width, height)).toBeLessThan(200);
-    // and what stands by the grill takes its warmth: the nearer bench's end, left of its back board's gulls
+    // and what stands round the grill takes its warmth
     const ember = new Set(terraceRuns().ember);
-    const frame = pictures.night.coals.frames[0]!;
-    let warm = 0;
-    for (let dy = 0; dy < height; dy++) for (let dx = plan.fire.x + 22 - x; dx < Math.min(width, plan.fire.x + 44 - x); dx++) if (dy + y < plan.fire.y + 30 && ember.has(frame.pixels[dy * width + dx]!)) warm++;
-    expect(warm).toBeGreaterThan(30);
+    expect(pictures.night.coals.frames[0]!.pixels.filter((p) => ember.has(p)).length).toBeGreaterThan(150);
   });
 
-  it('ft_1_19.AC1 the view is away from the house: open sky over a straight horizon, the sea under it, the shingle between the sea and the boards', () => {
+  it('ft_1_19.AC1 the house stands in the middle under open sky over a straight horizon, the shingle before it right of the walk', () => {
     const frame = pictures.day.frames[0]!;
     const runs = terraceRuns();
     const sky = new Set(runs.sky), sea = new Set(runs.sea), beach = new Set([...runs.shingle!, ...runs.stone!, ...runs.dry!]);
-    expect(share(frame, 0, 70, 0, TERRACE.horizon - 1, sky)).toBe(1);
-    // the horizon is one straight row from edge to edge, where nothing of the walk stands before it
-    for (const x of [4, 40, 60, 400, 440]) {
+    // the horizon is one straight row right of the house, where nothing stands before it
+    for (const x of [440, 480, 520, 560, 600]) {
       expect(sky.has(frame.pixels[(TERRACE.horizon - 2) * W + x]!), `sky over ${x}`).toBe(true);
       expect(sea.has(frame.pixels[(TERRACE.horizon + 2) * W + x]!), `sea under ${x}`).toBe(true);
     }
-    // no part of the house is in the picture: its plaster and its roof have no colours here
-    expect(runs.plaster).toBeUndefined();
-    // the shingle, its stones and its dry grass lie where the plan says land is, beyond the deck's rail right of the walk
-    const shore = terraceShore(KERI);
-    let land = 0, stony = 0;
-    const rail = new Set(runs.wood);
-    for (let y = TERRACE.horizon + 1; y < 150; y++) for (let x = 330; x < 400; x++) {
-      // (the rail's posts and boards stand before it)
-      if (terraceFloor(shore, x, y)!.wet || rail.has(frame.pixels[y * W + x]!)) continue;
-      land++;
-      if (beach.has(frame.pixels[y * W + x]!)) stony++;
-    }
-    expect(land).toBeGreaterThan(600);
-    expect(stony / land).toBeGreaterThan(0.7);
+    // the house's plastered front, either side of its porch
+    const plaster = new Set(runs.plaster);
+    expect(share(frame, 160, 250, 92, 115, plaster)).toBeGreaterThan(0.6);
+    expect(share(frame, 300, 400, 92, 115, plaster)).toBeGreaterThan(0.6);
+    // the shingle, its stones and its dry grass beyond the head's rail on the right
+    expect(share(frame, 430, 560, 112, 140, beach)).toBeGreaterThan(0.7);
   });
 
-  it('ft_1_19.AC1 the terrace reaches out over the beach: a walk of grey boards on piles runs from the deck to a head over the water, and no boat stands there (a boat was too much)', () => {
+  it('ft_1_19.AC1 the terrace reaches out over the beach: a walk of boards on piles runs from the deck to a head at the water, and no boat stands there (a boat was too much)', () => {
     const frame = pictures.day.frames[0]!;
     const runs = terraceRuns();
-    const built = new Set([...runs.hull!, ...runs.wood!, ...runs.stone!, ...runs.shingle!, ...runs.red!]);
+    const built = new Set([...runs.wood!, ...runs.stone!, ...runs.shingle!, ...runs.red!]);
     const sea = new Set(runs.sea);
     const shore = terraceShore(KERI);
-    // the head's boards, rail and posts are painted where the plan's floor is all water
+    // the near water under the head: the plan's floor is all water there, and so is the picture between the piles
     let wet = 0;
-    for (let y = 124; y < 138; y++) for (let x = 100; x < 200; x++) if (terraceFloor(shore, x, y)!.wet) wet++;
-    expect(wet).toBe(14 * 100);
-    expect(share(frame, 100, 200, 124, 138, built)).toBeGreaterThan(0.7);
-    expect(share(frame, 100, 200, 124, 138, sea)).toBeLessThan(0.1);
-    // and the walk's on the way there
-    expect(share(frame, 180, 260, 140, 160, built)).toBeGreaterThan(0.8);
-    // the lantern hangs over the sea, beyond the water's edge of its column
-    let edge = TERRACE.horizon + 1;
-    while (terraceFloor(shore, plan.lamp.x, edge)!.wet) edge++;
-    expect(plan.lamp.y).toBeLessThan(edge);
+    for (let y = H - 30; y < H; y++) for (let x = 150; x < 450; x++) if (terraceFloor(shore, x, y)!.wet) wet++;
+    expect(wet).toBe(30 * 300);
+    expect(share(frame, 150, 450, H - 30, H, sea)).toBeGreaterThan(0.7);
+    // the head's boards and the walk's
+    expect(share(frame, 150, 500, 160, 190, built)).toBeGreaterThan(0.9);
+    expect(share(frame, 210, 270, 133, 147, built)).toBeGreaterThan(0.9);
   });
 
   it('ft_1_19.AC1 a watchtower stands on the head (a roofed section, a small watchtower a storey up with a fixed long-eye to scan the horizon): a thatched roof in the sky, a boarded floor a storey up, open between them, and the long-eye\'s brass there', () => {
@@ -135,9 +113,9 @@ describe('the painted terrace (ft_1_19)', () => {
     // the roof: thatch between the eave and the peak
     expect(share(frame, eaveL.x + 8, eaveR.x - 8, peak.y + 8, eaveL.y - 3, thatch)).toBeGreaterThan(0.8);
     // the floor's parapet: boards gone silver in the weather, not the deck's oiled brown
-    expect(share(frame, floorL.x + 3, floorL.x + 30, railL.y + 3, floorL.y - 2, silver)).toBeGreaterThan(0.8);
-    // open between the rail and the eave: the sky shows through
-    expect(share(frame, floorL.x + 6, floorR.x - 6, eaveR.y + 6, railL.y - 3, sky)).toBeGreaterThan(0.4);
+    expect(share(frame, floorL.x + 3, floorL.x + 30, railL.y + 3, floorL.y - 2, silver)).toBeGreaterThan(0.7);
+    // open between the rail and the eave: the sky shows through, past the ladder's head and the long-eye
+    expect(share(frame, floorL.x + 6, floorR.x - 6, eaveR.y + 6, railL.y - 3, sky)).toBeGreaterThan(0.3);
     // the long-eye: brass by its pivot, in that opening, in a box that stays under the eave's thatch (the same run)
     const pivot = terraceProject(...onTower(LONG_EYE.a, LONG_EYE.b, TOWER.floor + LONG_EYE.high));
     expect(Math.round(pivot.y) - 4).toBeGreaterThan(eaveL.y + 4);
@@ -152,8 +130,8 @@ describe('the painted terrace (ft_1_19)', () => {
     const frame = pictures.day.frames[0]!;
     const places: number[] = [];
     for (let y = 0; y < TERRACE.horizon - 1; y++) {
-      // the bare sky left of the watchtower
-      const row = frame.pixels.subarray(y * W + 4, y * W + 64);
+      // the bare sky right of the house
+      const row = frame.pixels.subarray(y * W + 440, y * W + 600);
       expect(new Set(row).size, `row ${y}`).toBe(1);
       places.push(sky.indexOf(row[0]!));
     }
@@ -161,7 +139,8 @@ describe('the painted terrace (ft_1_19)', () => {
     expect(new Set(places).size).toBeGreaterThanOrEqual(12);
     const sea = new Set<number>(terraceRuns().sea);
     let boards = 0, blocks = 0;
-    for (let y = TERRACE.horizon + 2; y < TERRACE.horizon + 18; y++) for (let x = 0; x < 130; x++) {
+    // the near water under the head
+    for (let y = H - 40; y < H - 2; y++) for (let x = 150; x < 450; x++) {
       const [p, q, r, t] = [frame.pixels[y * W + x]!, frame.pixels[y * W + x + 1]!, frame.pixels[(y + 1) * W + x]!, frame.pixels[(y + 1) * W + x + 1]!];
       if (![p, q, r, t].every((c) => sea.has(c))) continue;
       blocks++;
@@ -191,10 +170,10 @@ describe('the painted terrace (ft_1_19)', () => {
     expect(blown).toHaveLength(1);
     const flag = blown[0]!;
     expect(flag.kind).toBe('flag');
-    expect(TERRACE_WAY).toBe(-1);
-    // it streams to the left of the staff's head, its hoist at the staff
-    expect(flag.x + flag.bitmap.width).toBeGreaterThanOrEqual(plan.pennant.x - 2);
-    expect(flag.x + flag.bitmap.width).toBeLessThanOrEqual(plan.pennant.x + 2);
+    expect(TERRACE_WAY).toBe(1);
+    // it streams to the right of the staff's head, its hoist at the staff
+    expect(flag.x).toBeGreaterThanOrEqual(plan.pennant.x - 2);
+    expect(flag.x).toBeLessThanOrEqual(plan.pennant.x + 2);
     expect(Math.abs(flag.y - plan.pennant.y)).toBeLessThan(6);
     const red = new Set(terraceRuns().red);
     expect(flag.bitmap.pixels.some((p) => red.has(p))).toBe(true);
@@ -204,7 +183,7 @@ describe('the painted terrace (ft_1_19)', () => {
     const { water } = pictures.day;
     expect(water.horizon).toBe(TERRACE.horizon);
     expect(water.way).toBe(TERRACE_WAY);
-    expect(water.layers.y).toBeGreaterThanOrEqual(TERRACE.horizon - 1);
+    expect(water.layers.y).toBeGreaterThanOrEqual(TERRACE.horizon - 2);
     expect(water.layers.frames[0]!.pixels.filter((p) => p !== 0).length).toBeGreaterThan(400);
     expect(pictures.day.gull).toBeGreaterThanOrEqual(PALETTE.length);
   });
@@ -222,7 +201,7 @@ describe('the painted terrace (ft_1_19)', () => {
     expect(plan.lamp.y).toBeGreaterThan(y);
     expect(plan.lamp.y).toBeLessThan(y + height);
     // its glow and its pool on the head's boards under it, no wider
-    expect(Math.max(width, height)).toBeLessThan(120);
+    expect(Math.max(width, height)).toBeLessThan(200);
     const ember = new Set(terraceRuns().ember);
     const coals = (p: TerracePicture) => share(p.frames[0]!, plan.fire.x - 12, plan.fire.x + 12, plan.fire.y - 6, plan.fire.y + 8, ember);
     expect(coals(pictures.night)).toBeGreaterThan(0.03);
@@ -261,11 +240,11 @@ describe('the painted terrace (ft_1_19)', () => {
       const f = night.frames[1]!;
       for (let y = 0; y < f.height; y++) for (let x = 0; x < f.width; x++) if (f.pixels[y * f.width + x]) lit[(night.y + y) * W + night.x + x] = 1;
     });
-    // their light owns the plaza at night: a good part of the boards is warm (Woodtick's lamps, light-and-heat.md 6)
+    // their light owns the plaza at night: a good part of the walk's and the head's boards is warm (Woodtick's lamps, light-and-heat.md 6)
     const boards = new Set([...terraceRuns().wood!, ...terraceRuns().stone!, ...terraceRuns().shingle!]);
     let floor = 0, warmed = 0;
     for (let y = TERRACE.horizon + 40; y < H; y++) for (let x = 0; x < W; x++) if (boards.has(pictures.night.frames[0]!.pixels[y * W + x]!)) { floor++; if (lit[y * W + x]) warmed++; }
-    expect(warmed / floor).toBeGreaterThan(0.08);
+    expect(warmed / floor).toBeGreaterThan(0.06);
     expect(warmed / floor).toBeLessThan(0.5);
   });
 

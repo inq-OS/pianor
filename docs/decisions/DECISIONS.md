@@ -262,4 +262,5 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d276](workflow.md#d276) | Every thread approves and merges its own pull requests once its checks pass; no pull request waits for the maintainer |  |
 | [d277](game.md#d277) | A new instance of the game starts with no players; the first screen asks for the first player's name, and players are only ever added by the person | ft_1_07 |
 | [d278](art.md#d278) | The terrace is calm: the deck, the walk, the watchtower, the picnic set, the grill and three torches, and no small props round them | ft_1_19 |
+| [d279](art.md#d279) | The terrace is seen from the head of its walk over the water, looking back at the warden's house in the middle of the picture, as the 1991 game stages a place | ft_1_19 |
 <!-- /docs:index -->
