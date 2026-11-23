@@ -40,6 +40,7 @@
     "docs:touched": "tsx tools/docs/touched-cli.ts",
     "art:render": "tsx tools/art/render-cli.ts",
     "art:check": "tsx tools/art/check-cli.ts",
+    "piece:board": "tsx tools/board/cli.ts",
     "piece:preview": "vite --open /?demo=preview",
     "demo": "vite --open /?autoplay=1",
     "spike": "vite --open /spike.html"
