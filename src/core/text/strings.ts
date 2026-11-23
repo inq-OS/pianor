@@ -156,7 +156,7 @@ export const strings = {
   'adminPages.pianoLight': 'Piano: light',
   'adminPages.pianoFullNote': 'On this device: the whole recordings.',
   'adminPages.pianoLightNote': 'On this device: shorter, mono notes, about a fifth of the memory.',
-  'adminPages.pianoKeyboard': 'Piano: EZ-220',
+  'adminPages.pianoKeyboard': 'Piano: keyboard',
   'adminPages.pianoKeyboardNote': 'The game\'s notes play on the attached keyboard, with no recordings in memory. Without it: the whole recordings.',
   'adminPages.demo': 'Demo',
   'adminPages.preview': 'Piece review',

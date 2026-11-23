@@ -1,4 +1,5 @@
 import type { KeyboardInput, KeyLightOutput } from './keyboard';
+import { KNOWN_KEYBOARD_NAME, UNKNOWN_PROFILE, type KeyboardProfile } from './midi/keyboardProfiles';
 import { MidiUnavailableError, WebMidiKeyboard } from './midi/WebMidiKeyboard';
 import { CompositeKeyboard } from './mock/CompositeKeyboard';
 import { OnScreenKeyboard } from './mock/OnScreenKeyboard';
@@ -19,6 +20,8 @@ export interface KeyboardInputs {
   midiProblem: string | null;
   /** The output of the keyboard being played (ft_0_07.AC4), or null. Changes with the input: read it on its status. */
   keyboardOutput(): MIDIOutput | null;
+  /** The profile of the keyboard being played (ft_0_06.AC5), for the output only. Changes with the input like `keyboardOutput`. */
+  keyboardProfile(): KeyboardProfile;
   /** Resolves when the attempt to open MIDI has finished, whether or not it worked. Never rejects. */
   ready: Promise<void>;
   dispose(): void;
@@ -54,15 +57,17 @@ export function createKeyboardInputs(options: CreateInputsOptions): KeyboardInpu
 
   const inputs: KeyboardInputs = {
     keyboard: composite, lights: onScreen, onScreen, virtualDevice, midi: null, midiProblem: null, keyboardOutput: () => null,
+    keyboardProfile: () => UNKNOWN_PROFILE,
     ready: Promise.resolve(), dispose: () => composite.dispose(),
   };
   inputs.ready = WebMidiKeyboard.create({
     ...(virtualDevice ? { requestAccess: () => Promise.resolve(virtualDevice.access) } : {}),
     ...(options.toSongTimeMs ? { toSongTimeMs: options.toSongTimeMs } : {}),
-    preferName: /EZ-?220|Yamaha/i,
+    preferName: KNOWN_KEYBOARD_NAME,
   }).then((midi) => {
     inputs.midi = midi;
     inputs.keyboardOutput = () => midi.output();
+    inputs.keyboardProfile = () => midi.profile();
     composite.add(midi);
   }).catch(
     (error: unknown) => {

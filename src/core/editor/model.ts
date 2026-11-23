@@ -7,7 +7,7 @@
  */
 import { z } from 'zod';
 import { keyAlters, type Alter } from '../chart/key';
-import { EZ220_HIGH, EZ220_LOW, STEPS, STEP_SEMITONES, type Step } from '../chart/pitch';
+import { PIECE_HIGH, PIECE_LOW, STEPS, STEP_SEMITONES, type Step } from '../chart/pitch';
 import { NOTE_TICKS, PIECE_BPM, PPQ } from '../chart/time';
 import { DYNAMICS, type Dynamic } from '../chart/dynamics';
 import type { KeyMode } from './key';
@@ -29,11 +29,11 @@ export const LENGTHS: readonly EditorLength[] = [...EDITOR_LENGTHS].reverse();
 export const WHEEL_LENGTHS: readonly EditorLength[] = ['whole', 'half', 'quarter', 'eighth', 'sixteenth'];
 /** Notes start on sixteenths (core_09.AC55). */
 export const GRID = PPQ / 4;
-/** The keys of the EZ-220. */
+/** The keys a piece may use (`PIECE_LOW` to `PIECE_HIGH`). */
 /** Longest piece title, in characters. */
 export const TITLE_MAX = 60;
-export const KEY_LOW = EZ220_LOW;
-export const KEY_HIGH = EZ220_HIGH;
+export const KEY_LOW = PIECE_LOW;
+export const KEY_HIGH = PIECE_HIGH;
 export const MAX_BARS = 32;
 /** The bar buttons add or take away this many bars, a phrase at a time. */
 export const BARS_STEP = 4;
@@ -156,7 +156,7 @@ export type Refusal =
   | 'bar-line' // it would run past the end of its bar (the staff draws no ties)
   | 'no-room' // another note of the same hand is in the way (a different start or length)
   | 'duplicate' // the same pitch is already there at that start
-  | 'range' // not a key of the EZ-220
+  | 'range' // not a key a piece may use
   | 'hand' // the piece is not for that hand
   | 'bar' // there is no such bar
   | 'grid' // not on a sixteenth

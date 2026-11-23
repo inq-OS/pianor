@@ -49,7 +49,7 @@ Every feature file carries `completeness: N` (an integer, 0 to 100) in its front
 | [ft_0_03](ft_0_03-abc-compiler.md) | ABC compiler | Own strict ABC parser, `piece:build`, errors with line and column | done | 100 |  | done |
 | [ft_0_04](ft_0_04-piece-linter.md) | Piece linter and levels | Level rules from `levels.json`, `piece:lint`, difficulty score | done | 100 | 1 | done; level table provisional (human review open) |
 | [ft_0_05](ft_0_05-staff-renderer.md) | Staff renderer | Pure staff layout and its Phaser view: clefs, notes, rests, cursor, hints | done | 100 |  | done |
-| [ft_0_06](ft_0_06-midi-io-and-mock-keyboard.md) | MIDI io and mock keyboard | Web MIDI wrapper, virtual EZ-220, on-screen and computer keyboards, virtual and replay players | done | 100 |  | done; key lights wait for ft_0_01 |
+| [ft_0_06](ft_0_06-midi-io-and-mock-keyboard.md) | MIDI io and mock keyboard | Web MIDI wrapper, virtual EZ-220, on-screen and computer keyboards, virtual and replay players | done | 100 | 1 | done; key lights wait for ft_0_01 |
 | [ft_0_07](ft_0_07-audio.md) | Audio | Salamander sampled piano, metronome, one audio clock | done | 100 | 3 | done; sound check open (Human) |
 | [ft_0_08](ft_0_08-judge-and-wait-mode.md) | Judge and Wait mode | Wait-mode judge, wrong-note reasons, bar, phrase and piece results | done | 100 |  | done |
 | [ft_0_09](ft_0_09-practice-scene.md) | Practice scene | Practice screen, results and stars, end-to-end tests | done | 100 | 1 | done; playtest open (Human) |

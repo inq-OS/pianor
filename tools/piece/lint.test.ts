@@ -75,7 +75,7 @@ describe('levels.json', () => {
     expect(problems((t) => { t.levels[0].range = 'x'; })[0]).toContain('levels.0.range');
     expect(problems((t) => { t.levels[1].level = 1; })).toEqual(expect.arrayContaining(['level 1 appears twice', 'levels must be listed in increasing order']));
     expect(problems((t) => { t.levels[0].range = { low: 67, high: 60 }; })).toContain('level 1: range low is above high');
-    expect(problems((t) => { t.levels[0].range = { low: 20, high: 67 }; })[0]).toContain('outside the EZ-220 keys');
+    expect(problems((t) => { t.levels[0].range = { low: 20, high: 67 }; })[0]).toContain('outside the keys a piece may use');
     expect(problems((t) => { t.levels[0].bars = { min: 9, max: 4 }; })).toContain('level 1: bars min is above max');
     expect(problems((t) => { t.levels[0].fingerings.LH = { C3: 5 }; })).toContain("level 1: fingerings for LH, which is not one of the level's hands");
     expect(problems((t) => { t.levels[0].fingerings.RH.H9 = 1; })).toContain('level 1: "H9" in the RH fingerings is not a note name like C4');

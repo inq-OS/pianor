@@ -61,7 +61,7 @@ export function graceItem(piece: EditorPiece, ref: NoteRef): { kind: 'arm' } | {
   return problem ? { kind: 'edit', edit: { ok: false, reason: problem } } : { kind: 'arm' };
 }
 
-/** The pre-note picked with a key (the EZ-220, the on-screen piano, QWERTY): spelled as a played note is, slashed (d121). */
+/** The pre-note picked with a key (the MIDI keyboard, the on-screen piano, QWERTY): spelled as a played note is, slashed (d121). */
 export function graceFromKey(piece: EditorPiece, ref: NoteRef, midi: number): Edit {
   return setGrace(piece, ref, { ...spellKey(piece, midi), slash: true });
 }

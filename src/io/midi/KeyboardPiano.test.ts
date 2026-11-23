@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { KeyboardPiano, type NoteOutput } from './KeyboardPiano';
+import { UNKNOWN_PROFILE, YDP166_PROFILE } from './keyboardProfiles';
 
 class FakeOut implements NoteOutput {
   readonly sent: { data: number[]; at: number | undefined }[] = [];
@@ -69,5 +70,35 @@ describe('the game\'s notes on the EZ-220 (ft_0_07.AC4)', () => {
     out.broken = true;
     expect(() => piano.noteOn(60, 80)).not.toThrow();
     expect(() => piano.attach(null)).not.toThrow();
+  });
+});
+
+describe('the game\'s notes on a keyboard other than the EZ-220 (ft_0_06.AC5)', () => {
+  it('ft_0_06.AC5 plays on channel 1 of the YDP-166, which has no key lights, and keeps the voice set on its panel', () => {
+    const piano = new KeyboardPiano({ songNowMs: () => 0 });
+    const out = new FakeOut();
+    piano.setVolume(1);
+    piano.attach(out, YDP166_PROFILE);
+    piano.noteOn(21, 80);
+    piano.noteOff(108);
+    expect(out.sent.map((m) => m.data)).toEqual([[0xb0, 7, 127], [0x90, 21, 80], [0x80, 108, 0]]);
+  });
+
+  it('ft_0_06.AC5 plays on channel 2 of an unknown keyboard and sends it no voice', () => {
+    const piano = new KeyboardPiano({ songNowMs: () => 0 });
+    const out = new FakeOut();
+    piano.attach(out, UNKNOWN_PROFILE);
+    piano.noteOn(60, 80);
+    expect(out.sent.map((m) => m.data)).toEqual([[0xb1, 7, 127], [0x91, 60, 80]]);
+  });
+
+  it('ft_0_06.AC5 moves to the new channel when the same output changes profile, releasing notes on the old one', () => {
+    const piano = new KeyboardPiano({ songNowMs: () => 0 });
+    const out = new FakeOut();
+    piano.attach(out, UNKNOWN_PROFILE);
+    piano.noteOn(60, 80);
+    out.sent.length = 0;
+    piano.attach(out, YDP166_PROFILE);
+    expect(out.sent.map((m) => m.data)).toEqual([[0x81, 60, 0], [0xb1, 123, 0], [0xb0, 7, 127]]);
   });
 });
