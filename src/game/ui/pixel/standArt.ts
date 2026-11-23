@@ -194,3 +194,27 @@ export function noteInSight(): Bitmap {
   pen(Math.floor(cx) - 2, Math.floor(cy) - 1, C.silver);
   return bitmap;
 }
+
+/**
+ * The scales and chords trainer (ft_1_29): three wooden steps going up to the right with a black note on each, a scale
+ * climbing. AX-3 provisional: a first sketch from shapes so the trainer can be reached; the painter draws the real one
+ * (the TODO in the feature file).
+ */
+export function scaleSteps(): Bitmap {
+  const { bitmap, pen } = canvas();
+  const STEP_W = 20, RISE = 12, FLOOR = 46;
+  for (let x = 2; x < 62; x++) {
+    const step = Math.min(2, Math.floor((x - 2) / STEP_W));
+    const top = FLOOR - RISE * (step + 1);
+    for (let y = top; y < FLOOR; y++) pen(x, y, y < top + 3 ? C.goldLight : C.gold);
+  }
+  for (let step = 0; step < 3; step++) {
+    const cx = 2 + step * STEP_W + 9, cy = FLOOR - RISE * (step + 1) - 4;
+    for (let y = cy - 3; y <= cy + 3; y++) for (let x = cx - 5; x <= cx + 5; x++) if (within(x, y, cx, cy, 4.5, 3)) pen(x, y, C.ink);
+    for (let y = cy - 14; y <= cy; y++) { pen(cx + 4, y, C.ink); pen(cx + 3, y, C.ink); }
+  }
+  rimmed(bitmap, (c) => (c === C.goldLight ? C.goldDark : c === C.gold ? C.brown : C.brownDark));
+  // a glint on each head
+  for (let step = 0; step < 3; step++) pen(2 + step * STEP_W + 7, FLOOR - RISE * (step + 1) - 6, C.silver);
+  return bitmap;
+}
