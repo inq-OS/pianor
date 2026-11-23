@@ -127,7 +127,7 @@ const LANTERNS: readonly { x: number; y: number; reach: number }[] = [
  * The pier as the stage has it, far off below the hill: its top's two edges run from the far shore to one point on the
  * horizon, and it ends `PIER.head` of the way there. The same heavy stone quay as the port's own picture.
  */
-const PIER = { near: 141, left: 424, right: 476, to: { x: 570, y: SQUARE.horizon }, head: 0.74, face: 0.3 } as const;
+const PIER = { near: 130, left: 436, right: 494, to: { x: 584, y: SQUARE.horizon }, head: 0.74, face: 0.36 } as const;
 /** The brow of the hill the plaza lies on, past which the ground drops away to the shore: its row at a column. */
 const brow = (x: number): number => 149 + ((x - 440) / 210) ** 2 * 20;
 /** A point of the pier's top: `t` from the shore (0) toward the horizon (1), `across` from its left edge (0) to its right (1). */
@@ -321,7 +321,7 @@ class SquarePainter {
         const row = hash2(y, 7, 51), dash = hash2((x + Math.floor(row * 40)) >> (d > 30 ? 4 : 3), y, 52);
         if (dash > 0.74) t += 0.1; else if (dash < 0.16) t -= 0.07;
         // under the moon one broad pale plane
-        if (hour.night) t += 0.14 + 0.3 * Math.exp(-(((x - MOON.x) / (26 + d)) ** 2)) * smooth(0, 6, d);
+        if (hour.night) t += 0.24 + 0.3 * Math.exp(-(((x - MOON.x) / (26 + d)) ** 2)) * smooth(0, 6, d);
         this.put(x, y, d === 0 ? R.sea[0]! : tone(F.sea, clamp01(t), x, y));
       }
     }
@@ -389,13 +389,13 @@ class SquarePainter {
     }
     // the beak: the shore's own shingle running out in a point that curves round to the right
     this.as(() => {
-      this.poly([[306, 140], [330, 129], [350, 122], [370, 117], [390, 116], [402, 119], [392, 121], [378, 123], [370, 129], [376, 140]], (x, y) => {
+      this.poly([[322, 130], [340, 123], [358, 118], [378, 115], [396, 116], [404, 119], [394, 120], [380, 121], [370, 124], [372, 130]], (x, y) => {
         const pebble = hash2(x >> 1, y, 850);
-        return tone(F.shingle, clamp01(hour.ground + 0.16 + (pebble > 0.9 ? 0.1 : pebble < 0.08 ? -0.16 : 0)), x, y);
+        return pebble > 0.84 ? tone(F.shingle, clamp01(hour.ground + 0.3), x, y) : pebble < 0.14 ? tone(F.stone, clamp01(hour.ground - 0.1), x, y) : tone(F.dry, clamp01(hour.ground + 0.24), x, y);
       }, 0.8, 9);
     });
     for (let k = 0; k < 16; k++) {
-      const x = 330 + hash2(k, 1, 842) * 76, y = 115 + hash2(k, 2, 842) * 14;
+      const x = 336 + hash2(k, 1, 842) * 72, y = 113 + hash2(k, 2, 842) * 10;
       if (this.owner[Math.round(y) * this.w + Math.round(x)] === 0) for (let d = 0; d < 3; d++) this.put(x + d, y, R.foam);
     }
   }
@@ -408,7 +408,7 @@ class SquarePainter {
   private pier(): void {
     const { hour } = this;
     // the houseboat on its far side: a brown hull, a red cabin under a grey roof, a stovepipe, the seal at its bow
-    const at = (x: number, y: number): Pt => [514 + (x - 552) * 0.42, 125 + (y - 128) * 0.42];
+    const at = (x: number, y: number): Pt => [534 + (x - 552) * 0.4, 114 + (y - 128) * 0.4];
     this.as(() => {
       this.poly([at(552, 133), at(560, 142), at(640, 144), at(640, 128), at(566, 129)], (x, y) => this.worn(F.wood, 0.46, x, y, 0.06), 0.3);
       this.poly([at(572, 112), at(614, 110), at(614, 129), at(572, 130)], (x, y) => this.worn(F.red, hour.front * 0.6 + 0.14, x, y, 0.05), 0.3);
@@ -433,14 +433,14 @@ class SquarePainter {
           const half = 0.05 * (1 - c);
           if (Math.abs(t - c) < half && v > 0.5 + 0.5 * ((t - c) / half) ** 2) return R.stone[0]!;
         }
-        return this.blocks(hour.north + 0.2, 4, 8, 1)(x, y);
+        return this.blocks(hour.north + 0.08, 4, 8, 1)(x, y);
       }, 0.5);
       // its top: big pale slabs going away
       this.poly([onPier(0, 0), onPier(0, 1), onPier(head, 1), onPier(head, 0)], (x, y) => {
         // big slabs: a seam only now and then, each slab its own flat tone
         const along = Math.floor(Math.sqrt(Math.max(0, y - PIER.to.y - 8)) * 1.3);
         const seam = along !== Math.floor(Math.sqrt(Math.max(0, y - PIER.to.y - 9)) * 1.3) && hash2(x >> 3, along, 839) > 0.3;
-        return seam ? tone(F.stone, 0.4, x, y) : this.worn(F.stone, hour.ground * 0.4 + 0.52 + (hash2(along, 3, 840) - 0.5) * 0.1, x, y, 0.04);
+        return seam ? tone(F.stone, 0.24, x, y) : this.worn(F.stone, hour.ground * 0.4 + 0.36 + (hash2(along, 3, 840) - 0.5) * 0.1, x, y, 0.04);
       }, 0.5);
     });
     // bollards along its edge, smaller the further out
@@ -468,15 +468,30 @@ class SquarePainter {
     });
   }
 
-  /** The far shore below the hill: a pale strand of shingle, small and far, the path's end to the pier on it. */
+  /**
+   * The far shore below the hill: a thin pale strand, small and far, and between it and the hill's brow the dark tops of
+   * the wild rose thickets on the low ground, so the eye drops from the lit brow to what lies far under it.
+   */
   private shore(): void {
     const { hour } = this;
-    this.poly([[224, 150], [256, 124], [300, 128], [360, 134], [450, 136], [560, 134], [650, 130], [650, 176], [0, 176], [0, 150]], (x, y) => {
-      const pebble = hash2(x >> 1, y, 850);
-      return tone(F.shingle, clamp01(hour.ground + 0.2 + (pebble > 0.9 ? 0.1 : pebble < 0.08 ? -0.16 : 0)), x, y);
-    }, 2.4);
-    // the path's end, small, from under the hill's brow to the pier's root
-    this.poly([[500, 158], [514, 158], [486, 148], [474, 141], [430, 141], [462, 148]], (x, y) => this.worn(F.earth, hour.ground + 0.2, x, y, 0.05, 30), 0.8, 8);
+    this.poly([[224, 150], [256, 124], [300, 127], [340, 126], [450, 124], [560, 123], [650, 120], [650, 150], [0, 150]], (x, y) => {
+      const pebble = hash2(x >> 1, y >> 1, 850);
+      return pebble > 0.84 ? tone(F.shingle, clamp01(hour.ground + 0.3), x, y) : pebble < 0.14 ? tone(F.stone, clamp01(hour.ground - 0.1), x, y) : tone(F.dry, clamp01(hour.ground + 0.24), x, y);
+    }, 1.6);
+    this.as(() => {
+      const thicket: Tone = (x, y) => {
+        const lump = Math.round(fbm(x / 9, y / 5, 2, 851) * 4) / 4;
+        return tone(F.grass, clamp01(hour.ground * 0.3 - 0.12 + lump * 0.22 + (hash2(x, y, 852) > 0.94 ? 0.12 : 0)), x, y);
+      };
+      this.poly([[244, 162], [262, 140], [300, 136], [340, 133], [420, 131], [520, 130], [650, 127], [650, 184], [244, 184]], thicket, 1.6, 7);
+      // its top is lumps of bushes, no two alike
+      for (let k = 0; k < 34; k++) {
+        const x = 268 + k * 11.4 + hash2(k, 1, 853) * 6, top = 136 - (x - 268) * 0.022;
+        this.oval(x, top + 1, 5 + hash2(k, 2, 853) * 5, 2.4 + hash2(k, 3, 853) * 3, thicket);
+      }
+    });
+    // the path's end, small, down through the thickets to the pier's root
+    this.poly([[502, 160], [512, 160], [490, 142], [480, 127], [462, 127], [478, 142]], (x, y) => this.worn(F.shingle, hour.ground + 0.1, x, y, 0.05, 30), 0.6, 8);
   }
 
   // ---- the houses
@@ -516,7 +531,7 @@ class SquarePainter {
   private cinema(): void {
     const { hour } = this;
     this.as(() => {
-      this.poly([[104, 168], [250, 160], [256, 118], [104, 124]], this.plaster(hour.front * 0.8 + 0.1, 164, 2, 2, F.dry));
+      this.poly([[104, 168], [250, 160], [256, 118], [104, 124]], ((wall: Tone): Tone => (x, y) => (x + noise2(y / 9, 1, 862) * 5 < 170 ? tone(F.dry, clamp01(hour.front * 0.3), x, y) : wall(x, y)))(this.plaster(hour.front * 0.8 + 0.1, 164, 2, 2, F.dry)));
       // the gable end turned to the sea, in the other light
       this.poly([[232, 161], [250, 160], [256, 118], [236, 119]], this.plaster(hour.south * 0.8 + 0.08, 162, 3, 2, F.dry));
     });
@@ -654,7 +669,8 @@ class SquarePainter {
   private paths(): void {
     const { hour } = this;
     const beaten: Tone = (x, y) => {
-      const light = hour.ground + 0.16 - this.shade(x, y) * 0.46, speck = hash2(x >> 1, y, 923);
+      // the gap between the two houses is a shady alley: the path darkens as it goes in under the eaves
+      const light = hour.ground + 0.16 - this.shade(x, y) * 0.46 - 0.44 * smooth(196, 156, x + (y - 170) * 0.8), speck = hash2(x >> 1, y, 923);
       return speck < 0.12 ? tone(F.earth, clamp01(light + 0.1), x, y) : this.worn(F.shingle, light - 0.04 + (speck > 0.9 ? 0.12 : 0), x, y, 0.06, 29);
     };
     this.poly([[262, 186], [236, 170], [206, 165], [176, 166], [120, 167], [120, 174], [170, 178], [200, 184], [222, 196]], beaten, 1.6, 5);
@@ -682,11 +698,11 @@ class SquarePainter {
       this.poly([[306, 91], [306, 82], [312, 91]], () => R.plaster[4]!, 0.1);
       this.line([302, 92], [314, 92], R.boards[0]!, 1);
     });
-    for (const [x, foot, wide, high, seed] of [[408, 141, 4, 3, 1], [336, 142, 3, 2.4, 2], [552, 139, 5, 4, 3], [596, 137, 4, 3, 4], [498, 140, 3, 2, 5]] as const) this.boulder(x, foot, wide, high, seed);
+    for (const [x, foot, wide, high, seed] of [[420, 129, 3, 2.4, 1], [346, 130, 3, 2.2, 2], [556, 128, 4, 3, 3], [600, 126, 3, 2.4, 4], [512, 129, 2.6, 2, 5]] as const) this.boulder(x, foot, wide, high, seed);
     this.as(() => {
       // a boat pulled up and turned over on the shingle, its keel a pale line
-      this.poly([[414, 139], [417, 135], [432, 134], [436, 138]], (x, y) => this.worn(F.boards, 0.3, x, y, 0.05, 31), 0.3);
-      this.line([417, 135], [432, 134], R.boards[3]!, 1);
+      this.poly([[430, 129], [433, 125], [446, 124], [450, 128]], (x, y) => this.worn(F.boards, 0.3, x, y, 0.05, 31), 0.3);
+      this.line([433, 125], [446, 124], R.boards[3]!, 1);
     });
   }
 

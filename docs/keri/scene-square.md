@@ -21,7 +21,7 @@ The world model's buildings (`content/world/keri.json`), which agree with the pu
 - The old boat shed's corner is the right wing; the lighthouse's own foot is the dark shape at the lower left. The new wooden shed is behind the viewer and the small shed by the shore is behind the cinema house: neither is in view.
 - The square looks a little like a town plaza: flagstones in rings, benches, barrels. Its middle is a flower bed with a rose bush; no lamp stands in the plaza.
 - No tractors or other machines.
-- The plaza lies on a fat-bellied hill: past its brow the ground drops away, and the shore and the pier are small and far below, as the lawn rolls off before the governor's mansion on Phatt Island in the 1991 game. This departs from the real island, which is low and flat.
+- The plaza lies on a fat-bellied hill: past its brow the ground drops away to the dark tops of the wild rose thickets, and the shore and the pier are small and far below, as the lawn rolls off before the governor's mansion on Phatt Island in the 1991 game. This departs from the real island, which is low and flat.
 - The pier runs from the far shore up to the right toward the horizon and is the port scene's own ([scene-port.md](scene-port.md)): a grey stone quay, bollards, the red and white beacon at its head, the low landing with the rowing boat, the red houseboat.
 - Keri's shore has a short beak of shingle that reaches out and curves a little. The dune strip is its own low bar far out in the sea, not joined to the island.
 - One path leads past the cinema's doors into the gap behind the side building and on round the lighthouse; another leads over the brow to the pier.
@@ -36,7 +36,7 @@ The world model's buildings (`content/world/keri.json`), which agree with the pu
 ## What is open
 
 - TODO(builder, R2): pressing the pier walks to the port (`squarePlan().pier` is its box in fine pixels); the scene has no exit yet.
-- TODO(painter, R2): when the quiet band is drawn (ft_1_20 rule 8), a scene with nothing in its band shows more rows than the picture has. Everything that can be pressed here lies in the upper two thirds, so the foreground can be painted further down.
+- TODO(painter, R2): scenes lose the band (ft_1_20), so the picture is to fill the screen's full height in place of today's 124 rows. Repaint the square at that height once the band's rework is in: everything that can be pressed lies in the upper two thirds, and the near foreground runs down to the screen's foot.
 - TODO(painter, R3): what stands still (`sceneLiving.ts`): the far sea, the pennants on the string, the grass on the brow.
 - KERI-TODO: the real colours of the cinema house and of the side building, and what stands on the real square, if the painted plaza should follow them.
 - NEEDS-HUMAN: the look of the scene in the game on the laptop; the level it opens at (2 is AX-3 provisional).

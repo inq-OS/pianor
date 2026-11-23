@@ -73,7 +73,7 @@ export function squarePlan(): SquarePlan {
   return {
     fine: { w: SQUARE.w, h: SQUARE.h },
     horizon: SQUARE.horizon,
-    pier: { x: 436, y: 88, w: 130, h: 58 },
+    pier: { x: 432, y: 76, w: 150, h: 60 },
     spots: SQUARE_SPOTS.map((spot) => {
       const [fx, fy] = bend(spot.x, spot.y);
       const feet = { x: Math.round(fx), y: Math.round(fy) };
