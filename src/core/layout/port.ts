@@ -70,6 +70,19 @@ export const PORT_BERTHS: readonly { x: number; water: number; room: number }[] 
  */
 export const PORT_MOORED: readonly BoatKind[] = ['houseboat'];
 
+/**
+ * The berth in the near water, by the ladder down the quay's face, for a small boat: its waterline in the near water, so
+ * it lies before the quay and shows whole, its stern far enough right of the ladder that what stands up in it (oars, a
+ * mast) stays clear of the first standing place on the quay.
+ */
+export const PORT_LADDER_BERTH = { x: 245, water: PORT.water + 30 } as const;
+
+/**
+ * Which boat lies at the ladder: the Prangli fisherman's tarred rowing boat. AX-3 provisional: it lies there every day,
+ * as the houseboat does, until the visitors' presence (ft_1_25) moors it only on his days (`docs/keri/scene-port.md`, Open).
+ */
+export const PORT_AT_LADDER: BoatKind | null = 'row';
+
 /** Where the beacon's lantern hangs at the quay's head (fine pixels): its light glows round it at dusk and night. */
 const LAMP = { x: PORT.head - 18, y: 82 } as const;
 

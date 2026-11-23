@@ -155,13 +155,16 @@ class BoatPainter {
    * `wind`: 'with' paints the boat whole, what the wind moves on it too (a pennant, the washing), as it hangs in still
    * air; 'without' leaves those out, for the game to lay them over it as the wind has them (`sway.ts`).
    */
-  constructor(private readonly kind: BoatKind, private readonly r: BoatRuns, private readonly wind: 'with' | 'without') {
+  constructor(private readonly kind: BoatKind, private readonly r: BoatRuns, private readonly wind: 'with' | 'without', ties?: BoatTies) {
     this.s = SPECS[kind];
     this.seed = 11 + Object.keys(SPECS).indexOf(kind) * 7;
-    this.w = Math.ceil(this.s.long * SCALE) + 2 * MARGIN;
+    // a boat tied farther out than its margins is painted wide enough to hold its lines
+    const left = Math.max(MARGIN, ...(ties ? [ties.bow.x, ties.stern.x].map((x) => 2 - x) : []));
+    const right = Math.max(MARGIN, ...(ties ? [ties.bow.x, ties.stern.x].map((x) => x + 2 - Math.ceil(this.s.long * SCALE)) : []));
+    this.w = Math.ceil(this.s.long * SCALE) + left + right;
     this.h = REACH + 14;
     this.water = REACH;
-    this.stern = MARGIN;
+    this.stern = left;
     this.bitmap = createBitmap(this.w, this.h);
     this.owner = new Uint8Array(this.w * this.h);
     for (const run of [r.hull, r.red, r.wood, r.stone, r.shingle, r.sponge, r.dry, r.sea, r.tar]) for (const c of run) if (!this.darkest.has(c)) this.darkest.set(c, run[0]!);
@@ -347,14 +350,16 @@ class BoatPainter {
   }
 
   /** The mooring lines: from the bow and the stern, sagging down behind the quay's parapet to the bollards on its far side. */
-  moor(): void {
+  moor(ties?: BoatTies): void {
     const s = this.s;
     this.as(() => {
       for (const [t, reach] of [[0.98, 30], [0.02, -26]] as const) {
         const [x0, y0] = this.gunwale(t);
-        const x1 = x0 + reach + (t < 0.5 ? -s.aft * SCALE * 0.3 : 0), y1 = this.water + 2;
-        for (let i = 0; i <= 40; i++) {
-          const u = i / 40, x = x0 + (x1 - x0) * u, y = y0 + (y1 - y0) * u + 6 * Math.sin(Math.PI * u);
+        const to = ties?.[t > 0.5 ? 'bow' : 'stern'];
+        const x1 = to ? this.stern + to.x : x0 + reach + (t < 0.5 ? -s.aft * SCALE * 0.3 : 0), y1 = to ? this.water + to.y : this.water + 2;
+        const n = Math.max(40, Math.ceil(2 * Math.hypot(x1 - x0, y1 - y0))); // dense enough to stay one unbroken line
+        for (let i = 0; i <= n; i++) {
+          const u = i / n, x = x0 + (x1 - x0) * u, y = y0 + (y1 - y0) * u + 6 * Math.sin(Math.PI * u);
           this.put(x, y, this.r.dry[1]!);
         }
       }
@@ -1171,6 +1176,15 @@ class BoatPainter {
   }
 }
 
+/**
+ * Where a boat's two lines are made fast, from its berth's point (the stern at the water), fine pixels: a boat before the
+ * quay ties to the ladder and a ring in the quay's face. Without them both lines run down to the water behind the parapet.
+ */
+export interface BoatTies {
+  readonly bow: { readonly x: number; readonly y: number };
+  readonly stern: { readonly x: number; readonly y: number };
+}
+
 /** A moored boat's picture: the boat without what the wind moves on it, and those things (`sway.ts`), in the frame's pixels. */
 export interface BoatPicture extends Overlay {
   readonly blown: readonly Blown[];
@@ -1181,10 +1195,10 @@ export interface BoatPicture extends Overlay {
  * rides it on the swell (`bobAt`) and flies its pennant and washing on the wind (`blownAt`), which are cut out of a
  * second painting of the whole boat so each keeps its contour.
  */
-export function paintBoat(kind: BoatKind, runs: BoatRuns): BoatPicture {
+export function paintBoat(kind: BoatKind, runs: BoatRuns, ties?: BoatTies): BoatPicture {
   const [bare, whole] = (['without', 'with'] as const).map((wind) => {
-    const p = new BoatPainter(kind, runs, wind);
-    p.moor();
+    const p = new BoatPainter(kind, runs, wind, ties);
+    p.moor(ties);
     p.paint();
     p.outline();
     p.reflect();

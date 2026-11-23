@@ -1,4 +1,4 @@
-import { BOAT_KINDS, PORT, portWaterAt, type BoatKind, type PortPlan } from '../../../../core/layout/port';
+import { BOAT_KINDS, PORT, PORT_AT_LADDER, PORT_LADDER_BERTH, portWaterAt, type BoatKind, type PortPlan } from '../../../../core/layout/port';
 import type { SkyPhase } from '../../../../core/sky/skyPhase';
 import { blit, createBitmap, type Bitmap } from '../bitmap';
 import { cropTogether, type Overlay } from '../pack';
@@ -18,7 +18,7 @@ import { rings, sea, type SeaGround, type SeaStand } from './kit/water';
 import { KIT_WOOD } from './kit/wood';
 import type { LeapTones } from '../leap';
 import type { Blown } from '../sway';
-import { boatStill, paintBoat, type BoatPicture, type BoatRuns } from './portBoats';
+import { boatStill, paintBoat, type BoatPicture, type BoatRuns, type BoatTies } from './portBoats';
 import { paintWonders } from './portWonders';
 
 /**
@@ -247,6 +247,8 @@ const PILES: readonly { x: number; top: number; half: number; rope: boolean }[] 
 ];
 /** The ladder's column: on the pier between the first two arches. */
 const LADDER = 176;
+/** The iron mooring rings in the quay's face. */
+const RINGS = [150, 312, 470] as const;
 /**
  * The low landing at the stair's foot (the stairs went down and ended, so a small lower
  * level was added that allows reaching the waterline and smaller boats): a step of stone a little over the water, before the
@@ -624,7 +626,7 @@ class PortPainter {
     this.slime(PORT.water - 12, PORT.water + 1);
     this.landing();
     for (const x of [92, 238, 384]) this.as(() => this.bollard(x));
-    for (const x of [150, 312, 470]) this.as(() => this.ring(x, PORT.deck + 22));
+    for (const x of RINGS) this.as(() => this.ring(x, PORT.deck + 22));
     for (const x of [208, 369]) this.as(() => this.tyre(x, look));
     this.as(() => this.ladder(LADDER, PORT.water + 2));
     this.as(() => this.crates(452));
@@ -1536,8 +1538,14 @@ export function portBoats(plan: PortPlan, phase: SkyPhase): Record<BoatKind, Boa
 
 function boatsOf(p: PortPainter): Record<BoatKind, BoatPicture> {
   const runs = p.boatRuns();
-  return Object.fromEntries(BOAT_KINDS.map((kind) => [kind, paintBoat(kind, runs)])) as Record<BoatKind, BoatPicture>;
+  return Object.fromEntries(BOAT_KINDS.map((kind) => [kind, paintBoat(kind, runs, kind === PORT_AT_LADDER ? LADDER_TIES : undefined)])) as Record<BoatKind, BoatPicture>;
 }
+
+/** The boat at the ladder ties its stern back to the ladder's foot and its bow up to the next iron ring in the face beyond it. */
+const LADDER_TIES: BoatTies = {
+  stern: { x: LADDER + 3 - PORT_LADDER_BERTH.x, y: PORT.water - PORT_LADDER_BERTH.water },
+  bow: { x: RINGS[2] - PORT_LADDER_BERTH.x, y: PORT.deck + 22 - PORT_LADDER_BERTH.water },
+};
 
 /** Where each moored boat's picture goes: at its berth, the berth's point being the boat's stern at the water. */
 export function portMoorings(plan: PortPlan, moored: readonly BoatKind[]): { kind: BoatKind; x: number; y: number }[] {
@@ -1559,7 +1567,7 @@ export function portDeepStill(picture: PortPicture, look = 0): Bitmap {
   return out;
 }
 
-export function portStill(picture: PortPicture, plan: PortPlan, moored: readonly BoatKind[]): Bitmap {
+export function portStill(picture: PortPicture, plan: PortPlan, moored: readonly BoatKind[], atLadder: BoatKind | null = PORT_AT_LADDER): Bitmap {
   const base = picture.frames[0]!;
   const out = createBitmap(base.width, base.height);
   out.pixels.set(base.pixels);
@@ -1571,6 +1579,7 @@ export function portStill(picture: PortPicture, plan: PortPlan, moored: readonly
   blit(out, water.bitmap, water.x, water.y);
   for (const m of portMoorings(plan, moored)) { const boat = picture.boats[m.kind]; blit(out, boatStill(boat), boat.x + m.x, boat.y + m.y); }
   lay(picture.front, 0);
+  if (atLadder) { const boat = picture.boats[atLadder]; blit(out, boatStill(boat), boat.x + PORT_LADDER_BERTH.x, boat.y + PORT_LADDER_BERTH.water); }
   lay(picture.lamp, Math.min(1, picture.lamp.frames.length - 1));
   return out;
 }
