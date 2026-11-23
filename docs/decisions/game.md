@@ -467,4 +467,4 @@ Check: `src/core/layout/bubble.test.ts` "ft_1_20.AC19 an option keeps its slot w
 
 The learning settings page has a two-hand pieces choice: both hands together (the default) or hands apart (each growing step by the right hand, the left hand, then both). It applies to the next piece begun; a piece in progress keeps the plan it began with. Changes rule 13 of ft_1_32, which had hands apart for every new piece.
 
-Check: `src/core/learn/progress.test.ts` "ft_1_32.AC12 a new piece is learned with both hands together unless the player chose hands apart; a piece begun keeps the plan it began with"
+Check: `src/core/learn/progress.test.ts` "ft_1_32.AC12 a new piece is learned with both hands together unless the player chose hands apart, and a piece begun keeps the plan it began with"

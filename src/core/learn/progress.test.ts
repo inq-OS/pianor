@@ -259,7 +259,7 @@ describe('the step size a piece is learned in', () => {
 });
 
 describe('hands apart in a piece begun', () => {
-  it('ft_1_32.AC12 a new piece is learned with both hands together unless the player chose hands apart; a piece begun keeps the plan it began with', () => {
+  it('ft_1_32.AC12 a new piece is learned with both hands together unless the player chose hands apart, and a piece begun keeps the plan it began with', () => {
     expect(DEFAULT_LEARN_SETTINGS.handsApart).toBe(false);
     expect(learnHandsApart(START_PROGRESS, DEFAULT_LEARN_SETTINGS)).toBe(false);
     expect(learnHandsApart(START_PROGRESS, { ...DEFAULT_LEARN_SETTINGS, handsApart: true })).toBe(true);
