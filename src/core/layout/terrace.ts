@@ -104,7 +104,7 @@ export function underReach(u: number, v: number): boolean {
 }
 
 /**
- * The watchtower on the head's seaward corner (the section that reaches furthest over the beach
+ * The watchtower on the head's left, toward the eye (the section that reaches furthest over the beach
  * can have a roofed part, perhaps a small watchtower of about two floors with a fixed telescope to scan the
  * horizon): four posts on the head's boards from `u0` to `u1` and `t0` to `t1` metres out, a floor `floor` metres
  * up with a rail round it, a roof whose eave is `eave` up and stands `over` out past the posts, its peak `peak` up
@@ -113,7 +113,7 @@ export function underReach(u: number, v: number): boolean {
  */
 export const TOWER = { u0: 3.6, u1: 5.8, t0: 8.7, t1: 10.9, floor: 1.9, rail: 0.85, eave: 3.3, over: 0.4, peak: 4.0, staff: 0.35, lean: 0.035 } as const;
 
-/** A point of the watchtower: `a` across it from its `u0` side (0) to its `u1` side (1), `b` from its landward side (0) out to its seaward side (1), `up` metres over the head's boards. Outside 0 to 1 it is out past the posts. */
+/** A point of the watchtower: `a` across it from its `u0` side (0) to its `u1` side (1), `b` from the side nearest the eye (0) toward the house (1), `up` metres over the head's boards. Outside 0 to 1 it is out past the posts. */
 export function onTower(a: number, b: number, up = 0): P3 {
   // `a` runs across the tower as the viewer sees it, left (0) to right (1); `b` from its side nearest the eye (0) away toward the house (1)
   const [x, y, z] = onReach(TOWER.u1 - (TOWER.u1 - TOWER.u0) * a, TOWER.t1 - (TOWER.t1 - TOWER.t0) * b, up);
@@ -176,7 +176,7 @@ export const TERRACE_ROCKS: readonly { x: number; z: number; r: number }[] = [
  * windows there): in the deck's frame its front wall stands at `front` from `u0` to `u1` (four fifths of its length,
  * as the map draws it), `deep` metres back. Heights over the sea: the ground at its foot `ground`, the floor `floor`
  * (the deck's boards' height), the eaves `eave`, the ridge `ridge`. The door is at `door` under the porch, the front's
- * other windows at `windows` (the living room's two nearest the eye). `sag` is how far the ridge sags in its middle
+ * other windows at `windows` (the living room's two at the south-east end, on the viewer's right). `sag` is how far the ridge sags in its middle
  * and `lean` how far the front leans out at the eaves (metres): a house of the 1991 game, crooked with age. The
  * chimney stands on the ridge at `chimney`.
  */

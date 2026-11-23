@@ -821,7 +821,7 @@ class TerracePainter {
   }
 
   /**
-   * The watchtower on the head's seaward corner (a roofed section, perhaps a small watchtower
+   * The watchtower on the head's left, toward the eye (a roofed section, perhaps a small watchtower
    * that goes up to the second floor with a static long-eye to scan the horizon): four crooked posts, a floor a storey up with a
    * boarded parapet and a ladder to it, a long brass spyglass fixed on a post there, and a thatched roof with a staff
    * for the pennant. Painted back to front.

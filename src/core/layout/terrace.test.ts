@@ -162,7 +162,7 @@ describe('the terrace: the plan of the picture (ft_1_19)', () => {
     }
   });
 
-  it('ft_1_19.AC1 a stage set: the horizon under a third down, the watchtower on the head framing the picture\'s left, a storey up with a roof over it and a staff on its peak (a small watchtower of about two floors with a fixed telescope to scan the horizon)', () => {
+  it('ft_1_19.AC1 a stage set: the horizon about two fifths down, the watchtower on the head framing the picture\'s left, a storey up with a roof over it and a staff on its peak (a small watchtower of about two floors with a fixed telescope to scan the horizon)', () => {
     expect(plan.fine).toEqual({ w: ROOM_PICTURE.w * 2, h: ROOM_PICTURE.h * 2 });
     expect(plan.horizon).toBe(TERRACE.horizon);
     expect(plan.horizon).toBeGreaterThan(H * 0.3);
