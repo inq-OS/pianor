@@ -372,3 +372,11 @@ Check: untestable: a look on the real machine
 The atlas gauge (`refcat.py gauge`) and `art:check` measure; what goes into a picture is decided by looking (art direction section 5) and by the scene's rules, not by raising a number.
 
 Check: untestable: a painting judgement, held by the art review
+
+## d285
+
+**Every choice the player picks from shows a picture, never a word; its words are in the tooltip.** Features: ft_1_32, ft_0_16.
+
+A choice is a button among others that sets or picks something (a setting, a question with answers). Its picture shows the choice the way the student meets it in play, as the settings pictures do (`src/game/ui/pixel/settingArt.ts`); its name stays the button's tooltip and what tests read. Choices still drawn as words are changed when their screen is next worked on.
+
+Check: `src/game/ui/pixel/settingArt.test.ts` "every choice of %s has a picture of the same size, and no two choices look alike"

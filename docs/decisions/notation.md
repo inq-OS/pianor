@@ -253,7 +253,7 @@ Check: `src/core/chart/pitch.test.ts` "middle C is MIDI 60 and A4 is 69"
 
 Check: `src/core/piece/abc.test.ts` "core_09.AC45 reads |1 and :|2 as the endings of the repeat, in every spelling"; `src/core/chart/repeats.test.ts` "core_09.AC46 plays the first ending on the first pass, and the second ending in its place on the second"; `src/core/layout/endings.test.ts` "core_09.AC47 an ending across a line break is two pieces: the label and the left hook on the first, the right hook on the last"
 
-## d284
+## d286
 
 **The piece maker has opt-in vim keys, off by default and kept per device, that drive the piece maker's own moves, edits and tools.** Features: ft_1_02e.
 

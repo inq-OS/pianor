@@ -4,7 +4,7 @@ import type { JudgeEvent, WrongNoteJudged, WrongReason } from '../../core/judge'
 import { markersByNote, mistakeMarkers } from '../../core/learn/markers';
 import { handChart, learnPlan, learnUnits, type LearnStep } from '../../core/learn/plan';
 import {
-  afterRun, currentRun, goldenBars, isLearned, isMeasured, learnHandsApart, learnRewards, learnStepBars, measuredOutcome, sitDown, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
+  afterRun, currentRun, goldenBars, halfLearned, isLearned, isMeasured, learnHandsApart, learnRewards, learnStepBars, measuredOutcome, sitDown, startOver, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
 } from '../../core/learn/progress';
 import { LearnRunJudge, type LearnRunVerdict } from '../../core/learn/run';
 import { baselineBpm, runTempo, TEMPO_RULES, type RunTempo } from '../../core/learn/tempo';
@@ -40,6 +40,8 @@ export class LearnSession {
   private judge: LearnRunJudge | null = null;
   /** The judge's events of this run, for the tempo of a measured run. */
   private readonly events: JudgeEvent[] = [];
+  /** The chart the judge plays, from the run's first events (`push`). */
+  private played: Chart | null = null;
   /** The measures of this run once it was played to its end, when it is a measured one: kept with the progress (ft_1_32.AC8). */
   private measured: RunTempo | null = null;
 
@@ -60,7 +62,7 @@ export class LearnSession {
   static open(profile: LearnProfile, piece: Chart, today: string, now: () => Date = () => new Date(), asked = false): LearnSession | null {
     const kept = profile.learnProgressOf(piece.id);
     const stepBars = learnStepBars(kept, profile.learnSettings);
-    const handsApart = learnHandsApart(kept);
+    const handsApart = learnHandsApart(kept, profile.learnSettings);
     const plan = learnPlan(piece, stepBars, handsApart);
     const saved = { ...kept, stepBars, handsApart };
     if (plan.length === 0 || isLearned(plan, saved)) return null;
@@ -77,6 +79,15 @@ export class LearnSession {
   /** The run's bars of the piece, only its hand's notes for a hand step: what the staff shows and the judge waits for. */
   get chart(): Chart {
     return handChart(sliceChart(this.piece, this.run.firstBar, this.run.lastBar), this.run.step.hand);
+  }
+
+  /**
+   * The tracks of the hand that rests in a hand step (ft_1_32.AC18): drawn grey on their own staff, so both hands are read,
+   * and never awaited. None outside a hand step.
+   */
+  get restingTracks(): string[] {
+    const hand = this.run.step.hand;
+    return hand === undefined ? [] : this.piece.tracks.filter((t) => t.role === 'play' && t.hand !== hand).map((t) => t.id);
   }
 
   /** Whether the note names must stay off for this run (the run after one with names shown). */
@@ -114,6 +125,7 @@ export class LearnSession {
    */
   push(events: readonly JudgeEvent[], played: Chart): LearnRunVerdict {
     this.events.push(...events);
+    this.played = played;
     this.judge ??= new LearnRunJudge(this.rushStops ? { chart: played, baselineBpm: this.baseline } : undefined);
     return this.judge.push(events);
   }
@@ -125,6 +137,14 @@ export class LearnSession {
    */
   get rushStops(): boolean {
     return this.run.kind === 'step' && this.baseline !== null && (this.progress.unsteady ?? 0) < TEMPO_RULES.asks;
+  }
+
+  /**
+   * The run measured so far, for the stats pane while it is played (ft_1_32.AC17): the pace, spread and wobble of the
+   * notes played up to now; null before three steps are played.
+   */
+  get liveTempo(): RunTempo | null {
+    return this.played ? runTempo(this.played, this.events) : null;
   }
 
   get verdict(): LearnRunVerdict {
@@ -142,6 +162,20 @@ export class LearnSession {
     if (noteNames) return { outcome: 'hinted' };
     this.measured = isMeasured(this.run) ? runTempo(played, this.events) : null;
     return measuredOutcome(this.progress, this.measured);
+  }
+
+  /** The learning has begun and is past its first step: opening it asks to go on or start over (ft_1_32.AC16). */
+  get halfway(): boolean {
+    return halfLearned(this.progress);
+  }
+
+  /** Start the learning over from the first step, on the player's settings now, and keep it (ft_1_32.AC16). */
+  startOver(): Promise<boolean> {
+    this.progress = startOver(this.progress, this.profile.learnSettings, this.today);
+    return this.profile.saveLearnProgress(this.piece.id, this.progress).catch((error: unknown) => {
+      console.error('saveLearnProgress failed', error);
+      return false;
+    });
   }
 
   /** The run ended: keep where the student is now, and save it (a failed save is reported, never shown to the player). */

@@ -525,7 +525,7 @@ Changes d153 and d199. The top of `docs/architect/roadmap.md` lists each area of
 
 Check: untestable: how work is chosen
 
-## d285
+## d287
 
 **Every change to how the game is controlled or used (input, keys, buttons, menus, where an action sits) gets an ergonomics review and analysis before it merges; art and look do not.** Features: none.
 
