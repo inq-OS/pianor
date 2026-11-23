@@ -44,7 +44,7 @@ describe('LearnSession', () => {
   /** Play the run's notes at the times given through a Wait judge into the session. */
   function playRun(session: LearnSession, times: readonly number[]) {
     const mode = new WaitMode(session.chart);
-    times.forEach((timeMs, i) => session.push(mode.handle({ kind: 'on', midi: midis[i]!, velocity: 80, timeMs, source: 'test' })));
+    times.forEach((timeMs, i) => session.push(mode.handle({ kind: 'on', midi: midis[i]!, velocity: 80, timeMs, source: 'test' }), session.chart));
     return session.outcomeOf(session.chart, false);
   }
 
@@ -120,5 +120,30 @@ describe('LearnSession', () => {
     expect(kept.progress.learnedAt).toBe('1998-11-22T10:05:00.000Z');
     // the bar's three perfect plays were learning runs, before it was learned: they do not raise it to gold
     expect(last.rewards().piece).toBe('silver');
+  });
+
+  it('ft_1_32.AC11 stops a step run that speeds up beyond the baseline, at most as often as an uneven run is asked again', async () => {
+    const { kept, session } = open({ ...START_PROGRESS, lastDay: '1998-11-22', bpm: [60] });
+    const fast = [0, 1000, 1500, 2000]; // two quarter notes at 60, then at 120
+    for (let ask = 1; ask <= 2; ask++) {
+      const run = session();
+      expect(run.rushStops).toBe(true);
+      const mode = new WaitMode(run.chart);
+      fast.forEach((timeMs, i) => run.push(mode.handle({ kind: 'on', midi: midis[i]!, velocity: 80, timeMs, source: 'test' }), run.chart));
+      expect(run.verdict).toEqual({ state: 'rushed' });
+      expect(run.rushLine()).toBe('Too fast: keep the speed you started with. Once more');
+      await run.finish('unsteady');
+      expect(kept.progress).toMatchObject({ step: 0, unsteady: ask }); // nothing lost, nothing counted
+    }
+    // asked twice: the run counts at any speed, so the student is never held at a step
+    const third = session();
+    expect(third.rushStops).toBe(false);
+    const mode = new WaitMode(third.chart);
+    fast.forEach((timeMs, i) => third.push(mode.handle({ kind: 'on', midi: midis[i]!, velocity: 80, timeMs, source: 'test' }), third.chart));
+    expect(third.verdict).toEqual({ state: 'perfect' });
+  });
+
+  it('ft_1_32.AC11 never stops for speed before a baseline tempo is measured', () => {
+    expect(open().session().rushStops).toBe(false);
   });
 });

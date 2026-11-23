@@ -70,14 +70,7 @@ const median = (values: readonly number[]): number => {
  * step's time. null with fewer than three steps played, which has too few gaps to say anything.
  */
 export function runTempo(chart: Chart, events: readonly JudgeEvent[]): RunTempo | null {
-  const steps = buildSteps(chart);
-  const onsets = new Map<number, number>();
-  for (const e of events) {
-    if (e.type === 'NoteJudged' && e.verdict === 'correct' && !onsets.has(e.stepIndex)) onsets.set(e.stepIndex, e.timeMs);
-  }
-  const points = [...onsets]
-    .map(([index, timeMs]) => ({ writtenMs: tickToMs(chart.tempoMap, steps[index]!.tick, chart.ppq), timeMs, bar: steps[index]!.bar, hands: steps[index]!.hands }))
-    .sort((a, b) => a.writtenMs - b.writtenMs);
+  const points = onsetsOf(chart, events);
   const gaps = gapsOf(points);
   const paces = gaps.map((gap) => gap.pace);
   if (paces.length < 2) return null;
@@ -107,6 +100,18 @@ export function runTempo(chart: Chart, events: readonly JudgeEvent[]): RunTempo 
 
 interface Onset { writtenMs: number; timeMs: number; bar: number; hands: readonly ('RH' | 'LH')[] }
 
+/** The first right key of each step played, with the step's written time, in written order. */
+function onsetsOf(chart: Chart, events: readonly JudgeEvent[]): Onset[] {
+  const steps = buildSteps(chart);
+  const onsets = new Map<number, number>();
+  for (const e of events) {
+    if (e.type === 'NoteJudged' && e.verdict === 'correct' && !onsets.has(e.stepIndex)) onsets.set(e.stepIndex, e.timeMs);
+  }
+  return [...onsets]
+    .map(([index, timeMs]) => ({ writtenMs: tickToMs(chart.tempoMap, steps[index]!.tick, chart.ppq), timeMs, bar: steps[index]!.bar, hands: steps[index]!.hands }))
+    .sort((a, b) => a.writtenMs - b.writtenMs);
+}
+
 /** Each gap between neighbouring onsets as played against its written length (2 is half the written tempo), with the bar it begins in. */
 function gapsOf(points: readonly Onset[]): { pace: number; bar: number }[] {
   const gaps: { pace: number; bar: number }[] = [];
@@ -133,6 +138,25 @@ function handSpreads(points: readonly Onset[]): { RH?: number; LH?: number } | u
     if (paces.length >= HAND_MIN_GAPS) out[hand] = robustSpread(paces, median(paces));
   }
   return out;
+}
+
+/**
+ * The rushing stop (ft_1_32 rule 12, slice 3, AC11). `AX-3 provisional`: a run is rushing once the median pace of its latest
+ * `gaps` gaps is more than `over` above the piece's baseline tempo; the median, so one quick gap does not stop a run.
+ */
+export const RUSH_RULES = { over: 0.2, gaps: 3 } as const;
+
+/**
+ * Whether the run so far (the judge's events, `chart` the chart played) has sped up beyond `baselineBpm`, the piece's
+ * baseline tempo (`baselineBpm`); never without a baseline or before `RUSH_RULES.gaps` gaps.
+ */
+export function rushing(chart: Chart, events: readonly JudgeEvent[], baselineBpm: number | null): boolean {
+  if (baselineBpm === null || !(baselineBpm > 0)) return false;
+  const points = onsetsOf(chart, events);
+  const latest = gapsOf(points).slice(-RUSH_RULES.gaps).map((gap) => gap.pace);
+  if (latest.length < RUSH_RULES.gaps) return false;
+  const pace = median(latest);
+  return pace > 0 && chart.tempoMap[0]!.bpm / pace > baselineBpm * (1 + RUSH_RULES.over);
 }
 
 /** The baseline tempo of a piece from the paces of its counted runs: their median, rounded down to 5 BPM; null with none. */

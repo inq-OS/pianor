@@ -720,8 +720,22 @@ export class PracticeScene extends PixelScene {
   private watchLearnRun(events: readonly JudgeEvent[]): void {
     const learn = this.learn;
     if (!learn || this.leaving || this.listening || this.atDoor) return;
-    const verdict = learn.push(events);
+    const verdict = learn.push(events, this.playSession.chart);
     if (verdict.state === 'stopped') this.stopLearnRun(verdict.wrong);
+    else if (verdict.state === 'rushed') this.stopRushedRun();
+  }
+
+  /**
+   * A learning run sped up beyond the piece's baseline tempo (the rushing stop, ft_1_32.AC11): it stops, Kiur says so, and
+   * the same step starts again. Nothing was played wrong, so no bar is logged with a miss; it counts as a run asked again.
+   */
+  private stopRushedRun(): void {
+    const learn = this.learn!;
+    this.leaving = true;
+    this.stopMetronome();
+    this.playSession.stop();
+    void learn.finish('unsteady');
+    this.againAfter(learn.rushLine());
   }
 
   /**
@@ -736,8 +750,12 @@ export class PracticeScene extends PixelScene {
     const play = this.barRecorder?.stop(wrong);
     if (play) this.barsSaved = contextOf(this).profiles.recordBarPlays([play]).catch((error: unknown) => console.error('recordBarPlays failed', error));
     const bar = learn.run.firstBar + (this.playSession.play.writtenBar[wrong.bar] ?? wrong.bar);
-    const line = learn.stopLine(wrong, bar);
     void learn.finish('stopped');
+    this.againAfter(learn.stopLine(wrong, bar));
+  }
+
+  /** A stopped learning run: Kiur says `line`, and after a moment the same step starts again with it. */
+  private againAfter(line: string): void {
     this.playSession.say(line);
     this.loopTimer = this.time.delayedCall(LEARN_STOP_MS, () => {
       this.loopTimer = null;

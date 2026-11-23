@@ -1,9 +1,9 @@
-// Covers ft_1_32.AC7.
+// Covers ft_1_32.AC7, ft_1_32.AC11.
 import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
 import { WaitMode } from '../judge/wait';
 import type { JudgeEvent } from '../judge/types';
-import { baselineBpm, baselinePercent, runTempo } from './tempo';
+import { baselineBpm, baselinePercent, RUSH_RULES, rushing, runTempo } from './tempo';
 
 // two bars of quarter notes: C D E F | G A B C
 const midis = [60, 62, 64, 65, 67, 69, 71, 72];
@@ -127,3 +127,26 @@ describe('baselinePercent (core_01.AC13)', () => {
     expect(baselinePercent([60], 0)).toBeNull();
   });
 });
+
+describe('rushing', () => {
+  /** Key times from gaps (ms), starting at 1000. */
+  const at = (gaps: readonly number[]) => gaps.reduce<number[]>((times, gap) => [...times, times.at(-1)! + gap], [1000]);
+
+  it('ft_1_32.AC11 a run that speeds up beyond the baseline is rushing, read from its latest gaps', () => {
+    expect(rushing(chart, played(even(1000)), 60)).toBe(false); // at the baseline
+    expect(rushing(chart, played(at([1000, 1000, 1000, 700, 700, 700])), 60)).toBe(true); // about 86 BPM against 60
+    expect(rushing(chart, played(at([1000, 1000, 1000, 900, 900, 900])), 60)).toBe(false); // 67: within the margin
+  });
+
+  it('ft_1_32.AC11 is not fooled by one short gap, by too few gaps, or by no baseline yet', () => {
+    expect(rushing(chart, played(at([1000, 1000, 600, 1000, 1000])), 60)).toBe(false);
+    expect(rushing(chart, played(at([600, 600])), 60)).toBe(false); // fewer than RUSH_RULES.gaps gaps
+    expect(rushing(chart, played(at([600, 600, 600, 600])), null)).toBe(false);
+    expect(RUSH_RULES.gaps).toBe(3);
+  });
+
+  it('ft_1_32.AC11 slowing down is never rushing', () => {
+    expect(rushing(chart, played(at([1000, 1000, 1500, 1500, 1500])), 60)).toBe(false);
+  });
+});
+

@@ -7,7 +7,7 @@ import {
   afterRun, currentRun, goldenBars, isLearned, isMeasured, learnRewards, learnStepBars, measuredOutcome, sitDown, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
 } from '../../core/learn/progress';
 import { LearnRunJudge, type LearnRunVerdict } from '../../core/learn/run';
-import { baselineBpm, runTempo, type RunTempo } from '../../core/learn/tempo';
+import { baselineBpm, runTempo, TEMPO_RULES, type RunTempo } from '../../core/learn/tempo';
 import type { BarPlay } from '../../core/progression/practiceLog';
 import { t, type StringKey } from '../../core/text/strings';
 
@@ -36,7 +36,8 @@ const REASON_KEY: Record<WrongReason, StringKey> = {
  * calls `finish`, which keeps the progress; the next start of the scene opens the next run. Rules live in `src/core/learn`.
  */
 export class LearnSession {
-  private readonly judge = new LearnRunJudge();
+  /** The verdict of this run; made at its first events, with the chart the judge plays (`push`). */
+  private judge: LearnRunJudge | null = null;
   /** The judge's events of this run, for the tempo of a measured run. */
   private readonly events: JudgeEvent[] = [];
   /** The measures of this run once it was played to its end, when it is a measured one: kept with the progress (ft_1_32.AC8). */
@@ -105,14 +106,28 @@ export class LearnSession {
     return bpm === undefined ? t('learn.clean') : t('learn.pace', { bpm });
   }
 
-  /** Read the judge's events; the verdict of the run so far. */
-  push(events: readonly JudgeEvent[]): LearnRunVerdict {
+  /**
+   * Read the judge's events (`played` is the chart the judge plays); the verdict of the run so far. A step run is stopped
+   * when it speeds up beyond the piece's baseline tempo (the rushing stop, ft_1_32.AC11) while the step may still be asked
+   * again (`rushStops`).
+   */
+  push(events: readonly JudgeEvent[], played: Chart): LearnRunVerdict {
     this.events.push(...events);
+    this.judge ??= new LearnRunJudge(this.rushStops ? { chart: played, baselineBpm: this.baseline } : undefined);
     return this.judge.push(events);
   }
 
+  /**
+   * Whether this run is stopped for speed: a step run (never the recall check, which is never asked again), with a baseline
+   * tempo, while the step has been asked again fewer than `TEMPO_RULES.asks` times; then a run counts at any speed, so a
+   * student who keeps rushing is never held at a step.
+   */
+  get rushStops(): boolean {
+    return this.run.kind === 'step' && this.baseline !== null && (this.progress.unsteady ?? 0) < TEMPO_RULES.asks;
+  }
+
   get verdict(): LearnRunVerdict {
-    return this.judge.verdict;
+    return this.judge?.verdict ?? { state: 'going' };
   }
 
   /**
@@ -164,6 +179,11 @@ export class LearnSession {
     const from = run.step.firstUnit + 1;
     const to = run.step.lastUnit + 1;
     return from === to ? t('learn.nextOne', { n: from }) : t('learn.next', { from, to });
+  }
+
+  /** What Kiur says when the run is stopped for speeding up (ft_1_32.AC11). */
+  rushLine(): string {
+    return t('learn.rushed');
   }
 
   /** What Kiur says when a wrong key ends the run: the mistake and its bar (`bar` is the piece's bar of the wrong key). */

@@ -3,6 +3,7 @@ import { buildSteps } from '../judge/steps';
 import type { JudgeEvent, WrongNoteJudged } from '../judge/types';
 import type { BarMiss, BarPlay } from '../progression/practiceLog';
 import type { BarPlayInfo } from '../progression/recordBars';
+import { rushing } from './tempo';
 
 /**
  * Whether a learning run is perfect (ft_1_32.AC3). Pure; it reads the events of the Wait mode judge, so the judge itself is
@@ -14,10 +15,19 @@ export type LearnRunVerdict =
   | { state: 'going' }
   | { state: 'perfect' }
   | { state: 'hinted' }
-  | { state: 'stopped'; wrong: WrongNoteJudged };
+  | { state: 'stopped'; wrong: WrongNoteJudged }
+  /** The run sped up beyond the piece's baseline tempo (`rushing`, ft_1_32.AC11): it is stopped and asked again. */
+  | { state: 'rushed' };
 
 export class LearnRunJudge {
   private current: LearnRunVerdict = { state: 'going' };
+  private readonly events: JudgeEvent[] = [];
+
+  /**
+   * `rush`: the chart played and the piece's baseline tempo, when a run that speeds up beyond it is stopped (the rushing
+   * stop); without it, or with no baseline yet, the pace never stops a run.
+   */
+  constructor(private readonly rush?: { chart: Chart; baselineBpm: number | null }) {}
 
   get verdict(): LearnRunVerdict {
     return this.current;
@@ -27,7 +37,9 @@ export class LearnRunJudge {
   push(events: readonly JudgeEvent[]): LearnRunVerdict {
     for (const event of events) {
       if (this.current.state !== 'going') break;
+      this.events.push(event);
       if (event.type === 'NoteJudged' && event.verdict === 'wrong') this.current = { state: 'stopped', wrong: event };
+      else if (event.type === 'NoteJudged' && this.rush && rushing(this.rush.chart, this.events, this.rush.baselineBpm)) this.current = { state: 'rushed' };
       else if (event.type === 'PieceCompleted') {
         this.current = event.result.hints.noteNames > 0 ? { state: 'hinted' } : { state: 'perfect' };
       }

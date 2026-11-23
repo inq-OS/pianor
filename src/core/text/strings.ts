@@ -678,6 +678,7 @@ export const strings = {
   'learn.recallOne': 'First the bar from last time: {n}',
   'learn.hidden': 'Again, now without note names',
   'learn.namesOff': 'Note names stay off this time',
+  'learn.rushed': 'Too fast: keep the speed you started with. Once more',
   'learn.stopped': '{reason} in bar {bar}. Again from the start',
   'learn.reason.wrongOctave': 'Right letter, wrong octave',
   'learn.reason.neighbourKey': 'The key next to it',

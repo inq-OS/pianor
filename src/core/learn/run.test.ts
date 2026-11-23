@@ -68,3 +68,27 @@ describe('stoppedBarPlay', () => {
     expect(stoppedBarPlay(chart, events, wrong, { ...info, section: null })!.misses).toEqual([{ tick: 0, track: 'rh', midi: 60 }, { tick: 480, track: 'rh', midi: 62 }]);
   });
 });
+
+describe('LearnRunJudge with a baseline tempo', () => {
+  const four = chartWith([60, 62, 64, 65, 67, 69].map((midi, i) => ({ tick: i * 480, dur: 480, midi })));
+  const keys = [60, 62, 64, 65, 67, 69];
+
+  function playAt(times: readonly number[], baselineBpm: number | null) {
+    const mode = new WaitMode(four);
+    const run = new LearnRunJudge({ chart: four, baselineBpm });
+    let verdict = run.verdict;
+    times.forEach((timeMs, i) => { verdict = run.push(mode.handle(press(keys[i]!, timeMs))); });
+    return verdict;
+  }
+
+  it('ft_1_32.AC11 stops a run that speeds up beyond the baseline, as soon as it does', () => {
+    // quarter notes every 1000 ms, then every 600 ms: 100 BPM against a baseline of 60
+    expect(playAt([0, 1000, 2000, 2600, 3200, 3800], 60)).toEqual({ state: 'rushed' });
+    expect(playAt([0, 1000, 2000, 3000, 4000, 5000], 60)).toEqual({ state: 'perfect' });
+  });
+
+  it('ft_1_32.AC11 never stops for speed without a baseline', () => {
+    expect(playAt([0, 600, 1200, 1800, 2400, 3000], null)).toEqual({ state: 'perfect' });
+  });
+});
+
