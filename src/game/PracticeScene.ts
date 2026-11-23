@@ -432,7 +432,7 @@ export class PracticeScene extends PixelScene {
       keyboard: this.guarded,
       hints: this.hints,
       chordFingers: contextOf(this).profiles.chordFingers,
-      ...(this.learn && this.learn.restingTracks.length > 0 ? { restingTracks: this.learn.restingTracks } : {}),
+      ...this.restingOption(),
       ...(play.mode === 'tempo' ? { tempo: this.tempoOptions(play) } : {}),
       callbacks: {
         onJudged: (event, state) => this.onJudged(event, state),
@@ -1221,6 +1221,12 @@ export class PracticeScene extends PixelScene {
       const text = t('practice.paneLatest', { percent: Math.round(latest.accuracy * 100) });
       this.label(latest.x + latest.w + 3, Math.max(top + 2, latest.y - 3), text, C.white);
     }
+  }
+
+  /** The resting hand of a learning hand step, drawn grey on its own staff (ft_1_32.AC18); nothing otherwise. */
+  private restingOption(): { restingTracks?: string[] } {
+    const resting = this.learn?.restingTracks ?? [];
+    return resting.length > 0 ? { restingTracks: resting } : {};
   }
 
   /**
