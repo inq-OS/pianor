@@ -22,9 +22,13 @@ fingerprints them and keeps one JSON catalogue beside them.
 The MI2 atlas (study-a-picture section 9):
     python3 -I refcat.py init                        make the empty library on a new machine
                                (folders, a README per shelf, an empty catalogue); never overwrites
-    python3 -I refcat.py import DIR --shelf mi2-bg|mi2-screen|mi3-bg|mi3-inv [--source TEXT]
+    python3 -I refcat.py gather [--shelf SHELF]      download a shelf's pictures from the fan
+                               gallery it is filled from (GATHER) into its folder; skips files
+                               already there, so it can be run again after a dropped connection
+    python3 -I refcat.py import DIR --shelf mi2-bg|mi2-screen|mi3-bg|mi3-inv|mi1-bg|mi1-screen
+                               [--source TEXT]
                                catalogue every picture in DIR in one go; a room the gauge
-                               already measured gets its tags back from mi2-gauge.json
+                               knows (mi2-gauge.json, atlas-tags.json) gets its tags back
     python3 -I refcat.py tag   ID... --tags outdoor,night,sea [--remove] [--new]
     python3 -I refcat.py find  --tags outdoor,night [--without blurry] [--kind KIND] [--long]
                                a tag, a family (stones, plants, water, buildings, furniture, sky,
@@ -228,8 +232,8 @@ def cmd_add(args):
         sys.exit(f"refcat: the very same picture is already {same[0]}")
     look_ = look(args.file)
     tags = check_tags(split_tags(args.tags), args.new)
-    if "mi2" in tags and "mi3" in tags:
-        sys.exit("refcat: a picture is mi2 or mi3, never both (the gauge measures MI2 alone)")
+    if len(GAMES & set(tags)) > 1:
+        sys.exit("refcat: a picture is of one game, mi1, mi2 or mi3 (the gauge measures MI2 alone)")
     if "mi2" in tags or (args.kind == "game-1990s" and "1991" in (args.source or "")):
         # The 1991 game is indexed VGA: at most 256 colours. The 2010 remake has
         # thousands, so it can never be filed as MI2 by mistake.
@@ -516,9 +520,12 @@ TAGS = {
               "phatt", "library", "jail", "alley", "cottage",
               "fortress", "dinky", "tunnels", "melee", "carnival",
               # The Curse of Monkey Island (1997), by its sections
-              "death-starfish", "plunder", "ship-combat", "blood", "monkey-island"),
-    # mi3: The Curse of Monkey Island (1997, 640 x 480, 256 colours). Never in the gauge: that is MI2's alone.
-    "source": ("mi2", "mi3", "keri", "ours"),
+              "death-starfish", "plunder", "ship-combat", "blood", "monkey-island",
+              # The Secret of Monkey Island (1990), by its parts; its Monkey Island is `monkey-island`
+              "melee-island", "sea-monkey"),
+    # mi3: The Curse of Monkey Island (1997, 640 x 480, 256 colours); mi1: The Secret of Monkey Island
+    # as first released (1990 EGA backgrounds, 1991 VGA screens). Never in the gauge: that is MI2's alone.
+    "source": ("mi1", "mi2", "mi3", "keri", "ours"),
     "flag": ("blurry", "wide", "tall", "dark-frame", "screenshot"),
 }
 # What a place tag means, for `refcat.py tags`.
@@ -552,7 +559,9 @@ PLACES = {
     "melee": "the night street at the end", "carnival": "the carnival at the end",
     "death-starfish": "MI3: LeChuck's ship and the opening at sea", "plunder": "MI3: Plunder Island, Puerto Pollo",
     "ship-combat": "MI3: the Sea Cucumber at sea and its fights", "blood": "MI3: Blood Island",
-    "monkey-island": "MI3: Monkey Island and the end",
+    "monkey-island": "MI3: Monkey Island and the end; MI1: Monkey Island, its jungle, village and the ghost ship",
+    "melee-island": "MI1: Melee Island (Part I): the town by night, the bar, the forest, the circus, its map",
+    "sea-monkey": "MI1: the ship Sea Monkey, at sea and inside",
 }
 # The words people say, each a set of tags: a picture with any one of them matches. `=water` asks for the tag alone.
 FAMILIES = {
@@ -584,10 +593,15 @@ ALIASES = {
     "papers": "paper", "books": "book", "sea-items": "nautical", "curse": "mi3",
 }
 ALL_TAGS = {t for group in TAGS.values() for t in group}
+GAMES = {"mi1", "mi2", "mi3"}  # a picture is of at most one of them
 GAUGE = os.environ.get(
     "PAINTER_GAUGE",
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..",
                  "projects", "painter", "vocabulary", "mi2-gauge.json"))
+# The tags of every library picture the gauge does not measure (maps, close-ups, MI1, MI3 ...), by id,
+# so that a library gathered again on a new machine gets them back on `import`. `tag` keeps it up to date;
+# where it and mi2-gauge.json differ about a room, it wins (the gauge's tags date from its last baseline).
+ATLAS_TAGS = os.environ.get("PAINTER_ATLAS_TAGS", os.path.join(os.path.dirname(GAUGE), "atlas-tags.json"))
 # Traits and how they are read; "hour" traits are compared only within the same hour.
 TRAITS = {
     "colours": "colours in the picture",
@@ -622,8 +636,8 @@ def cmd_tag(args):
     tags = check_tags([t.strip() for t in args.tags if t.strip()], args.new)
     for eid in args.ids:
         e = entry_by_id(cat, eid)
-        if not args.remove and {"mi2", "mi3"} <= set(tags) | set(e.get("tags", [])):
-            sys.exit(f"refcat: {eid} would carry both mi2 and mi3 (the gauge measures MI2 alone)")
+        if not args.remove and len(GAMES & (set(tags) | set(e.get("tags", [])))) > 1:
+            sys.exit(f"refcat: {eid} would carry two of mi1, mi2, mi3 (the gauge measures MI2 alone)")
         if "mi2" in tags and not args.remove and e.get("colours", 0) > 256:
             sys.exit(f"refcat: {eid} has {e['colours']} colours: not the 1991 original, "
                      "so it cannot be tagged mi2")
@@ -634,7 +648,28 @@ def cmd_tag(args):
             elif not args.remove and t not in have:
                 have.append(t)
         print(f'{e["id"]:<40} {" ".join(have)}')
+        if e["id"].split("-")[0] in GAMES:
+            remember_tags(e["id"], have)
     save(cat)
+
+
+def remember_tags(eid, tags):
+    """Write a library picture's tags into atlas-tags.json (git), so `import` restores them."""
+    try:
+        with open(ATLAS_TAGS, encoding="utf-8") as f:
+            book = json.load(f)
+    except FileNotFoundError:
+        book = {"schemaVersion": 1, "about": ATLAS_TAGS_ABOUT, "pictures": {}}
+    book["pictures"][eid] = list(tags)
+    book["pictures"] = dict(sorted(book["pictures"].items()))
+    pictures = ",\n".join(f"  {json.dumps(k)}: {json.dumps(v)}" for k, v in book["pictures"].items())
+    head = json.dumps({k: v for k, v in book.items() if k != "pictures"}, indent=1, ensure_ascii=False)
+    with open(ATLAS_TAGS, "w", encoding="utf-8") as f:  # one picture per line, so a diff reads
+        f.write(head[:-2] + ',\n "pictures": {\n' + pictures + "\n }\n}\n")
+
+
+ATLAS_TAGS_ABOUT = ("Tags of the painter's library pictures by id, kept by refcat.py tag and read back by "
+                    "refcat.py import; words only, the pictures are studied locally and never committed.")
 
 
 def split_tags(text):
@@ -966,9 +1001,11 @@ def cmd_tags(args):
             print(f"| `{name}` | {', '.join(members)} | {n} |")
         print("\n| Place | What it is | Rooms | Screens |\n|---|---|---|---|")
         for t in TAGS["place"]:
-            rooms = [e["id"][7:] if e["id"].startswith("mi2") else "MI3 " + e["id"][7:] for e in cat["entries"]
-                     if e["id"].startswith(("mi2-bg", "mi3-bg")) and t in e.get("tags", [])]
-            scr = sum(1 for e in cat["entries"] if e["id"].startswith("mi2-scr") and t in e.get("tags", []))
+            rooms = [e["id"][7:] if e["id"].startswith("mi2") else e["id"][:3].upper() + " " + e["id"][7:]
+                     for e in cat["entries"]
+                     if e["id"].startswith(("mi2-bg", "mi3-bg", "mi1-bg")) and t in e.get("tags", [])]
+            scr = sum(1 for e in cat["entries"] if e["id"].startswith(("mi2-scr", "mi1-scr"))
+                      and t in e.get("tags", []))
             print(f"| `{t}` | {PLACES.get(t, '')} | {', '.join(rooms)} | {scr} |")
         for group in ("setting", "hour", "subject", "source", "flag"):
             print(f"\n**{group}:** " + ", ".join(f"{t} ({count[t]})" for t in TAGS[group]))
@@ -1444,6 +1481,23 @@ SHELVES = {
                "The Curse of Monkey Island (1997), background"),
     "mi3-inv": ("game-1990s/mi3-1997/inventory", "mi3-inv", ["mi3", "item"],
                 "The Curse of Monkey Island (1997), inventory item"),
+    "mi1-bg": ("game-1990s/mi1-1990/backgrounds", "mi1-bg", ["mi1"],
+               "The Secret of Monkey Island (1990), EGA background"),
+    "mi1-screen": ("game-1990s/mi1-1990/screens", "mi1-screen", ["mi1", "screenshot"],
+                   "The Secret of Monkey Island (1991 VGA floppy), PC VGA screenshot"),
+}
+# Where `gather` fills a shelf from: a fan gallery's pages, one per part of the game.
+# Never the 2010 or 2009 Special Editions. Pictures land as `<part>-<number or name>`
+# (`0-004.png`, the SCUMM room for MI2's backgrounds, the id the gauge knows); MI3's in `part<N>/`.
+GALLERY = "https://scummbar.com/game/"
+GATHER = {
+    # shelf: (gallery page, its parts (appended to the page; None for a page in one part), file pattern)
+    "mi2-bg": ("monkey-island-2-lechucks-revenge/screenshots/5/", range(5), "{part}-{name}"),
+    "mi2-screen": ("monkey-island-2-lechucks-revenge/screenshots/3/", range(5), "{part}-{name}"),
+    "mi3-bg": ("the-curse-of-monkey-island/screenshots/1/", range(5), "part{part}/{name}"),
+    "mi3-inv": ("the-curse-of-monkey-island/inventory", [None], "{name}"),
+    "mi1-bg": ("the-secret-of-monkey-island/screenshots/2/", range(3), "{part}-{name}"),
+    "mi1-screen": ("the-secret-of-monkey-island/screenshots/4/", range(5), "{part}-{name}"),
 }
 PICTURE_EXT = (".png", ".gif", ".bmp", ".pcx", ".jpg", ".jpeg", ".webp")
 
@@ -1456,10 +1510,12 @@ for its approach and never copied, traced or named in the game.
   backgrounds without characters (at most 256 colours; the 2010 remake is refused).
 - `game-1990s/mi2-1991/screens/`: PC VGA screenshots with characters and the verb band.
 - `game-1990s/mi3-1997/backgrounds/part0..4/`, `inventory/`, `sheets/`: the second shelf.
+- `game-1990s/mi1-1990/backgrounds/` (EGA, 1990) and `screens/` (PC VGA, 1991): the third shelf.
 - `questions/`: marked sheets for asking the maintainer (`refcat.py mark`).
 - Keri's photographs and the photo map: `private/keri/` (`photos.json`).
 
-Fill a shelf: drop the pictures in its folder, then
+Fill a shelf: `python3 -I .claude/skills/study-a-picture/refcat.py gather` downloads every
+shelf from its fan gallery (or drop the pictures in its folder by hand), then
 `python3 -I .claude/skills/study-a-picture/refcat.py import <folder> --shelf <shelf> --source "<where from>"`.
 Name a room `<part>-<room>` (`0-004.png`) so its id is `mi2-bg-0-004`, the id the gauge knows.
 """
@@ -1512,11 +1568,20 @@ def cmd_init(args):
 
 
 def gauge_rooms():
+    """Every library picture whose tags are kept in git: the gauge's rooms, then atlas-tags.json,
+    which wins (it is written by every `tag`, so a removed tag stays removed)."""
+    known = {}
     try:
         with open(GAUGE, encoding="utf-8") as f:
-            return {r["id"]: r["tags"] for r in json.load(f).get("rooms", [])}
+            known.update({r["id"]: r["tags"] for r in json.load(f).get("rooms", [])})
     except FileNotFoundError:
-        return {}
+        pass
+    try:
+        with open(ATLAS_TAGS, encoding="utf-8") as f:
+            known.update(json.load(f).get("pictures", {}))
+    except FileNotFoundError:
+        pass
+    return known
 
 
 def shelf_id(prefix, path, root):
@@ -1572,14 +1637,106 @@ def cmd_import(args):
         print(f"{eid:<34} {' '.join(tags)}")
     save(cat)
     missing = [r for r in known if r.startswith(prefix + "-") and r not in ids]
-    print(f"refcat: {added} added ({restored} with their tags back from the gauge), {skipped} skipped")
+    print(f"refcat: {added} added ({restored} with their tags back from git), {skipped} skipped")
     if missing:
         print(f"refcat: the gauge knows {len(missing)} {prefix} rooms not in the library yet, "
               f"such as {', '.join(missing[:5])}")
     untagged = added - restored
-    if untagged and prefix.startswith("mi2"):
+    if untagged and "screenshot" in base_tags and "mi2" in base_tags:
+        print(f"refcat: {untagged} new screens carry only {' '.join(base_tags)}: refcat.py rooms gives "
+              "MI2's screens the tags of the room they show")
+    elif untagged:
         print(f"refcat: {untagged} new pictures carry only {' '.join(base_tags)}: tag them "
-              "(refcat.py tag ID --tags outdoor,night,...) before refcat.py baseline")
+              "(refcat.py tag ID --tags outdoor,night,...; kept in atlas-tags.json) before refcat.py baseline")
+
+
+def gallery_name(url):
+    """`full-room 004.png` -> `004.png`, `Full-000.png` -> `000.png`, `full1.gif` -> `001.gif`,
+    `full06-01.gif` -> `006-01.gif`, `full-full-alley.png` -> `alley.png`, `fullscummvm-monkey-vga-00047.png` -> `047.png`."""
+    import re
+    import urllib.parse
+    name = urllib.parse.unquote(url.rsplit("/", 1)[1]).lower()
+    stem, ext = os.path.splitext(name)
+    while re.match(r"full[-_ ]?", stem):
+        stem = re.sub(r"^full[-_ ]?", "", stem)
+    num = re.fullmatch(r"(?:room ?|scummvm-[a-z0-9]+(?:-[a-z]+)?-)?(\d+)", stem)
+    if num:
+        return f"{int(num.group(1)):03d}{ext}"
+    frame = re.fullmatch(r"(\d+)-(\d+)", stem)  # a second frame of a room: `06-01` -> `006-01`
+    if frame:
+        return f"{int(frame.group(1)):03d}-{frame.group(2)}{ext}"
+    return re.sub(r"[^a-z0-9]+", "-", stem).strip("-") + ext
+
+
+def fetch(url, tries=8):
+    import http.client
+    import time
+    import urllib.parse
+    import urllib.request
+    url = urllib.parse.quote(url, safe=":/?=&%")
+    for n in range(tries):
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (refcat)"})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return r.read()
+        except (OSError, http.client.HTTPException) as err:
+            if n == tries - 1:
+                raise OSError(f"{err!r}") from err
+            print(f"  again ({err!r}): {url}", file=sys.stderr)
+            time.sleep(3 * (n + 1))
+
+
+def gallery_links(html):
+    """The full-size pictures a gallery page links (not its small `mini` previews), and the
+    inventory page's items."""
+    import re
+    return sorted(set(re.findall(r'/MojoDB/[^"]*/full[^"/]*\.(?:png|gif|jpg)', html, re.I))
+                  | set(re.findall(r'href="(/games/screenshots/cmi/inventory/+[^"/]+\.gif)"', html, re.I)))
+
+
+def cmd_gather(args):
+    shelves = [args.shelf] if args.shelf else list(GATHER)
+    for shelf in shelves:
+        page, parts, pattern = GATHER[shelf]
+        folder = os.path.join(CATALOG, SHELVES[shelf][0])
+        got = had = failed = same = 0
+        seen = set()
+        for part in parts:
+            try:
+                html = fetch(GALLERY + page + ("" if part is None else str(part))).decode("utf-8", "replace")
+            except OSError as err:
+                print(f"  page not read ({err}): {page}{part}; run gather again", file=sys.stderr)
+                failed += 1
+                continue
+            for link in gallery_links(html):
+                rel = pattern.format(part=part, name=gallery_name(link))
+                if rel in seen:  # two links of the gallery that name the same picture file
+                    print(f"  {link} gives {rel} again: kept the first", file=sys.stderr)
+                    same += 1
+                    continue
+                seen.add(rel)
+                dest = os.path.join(folder, *rel.split("/"))
+                if os.path.exists(dest):
+                    had += 1
+                    continue
+                url = GALLERY.split("/game/")[0] + link
+                try:
+                    data = fetch(url)
+                except OSError as err:
+                    print(f"  not downloaded ({err}): {url}; run gather again", file=sys.stderr)
+                    failed += 1
+                    continue
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
+                with open(dest + ".part", "wb") as f:  # renamed when whole, so a cut-off file is fetched again
+                    f.write(data)
+                os.replace(dest + ".part", dest)
+                with open(os.path.join(folder, "sources.tsv"), "a", encoding="utf-8") as f:
+                    f.write(f"{rel}\t{url}\n")
+                got += 1
+        print(f"{shelf}: {got} downloaded, {had} already there"
+              + (f", {same} links named a file twice" if same else "")
+              + (f", {failed} failed (run gather again)" if failed else "") + f", in {folder}")
+    print("refcat: next, refcat.py import <folder> --shelf <shelf> --source \"scummbar.com MojoDB\"")
 
 
 def cmd_list(args):
@@ -1673,6 +1830,8 @@ def main():
     s.set_defaults(f=cmd_baseline)
     s = sub.add_parser("init", help="make the empty library on a new machine; never overwrites")
     s.set_defaults(f=cmd_init)
+    s = sub.add_parser("gather", help="download a shelf (or every shelf) from its fan gallery")
+    s.add_argument("--shelf", choices=tuple(GATHER)); s.set_defaults(f=cmd_gather)
     s = sub.add_parser("import", help="catalogue a folder of pictures on one shelf in one go")
     s.add_argument("dir"); s.add_argument("--shelf", required=True, choices=tuple(SHELVES))
     s.add_argument("--source", help="where the batch came from (also in the shelf's README)")
