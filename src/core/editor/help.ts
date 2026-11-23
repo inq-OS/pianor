@@ -49,7 +49,8 @@ export const HELP_CARDS: readonly HelpCard[] = [
   { gesture: 'middle', before: { notes: [], pointer }, after: { notes: [quarter()] }, press: press(1, 'place') },
   { gesture: 'left', key: 'alt', before: { notes: [], pointer }, after: { notes: [quarter()] }, press: press(0, 'place', true) },
   { gesture: 'left', before: { notes: [quarter()], pointer }, after: { notes: [quarter(B, true)] }, press: press(0, 'select') },
-  { gesture: 'right', before: { notes: [quarter()], pointer }, after: { notes: [] }, press: press(2, 'remove') },
+  // the right button on a note selects it and opens the bubble of what can be done with it (ft_1_20, d282)
+  { gesture: 'right', before: { notes: [quarter()], pointer }, after: { notes: [quarter(B, true)] }, press: press(2, 'bubble') },
   // the wheel on a note moves it a step; with Ctrl it changes its length
   { gesture: 'wheelUp', before: { notes: [quarter()], pointer }, after: { notes: [quarter(B + 1)] } },
   { gesture: 'wheelUp', key: 'ctrl', before: { notes: [quarter()], pointer }, after: { notes: [{ ...quarter(), length: 'half' }] } },

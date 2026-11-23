@@ -33,7 +33,7 @@ export interface BubbleLayout {
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
 
 /** The bubble for `options` options (at most `BUBBLE_SLOTS`) opened at `at` on a screen `screen` cells large. */
-export function bubbleLayout(input: { at: { x: number; y: number }; options: number; screen: { w: number; h: number }; open?: { option: number; choices: number } }): BubbleLayout {
+export function bubbleLayout(input: { at: { x: number; y: number }; options: number; screen: { w: number; h: number }; open?: { option: number; choices: number; widths?: readonly number[] } }): BubbleLayout {
   const centre = { x: Math.round(clamp(input.at.x, HALF, input.screen.w - HALF)), y: Math.round(clamp(input.at.y, HALF, input.screen.h - HALF)) };
   const area = { x: centre.x - HALF, y: centre.y - HALF, w: 2 * HALF, h: 2 * HALF };
   const options: Rect[] = [];
@@ -45,11 +45,17 @@ export function bubbleLayout(input: { at: { x: number; y: number }; options: num
   const open = input.open && input.open.choices > 0 ? options[input.open.option] : undefined;
   if (open && input.open) {
     const n = input.open.choices;
-    const width = n * CHOICE + (n - 1) * CHOICE_GAP;
+    // a choice that is a word is as wide as its word (AC18), never narrower than a square
+    const widths = Array.from({ length: n }, (_, i) => Math.max(CHOICE, Math.ceil(input.open?.widths?.[i] ?? CHOICE)));
+    const width = widths.reduce((sum, w) => sum + w, 0) + (n - 1) * CHOICE_GAP;
     const right = rectRight(area) + AWAY;
     const x = right + width <= input.screen.w ? right : area.x - AWAY - width >= 0 ? area.x - AWAY - width : clamp(right, 0, input.screen.w - width);
     const y = Math.round(clamp(open.y + (OPTION - CHOICE) / 2, 0, input.screen.h - CHOICE));
-    for (let i = 0; i < n; i++) choices.push({ x: x + i * (CHOICE + CHOICE_GAP), y, w: CHOICE, h: CHOICE });
+    let left = x;
+    for (const w of widths) {
+      choices.push({ x: left, y, w, h: CHOICE });
+      left += w + CHOICE_GAP;
+    }
   }
   const close = { x: centre.x - OPTION / 2, y: centre.y - OPTION / 2, w: OPTION, h: OPTION };
   return { centre, area, options, choices, close };
@@ -72,7 +78,8 @@ export function bubblePage(input: { options: number; page: number }): { slots: (
 
 /** Cells of the pinned strip in one row. */
 export const PIN_COLUMNS = 8;
-const PIN_CELL = { w: 30, h: 15 } as const;
+/** One cell of the strip, in layout cells. */
+export const PIN_CELL = { w: 30, h: 15 } as const;
 const PIN_TOP = 1;
 const PIN_EDGE = 2;
 const PIN_GAP = 1;
@@ -119,4 +126,33 @@ export function pinFlow(input: { spans: readonly number[]; width?: number; main?
   });
   placed.sort((a, b) => a.rect.x - b.rect.x);
   return { placed, toBubble };
+}
+
+/**
+ * The keyboard in the bubble (ft_1_20.AC22): from slot `from`, the next used slot clockwise (`step` 1) or back (-1), round
+ * the ring; from -1 the first used slot. -1 when no slot is used.
+ */
+export function slotStep(used: readonly boolean[], from: number, step: 1 | -1): number {
+  const n = used.length;
+  if (!used.some(Boolean)) return -1;
+  let at = from < 0 ? (step > 0 ? -1 : 0) : from;
+  for (let i = 0; i < n; i++) {
+    at = (((at + step) % n) + n) % n;
+    if (used[at]) return at;
+  }
+  return -1;
+}
+
+/**
+ * The long press that opens the bubble on a touch screen (ft_1_20, d282): a ring fills round the finger from `ringFromMs`
+ * and the bubble opens at `openMs`; a move of more than `slopPx` screen pixels cancels it. AX-3 provisional: the times.
+ */
+export const LONG_PRESS = { ringFromMs: 150, openMs: 450, slopPx: 12 } as const;
+
+/** Where a press held `elapsedMs` and moved `movedPx` screen pixels stands (ft_1_20.AC22). */
+export function longPress(elapsedMs: number, movedPx: number): { state: 'wait' | 'open' | 'cancel' } | { state: 'ring'; fill: number } {
+  if (movedPx > LONG_PRESS.slopPx) return { state: 'cancel' };
+  if (elapsedMs >= LONG_PRESS.openMs) return { state: 'open' };
+  if (elapsedMs < LONG_PRESS.ringFromMs) return { state: 'wait' };
+  return { state: 'ring', fill: (elapsedMs - LONG_PRESS.ringFromMs) / (LONG_PRESS.openMs - LONG_PRESS.ringFromMs) };
 }

@@ -1,6 +1,7 @@
 // Covers d088 (the frame of every screen).
 import { describe, expect, it } from 'vitest';
 import { BAND_ROWS } from './band';
+import { PIN_ROWS } from './bubble';
 import { ART_CANVAS, ART_DETAIL, BAND_KEEPS_TOOLBAR, FRAME_MIN, FRAME_ROWS, fineToCells, frameCorners, TOOLBAR_ROWS, frameFits, frameView, toolbarLayout, type ToolbarInput, type ToolbarLayout } from './frame';
 import { rectRight, type Rect } from './rect';
 
@@ -169,5 +170,21 @@ describe('the frame with the action and inventory band (ft_1_20, d115)', () => {
     for (const band of [false, true]) expect(frameView(1920, 1080, { band, whole: true })).toMatchObject({ scale: 6, width: 320, top: 0, height: 180, toolbar: false, band: null });
     // a screen that is not a whole number of rows high keeps only its whole rows
     expect(frameView(1920, 1085, { band: false, whole: true }).height).toBe(180);
+  });
+});
+
+describe('the frame with the pinned strip in place of the band (ft_1_20, d282)', () => {
+  it.each([[1920, 1080], [1366, 768], [2560, 1440], [1921, 1081]] as const)('ft_1_20.AC21 at %ix%i gives the main area every row above the strip, and every row with nothing pinned', (width, height) => {
+    const plain = frameView(width, height);
+    const rows = Math.floor(height / plain.scale);
+    const pinned = frameView(width, height, { band: true, strip: PIN_ROWS });
+    expect(pinned).toMatchObject({ scale: plain.scale, width: plain.width, top: 0, toolbar: false, band: null, strip: { top: rows - PIN_ROWS, rows: PIN_ROWS } });
+    expect(pinned.height).toBe(rows - PIN_ROWS);
+    expect(frameView(width, height, { band: true, strip: 0 })).toMatchObject({ top: 0, height: rows, toolbar: false, band: null, strip: null });
+  });
+
+  it('ft_1_20.AC22 gives practice and the piece maker 163 rows over the strip on the target screen, 180 with nothing pinned', () => {
+    expect(frameView(1920, 1080, { band: true, strip: PIN_ROWS }).height).toBe(163);
+    expect(frameView(1920, 1080, { band: true, strip: 0 }).height).toBe(180);
   });
 });

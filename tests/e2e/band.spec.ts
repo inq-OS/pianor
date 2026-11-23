@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { activeScene, buttonPoint, clickButton, clickToolbar, expectNoErrors, openGame, waitForScene } from './helpers';
+import { activeScene, buttonPoint, clickButton, clickToolbar, expectNoErrors, openGame, reachButton, waitForScene } from './helpers';
 
 /**
  * The action and inventory band (ft_1_20, d115), now the default (AC10): every screen but the teacher's gets the band at its foot in place of
@@ -12,8 +12,7 @@ const SCREENS = [
   ['profile', {}],
   ['menu', {}],
   ['settings', {}],
-  ['practice', { chartId: 'little-steps' }],
-  ['editor', {}],
+  // not practice and the piece maker: they have the strip and the bubble in place of the band (ft_1_20, d282; bubble.spec.ts)
   ['noteTrainer', {}],
 ] as const;
 
@@ -179,147 +178,20 @@ async function press(page: Page, key: string, label: string): Promise<void> {
   await clickButton(page, key, await labelled(page, key, label));
 }
 
-/** Where the staff is drawn and every button that is not in the band or a top corner (a button over the staff's top strip is allowed). */
-const staffAndStrays = (page: Page, key: string) =>
-  page.evaluate((k) => {
-    const scene = window.__game.scene.getScene(k) as unknown as {
-      px: { height: number; scale: number };
-      mainRows: number;
-      cornerStrip: { rows: number };
-      buttons: { rect: Box; labelFit(): { label: string }; options: { tooltip?: string } }[];
-      staffTop?: number;
-      staffHeight?: number;
-      playSession?: { staffView: { top?: number } | null };
-    };
-    const strip = scene.cornerStrip.rows;
-    return {
-      strip,
-      rows: scene.mainRows,
-      // the piece maker's + and - after the last bar stand on the staff's line on purpose
-      strays: scene.buttons.filter((b) => b.rect.y < scene.px.height && b.rect.y + b.rect.height > strip && !/^(Four bars|Neli takti)/.test(b.options.tooltip ?? '')).map((b) => b.labelFit().label),
-      editorStaffRows: scene.staffHeight === undefined ? null : scene.staffHeight / scene.px.scale,
-    };
-  }, key);
-
 test.describe('the screens\' buttons in the band (ft_1_20.AC8)', () => {
-  test('ft_1_20.AC8 practice has no bars: its tools are band cells and items, Kiur stands between the door and the gear, and the staff gets the rest', async ({ page }) => {
-    const errors = await openGame(page, '?device=virtual');
-    await startScene(page, 'practice', { chartId: 'little-steps' });
-    await waitForScene(page, 'practice');
-    const f = await staffAndStrays(page, 'practice');
-    // nothing but the staff between the corners' strip and the band: 104 of the 124 rows (87 with the bars)
-    expect(f.strays).toEqual([]);
-    expect(f.rows - f.strip).toBeGreaterThanOrEqual(100);
-    const state = () => page.evaluate(() => {
-      const s = window.__game.scene.getScene('practice') as unknown as { percent: number; listening: boolean; hints: { noteNames: boolean }; clickOn: boolean };
-      return { percent: s.percent, listening: s.listening, names: s.hints.noteNames, click: s.clickOn };
-    });
-    // the tempo cells: slower, the percent (a press puts it back to 100), faster
-    await press(page, 'practice', '-');
-    await expect.poll(async () => (await state()).percent).toBe(90);
-    await press(page, 'practice', '90%');
-    await expect.poll(async () => (await state()).percent).toBe(100);
-    // a worn item lights while it is on
-    await press(page, 'practice', 'Note names');
-    await expect.poll(async () => (await state()).names).toBe(true);
-    await press(page, 'practice', 'Click');
-    await expect.poll(async () => (await state()).click).toBe(true);
-    await press(page, 'practice', 'Listen');
-    await expect.poll(async () => (await state()).listening).toBe(true);
-    await press(page, 'practice', 'Stop');
-    await expect.poll(async () => (await state()).listening).toBe(false);
-    expectNoErrors(errors);
-  });
-
-  test('ft_1_20.AC5 a section\'s tempo ramp is an opening item: its panel opens over the staff\'s foot and Esc closes it', async ({ page }) => {
+  test('ft_1_20.AC22 a section\'s tempo ramp is in the bubble: its panel opens over the staff\'s foot and Esc closes it', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await startScene(page, 'practice', { chartId: 'little-steps', section: { first: 0, last: 1 } });
     await waitForScene(page, 'practice');
     const open = () => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { rampOpen: boolean }).rampOpen);
     expect(await labelled(page, 'practice', 'Clean')).toBe(-1);
-    await press(page, 'practice', 'Tempo ramp');
+    // the ramp is in the bubble now (ft_1_20, d282): More opens it
+    await clickButton(page, 'practice', await reachButton(page, 'practice', 'Tempo ramp'));
     await expect.poll(open).toBe(true);
     expect(await labelled(page, 'practice', 'Clean')).toBeGreaterThanOrEqual(0);
     await page.keyboard.press('Escape');
     await expect.poll(open).toBe(false);
     expect(await activeScene(page)).toBe('practice');
-    expectNoErrors(errors);
-  });
-
-  test('ft_1_20.AC8 the piece maker has no rows: the Notes item opens every length, the wheel still cycles and steps an item\'s choices (ft_1_20.AC16), the finger menu sets the selected note\'s finger, the title is in the top strip', async ({ page }) => {
-    const errors = await openGame(page, '?device=virtual');
-    await startScene(page, 'editor', {});
-    await waitForScene(page, 'editor');
-    const f = await staffAndStrays(page, 'editor');
-    expect(f.strays).toEqual([]);
-    expect(f.editorStaffRows).toBeGreaterThanOrEqual(100);
-    const length = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { length: string }).length);
-    expect(await length()).toBe('quarter');
-    // the Notes item: pressed, it opens all five lengths; a pick sets the length and closes it
-    const menuOpen = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { menuOpen: boolean }).menuOpen);
-    const lengthCells = () =>
-      page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { buttons: { labelFit(): { label: string } }[] }).buttons.map((b) => b.labelFit().label).filter((l) => ['1', '3/4', '1/2', '1/4', '1/8'].includes(l)));
-    expect(await lengthCells()).toEqual([]);
-    await press(page, 'editor', 'Notes');
-    await expect.poll(menuOpen).toBe(true);
-    expect(await lengthCells()).toEqual(['1', '3/4', '1/2', '1/4', '1/8']);
-    await press(page, 'editor', '1/8');
-    await expect.poll(length).toBe('eighth');
-    expect(await menuOpen()).toBe(false);
-    await press(page, 'editor', 'Notes');
-    await press(page, 'editor', '1/2');
-    await expect.poll(length).toBe('half');
-    // the wheel over the Notes item steps through its choices as its menu lists them: up is the one before (half to dotted half, ft_1_20.AC16)
-    const item = await buttonPoint(page, 'editor', await labelled(page, 'editor', 'Notes'));
-    await page.mouse.move(item.x, item.y);
-    await page.mouse.wheel(0, -100);
-    await expect.poll(length).toBe('dottedHalf');
-    await page.mouse.wheel(0, 100);
-    await expect.poll(length).toBe('half');
-    // away from a note on the staff the wheel still cycles the length: up is longer (half to whole; it skips the dotted lengths, ft_1_02d.AC3)
-    const staff = await page.evaluate(() => {
-      const s = window.__game.scene.getScene('editor') as unknown as { staffTop: number; staffHeight: number };
-      const canvas = document.querySelector('canvas')!;
-      const rect = canvas.getBoundingClientRect();
-      // the middle of the staff area, a little left of its right end: free time of the empty piece, no note
-      return { x: rect.left + rect.width * 0.9, y: rect.top + ((s.staffTop + s.staffHeight / 2) / canvas.height) * rect.height };
-    });
-    await page.mouse.move(staff.x, staff.y);
-    await page.mouse.wheel(0, -100);
-    await expect.poll(length).toBe('whole');
-    // the wheel on the inventory beside an item turns its page: down is the next, where Notes is not (ft_1_20.AC16)
-    const down = await buttonPoint(page, 'editor', await labelled(page, 'editor', 'More items'));
-    await page.mouse.move(down.x, down.y);
-    await page.mouse.wheel(0, 100);
-    await expect.poll(() => labelled(page, 'editor', 'Notes')).toBe(-1);
-    await page.mouse.wheel(0, -100);
-    await expect.poll(() => labelled(page, 'editor', 'Notes')).toBeGreaterThanOrEqual(0);
-    await page.mouse.wheel(0, 100);
-    await expect.poll(() => labelled(page, 'editor', 'Notes')).toBe(-1);
-    await page.mouse.wheel(0, -100);
-    await expect.poll(() => labelled(page, 'editor', 'Notes')).toBeGreaterThanOrEqual(0);
-    // the wheel on the arrows was the band's alone: the piece maker's length wheel did not turn with it
-    expect(await length()).toBe('whole');
-    // a note to work on: written by the virtual piano, then selected
-    await page.evaluate(() => {
-      const d = window.__virtualDevice!;
-      d.press(60, 80);
-      d.release(60);
-    });
-    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { history: { present: { notes: unknown[] } } }).history.present.notes.length)).toBe(1);
-    await page.evaluate(() => {
-      const s = window.__game.scene.getScene('editor') as unknown as { history: { present: { notes: object[] } }; select(ref: object): void };
-      s.select(s.history.present.notes[0]!);
-    });
-    // Fingers may be on the second page of items
-    if ((await labelled(page, 'editor', 'Fingers')) < 0) await press(page, 'editor', 'More items');
-    await press(page, 'editor', 'Fingers');
-    await press(page, 'editor', '3');
-    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { history: { present: { notes: { finger?: number }[] } } }).history.present.notes[0]!.finger)).toBe(3);
-    // no Piece item: the title field is always in the top strip
-    expect(await labelled(page, 'editor', 'Piece')).toBe(-1);
-    await expect(page.locator('#editor-title')).toBeVisible();
-    expect(await activeScene(page)).toBe('editor');
     expectNoErrors(errors);
   });
 

@@ -1,7 +1,7 @@
 // Covers ft_0_09.AC1.
 import { expect, test } from '@playwright/test';
 import {
-  LITTLE_STEPS, activeScenes, allMenuTitles, clickButton, clickToolbar, expectNoErrors, isPieceLabel, menuButton, menuLabels, openGame, openPiece, playWithKeys, playWithVirtualPiano, results, sceneButton, sceneTexts, showMenuPageWith, toScoreScreen, turnMenuPage, waitForScene, bandAction, sceneWords } from './helpers';
+  LITTLE_STEPS, activeScenes, allMenuTitles, clickButton, clickToolbar, expectNoErrors, isPieceLabel, menuButton, menuLabels, openGame, openPiece, playWithKeys, playWithVirtualPiano, results, sceneButton, sceneTexts, showMenuPageWith, toScoreScreen, turnMenuPage, waitForScene, bandAction, sceneWords, reachButton } from './helpers';
 
 test.describe('menu', () => {
   test('lists the pieces, shows the piano credit on the credits screen, and opens a piece with a real click @smoke', async ({ page }) => {
@@ -129,8 +129,8 @@ test.describe('playing a whole piece without a real keyboard', () => {
   test('hints switched on with real clicks are recorded in the results', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Note names'));
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Fingers'));
+    await clickButton(page, 'practice', await reachButton(page, 'practice', 'Note names'));
+    await clickButton(page, 'practice', await reachButton(page, 'practice', 'Fingers'));
     expect(await page.evaluate(() => window.__game.scene.getScene('practice').hints)).toEqual({ noteNames: true, fingers: true });
 
     await playWithKeys(page, LITTLE_STEPS);
@@ -142,8 +142,8 @@ test.describe('playing a whole piece without a real keyboard', () => {
   test('a hint can be switched off again and then costs nothing', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Fingers'));
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Fingers'));
+    await clickButton(page, 'practice', await reachButton(page, 'practice', 'Fingers'));
+    await clickButton(page, 'practice', await reachButton(page, 'practice', 'Fingers'));
     await playWithKeys(page, LITTLE_STEPS);
     await toScoreScreen(page);
     expect((await results(page)).hints).toEqual({ noteNames: 0, fingers: 0 });
