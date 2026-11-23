@@ -6,7 +6,7 @@ The game is a barrel: it holds only as much as its shortest stave (d279). Each a
 
 | Area | Features | Level | What holds it back |
 |---|---|---|---|
-| Pieces to play | content, core_09, ft_Y_04 | low | 6 of 39 pieces approved; Puuvaim's phrases are drafts, so a release build has no tug |
+| Pieces to play | content, core_08, core_09, ft_Y_04 | low | 6 of 39 pieces approved; Puuvaim's phrases are drafts, so a release build has no tug |
 | Getting it to a player | ft_0_14, [release.md](../release.md) | low | the Windows zip never run on a real PC; no credits file for CC BY assets |
 | Learning a new piece | ft_1_32 | 55 | slices 1 to 3 built; characters teaching by it (slice 4) and the review schedule (slice 6) open |
 | Characters and challenges | ft_1_21, ft_1_22, ft_1_06 | 50 | one character plays end to end; the phrase book, the border guard |
