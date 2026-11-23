@@ -49,6 +49,8 @@ export function sliceChart(chart: Chart, firstBar: number, lastBar: number): Cha
       const span = (b: { startBar: number; endBar: number }) => ({ startBar: b.startBar - firstBar, endBar: b.endBar - firstBar });
       return { ...span(r), ...(r.endings ? { endings: { first: span(r.endings.first), second: span(r.endings.second) } } : {}) };
     }),
+    // a slur the section holds whole is kept and moved; one it cuts is left out, as its ends must be notes (core_09.AC26)
+    ...(chart.slurs ? { slurs: chart.slurs.filter((s) => s.startTick >= offset && s.endTick < end).map((s) => ({ ...s, startTick: s.startTick - offset, endTick: s.endTick - offset })) } : {}),
     // a grace goes with its main note: kept and moved when that note is in the section (core_09.AC32)
     ...(chart.graces ? { graces: chart.graces.filter((g) => g.tick >= offset && g.tick < end).map((g) => ({ ...g, tick: g.tick - offset })) } : {}),
     // a tuplet lies inside one bar (core_09.AC49): kept and moved when its bar is in the section
