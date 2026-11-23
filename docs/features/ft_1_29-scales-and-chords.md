@@ -3,8 +3,8 @@ id: "ft_1_29"
 title: "Scales and chords trainer"
 scope: "The rest of the theory trainer under Practice theory: play a scale or chord of a chosen key from the staff, play a chord from its name, a scale switcher, and a chord namer for the keys pressed"
 effort: "large"
-status: "slices A and B built: a scale or triad of a chosen key and hand in Wait mode, and a chord from its name in three steps; the staff-note step and slices C and D planned; verified on the virtual device only"
-completeness: 45
+status: "slices A, B and C built: a scale or triad of a chosen key and hand, a chord from its name in three steps, and the scale switcher; the staff-note step and slice D planned; verified on the virtual device only"
+completeness: 65
 depends_on: ["ft_0_17", "ft_1_28"]
 ---
 # ft_1_29: Scales and chords trainer
@@ -35,7 +35,12 @@ Chord and key names in Estonian follow the way Estonian music teaching writes th
 - A fourth picture on the stand's panel, three notes on one stem (`chordBoard`, a first sketch), opens `ChordTrainerScene`; the rules are `src/core/trainer/chordTrainer.ts` (`loadChordContent`, `parseChord`, `chordLabel`, `ChordRound`), the chords `content/trainer/chords.json` (`schemaVersion` 1).
 - A chord name is a root letter, capital for major and small for minor, an optional `b` or `#` and a suffix the dictionary knows (`7`, `maj7`); a step with a name the dictionary does not know fails to load. Steps: triads on white keys, all twelve major and minor triads, seventh chords.
 - The chord counts once every one of its pitch classes is among the keys pressed for it and still down, in any octave or inversion; keys still down from the last chord do not count. A key outside the chord costs a life and is named (spelled with flats for a flat chord). XP is 10 per note of a right chord, kept on a loss.
-- `AX-3 provisional:` any key of the keyboard counts, not only the level's range; the pixel font has no sharp sign, so a sharp is written #.
+- `AX-3 provisional:` any key of the keyboard counts, not only the level's range; the pixel font has no sharp sign, so a sharp is written #. TODO(architect, R2): decide whether a chord must be played inside the player's level range, as AC2 says.
+
+## Slice C as built
+
+- The scale switcher is the third choice of slice A's shape button (`switcherChart` in `src/core/trainer/scaleSwitcher.ts`, judged by `ShapeRound`): twelve bars of eighths, each the major scale of its key, up in one bar and down in the next. The first six keys go round the circle from C (C, G, D, A, E, B), the rest are seeded at random within six signs, never the same key twice in a row. The name of the cursor's bar's key stands above the staff.
+- `AX-3 provisional:` the staff stays in C major and each note carries its own sign, because a key change inside a piece is not drawn yet (`layout/staff.ts`); major keys only; twelve bars. TODO(architect, R2): ask the maintainer after a week of use whether the switcher should draw the new signature each bar once key changes are drawn, and whether minor keys belong in it.
 
 ## Acceptance criteria
 
@@ -47,9 +52,9 @@ Chord and key names in Estonian follow the way Estonian music teaching writes th
 
 ## TODO
 
-- TODO(builder, R2): slice B's last step, one note on the staff that must be in the chord; then slices C and D, each its own pull request, test first in `src/core/trainer/`.
+- TODO(builder, R2): slice B's last step, one note on the staff that must be in the chord; then slice D, test first in `src/core/trainer/`.
 - TODO(painter, R2): the stand panel's pictures for the new trainers (scale, chord, switcher), from the free packs first; slice A's three steps (`scaleSteps`) are a first sketch to repaint.
-- NEEDS-HUMAN: play a scale and a triad on the EZ-220 in the trainer, both hands, and a few chords from their names.
+- NEEDS-HUMAN: play a scale and a triad on the EZ-220 in the trainer, both hands, a few chords from their names, and the scale switcher.
 - TODO(builder, Later): light the scale's or chord's keys on the EZ-220 once ft_Y_06's real output works (needs the silent-light test there).
 - IDEA(architect, Later): a two-player game with the keyboard split in half. Not now: it needs two profiles at once and a save answer for whose XP it is.
 - Rejected: skill training that levels a character's attributes; the battles and their attributes are deleted (d151).
