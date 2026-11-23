@@ -840,10 +840,16 @@ export abstract class PixelScene extends Phaser.Scene {
     return this.screenFrame.top * this.px.scale;
   }
 
-  /** Whether the action and inventory band is drawn under the main area (ft_1_20): a painted place then keeps no strip of its own. */
+  /**
+   * Whether the screen has the frame without a toolbar (ft_1_20, d282): the door and the gear over the main area's top
+   * corners, the strip at the foot when the screen pins actions; every screen but the teacher's, an overlay and the main menu.
+   */
   protected get bandShown(): boolean {
-    return this.screenFrame.band !== null;
+    return this.cornerFramed;
   }
+
+  /** Set in `rebuild`: the frame without a toolbar (`bandShown`). */
+  private cornerFramed = false;
 
   /**
    * With the band and no toolbar: the strip along the main area's top that the door and the gear stand in (`rows` high), and
@@ -1482,6 +1488,7 @@ export abstract class PixelScene extends Phaser.Scene {
     const strip = this.framed && !this.keepsToolbar && !this.wholeScreen;
     const view = frameView(width, height, { band: strip, whole: this.wholeScreen, bandRows: strip ? this.stripRows() : 0 });
     this.screenFrame = view;
+    this.cornerFramed = strip;
     this.px = { scale: view.scale, fine: view.fine, width: view.width, height: view.height };
     this.backAction = null;
     this.root = this.add.container(0, view.top * view.scale).setScale(this.px.scale);

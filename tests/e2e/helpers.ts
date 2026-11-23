@@ -151,6 +151,9 @@ export function lastButton(page: Page, sceneKey: string, label: string): Promise
 
 /** Press a strip cell or bubble option with choices (`cell`), then its choice `choice` (ft_1_20.AC20), as a player would. */
 export async function pickChoice(page: Page, sceneKey: string, cell: string, choice: string): Promise<void> {
+  // a choice before may have started the screen again: wait for the cell
+  await waitForScene(page, sceneKey);
+  await expect.poll(() => lastButton(page, sceneKey, cell), cell).toBeGreaterThanOrEqual(0);
   await clickButton(page, sceneKey, await sceneButton(page, sceneKey, cell));
   await expect.poll(() => lastButton(page, sceneKey, choice), choice).toBeGreaterThanOrEqual(0);
   await clickButton(page, sceneKey, await lastButton(page, sceneKey, choice));
