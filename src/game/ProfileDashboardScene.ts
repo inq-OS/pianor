@@ -29,6 +29,7 @@ import { standPanel } from '../core/layout/standPanel';
 import { pieceLearned } from '../core/learn/route';
 import { phoneCall, type PhoneCall } from '../core/curriculum/phoneCall';
 import { phoneAtRest, phoneRinging } from './ui/pixel/phoneArt';
+import { learnBook, tugRope } from './ui/pixel/standArt';
 import { STAND_CHOICES } from './room/standChoices';
 import { motionAllowed } from './motion';
 import { idleLongEnough } from '../core/visit/islandVisit';
@@ -651,11 +652,11 @@ export class ProfileDashboardScene extends PixelScene {
   }
 
   /**
-   * Kiur's question (ft_1_32 rule 14): a board over the room with two choices, learn a song bar by bar or tug one, each
-   * opening the piece book for it. A press beside the board closes it. Placement is the stand's (`standPanel`).
+   * Kiur's question (ft_1_32 rule 14): a board over the room with two pictures, an open music book to learn a song bar by
+   * bar and a rope with its rag to tug one, each opening the piece book for it; their names show only in their bubbles. A press beside the board closes it. Placement is the stand's (`standPanel`).
    */
   private kiurAsks(at: Rect): PixelButton[] {
-    const choices = [{ id: 'learn', name: 'room.kiur.learn' }, { id: 'tug', name: 'room.kiur.tug' }] as const;
+    const choices = [{ id: 'learn', name: 'room.kiur.learn', picture: learnBook }, { id: 'tug', name: 'room.kiur.tug', picture: tugRope }] as const;
     const { panel, cells } = standPanel(at, choices.length);
     const outside = this.add.rectangle(0, 0, this.px.width, this.px.height, 0x000000, 0).setOrigin(0, 0).setInteractive();
     outside.on('pointerup', () => this.showKiur(false));
@@ -669,8 +670,9 @@ export class ProfileDashboardScene extends PixelScene {
         return frame;
       }) as [PixelImage, PixelImage];
       lit.setVisible(false);
-      const word = renderText(t(choice.name), { color: C.ink });
-      this.fineImage(cell.x * ART_DETAIL + Math.floor((cell.w * ART_DETAIL - word.width) / 2), cell.y * ART_DETAIL + Math.floor((cell.h * ART_DETAIL - word.height) / 2), word).setName(`kiur:${choice.id}`);
+      // a picture, its name only in its bubble: every selection is a picture
+      const art = choice.picture();
+      this.fineImage(cell.x * ART_DETAIL + Math.floor((cell.w * ART_DETAIL - art.width) / 2), cell.y * ART_DETAIL + Math.floor((cell.h * ART_DETAIL - art.height) / 2), art).setName(`kiur:${choice.id}`);
       const light = (over: boolean) => {
         rest.setVisible(!over);
         lit.setVisible(over);

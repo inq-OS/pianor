@@ -234,3 +234,65 @@ export function chordBoard(): Bitmap {
   for (const cy of [33, 26, 19]) pen(26, cy - 2, C.silver);
   return bitmap;
 }
+
+/**
+ * Kiur's Learn (ft_1_32 rule 14): an open music book, a staff on its right page with a row of notes growing bar by bar
+ * (one note, then two, then three). AX-3 provisional: a first sketch from shapes; the painter draws the real one (the
+ * TODO in ft_1_32).
+ */
+export function learnBook(): Bitmap {
+  const { bitmap, pen } = canvas();
+  const { w, h } = STAND_ART;
+  // the cover, then two cream pages meeting at the spine in the middle
+  for (let y = 8; y < h - 4; y++) for (let x = 3; x < w - 3; x++) pen(x, y, C.brown);
+  for (let y = 6; y < h - 7; y++) for (let x = 6; x < w - 6; x++) pen(x, y, x === w / 2 || x === w / 2 - 1 ? C.downShade : C.down);
+  rimmed(bitmap, (c) => (c === C.brown ? C.brownDark : c === C.down || c === C.downShade ? C.brownLight : C.ink));
+  // a staff on each page
+  for (const left of [9, w / 2 + 3]) for (let line = 0; line < 5; line++) for (let x = left; x < left + w / 2 - 12; x++) pen(x, 14 + line * 4, C.dim);
+  // notes growing: bar 1 one note, bar 2 two, bar 3 three (heads 3 x 3, stems up)
+  const note = (x: number, y: number) => {
+    for (let dy = 0; dy < 3; dy++) for (let dx = 0; dx < 4; dx++) pen(x + dx, y + dy, C.ink);
+    for (let dy = -10; dy < 1; dy++) pen(x + 3, y + dy, C.ink);
+  };
+  [[12, 26]].forEach(([x, y]) => note(x!, y!));
+  [[20, 24], [25, 22]].forEach(([x, y]) => note(x!, y!));
+  [[w / 2 + 5, 26], [w / 2 + 11, 24], [w / 2 + 17, 22]].forEach(([x, y]) => note(x!, y!));
+  // the bar lines between them
+  for (const x of [18, w / 2 + 23]) for (let y = 14; y < 31; y++) pen(x, y, C.dim);
+  // a glint on the cover's upper left
+  pen(5, 10, C.brownLight);
+  pen(6, 10, C.brownLight);
+  return bitmap;
+}
+
+/**
+ * Kiur's Tug (ft_1_21.AC14): a thick rope across with the red rag tied in its middle, as on the tug's board. AX-3
+ * provisional: a first sketch from shapes; the painter draws the real one (the TODO in ft_1_32).
+ */
+export function tugRope(): Bitmap {
+  const { bitmap, pen } = canvas();
+  const { w } = STAND_ART;
+  const hemp = [C.buffDeep, C.buffDark, C.buff, C.buffLight] as const;
+  // the rope sags a little in the middle; its strands twist in stripes that lean
+  for (let x = 2; x < w - 2; x++) {
+    const sag = Math.round(3 * Math.sin((Math.PI * (x - 2)) / (w - 4)));
+    for (let dy = 0; dy < 7; dy++) {
+      const y = 18 + sag + dy;
+      const band = ((x + dy * 2) % 6) < 3 ? 2 : 1;
+      pen(x, y, dy === 1 ? C.buffLight : dy === 5 ? C.buffDark : hemp[band]!);
+    }
+  }
+  // the rag: knotted on the rope's middle, its two tails hanging down
+  const cx = w / 2;
+  for (let y = 16; y < 28; y++) for (let x = cx - 4; x < cx + 4; x++) pen(x, y, y < 18 || y > 25 ? C.redDark : C.red);
+  for (let y = 28; y < 42; y++) {
+    const swing = Math.round((y - 28) / 4);
+    for (let dx = 0; dx < 3; dx++) {
+      pen(cx - 5 - swing + dx, y, dx === 0 ? C.redDark : C.red);
+      pen(cx + 2 + swing + dx, y, dx === 2 ? C.redDark : C.red);
+    }
+  }
+  pen(cx - 2, 19, C.redLight);
+  pen(cx - 1, 19, C.redLight);
+  return rimmed(bitmap, (c) => (c === C.red || c === C.redLight ? C.redDark : c === C.redDark ? C.ink : C.groove));
+}
