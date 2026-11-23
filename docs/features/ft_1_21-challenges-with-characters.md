@@ -60,6 +60,7 @@ All AX-3 provisional (d129) until it has been playtested.
 - TODO(painter, R2): the tree spirit's prize ladder (AC18) in `prizeArt.ts`: the oak leaf, acorn, golden leaf, singing branch and seed of life are the builder's simple first pictures; paint each rung a step finer than the last, the seed of life as the top prize.
 - TODO(builder, R2): the fisherman's tunes wait for the maintainer's pick. He teaches levels 1 and 2 for now: `fisherman-3` (the sea shanty verse, a draft) estimates two steps above tug level 3 (d138), so it is not his level 3 and carries no `difficulty` until a tune that fits is picked.
 - TODO(painter, R3): the five rungs of each ft_1_22 character's prize ladder (AC18, [cast-and-phrases.md](../architect/cast-and-phrases.md) section 1) in `prizeArt.ts`, when each character is built.
+- TODO(painter, R2): the prizes in `prizeArt.ts` are painted at the piece maker's item size (56 x 40 fine pixels), which fits today's band slot; when the band goes quiet and its slots shrink to 30 x 15 layout cells (60 x 30 fine), redraw every prize to fit that slot with its outline whole, the tree spirit's and the fisherman's alike.
 - TODO(painter, R3): in the tug, Kiur's note on his token dims at night as his sleep letters do.
 - TODO(painter, R3): Kiur the trainer's tug shows a note on his token, not his face; give him a small face of his own in `CHARACTER_FACES` (`tugArt.ts`) when the tug is playtested.
 
