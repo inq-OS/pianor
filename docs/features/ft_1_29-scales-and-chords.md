@@ -46,7 +46,7 @@ Chord and key names in Estonian follow the way Estonian music teaching writes th
 
 - `nameChord(content, keys)` in `src/core/trainer/chordNamer.ts` names the chord the keys make from slice B's dictionary, now with the diminished and augmented triads and the half-diminished and diminished sevenths (`dim`, `+`, `7b5` shown as 7♭5, `dim7`); nothing for a set it does not know or for fewer than three pitch classes. Of the roots that fit, the lowest key's wins, so a symmetric chord is named from its bass.
 - Shown live at the left above the staff on slice A's screen for the keys held, and in the piece maker as a message when a selected note's column (both hands) is a chord, once per column and set of notes.
-- `AX-3 provisional:` each root is spelled as it is most often taught (Db, Eb, F#, Ab, Bb; c#, eb, f#, g#, bb), not from the piece's key.
+- `AX-3 provisional:` each root is spelled as it is most often taught (Db, Eb, F#, Ab, Bb; c#, eb, f#, g#, bb), not from the piece's key. TODO(architect, R2): confirm the root spellings, or spell a column's chord from the piece's key.
 
 ## Acceptance criteria
 
