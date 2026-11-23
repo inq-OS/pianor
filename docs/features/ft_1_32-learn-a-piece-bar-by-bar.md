@@ -56,9 +56,9 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 - **ft_1_32.AC9** A record also keeps the kind of test, the pace of each bar and each hand's spread; the learning stats screen shows every measure as a graph over the runs with its trend, filtered by kind of test and by days, and the piece's bars tinted by their pace (slice 2).
 - **ft_1_32.AC10** The screen's `?` opens pages that say what to work on, from the latest runs, and what each number means and what to aim for (slice 2).
 - **ft_1_32.AC11** With a baseline tempo, a step run whose latest gaps are faster than the baseline by more than the margin is stopped at once and asked again with Kiur's line; it loses nothing and counts as a run asked again, at most `TEMPO_RULES.asks` times a step; never without a baseline or in the recall check (slice 3).
+- **ft_1_32.AC12** In a new two-hand piece each growing step comes three times, the right hand alone, the left hand alone, then both, a hand step showing and judging that hand only; a step with one hand's notes only comes once; a piece begun before keeps its plan (hands apart, beside slices 4 to 6).
 - **ft_1_32.AC13** A piece picked at the piano plays in full with no learning unless it is a character's piece; a piece picked through Kiur's Learn opens in learning, even after full plays (rule 14).
 - **ft_1_32.AC14** Kiur's Tug lists only learned pieces and opens the tug only for one; for any other he says to learn it first and nothing is played (rule 15).
-- **ft_1_32.AC12** In a new two-hand piece each growing step comes three times, the right hand alone, the left hand alone, then both, a hand step showing and judging that hand only; a step with one hand's notes only comes once; a piece begun before keeps its plan (hands apart, beside slices 4 to 6).
 
 ## Slice 2 as built
 
