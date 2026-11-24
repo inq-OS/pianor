@@ -361,17 +361,9 @@ Check: `tools/docs/ledger.test.ts` "reads one item per entry with its id, title 
 
 **Before a repeated job the agent loads the skill in `.claude/skills/` that fits it.** Features: none.
 
-The list and when each applies is in CLAUDE.md (Skills): `write-ui-text`, `use-free-art-packs`, `paint-a-scene`, `artists-notes`, `art-review`, `study-a-picture`, `axiom-call`, `log-decision`, `save-format-bump`, `before-pr`, `file-issue`, and the code-graph skills where the graph runs.
+The list and when each applies is in CLAUDE.md (Skills): `write-ui-text`, `use-free-art-packs`, `paint-a-scene`, `artists-notes`, `art-review`, `study-a-picture`, `axiom-call`, `log-decision`, `save-format-bump`, `before-pr`, `file-issue`.
 
 Check: untestable: which skill an agent loads is not observable by a test
-
-## d212
-
-**Where the code graph and the source disagree, the source wins, and an empty graph result may only mean not indexed.** Features: none.
-
-The code-review-graph tools narrow the scope only where they run; the source and its tests are read before anything is changed (CLAUDE.md, Code graph).
-
-Check: untestable: a reading rule for agents
 
 ## d213
 

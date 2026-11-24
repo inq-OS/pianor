@@ -75,14 +75,8 @@ MIDI 60 is middle C (C4); the EZ-220 spans MIDI 36 (C2) to 96 (C7); pieces stay 
 
 ## Skills
 
-Load the fitting skill in `.claude/skills/` first (d211): `write-ui-text` (player text), `use-free-art-packs` (icons, sprites), `paint-a-scene`, `artists-notes` (shared things), `art-review` (painter PRs), `study-a-picture`, `axiom-call` (product questions), `log-decision`, `save-format-bump` (saves), `before-pr`, `file-issue`, and the code-graph skills.
+Load the fitting skill in `.claude/skills/` first (d211): `write-ui-text` (player text), `use-free-art-packs` (icons, sprites), `paint-a-scene`, `artists-notes` (shared things), `art-review` (painter PRs), `study-a-picture`, `axiom-call` (product questions), `log-decision`, `save-format-bump` (saves), `before-pr`, `file-issue`.
 
 ## Definition of done (any task)
 
 The feature's criteria are met, tests and checks pass, touched docs are updated, and a note says what was done and what was not verified.
-
-<!-- code-review-graph MCP tools -->
-## Code graph (code-review-graph MCP)
-
-Where its tools exist, narrow scope with the graph, then read the source; the source wins (an empty result may mean "not indexed"). More: `docs/commands.md`.
-<!-- /code-review-graph MCP tools -->
