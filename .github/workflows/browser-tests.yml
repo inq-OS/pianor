@@ -50,6 +50,9 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
+      - name: Audio clock probe (diagnostic)
+        if: matrix.shard == 1
+        run: node tools/e2e/audioClockProbe.mjs
       - name: End-to-end tests, the affected areas of a pull request
         if: ${{ !inputs.full }}
         env:
