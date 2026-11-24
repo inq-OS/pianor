@@ -35,9 +35,9 @@ describe('the painted village square (ft_1_19)', () => {
       return n;
     };
     const { tin, red } = squareRuns();
-    // the side building's roof, upper left, is blue tin; the cinema house's, past its corner, is red
-    expect(count(tin!, 0, 120, 0, 90)).toBeGreaterThan(count(red!, 0, 120, 0, 90) * 4);
-    expect(count(red!, 160, 260, 94, 122)).toBeGreaterThan(count(tin!, 160, 260, 94, 122) * 4);
+    // the side building's roof, below the viewer at the lower left, is blue tin; the cinema house's, further back, is red
+    expect(count(tin!, 0, 110, 240, 340)).toBeGreaterThan(count(red!, 0, 110, 240, 340) * 4 + 1000);
+    expect(count(red!, 130, 270, 100, 150)).toBeGreaterThan(count(tin!, 130, 270, 100, 150) * 4 + 1000);
   });
 
   it('ft_1_19.AC1 the pier\'s box holds the pier: stone lies in it over the sea', () => {

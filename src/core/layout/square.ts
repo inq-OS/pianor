@@ -4,7 +4,7 @@ import { STRIP_ROWS } from './room';
 
 /**
  * The plan of the village square (ft_1_19): the open ground between the houses at the lighthouse, seen from the
- * lighthouse's south-west foot, looking east-south-east over the square to the southern pier. Pure: no Phaser, no DOM.
+ * gallery on the lighthouse's stone foot, looking down south-east over the square to the southern pier. Pure: no Phaser, no DOM.
  *
  * The view is a stage set in the 1991 game's manner, not a camera's: each thing stands in the order and on the side
  * it has from that spot in the world model (`content/world/keri.json`), larger and nearer than to scale, and the
@@ -39,21 +39,21 @@ export interface SquarePlan {
 }
 
 /** Where the viewer stands, metres east and north of the lighthouse, and the bearing of the picture's middle. */
-export const SQUARE_VIEW = { x: -3, y: -11, bearing: 113 } as const;
+export const SQUARE_VIEW = { x: 0, y: -3, bearing: 124 } as const;
 
 export const SQUARE = {
   w: SQUARE_PICTURE.w * ART_DETAIL,
   h: SQUARE_PICTURE.h * ART_DETAIL,
-  /** The row the view's bend ends at: under it, at the viewer's feet, the plan is flat. */
-  fold: 248,
+  /** The row the view's bend ends at: the picture's foot. */
+  fold: 360,
   /** The horizon's row: high, for the eye stands on the island's highest ground and looks down over the square. */
-  horizon: 92,
+  horizon: 84,
   /** How far the picture's level lines bow down at its sides, fine pixels. */
   bow: 7,
   /** How far what stands up fans out from the middle at the picture's top, as a share of its distance from the middle. */
-  splay: 0.05,
-  /** The middle of the plaza's rings of flagstones, where the flower bed lies. */
-  lamp: { x: 336, y: 206 },
+  splay: 0.09,
+  /** The plaza's middle, where the flower bed lies. */
+  lamp: { x: 300, y: 250 },
 } as const;
 
 /**
@@ -70,6 +70,6 @@ export function squarePlan(): SquarePlan {
   return {
     fine: { w: SQUARE.w, h: SQUARE.h },
     horizon: SQUARE.horizon,
-    pier: { x: 432, y: 76, w: 150, h: 60 },
+    pier: { x: 376, y: 76, w: 150, h: 60 },
   };
 }
