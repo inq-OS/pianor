@@ -273,7 +273,7 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d291](game.md#d291) | The live tempo of a learning run is off unless the player turns it on in the learning settings, and is drawn small in the slim strip at the foot | ft_1_32 |
 | [d292](notation.md#d292) | The piece maker has opt-in vim keys, off by default and kept per device, that drive the piece maker's own moves, edits and tools | ft_1_02e |
 | [d293](workflow.md#d293) | Every change to how the game is controlled or used (input, keys, buttons, menus, where an action sits) gets an ergonomics review and analysis before it merges; art and look do not |  |
-| [d294](game.md#d294) | In the piece maker the keyboard cursor follows the pointer, the bubble offers only what applies, lassoed bars are slurred or tied from the bubble, and a paste that writes over notes warns first | ft_1_02d, ft_1_20 |
+| [d294](game.md#d294) | In the piece maker the cursor follows the pointer only when that switch is on, the bubble hides what cannot apply there and greys what waits for an earlier step, lassoed bars are slurred or tied from the bubble, and a paste that writes over notes warns first | ft_1_02d, ft_1_20 |
 | [d295](game.md#d295) | A name is typed on the computer keyboard into the game's name box; the box has no letter buttons | ft_1_07 |
 | [d296](game.md#d296) | A learned piece's clef grows to twice its size on the practice screen, then the book opens at the piece and the clef drops onto the piece's clef sign | ft_1_32 |
 | [d297](game.md#d297) | The intro's learn stage learns the lesson's bars bar by bar and ends at the learned moment, with no extra whole play | ft_1_31, ft_1_32 |
