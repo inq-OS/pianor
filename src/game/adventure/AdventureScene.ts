@@ -39,6 +39,9 @@ import { DEFAULT_PRESENCE_RULES } from '../../core/island/presenceRules';
 import { giveKeepsake, keptToday, wandererVerdict } from '../../core/island/wanderer';
 import { pieceTitle } from '../../core/text/pieceTitle';
 import { visitable } from '../visit/islandVisit';
+import { standPanel } from '../../core/layout/standPanel';
+import { panelBitmap } from '../ui/pixel/frames';
+import { learnBook } from '../ui/pixel/standArt';
 import type { ToolbarItem } from '../ui/pixel/PixelScene';
 import { TalkView } from './talkView';
 import { TugView } from './tugView';
@@ -65,6 +68,8 @@ import { type LifeLayer, type PictureFigure, type SceneDive, type SceneLife, typ
 const PAN_MS = 900;
 
 const NAME_ABOVE = 9;
+/** A second press this soon after a wanderer's ask showed is a double tap, never an answer (d293). */
+const DOUBLE_TAP_MS = 600;
 
 /** The demo cast (`?actors=1`, dev only): who stands on the scene's first places, and in which state. AX-3 provisional. */
 /** What opens a scene: a visit from the screensaver, and a script to run in it (ft_1_24.AC6, WP-07). */
@@ -136,6 +141,8 @@ export class AdventureScene extends PixelScene {
   /** The line a wanderer says now over its head, whether it is its ask (a press then opens the piece), and its timer. */
   private wandererLine: { id: string; text: string; ask: boolean } | null = null;
   private wandererTimer: Phaser.Time.TimerEvent | null = null;
+  /** When the ask's board showed (the scene's clock): a press on it this soon after is a double tap, and is ignored. */
+  private wandererAskedAt = 0;
 
   constructor(private readonly sceneData: SceneData, private readonly life: SceneLife) {
     super(sceneData.id);
@@ -847,15 +854,58 @@ export class AdventureScene extends PixelScene {
         const head = { x: Math.round((origin.x + place.x) / ART_DETAIL) - at.x, y: Math.round(box.y) - at.y };
         const placed = lineSpot({ head, size: { w: words.width, h: words.height }, area: { w: at.w, h: at.h } });
         this.root.add(new PixelImage(this, at.x + placed.x, at.y + placed.y, words).setName('wandererLine'));
+        if (line.ask) this.wandererBoard(at, id, ask.piece);
       }
     }
   }
 
-  /** A wanderer says `text` over its head for its reading time, or until the next press. */
+  /**
+   * The wanderer's ask as a choice (d286, every selection a picture): a board over the scene with the open music book, Play
+   * it in its bubble, which opens the piano on the piece; a press beside the board is Not now and closes the ask. A press on
+   * the book within `DOUBLE_TAP_MS` of the board showing is a double tap on the wanderer, and is ignored.
+   */
+  private wandererBoard(at: Rect, id: string, piece: string): void {
+    const { panel, cells } = standPanel(at, 1);
+    const outside = this.add.rectangle(0, 0, this.px.width, this.px.height, 0x000000, 0).setOrigin(0, 0).setInteractive();
+    outside.on('pointerup', () => { if (this.time.now - this.wandererAskedAt >= DOUBLE_TAP_MS) this.closeWanderer(); });
+    this.root.add(outside);
+    this.root.add(new PixelImage(this, panel.x, panel.y, panelBitmap(panel.w, panel.h, 'panel')).setInteractive().setName('wandererPanel'));
+    const cell = cells[0]!;
+    const [rest, lit] = (['card', 'cardHover'] as const).map((kind) => {
+      const frame = new PixelImage(this, cell.x, cell.y, panelBitmap(cell.w, cell.h, kind));
+      this.root.add(frame);
+      return frame;
+    }) as [PixelImage, PixelImage];
+    lit.setVisible(false);
+    const art = learnBook();
+    this.fineImage(cell.x * ART_DETAIL + Math.floor((cell.w * ART_DETAIL - art.width) / 2), cell.y * ART_DETAIL + Math.floor((cell.h * ART_DETAIL - art.height) / 2), art).setName('wanderer:play');
+    const light = (over: boolean) => { rest.setVisible(!over); lit.setVisible(over); };
+    this.button({ ...rectCentre(cell), label: t('wanderer.play'), picture: createBitmap(cell.w, cell.h), onHover: light, onClick: () => { if (this.time.now - this.wandererAskedAt >= DOUBLE_TAP_MS) this.playForWanderer(id, piece); } });
+  }
+
+  /** Not now: the ask closes, and the wanderer stays for another press. */
+  private closeWanderer(): void {
+    this.wandererTimer?.remove();
+    this.wandererTimer = null;
+    this.wandererLine = null;
+    if (this.sys.isActive()) this.redraw();
+  }
+
+  /** Play it (ft_1_37.AC7): the piano on the wanderer's piece, one pass in Wait mode with the staff, heard back in this scene. */
+  playForWanderer(id: string, piece: string): boolean {
+    const screen = SCENE_SCREENS[this.sceneData.id]?.scene;
+    if (!screen || this.wandererLine?.id !== id || !this.wandererLine.ask) return false;
+    startScene(this, 'practice', { chartId: piece, checkup: { since: new Date().toISOString(), wanderer: { id, scene: screen } } });
+    return true;
+  }
+
+  /** A wanderer says `text` over its head: an ask until it is answered, any other line for its reading time or until the next press. */
   private sayWanderer(id: string, text: string, ask: boolean): void {
     this.wandererTimer?.remove();
+    this.wandererTimer = null;
     this.wandererLine = { id, text, ask };
-    this.wandererTimer = this.time.delayedCall(readingMs(text) * (ask ? 2 : 1), () => {
+    if (ask) { this.wandererAskedAt = this.time.now; return; }
+    this.wandererTimer = this.time.delayedCall(readingMs(text), () => {
       this.wandererTimer = null;
       this.wandererLine = null;
       if (this.sys.isActive()) this.redraw();
@@ -863,20 +913,16 @@ export class AdventureScene extends PixelScene {
   }
 
   /**
-   * A press on a wanderer (ft_1_37.AC6, AC7): it asks for its piece; a press while it asks opens the piano with that piece
-   * (one pass in Wait mode with the staff, as the teacher's check-up), heard back here. One that gave its keepsake today
-   * says so and asks nothing more.
+   * A press on a wanderer (ft_1_37.AC6, AC7): it asks for its piece over its head, with the board to answer it
+   * (`wandererBoard`). One that gave its keepsake today says so and asks nothing more.
    */
   pressWanderer(id: string): boolean {
     const ask = this.today?.wanderers[id];
     if (!ask || !this.world || this.talk || this.tug || this.teach || this.scripted) return false;
     const { pieces } = contextOf(this);
-    const screen = SCENE_SCREENS[this.sceneData.id]?.scene;
+    if (this.wandererLine?.ask) return false;
     if (keptToday(this.world, id, dayString(new Date()))) this.sayWanderer(id, t('wanderer.thanks'), false);
-    else if (this.wandererLine?.id === id && this.wandererLine.ask && screen) {
-      startScene(this, 'practice', { chartId: ask.piece, checkup: { since: new Date().toISOString(), wanderer: { id, scene: screen } } });
-      return true;
-    } else {
+    else {
       const chart = pieces.find(ask.piece)?.chart;
       this.sayWanderer(id, t('wanderer.ask', { piece: chart ? pieceTitle(chart) : ask.piece }), true);
     }
@@ -884,9 +930,10 @@ export class AdventureScene extends PixelScene {
     return true;
   }
 
-  /** The wanderers here today and the line one says, for the tests and the demo. */
-  get wanderersHere(): { ids: string[]; saying: string | null } {
+  /** The wanderers here today, the line one says and whether it waits for an answer, for the tests and the demo. */
+  get wanderersHere(): { ids: string[]; saying: string | null; asking: boolean } {
     return {
+      asking: this.wandererLine?.ask ?? false,
       ids: Object.entries(this.today?.wanderers ?? {}).filter(([, w]) => w.scene === this.sceneData.id).map(([id]) => id),
       saying: this.wandererLine?.text ?? null,
     };

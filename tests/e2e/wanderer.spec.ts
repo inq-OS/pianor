@@ -1,8 +1,8 @@
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { LITTLE_STEPS, clickButton, expectNoErrors, letGameRun, openGame, playWithVirtualPiano, waitForScene } from './helpers';
+import { LITTLE_STEPS, clickButton, expectNoErrors, letGameRun, openGame, playWithVirtualPiano, sceneButton, waitForScene } from './helpers';
 
-type Here = { ids: string[]; saying: string | null };
+type Here = { ids: string[]; saying: string | null; asking: boolean };
 const here = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { wanderersHere: Here }).wanderersHere);
 const press = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { pressWanderer(id: string): boolean }).pressWanderer('traveller'));
 const world = (page: Page) => page.evaluate(async () => {
@@ -27,9 +27,15 @@ test.describe('a wanderer the teacher sends (ft_1_37)', () => {
     // the knoll is the one scene open at level 1, so it stands there
     await expect.poll(async () => (await here(page)).ids).toEqual(['traveller']);
     expect(await press(page)).toBe(true);
-    expect((await here(page)).saying).toBe("Would you play me Little Steps? Press me again and I'll listen.");
+    expect(await here(page)).toMatchObject({ saying: 'Would you play me Little Steps?', asking: true });
+    // a double tap on the wanderer never answers: another press while it asks does nothing
+    expect(await press(page)).toBe(false);
     await page.screenshot({ path: 'test-results/wanderer-asks.png' });
-    await press(page);
+    // the ask waits for an answer: it is still there after its reading time
+    await letGameRun(page, 10, 400);
+    expect((await here(page)).asking).toBe(true);
+    // the answer is the board's picture, Play it in its bubble
+    await clickButton(page, 'knoll', await sceneButton(page, 'knoll', 'Play it'));
     await waitForScene(page, 'practice');
     await letGameRun(page, 5, 200);
     await playWithVirtualPiano(page, LITTLE_STEPS);
