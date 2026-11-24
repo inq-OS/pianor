@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && npx --no-install tsx tools/docs/privacy-cli.ts || exit 2",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node --experimental-strip-types --no-warnings tools/docs/privacy-cli.ts || exit 2",
             "timeout": 30,
             "statusMessage": "Checking the whole file for quotes, dates and private words (d165)..."
           }
@@ -38,7 +38,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && npx --no-install tsx tools/docs/privacy-cli.ts --changed || exit 2",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node --experimental-strip-types --no-warnings tools/docs/privacy-cli.ts --changed || exit 2",
             "timeout": 60,
             "statusMessage": "Checking the changed files and new commit messages for quotes, dates and private words (d165)..."
           }
@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd \"$CLAUDE_PROJECT_DIR\" && npx --no-install tsx tools/docs/privacy-cli.ts || exit 2",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && node --experimental-strip-types --no-warnings tools/docs/privacy-cli.ts || exit 2",
             "timeout": 30,
             "statusMessage": "Checking the text for quotes, dates and private words before it is written (d165)..."
           }
