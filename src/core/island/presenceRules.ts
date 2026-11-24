@@ -7,6 +7,7 @@ import { z } from 'zod';
 import type { CharacterDef } from '../character/character';
 import type { CharacterId, DayString, PieceId } from '../contracts';
 import { dayNumber } from '../curriculum/evaluate';
+import { castSettingOf, mayComeOn } from './cast';
 import { Random } from '../random';
 import type { Presence, PresenceInput, Whereabouts } from './presence';
 import { teacherDays } from './teacher';
@@ -63,12 +64,29 @@ export function eligible(def: CharacterDef, met: MetRecord | undefined, practice
  * before (so it is never away longer, ft_1_25.AC2). Eligibility of the days before is not known here and not needed: the
  * rule only ever adds a day.
  */
-export function turnsUp(character: CharacterId, n: number, rules: Pick<PresenceRules, 'appearChance' | 'maxDaysAway'>): boolean {
+export function turnsUp(
+  character: CharacterId, n: number, rules: Pick<PresenceRules, 'appearChance' | 'maxDaysAway'>, mayCome: (day: number) => boolean = () => true,
+): boolean {
+  if (!mayCome(n)) return false;
   if (draw(character, n).chance(rules.appearChance)) return true;
-  for (let back = 1; back <= rules.maxDaysAway; back++) {
+  // only the days it may come count toward the longest wait (ft_1_37.AC2); a week holds at least one when today is one
+  let counted = 0;
+  for (let back = 1; counted < rules.maxDaysAway && back <= rules.maxDaysAway * 7; back++) {
+    if (!mayCome(n - back)) continue;
+    counted++;
     if (draw(character, n - back).chance(rules.appearChance)) return false;
   }
   return true;
+}
+
+/**
+ * The longest wait in its own days for a character turning up with `chance` (ft_1_37.AC3): `maxDaysAway` at the default
+ * chance, stretched as the teacher's chance falls, so a rare character is not forced in so often that it comes more than a
+ * common one. AX-3 provisional.
+ */
+export function longestWait(chance: number, rules: Pick<PresenceRules, 'appearChance' | 'maxDaysAway'>): number {
+  if (chance === rules.appearChance || chance <= 0) return chance <= 0 ? 0 : rules.maxDaysAway;
+  return Math.ceil((rules.maxDaysAway * rules.appearChance) / chance);
 }
 
 /** The teacher's boat from the next deadline (or asked-for test day, `teacherDays`) on or after today: null with none within `boatDays`, 1 on the day (AC4). */
@@ -112,7 +130,11 @@ export function presence(input: PresenceInput, rules: PresenceRules): Presence {
   const characters: Record<CharacterId, { where: Whereabouts; phase: 'arriving' | 'present' | 'leaving' }> = {};
   for (const def of input.characters) {
     let where: Whereabouts = { at: 'away' };
-    if (def.scenes.length > 0 && eligible(def, input.world.met[def.id], input.practiceMinutes, input.cleanPlaysSinceLostTug[def.id]) && turnsUp(def.id, n, rules)) {
+    // the teacher's cast (ft_1_37.AC1 to AC3): off, not one of its weekdays, or its own chance
+    const cast = castSettingOf(input.curriculum, def.id, rules);
+    const mayCome = (day: number) => cast.chance > 0 && mayComeOn(cast, dayString(day));
+    if (def.scenes.length > 0 && eligible(def, input.world.met[def.id], input.practiceMinutes, input.cleanPlaysSinceLostTug[def.id])
+      && turnsUp(def.id, n, { appearChance: cast.chance, maxDaysAway: longestWait(cast.chance, rules) }, mayCome)) {
       // its own stream: the appearance draw must not decide the scene
       const scene = Random.derive('presence-scene', def.id, n).pick(def.scenes);
       where = { at: 'scene', scene, place: scene };

@@ -1,0 +1,53 @@
+---
+id: "ft_1_37"
+title: "The teacher runs the cast: characters on and off, their days, how often, their piece; wanderers who ask for a piece"
+scope: "On the teacher's screen, per player: each character on or off, the weekdays it may come, how often it comes, and the piece it teaches in place of its own; a new kind of character, the wanderer, who teaches nothing, is sent by the teacher, asks the student to play one piece with the staff, and gives a plain keepsake (an old coin and the like) into the backpack when the play is clean enough for its neediness, which the teacher sets"
+effort: "large"
+status: "in progress: slice 1 built (the cast in the curriculum document, presence reading it, neediness, the wanderer's rules and keepsakes in core); the teacher's page and the game's side to come"
+completeness: 30
+depends_on: ["ft_1_25", "ft_1_26", "ft_1_21", "ft_1_20"]
+---
+# ft_1_37: The teacher runs the cast
+
+The maintainer asked that the teacher control the characters: switch each on or off, set its days and how often it comes, and give it a piece other than its own; and for a new kind of character the teacher sends, who teaches nothing, asks for one piece, and pays a plain keepsake when the play is clean enough for how needy it is. Decision: [d298](../decisions/game.md#d298). It builds on presence ([ft_1_25](ft_1_25-world-state-and-presence.md)), the teacher's screen ([ft_1_26](ft_1_26-teachers-screen.md)), the tug ([ft_1_21](ft_1_21-challenges-with-characters.md)) and the backpack ([ft_1_20](ft_1_20-action-and-inventory-strip.md)). Index: [FEATURES.md](FEATURES.md).
+
+## Rules
+
+- **Where the settings live.** Each player's `curriculum` document (d136) gains an optional `cast`: `characters`, per character or wanderer `{ on?, weekdays?, chance?, piece?, neediness? }`, and `sent`, the wanderers the teacher sent with their day and piece (`src/core/island/cast.ts`, `castSettingOf`, `setCast`). A missing `cast` or field reads as today's behaviour (on, every weekday, `appearChance` of `content/world/presence.json`, its own phrases), so no version bump (A.1 "optional means optional", d069.3, as `testWeekdays` did). The `Curriculum` contract (A.12) is extended to match.
+- **Presence reads it.** `presence` (A.9) keeps a character away on a day when it is off, its chance is 0 or the weekday is not one of its days, and draws `turnsUp` with its own chance. The longest wait counts only the days it may come, so a once-a-week character is never forced in on a day it was switched off for. The teacher is never in `cast`.
+- **How often** is a chance a day it may come, in steps of 10 per cent from 10 to 100 (100: every day it may come). AX-3 provisional: the default stays 50; the longest wait (`maxDaysAway` at the default) stretches as the chance falls (`longestWait`: 3 days at 50, 15 at 10), so a rare character is not forced in so often that it comes more than a common one.
+- **Its piece.** A piece picked from the player's piece list replaces the character's own: level 1 is its first half, levels 2 and 3 the whole piece (ft_1_21.AC20, AC3); the practice gate (AC19) and the tug use it. The character still has to be learned from before its tug (d278, ft_1_32 rule 15).
+- **The wanderer** (`src/core/island/wanderer.ts`, the list in `content/world/wanderers.json`, not a `CharacterDef`: it has no talk, levels or ladder to lint): a visitor of a kind that really comes to Keri, called by a generic name (ft_1_21 "What characters are"). It teaches nothing, has no tug and no prize ladder. It turns up only when the teacher sends it (today, or on the day picked), stands in one of its scenes that is open, drawn for that day (`wanderersToday`), and asks the student to play one piece: by default a piece the student has learned, drawn from the seeded daily random; the teacher may name the piece when sending it. A press on it opens the piano with that piece (Wait mode, the staff shown, the written tempo; as the teacher's check-up, ft_1_27), and after one whole pass it says the measured fact (notes right first try of the notes, AX-2.1). A play that reaches its neediness's share gives one keepsake into the backpack; one that does not gets no keepsake, keeps its practice XP, and the wanderer stays for the day to hear it again (AX-1). One keepsake a wanderer a day.
+- **Neediness** (d298) is set by the teacher per character and per wanderer, 1 to 5 (`neededShare`): 3 keeps the share it needs, each step moves it 10 points, never below 0 or past all the notes. A character's tug moves every level's share (`tugRulesFor`: at 5 the levels need 80, 100, 100 per cent; the stall raise, ft_1_21.AC17, stays on top); the practice gate (ft_1_21.AC19) keeps the level's own share. A wanderer counts from `share` in `content/world/wanderers.json` (80 per cent: 1 is 60, 5 is 100). Kiur the trainer is not in the cast.
+- **Keepsakes** are plain things a traveller carries (an old copper coin, an old silver coin, a glass bead, a brass button; `keepsakes` in `wanderers.json`, items in `content/items/items.json`), drawn per wanderer and day, original pictures fitted to the palette (d084), never another game's. The world document keeps each in `items` and the gift in the optional `wandererGifts` (`giveKeepsake`, `keptToday`; still version 1, d069.3). Several of one kind stack in the backpack with a count. They do nothing more than stand for the plays (AX-2: stimulation may be added later).
+- **The teacher's page.** A Characters button on the teacher's list opens `TeacherCastScene` in the register (d145) for the chosen player: a line a character with its face, an on box, seven weekday boxes, the chance with −/+, its piece (own, or one picked from the list), and on a wanderer's line its neediness with −/+ and Send today. Every press shows its result on the line before it is saved (d286); Send today shows the wanderer and the scene it will stand in before it is kept.
+- **The child's side.** Nothing new is text for the child: the wanderer is pressed in the picture, its ask is a line over its head with the piece's picture, and the keepsake flies into the backpack (ft_1_20).
+
+## Acceptance criteria
+
+All AX-3 provisional until tried; numbers are content, not code.
+
+- **ft_1_37.AC1** The teacher switches a character off for a player; presence never puts it in a scene for that player while it is off, and on again restores the draw.
+- **ft_1_37.AC2** The teacher picks the weekdays a character may come; presence never puts it in a scene on another weekday, and `maxDaysAway` counts only its own days.
+- **ft_1_37.AC3** The teacher sets how often a character comes (10 to 100 per cent of its days); presence draws with that chance.
+- **ft_1_37.AC4** The teacher gives a character a piece from the player's list; its learning, practice gate and tug use that piece (level 1 its first half).
+- **ft_1_37.AC5** A save from before `cast` reads as every character on, every day, the default chance and its own piece.
+- **ft_1_37.AC6** The teacher sends a wanderer today, optionally naming its piece; it stands in an open scene that day and asks for that piece, or a learned one drawn for the day.
+- **ft_1_37.AC7** The wanderer's play is one whole pass in Wait mode with the staff; it says the measured share; at or above its neediness's share one keepsake goes to the backpack, below it none, and nothing is taken away.
+- **ft_1_37.AC8** The teacher sets a character's or a wanderer's neediness 1 to 5; 3 keeps the share it needs (a tug level's, or a wanderer's from `content/world/wanderers.json`), each step moves it 10 points, never past all the notes.
+- **ft_1_37.AC9** Keepsakes of one kind stack in the backpack with a count.
+- **ft_1_37.AC10** Every press on the teacher's page shows its result before it is kept (d286); every text through string keys with Estonian.
+- **ft_1_37.AC11** [human] The maintainer tries the page and a wanderer with a student and says whether the neediness steps feel right.
+
+## Slices
+
+1. Core: `cast` in the curriculum document, presence reading it (AC1 to AC3, AC5), the wanderer's ask and verdict and neediness (AC6 to AC8 in core), content (`wanderers.json`, the first wanderer, keepsakes).
+2. The teacher's page (AC10, AC1 to AC4 and AC6, AC8 on screen).
+3. The game reads presence for every player (ft_1_25's TODO), the wanderer in a scene, its play and the keepsake in the backpack (AC6, AC7, AC9); a demo scenario.
+
+## Parts
+
+- TODO(builder, R2): slices 2 and 3 above; in slice 3 the tug uses `tugRulesFor` and the scene `castCharacter` (AC4, AC8 in the game).
+- TODO(painter, R3): the wanderer's figure on the template (d142) and the keepsakes' pictures; until then a labelled box and the builder's simple first pictures.
+- TODO(architect, R3): AX-3 provisional: the `Curriculum` contract (A.12) gains `cast` and `WorldState` (A.8) `wandererGifts`, as the maintainer asked (d298); confirm the shapes.
+- Tests: `src/core/island/cast.test.ts`, `src/core/island/wanderer.test.ts`.
