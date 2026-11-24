@@ -10,14 +10,14 @@ import {
 } from './campaign';
 import { loadLadder } from './content';
 
-const level = (end: number, accuracy: number) => ({ bars: [1, end] as [1, number], accuracy });
+const level = (end: number) => ({ bars: [1, end] as [1, number] });
 const ladder = loadLadder({
   schemaVersion: 1,
   monsters: ['a', 'b', 'c', 'd'].map((id) => ({
     id,
     name: id,
     piece: `p-${id}`,
-    levels: [level(8, 0.5), level(16, 0.75), level(32, 0.9)],
+    levels: [level(8), level(16), level(32)],
   })),
 });
 

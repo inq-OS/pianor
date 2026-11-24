@@ -161,10 +161,8 @@ export interface BarColors {
 }
 
 export const GOLD_BAR: BarColors = { light: C.goldLight, mid: C.gold, dark: C.goldDark };
-/** The player's health in a battle: mint green, so it is not mistaken for the monster's gold HP bar. */
-export const HEALTH_BAR: BarColors = { light: C.white, mid: C.green, dark: C.tealDark };
 
-/** A bar (XP, HP): a dark trough cut into the wood, with a fill of `fraction` (0 to 1), gold unless other `colors` are given. The fill never looks empty while there is any left. */
+/** A bar (XP): a dark trough cut into the wood, with a fill of `fraction` (0 to 1), gold unless other `colors` are given. The fill never looks empty while there is any left. */
 export function barBitmap(width: number, height: number, fraction: number, colors: BarColors = GOLD_BAR): Bitmap {
   if (width < 5 || height < 5) throw new Error(`a bar needs at least 5 x 5 pixels, not ${width} x ${height}`);
   const bitmap = createBitmap(width, height);

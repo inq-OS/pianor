@@ -19,8 +19,7 @@ permissions:
   contents: read
 
 jobs:
-  # The browser tests (Playwright, Chromium). The screenshot baselines are made on Windows (d062) and compared here too
-  # (d288): no text uses a font of the computer and WebGL is drawn in software on both, so the pixels match.
+  # The browser tests (Playwright, Chromium), screenshot tests included: every run compares the one baseline per screen (d289).
   # A pull request with the `ci:e2e` label runs the areas its changes touch plus the smoke tests (on adding the label and
   # on each later push); the weekly and manual runs run every area (docs/testing.md section 10).
   e2e:
@@ -69,25 +68,21 @@ jobs:
             test-results/
           retention-days: 7
 
-  # The screenshot tests on Windows, the system the game is played on (d062); Linux compares the same baselines (d288).
-  # Runs on GitHub's hosted Windows runner, with the `ci:visual` label, in the
-  # weekly run and by hand. Software WebGL (E2E_GPU=0), like the update-snapshots workflow that makes the baselines on
-  # the same kind of runner. On a failure the report holds the expected,
-  # actual and diff images.
-  visual-windows:
-    name: visual (Windows)
+  # The screenshot tests alone (the visual area), with the `ci:visual` label, in the weekly run and by hand, on the same
+  # kind of runner as every other job (d289). On a failure the report holds the expected, actual and diff images.
+  visual:
+    name: visual
     if: inputs.visual
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 60
-    env:
-      E2E_GPU: '0'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: 22
+          cache: npm
       - run: npm ci
-      - run: npx playwright install chromium
+      - run: npx playwright install --with-deps chromium
       # One test at a time with a long limit, as measured on the 2-core hosted runner.
       - name: Screenshot tests and the label check, the visual area
         run: npx playwright test --project=visual --workers=1 --timeout=240000
@@ -95,7 +90,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: e2e-run-log-windows
+          name: e2e-run-log-visual
           path: test-logs/
           if-no-files-found: ignore
           retention-days: 14
@@ -103,7 +98,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report-windows
+          name: playwright-report-visual
           path: |
             playwright-report/
             test-results/

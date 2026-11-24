@@ -2,10 +2,10 @@ name: CI
 
 # Agents already run `npm run check:ci` and `npm run test:e2e:affected` before
 # they push, so CI here is the second opinion; the browser jobs run on a label, by hand, or in the weekly run (d090).
-# Steps use only npm scripts and Node tools, so they run on Linux and Windows alike.
+# Steps use only npm scripts and Node tools, so they run on any machine alike.
 #   - every pull request push: the check job and the art rules job
 #   - label `ci:e2e` on a pull request: also the Linux end-to-end tests of the affected areas (browser-tests.yml)
-#   - label `ci:visual` on a pull request: also the Windows screenshot tests
+#   - label `ci:visual` on a pull request: also the screenshot tests alone (the visual area)
 #   Adding a label and editing the description are handled by pr-events.yml, so this workflow never makes a run whose
 #   check job is skipped: on the pull request, "CI / check" is always the result of the last push.
 #   - daily: the check job on main (no push to main runs CI: the pull request was checked)

@@ -359,6 +359,23 @@ export class MenuScene extends PixelScene {
   }
 
   /**
+   * The piece's own level (ft_1_13): beside its stars when it fits before the small buttons, else after the title when it
+   * fits before the signs, else not written; never drawn over a button.
+   */
+  private pieceLevel(button: PixelButton, record: PieceRecord, title: string, buttonsLeft: number, signsLeft: number): void {
+    const { x: left, y: top } = button.rect;
+    const text = t('menu.pieceLevel', { level: record.level.level });
+    const width = measure(drawnText(text));
+    const besideStars = left + 6 + GRADE_WIDTH + 6;
+    const afterTitle = left + 6 + measure(drawnText(title)) + 8;
+    const place = besideStars + width <= buttonsLeft - 3 ? { x: besideStars, y: top + 20 } : afterTitle + width <= signsLeft - 3 ? { x: afterTitle, y: top + 4 } : null;
+    if (!place) return;
+    const level = new PixelText(this, place.x, place.y, text, { color: C.umberDark }).setName('pieceLevel');
+    this.root.add(level);
+    button.attach(level);
+  }
+
+  /**
    * One piece: its title and, once played, its own level (ft_1_13) under it, with its stars and small buttons. At the right
    * of the title its groups' signs: an own piece's pencil (which opens it in the piece maker), a
    * character's speech bubble in its colour, and the teacher's academic hat on a curriculum piece with the days left and a
@@ -428,11 +445,6 @@ export class MenuScene extends PixelScene {
       }));
       this.editButtons.set(piece.chart.id, pencil);
     } else if (piece.own === true) sign(PENCIL, 'ownPencil');
-    if (record) {
-      const level = new PixelText(this, left + 6 + GRADE_WIDTH + 6, top + 20, t('menu.pieceLevel', { level: record.level.level }), { color: C.umberDark });
-      this.root.add(level);
-      button.attach(level);
-    }
     const info = new PixelButton(this, this.root, {
       x: rightEdge - 34, y: top + 23, width: INFO_SIZE, height: INFO_SIZE, label: t('info.button'), look: 'ink', inkBox: true, onClick: () => this.showInfo(piece.chart.id),
     });
@@ -456,6 +468,7 @@ export class MenuScene extends PixelScene {
     if (piece.chart.phrases.length > 0 && !this.maker) {
       this.partsButtons.set(piece.chart.id, small(t('parts.button'), () => startScene(this, 'parts', { chartId: piece.chart.id })));
     }
+    if (record) this.pieceLevel(button, record, title, rightEdge - 34 - (slot - 1) * STATS_OFFSET - INFO_SIZE / 2, cursor);
     // the five-star grade of the best play, packed one pixel apart so the title keeps its room
     const earned = pixelStars(this, this.root, left + 6, top + 19, record?.bestGrade ?? 0, { gap: 1, ink: true });
     button.attach(...earned, ...signImages);

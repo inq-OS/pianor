@@ -25,7 +25,7 @@ export const GROUPS = [
   { id: 'student', title: 'With the student', needs: 'a try-out with the student', match: /\bstudent\b|playtest|try-out/i },
   { id: 'estonian', title: 'Estonian to read', needs: 'a native reader of Estonian', match: /Estonian|native/i },
   { id: 'tablet', title: 'On the tablet', needs: 'the Android tablet', match: /tablet/i },
-  { id: 'laptop', title: 'On the Windows laptop', needs: 'a look or a try on the target laptop', match: /Windows|laptop|\blook\b|mouse|baseline|real display/i },
+  { id: 'laptop', title: 'On the laptop', needs: 'a look or a try on the target laptop', match: /Windows|laptop|\blook\b|mouse|baseline|real display/i },
   { id: 'other', title: 'Other answers', needs: 'a word from the maintainer', match: /[\s\S]/ },
 ] as const;
 

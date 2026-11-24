@@ -61,4 +61,4 @@ Work tags (d116, `docs/automation/todo-tags.md`). The band's kit itself is the `
 
 - TODO(painter, R2): pictures for the cells the desk screens' buttons move into at the switch-over: the results' Again and Pieces (their wax seals, `paintSeal`, could lend the cell its picture), the name's Delete and Done, settings' Report a bug and Pieces. Until then they get the plain `TOOL_ICONS`.
 - TODO(painter, R2): `results` and `battle` on the all-screens sheet. They cannot be opened without data, so the band has not been looked at on them.
-- NEEDS-HUMAN: the Windows screenshot baselines must show the warm look (d118) and the parchment staff (d119). Delete this line when they do.
+- NEEDS-HUMAN: the screenshot baselines must show the warm look (d118) and the parchment staff (d119). Delete this line when they do.

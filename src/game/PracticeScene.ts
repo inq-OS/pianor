@@ -21,7 +21,7 @@ import { mergeOutcomes } from './profile/sessionOutcome';
 import { contextOf, MIDI_CHANGED } from './context';
 import { BarRecorder } from './practice/BarRecorder';
 import { ListenAlong } from './practice/ListenAlong';
-import { MESSAGE_MS, PlaySession, type PlaySessionOptions } from './practice/PlaySession';
+import { MESSAGE_MS, PlaySession, type PlaySessionOptions, type WrongKey } from './practice/PlaySession';
 import { HOTKEYS, IDLE, actionForCode, chordStep, hotkeyLabel, typedBarRange, type Chord, type ChordContext, type ChordInput } from './practice/hotkeys';
 import { carryOver, metronomeAtCreate } from './practice/metronomeStart';
 import { CountInGrace } from './practice/countInGrace';
@@ -123,6 +123,8 @@ export interface PracticeData {
   checkup?: { since: string };
   /** Learning bar by bar (ft_1_32): what Kiur says as this start begins, about the run just ended. */
   learnLine?: string;
+  /** The wrong key that stopped the last learning run (ft_1_32.AC6): it stays on the staff until the first key of this run. */
+  learnWrong?: { key: WrongKey; firstBar: number; lastBar: number };
   /**
    * Kiur was asked to teach this piece bar by bar (ft_1_32 rule 14): it opens in learning even when it was played to the end
    * before. Without it the piano is a sandbox: only a character's piece is learned before it is played in full.
@@ -266,6 +268,12 @@ export class PracticeScene extends PixelScene {
   private barRecorder: BarRecorder | null = null;
   private session: FreePlaySession = emptyFreePlay();
   private loopTimer: Phaser.Time.TimerEvent | null = null;
+  /** The piece just learned (ft_1_32 rule 5): the reward stays on the paper until a key or a press calls this, once. */
+  private learnedGoOn: (() => void) | null = null;
+  /** This start follows a learning run, whose line Kiur says: no other words over it. */
+  private afterLearnRun = false;
+  /** The wrong key carried from the run before (`learnWrong`), shown again on this run's staff. */
+  private carriedWrong: PracticeData['learnWrong'] | null = null;
   /** The ramp buttons a mouse wheel changes: the button and what one notch up (1) or down does. */
   private rampWheel: { button: PixelButton; scroll: (direction: 1 | -1) => void }[] = [];
   /** This start wraps on from the lap before (`PracticeData.wrap`); null for any other start. */
@@ -297,6 +305,7 @@ export class PracticeScene extends PixelScene {
 
   init(data: PracticeData): void {
     this.startData = data;
+    this.learnedGoOn = null;
     this.preview = data.preview === true;
     this.returnTo = data.returnTo ?? 'preview';
     this.readLesson(data);
@@ -348,8 +357,8 @@ export class PracticeScene extends PixelScene {
     this.wrap = data.wrap ?? null;
     // a restart between learning runs carries Kiur's line: the piece was open already, so it never asks to go on (ft_1_32.AC16)
     this.startData = { ...data, ...(data.learnLine !== undefined ? { resumeAsked: true } : {}) };
+    this.takeLearnCarry(data);
     delete this.startData.sectionSummary;
-    delete this.startData.learnLine;
     delete this.startData.passSummary;
     delete this.startData.wrap;
     delete this.startData.rampedUp;
@@ -484,7 +493,9 @@ export class PracticeScene extends PixelScene {
     this.game.events.on(MIDI_CHANGED, midiChanged);
     // a key on the piano closes the bubble: the student's hands went back to playing (ft_1_20.AC22)
     const offBubbleKey = context.keyboard.onNote((e) => {
-      if (e.kind === 'on' && e.velocity > 0 && this.bubbleIsOpen) this.closeMenu();
+      if (e.kind !== 'on' || e.velocity === 0) return;
+      if (this.learnedGoOn) this.learnedGoOn();
+      else if (this.bubbleIsOpen) this.closeMenu();
     });
     this.input.keyboard?.on('keydown-ESC', () => (this.rampOpen && this.rampShown ? this.toggleRamp() : this.picking ? this.cancelPicking() : this.leave()));
     // a mouse press on a bar starts from it at once; a finger only once it lifts from a short tap, so that holding on (the long
@@ -540,7 +551,8 @@ export class PracticeScene extends PixelScene {
   private bubbleHintDue(): boolean {
     const flags = contextOf(this).flags;
     // the intro switched off (the end-to-end tests) or a self-playing demo: no first-run words
-    if (this.locked || this.wrap || this.listening || flags.intro === 'off' || flags.autoplay) return false;
+    // nor over Kiur's line about a learning run just ended
+    if (this.locked || this.wrap || this.listening || this.afterLearnRun || flags.intro === 'off' || flags.autoplay) return false;
     const key = `pianor.bubbleHint.${contextOf(this).profiles.profile.id}`;
     try {
       if (window.localStorage.getItem(key) === '1') return false;
@@ -850,16 +862,22 @@ export class PracticeScene extends PixelScene {
     const play = this.barRecorder?.stop(wrong);
     if (play) this.barsSaved = contextOf(this).profiles.recordBarPlays([play]).catch((error: unknown) => console.error('recordBarPlays failed', error));
     const bar = learn.run.firstBar + (this.playSession.play.writtenBar[wrong.bar] ?? wrong.bar);
+    const run = learn.run; // the run that ended, before its end moves the progress on
     void learn.finish('stopped');
-    this.againAfter(learn.stopLine(wrong, bar));
+    this.againAfter(learn.stopLine(wrong, bar), run);
   }
 
-  /** A stopped learning run: Kiur says `line`, and after a moment the same step starts again with it. */
-  private againAfter(line: string): void {
+  /**
+   * A stopped learning run: Kiur says `line`, and after a moment the same step starts again with it; a wrong key that ended
+   * `stopped` (on the staff by then) is carried, to stay until the next run's first key.
+   */
+  private againAfter(line: string, stopped?: { firstBar: number; lastBar: number }): void {
     this.playSession.say(line);
     this.loopTimer = this.time.delayedCall(LEARN_STOP_MS, () => {
       this.loopTimer = null;
-      if (this.scene.isActive()) this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });
+      const key = this.playSession.wrongKey;
+      const learnWrong = stopped && key ? { learnWrong: { key, firstBar: stopped.firstBar, lastBar: stopped.lastBar } } : {};
+      if (this.scene.isActive()) this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line, ...learnWrong });
     });
   }
 
@@ -884,18 +902,35 @@ export class PracticeScene extends PixelScene {
     // an uneven run is asked again with its own line; otherwise Kiur also says what comes next
     const line = learn.learned || outcome === 'unsteady' ? said : [said, learn.nextLine()].filter((part) => part !== '').join(' ');
     this.redraw(); // the new note shows at once
-    this.playSession.say(line);
+    this.playSession.say(learn.learned ? `${line}${/[.!?]$/.test(line) ? '' : '.'} ${t('learn.goOn')}` : line);
     this.loopTimer = this.time.delayedCall(LEARN_NEXT_MS, () => {
       this.loopTimer = null;
       void Promise.all([this.pendingPass, this.barsSaved]).then(() => {
         if (!this.scene.isActive() || this.loopTimer !== null) return;
         this.pendingPass = null;
-        // a character's piece learned: back to the character, who has taught it (ft_1_32.AC15)
-        const teacher = this.startData.teacher;
-        if (learn.learned && teacher) startScene(this, teacher.scene, {});
-        else this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });
+        if (!learn.learned) {
+          this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });
+          return;
+        }
+        // learned (ft_1_32 rule 5): the whole note and the clef stay with Kiur's line until the student plays a key or presses
+        this.learnedGoOn = () => {
+          this.learnedGoOn = null;
+          this.afterLearned(line);
+        };
       });
     });
+  }
+
+  /**
+   * Where a learned piece goes on: a character's piece back to the character, who has taught it (ft_1_32.AC15); a piece
+   * Kiur was asked to teach back to the room, where Kiur waits with the tug (rule 15); a character's piece learned at the
+   * piano opens for practice.
+   */
+  private afterLearned(line: string): void {
+    const teacher = this.startData.teacher;
+    if (teacher) startScene(this, teacher.scene, {});
+    else if (this.startData.learn === true) startScene(this, 'profile', {});
+    else this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });
   }
 
   private onCompleted(result: PieceResult): void {
@@ -1276,12 +1311,23 @@ export class PracticeScene extends PixelScene {
     }
   }
 
-  /** How a learning run is drawn: the resting hand of a hand step grey on its own staff (ft_1_32.AC18), the rest of the chunk faint and room for the prizes (AC19, AC20); nothing otherwise. */
-  private learnViewOptions(): Pick<PlaySessionOptions, 'restingTracks' | 'shown' | 'roomRight'> {
+  /** What a restart between learning runs carries: Kiur's line, said instead of any other words, and the wrong key. */
+  private takeLearnCarry(data: PracticeData): void {
+    this.afterLearnRun = data.learnLine !== undefined;
+    this.carriedWrong = data.learnWrong ?? null;
+    delete this.startData.learnLine;
+    delete this.startData.learnWrong;
+  }
+
+  /** What a learning run adds to the play session: the resting hand's staff (AC18), the wrong key that ended the run before (AC6), the rest of the chunk faint and room for the prizes (AC19, AC20). */
+  private learnViewOptions(): Pick<PlaySessionOptions, 'restingTracks' | 'shown' | 'roomRight' | 'wrongKey'> {
     const resting = this.learn?.restingTracks ?? [];
-    // and in learning: the rest of the run's chunk very faint after it, and room past the last bar line for the prizes (ft_1_32.AC19, AC20)
+    // only on the same bars: the indices of the awaited notes are of the run that ended
+    const wrong = this.carriedWrong;
+    const same = wrong && this.learn && this.learn.run.firstBar === wrong.firstBar && this.learn.run.lastBar === wrong.lastBar;
+    // the rest of the run's chunk very faint after it, and room past the last bar line for the prizes (ft_1_32.AC19, AC20)
     const learnView = this.learn ? { shown: this.learn.shown, roomRight: this.learn.prizeRoom } : {};
-    return { ...(resting.length > 0 ? { restingTracks: resting } : {}), ...learnView };
+    return { ...(resting.length > 0 ? { restingTracks: resting } : {}), ...(same ? { wrongKey: wrong.key } : {}), ...learnView };
   }
 
   /**
@@ -1574,6 +1620,10 @@ export class PracticeScene extends PixelScene {
 
   /** A tap on the staff: while marking a section the first, then the last bar (then the scene starts over on that part); otherwise the play starts from the bar. */
   private onTap(pointer: Phaser.Input.Pointer): void {
+    if (this.learnedGoOn) {
+      this.learnedGoOn();
+      return;
+    }
     const { layout, staffView } = this.playSession;
     // a press while the bubble or a menu is open is theirs: it never starts the play from a bar under them
     if (!layout || !staffView || this.isBubblePress(pointer) || this.menuOpen) return;

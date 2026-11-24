@@ -45,8 +45,8 @@ How it is made (`roomSet.ts`, `roomPicture.ts`): the set is built again with the
 ## TODO
 
 - TODO(painter, R2): by night the leaf of the open door is dim: give it a little light of its own, as the board's notes have. Seen on the night picture. (The piano has its two candles now.)
-- TODO(painter, R2): the objects' second looks on the Windows screenshot baseline of the room: the rest picture changed (lid down, board beside the piano, strap hinges, the horn turned), so the "Update screenshot baselines (Windows)" run is needed after the merge.
-- TODO(painter, R2): the repaint changes every Windows screenshot that shows the room: the "Update screenshot baselines (Windows)" run is needed after its merge.
+- TODO(painter, R2): the objects' second looks on the screenshot baseline of the room: the rest picture changed (lid down, board beside the piano, strap hinges, the horn turned), so its baseline is made again.
+- TODO(painter, R2): the repaint changes every screenshot baseline that shows the room: they are made again in its pull request.
 - TODO(painter, R2): a second look changes scattered single pixels along its object's edges (the pools' ragged borders move by a pixel when the set is built again awake). Harmless to the eye; cut them from the overlays to save packed size.
 - TODO(painter, R2): the lighthouse in the window is the room's own small copy of the crossroads' tower (`roomView.ts`): lift both into the kit when a third scene paints it (d124).
 - TODO(painter, Later): more heaps (row 7 below): a shelf of jugs by the stove.

@@ -23,7 +23,7 @@ The painted room, the map of Keri and its scenes show the real time of day on Ke
 6. **When it changes:** the phase is decided when a scene opens and does not change while it is open (AX-3 provisional).
 7. **Dev switches:** `?sky=dawn|day|dusk|night` forces a phase (built); `?now=<ISO time>` sets the instant (polish slice); `docs/url-switches.md`. Nothing is saved.
 8. **The room's window** shows the sea view in the same phase: sky, sun or moon, a cloud or two, the sea with a horizon and a strip of far shore, nothing from the campaign (`outside` in `src/game/ui/pixel/keri/roomSet.ts`, d111); the whole room is lit for the phase (daylight by day, lamps and fire from dusk to dawn). Same sky, cloud, moon and halo slots as item 4; stars only where item 5 allows.
-9. **Polish slice (R3):** item 5 in full, `?now=`, one end-to-end screenshot per phase (Windows baselines from the workflow).
+9. **Polish slice (R3):** item 5 in full, `?now=`, one end-to-end screenshot per phase (baselines from the baseline workflow).
 10. No save change, no new dependency. Not in this feature: seasons, weather, holidays, a fade between phases, the sun moving across the sky, a place other than Keri in settings.
 
 ## Acceptance criteria

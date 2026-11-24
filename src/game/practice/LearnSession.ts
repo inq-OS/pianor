@@ -93,6 +93,8 @@ export class LearnSession {
 
   /** Which prizes the run on the staff is for (ft_1_32.AC19). */
   prizeFocus(rewards: LearnRewards): PrizeFocus {
+    // the piece just learned: nothing is aimed at, and the last chunk's quarters stay with the clef earned
+    if (this.learned) return { chunk: Math.max(0, rewards.chunks.length - 1), bars: [], chunks: [], clef: false };
     return prizeFocus(this.run.step, this.plan, rewards);
   }
 
@@ -134,7 +136,9 @@ export class LearnSession {
   endLine(outcome: RunOutcome, bpm: number | undefined): string {
     if (outcome === 'hinted') return '';
     if (outcome === 'unsteady') return t('learn.unsteady');
-    if (this.learned && this.baseline !== null) return t('learn.learned', { bpm: this.baseline });
+    // the pace of the run that learned it, the number the student just played
+    const pace = bpm ?? this.baseline;
+    if (this.learned && pace !== null) return t('learn.learned', { bpm: pace });
     return bpm === undefined ? t('learn.clean') : t('learn.pace', { bpm });
   }
 
@@ -221,20 +225,31 @@ export class LearnSession {
     const to = run.step.lastUnit + 1;
     if (run.kind === 'recall') return from === to ? t('learn.recallOne', { n: from }) : t('learn.recall', { from, to });
     if (this.namesHidden) return t('learn.hidden');
-    if (run.step.kind === 'whole') return t('learn.whole');
-    if (run.step.kind === 'join') return t('learn.join', { from, to });
-    if (run.step.kind === 'confirm') return from === to ? t('learn.confirmOne', { n: from }) : t('learn.confirm', { from, to });
+    // a step played more than once in a row says which play this is, so the same line never comes back word for word
+    const round = run.step.runs > 1 ? ` ${t('learn.round', { n: this.progress.wholeStreak + 1, runs: run.step.runs })}` : '';
+    if (run.step.kind === 'whole') return t('learn.whole') + round;
+    if (run.step.kind === 'join') return t('learn.join', { from, to }) + round;
+    if (run.step.kind === 'confirm') return (from === to ? t('learn.confirmOne', { n: from }) : t('learn.confirm', { from, to })) + round;
     if (run.step.hand) {
       const hand = t(run.step.hand === 'RH' ? 'learn.handRH' : 'learn.handLH');
       return from === to ? t('learn.handStepOne', { n: from, hand }) : t('learn.handStep', { from, to, hand });
     }
+    // the step after its hands alone names both hands, so the change is heard as well as seen
+    if (this.afterHandsAlone) return from === to ? t('learn.bothStepOne', { n: from }) : t('learn.bothStep', { from, to });
     return from === to ? t('learn.stepOne', { n: from }) : t('learn.step', { from, to });
+  }
+
+  /** The run is the both-hands step of a bar or bars just played by each hand alone (ft_1_32 rule 13). */
+  private get afterHandsAlone(): boolean {
+    const step = this.run.step;
+    const before = this.plan[this.progress.step - 1];
+    return step.kind === 'grow' && step.hand === undefined && before?.hand !== undefined && before.firstUnit === step.firstUnit && before.lastUnit === step.lastUnit;
   }
 
   /** What Kiur says after a perfect run, about the run that comes next: its bars, or the start line of a whole run or recall. */
   nextLine(): string {
     const run = this.run;
-    if (run.kind === 'recall' || run.step.kind !== 'grow' || run.step.hand || this.namesHidden) return this.startLine();
+    if (run.kind === 'recall' || run.step.kind !== 'grow' || run.step.hand || this.afterHandsAlone || this.namesHidden) return this.startLine();
     const from = run.step.firstUnit + 1;
     const to = run.step.lastUnit + 1;
     return from === to ? t('learn.nextOne', { n: from }) : t('learn.next', { from, to });
