@@ -49,6 +49,8 @@ export function songMapParts(rows: readonly SongRow[], root: string | null = nul
  */
 export function songMapLayout(parts: readonly MapPart[], width: number, minWidth: number): MapBlock[] {
   if (parts.length === 0) return [];
+  // a map too narrow for every minimum shares its width evenly
+  if (parts.length * minWidth > width) minWidth = width / parts.length;
   const bars = parts.map((p) => p.endBar - p.startBar + 1);
   const fixed = new Set<number>();
   let widths: number[] = [];

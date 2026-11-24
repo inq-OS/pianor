@@ -30,4 +30,11 @@ describe('song map', () => {
     expect(songBarX(even, 31)).toBe(90);
     expect(songMapLayout([], 90, 16)).toEqual([]);
   });
+
+  it('ft_1_36.AC10 a map too narrow for every minimum shares the width evenly and never runs past it', () => {
+    const blocks = songMapLayout([part('a', 1, 1), part('b', 2, 41), part('c', 42, 81)], 30, 16);
+    const last = blocks[blocks.length - 1]!;
+    expect(last.x + last.w).toBe(30);
+    expect(blocks.map((b) => b.w)).toEqual([10, 10, 10]);
+  });
 });

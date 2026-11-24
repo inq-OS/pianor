@@ -97,7 +97,10 @@ const MASCOT_DROP = 4;
 const BOTTOM_EDGE = 6;
 const PAGE_BUTTON_WIDTH = 16;
 /** The song map (ft_1_36 rule 8): its rows over the paper, and a block's least width (`AX-3 provisional:` a finger). */
-const MAP_ROWS = 12;
+/** The song map's rows: the blocks, and under them the bar that marks the page on screen. */
+const MAP_ROWS = 15;
+const MAP_BLOCK_ROWS = 11;
+const MAP_PAGE_BAR = 2;
 const MAP_MIN = 16;
 const MAP_SIDE = 4;
 /** How faint a part that is off, and a blank part, show on the song map. */
@@ -481,11 +484,11 @@ export class PracticeScene extends PixelScene {
     const { section, logged } = this.playedBars();
     this.atDoor = false;
     this.guarded = new GuardedKeyboard(context.keyboard, { passHeld: passHeldFor(this.chart) }, () => this.onBash());
+    this.prepareSongMap(section);
     this.playSession = new PlaySession(this, {
       chart: this.chart,
       ...(section ? { section: { whole: this.fullChart, first: section.first } } : {}),
       ...this.songMarks(section),
-      ...this.prepareSongMap(section),
       keyboard: this.guarded,
       hints: this.hints,
       chordFingers: contextOf(this).profiles.chordFingers,
@@ -795,28 +798,27 @@ export class PracticeScene extends PixelScene {
 
   /**
    * The song map's parts (ft_1_36 rule 8) for a song played as one staff, or a group played as a section of it: only the
-   * group's own parts then. None for a piece, a phrase or learning. Returns nothing for the play session (it draws no map).
+   * group's own parts then. None for a piece, a phrase or learning.
    */
-  private prepareSongMap(section: { first: number; last: number } | undefined): Record<string, never> {
+  private prepareSongMap(section: { first: number; last: number } | undefined): void {
     this.songMap = null;
     this.mapDrawn = null;
+    this.mapBar = 0;
     const songs = contextOf(this).songs;
     const songId = songIdOfChart(this.fullChart.id);
     const song = songId === null ? undefined : songs.find(songId);
     const joined = song ? songs.joinedChart(song) : null;
-    if (!song || !joined || joined.chart !== this.fullChart || this.learn) return {};
+    if (!song || !joined || joined.chart !== this.fullChart || this.learn) return;
     const group = section ? joined.parts.find((p) => p.startBar === section.first && p.endBar === section.last && song.nodes.some(function has(n): boolean { return n.id === p.node ? n.kind === 'group' : n.kind === 'group' && n.nodes.some(has); })) : undefined;
-    if (section && !group) return {};
+    if (section && !group) return;
     const parts = songMapParts(songs.resolved(song).rows, group?.node ?? null);
-    if (parts.length < 2) return {};
+    if (parts.length < 2) return;
     this.songMap = { parts, songBars: joined.songBars, first: section?.first ?? 0 };
-    this.mapBar = 0;
-    return {};
   }
 
   /**
    * The song map over the paper (ft_1_36 rule 8): a block per part as wide as its bars, its name in it when it fits, a
-   * blank paler with its dashed mark, a part that is off pale, a link with its curled arrow. A white frame shows the page on
+   * blank paler with its dashed mark, a part that is off pale, a link with its curled arrow. A white bar under the blocks shows the page on
    * screen; the part being played is lit. A press on a block turns the staff to that part and flashes its name; it never
    * starts play.
    */
@@ -830,7 +832,7 @@ export class PracticeScene extends PixelScene {
       const kind = b.look === 'link' ? TOOL_ICONS.link : undefined;
       const mark = kind && b.w >= fits(b.name) + 2 * (kind.width + MAP_MARK_ROOM) ? kind : undefined;
       const button = this.button({
-        x: MAP_SIDE + b.x + b.w / 2, y: top + MAP_ROWS / 2, width: Math.max(1, b.w - 1), height: MAP_ROWS - 2, label: b.name, labelWidth: Math.max(1, b.w - 4),
+        x: MAP_SIDE + b.x + b.w / 2, y: top + 1 + MAP_BLOCK_ROWS / 2, width: Math.max(1, b.w - 1), height: MAP_BLOCK_ROWS, label: b.name, labelWidth: Math.max(1, b.w - 4),
         ...(mark ? { icon: mark } : {}), onClick: () => this.turnToPart(b),
       });
       if (b.look === 'off') button.setAlpha(MAP_OFF_FADE);
@@ -838,11 +840,11 @@ export class PracticeScene extends PixelScene {
       buttons.set(b.id, button);
       if (b.look === 'blank') {
         const w = Math.max(1, b.w - 1);
-        this.root.add(new PixelImage(this, MAP_SIDE + b.x, top + 1, mapHatch(w, MAP_ROWS - 2, Math.min(w, fits(b.name) + MAP_MARK_ROOM))).setName('songMapHatch'));
+        this.root.add(new PixelImage(this, MAP_SIDE + b.x, top + 1, mapHatch(w, MAP_BLOCK_ROWS, Math.min(w, fits(b.name) + MAP_MARK_ROOM))).setName('songMapHatch'));
       }
     }
     this.mapDrawn = { top, blocks, buttons, frame: null };
-    staffView.onPageShown = (page) => this.frameMapPage(staffView, page);
+    staffView.onPageShown = (page) => { if (this.playSession.staffView === staffView) this.frameMapPage(staffView, page); };
     this.frameMapPage(staffView, staffView.currentPage);
     this.lightMapPart(this.mapBar);
   }
@@ -861,7 +863,7 @@ export class PracticeScene extends PixelScene {
     if (first === undefined || last === undefined) return;
     const x1 = Math.floor(songBarX(drawn.blocks, first));
     const x2 = Math.ceil(songBarX(drawn.blocks, last + 1));
-    drawn.frame = new PixelImage(this, MAP_SIDE + x1, drawn.top, mapFrame(Math.max(3, x2 - x1), MAP_ROWS)).setName('songMapFrame');
+    drawn.frame = new PixelImage(this, MAP_SIDE + x1, drawn.top + MAP_ROWS - MAP_PAGE_BAR, mapFrame(Math.max(3, x2 - x1), MAP_PAGE_BAR)).setName('songMapFrame');
     this.root.add(drawn.frame);
   }
 
@@ -1876,7 +1878,7 @@ export class PracticeScene extends PixelScene {
     if (!layout || !staffView || this.isBubblePress(pointer) || this.menuOpen) return;
     // a press on a button over the staff (the page buttons, with the band) is the button's
     if (this.pointerOnButton(pointer)) return;
-    const top = this.mainTop + (this.bandShown ? this.cornerStrip.rows + (this.mapDrawn ? MAP_ROWS + this.mapDrawn.top - this.mainTopRows - this.cornerStrip.rows : 0) : TOP_BAR + this.toolRows) * this.px.scale;
+    const top = this.bandShown && this.staffOrigin !== null ? this.staffOrigin : this.mainTop + (TOP_BAR + this.toolRows) * this.px.scale;
     const bar = barAtPoint(layout, pointer.x, pointer.y - top, staffView.currentPage);
     if (bar === null) return;
     if (this.picking === null) {
@@ -2077,11 +2079,10 @@ export class PracticeScene extends PixelScene {
   }
 }
 
-/** The song map's frame over the page on screen: a white outline, seen on the lit part too. */
+/** The song map's mark of the page on screen: a white bar under the blocks, so it never covers a name nor looks like the lit part. */
 function mapFrame(w: number, h: number): Bitmap {
   const box = createBitmap(w, h);
-  for (let i = 0; i < w; i++) box.pixels[i] = box.pixels[(h - 1) * w + i] = C.white;
-  for (let j = 0; j < h; j++) box.pixels[j * w] = box.pixels[j * w + w - 1] = C.white;
+  box.pixels.fill(C.white);
   return box;
 }
 
