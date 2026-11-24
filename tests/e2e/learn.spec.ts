@@ -105,7 +105,7 @@ test('a new piece is learned bar by bar: one bar shown, a wrong key repeats it, 
   await playWithKeys(page, first.midis.slice(1));
   await expect.poll(async () => (await shown(page)).bars, { timeout: 10_000 }).toBe(2);
   expect(await progress(page)).toMatchObject({ step: 1, misses: 0 });
-  expect(await kiurSays(page)).toBe('All right! Now bars 1-2');
+  expect(await kiurSays(page)).toBe('All correct! Now bars 1-2');
   const rewards = await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { rewardsData: { chunks: { quarters: string[] }[] } }).rewardsData);
   expect(rewards.chunks[0]!.quarters).toEqual(['silver']); // two runs that did not count
   await letGameRun(page, 5);
@@ -163,7 +163,7 @@ test('ft_1_32.AC12 ft_1_32.AC18 with hands apart chosen, the right hand is learn
     .playSession.layout.systems[0]!.staves.map((st) => [st.clef, st.resting === true]));
   expect(staves).toEqual([['treble', false], ['bass', true]]);
   await playWithKeys(page, (await shown(page)).midis);
-  await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toBe('All right! Bar 1, left hand');
+  await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toBe('All correct! Bar 1, left hand');
   expectNoErrors(errors);
 });
 

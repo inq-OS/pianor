@@ -238,10 +238,23 @@ describe('LearnSession', () => {
 describe('Kiur\'s lines while learning', () => {
   // the student reads them between runs: a few words each, the staff and the prize column show the rest
   const said = (Object.keys(strings) as (keyof typeof strings)[]).filter((key) => key.startsWith('learn.') && !key.startsWith('learn.resume.'));
-  const words = (line: string) => line.split(/\s+/).filter((w) => /\p{L}/u.test(w)).length;
+  const words = (line: string) => line.split(/\s+/).filter((w) => /\p{L}|\d/u.test(w)).length;
+  const fill = (line: string, params: Record<string, string>) => line.replace(/\{(\w+)\}/g, (m, name: string) => params[name] ?? m);
 
-  it('keeps every line to four words or fewer, in English and Estonian', () => {
+  it('keeps every part of a line to four words or fewer, in English and Estonian', () => {
     const long = said.flatMap((key) => [strings[key], stringsEt[key]]).filter((line) => words(line) > 4);
     expect(long).toEqual([]);
+  });
+
+  it('keeps every line shown, its parts joined, to eight words or fewer, in English and Estonian', () => {
+    for (const catalog of [strings, stringsEt]) {
+      const params = { n: '1', from: '1', to: '4', bpm: '72', runs: '3', hand: catalog['learn.handLH'], reason: catalog['learn.reason.wrongOctave'] };
+      const part = (key: keyof typeof strings) => fill(catalog[key], params);
+      const starts = said.filter((key) => !['learn.clean', 'learn.pace', 'learn.learned', 'learn.goOn', 'learn.round', 'learn.rewards'].includes(key) && !key.startsWith('learn.reason.') && !key.startsWith('learn.hand'))
+        .concat(['learn.handStep', 'learn.handStepOne']);
+      const shown = starts.flatMap((start) => ['learn.clean', 'learn.pace'].map((end) => `${part(end as keyof typeof strings)} ${part(start)} ${part('learn.round')}`))
+        .concat(`${part('learn.learned')}. ${part('learn.goOn')}`);
+      expect(shown.filter((line) => words(line) > 8)).toEqual([]);
+    }
   });
 });

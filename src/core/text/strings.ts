@@ -812,7 +812,7 @@ export const strings = {
   'learn.reason.wrongLetter': 'Wrong note',
   'learn.bothStepOne': 'Bar {n}, both hands',
   'learn.bothStep': 'Bars {from}-{to}, both hands',
-  'learn.clean': 'All right!',
+  'learn.clean': 'All correct!',
   'learn.nextOne': 'Now bar {n}',
   'learn.next': 'Now bars {from}-{to}',
   'learn.goOn': 'Press a key',
