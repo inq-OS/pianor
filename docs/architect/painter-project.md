@@ -39,7 +39,7 @@ A change on the right side goes to the builder or the architect as a tag in the 
 6. **Reference pictures never go into git:** not the reference photographs of Keri, not screenshots of other games. They are studied locally (the gitignored `private/painter/`), each batch with a README.
 7. **No shadow or vignette laid over a picture**, in any scene.
 8. **Look and measure before you show:** `npm run art:render` writes a picture to a PNG without starting the game; `npm run art:check` measures it against the rules that have numbers (colour runs, clouds) and draws the stage-set lines over it; a browser screenshot shows it in the game. Nobody can judge a picture from its code, and the numbers do not say whether it is good.
-9. **Checks:** `npm run check:ci` before a push; the end-to-end areas of the screen (`npm run test:e2e:affected`). A repainted screen changes its Windows screenshot baseline: say so in the pull request, the maintainer runs the "Update screenshot baselines (Windows)" workflow.
+9. **Checks:** `npm run check:ci` before a push; the end-to-end areas of the screen (`npm run test:e2e:affected`). A repainted screen changes its screenshot baseline: make the new one (`--update-snapshots` on the visual area, or the "Update screenshot baselines" workflow) and say so in the pull request, where the maintainer looks at it.
 10. **Merge:** only on the maintainer's word. Art is taste; a green check is not a verdict.
 11. **Helpers:** subagents are allowed; choose each one's model by how hard its task is, never the largest by habit.
 12. **Explain app and web matters briefly** (what, why, where). The game is laid out for a modest laptop at 1920 x 1080.
@@ -92,7 +92,7 @@ Question 3 (the band) is answered: [ft_1_20](../features/ft_1_20-action-and-inve
 | One drawing, four palettes, packed once | Not possible as hoped: the hours differ in their pixels (shadows, lit sides), not only in palette. Five pictures now take 6.6 MB of a 7.1 MB game file, all loaded at start-up. The cut is to load them per picture and hour instead: `TODO(builder, R2)` in ft_1_24 |
 | `art:render`, `art:check` and the rules' test learn each new picture | Holds: `tools/art/pictureRules.test.ts` fails for a picture the build paints that is not in `tools/art/pictures.ts` |
 | A lint rule that keeps painting code free of Phaser and the DOM | TODO(builder, R2): a `no-restricted-imports` and `no-restricted-globals` block in `eslint.config.js` for `src/game/ui/pixel/paint/`, `src/game/ui/pixel/keri/` and `src/core/layout/` (no `phaser`, no DOM globals), as `src/core/` has. They hold today by convention (none imports either) and are 13,500 lines and growing; the build paints them in Node, where a slip only shows as a failed build |
-| Windows baselines for each repainted screen | The maintainer's run: `projects/painter/notes/interface.md` |
+| Screenshot baselines for each repainted screen | The maintainer's look in the pull request: `projects/painter/notes/interface.md` |
 | A shared palette for interfaces | Done: one warm palette for the band and every screen (d118); outdoors `keriPalette.ts` (d123) |
 
 A URL switch that opens a scene directly is not needed: `npm run art:render` shows any picture outside the game.

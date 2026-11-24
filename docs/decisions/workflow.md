@@ -41,7 +41,7 @@ Check: untestable: licence choice, reviewed with docs/dependencies.md by the mai
 
 **End-to-end tests use Playwright on port 5180, driving the game like a student would.** Features: ft_0_09.
 
-Config in `playwright.config.ts`: own dev server, viewport 1366x768, 2 workers, traces on failure. Tests use computer keys, the virtual EZ-220 bytes, real clicks on Phaser buttons and on-screen keys via `window.__game` and `window.__virtualDevice`, read canvas text from scene text objects, and assert no page or console errors. Screenshot baselines are per OS (`*-chromium-win32.png`); a platform without a baseline skips. The staff rooms are computed from the notes in the piece so switching hints never moves the staff.
+Config in `playwright.config.ts`: own dev server, viewport 1366x768, 2 workers, traces on failure. Tests use computer keys, the virtual EZ-220 bytes, real clicks on Phaser buttons and on-screen keys via `window.__game` and `window.__virtualDevice`, read canvas text from scene text objects, and assert no page or console errors. Screenshot baselines are one file per screen for every machine (d289); a screen without a baseline skips. The staff rooms are computed from the notes in the piece so switching hints never moves the staff.
 
 Check: `playwright.config.ts` "Number(process.env.PW_PORT) || 5180"
 
@@ -103,11 +103,7 @@ Check: `tools/e2e/areas.test.ts` "puts every spec file in exactly one area"; `to
 
 ## d062
 
-**Screenshot baselines are Windows only, checked by a Windows CI job and made by a Windows workflow.** Features: none. Changed by d288.
-
-Still holds: baselines are made on Windows and the Windows job checks them. The `visual (Windows)` job runs the visual area on `windows-latest` (software WebGL, one test at a time, 4-minute limit) on pull requests touching the visual area, on `main` pushes and weekly; the workflow "Update screenshot baselines (Windows)" (`update-snapshots.yml`) makes new ones, which the maintainer looks at before merge. Changes d042.
-
-Check: `tools/ci/workflows.test.ts` "are checked by a Windows job and made by a Windows workflow run by hand"
+**Screenshot baselines were Windows only, checked by a Windows CI job and made by a Windows workflow.** Features: none. Superseded by d289.
 
 ## d063
 
@@ -121,7 +117,7 @@ Check: `eslint.config.js` "complexity: ['error', 30], 'max-depth': ['error', 5]"
 
 **CI runs on GitHub's hosted runners: `check` and `art rules` on every pull request push, the browser jobs on a label or weekly.** Features: none.
 
-A pull request push runs `check` (with the changes and docs-touched steps folded in) and `art rules` on `ubuntu-latest`; Linux e2e runs only with the `ci:e2e` label and the Windows screenshot job (`windows-latest`) only with `ci:visual`. A push to `main` runs only the privacy workflow (d165); `check` runs on `main` daily, everything every week and by hand. Labels and description edits are handled in `.github/workflows/pr-events.yml`; the browser jobs are the reusable `.github/workflows/browser-tests.yml`. Changes the CI part of d062.
+A pull request push runs `check` (with the changes and docs-touched steps folded in) and `art rules` on `ubuntu-latest`; e2e runs only with the `ci:e2e` label and the screenshot job only with `ci:visual` (d289). A push to `main` runs only the privacy workflow (d165); `check` runs on `main` daily, everything every week and by hand. Labels and description edits are handled in `.github/workflows/pr-events.yml`; the browser jobs are the reusable `.github/workflows/browser-tests.yml`. Changes d042.
 
 Check: `tools/ci/workflows.test.ts` "runs check and art rules on Ubuntu with Node 22 on every pull request push, never on a push to main"; `tools/ci/workflows.test.ts` "runs the browser tests only on a label, by hand or on the schedule"
 
@@ -417,7 +413,7 @@ Check: untestable: an order of authority applied by agents and reviewers
 
 **Before a push the branch is up to date with `main`, `npm run check:ci` passes, `npm run test:e2e:affected` ran if the game changed, and the pull request body says what was not verified.** Features: none.
 
-The body follows `.github/pull_request_template.md`: `Closes #N` or `Part of #N`, every `AX-3 provisional:` choice, `[save]` in the title for a save bump, real EZ-220 behaviour as needs human, changed Windows baselines named, and a changed screen checked against the Windows baselines first (`before-pr` skill). A pull request changing `src/core`, `tools` or `content/curriculum` touches a doc or says `docs: n/a` and why.
+The body follows `.github/pull_request_template.md`: `Closes #N` or `Part of #N`, every `AX-3 provisional:` choice, `[save]` in the title for a save bump, real EZ-220 behaviour as needs human, changed screenshot baselines named, and a changed screen checked against the baselines first (`before-pr` skill). A pull request changing `src/core`, `tools` or `content/curriculum` touches a doc or says `docs: n/a` and why.
 
 Check: `tools/docs/misc.test.ts` "asks for a doc, or for"
 
@@ -527,8 +523,16 @@ Check: untestable: how work is chosen
 
 ## d288
 
-**No game text uses a font of the computer: the staff's text is JetBrains Mono Bold shipped with the game and every other text the pixel font, so one screenshot baseline per screen serves Windows and Linux.** Features: none.
+**No game text uses a font of the computer: the staff's text is JetBrains Mono Bold shipped with the game and every other text the pixel font, so one screenshot baseline per screen serves every machine.** Features: none. Changed by d289.
 
-Changes d062. The staff's letters (note names, fingers, dynamics in the italic, section letters, the played key, the piece maker's ghost letter) use `STAFF_FONT` (`src/game/ui/staff/staffFont.ts`; SIL OFL, `public/assets/jetbrains-mono/`, upright and italic, Latin and Latin Extended for š and ž), loaded before the game starts. Baselines are named without the platform (`<name>-chromium.png`), made by the Windows workflow, which commits them to the branch it ran on (never to main) so a cloud session can fetch them, and compared on Windows, Linux CI and cloud sessions with the 2 percent tolerance; every run starts Chrome with `--font-render-hinting=none` and `--disable-lcd-text` and draws WebGL in software.
+Changes d062. The staff's letters (note names, fingers, dynamics in the italic, section letters, the played key, the piece maker's ghost letter) use `STAFF_FONT` (`src/game/ui/staff/staffFont.ts`; SIL OFL, `public/assets/jetbrains-mono/`, upright and italic, Latin and Latin Extended for š and ž), loaded before the game starts. Baselines are named without the platform (`<name>-chromium.png`) and compared with the 2 percent tolerance; every run starts Chrome with `--font-render-hinting=none` and `--disable-lcd-text`.
 
-Check: `src/game/ui/staff/staffFont.test.ts` "every text of the game in a screen font uses the shipped staff font, never one of the computer"; `tools/ci/workflows.test.ts` "names a baseline without the platform, and the Windows workflow hands back those names"; `tools/ci/workflows.test.ts` "commits the baselines to the branch it ran on, never to main"; `tests/e2e/visual.spec.ts` "the shipped staff font is loaded before the game draws, upright and italic (d288)"
+Check: `src/game/ui/staff/staffFont.test.ts` "every text of the game in a screen font uses the shipped staff font, never one of the computer"; `tools/ci/workflows.test.ts` "names a baseline without the platform, and the baseline workflow hands back those names"; `tests/e2e/visual.spec.ts` "the shipped staff font is loaded before the game draws, upright and italic (d288)"
+
+## d289
+
+**Screenshot tests and baselines make no difference between Windows and Linux: every job runs on Linux, a baseline is made by the baseline workflow or any local run, and the screenshot area always draws in software.** Features: none.
+
+Supersedes d062. The `visual` job (label `ci:visual`, weekly and by hand) and the workflow "Update screenshot baselines" (`update-snapshots.yml`, by hand, commits to the branch it ran on, never to main) run on `ubuntu-latest`; a cloud session may make baselines with `--update-snapshots` too. The Playwright project `visual` starts Chrome without GPU flags, so a local GPU run elsewhere makes the same pixels; the maintainer looks at new baselines in the pull request before it merges.
+
+Check: `tools/ci/workflows.test.ts` "runs every screenshot job on Linux, the baselines committed to the branch, never to main"; `tools/ci/workflows.test.ts` "draws the screenshot area without a GPU on every machine"

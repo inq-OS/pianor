@@ -27,4 +27,4 @@ All criteria are AX-3 provisional: the screensaver is wanted; the numbers and de
 ## Notes
 
 - Later, each needs its own decision: quiet ambient sound, things that happen in a scene while it is visited (a bird, a far boat), whether the map of Keri is a stop of the round, and whether the screensaver may also start from the main menu.
-- Not verified: the look on the laptop's real screen (needs human, AC6). No Windows screenshot baseline is added.
+- Not verified: the look on the laptop's real screen (needs human, AC6). No screenshot baseline is added.

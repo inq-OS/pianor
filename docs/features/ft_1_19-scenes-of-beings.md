@@ -53,7 +53,7 @@ The agent does not invent places on Keri or what lives there. Still to come from
 - KERI-TODO: what the beings are: answered (ft_1_21): speaking spirits and nature from Estonian folk belief, visitors of the kinds that really come to Keri, ghosts of its past; the first cast is still to be picked. What the characters look like on Keri is the maintainer's call; today's monster art is not used for them (d129), so none is drawn until the maintainer decides.
 - KERI-TODO: random presence: a new draw each day (provisional) or each visit? How a locked scene looks on the map: painted and no button (provisional); dim or hidden are other options.
 - KERI-TODO: the letters A, B and D on photograph 19 (C is guessed to be the jetty on the north shore): what do they mark?
-- NEEDS-HUMAN: the look on the laptop, with the student (AC7); the Windows screenshot baselines have no picture of the knoll yet.
+- NEEDS-HUMAN: the look on the laptop, with the student (AC7); the screenshot baselines have no picture of the knoll yet.
 - NEEDS-HUMAN: whether the live motion (AC11, AC12) runs smoothly on the target laptop; shaders (Phaser 4 filters) stay out until it is known.
 - TODO(painter, R3): the harbour's quay reflection, the docks' sea swell and the map's surf still go through painted looks; light them live as the water is (AC11).
 - TODO(painter, R3): from art review 1 of the live motion, things that were there before it: the knoll's smoke passes over the tree's crown; the map at 1280 x 720 cuts the lighthouse's lit glass off the top, so the beam seems to start in the sky.

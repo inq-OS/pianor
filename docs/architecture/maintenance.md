@@ -72,7 +72,7 @@ rule in `docs/testing.md` (CI does retry once), the test layer table, the README
   differ; the series-to-record mapping is `seriesRecords` in core/battle. The editor's file access went behind
   `GameContext.files`. Still open: English
   in the editor's status line and the tag ids on the info card.
-- **Item 7, partly done:** screenshot tests skip on any non-Windows machine without a baseline (a local `--update-snapshots`
+- **Item 7, partly done:** screenshot tests skip on any machine without a baseline (a local `--update-snapshots`
   still writes them); the three "nothing happened" e2e waits also wait on game frames (`letGameRun`); `press`, `totalXp`
   and `playerName` are shared helpers. Still open: items 1, 4, 5, 6 and 7.
 - **Done:** the scope of the complexity and nesting limits in [static-analysis.md](static-analysis.md).

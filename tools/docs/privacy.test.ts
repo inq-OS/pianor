@@ -24,7 +24,7 @@ describe('a quote of the maintainer (d165)', () => {
   ])('finds %s', (line) => expect(MAINTAINER_QUOTE.test(line)).toBe(true));
 
   it.each([
-    'the maintainer runs the "Update screenshot baselines (Windows)" workflow',
+    'the maintainer runs the "Update screenshot baselines" workflow',
     'a button labelled "KLAVER" that the maintainer picked',
   ])('leaves %s', (line) => expect(MAINTAINER_QUOTE.test(line)).toBe(false));
 
@@ -111,7 +111,7 @@ describe('files of every kind (d165)', () => {
   });
 
   it('fails a binary file outside the allowed kinds, and leaves allowed ones alone', () => {
-    const issues = lintPrivacy(makeRepo({ 'docs/photo.jpg': 'JFIF\u0000data', 'public/audio/piano/C4.mp3': mp3([['TSSE', 'LAME']]), 'tests/e2e/visual.spec.ts-snapshots/a-chromium-win32.png': png([]) }), []);
+    const issues = lintPrivacy(makeRepo({ 'docs/photo.jpg': 'JFIF\u0000data', 'public/audio/piano/C4.mp3': mp3([['TSSE', 'LAME']]), 'tests/e2e/visual.spec.ts-snapshots/a-chromium.png': png([]) }), []);
     expect(issues.map((i) => `${i.file} ${i.message.split(':')[0]}`)).toEqual(['docs/photo.jpg a binary file the check cannot read']);
   });
 

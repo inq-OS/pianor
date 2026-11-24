@@ -37,7 +37,7 @@ describe('selectAreas', () => {
 
   it('runs the area of a changed spec file, its screenshot folder included', () => {
     expect(select(['tests/e2e/tempo.spec.ts']).areas).toEqual(['practice']);
-    expect(select(['tests/e2e/visual.spec.ts-snapshots/menu-chromium-linux.png']).areas).toEqual(['visual']);
+    expect(select(['tests/e2e/visual.spec.ts-snapshots/menu-chromium.png']).areas).toEqual(['visual']);
   });
 
   it('runs every area for a shared path, even when an area also names a folder above it', () => {

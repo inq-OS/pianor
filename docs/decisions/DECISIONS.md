@@ -70,7 +70,7 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d058](saves.md#d058) | Three settings added in one save bump: `noteNaming`, `staffGap`, `keyLights` (v11) | ft_0_17, ft_Y_06, ft_0_16 |
 | [d059](saves.md#d059) | Every attempt stores per-note timing scores in `noteTimings`; save v12 | core_01 |
 | [d060](saves.md#d060) | Every attempt stores the ids of the helps in force in `helps`; save v13 | core_07 |
-| [d062](workflow.md#d062) | Screenshot baselines are Windows only, checked by a Windows CI job and made by a Windows workflow |  |
+| [d062](workflow.md#d062) | Screenshot baselines were Windows only, checked by a Windows CI job and made by a Windows workflow |  |
 | [d063](workflow.md#d063) | Static analysis: `npm run analyze` runs type-aware ESLint, knip and jscpd in CI |  |
 | [d064](saves.md#d064) | Save migration steps write frozen literals, never today's defaults |  |
 | [d065](stack.md#d065) | Flags and the piece catalogue reach scenes through `GameContext`; a production build ships approved pieces only |  |
@@ -269,5 +269,6 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d284](game.md#d284) | A two-hand piece is learned with both hands together by default; hands apart is a learning setting the player chooses | ft_1_32 |
 | [d285](art.md#d285) | Every choice the player picks from shows a picture, never a word; its words are in the tooltip | ft_1_32, ft_0_16 |
 | [d286](game.md#d286) | No silent tool action: every tool shows the result it would make before it commits, on the screen where it acts | ft_1_02d, ft_1_20 |
-| [d288](workflow.md#d288) | No game text uses a font of the computer: the staff's text is JetBrains Mono Bold shipped with the game and every other text the pixel font, so one screenshot baseline per screen serves Windows and Linux |  |
+| [d288](workflow.md#d288) | No game text uses a font of the computer: the staff's text is JetBrains Mono Bold shipped with the game and every other text the pixel font, so one screenshot baseline per screen serves every machine |  |
+| [d289](workflow.md#d289) | Screenshot tests and baselines make no difference between Windows and Linux: every job runs on Linux, a baseline is made by the baseline workflow or any local run, and the screenshot area always draws in software |  |
 <!-- /docs:index -->
