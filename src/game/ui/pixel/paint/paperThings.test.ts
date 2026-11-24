@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Bitmap } from '../bitmap';
-import { BOOK_PALETTE, paintBook } from './book';
+import { BOOK_PALETTE, paintBook, paintBookmark, paintCover, paintFolio, paintPageTurn, pageCorners } from './book';
 import { CABINET_PALETTE, drawerLabelBox, paintCabinet, paintDrawerFront, paintDrawerInside, paintIndexCard } from './cabinet';
 import { CARD_PALETTE, paintCard, paintRibbon } from './card';
 import { DESK_PALETTE, paintBeam, paintDesk } from './desk';
@@ -54,4 +54,31 @@ describe('the desk, the paper and the book (the screens overhaul)', () => {
     expect(same(paintDoor(60, 96), paintDoor(60, 96, true))).toBe(false);
     expect(same(paintPageCorner(56, 50), paintPageCorner(56, 50, true))).toBe(false);
   });
+
+  it('paints the song book\'s page numbers, bookmarks, turning corner and closed cover in the book\'s colours (ft_1_12 rule 10, ft_1_07)', () => {
+    // a number is wider for each numeral, and two numbers differ
+    expect(paintFolio(12).width).toBeGreaterThan(paintFolio(1).width);
+    expect(same(paintFolio(3), paintFolio(4))).toBe(false);
+    for (let n = 0; n < 10; n++) expect(inPalette(paintFolio(n), BOOK_PALETTE)).toBe(true);
+    // the corner rolls up further under the pointer: more of it painted
+    const rest = paintPageTurn(34, false), lifted = paintPageTurn(34, true);
+    expect(painted(lifted)).toBeGreaterThan(painted(rest));
+    expect(inPalette(lifted, BOOK_PALETTE)).toBe(true);
+    // the corner lies on the page's foot, inside the cover
+    const corners = pageCorners(628, 300);
+    expect(corners.right.x).toBeLessThan(628);
+    expect(corners.left.y).toBe(corners.right.y);
+    // each bookmark is its own silk, the open one brighter
+    const marks = [0, 1, 2, 3].map((m) => paintBookmark(m, 60, 38, true));
+    marks.forEach((b) => expect(inPalette(b, BOOK_PALETTE)).toBe(true));
+    expect(same(marks[0]!, marks[1]!)).toBe(false);
+    expect(same(paintBookmark(1, 32, 38, true), paintBookmark(1, 32, 38, false))).toBe(false);
+    // the cover leaves its name plate the book's palest paper
+    const plate = { x: 120, y: 80, w: 300, h: 60 };
+    const cover = paintCover(500, 300, plate);
+    expect(inPalette(cover, BOOK_PALETTE)).toBe(true);
+    const page = cover.pixels[(plate.y + 30) * 500 + plate.x + 150]!;
+    expect(BOOK_PALETTE[page]! >> 16).toBeGreaterThan(0xd0);
+  });
 });
+
