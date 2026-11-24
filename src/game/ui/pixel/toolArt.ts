@@ -7,7 +7,7 @@ import { C } from './palette';
  * hints; for the editor's toolbar (d088) a floppy disk for Save and an arrow into or out of a tray for Import and
  * Export; a loop for the ear trainer's repeat and the note trainer's new round, stairs for the note trainer's step, and undo, redo, a bin, play, stop, backspace and a tick for the piece maker and the name box. Original, drawn for this project (the Kenney pack page refused the download, and these are a few pixels each). Each fits inside a 14 pixel bar button with its frame (10 rows at most).
  */
-export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'backpack' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'speed' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort' | 'hide' | 'pointerFollow' | 'pointerStill';
+export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'speed' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort' | 'hide' | 'pointerFollow' | 'pointerStill' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen' | 'head';
 
 const LEGEND = { k: C.ink, w: C.white, g: C.gold, G: C.goldDark, s: C.skin } as const;
 
@@ -80,6 +80,20 @@ function fingers(): Bitmap {
   return b;
 }
 
+/** Book order: the digits 1, 2 and 3 in a row. */
+function orderBook(): Bitmap {
+  const b = createBitmap(11, 5);
+  ['1', '2', '3'].forEach((d, i) => blit(b, recolorInk(art(DIGITS[d]!)), i * 4, 0));
+  return b;
+}
+
+/** The digits are drawn in ink; a tool picture is drawn in white (the buttons tint it). */
+function recolorInk(b: Bitmap): Bitmap {
+  const out = createBitmap(b.width, b.height);
+  for (let i = 0; i < b.pixels.length; i++) out.pixels[i] = b.pixels[i] === C.ink ? C.white : b.pixels[i]!;
+  return out;
+}
+
 export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   /** More (ft_1_20, d282): the bubble's own shape, a ring of eight dots round a centre, so the picture matches what opens. */
   more: art(['....ww....', '.ww....ww.', '.ww....ww.', '..........', 'ww..ww..ww', 'ww..ww..ww', '..........', '.ww....ww.', '.ww....ww.', '....ww....']),
@@ -95,8 +109,6 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   /** The time panel: a 4 over a 4. */
   timePanel: art(['w..w', 'w..w', 'wwww', '...w', '....', 'w..w', 'w..w', 'wwww', '...w']),
   close: art(['w.....w', '.w...w.', '..w.w..', '...w...', '..w.w..', '.w...w.', 'w.....w']),
-  /** The backpack the student's kept items are in (ft_1_20, d282): a bag with a flap and a buckle. */
-  backpack: fromAscii(['...kkkk...', '..k....k..', '.kkkkkkkk.', 'kggggggggk', 'kgGGGGGGgk', 'kgGGkkGGgk', 'kggggggggk', 'kggggggggk', 'kGGGGGGGGk', '.kkkkkkkk.'], LEGEND),
   // a fermata: the sign that says hold, wait
   wait: art(['..wwwwwww..', '.w.......w.', 'w.........w', 'w...www...w', '....www....']),
   // a note running forward
@@ -119,6 +131,20 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   backspace: art(['...wwwwwwwww', '..w........w', '.w..w...w..w', 'w....w.w...w', 'w.....w....w', 'w....w.w...w', '.w..w...w..w', '..w........w', '...wwwwwwwww']),
   tick: art(['.........w', '........ww', '.......ww.', 'w.....ww..', 'ww...ww...', '.ww.ww....', '..www.....', '...w......']),
   /** The ear trainer's repeat: a loop with an arrow. */
+  /** The book's orders (ft_1_12.AC11): as listed (1 2 3), by stars, by deadline (an hourglass), by title (A to Z), by the last play (a clock). By level it is the steps. */
+  orderBook: orderBook(),
+  orderAchieved: fromAscii(['....k....', '...kgk...', 'kkkkgkkkk', 'kgggggggk', '.kgggggk.', '..kgggk..', '.kggkggk.', '.kgk.kgk.', '.kk...kk.'], LEGEND),
+  orderDeadline: art(['wwwwwww', 'w.....w', '.w...w.', '..w.w..', '...w...', '..w.w..', '.w.g.w.', 'wgggggw', 'wwwwwww']),
+  orderTitle: art(['.w...www', 'w.w....w', 'www...w.', 'w.w..w..', 'w.w..www']),
+  orderRecent: art(['..wwwww..', '.w.....w.', 'w...w...w', 'w...w...w', 'w...www.w', 'w.......w', '.w.....w.', '..wwwww..']),
+  /** The bookmark of every piece in the book (ft_1_12.AC10): an open book, a line of writing on each page. */
+  bookOpen: art(['.ww.....ww.', 'w..ww.ww..w', 'w....w....w', 'w.ww.w.ww.w', 'w....w....w', 'w.ww.w.ww.w', 'w....w....w', 'wwwwwwwwwww']),
+  /** The characters' pieces' bookmark (ft_1_12.AC10): a head, dark hair over a face. */
+  head: fromAscii(['...kkkk...', '.kkkkkkkk.', 'kkkkkkkkkk', 'kksssssskk', 'kssksskssk', 'kssssssssk', 'kssskksssk', '.kssssssk.', '..kkkkkk..'], LEGEND),
+  /** The teacher's pieces' bookmark (ft_1_12.AC10): a small white mortarboard with its gold tassel, to fit a ribbon. */
+  teacherHat: fromAscii(['.....ww.....', '...wwwwww...', '.wwwwwwwwww.', 'wwwwwwwwwwwg', '..wwwwwww..g', '..wwwwwww..g', '..wwwwwww.gg', '...........g'], LEGEND),
+  /** The order button itself: an arrow up beside an arrow down. */
+  order: art(['.w.....', 'www..w.', 'wwww.w.', '.w...w.', '.w...w.', '.w.wwww', '.w..ww.', '.w...w.']),
   /** Take a piece out of the book (ft_1_02c.AC8): an eye struck through, the usual sign for hidden. */
   hide: art(['........w', '..wwwwww.', '.w..w.ww.', 'w..www..w', '.w.ww..w.', '.wwwwww..', 'w........']),
   /** The piece list: three cards stacked (the score screens' way back to the pieces, ft_1_12). */

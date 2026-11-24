@@ -260,7 +260,7 @@ export function startAutoplay(options: AutoplayOptions): AutoplayHandle {
     await waitUntil('the script to end', () => {
       const s = scene(scenario.scene!) as (SceneLike & { scriptState?: { done: boolean } | null }) | undefined;
       return s?.scriptState?.done ? true : undefined;
-    }, 60000);
+    }, 180000); // the boat's script plays about 45 s in a cloud session; a slow runner takes more than a minute
     say('results', `The script ${scenario.script!} ended`);
   }
 
