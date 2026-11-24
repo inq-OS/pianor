@@ -1,6 +1,6 @@
 import type { PlaySettings } from '../core/judge/playSettings';
 import type { LearnSettings } from '../core/learn/progress';
-import { BAR_NUMBER_MODES, barNumbersToShow, type BarNumberMode } from '../core/layout/barNumbers';
+import { BAR_NUMBER_MODES, type BarNumberMode } from '../core/layout/barNumbers';
 import type { DurationMark } from '../core/layout/durationHelp';
 import type { StaffSettings } from '../core/layout/staffSettings';
 import { bugReportUrl, screenFacts } from '../core/report/bugReportLink';
@@ -12,7 +12,7 @@ import type { Bitmap } from './ui/pixel/bitmap';
 import { C } from './ui/pixel/palette';
 import { Mascot } from './ui/pixel/PixelObjects';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
-import { SYMBOL_HEIGHT, SYMBOL_WIDTH, durationSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, scoreSymbol, staffGapSymbol } from './ui/pixel/settingArt';
+import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, durationSymbol, fingersSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, scoreSymbol, staffGapSymbol } from './ui/pixel/settingArt';
 import { freshData, startScene } from './scenes';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 
@@ -206,17 +206,17 @@ export class SettingsScene extends PixelScene {
     const barNumberLabels: Record<BarNumberMode, string> = {
       off: t('settings.barNumbersOff'), first: t('settings.barNumbersFirst'), every: t('settings.barNumbersEvery'), every2: t('settings.barNumbersEvery2'), every4: t('settings.barNumbersEvery4'),
     };
-    // the first numbers the setting shows ("1 3 5" for every 2nd bar), blank for none
-    const barNumbers = BAR_NUMBER_MODES.map((mode) => ({ value: mode, label: barNumberLabels[mode], text: barNumbersToShow(mode, 9).slice(0, 3).map((b) => b.number).join(' ') }));
+    // five bars with the numbers the setting shows over them ("1 3 5" for every 2nd bar), none for off
+    const barNumbers = BAR_NUMBER_MODES.map((mode) => ({ value: mode, label: barNumberLabels[mode], symbol: barNumbersSymbol(mode) }));
     this.setting(1, 1, t('settings.barNumbers'), barNumbers, profiles.barNumberSettings.mode, (mode) => profiles.updateBarNumberSettings({ mode }));
     // the on-screen keyboard's switch is on this screen's toolbar (d099)
     // every note of a chord shows its finger, or only the top one: the monster-count setting left the screen
     // (the battle it was for is gone, ft_1_21); the saved choice stays, so the save format is unchanged
     // finger numbers: off, the top note of a chord, or every note of a chord; one button, so the grid keeps its size
     const fingerNumbers = [
-      { value: 'off' as const, label: t('settings.fingerNumbersOff'), text: t('settings.fingerNumbersOffShort') },
-      { value: 'top' as const, label: t('settings.chordFingersTop'), text: t('settings.chordFingersTopShort') },
-      { value: 'all' as const, label: t('settings.chordFingersAll'), text: t('settings.chordFingersAllShort') },
+      { value: 'off' as const, label: t('settings.fingerNumbersOff'), symbol: fingersSymbol('off') },
+      { value: 'top' as const, label: t('settings.chordFingersTop'), symbol: fingersSymbol('top') },
+      { value: 'all' as const, label: t('settings.chordFingersAll'), symbol: fingersSymbol('all') },
     ];
     this.setting(0, 2, t('settings.fingerNumbers'), fingerNumbers, profiles.fingerNumbers, (value) => profiles.updateFingerNumbers(value));
     const scores = ([['off', t('settings.scoreOff')], ['colour', t('settings.scoreColour')], ['number', t('settings.scoreNumber')]] as const)
