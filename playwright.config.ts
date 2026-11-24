@@ -23,6 +23,17 @@ const GPU_ARGS = E2E_GPU ? ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-b
 // No hinting and no LCD (coloured) smoothing of letters (d288): the staff font's edges come out the same on every machine.
 const BROWSER_ARGS = ['--autoplay-policy=no-user-gesture-required', '--font-render-hinting=none', '--disable-lcd-text'];
 
+// The tests play a bundled build of the game, not the dev server. On the dev server every page that opens the game asks for
+// about 520 separate source files, each run through Vite, and every test opens the game in a new page: a start took about
+// 2 s alone and much more with three browsers and the server sharing the processor. The bundle is about 30 files, built
+// once before the run (a few seconds; Keri's pictures come from their cache), and a start takes about 1 s. It is built in
+// Vite mode `development`, so the dev-only handles the tests use (`window.__game`, the virtual keyboard, draft pieces)
+// are in it as on the dev server. `PW_DEV_SERVER=1` runs against the dev server instead, e.g. to debug with live edits.
+const E2E_OUT = 'build/e2e';
+const SERVER_COMMAND = process.env.PW_DEV_SERVER === '1'
+  ? `npx vite --port ${PORT} --strictPort`
+  : `npx vite build --mode development --outDir ${E2E_OUT} --emptyOutDir --logLevel warn && npx vite preview --mode development --outDir ${E2E_OUT} --port ${PORT} --strictPort`;
+
 export default defineConfig({
   testDir: 'tests/e2e',
   // The target laptop is slow under load: generous limits, so a busy machine is not a failure.
@@ -65,14 +76,16 @@ export default defineConfig({
     },
   })),
   webServer: {
-    command: `npx vite --port ${PORT} --strictPort`,
+    command: SERVER_COMMAND,
     url: `http://localhost:${PORT}`,
     // Off by default: a server already on the port may be another worktree's code, and the tests would
     // silently run against it. Playwright then fails with "port already used". Set PW_REUSE_SERVER=1 to
     // reuse a server you started yourself on purpose.
     reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
     // the pieces in the machine's gitignored private/pieces/ would change the piece lists the tests see
-    env: { PIANOR_NO_PRIVATE_PIECES: '1' },
+    // PIANOR_E2E: the preview server answers the preview tool's requests as the dev server does (tools/vite-pieces.ts)
+    // NODE_ENV: without it `vite build` makes `import.meta.env.DEV` false even in mode development, and the handles are gone
+    env: { PIANOR_NO_PRIVATE_PIECES: '1', PIANOR_E2E: '1', ...(process.env.PW_DEV_SERVER === '1' ? {} : { NODE_ENV: 'development' }) },
     // A cold start paints Keri's pictures first (tools/vite-keri.ts): over a minute on a slow machine since the
     // room's set grew (82 s in a cloud session); the painting is cached after that.
     timeout: 180_000,
