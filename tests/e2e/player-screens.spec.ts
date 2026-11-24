@@ -597,6 +597,28 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
     expectNoErrors(errors);
   });
 
+  test('ft_1_12.AC10 every title in the book is lined up to the spine: right-aligned on the left page, left-aligned on the right', async ({ page }) => {
+    const errors = await openGame(page);
+    await waitForScene(page, 'menu');
+    const sides = await page.evaluate(() => {
+      const menu = window.__game.scene.getScene('menu') as unknown as { pieceButtons: { rect: { x: number; width: number }; textLines(): { x: number; width: number }[] }[] };
+      const rects = menu.pieceButtons.map((b) => b.rect);
+      const middle = (Math.min(...rects.map((r) => r.x)) + Math.max(...rects.map((r) => r.x + r.width))) / 2;
+      return menu.pieceButtons.flatMap((b) => b.textLines().slice(0, 1).map((line) => ({
+        left: b.rect.x + b.rect.width / 2 < middle,
+        gapLeft: line.x - b.rect.x,
+        gapRight: b.rect.x + b.rect.width - (line.x + line.width),
+      })));
+    });
+    expect(sides.some((s) => s.left)).toBe(true);
+    expect(sides.some((s) => !s.left)).toBe(true);
+    for (const s of sides) {
+      if (s.left) expect(s.gapRight).toBeLessThan(s.gapLeft);
+      else expect(s.gapLeft).toBeLessThan(s.gapRight);
+    }
+    expectNoErrors(errors);
+  });
+
   test("ft_1_12.AC10 ft_1_12.AC11 the teacher's bookmark shows only the teacher's pieces; the order button puts the nearest deadline first", async ({ page }) => {
     const errors = await openGame(page);
     const title: string = await page.evaluate(async () => {
