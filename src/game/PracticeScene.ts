@@ -1049,18 +1049,21 @@ export class PracticeScene extends PixelScene {
   }
 
   /**
-   * Key bashing (ft_1_15): the piece pauses and Kiur points at the door (`KiurDoorScene`). The keys of the bash were never
-   * judged (`KeyBashGuard`), and nothing earned is touched. Not while the game plays the piece or a pass is ending, but in
-   * the moment a learning run stopped (ft_1_15.AC7): the bash's first key is often the wrong key that stopped it.
+   * Key bashing (ft_1_15): the piece pauses and Kiur points at the door (`KiurDoorScene`), in whatever the screen is doing
+   * (ft_1_15.AC8): the student playing, the game playing the piece (Kuula), a pass's score or Kiur's line after a learning
+   * run waiting for the next run. The keys of the bash were never judged (`KeyBashGuard`), and nothing earned is touched.
+   * Not when the screen is already on its way out (no next run waits) or another overlay is up.
    */
   private onBash(): void {
-    const learnStopped = this.learnAgain !== null;
-    if ((this.leaving && !learnStopped) || this.listening || this.atDoor) return;
-    if (learnStopped) {
-      // the step does not start again under Kiur: Back starts it (`fromDoor`)
+    if (this.atDoor || !this.scene.isActive()) return;
+    if (this.leaving && this.loopTimer === null && this.learnAgain === null) return;
+    // a learning run stopped: the step does not start again under Kiur, Back starts it (`fromDoor`)
+    if (this.learnAgain) {
       this.loopTimer?.remove();
       this.loopTimer = null;
     }
+    // the game playing the piece stops; Back has the piece ready to play
+    if (this.listening) this.listenAlong?.stop();
     this.atDoor = true;
     this.guarded.setMuted(true);
     this.stopMetronome();
@@ -1091,13 +1094,26 @@ export class PracticeScene extends PixelScene {
    */
   private fromDoor(choice: OverlayOutcome<'kiurDoor'>): void {
     this.atDoor = false;
-    // a bash as a learning run stopped (ft_1_15.AC7): Back starts the same step again; the door goes out as from a run
-    const again = this.learnAgain;
-    if (again) {
-      if (choice !== 'door') {
-        again();
+    if (choice !== 'door') {
+      // a bash as a learning run stopped (ft_1_15.AC7): Back starts the same step again
+      if (this.learnAgain) {
+        this.learnAgain();
         return;
       }
+      // a pass's score or a learning run's line (ft_1_15.AC8): its wait goes on with the screen, then the next run
+      if (this.leaving) {
+        this.guarded.setMuted(false);
+        return;
+      }
+      // the game was playing the piece: the piece is ready to play
+      if (this.listening) {
+        this.listen(false);
+        return;
+      }
+    } else if (this.leaving) {
+      // the next run that waited is not played: out the door as from a run
+      this.loopTimer?.remove();
+      this.loopTimer = null;
       this.learnAgain = null;
       this.leaving = false;
     }

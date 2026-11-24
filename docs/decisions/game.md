@@ -548,3 +548,11 @@ Check: `src/core/island/cast.test.ts` "ft_1_37.AC8 neediness moves the share a p
 Every step before it still needs one perfect run. In the first two plays Wait mode waits for the right key and the play counts; in the third a wrong key starts the play again from its first bar, still the third play; a mistake never sends the count back and only lowers the clef's medal, as a run that did not count. Learning is meant to be reachable with some mistakes; the tug shows what still needs practice.
 
 Check: `src/core/learn/progress.test.ts` "ft_1_32.AC2 the third play must be perfect: a wrong key starts it again from the first bar, still the third play"; `tests/e2e/learn.spec.ts` "ft_1_32.AC2 the whole piece three times: the first plays go on past a wrong key and count, the third starts again on a mistake and stays the third"
+
+## d301
+
+**Key bashing brings Kiur to the door whenever it happens on a screen the student plays on.** Features: ft_1_15.
+
+On the practice screen in every state but the way out (playing, Kuula, a pass's score, a learning run's line) and in the four trainers; Back goes on where the screen was, the door goes to the room. A bash is a boundary, so it is never ignored because the screen was between two runs.
+
+Check: `tests/e2e/kiur-door.spec.ts` "ft_1_15.AC8 a bash while the score of a pass shows brings Kiur, Back goes on to the next pass and the door to the room"
