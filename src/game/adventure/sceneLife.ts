@@ -244,7 +244,7 @@ const PORT_LIFE: SceneLife<NonNullable<ReturnType<typeof PAINTED.port.ready>>> =
   live: (picture, _look, _air, seed) => [leapLayer(PORT_LEAPS, picture.leap, seed)],
   // moths round the beacon while it is lit
   motes: (_picture, look, _air, seed) => (lampLitAt(look.phase) ? [{ source: (time) => mothsAt(time, port.lamp, 3, seed), most: 3 }] : []),
-  gulls: { n: 3, span: 3, box: { x: 20, y: 12, w: 600, h: 44 } },
+  gulls: { n: 3, span: 3, box: { x: 60, y: 44, w: 520, h: 52 } },
   // the teacher's galleon (ft_1_27.AC2; for now the galley is the teacher's ship) sails in behind the quay
   figures: (picture) => ({ galleon: { frames: [boatStill(picture.boats.galleon)], ms: 0 } }),
   dive: {

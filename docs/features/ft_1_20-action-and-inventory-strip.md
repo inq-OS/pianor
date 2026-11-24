@@ -39,7 +39,7 @@ A screen whose actions all fit the strip and has nothing to point at pins them a
 
 The door (Back) and the gear (Settings) stay in the top corners (rule 3). The piano's status (lit while connected, its name in the tooltip) is a small picture in the top strip left of the gear, not an action. Keys do what they did; every action keeps its key, and a key that is free may be added (faster and slower on the arrows, a selected note's length on the number keys) when no other use of it is lost.
 
-AX-3 provisional: the painted places keep their 124-row picture centred in the rows they get until the painter paints them taller; while a conversation's choices or the tug are open (they use the 56-row board, `BOARD_ROWS`) the board stands along the screen's foot over the picture's lowest rows. TODO(painter, R2): paint the places taller, or move the picture up while a board is open, so the board covers no painted ground.
+AX-3 provisional: the painted places keep their 124-row picture centred in the rows they get until the painter paints them taller; while a conversation's choices or the tug are open (they use the 56-row board, `BOARD_ROWS`) the board stands along the screen's foot over the picture's lowest rows. A place painted tall fills every row, with whoever speaks in its upper 124 rows (art-direction rule 2); the port is. TODO(painter, R2): paint the other places taller (the room, the knoll, the crossroads, the docks).
 
 The painter draws the look; the builder builds the functions. Painter: [painter-project.md](../architect/painter-project.md).
 

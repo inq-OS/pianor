@@ -1,7 +1,7 @@
 import type { World, WorldPoint } from '../world/world';
 import { ART_DETAIL } from './frame';
 import type { Rect } from './rect';
-import { ROOM_PICTURE, roomView } from './room';
+import { pictureView } from './room';
 
 /**
  * The southern port (ft_1_19, AX-3 provisional): where most visitors land on Keri, at the slipway south of the
@@ -21,9 +21,9 @@ import { ROOM_PICTURE, roomView } from './room';
 /** The scene's id in the world model (`scenes` in content/world/keri.json). */
 export const PORT_ID = 'port';
 
-/** The scene's picture has the room's size: a low wide band over the same strip. */
-export const PORT_PICTURE = ROOM_PICTURE;
-export const portView = roomView;
+/** The scene's picture fills the main area of the target screen (d282): every row, with nothing kept free under it. */
+export const PORT_PICTURE = { w: 320, h: 180 } as const;
+export const portView = pictureView(PORT_PICTURE);
 
 const FINE = { w: PORT_PICTURE.w * ART_DETAIL, h: PORT_PICTURE.h * ART_DETAIL } as const;
 
@@ -35,12 +35,12 @@ const FINE = { w: PORT_PICTURE.w * ART_DETAIL, h: PORT_PICTURE.h * ART_DETAIL } 
  * `lens` fine pixels per radian, for what lies on the water.
  */
 export const PORT = {
-  horizon: 68,
-  far: 124,
-  deck: 136,
-  water: 194,
-  dive: 160,
-  bed: 376,
+  horizon: 108,
+  far: 164,
+  deck: 176,
+  water: 234,
+  dive: 200,
+  bed: 528,
   head: 548,
   eye: 3.0,
   lens: 470,
@@ -59,8 +59,8 @@ export type BoatKind = (typeof BOAT_KINDS)[number];
  * hides its waterline, so it lies behind the quay and does not stand on it.
  */
 export const PORT_BERTHS: readonly { x: number; water: number; room: number }[] = [
-  { x: 20, water: 125, room: 252 },
-  { x: 286, water: 125, room: 236 },
+  { x: 20, water: 165, room: 252 },
+  { x: 286, water: 165, room: 236 },
 ];
 
 /**
@@ -71,7 +71,7 @@ export const PORT_BERTHS: readonly { x: number; water: number; room: number }[] 
 export const PORT_MOORED: readonly BoatKind[] = ['houseboat'];
 
 /** Where the beacon's lantern hangs at the quay's head (fine pixels): its light glows round it at dusk and night. */
-const LAMP = { x: PORT.head - 18, y: 82 } as const;
+const LAMP = { x: PORT.head - 18, y: 122 } as const;
 
 /** Where the light falls in pools on the sand of the bed (centres, fine pixels of the tall picture). */
 const SAND_LIGHT = [{ x: 150, y: PORT.bed + 14 }, { x: 470, y: PORT.bed + 16 }] as const;

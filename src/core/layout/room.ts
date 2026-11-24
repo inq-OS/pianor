@@ -312,9 +312,19 @@ export function roomPlan(portrait: { w: number; h: number } = PORTRAIT_MAX): Roo
  * Under the action and inventory band (ft_1_20) the band is the strip, so the scene passes 0 `stripRows`.
  */
 export function roomView(screen: { w: number; h: number }, stripRows: number = STRIP_ROWS): { picture: Rect; strip: Rect } {
-  const above = screen.h - stripRows;
-  return {
-    picture: { x: Math.floor((screen.w - ROOM_PICTURE.w) / 2), y: Math.max(0, Math.floor((above - ROOM_PICTURE.h) / 2)), w: ROOM_PICTURE.w, h: ROOM_PICTURE.h },
-    strip: { x: 0, y: above, w: screen.w, h: stripRows },
+  return pictureView(ROOM_PICTURE)(screen, stripRows);
+}
+
+/**
+ * Where a place's picture of `size` layout cells and the strip under it go on a main area: the picture in the middle of the
+ * rows above the strip, at the top when it is as high as they are or higher.
+ */
+export function pictureView(size: { w: number; h: number }): (screen: { w: number; h: number }, stripRows?: number) => { picture: Rect; strip: Rect } {
+  return (screen, stripRows = STRIP_ROWS) => {
+    const above = screen.h - stripRows;
+    return {
+      picture: { x: Math.floor((screen.w - size.w) / 2), y: Math.max(0, Math.floor((above - size.h) / 2)), w: size.w, h: size.h },
+      strip: { x: 0, y: above, w: screen.w, h: stripRows },
+    };
   };
 }
