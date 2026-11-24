@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../tests/helpers/charts';
 import type { Chart } from '../core/chart';
-import { groupsOf, offeredPieces, piecesInShownGroups, piecesThatAreOn, type Piece, type PieceGroup } from './pieceList';
+import { groupsOf, offeredPieces, piecesUnderBookmark, piecesThatAreOn, type Piece } from './pieceList';
 
 const chart = (id: string, title = id): Chart => ({ ...chartWith([{ tick: 0, dur: 1920, midi: 60 }]), id, title });
 
@@ -97,11 +97,11 @@ describe('the piece book filter (ft_1_12.AC10)', () => {
     expect(pieces.map((p) => groups(p))).toEqual([[], ['own'], ['curriculum'], ['character'], ['own', 'curriculum']]);
   });
 
-  it('ft_1_12.AC10 hides the pieces of a hidden group; a piece in no group always shows', () => {
-    const ids = (hidden: PieceGroup[]) => piecesInShownGroups(pieces, groups, new Set(hidden)).map((p) => p.chart.id);
-    expect(ids([])).toEqual(['plain', 'mine', 'taught', 'phrase', 'mine-taught']);
-    expect(ids(['own'])).toEqual(['plain', 'taught', 'phrase']);
-    expect(ids(['curriculum', 'character'])).toEqual(['plain', 'mine']);
-    expect(ids(['own', 'curriculum', 'character'])).toEqual(['plain']);
+  it('ft_1_12.AC10 a bookmark shows its group only (an own piece on the curriculum under both); All shows every piece', () => {
+    const ids = (mark: Parameters<typeof piecesUnderBookmark>[2]) => piecesUnderBookmark(pieces, groups, mark).map((p) => p.chart.id);
+    expect(ids('all')).toEqual(['plain', 'mine', 'taught', 'phrase', 'mine-taught']);
+    expect(ids('own')).toEqual(['mine', 'mine-taught']);
+    expect(ids('curriculum')).toEqual(['taught', 'mine-taught']);
+    expect(ids('character')).toEqual(['phrase']);
   });
 });

@@ -211,8 +211,8 @@ export interface PixelButtonOptions {
   inkBox?: boolean;
   /** Letters twice as big, for headings. */
   big?: boolean;
-  /** `left` puts the label at the left edge (cards); the default centres it. */
-  align?: 'center' | 'left';
+  /** `left` puts the label at the left edge (cards), `right` at the right edge (a card on a book's left page); the default centres it. */
+  align?: 'center' | 'left' | 'right';
   /** Width available to the label in art pixels; the panel width less a margin by default. */
   labelWidth?: number;
   /** A locked button looks dim and does nothing. */
@@ -452,7 +452,7 @@ export class PixelButton {
 
   /** Letters in white with a shadow; dark on the gold of a switched-on button; dim on a locked one. */
   private labelStyle(): TextOptions {
-    const align = this.options.align === 'left' ? 'left' : 'center';
+    const align = this.options.align ?? 'center';
     const base = { maxWidth: this.maxLabelWidth, align, ...(this.options.keepCase ? { keepCase: true } : {}) } as const;
     if (this.look === 'bandCell' || this.look === 'bandSlot' || this.isBubble()) return { color: this.disabled ? C.honeyDark : this.active ? C.goldLight : this.hover ? C.cream : C.honey, ...base };
     if (this.look === 'ink') return { color: this.inkColour(), ...base };
@@ -464,7 +464,7 @@ export class PixelButton {
 
   private subStyle(): TextOptions {
     const maxWidth = this.options.labelWidth ?? this.box.width - 8;
-    const align = this.options.align === 'left' ? 'left' : 'center';
+    const align = this.options.align ?? 'center';
     if (this.disabled) return { color: C.lock, maxWidth, align };
     if (this.active) return { color: C.ink, maxWidth, align };
     return { color: C.dim, maxWidth, align };
@@ -637,11 +637,12 @@ export class PixelButton {
     }
     // with an icon the label is centred in the room right of it
     const cx = x + iconWidth + (width - iconWidth) / 2;
-    const left = this.options.align === 'left';
-    this.label.x = left ? x + 6 + iconWidth : Math.floor(cx - (this.label.width * big) / 2);
+    const align = this.options.align ?? 'center';
+    const placed = (w: number, inset: number): number => (align === 'left' ? x + 6 + inset : align === 'right' ? x + width - 6 - w : Math.floor(cx - w / 2));
+    this.label.x = placed(this.label.width * big, iconWidth);
     this.label.y = top;
     if (this.sublabel) {
-      this.sublabel.x = left ? x + 6 : Math.floor(cx - this.sublabel.width / 2);
+      this.sublabel.x = placed(this.sublabel.width, 0);
       this.sublabel.y = top + labelHeight + 2;
     }
   }
