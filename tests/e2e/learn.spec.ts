@@ -119,8 +119,13 @@ test('ft_1_32.AC23 a new piece is learned bar by bar with nothing said: one bar 
 });
 
 test('ft_1_32.AC23 a player who never saw the first-run hint gets no words as the first learning run starts', async ({ page }) => {
-  const errors = await openGame(page, '?device=virtual&learn=1&intro=auto');
-  await learnPiece(page, 'Little Steps');
+  const errors = await openGame(page, '?device=virtual&learn=1');
+  await askKiur(page);
+  await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Learn'));
+  await waitForScene(page, 'menu');
+  // the tests switch the first-run words off; from here on they are on, as for a new player who has not seen the hint
+  await page.evaluate(() => { (window.__game.registry.get('context') as { flags: { intro: string } }).flags.intro = 'auto'; });
+  await openPiece(page, 'Little Steps');
   await letGameRun(page, 5);
   expect(await sceneTexts(page, 'practice')).not.toContain('More tools: right-click the music, or press More');
   expect(await kiurSays(page)).toBe('');
