@@ -230,7 +230,7 @@ test('ft_1_32.AC17 the live tempo is off by default; turned on in the settings, 
   expectNoErrors(errors);
 });
 
-test('ft_1_32.AC15 a piece learned keeps its reward and Kiur\'s line until a key, then goes back to the room', async ({ page }) => {
+test('ft_1_32.AC15 ft_1_32.AC22 a piece learned keeps its reward and the learned line until a key, its clef grown to twice its size, then the book opens and the clef drops onto the card of the piece', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
   await learnPiece(page, 'Little Steps');
   const [steps, runs] = await page.evaluate(() => {
@@ -267,8 +267,19 @@ test('ft_1_32.AC15 a piece learned keeps its reward and Kiur\'s line until a key
   await page.waitForTimeout(3000);
   expect(await activeScenes(page)).toContain('practice');
   expect(await sceneTexts(page, 'practice')).toEqual(expect.arrayContaining([expect.stringMatching(/^Learned: .*Play any key to go on$/)]));
-  // a key goes on, back to the room where Kiur waits with the tug
+  // the clef has lifted off the prize column and grown to twice its size where it stood
+  expect(await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { clef: { scale: number } | null } }).playSession.clef?.scale)).toBe(2);
+  // a key goes on: the book opens at the piece, and the clef drops from where it was onto the piece's card
   await page.evaluate(() => { window.__virtualDevice!.press(60, 80); window.__virtualDevice!.release(60); });
+  await waitForScene(page, 'menu');
+  const clefs = () => page.evaluate(() => {
+    const scene = window.__game.scene.getScene('menu') as unknown as { children: { list: { name: string; list?: { name: string }[] }[] } };
+    return scene.children.list.flatMap((o) => [o, ...(o.list ?? [])]).map((o) => o.name).filter((n) => n.startsWith('clef'));
+  });
+  await expect.poll(clefs).toContain('clefFlight');
+  await expect.poll(clefs, { timeout: 5_000 }).not.toContain('clefFlight');
+  expect((await clefs()).filter((n) => /^clefPrize:(gold|silver|bronze)$/.test(n))).toHaveLength(1);
+  // a piece Kiur was asked to teach then goes back to the room, where Kiur waits with the tug
   await waitForScene(page, 'profile');
   expectNoErrors(errors);
 });

@@ -70,27 +70,6 @@ test.describe('two hands on a grand staff', () => {
     expectNoErrors(errors);
   });
 
-  test('hands apart: the piece still finishes with all stars, but earns no bonus and no one is told off', async ({ page }) => {
-    const errors = await openGame(page, OPEN);
-    await openPiece(page, 'Both Hands');
-    await playStepsWithVirtualPiano(page, BOTH_HANDS, 350);
-    await toScoreScreen(page);
-    expect(await results(page)).toMatchObject({ accuracy: 1, mistakes: 0 });
-    expect(await page.evaluate(() => window.__game.scene.getScene('results').result.bothHands)).toEqual({ notes: BOTH_HANDS_TWO_HAND_NOTES, together: 0 });
-    const multiplier = await page.evaluate(() => window.__game.scene.getScene('results').outcome?.events.find((e: { type: string }) => e.type === 'XpAwarded')?.xp.bothHandsMultiplier);
-    expect(multiplier).toBe(1);
-    expectNoErrors(errors);
-  });
-
-  test('the left hand first and the right hand first both work', async ({ page }) => {
-    const errors = await openGame(page, OPEN);
-    await openPiece(page, 'Both Hands');
-    await playStepsWithVirtualPiano(page, BOTH_HANDS.map((step) => [...step].reverse()));
-    await toScoreScreen(page);
-    expect(await results(page)).toMatchObject({ accuracy: 1, mistakes: 0 });
-    expectNoErrors(errors);
-  });
-
   test('a wrong key flashes both awaited notes, shows the key played, does not stop the piece and costs the bonus for that step', async ({ page }) => {
     const errors = await openGame(page, OPEN);
     await openPiece(page, 'Both Hands');

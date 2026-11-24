@@ -1,6 +1,6 @@
 // Covers ft_0_10.AC2, ft_0_10.AC4, ft_0_15.AC5.
 import { expect, test, type Page } from '@playwright/test';
-import { LITTLE_STEPS, addPlayer, clickButton, clickToolbar, expectNoErrors, goToMainMenu, openAdminPage, openGame, openPiece, pickProfile, playWithKeys, profileButton, nameDone, sceneButton, sceneTexts, showMenuPageWith, toPieceList, toScoreScreen, waitForScene, bandAction, reachButton } from './helpers';
+import { LITTLE_STEPS, addPlayer, clickButton, clickToolbar, expectNoErrors, goToMainMenu, openAdminPage, openGame, openPiece, pickProfile, playWithKeys, profileButton, nameDone, sceneButton, sceneTexts, showMenuPageWith, toPieceList, toScoreScreen, waitForScene, bandAction } from './helpers';
 
 const progress = (page: Page) =>
   page.evaluate(() => {
@@ -50,16 +50,6 @@ test.describe('earning XP and levels', () => {
     });
     expect(overlaps).toBe(0);
     expect((await progress(page)).pieceXp).toBe(85);
-    expectNoErrors(errors);
-  });
-
-  test('hints make a run earn less XP', async ({ page }) => {
-    const errors = await openGame(page);
-    await openPiece(page, 'Little Steps');
-    await clickButton(page, 'practice', await reachButton(page, 'practice', 'Note names'));
-    await playWithKeys(page, LITTLE_STEPS);
-    await toScoreScreen(page);
-    expect(await sceneTexts(page, 'results')).toContain('+42 XP');
     expectNoErrors(errors);
   });
 

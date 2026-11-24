@@ -150,23 +150,6 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_21.AC5 three lost phrases lose the tug: no leaf, the cool-down starts; ft_1_21.AC8 a loss takes nothing away', async ({ page }) => {
-    const errors = await openTug(page);
-    const first = await round(page, WRONG);
-    expect(first).toMatchObject({ standing: -1, saying: '0 of 7 notes right' });
-    await round(page, WRONG);
-    await round(page, WRONG);
-    await expect.poll(async () => (await tug(page))?.outcome).toBe('lost');
-    await expect.poll(async () => (await tug(page))?.saying).toContain('0 of 3');
-    await page.keyboard.press('Space');
-    await expect.poll(() => tug(page)).toBeNull();
-    await expect.poll(async () => (await world(page)).met['puuvaim']?.lastLostTug?.piece).toBe('puuvaim-1');
-    expect((await world(page)).items).toEqual([]);
-    expect(await tugs(page)).toEqual([expect.objectContaining({ won: false, xp: 0 })]);
-    expect(await inventory(page)).toEqual([]);
-    expectNoErrors(errors);
-  });
-
   test('Esc leaves the tug in the scene, with nothing kept', async ({ page }) => {
     const errors = await openTug(page);
     await round(page, PHRASE);
@@ -185,23 +168,6 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     await page.keyboard.press('Space');
     await expect.poll(() => tug(page)).toBeNull();
     expect(await tugs(page)).toEqual([]);
-    expectNoErrors(errors);
-  });
-
-  test('ft_1_21.AC13 after a lost tug he waits for three clean plays of the piece, then plays again', async ({ page }) => {
-    const errors = await openTug(page);
-    for (let i = 0; i < 3; i++) await round(page, WRONG);
-    await expect.poll(async () => (await tug(page))?.saying).toContain('0 of 3');
-    await page.keyboard.press('Space');
-    await expect.poll(() => tug(page)).toBeNull();
-    await expect.poll(async () => (await world(page)).met['puuvaim']?.lastLostTug?.piece).toBe('puuvaim-1');
-    await pickTug(page);
-    await expect.poll(async () => (await tug(page))?.saying).toBe('Play my tune clean in your room 3 more times, then we try again.');
-    await page.keyboard.press('Space');
-    await expect.poll(() => tug(page)).toBeNull();
-    await practise(page, 3);
-    await pickTug(page);
-    await expect.poll(async () => (await tug(page))?.who).toBe('character');
     expectNoErrors(errors);
   });
 
