@@ -45,7 +45,7 @@ const pathSchema = z.object({
  * A scene (ft_1_19, d112): a place on the island where characters are met, opened from the map once the student
  * has reached `level`. Its id names its picture and its texts.
  */
-const sceneSchema = z.object({ id: z.string().min(1), x: z.number(), y: z.number(), level: z.number().int().min(1), note: z.string().optional() });
+const sceneSchema = z.object({ id: z.string().min(1), x: z.number(), y: z.number(), level: z.number().int().min(1), unfinished: z.boolean().optional(), note: z.string().optional() });
 
 export const worldSchema = z.object({
   schemaVersion: z.literal(1),

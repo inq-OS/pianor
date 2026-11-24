@@ -100,3 +100,22 @@ export function tugRulesFor(rules: TugRules, neediness: number): TugRules {
   if (neediness === DEFAULT_NEEDINESS) return rules;
   return { ...rules, levels: rules.levels.map((level) => ({ ...level, share: neededShare(level.share, neediness) })) as unknown as TugRules['levels'] };
 }
+
+/** The piece a character teaches for a conversation's `teach` of `piece`: the teacher's pick in place of its own (ft_1_37.AC4). */
+export function castTeachPiece(curriculum: Curriculum | undefined, character: CharacterId, piece: PieceId): PieceId {
+  return curriculum?.cast?.characters?.[character]?.piece ?? piece;
+}
+
+/**
+ * The pieces of a character's own `phrases` that its talk may offer to teach: the piece it would teach (the teacher's pick
+ * or its own) is in the game and approved, or picked by the teacher, who approves it by picking it. `offer` says how the
+ * game offers a piece (absent: not in the game). A draft is never taught unless the teacher picked it.
+ */
+export function teachablePieces(def: Pick<CharacterDef, 'id' | 'phrases'>, curriculum: Curriculum | undefined, offer: (piece: PieceId) => 'approved' | 'draft' | undefined): PieceId[] {
+  const picked = curriculum?.cast?.characters?.[def.id]?.piece;
+  const own = [...new Set(Object.values(def.phrases).flatMap((p) => p ?? []))];
+  return own.filter((piece) => {
+    const status = offer(castTeachPiece(curriculum, def.id, piece));
+    return status === 'approved' || (picked !== undefined && status !== undefined);
+  });
+}
