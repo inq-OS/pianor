@@ -533,15 +533,16 @@ class SquarePainter {
 
   /**
    * A wall as the 1991 game builds a town's: stones of every size laid in loose courses, each its own flat blotch of
-   * colour (the wash, ochre, a rusty one now and then), pale soft mortar and no dark joints, the whole wall mottled in
-   * broad patches and damp at its foot. `lift` moves the courses up or down at a pixel, for a wall that curves or leans.
+   * colour (the wash, ochre, a darker ochre now and then), pale soft mortar and no dark joints, the whole wall mottled in
+   * broad patches and damp at its foot. `map` says where on the wall a pixel lies, for a wall that runs away or leans.
    */
-  private masonry(light: number, foot: number, seed: number, wash: readonly number[] = F.plaster, scale = 1, lift: (x: number, y: number) => number = () => 0): Tone {
+  private masonry(light: number, foot: number, seed: number, wash: readonly number[] = F.plaster, scale = 1, map: (x: number, y: number) => Pt = (x, y) => [x, y]): Tone {
     return (x, y) => {
-      const yy = y + lift(x, y) + 2.4 * noise2(x / 34, 1, 960 + seed);
+      const [mx, my] = map(x, y);
+      const yy = my + 2.4 * noise2(mx / 34, 1, 960 + seed);
       const course = Math.floor(yy / (8 * scale)), tall = 8 * scale;
       const long = (13 + 12 * hash2(course, 1, 961 + seed)) * scale;
-      const along = (x + hash2(course, 2, 961 + seed) * 40) / long + 0.3 * noise2(course, x / 60, 962 + seed);
+      const along = (mx + hash2(course, 2, 961 + seed) * 40) / long + 0.3 * noise2(course, mx / 60, 962 + seed);
       const k = Math.floor(along), u = along - k, v = yy / tall - course;
       const patch = (fbm(x / 60, y / 40, 2, 963 + seed) - 0.5) * 0.3;
       const damp = 0.16 * smooth(foot - 26, foot, y + 6 * noise2(x / 9, 1, 861 + seed));
@@ -552,7 +553,7 @@ class SquarePainter {
       const kind = hash2(k, course, 964 + seed), own = (hash2(k, course, 965 + seed) - 0.5) * 0.26;
       // a stone's far edge catches the light, its near edge is a tone down
       const dome = v < 0.3 ? 0.06 : v > 0.74 ? -0.08 : 0;
-      if (kind > 0.96) return this.worn(F.earth, base + 0.56 + own + dome, x, y, 0.05, seed);
+      if (kind > 0.96) return this.worn(F.dry, base - 0.12 + own + dome, x, y, 0.05, seed);
       // an ochre stone only in the light: in the shade the wall keeps to its cool tones
       if (kind > 0.86 && light > 0.4) return this.worn(F.dry, base + 0.1 + own + dome, x, y, 0.05, seed);
       if (kind > 0.6) return this.worn(F.shingle, base - 0.04 + own + dome, x, y, 0.05, seed);
@@ -634,17 +635,17 @@ class SquarePainter {
   }
 
   /**
-   * The lighthouse's side building (`building-2`): the left wing, built as the 1991 game builds a town house. Its corner
-   * stands near and leans; the gable end toward the viewer is in deep shade and runs off the picture's top, the long
-   * south wall goes away to the right in the light, much smaller at its far end. Stone walls, a steep roof with a pale
-   * verge, beams sticking out under the eave, an arched window boarded up, an arched door nailed shut, a lantern on an
-   * iron scroll at the corner.
+   * The lighthouse's side building (`building-2`): the left wing, built as the 1991 game builds a town house. One long
+   * south wall in the light, which comes in from the picture's left edge (no corner shows) and runs away to the right,
+   * much smaller at its far end, its stones growing with it toward the viewer. Its eave sags; over it a strip of the tin
+   * roof up to the ridge. A big arched window boarded up near the viewer, beams sticking out under the eave, an arched
+   * door nailed shut, a lantern on an iron scroll.
    */
   private sideBuilding(): void {
     const { hour } = this;
     // the south wall's eave and foot at a column, and a point on it: `v` 0 at the eave, 1 at the ground
-    const top = (x: number): number => 18 + (x - 78) * 1.02, bottom = (x: number): number => 254 - (x - 70) * 0.8;
-    const on = (x: number, v: number): Pt => [x - 8 * v * (1 - (x - 70) / 90), top(x) + v * (bottom(x) - top(x))];
+    const top = (x: number): number => 18 + (x - 78) * 1.02 + 3 * Math.sin(x / 21), bottom = (x: number): number => 254 - (x - 70) * 0.8;
+    const on = (x: number, v: number): Pt => [x - 8 * v * (1 - (x - 70) / 90) + 5 * Math.sin(v * Math.PI) * (1 - x / 170), top(x) + v * (bottom(x) - top(x))];
     const arch = (x0: number, x1: number, crown: number, spring: number, foot: number): Pt[] => [
       on(x0, foot), on(x0, spring),
       ...Array.from({ length: 7 }, (_, k): Pt => on(x0 + (x1 - x0) * (0.5 - 0.5 * Math.cos((Math.PI * (k + 1)) / 8)), spring - (spring - crown) * Math.sin((Math.PI * (k + 1)) / 8))),
@@ -654,28 +655,28 @@ class SquarePainter {
       const cx = pts.reduce((sum, p) => sum + p[0], 0) / pts.length, cy = pts.reduce((sum, p) => sum + p[1], 0) / pts.length;
       return pts.map(([x, y]): Pt => [cx + (x - cx) * by, cy + (y - cy) * (1 + (by - 1) * 0.6)]);
     };
+    const edge = (x0: number, x1: number, v: number, step = 12): Pt[] => Array.from({ length: Math.ceil((x1 - x0) / step) + 1 }, (_, k): Pt => on(Math.min(x1, x0 + k * step), v));
+    const band = (x0: number, x1: number, v0: number, v1: number): Pt[] => [...edge(x0, x1, v0), ...edge(x0, x1, v1).reverse()];
     const pale: Tone = (x, y) => this.worn(F.plaster, hour.south + 0.16, x, y, 0.05, 41);
+    // where a pixel lies on the wall: along it (the stones as tall as they are long at every distance) and down it
+    const onWall = (x: number, y: number): Pt => [-82 * Math.log(Math.max(8, 204 - x)), ((y - top(x)) / Math.max(1, bottom(x) - top(x))) * 150];
     this.as(() => {
-      // the gable end toward the viewer, in the shade: cool blotchy stones, darker toward the ground
-      this.poly([[-10, -50], [14, -34], [78, 18], [78, 140], [70, 254], [-10, 280]], this.masonry(hour.north * 0.6 + 0.12, 270, 5, F.plaster, 1.7, (x) => x * 0.1), 1.8);
-      // the south wall in the light, its courses running away with it
-      this.poly([on(78, 0), on(160, 0), on(160, 1), on(78, 1)], this.masonry(hour.south + 0.04, 400, 6, F.plaster, 1, (x, y) => ((y - top(x)) / Math.max(1, bottom(x) - top(x))) * 150 - y), 1.4);
+      this.poly(band(-30, 160, 0, 1), this.masonry(hour.south + 0.02, 400, 6, F.plaster, 1.25, onWall), 1.4);
       // the eave's shade lies in a band under the roof, and a plinth of bigger stones stands out at the ground
-      this.poly([on(78, 0), on(160, 0), on(160, 0.18), on(78, 0.1)], (x, y) => this.worn(F.plaster, hour.south - 0.36, x, y, 0.05, 6), 1.2);
-      this.poly([on(78, 0.93), on(160, 0.9), on(160, 1), on(78, 1)], this.blocks(hour.south - 0.1, 7, 16, 7), 0.8);
-      this.poly([[-10, 262], [71, 238], [70, 254], [-10, 280]], this.blocks(hour.north + 0.02, 12, 28, 8), 1);
-      // the corner's dressed stones, long and short by turns, on both walls
-      for (let k = 0; k < 9; k++) {
-        const y = 30 + k * 22, wide = k % 2 ? 9 : 15, cx = 78 - (y - 18) * 0.034;
-        this.poly([[cx - wide, y + 2], [cx, y], [cx, y + 15], [cx - wide, y + 17]], (px, py) => this.worn(F.shingle, hour.north * 0.6 + 0.3, px, py, 0.05, 20 + k), 0.5);
-        this.poly([[cx, y], [cx + wide * 0.6, y + wide * 0.5], [cx + wide * 0.6, y + 13 + wide * 0.3], [cx, y + 15]], (px, py) => this.worn(F.shingle, hour.south + 0.1, px, py, 0.05, 30 + k), 0.5);
-      }
+      this.poly(band(-30, 160, 0, 0.13), (x, y) => this.worn(F.plaster, hour.south - 0.36, x, y, 0.05, 6), 1.2);
+      this.poly(band(-30, 160, 0.92, 1), (x, y) => {
+        const [mx, my] = onWall(x, y), k = Math.floor(mx / 26 + 0.2 * noise2(mx / 40, 1, 905)), joint = mx / 26 + 0.2 * noise2(mx / 40, 1, 905) - k;
+        return this.worn(F.plaster, hour.south - 0.2 + (joint < 0.07 || my < 139.4 ? 0.3 : (hash2(k, 1, 906) - 0.5) * 0.16) - (my > 147 ? 0.1 : 0), x, y, 0.05, 7);
+      }, 0.8);
     });
     this.as(() => {
-      // the roof over the south wall: rusted blue tin, a pale verge down the gable and a fat dark eave
-      this.poly([[10, -40], [146, 40], [170, 108], [80, 16]], this.tin(hour.south * 0.5 + 0.2, -0.7, 5), 1.2);
-      this.poly([[80, 16], [170, 108], [170, 115], [80, 24]], () => R.tin[0]!, 0.5);
-      this.poly([[4, -40], [14, -40], [84, 15], [79, 25]], (x, y) => this.worn(F.dry, hour.south * 0.5 + 0.4, x, y, 0.05, 42), 0.6);
+      // the roof: a strip of rusted blue tin from the sagging eave up to the ridge, wider toward the viewer, its far verge
+      // pale; under it a fat dark eave that sticks out over the wall
+      const eave = (x: number): Pt => [x + 5, top(x) + 2], ridge = (x: number): Pt => [x + 13, top(x) - 30 - (160 - x) * 0.36 + 4 * Math.sin(x / 30)];
+      const xs = [16, 40, 64, 88, 112, 136, 164], back = [0, 30, 60, 90, 120, 150];
+      this.poly([...xs.map(eave), ...back.map(ridge).reverse()], this.tin(hour.south * 0.5 + 0.24, -0.25, 5), 0.8);
+      this.poly([...xs.map(eave), ...xs.map((x): Pt => [x + 5, top(x) + 9]).reverse()], () => R.tin[0]!, 0.4);
+      this.line(ridge(150), eave(164), (x, y) => this.worn(F.dry, hour.south * 0.5 + 0.4, x, y, 0.05, 42), 3);
     });
     // beams sticking out under the eave, each with its shade on the wall
     for (const x of [92, 114, 134, 150]) this.as(() => {
@@ -685,15 +686,17 @@ class SquarePainter {
       this.poly([[bx - 3, by], [bx - 3, by + 6], [bx - 6, by + 5], [bx - 6, by - 1]], () => R.wood[0]!, 0.2);
     });
     this.as(() => {
-      // the gable's arched window, set deep in a frame of pale stone and boarded up with three planks, none level
-      const frame: Pt[] = [[2, 176], [2, 108], [8, 92], [18, 82], [30, 80], [42, 86], [50, 100], [52, 182]];
-      this.poly(grow(frame, 1.2), (x, y) => this.worn(F.shingle, hour.north * 0.6 + 0.34, x, y, 0.05, 45), 0.8);
+      // a big arched window near the viewer, set deep in a frame of pale stone and boarded up with three planks, none level
+      const frame = arch(6, 46, 0.3, 0.41, 0.62);
+      this.poly(grow(frame, 1.2), pale, 0.8);
       this.poly(frame, (x, y) => tone(F.tin, 0.04 + 0.1 * noise2(x / 7, y / 7, 900), x, y), 0.6);
-      for (const [y0, y1, n] of [[104, 112, 1], [128, 122, 2], [150, 160, 3]] as const) {
-        this.poly([[-6, y0], [58, y1], [58, y1 + 10], [-6, y0 + 11]], (x, y) => this.worn(F.boards, hour.north + 0.3 + (hash2(x >> 3, n, 901) - 0.5) * 0.1, x, y, 0.08, n), 0.5);
+      for (const [v0, v1, n] of [[0.39, 0.42, 1], [0.49, 0.46, 2], [0.54, 0.58, 3]] as const) {
+        const [ax, ay] = on(0, v0), [bx, by] = on(52, v1);
+        this.poly([[ax, ay], [bx, by], [bx, by + 10], [ax, ay + 11]], (x, y) => this.worn(F.boards, hour.south * 0.6 + 0.2 + (hash2(x >> 3, n, 901) - 0.5) * 0.1, x, y, 0.08, n), 0.5);
       }
       // its sill, a slab that sticks out
-      this.poly([[-6, 180], [58, 186], [58, 193], [-6, 187]], (x, y) => this.worn(F.shingle, hour.north * 0.6 + 0.4, x, y, 0.04, 46), 0.5);
+      const [ax, ay] = on(0, 0.63), [bx, by] = on(54, 0.63);
+      this.poly([[ax, ay], [bx, by], [bx + 3, by + 8], [ax + 3, ay + 8]], (x, y) => this.worn(F.shingle, hour.south + 0.2, x, y, 0.04, 46), 0.5);
     });
     this.as(() => {
       // the door in the south wall: an arch of pale stones, a deep dark reveal, planks nailed across it in a cross
@@ -721,10 +724,10 @@ class SquarePainter {
     });
     this.as(() => {
       // a stovepipe through the roof, crooked, with a cap
-      this.line([112, 40], [108, 12], R.stone[1]!, 5);
-      this.line([108, 12], [114, 2], R.stone[1]!, 5);
-      this.line([110, 40], [106, 12], R.stone[3]!, 1);
-      this.line([106, 1], [122, 3], R.stone[0]!, 2);
+      this.line([122, 46], [118, 18], R.stone[1]!, 5);
+      this.line([118, 18], [124, 8], R.stone[1]!, 5);
+      this.line([120, 46], [116, 18], R.stone[3]!, 1);
+      this.line([116, 7], [132, 9], R.stone[0]!, 2);
     });
     this.as(() => {
       // a drainpipe down the far end of the wall, bent at its foot, into the rain barrel
@@ -1033,6 +1036,36 @@ class SquarePainter {
     });
   }
 
+  /** A stone post as the 1991 game's towns have them: a block of stone, a slab on it, a ball on the slab. */
+  private post(x: number, foot: number, wide: number, tall: number): void {
+    const { hour } = this;
+    const lit = (lift: number, seed: number): Tone => (px, py) => this.worn(F.stone, hour.south * 0.5 + 0.2 + lift + (fbm(px / 8, py / 6, 2, 930 + seed) - 0.5) * 0.3, px, py, 0.05, seed);
+    const dim = (lift: number, seed: number): Tone => (px, py) => this.worn(F.plaster, hour.north * 0.5 + 0.1 + lift + (fbm(px / 8, py / 6, 2, 930 + seed) - 0.5) * 0.2, px, py, 0.05, seed);
+    const side = wide * 0.45, r = wide * 0.5;
+    // its shade on the ground, away from the sun
+    this.oval(x + wide + side + 10, foot + 1, wide * 0.9, 7, (px, py) => this.worn(F.plaster, hour.north * 0.5 + 0.12, px, py, 0.05, 9));
+    this.as(() => {
+      // the block: one face in the sun, the other in the shade, leaning a little, a chipped foot
+      this.poly([[x - 3, foot], [x + wide, foot + 3], [x + wide - 1, foot - tall], [x + 1, foot - tall - 1]], lit(0, 1), 1);
+      this.poly([[x + wide, foot + 3], [x + wide + side, foot - 6], [x + wide + side - 2, foot - tall - 7], [x + wide - 1, foot - tall]], dim(0, 2), 0.6);
+      this.poly([[x - 3, foot], [x + wide, foot + 3], [x + wide, foot - 5], [x - 3, foot - 7]], lit(-0.2, 3), 0.8);
+    });
+    this.as(() => {
+      // the slab, wider than the block
+      this.poly([[x - 5, foot - tall - 1], [x + wide + 3, foot - tall + 1], [x + wide + side + 5, foot - tall - 8], [x + side - 3, foot - tall - 10]], lit(0.24, 4), 0.5);
+      this.poly([[x - 5, foot - tall - 1], [x + wide + 3, foot - tall + 1], [x + wide + 3, foot - tall + 7], [x - 5, foot - tall + 5]], lit(-0.1, 5), 0.4);
+      this.poly([[x + wide + 3, foot - tall + 1], [x + wide + side + 5, foot - tall - 8], [x + wide + side + 5, foot - tall - 2], [x + wide + 3, foot - tall + 7]], dim(-0.06, 6), 0.4);
+    });
+    this.as(() => {
+      // the ball: lit from the upper left, a crescent of shade down its other side
+      const cx = x + (wide + side) / 2, cy = foot - tall - 5 - r * 0.86;
+      this.oval(cx, cy, r, r, (px, py) => {
+        const [ox, oy] = bend(cx, cy), bx = (px - ox) / r, by = (py - oy) / r, turn = bx * 0.7 + by * 0.6;
+        return turn > 0.34 ? dim(turn > 0.74 ? 0.14 : 0, 7)(px, py) : lit(turn < -0.5 ? 0.3 : 0.08, 8)(px, py);
+      });
+    });
+  }
+
   private crate(x: number, foot: number, wide: number, tall: number): void {
     const { hour } = this;
     this.as(() => {
@@ -1118,6 +1151,7 @@ class SquarePainter {
     this.flowerBed();
     this.props();
     this.sideBuilding();
+    this.post(26, 352, 32, 50);
     this.boatShed();
     this.stringOfLights();
     this.lanterns();
