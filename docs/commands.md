@@ -1,5 +1,5 @@
 ---
-covers: ["package.json", ".githooks/", ".claude/hooks/", ".mcp.json", "playwright.config.ts"]
+covers: ["package.json", ".githooks/", ".claude/hooks/", "playwright.config.ts"]
 ---
 # Commands
 
