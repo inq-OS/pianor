@@ -28,10 +28,12 @@ export const SCENE_SCREENS: Readonly<Record<string, { scene: KeriScreen; label: 
 /** What a scene of Keri is started with: `visiting` when the screensaver shows it (ft_1_17.AC4). */
 export interface VisitData {
   visiting?: boolean;
+  /** Back from a wanderer's ask (ft_1_37.AC7): its scene hears the first whole play of `piece` after `since`. */
+  wanderer?: { id: string; piece: string; since: string };
 }
 
 /** The scenes the student's level has opened that have a screen, in the world model's order. */
-function visitable(from: Phaser.Scene): string[] {
+export function visitable(from: Phaser.Scene): string[] {
   const open = openScenes(KERI.scenes ?? [], contextOf(from).profiles.progress.level.level, isTester(contextOf(from).profiles.profile.name));
   return open.filter((id) => SCENE_SCREENS[id] !== undefined);
 }

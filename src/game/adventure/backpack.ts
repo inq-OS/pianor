@@ -16,8 +16,10 @@ export function keptEntries(world: WorldState | null): ReturnType<typeof bandInv
  * nothing yet.
  */
 export function backpackOf(world: WorldState | null): ToolbarItem[] {
-  return keptEntries(world).map(({ item, rung }) => {
-    const name = t(item.name as StringKey), picture = prizePicture(item.picture);
+  return keptEntries(world).map(({ item, rung, count }) => {
+    // several of one kind (keepsakes, ft_1_37.AC9) say how many
+    const own = t(item.name as StringKey), name = count !== undefined && count > 1 ? t('item.count', { name: own, n: count }) : own;
+    const picture = prizePicture(item.picture);
     const tooltip = rung ? t('item.rung', { name, at: rung.at, of: rung.of }) : name;
     return picture ? { label: name, icon: picture, fineIcon: true, tooltip, onClick: () => undefined } : { label: name, tooltip, onClick: () => undefined };
   });

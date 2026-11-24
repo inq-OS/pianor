@@ -120,9 +120,10 @@ export interface PracticeData {
   /**
    * The teacher's check-up (ft_1_27.AC2): the whole piece once, in Wait mode at its written tempo, with no section, mode or
    * tempo buttons; at the end of the first pass (saved as any pass) back to the room, which hears the play from the log
-   * after `since` (an ISO time, when she asked for it). Back returns to the room with nothing heard.
+   * after `since` (an ISO time, when she asked for it). Back returns to the room with nothing heard. With `wanderer` it is
+   * a wanderer's ask (ft_1_37.AC7): the same one pass, heard back in the wanderer's scene instead of the room.
    */
-  checkup?: { since: string };
+  checkup?: { since: string; wanderer?: { id: string; scene: KeriScreen } };
   /** Learning bar by bar (ft_1_32): what Kiur says as this start begins, about the run just ended. */
   learnLine?: string;
   /** The wrong key that stopped the last learning run (ft_1_32.AC6): it stays on the staff until the first key of this run. */
@@ -241,7 +242,7 @@ export class PracticeScene extends PixelScene {
   private preview = false;
   private returnTo: 'preview' | 'editor' = 'preview';
   /** `PracticeData.checkup` of this start; null for any other play. */
-  private checkup: { since: string } | null = null;
+  private checkup: { since: string; wanderer?: { id: string; scene: KeriScreen } } | null = null;
   /**
    * Learning the piece bar by bar (ft_1_32 slice 2): a new piece is learned before it is practised. The staff shows only the
    * run's bars in Wait mode, the first wrong key ends the run and the same step starts again; null for any other play.
@@ -739,6 +740,12 @@ export class PracticeScene extends PixelScene {
     return this.playSession.transport;
   }
 
+  /** The check-up's pass is kept: the teacher hears it in the room, a wanderer in its scene (ft_1_27.AC2, ft_1_37.AC7). */
+  private heardBack(checkup: { since: string; wanderer?: { id: string; scene: KeriScreen } }): void {
+    if (checkup.wanderer) startScene(this, checkup.wanderer.scene, { wanderer: { id: checkup.wanderer.id, piece: this.fullChart.id, since: checkup.since } });
+    else startScene(this, 'profile', { checkup: { piece: this.fullChart.id, since: checkup.since } });
+  }
+
   private leave(): void {
     // while a pass's score shows the scene is already "leaving" for the next pass; Back still ends the session then
     if (this.leaving && this.loopTimer === null) return;
@@ -758,10 +765,11 @@ export class PracticeScene extends PixelScene {
       // bars are kept; before that the teacher still waits for the piece
       const pending = this.pendingPass;
       if (pending === null && this.lastResult === null) {
-        startScene(this, 'profile');
+        if (checkup.wanderer) startScene(this, checkup.wanderer.scene, {});
+        else startScene(this, 'profile');
         return;
       }
-      void Promise.all([pending, this.barsSaved]).then(() => startScene(this, 'profile', { checkup: { piece: this.fullChart.id, since: checkup.since } }));
+      void Promise.all([pending, this.barsSaved]).then(() => this.heardBack(checkup));
       return;
     }
     const teacher = this.startData.teacher;
@@ -1032,7 +1040,7 @@ export class PracticeScene extends PixelScene {
         // the check-up is one pass: once its bars are kept, the teacher hears it in the room
         const checkup = this.checkup;
         if (checkup) {
-          void this.barsSaved.then(() => { if (this.scene.isActive()) startScene(this, 'profile', { checkup: { piece: this.fullChart.id, since: checkup.since } }); });
+          void this.barsSaved.then(() => { if (this.scene.isActive()) this.heardBack(checkup); });
           return;
         }
         this.scene.restart({ ...this.startData, ...this.carry(), passes: outcome ? [...this.passes, outcome] : this.passes, lap, lastResult: result, passSummary });
