@@ -55,8 +55,8 @@ const RESULTS_DELAY_MS = 1000;
 /** The loop (ft_1_12): how long the score of a pass stays past the last bar before the piece starts again at bar 1. */
 const PASS_SCORE_MS = 2000;
 /**
- * Learning bar by bar (ft_1_32): how long the wrong key and Kiur's line stay before the same step starts again, and how long
- * a perfect run's line stays before the next step. AX-3 provisional.
+ * Learning bar by bar (ft_1_32): how long the wrong key stays before the same step starts again, and how long a perfect
+ * run's new prize note stays before the next step. AX-3 provisional.
  */
 const LEARN_STOP_MS = 1800;
 const LEARN_NEXT_MS = 1400;
@@ -141,8 +141,8 @@ export interface PracticeData {
    * a wanderer's ask (ft_1_37.AC7): the same one pass, heard back in the wanderer's scene instead of the room.
    */
   checkup?: { since: string; wanderer?: { id: string; scene: KeriScreen } };
-  /** Learning bar by bar (ft_1_32): what Kiur says as this start begins, about the run just ended. */
-  learnLine?: string;
+  /** Learning bar by bar (ft_1_32): this start is the next run after one that ended; Kiur says nothing between runs. */
+  learnNext?: true;
   /** The wrong key that stopped the last learning run (ft_1_32.AC6): it stays on the staff until the first key of this run. */
   learnWrong?: { key: WrongKey; firstBar: number; lastBar: number };
   /**
@@ -301,7 +301,7 @@ export class PracticeScene extends PixelScene {
   private clefFlight: Omit<ClefFlight, 'then'> | null = null;
   /** Where the intro's lesson is in learning its bars, handed to the next run (ft_1_31.AC8). */
   private introLearning: LearnProgress | null = null;
-  /** This start follows a learning run, whose line Kiur says: no other words over it. */
+  /** This start follows a learning run that ended (the end-to-end tests wait on it for the next run). */
   private afterLearnRun = false;
   /** The wrong key carried from the run before (`learnWrong`), shown again on this run's staff. */
   private carriedWrong: PracticeData['learnWrong'] | null = null;
@@ -326,7 +326,7 @@ export class PracticeScene extends PixelScene {
   /** Kiur is at the door (ft_1_15), or the intro's spotlight is up (ft_1_31): the overlay is up and this screen is paused. */
   private atDoor = false;
   /**
-   * A learning run stopped (a wrong key or rushing) and the same step starts again after Kiur's line: this starts it. A bash
+   * A learning run stopped (a wrong key or rushing) and the same step starts again after a moment: this starts it. A bash
    * in that moment still brings Kiur to the door (ft_1_15.AC7), as the bash's own first key is often what stopped the run.
    */
   private learnAgain: (() => void) | null = null;
@@ -394,8 +394,8 @@ export class PracticeScene extends PixelScene {
     // the wrap, the step-up note and the summary belong to this start only: a later restart (a tempo change, Whole
     // piece) must not wrap on from an old time or say them again
     this.wrap = data.wrap ?? null;
-    // a restart between learning runs carries Kiur's line: the piece was open already, so it never asks to go on (ft_1_32.AC16)
-    this.startData = { ...data, ...(data.learnLine !== undefined ? { resumeAsked: true } : {}) };
+    // a restart between learning runs: the piece was open already, so it never asks to go on (ft_1_32.AC16)
+    this.startData = { ...data, ...(data.learnNext ? { resumeAsked: true } : {}) };
     this.takeLearnCarry(data);
     delete this.startData.sectionSummary;
     delete this.startData.passSummary;
@@ -408,9 +408,13 @@ export class PracticeScene extends PixelScene {
     delete this.startData.listen;
   }
 
-  /** What Kiur says first: about the learning run just ended or the one starting, a section left, the last pass, or the start. */
+  /**
+   * What Kiur says first: nothing while learning (the staff shows the run's bars and hand, ft_1_32 rule 22), else a section
+   * left, the last pass, or the start.
+   */
   private openingLine(data: PracticeData, looping: boolean): string {
-    return data.learnLine ?? this.learn?.startLine() ?? data.sectionSummary ?? (looping ? (data.passSummary ?? '') : t('practice.start'));
+    if (this.learn) return '';
+    return data.sectionSummary ?? (looping ? (data.passSummary ?? '') : t('practice.start'));
   }
 
   /**
@@ -599,8 +603,8 @@ export class PracticeScene extends PixelScene {
   private bubbleHintDue(): boolean {
     const flags = contextOf(this).flags;
     // the intro switched off (the end-to-end tests) or a self-playing demo: no first-run words
-    // nor over Kiur's line about a learning run just ended
-    if (this.locked || this.wrap || this.listening || this.afterLearnRun || flags.intro === 'off' || flags.autoplay) return false;
+    // nor while a piece is learned (ft_1_32 rule 22)
+    if (this.locked || this.wrap || this.listening || this.learn || flags.intro === 'off' || flags.autoplay) return false;
     const key = `pianor.bubbleHint.${contextOf(this).profiles.profile.id}`;
     try {
       if (window.localStorage.getItem(key) === '1') return false;
@@ -1015,8 +1019,8 @@ export class PracticeScene extends PixelScene {
   }
 
   /**
-   * A learning run sped up beyond the piece's baseline tempo (the rushing stop, ft_1_32.AC11): it stops, Kiur says so, and
-   * the same step starts again. Nothing was played wrong, so no bar is logged with a miss; it counts as a run asked again.
+   * A learning run sped up beyond the piece's baseline tempo (the rushing stop, ft_1_32.AC11): it stops, and the same step
+   * starts again. Nothing was played wrong, so no bar is logged with a miss; it counts as a run asked again.
    */
   private stopRushedRun(): void {
     const learn = this.learn!;
@@ -1024,12 +1028,12 @@ export class PracticeScene extends PixelScene {
     this.stopMetronome();
     this.playSession.stop();
     void learn.finish('unsteady');
-    this.againAfter(learn.rushLine());
+    this.againAfter();
   }
 
   /**
-   * A wrong key ended a learning run (ft_1_32.AC6): the judge stops, the wrong key stays on the staff, Kiur names the mistake
-   * and its bar, the bar is logged with its miss (for the markers), and the same step starts again.
+   * A wrong key ended a learning run (ft_1_32.AC6): the judge stops, the wrong key stays on the staff (where it sits says
+   * the mistake), the bar is logged with its miss (for the markers), and the same step starts again.
    */
   private stopLearnRun(wrong: WrongNoteJudged): void {
     const learn = this.learn!;
@@ -1038,23 +1042,21 @@ export class PracticeScene extends PixelScene {
     this.playSession.stop();
     const play = this.barRecorder?.stop(wrong);
     if (play) this.barsSaved = contextOf(this).profiles.recordBarPlays([play]).catch((error: unknown) => console.error('recordBarPlays failed', error));
-    const bar = learn.run.firstBar + (this.playSession.play.writtenBar[wrong.bar] ?? wrong.bar);
     const run = learn.run; // the run that ended, before its end moves the progress on
     void learn.finish('stopped');
-    this.againAfter(learn.stopLine(wrong, bar), run);
+    this.againAfter(run);
   }
 
   /**
-   * A stopped learning run: Kiur says `line`, and after a moment the same step starts again with it; a wrong key that ended
-   * `stopped` (on the staff by then) is carried, to stay until the next run's first key.
+   * A stopped learning run: after a moment the same step starts again, with nothing said; a wrong key that ended `stopped`
+   * (on the staff by then) is carried, to stay until the next run's first key.
    */
-  private againAfter(line: string, stopped?: { firstBar: number; lastBar: number }): void {
-    this.playSession.say(line);
+  private againAfter(stopped?: { firstBar: number; lastBar: number }): void {
     this.learnAgain = () => {
       this.learnAgain = null;
       const key = this.playSession.wrongKey;
       const learnWrong = stopped && key ? { learnWrong: { key, firstBar: stopped.firstBar, lastBar: stopped.lastBar } } : {};
-      this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line, ...learnWrong });
+      this.scene.restart({ ...this.startData, ...this.carry(), learnNext: true, ...learnWrong });
     };
     this.loopTimer = this.time.delayedCall(LEARN_STOP_MS, () => {
       this.loopTimer = null;
@@ -1065,8 +1067,8 @@ export class PracticeScene extends PixelScene {
   /**
    * A learning run reached its end with every note right (ft_1_32.AC2): it counts unless note names were shown, or it was a
    * measured run (a confirmation play, the whole piece) whose pace was uneven, which Kiur asks again, slower (AC7). A
-   * measured run of the whole piece is also a pass of the piece, saved as one (XP as before). The next run starts after
-   * Kiur's line; once the piece is learned, the screen opens it for practice.
+   * measured run of the whole piece is also a pass of the piece, saved as one (XP as before). The new prize note says how it
+   * went, with no words; then the next run starts, or once the piece is learned the clef grows and waits for a key.
    */
   private finishLearnRun(result: PieceResult): void {
     const learn = this.learn!;
@@ -1079,9 +1081,6 @@ export class PracticeScene extends PixelScene {
         .catch((error: unknown) => { console.error('completePiece failed', error); return undefined; });
     }
     void learn.finish(outcome, bpm);
-    const said = learn.endLine(outcome, bpm);
-    // an uneven run is asked again with its own line; otherwise Kiur also says what comes next
-    const line = learn.learned || outcome === 'unsteady' ? said : [said, learn.nextLine()].filter((part) => part !== '').join(' ');
     const clefBefore = this.playSession.prizesShown.find((p) => p.role === 'piece')?.medal ?? null;
     this.redraw(); // the new note shows at once
     // learned: the clef lifts off the column and grows, on its way to the book (ft_1_32.AC22)
@@ -1090,20 +1089,19 @@ export class PracticeScene extends PixelScene {
       const after = this.playSession.prizesShown.find((p) => p.role === 'piece')?.medal ?? null;
       this.clefFlight = from && after ? { chartId: this.fullChart.id, before: clefBefore, after, from } : null;
     }
-    this.playSession.say(learn.learned ? `${line}${/[.!?]$/.test(line) ? '' : '.'} ${t('learn.goOn')}` : line);
     this.loopTimer = this.time.delayedCall(LEARN_NEXT_MS, () => {
       this.loopTimer = null;
       void Promise.all([this.pendingPass, this.barsSaved]).then(() => {
         if (!this.scene.isActive() || this.loopTimer !== null) return;
         this.pendingPass = null;
         if (!learn.learned) {
-          this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });
+          this.scene.restart({ ...this.startData, ...this.carry(), learnNext: true });
           return;
         }
-        // learned (ft_1_32 rule 5): the whole note and the clef stay with Kiur's line until the student plays a key or presses
+        // learned (ft_1_32 rule 5): the whole note and the clef stay until the student plays a key or presses
         this.learnedGoOn = () => {
           this.learnedGoOn = null;
-          this.afterLearned(line);
+          this.afterLearned();
         };
       });
     });
@@ -1115,7 +1113,7 @@ export class PracticeScene extends PixelScene {
    * Kiur waits with the tug (rule 15); a piece learned at the piano stays in the book. With no clef shown, straight there
    * (a piece learned at the piano opens for practice).
    */
-  private afterLearned(line: string): void {
+  private afterLearned(): void {
     // the intro's lesson is learned: on to the room's next stage, practise (ft_1_31.AC8)
     if (this.intro) {
       startScene(this, 'profile', { intro: afterPlay('learn', true) });
@@ -1127,7 +1125,7 @@ export class PracticeScene extends PixelScene {
     if (this.clefFlight) startScene(this, 'menu', { clefFlight: { ...this.clefFlight, ...(then ? { then } : {}) } });
     else if (teacher) startScene(this, teacher.scene, {});
     else if (this.startData.learn === true) startScene(this, 'profile', {});
-    else this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });
+    else this.scene.restart({ ...this.startData, ...this.carry(), learnNext: true });
   }
 
   private onCompleted(result: PieceResult): void {
@@ -1198,8 +1196,8 @@ export class PracticeScene extends PixelScene {
 
   /**
    * Key bashing (ft_1_15): the piece pauses and Kiur points at the door (`KiurDoorScene`), in whatever the screen is doing
-   * (ft_1_15.AC8): the student playing, the game playing the piece (Kuula), a pass's score or Kiur's line after a learning
-   * run waiting for the next run. The keys of the bash were never judged (`KeyBashGuard`), and nothing earned is touched.
+   * (ft_1_15.AC8): the student playing, the game playing the piece (Kuula), a pass's score, or a learning run ended
+   * and waiting for the next run. The keys of the bash were never judged (`KeyBashGuard`), and nothing earned is touched.
    * Not when the screen is already on its way out (no next run waits) or another overlay is up.
    */
   private onBash(): void {
@@ -1215,7 +1213,7 @@ export class PracticeScene extends PixelScene {
     this.atDoor = true;
     this.guarded.setMuted(true);
     this.stopMetronome();
-    // a pass's score or Kiur's line after a learning run stays for the rest of its wait after Back
+    // a pass's score stays for the rest of its wait after Back
     if (!this.leaving) this.playSession.say('');
     // the keys judged before the bash could be told from playing leave no mark on the staff
     this.playSession.staffView?.setPlayed(null);
@@ -1544,11 +1542,11 @@ export class PracticeScene extends PixelScene {
     }
   }
 
-  /** What a restart between learning runs carries: Kiur's line, said instead of any other words, and the wrong key. */
+  /** What a restart between learning runs carries: that it is one, and the wrong key. */
   private takeLearnCarry(data: PracticeData): void {
-    this.afterLearnRun = data.learnLine !== undefined;
+    this.afterLearnRun = data.learnNext === true;
     this.carriedWrong = data.learnWrong ?? null;
-    delete this.startData.learnLine;
+    delete this.startData.learnNext;
     delete this.startData.learnWrong;
   }
 
