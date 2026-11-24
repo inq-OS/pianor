@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { activeScene, clickToolbar, expectNoErrors, openGame, openSettings, toPieceList, waitForScene } from './helpers';
 import { TARGET_VIEW } from './targetView';
 

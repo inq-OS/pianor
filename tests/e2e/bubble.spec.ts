@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { activeScene, bubbleOpen, buttonPoint, clickButton, expectNoErrors, lastButton, openBubble, openGame, pressInBubble, sceneButton, waitForScene } from './helpers';
 
 /**

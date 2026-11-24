@@ -1,6 +1,7 @@
 // Covers ft_0_05.AC1, ft_0_09.AC2, ft_0_16.AC5, ft_Y_13.AC3.
 import { existsSync } from 'node:fs';
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { type Page, type TestInfo } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { E2E_FIXED_TIME, LITTLE_STEPS, expectE2EPlayer, expectNoErrors, openGame, openPiece, playWithKeys, toScoreScreen, useOneLine, waitForScene, type PageErrors } from './helpers';
 
 /**

@@ -1,5 +1,6 @@
 // Covers ft_1_28.AC1, ft_1_28.AC2, ft_1_28.AC3, ft_1_28.AC5, ft_1_28.AC7.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { clickButton, expectNoErrors, menuButton, openFromStand, openGame, openPiece, profileButton, sceneButton, sceneTexts, waitForScene, reachButton } from './helpers';
 
 const SHOTS = process.env.CIRCLE_SHOTS;

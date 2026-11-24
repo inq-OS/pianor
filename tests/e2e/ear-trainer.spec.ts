@@ -2,7 +2,8 @@
 // ft_1_10.AC3 (a wrong press is a miss with a reason), ft_1_10.AC4 (points by misses), ft_1_10.AC7 (the answer after the question),
 // ft_1_10.AC10 (5 round stars, one dimmed per miss), ft_1_10.AC11 (any key continues; that key is not an answer).
 // The room's loudspeaker opens it (the room entry); the other tests open the scene through the scene manager to keep to one step each.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { clickButton, expectNoErrors, openFromStand, openGame, profileButton, playWithVirtualPiano, sceneButton, sceneTexts, waitForScene } from './helpers';
 
 type EarView = { notes: number[]; questionNumber: number; question: { misses: number; done: boolean }; shownStars: { lit: number; total: number } };

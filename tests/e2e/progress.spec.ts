@@ -1,5 +1,6 @@
 // Covers ft_0_10.AC2, ft_0_10.AC4, ft_0_15.AC5.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { LITTLE_STEPS, addPlayer, clickButton, clickToolbar, expectNoErrors, goToMainMenu, openAdminPage, openGame, openPiece, pickProfile, playWithKeys, profileButton, nameDone, sceneButton, sceneTexts, showMenuPageWith, toPieceList, toScoreScreen, waitForScene, bandAction } from './helpers';
 
 const progress = (page: Page) =>

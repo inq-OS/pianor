@@ -1,5 +1,6 @@
 // Covers ft_1_21.AC2, AC4, AC5, AC7, AC8, AC15 and AC16 (WP-13): the tug opened from Puuvaim's conversation, over the knoll.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { activeScenes, buttonPoint, clickButton, expectNoErrors, letGameRun, openGame, playWithVirtualPiano, sceneButton, showMenuPageWith, waitForScene, type PageErrors } from './helpers';
 
 interface TugView { who: 'character' | 'student' | null; turn: number; standing: number; outcome?: 'won' | 'lost' | 'left'; saying: string | null; closing: boolean; level: number; mode: 'wait' | 'tempo' }

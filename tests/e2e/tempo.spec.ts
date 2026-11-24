@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { clickButton, clickToolbar, expectNoErrors, openGame, openPiece, pickChoice, sceneButton, sceneTexts, toPieceList, toScoreScreen, waitForScene } from './helpers';
 
 /** The settings screen's buttons, in the order it makes them: the timing view's button comes after the staff settings and the chord fingers (d088). */

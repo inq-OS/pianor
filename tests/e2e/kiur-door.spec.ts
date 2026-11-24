@@ -1,5 +1,6 @@
 // Covers ft_1_15.AC4, ft_1_15.AC5.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { clickButton, expectNoErrors, openGame, openPiece, pickChoice, sceneButton, waitForScene } from './helpers';
 
 /** Palms on the keys: eleven keys down at once on the virtual EZ-220, away from the awaited note, then all up. */

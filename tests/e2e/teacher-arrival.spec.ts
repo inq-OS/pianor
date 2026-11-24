@@ -1,5 +1,6 @@
 // Covers ft_1_27.AC2 (WP-15): the teacher's galleon comes in to the southern harbour and she goes ashore, a script on WP-07's interpreter.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { activeScenes, expectNoErrors, openGame, waitForScene } from './helpers';
 
 const SCENE = 'port';

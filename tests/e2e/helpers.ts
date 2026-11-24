@@ -268,8 +268,13 @@ export async function openSettings(page: Page): Promise<void> {
 /** Chrome says this on machines whose audio device is busy or missing; it is not a fault of the game (see CLAUDE.md). */
 const KNOWN_NOISE = /AudioContext encountered an error from the audio device/;
 
+/** The errors of a page that are faults of the game: `list` without Chrome's known noise. */
+export function realPageErrors(list: readonly string[]): string[] {
+  return list.filter((message) => !KNOWN_NOISE.test(message));
+}
+
 export function expectNoErrors(errors: PageErrors): void {
-  const real = errors.list.filter((message) => !KNOWN_NOISE.test(message));
+  const real = realPageErrors(errors.list);
   expect(real, real.join('\n')).toEqual([]);
 }
 
