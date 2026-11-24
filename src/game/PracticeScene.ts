@@ -1318,7 +1318,6 @@ export class PracticeScene extends PixelScene {
     }
   }
 
-  /** The resting hand of a learning hand step, drawn grey on its own staff (ft_1_32.AC18); nothing otherwise. */
   /** What a restart between learning runs carries: Kiur's line, said instead of any other words, and the wrong key. */
   private takeLearnCarry(data: PracticeData): void {
     this.afterLearnRun = data.learnLine !== undefined;

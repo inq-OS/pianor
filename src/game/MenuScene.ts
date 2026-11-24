@@ -346,12 +346,6 @@ export class MenuScene extends PixelScene {
   }
 
   /**
-   * One piece: its title and, once played, its own level (ft_1_13) under it, with its stars and small buttons. At the right
-   * of the title its groups' signs: an own piece's pencil (which opens it in the piece maker), a
-   * character's speech bubble in its colour, and the teacher's academic hat on a curriculum piece with the days left and a
-   * bar of how near it is, or, finished, the hat in its medal's colours (ft_1_26.AC8). No piece is locked (ft_1_13.AC3).
-   */
-  /**
    * The piece's own level (ft_1_13): beside its stars when it fits before the small buttons, else after the title when it
    * fits before the signs, else not written; never drawn over a button.
    */
@@ -368,6 +362,12 @@ export class MenuScene extends PixelScene {
     button.attach(level);
   }
 
+  /**
+   * One piece: its title and, once played, its own level (ft_1_13) under it, with its stars and small buttons. At the right
+   * of the title its groups' signs: an own piece's pencil (which opens it in the piece maker), a
+   * character's speech bubble in its colour, and the teacher's academic hat on a curriculum piece with the days left and a
+   * bar of how near it is, or, finished, the hat in its medal's colours (ft_1_26.AC8). No piece is locked (ft_1_13.AC3).
+   */
   private card(piece: Piece, x: number, y: number, width: number, record: PieceRecord | null): PixelButton {
     // written in the book: the title alone on the first line, the line under it the stars, the
     // piece's level and its small buttons; the title's line is what plays the piece

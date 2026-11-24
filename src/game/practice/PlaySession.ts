@@ -24,13 +24,13 @@ import { staffSpaceLimits } from '../../core/layout/canvasSize';
 
 /** The levels' hand positions, which the hand-shift arrows prefer (ft_1_30.AC10). */
 const LEVELS = levelsFileSchema.parse(levelsJson).levels;
-/** How long a wrong note flashes, how long its feedback stays in the bubble, and how long Kiur looks puzzled. */
 /** A wrong key and the notes it was played for (indices of the written notes). */
 export interface WrongKey {
   midi: number;
   awaiting: readonly number[];
 }
 
+/** How long a wrong note flashes, how long its feedback stays in the bubble, and how long Kiur looks puzzled. */
 const WRONG_FLASH_MS = 700;
 export const MESSAGE_MS = 3500;
 export const HMM_MS = 2500;
