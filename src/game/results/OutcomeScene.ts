@@ -50,7 +50,7 @@ export abstract class OutcomeScene extends PixelScene {
     if (this.bandShown) {
       this.outcomeActions = [
         { label: againLabel, icon: TOOL_ICONS.repeat, main: true, onClick: onAgain },
-        { label: t('results.pieces'), icon: TOOL_ICONS.pieces, onClick: () => this.back() },
+        { label: this.backLabel(), icon: this.fromSong ? TOOL_ICONS.songs : TOOL_ICONS.pieces, onClick: () => this.back() },
         ...(more ? [{ label: more.label, icon: more.icon, onClick: more.onClick }] : []),
       ];
       return;
@@ -58,8 +58,14 @@ export abstract class OutcomeScene extends PixelScene {
     // on a card the two are wax seals pressed into it, their pictures in the wax
     const sealed = (icon: Bitmap) => (this.inkWriting ? { picture: paintSeal(icon, Math.min(again.w, again.h)) } : {});
     this.button({ ...rectCentre(again), label: againLabel, icon: TOOL_ICONS.repeat, iconOnly: true, ...sealed(TOOL_ICONS.repeat), onClick: onAgain });
-    this.button({ ...rectCentre(back), label: t('results.pieces'), icon: TOOL_ICONS.pieces, iconOnly: true, ...sealed(TOOL_ICONS.pieces), onClick: () => this.back() });
+    const backIcon = this.fromSong ? TOOL_ICONS.songs : TOOL_ICONS.pieces;
+    this.button({ ...rectCentre(back), label: this.backLabel(), icon: backIcon, iconOnly: true, ...sealed(backIcon), onClick: () => this.back() });
     if (more) this.button({ ...rectCentre(more.at), label: more.label, icon: more.icon, iconOnly: true, ...sealed(more.icon), onClick: more.onClick });
+  }
+
+  /** The back button's name: to the pieces, or to the song or songs list a song's play started from. */
+  private backLabel(): string {
+    return t(this.fromSong === undefined ? 'results.pieces' : this.fromSong === 'songs' ? 'results.songs' : 'results.song');
   }
 
   /** A piece's title as the menu shows it, or its id when it is not on offer. */

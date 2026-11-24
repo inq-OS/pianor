@@ -32,8 +32,9 @@ export interface StaffTheme {
   /** The soft background of a section's bars while it is chosen, and the colour of its A and B. */
   sectionFill: number;
   sectionInk: string;
-  /** A song's fold lines (ft_1_36 rule 7): the hint grey, as a number. */
+  /** A song's fold zigzag (ft_1_36 rule 7), as a number, and the words under it. */
   foldInk: number;
+  foldText: string;
 }
 
 /** High-contrast defaults for a small student on a laptop screen. */
@@ -52,6 +53,7 @@ export const DEFAULT_THEME: StaffTheme = {
   sectionFill: 0xfbebbc,
   sectionInk: '#8a5a00',
   foldInk: 0x6e6e7a,
+  foldText: '#4a4a55',
 };
 
 /** A song's marks on the staff (ft_1_36 rule 7): part names by chart bar (0-based), folds before a chart bar. */
@@ -347,7 +349,7 @@ export class StaffView {
     this.partTexts.length = 0;
     const S = this.layout.staffSpace;
     const name = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: this.theme.sectionInk };
-    const fold = { fontFamily: STAFF_FONT, fontSize: `${Math.round(S * 0.9)}px`, color: this.theme.hint };
+    const fold = { fontFamily: STAFF_FONT, fontSize: `${Math.round(S * 0.9)}px`, color: this.theme.foldText };
     const cell = (0.8 * S) / 5;
     for (const { bar: index, text } of marks?.names ?? []) {
       const bar = this.layout.bars[index];
@@ -366,15 +368,21 @@ export class StaffView {
     this.setHints(this.hints);
   }
 
-  /** A song's folds: a thin double line in the hint grey through the staff (ft_1_36 rule 7). */
+  /**
+   * A song's folds (ft_1_36 rule 7): a zigzag in the fold grey through the staff, like a page folded under, so it is never
+   * read as a bar line or a repeat sign.
+   */
   private drawFolds(): void {
     const g = this.paper;
     const S = this.layout.staffSpace;
     for (const at of this.foldsAt()) {
       if (!this.onPage(at.system)) continue;
       const system = this.layout.systems[at.system]!;
-      g.lineStyle(this.lineWidth(), this.theme.foldInk, 1);
-      for (const dx of [-0.2 * S, 0.2 * S]) g.lineBetween(at.x + dx, system.topLineY - S, at.x + dx, system.bottomLineY + S);
+      g.lineStyle(this.lineWidth() * 1.5, this.theme.foldInk, 1);
+      const top = system.topLineY - S;
+      const steps = Math.max(2, Math.round((system.bottomLineY + S - top) / (0.6 * S)));
+      const step = (system.bottomLineY + S - top) / steps;
+      for (let i = 0; i < steps; i++) g.lineBetween(at.x + (i % 2 === 0 ? -0.3 : 0.3) * S, top + i * step, at.x + (i % 2 === 0 ? 0.3 : -0.3) * S, top + (i + 1) * step);
     }
     g.lineStyle(this.lineWidth(), this.theme.ink, 1);
   }

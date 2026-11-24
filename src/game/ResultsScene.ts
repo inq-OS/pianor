@@ -105,7 +105,7 @@ export class ResultsScene extends OutcomeScene {
     // a piece learned bar by bar: a third button opens what its measured runs showed (ft_1_32.AC9)
     const measured = !session && (profiles.learnProgressOf(this.chartId).tests ?? []).length > 0;
     this.againAndBack(again, back, t(session ? 'results.again' : 'results.play'), () => startScene(this, 'practice', { chartId: this.chartId, ...(this.fromSong ? { fromSong: this.fromSong } : {}) }), measured ? {
-      at: more, label: t('stats.toLearning'), icon: TOOL_ICONS.tempo, onClick: () => startScene(this, 'learn-stats', { chartId: this.chartId }),
+      at: more, label: t('stats.toLearning'), icon: TOOL_ICONS.tempo, onClick: () => startScene(this, 'learn-stats', { chartId: this.chartId, ...(this.fromSong ? { fromSong: this.fromSong } : {}) }),
     } : undefined);
     this.playsColumn(numbers, session, mascotX);
   }

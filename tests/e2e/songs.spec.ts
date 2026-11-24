@@ -96,7 +96,7 @@ test.describe('songs made of pieces', () => {
     await openSongPage(page);
     await clickButton(page, 'song', await sceneButton(page, 'song', 'Play Morning Song'));
     await waitForScene(page, 'practice');
-    expect(await staffWords(page)).toEqual(['Intro', 'Outro', 'Verses and chorus, bars 13 to 70, not written']);
+    expect(await staffWords(page)).toEqual(['Intro', 'Outro', 'Verses and chorus, bars 13 to 70, not written yet']);
     expect((await practising(page)).id).toBe('song:morning-song');
     // Back leads to the song page the play started from, not the piece book
     await page.keyboard.press('Escape');
@@ -111,6 +111,18 @@ test.describe('songs made of pieces', () => {
     expect(some.bars).toBe(12);
     expect(some.id).not.toBe('song:morning-song');
     expect(await staffWords(page)).toContain('Outro, bars 71 to 82, off');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC12 the song\'s stats from the songs list go back to the songs list, also by way of its learning page', async ({ page }) => {
+    const errors = await openGame(page);
+    await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', 'S'));
+    await waitForScene(page, 'results');
+    expect(await sceneButton(page, 'results', 'Back to the songs')).toBeGreaterThanOrEqual(0);
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'songs');
     expectNoErrors(errors);
   });
 });

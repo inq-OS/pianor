@@ -771,7 +771,7 @@ export class PracticeScene extends PixelScene {
         names: marks.names.map((m) => ({ bar: m.bar - first, text: m.names.join(' · ') })).filter((m) => m.bar >= 0 && m.bar < count),
         folds: marks.folds
           .map((f) => ({ beforeBar: f.beforeBar - first, text: t(why[f.reason], { name: f.name, first: f.startBar, last: f.endBar }) }))
-          .filter((f) => f.beforeBar >= 0 && f.beforeBar <= count),
+          .filter((f) => (section ? f.beforeBar > 0 && f.beforeBar < count : f.beforeBar >= 0 && f.beforeBar <= count)),
       },
     };
   }
