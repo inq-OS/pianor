@@ -1070,7 +1070,7 @@ class KnollPainter {
         const ground = Math.hypot(dx / (KNOLL_FIRE.rx + 34), (dy + 3) / (KNOLL_FIRE.ry + 19)) + ragged;
         const k = face === undefined
           ? (ground >= 1 ? 0 : Math.round(lightness ** 1.5 * (1 - ground) ** 1.6 * 10 * strength * (0.85 + 0.15 * gain)))
-          : Math.round(lightness ** 1.3 * (1 - far) ** 1.3 * 11 * strength * face * (0.85 + 0.15 * gain));
+          : Math.round(lightness ** 1.3 * (1 - far) ** 1.8 * 14 * strength * face * (0.85 + 0.15 * gain));
         if (k >= 2) set(x, y, R.ember[Math.min(face !== undefined && face < 1 ? 3 : 4, k - 1)]!);
       }
       for (const e of this.emberDabs()) set(e.x, e.y, emberAt(e.heat, gain + 1));

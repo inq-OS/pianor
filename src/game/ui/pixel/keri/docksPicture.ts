@@ -285,7 +285,7 @@ class DocksPainter {
         // the near shingle lies in the shade of the viewer's side: a dark foreground band, as MI2's rooms have
         // the dark between its stones lies in small pockets, never a speckle of lone dots (stones.md point 9: no static)
         const shade = this.foreground(x, y);
-        if (shade > 0.5) this.lay(x, y, fbm(x / 7, y / 2.2, 2, 212) > 0.64 ? R.near[1]! : tone(F.stone, 0.05 + 0.2 * band, x, y, 0));
+        if (shade > 0.5) this.lay(x, y, fbm(x / 7, y / 2.2, 2, 212) > 0.58 ? R.near[1]! : tone(F.stone, 0.12 * band, x, y, 0));
         else this.put(x, y, tone(PEBBLE, 0.12 + 0.55 * smooth(0.18, 0.82, band), x, y, 0));
       }
     }

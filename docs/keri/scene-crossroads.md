@@ -108,6 +108,8 @@ Its colours are Keri's shared palette and four short runs of its own: `lime` (th
 
 What moves: a gust running through the grass and the corner tufts, the sea's strokes and its glints, the gulls, all in eight looks of the shared motion kit (`paint/motion.ts`). The clouds drift behind the lighthouse and the hut's roof.
 
+TODO(painter, R2): at dawn the picture has too few dark pixels for a low sun (the gauge's dark trait under MI2's dawn rooms): darken the near corner and the right edge's wings at dawn.
+
 ## Improvement tips (not built; the maintainer picks)
 
 - The lighthouse's beam sweeping over the sky at night (the map has one).
