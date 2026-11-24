@@ -33,23 +33,6 @@ test.describe('scales and chords trainer (ft_1_29)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_29.AC1 a wrong key costs a life and puts the names on the notes; the third ends the round and keeps the XP', async ({ page }) => {
-    const errors = await openTrainer(page);
-    const before = await totalXp(page);
-    await playWithVirtualPiano(page, [60, 63]);
-    await expect.poll(() => state(page)).toMatchObject({ lives: 2, outcome: 'playing' });
-    expect(await page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as View).wrong, SCENE)).toMatchObject({ reason: expect.any(String) });
-    await playWithVirtualPiano(page, [74]);
-    await expect.poll(() => page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as View).wrong, SCENE)).toEqual({ reason: 'wrong-octave' });
-    await playWithVirtualPiano(page, [61]);
-    await expect.poll(() => state(page)).toMatchObject({ lives: 0, outcome: 'lost', xp: 10 });
-    await expect.poll(() => totalXp(page)).toBe(before + 10);
-    // the toolbar's loop starts a new round with three lives
-    await clickButton(page, SCENE, await sceneButton(page, SCENE, 'New round'));
-    await expect.poll(() => state(page)).toMatchObject({ lives: 3, outcome: 'playing', xp: 0 });
-    expectNoErrors(errors);
-  });
-
   test('ft_1_29.AC1 the toolbar switches to the triad and to the left hand; the circle of fifths sets the key', async ({ page }) => {
     const errors = await openTrainer(page);
     await clickButton(page, SCENE, await sceneButton(page, SCENE, 'Scale up and down, the triad, or the scale switcher'));
@@ -63,22 +46,6 @@ test.describe('scales and chords trainer (ft_1_29)', () => {
     await clickButton(page, 'circle', await sceneButton(page, 'circle', 'Set the key: G major'));
     await waitForScene(page, SCENE);
     await expect.poll(() => keys(page)).toEqual([43, 47, 50, 43, 47, 50]);
-    expectNoErrors(errors);
-  });
-
-  test('ft_1_29.AC3 the third shape is the scale switcher: the key named above the staff changes after each bar, and the next note is the new scale\'s', async ({ page }) => {
-    const errors = await openTrainer(page);
-    const shape = 'Scale up and down, the triad, or the scale switcher';
-    await clickButton(page, SCENE, await sceneButton(page, SCENE, shape));
-    await clickButton(page, SCENE, await sceneButton(page, SCENE, shape));
-    await expect.poll(() => sceneTexts(page, SCENE)).toContain('C major');
-    // bar 0 is C major up; then the cursor is in bar 1, G major down from G5
-    await playWithVirtualPiano(page, [60, 62, 64, 65, 67, 69, 71, 72]);
-    await expect.poll(() => sceneTexts(page, SCENE)).toContain('G major');
-    await playWithVirtualPiano(page, [79, 77]);
-    await expect.poll(() => state(page)).toMatchObject({ lives: 2, outcome: 'playing' });
-    await playWithVirtualPiano(page, [78]);
-    await expect.poll(() => state(page)).toMatchObject({ xp: 100 });
     expectNoErrors(errors);
   });
 

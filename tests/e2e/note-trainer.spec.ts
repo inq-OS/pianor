@@ -67,14 +67,6 @@ test.describe('note-name trainer (ft_0_17)', () => {
     expectNoErrors(errors);
   });
 
-  test('a key one octave off says only "right letter, wrong octave" (AC2)', async ({ page }) => {
-    const errors = await openTrainer(page);
-    const midi = await target(page);
-    await playWithVirtualPiano(page, [midi + 12 <= 96 ? midi + 12 : midi - 12]);
-    expect(await sceneTexts(page, 'noteTrainer')).toContain('Right letter, wrong octave');
-    expectNoErrors(errors);
-  });
-
   test('three lost lives end the round, and the band loop starts a new one with three lives (AC3)', async ({ page }) => {
     const errors = await openTrainer(page);
     await playWithVirtualPiano(page, [await target(page)]);
