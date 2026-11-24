@@ -11,7 +11,8 @@ import { curriculumMark, type CurriculumMark } from '../core/curriculum/bookMark
 import { dayNumber } from '../core/curriculum/evaluate';
 import type { Medal } from '../core/curriculum/play';
 import { CHARACTER_PIECES } from './adventure/scenesData';
-import { pieceLearned } from '../core/learn/route';
+import { pieceClef, pieceLearned } from '../core/learn/route';
+import { clefPrize } from './practice/rewardNotes';
 import { CHARACTER_INK } from './ui/pixel/talkArt';
 import { teacherStatuses } from './teacher/teacherStatuses';
 import { dayString } from '../io/teacher/teacherDesk';
@@ -340,6 +341,18 @@ export class MenuScene extends PixelScene {
     return this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT;
   }
 
+  /**
+   * The clef prize of learning `piece` (ft_1_32.AC21), the rightmost sign of its card: in its medal once learned, an empty
+   * placeholder before; none in the piece maker or with learning off.
+   */
+  private clefSigns(piece: Piece): { bitmap: Bitmap; name: string }[] {
+    const context = contextOf(this);
+    if (this.maker || !context.flags.learn) return [];
+    const profiles = context.profiles;
+    const medal = pieceClef(piece.chart, profiles.learnProgressOf(piece.chart.id), profiles.learnSettings, profiles.practiceFor(piece.chart.id));
+    return [{ bitmap: clefPrize(medal), name: `clefPrize:${medal ?? 'empty'}` }];
+  }
+
   private showInfo(id: string | null): void {
     this.infoId = id;
     this.redraw();
@@ -360,7 +373,9 @@ export class MenuScene extends PixelScene {
     // the signs, right to left: the hat (with the days and the bar left of it), the bubble, the pencil
     const days = mark && !mark.finished ? String(mark.daysLeft) : null;
     const daysWidth = days === null ? 0 : Math.max(measure(drawnText(days)), NEAR_BAR.w);
+    const prizes = this.clefSigns(piece);
     const signs = [
+      ...prizes.map((p) => p.bitmap.width),
       ...(mark ? [HAT.w + (days === null ? 0 : daysWidth + SIGN_GAP)] : []),
       ...(teacher !== undefined ? [BUBBLE.width] : []),
       ...(piece.own === true ? [editable ? INFO_SIZE : PENCIL.width] : []),
@@ -391,6 +406,7 @@ export class MenuScene extends PixelScene {
       cursor -= SIGN_GAP;
       return image;
     };
+    prizes.forEach((p) => sign(p.bitmap, p.name));
     if (mark) {
       sign(hatFor(mark), mark.finished ? `curriculumHat:${mark.medal ?? 'green'}` : 'curriculumHat');
       if (days !== null) {

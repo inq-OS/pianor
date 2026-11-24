@@ -269,4 +269,5 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d284](game.md#d284) | A two-hand piece is learned with both hands together by default; hands apart is a learning setting the player chooses | ft_1_32 |
 | [d285](art.md#d285) | Every choice the player picks from shows a picture, never a word; its words are in the tooltip | ft_1_32, ft_0_16 |
 | [d286](game.md#d286) | No silent tool action: every tool shows the result it would make before it commits, on the screen where it acts | ft_1_02d, ft_1_20 |
+| [d287](game.md#d287) | The prizes of learning a piece are drawn on the staff, in a column past its last bar line, and the bars of the chunk not yet in the step show very faint | ft_1_32 |
 <!-- /docs:index -->

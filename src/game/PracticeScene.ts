@@ -43,7 +43,6 @@ import type { Rect } from '../core/layout/rect';
 import { circleItem } from './CircleOfFifthsScene';
 import { GuardedKeyboard } from './practice/GuardedKeyboard';
 import { LearnSession, markersFor } from './practice/LearnSession';
-import { REWARD_ROWS, rewardNotes } from './practice/rewardNotes';
 import { passHeldFor } from '../core/judge/keyBash';
 
 const RESULTS_DELAY_MS = 1000;
@@ -436,7 +435,7 @@ export class PracticeScene extends PixelScene {
       keyboard: this.guarded,
       hints: this.hints,
       chordFingers: contextOf(this).profiles.chordFingers,
-      ...this.restingOption(),
+      ...this.learnViewOptions(),
       ...(play.mode === 'tempo' ? { tempo: this.tempoOptions(play) } : {}),
       callbacks: {
         onJudged: (event, state) => this.onJudged(event, state),
@@ -1047,6 +1046,7 @@ export class PracticeScene extends PixelScene {
     this.staffOrigin = staffTop;
     const staffView = this.playSession.drawStaff({ top: staffTop, width: this.scale.width, height: staffHeight }, contextOf(this).profiles);
     staffView.setMarkers(this.markers);
+    this.drawPrizes();
     const layout = this.playSession.layout!;
     if (this.picking !== null) staffView.showPage(this.pickPage, false);
     if (this.listening) {
@@ -1113,6 +1113,7 @@ export class PracticeScene extends PixelScene {
     this.staffOrigin = this.mainTop + strip.rows * scale;
     const staffView = this.playSession.drawStaff({ top: this.staffOrigin, width: this.scale.width, height: Math.max(1, (foot - strip.rows) * scale) }, contextOf(this).profiles);
     staffView.setMarkers(this.markers);
+    this.drawPrizes();
     const layout = this.playSession.layout!;
     if (this.picking !== null) staffView.showPage(this.pickPage, false);
     if (this.listening) {
@@ -1141,15 +1142,7 @@ export class PracticeScene extends PixelScene {
       make({ x: previousRight - PAGE_BUTTON_WIDTH / 2, y: pageY, width: PAGE_BUTTON_WIDTH, height: BAR_BUTTON_HEIGHT, label: t('practice.pagePrevious'), disabled: page <= 0, onClick: () => this.turnPickPage(-1) });
     }
     const bubbleLeft = mascotX + MASCOT_SIZE.w + 2;
-    let bubbleRight = paging ? previousRight - PAGE_BUTTON_WIDTH - 4 : nextRight;
-    if (this.learn) {
-      // the reward notes at the strip's right end, the bubble short of them (ft_1_32.AC4)
-      const room = Math.floor((nextRight - bubbleLeft) / 3);
-      const row = rewardNotes(this.learn.rewards(), room);
-      const x = nextRight - row.width;
-      this.drawRewards(x, Math.max(0, Math.floor((strip.rows - REWARD_ROWS) / 2)), room, layer);
-      bubbleRight = x - 4;
-    }
+    const bubbleRight = paging ? previousRight - PAGE_BUTTON_WIDTH - 4 : nextRight;
     this.playSession.drawBubble(layer, { x: bubbleLeft, y: BAND_STRIP_DROP + 1, width: bubbleRight - bubbleLeft });
     if (paneRows > 0) this.drawStatsPane(foot, paneRows);
   }
@@ -1283,10 +1276,12 @@ export class PracticeScene extends PixelScene {
     }
   }
 
-  /** The resting hand of a learning hand step, drawn grey on its own staff (ft_1_32.AC18); nothing otherwise. */
-  private restingOption(): { restingTracks?: string[] } {
+  /** How a learning run is drawn: the resting hand of a hand step grey on its own staff (ft_1_32.AC18), the rest of the chunk faint and room for the prizes (AC19, AC20); nothing otherwise. */
+  private learnViewOptions(): Pick<PlaySessionOptions, 'restingTracks' | 'shown' | 'roomRight'> {
     const resting = this.learn?.restingTracks ?? [];
-    return resting.length > 0 ? { restingTracks: resting } : {};
+    // and in learning: the rest of the run's chunk very faint after it, and room past the last bar line for the prizes (ft_1_32.AC19, AC20)
+    const learnView = this.learn ? { shown: this.learn.shown, roomRight: this.learn.prizeRoom } : {};
+    return { ...(resting.length > 0 ? { restingTracks: resting } : {}), ...learnView };
   }
 
   /**
@@ -1383,17 +1378,12 @@ export class PracticeScene extends PixelScene {
     add(unit(ramp.targetUnit), t('practice.unitHint'), () => set(toggleUnit(ramp, 'target', base)));
   }
 
-  /**
-   * The notes earned in learning the piece (ft_1_32.AC4), one row from (x, y) at most `maxWidth` wide; returns its width.
-   * AX-3 provisional: in the tools strip, or with the band at the right end of Kiur's strip.
-   */
-  private drawRewards(x: number, y: number, maxWidth: number, layer?: Phaser.GameObjects.Container): number {
-    const rewards = this.learn!.rewards();
+  /** The prizes earned in learning the piece, on the staff past its last bar line (ft_1_32.AC4, AC19, d287). */
+  private drawPrizes(): void {
+    if (!this.learn) return;
+    const rewards = this.learn.rewards();
     this.rewardsData = rewards;
-    const row = rewardNotes(rewards, maxWidth);
-    const image = new PixelImage(this, x, y, row);
-    (layer ?? this.root).add(image);
-    return row.width;
+    this.playSession.showPrizes(rewards, this.learn.prizeFocus(rewards));
   }
 
   /** Leave for the Analyze screen of this piece; the metronome and the loop timer stop first. */
@@ -1406,10 +1396,8 @@ export class PracticeScene extends PixelScene {
   /** The strip under the top bar: the metronome click, the tempo percent, and marking a section to practise. */
   private drawTools(): void {
     if (this.asWritten) return;
-    if (this.learn) {
-      this.drawRewards(BAR_EDGE, TOP_BAR + Math.floor((TOOLS_BAR - REWARD_ROWS) / 2), this.px.width - 2 * BAR_EDGE);
-      return;
-    }
+    // learning has nothing to set here: its prizes are on the staff (d287)
+    if (this.learn) return;
     const y = TOP_BAR + TOOLS_BAR / 2;
     const h = BAR_BUTTON_HEIGHT;
     let x = BAR_EDGE;

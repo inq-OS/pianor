@@ -2,11 +2,13 @@ import type { Chart } from '../../core/chart';
 import { sliceChart } from '../../core/chart/section';
 import type { JudgeEvent, WrongNoteJudged, WrongReason } from '../../core/judge';
 import { markersByNote, mistakeMarkers } from '../../core/learn/markers';
-import { handChart, learnPlan, learnUnits, type LearnStep } from '../../core/learn/plan';
+import { prizeRoom } from '../../core/layout/learnPrizes';
+import { handChart, LEARN_RULES, learnPlan, learnUnits, type LearnStep } from '../../core/learn/plan';
 import {
   afterRun, currentRun, goldenBars, halfLearned, isLearned, isMeasured, learnHandsApart, learnRewards, learnStepBars, measuredOutcome, sitDown, startOver, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
 } from '../../core/learn/progress';
 import { LearnRunJudge, type LearnRunVerdict } from '../../core/learn/run';
+import { prizeFocus, shownWithChunk, type PrizeFocus } from '../../core/learn/view';
 import { baselineBpm, runTempo, TEMPO_RULES, type RunTempo } from '../../core/learn/tempo';
 import type { BarPlay } from '../../core/progression/practiceLog';
 import { t, type StringKey } from '../../core/text/strings';
@@ -79,6 +81,24 @@ export class LearnSession {
   /** The run's bars of the piece, only its hand's notes for a hand step: what the staff shows and the judge waits for. */
   get chart(): Chart {
     return handChart(sliceChart(this.piece, this.run.firstBar, this.run.lastBar), this.run.step.hand);
+  }
+
+  /**
+   * What the staff draws (ft_1_32.AC20): the run's bars, then the rest of their chunk, very faint from `faintFrom`; the run's
+   * notes come first, so the judge's note indexes are the staff's.
+   */
+  get shown(): { chart: Chart; faintFrom: number | null } {
+    return shownWithChunk(this.piece, this.run.step);
+  }
+
+  /** Which prizes the run on the staff is for (ft_1_32.AC19). */
+  prizeFocus(rewards: LearnRewards): PrizeFocus {
+    return prizeFocus(this.run.step, this.plan, rewards);
+  }
+
+  /** The staff spaces the prizes take past the staff's last bar line (ft_1_32.AC19). */
+  get prizeRoom(): number {
+    return prizeRoom(Math.ceil(learnUnits(this.piece).length / LEARN_RULES.chunkUnits));
   }
 
   /**

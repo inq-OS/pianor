@@ -98,6 +98,8 @@ const DURATION_GHOST_ALPHA = 0.28;
 const PLAYED_ALPHA = 0.55;
 const PLAYED_INK = '#d7263d';
 const PLAYED_NAME_GAP = 1.7;
+/** How much of the sheet's copy covers bars drawn very faint (ft_1_32.AC20): a little ink shows through. */
+const VEIL_ALPHA = 0.86;
 
 /**
  * Draws a `StaffLayout`: one staff, or a grand staff with a brace. It reads play state (note states, which notes are
@@ -106,7 +108,9 @@ const PLAYED_NAME_GAP = 1.7;
  */
 export class StaffView {
   /** The sheet of parchment the staff is written on (d119), under everything; it stays while a page turns. */
-  private readonly sheet: { release: () => void };
+  private readonly sheet: { image: Phaser.GameObjects.Image; release: () => void };
+  /** Copies of the sheet laid over the bars drawn very faint (`veil`), one per line, with the line they cover. */
+  private veils: { image: Phaser.GameObjects.Image; system: number }[] = [];
   /** The coloured bars on the sheet (a section being chosen), under the highlight boxes and the staff lines. */
   private readonly paperBg: Phaser.GameObjects.Graphics;
   private readonly paper: Phaser.GameObjects.Graphics;
@@ -154,6 +158,7 @@ export class StaffView {
   /** False until the first play state arrives: a view made mid-piece (after a resize or a hint toggle) jumps to its page without a fade. */
   private synced = false;
   private section: SectionMarks | null = null;
+  private veiledFrom: number | null = null;
   /** The A and B of a section, each with the system of its bar. */
   private readonly markTexts: { text: Phaser.GameObjects.Text; system: number }[] = [];
 
@@ -233,6 +238,46 @@ export class StaffView {
     }
     for (const mark of this.markTexts) mark.text.setVisible(this.onPage(mark.system));
     for (const slur of this.slurTexts) slur.text.setVisible(this.onPage(slur.system) && hints.noteNames);
+    for (const v of this.veils) v.image.setVisible(this.onPage(v.system));
+  }
+
+  /**
+   * Draw the bars from `fromBar` on very faint (ft_1_32.AC20; null: none): a copy of the sheet, nearly opaque, laid over them
+   * from just after their first bar line to the end of their lines, so they read as a promise of what comes and the bar line
+   * before them stays in ink. Lay it before anything drawn over the staff that must stay clear (the prizes, the markers).
+   */
+  /** The first bar drawn very faint (`veil`), null for none (read by the tests). */
+  get faintFrom(): number | null {
+    return this.veiledFrom;
+  }
+
+  veil(fromBar: number | null): void {
+    for (const v of this.veils) v.image.destroy();
+    this.veils = [];
+    this.veiledFrom = fromBar;
+    if (fromBar === null) return;
+    const { layout } = this;
+    const S = layout.staffSpace;
+    const sheet = this.sheet.image;
+    const fine = sheet.scaleX;
+    const firstX = new Map<number, number>();
+    // a line that starts faint is veiled from its clef on, so its clef and key read as part of what comes
+    for (const bar of layout.bars) if (bar.index >= fromBar && !firstX.has(bar.system)) firstX.set(bar.system, layout.systems[bar.system]!.firstBar === bar.index ? -0.2 * S : bar.x);
+    for (const [system, x] of firstX) {
+      const lines = layout.staffLines.filter((l) => l.system === system);
+      const right = Math.max(...lines.map((l) => l.x2)) + 0.3 * S;
+      const before = layout.systems[system - 1];
+      const after = layout.systems[system + 1];
+      const here = layout.systems[system]!;
+      const top = before ? (before.bottomLineY + here.topLineY) / 2 : 0;
+      const bottom = after ? (here.bottomLineY + after.topLineY) / 2 : layout.height;
+      const left = this.origin.x + x + 0.2 * S;
+      const crop = { x: Math.floor((left - sheet.x) / fine), y: Math.floor((this.origin.y + top - sheet.y) / fine) };
+      const image = this.scene.add.image(sheet.x, sheet.y, sheet.texture.key).setOrigin(0, 0).setScale(fine).setAlpha(VEIL_ALPHA)
+        .setCrop(crop.x, crop.y, Math.ceil((this.origin.x + right - left) / fine) + 1, Math.ceil((bottom - top) / fine) + 1);
+      image.setVisible(this.onPage(system));
+      this.veils.push({ image, system });
+    }
   }
 
   /**
@@ -507,6 +552,7 @@ export class StaffView {
   destroy(): void {
     [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
     this.playedName?.destroy();
+    for (const v of this.veils) v.image.destroy();
     this.sheet.release();
   }
 

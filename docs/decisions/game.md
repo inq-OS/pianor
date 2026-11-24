@@ -476,3 +476,11 @@ Check: `src/core/learn/progress.test.ts` "ft_1_32.AC12 a new piece is learned wi
 Applies to the piece maker and to every new screen or tool. A pick that waits for a target (a tie or slur's end note, a pre-note's pitch, a repeat's bars) marks what it started from and draws its mark faint where the pointer's click would put it; an item or held item shows its change on the note under the pointer before the press. The preview is a picture on the staff or the screen, never a line of text, and nothing is written until the click. A tool that puts a mark at a bar line or a note snaps to the nearest one while the pointer moves, and its preview and its click use that same place.
 
 Check: `src/core/layout/preview.test.ts` "ft_1_02d.AC25 note A then the same key right after shows one tie between their heads, and nothing else"; `src/core/editor/staff.test.ts` "ft_1_02d.AC27 the repeat pick lights the bars from its start to the pointer, either way round, with its signs on their outer sides"
+
+## d287
+
+**The prizes of learning a piece are drawn on the staff, in a column past its last bar line, and the bars of the chunk not yet in the step show very faint.** Features: ft_1_32. Changes ft_1_32 rule 5, which had them in a row in the top bar.
+
+Past the last bar line, level with the staff, stand a quarter note for each bar of the chunk being learned, then one note per chunk (a whole note for four bars); the piece's treble clef stands above the lines over them. A prize not earned yet is a faint placeholder, an earned one is drawn in its medal's colours, and the prize the run is for has a soft box behind it. The piece book shows each piece's earned clef in its medal, or an empty placeholder.
+
+Check: `src/core/layout/learnPrizes.test.ts` "ft_1_32.AC19 a quarter per bar of the chunk, a note per chunk after them and the clef above, past the last bar line"; `src/core/learn/view.test.ts` "ft_1_32.AC20 the rest of the chunk is drawn after the bars of the step, its notes after those of the step"
