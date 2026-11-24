@@ -1022,20 +1022,31 @@ class KnollPainter {
     const { w, h, hour } = this;
     // a warm pool that glows from the fire's middle and falls off fast (an art review found that at night the fire
     // lit nothing, a later one that orange splashed over every stone read as lava): light-and-heat.md
-    const box = { x: KNOLL_FIRE.x, y: KNOLL_FIRE.y, rx: KNOLL_FIRE.rx + 34, ry: KNOLL_FIRE.ry + 14 };
+    const box = { x: KNOLL_FIRE.x, y: KNOLL_FIRE.y, rx: KNOLL_FIRE.rx + 62, ry: KNOLL_FIRE.ry + 26 };
     const still = this.px;
     // where each colour sits in its own run (0 dark to 1 light), so the warm light keeps the grain of what it falls on;
     // by day, dawn and dusk only the earth and the ash take it, or the ring's stones turn to gold lumps
     const place = new Map<number, number>();
     for (const run of hour.night ? [F.stone, F.shingle, F.dry, F.earth, F.ash] : [F.earth, F.ash]) run.forEach((c, k) => place.set(c, k / (run.length - 1)));
     const strength = hour.night ? 1 : hour.glow * 1.4;
-    // a ring stone takes the light only on the side that faces the fire: 0 on its far side, 1 on the face toward it
+    // a ring stone and a log take the light only on the side that faces the fire: 0 on the far side, 1 on the face
+    // toward it (the bonfire, mi2-bg-0-005: what looks at the fire goes warm, its far side stays dark)
     const stones = this.ringStones().map((s) => ({ ...s, y: s.y - s.ry * 0.7 }));
-    const facing = (x: number, y: number): number => {
+    const facing = (x: number, y: number): number | undefined => {
       const s = stones.find((q) => ((x - q.x) / (q.rx * 1.2)) ** 2 + ((y - q.y) / (q.ry * 1.2)) ** 2 <= 1);
-      if (!s) return 1;
-      const ux = (box.x - s.x) / s.rx, uy = (box.y - 3 - s.y) / s.ry, len = Math.hypot(ux, uy) || 1;
-      return smooth(-0.05, 0.5, (((x - s.x) / s.rx) * ux + ((y - s.y) / s.ry) * uy) / len);
+      if (s) {
+        const ux = (box.x - s.x) / s.rx, uy = (box.y - 3 - s.y) / s.ry, len = Math.hypot(ux, uy) || 1;
+        return smooth(-0.25, 0.35, (((x - s.x) / s.rx) * ux + ((y - s.y) / s.ry) * uy) / len);
+      }
+      for (const log of KNOLL_LOGS) {
+        const [x0, x1] = log.a[0] < log.b[0] ? [log.a, log.b] : [log.b, log.a];
+        if (x < x0[0] - 2 || x > x1[0] + 2) continue;
+        const mid = x0[1] + ((x1[1] - x0[1]) * (x - x0[0])) / Math.max(1, x1[0] - x0[0]) - log.r;
+        if (Math.abs(y - mid) > log.r * 1.1) continue;
+        // the fire's side of a log: its front for the log behind the fire, its top for the others
+        return smooth(-0.4, 0.5, ((y - mid) / log.r) * Math.sign(box.y - mid));
+      }
+      return undefined;
     };
     return cropTogether(EMBER_LOOKS.map((gain) => {
       const bitmap = createBitmap(w, h);
@@ -1043,7 +1054,7 @@ class KnollPainter {
         if (x >= 0 && y >= 0 && x < w && y < h && !this.front[y * w + x]) bitmap.pixels[y * w + x] = c;
       };
       // the light as the docks' lantern lays it (after Woodtick, mi2-bg-0-007 and 0-014, and the bonfire, mi2-bg-0-005):
-      // flat rings of warm tone that land on what is lit already, while seams, shade and the ink keep the hour's colour; no dither
+      // warm tone that falls off from the fire's middle and lands on what is lit already, while seams, shade and the ink keep the hour's colour; no dither
       for (let dy = -box.ry - 8; dy <= box.ry + 2; dy++) for (let dx = -box.rx; dx <= box.rx; dx++) {
         const x = box.x + dx, y = box.y + dy;
         if (x < 0 || y < 0 || x >= w || y >= h) continue;
@@ -1053,10 +1064,14 @@ class KnollPainter {
         const far = Math.hypot(dx / box.rx, (dy + 3) / (box.ry + 5)) + ragged;
         if (far >= 1) continue;
         const face = facing(x, y);
-        if (face <= 0) continue;
-        // the lit faces take it more than the shaded ones, and the heat is in the middle
-        const k = Math.round(lightness ** 1.5 * (1 - far) ** 1.6 * 10 * strength * face * (0.85 + 0.15 * gain));
-        if (k >= 2) set(x, y, R.ember[Math.min(face < 1 ? 3 : 4, k - 1)]!);
+        if (face !== undefined && face <= 0) continue;
+        // the heat is in the middle: the ground warms only near the embers, a stone's or a log's face toward the fire
+        // further out; the lit faces take it more than the shaded ones
+        const ground = Math.hypot(dx / (KNOLL_FIRE.rx + 34), (dy + 3) / (KNOLL_FIRE.ry + 19)) + ragged;
+        const k = face === undefined
+          ? (ground >= 1 ? 0 : Math.round(lightness ** 1.5 * (1 - ground) ** 1.6 * 10 * strength * (0.85 + 0.15 * gain)))
+          : Math.round(lightness ** 1.3 * (1 - far) ** 1.3 * 11 * strength * face * (0.85 + 0.15 * gain));
+        if (k >= 2) set(x, y, R.ember[Math.min(face !== undefined && face < 1 ? 3 : 4, k - 1)]!);
       }
       for (const e of this.emberDabs()) set(e.x, e.y, emberAt(e.heat, gain + 1));
       return bitmap;
