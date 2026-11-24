@@ -468,3 +468,11 @@ Check: `src/core/layout/bubble.test.ts` "ft_1_20.AC19 an option keeps its slot w
 The learning settings page has a two-hand pieces choice: both hands together (the default) or hands apart (each growing step by the right hand, the left hand, then both). It applies to the next piece begun; a piece in progress keeps the plan it began with. Changes rule 13 of ft_1_32, which had hands apart for every new piece.
 
 Check: `src/core/learn/progress.test.ts` "ft_1_32.AC12 a new piece is learned with both hands together unless the player chose hands apart, and a piece begun keeps the plan it began with"
+
+## d286
+
+**No silent tool action: every tool shows the result it would make before it commits, on the screen where it acts.** Features: ft_1_02d, ft_1_20.
+
+Applies to the piece maker and to every new screen or tool. A pick that waits for a target (a tie or slur's end note, a pre-note's pitch, a repeat's bars) marks what it started from and draws its mark faint where the pointer's click would put it; an item or held item shows its change on the note under the pointer before the press. The preview is a picture on the staff or the screen, never a line of text, and nothing is written until the click.
+
+Check: `src/core/layout/preview.test.ts` "ft_1_02d.AC25 note A then the same key right after shows one tie between their heads, and nothing else"; `src/core/editor/staff.test.ts` "ft_1_02d.AC27 the repeat pick lights the bars from its start to the pointer, either way round, with its signs on their outer sides"

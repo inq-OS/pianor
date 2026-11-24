@@ -268,4 +268,5 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d283](workflow.md#d283) | Work raises the shortest stave: every area of the game is kept at a similar level, and the next work is the area that lags most in play, chosen with the maintainer; there is no weekly goal |  |
 | [d284](game.md#d284) | A two-hand piece is learned with both hands together by default; hands apart is a learning setting the player chooses | ft_1_32 |
 | [d285](art.md#d285) | Every choice the player picks from shows a picture, never a word; its words are in the tooltip | ft_1_32, ft_0_16 |
+| [d286](game.md#d286) | No silent tool action: every tool shows the result it would make before it commits, on the screen where it acts | ft_1_02d, ft_1_20 |
 <!-- /docs:index -->

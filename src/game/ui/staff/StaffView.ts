@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { strokePolyline } from './polyline';
 import type { NoteProgress, NoteTiming } from '../../../core/judge/types';
 import type { PlaySettings } from '../../../core/judge/playSettings';
 import type { BarNumber } from '../../../core/layout/barNumbers';
@@ -9,6 +10,7 @@ import { wordFits } from '../../../core/layout/dynamicWords';
 import type { PlayedMark } from '../../../core/layout/playedMark';
 import { accidentalKind, pageOfNotes, type BeamGlyph, type NoteGlyph, type NoteValue, type SlurGlyph, type StaffLayout, type TieGlyph, type TupletGlyph } from '../../../core/layout/staff';
 import type { GraceGlyph } from '../../../core/layout/staffTypes';
+import { slurPoints, tiePoints } from '../../../core/layout/preview';
 import { STAFF_LAYERS, type StaffLayer } from './layers';
 import { addSheet } from './sheetGround';
 import { PARCHMENT_PAPER } from '../pixel/paint/parchment';
@@ -806,35 +808,13 @@ export class StaffView {
   /** A tie: a quadratic curve that bows away from the heads (core_09.AC10), drawn as a polyline in the ink colour. */
   private drawTie(tie: TieGlyph): void {
     const S = this.layout.staffSpace;
-    const bow = (tie.up ? -1 : 1) * tie.height * 2;
-    const xm = (tie.x1 + tie.x2) / 2;
-    const ym = tie.y + bow;
-    const g = this.notesGfx;
-    g.lineStyle(Math.max(2, S * 0.13), this.theme.ink, 1).beginPath();
-    for (let i = 0; i <= 12; i++) {
-      const t = i / 12;
-      const x = (1 - t) * (1 - t) * tie.x1 + 2 * (1 - t) * t * xm + t * t * tie.x2;
-      const y = (1 - t) * (1 - t) * tie.y + 2 * (1 - t) * t * ym + t * t * tie.y;
-      if (i === 0) g.moveTo(x, y);
-      else g.lineTo(x, y);
-    }
-    g.strokePath();
+    strokePolyline(this.notesGfx.lineStyle(Math.max(2, S * 0.13), this.theme.ink, 1), tiePoints(tie));
   }
 
   /** A slur (core_09.AC27): a quadratic curve from the first head to the last, in the ink colour, bowing as the layout says. */
   private drawSlur(slur: SlurGlyph): void {
     const S = this.layout.staffSpace;
-    const xm = (slur.x1 + slur.x2) / 2;
-    const g = this.notesGfx;
-    g.lineStyle(Math.max(2, S * 0.1), this.theme.ink, 1).beginPath();
-    for (let i = 0; i <= 16; i++) {
-      const t = i / 16;
-      const x = (1 - t) * (1 - t) * slur.x1 + 2 * (1 - t) * t * xm + t * t * slur.x2;
-      const y = (1 - t) * (1 - t) * slur.y1 + 2 * (1 - t) * t * slur.controlY + t * t * slur.y2;
-      if (i === 0) g.moveTo(x, y);
-      else g.lineTo(x, y);
-    }
-    g.strokePath();
+    strokePolyline(this.notesGfx.lineStyle(Math.max(2, S * 0.1), this.theme.ink, 1), slurPoints(slur));
   }
 
   /** The beams of a run of eighths and sixteenths, in the colour of its notes once all are right. */

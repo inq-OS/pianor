@@ -13,7 +13,9 @@ import { samePitchNotAdjacent, tieAll } from '../core/editor/ties';
 import { arcInto, toggleArc } from '../core/editor/arcs';
 import { graceFromKey, graceFromPlace, graceItem } from '../core/editor/graces';
 import { barNumbersToShow } from '../core/layout/barNumbers';
+import { addedMarks, pendingArc, slurPoints, tiePoints, type AddedMarks } from '../core/layout/preview';
 import Phaser from 'phaser';
+import { strokePolyline } from './ui/staff/polyline';
 import { firstPrintedBar, levelsFileSchema, playbackLengthMs, playbackNotes, staffPosition, type Chart, type LevelDefinition, type Step } from '../core/chart';
 import { toChart } from '../core/editor/chart';
 import { autoFingers } from '../core/editor/fingers';
@@ -26,7 +28,7 @@ import { DEFAULT_ENTRY_PREFS, ENTRY_PREFS_KEY, parseEntryPrefs, serializeEntryPr
 import { cursorAfter, cursorOf, type StaffMode } from '../core/editor/playEntry';
 import type { NoteEvent } from '../core/judge/types';
 import { hitTest, placeClick, pointOf, targetOf, type ActionTarget, type EntryMode, type Hit } from '../core/editor/hitTest';
-import { barBoxes, barsInRect, drawnWhileWriting, editorStaff, pageOfBar, shadowsFor, targetBox } from '../core/editor/staff';
+import { barBoxes, barsInRect, drawnWhileWriting, editorStaff, pageOfBar, repeatPreview, shadowsFor, targetBox } from '../core/editor/staff';
 import { onRepeatHandle, repeatCopies, repeatHandleBox } from '../core/editor/repeatHandle';
 import chordsJson from '../../content/trainer/chords.json';
 import { nameChord } from '../core/trainer/chordNamer';
@@ -193,6 +195,8 @@ export class EditorScene extends PixelScene {
    * tie when that is the same key right after, else a slur. Only one pick waits at a time.
    */
   private arcFrom: NoteRef | null = null;
+  /** The last pick preview laid out (d286): the piece it was made on, its target and the marks the click would add. */
+  private previewCache: { piece: EditorPiece; key: string; marks: AddedMarks } | null = null;
   /** The repeat item's pick: waiting for the bar the repeat starts on, then for the bar it ends on. */
   private repeatPick: { startBar: number | null } | null = null;
   /** The accidental item (with the band): it shows the selected note's sharp, flat or natural. */
@@ -538,12 +542,94 @@ export class EditorScene extends PixelScene {
     const hit = this.menuOpen ? null : this.hit(p);
     this.ghost?.clear();
     this.ghostLabel?.setVisible(false);
-    this.drawTarget(this.targetAt(hit));
+    // while a pick waits, the click under the pointer makes the pick's mark, not a note: that mark is what shows (d286)
+    const picking = this.arcFrom !== null || this.graceFor !== null || this.repeatPick !== null;
+    this.drawTarget(picking ? null : this.targetAt(hit));
+    if (picking) return this.previewPick(p, hit);
     if (!hit || hit.kind !== 'place' || !this.layout || !this.chart || !this.ghost || !this.ghostLabel) return;
     const at = pointOf(this.layout, this.chart, hit)!;
     const S = this.layout.staffSpace;
     this.ghost.fillStyle(DEFAULT_THEME.cursor, 0.35).fillEllipse(at.x, this.staffTop + at.y, 1.3 * S, S);
     this.ghostLabel.setText(this.entry === 'rest' ? t('editor.entry.rest') : `${hit.step}${hit.octave}`).setPosition(this.staffLeft + at.x, this.staffTop + at.y - 1.6 * S).setVisible(true);
+  }
+
+  /**
+   * The result of the click a waiting pick would take, drawn faint over the staff before the click (d286): a tie or slur from
+   * its first note to the note under the pointer, or to the pointer itself while it is on no note it can end on
+   * (ft_1_02d.AC25); the pre-note at the pointed pitch (ft_1_02d.AC26); the repeat's bars and signs (ft_1_02d.AC27).
+   */
+  private previewPick(p: Phaser.Input.Pointer, hit: Hit | null): void {
+    if (!this.ghost || !this.layout || this.menuOpen) return;
+    if (this.arcFrom) this.previewArc(this.ghost, this.layout, this.arcFrom, p, hit);
+    else if (this.graceFor) this.previewGrace(this.ghost, this.layout, this.graceFor, hit);
+    else if (this.repeatPick) this.previewRepeat(this.ghost, this.layout, this.repeatPick.startBar, hit);
+  }
+
+  /** A waiting tie or slur (ft_1_02d.AC25): its first note ringed, and the curve to the note under the pointer or to the pointer. */
+  private previewArc(g: Phaser.GameObjects.Graphics, layout: StaffLayout, fromRef: NoteRef, p: Phaser.Input.Pointer, hit: Hit | null): void {
+    const S = layout.staffSpace;
+    const ink = DEFAULT_THEME.cursor;
+    const onPage = (system: number) => layout.systems[system]?.page === this.page;
+    const from = layout.notes.find((n) => n.index === this.indexOf(fromRef));
+    if (!from || !onPage(from.system)) return;
+    const into = hit?.kind === 'note' ? this.refOf(hit.noteIndex) : null;
+    const marks = into ? this.marksOf(`arc:${hit?.kind === 'note' ? hit.noteIndex : ''}`, () => arcInto(this.piece, fromRef, into)) : null;
+    const arcs = marks ? [...marks.ties.filter((m) => onPage(m.system)).map(tiePoints), ...marks.slurs.filter((m) => onPage(m.system)).map(slurPoints)] : [];
+    // the first note is ringed, so the author sees which note the curve leaves
+    g.lineStyle(Math.max(1, S * 0.12), ink, 0.9).strokeEllipse(from.x, this.staffTop + from.y, from.headRx * 2 + S * 0.6, from.headRy * 2 + S * 0.6);
+    if (arcs.length > 0) {
+      for (const arc of arcs) strokePolyline(g.lineStyle(Math.max(2, S * 0.16), ink, 0.85), arc.map((pt) => ({ x: pt.x, y: this.staffTop + pt.y })));
+      return;
+    }
+    // on no note it can end on: a thin curve follows the pointer; the slur's side is away from the stem
+    const up = !(from.stem?.up ?? true);
+    const start = { x: from.x, y: this.staffTop + from.y + (up ? -1 : 1) * from.headRy };
+    const end = { x: p.x - this.staffLeft, y: p.y };
+    strokePolyline(g.lineStyle(Math.max(2, S * 0.12), ink, 0.7), pendingArc(start, end, up, S * 2));
+  }
+
+  /** A waiting pre-note (ft_1_02d.AC26): the small head the click would write, at the pitch under the pointer. */
+  private previewGrace(g: Phaser.GameObjects.Graphics, layout: StaffLayout, graceRef: NoteRef, hit: Hit | null): void {
+    const S = layout.staffSpace;
+    const ink = DEFAULT_THEME.cursor;
+    const pitch = hit?.kind === 'place' ? hit : hit?.kind === 'note' ? this.refOf(hit.noteIndex) : null;
+    if (!pitch) return;
+    for (const grace of this.marksOf(`grace:${pitch.step}${pitch.octave}`, () => graceFromPlace(this.piece, graceRef, pitch.step, pitch.octave)).graces) {
+      if (layout.systems[grace.system]?.page !== this.page) continue;
+      g.fillStyle(ink, 0.7).fillEllipse(grace.x, this.staffTop + grace.y, grace.headRx * 2, grace.headRy * 2);
+      g.lineStyle(Math.max(1, S * 0.1), ink, 0.7).lineBetween(grace.stem.x, this.staffTop + grace.stem.y1, grace.stem.x, this.staffTop + grace.stem.y2);
+      for (const ledger of grace.ledgerLines) g.lineBetween(ledger.x1, this.staffTop + ledger.y, ledger.x2, this.staffTop + ledger.y);
+    }
+  }
+
+  /** The repeat item asking for its bars (ft_1_02d.AC27): the bars lit and the two signs where the click would put them. */
+  private previewRepeat(g: Phaser.GameObjects.Graphics, layout: StaffLayout, startBar: number | null, hit: Hit | null): void {
+    const S = layout.staffSpace;
+    const ink = DEFAULT_THEME.cursor;
+    const bar = hit ? this.barOf(hit) : null;
+    if (bar === null) return;
+    const { boxes, signs } = repeatPreview(layout, startBar, bar, this.page);
+    for (const box of boxes) g.fillStyle(ink, 0.14).fillRect(box.x1, this.staffTop + box.y1, box.x2 - box.x1, box.y2 - box.y1);
+    // the thick bar and its two dots of each sign, the dots on the side of the repeated bars
+    for (const sign of signs) {
+      const x = sign.side === 'start' ? sign.x + S * 0.25 : sign.x - S * 0.25;
+      const mid = this.staffTop + (sign.y1 + sign.y2) / 2;
+      const dx = (sign.side === 'start' ? 1 : -1) * S * 0.8;
+      g.fillStyle(ink, 0.8).fillRect(x - S * 0.25, this.staffTop + sign.y1, S * 0.5, sign.y2 - sign.y1);
+      g.fillCircle(x + dx, mid - S * 0.5, S * 0.22).fillCircle(x + dx, mid + S * 0.5, S * 0.22);
+    }
+  }
+
+  /**
+   * The marks an edit would add to the staff as it is drawn now (none when it is refused), laid out once per target: kept
+   * while the pointer stays on the same note or pitch and the piece is unchanged, so a moving pointer lays out nothing.
+   */
+  private marksOf(key: string, edit: () => Edit): AddedMarks {
+    if (this.previewCache?.piece === this.piece && this.previewCache.key === key) return this.previewCache.marks;
+    const made = edit();
+    const marks = made.ok && this.layout ? addedMarks(this.layout, editorStaff(made.piece, toChart(made.piece, { id: this.id ?? DRAFT_ID }), this.staffViewport())) : { ties: [], slurs: [], graces: [] };
+    this.previewCache = { piece: this.piece, key, marks };
+    return marks;
   }
 
   /** What an action at `hit` changes: the chord under it or in its column, a placed rest, or the room a new note takes. */
@@ -1650,6 +1736,7 @@ export class EditorScene extends PixelScene {
     this.arcFrom = from;
     // the message stays while the pick waits for its note
     this.say(t('editor.arc.pick'));
+    this.hover(this.input.activePointer);
   }
 
   /** The tie or slur on the selected note (core_09.AC13, AC30): a tie to the same key right after, else a slur; a second press takes it away. */
@@ -1669,6 +1756,7 @@ export class EditorScene extends PixelScene {
     this.disarm();
     this.graceFor = this.selected;
     this.say(t('editor.grace.pick'));
+    this.hover(this.input.activePointer);
   }
 
   /**
@@ -2174,8 +2262,8 @@ export class EditorScene extends PixelScene {
     this.drawShadows();
     this.drawKeyCursor();
     this.drawPhoto();
-    // the box follows the edit: the chord or the room under the pointer may have changed
-    this.drawTarget(this.targetAt(this.hit(this.input.activePointer)));
+    // the box and a waiting pick's preview follow the edit: the chord or the room under the pointer may have changed
+    this.hover(this.input.activePointer);
     this.ghost?.setDepth(10);
     this.ghostLabel?.setDepth(10);
     // the option buttons are drawn once: show the tempo of the piece now (also after undo and redo)
