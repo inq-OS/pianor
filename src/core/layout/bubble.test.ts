@@ -46,21 +46,54 @@ describe('the bubble (ft_1_20, d282)', () => {
     expect(bubbleLayout({ at: { x: 160, y: 90 }, options: 8, screen: SCREEN }).centre).toEqual({ x: 160, y: 90 });
   });
 
-  it('ft_1_20.AC20 an option with choices opens them in a row beside the bubble, on the side with room, inside the screen', () => {
-    const right = bubbleLayout({ at: { x: 80, y: 90 }, options: 8, screen: SCREEN, open: { option: 0, choices: 5 } });
-    expect(right.choices).toHaveLength(5);
-    for (const c of right.choices) {
+  it('ft_1_20.AC20 an option with choices opens them on an outer ring round the bubble, centred on that option, inside the screen', () => {
+    const centreOf = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+    const b = bubbleLayout({ at: { x: 160, y: 90 }, options: 8, screen: SCREEN, open: { option: 0, choices: 8 } });
+    expect(b.choices).toHaveLength(8);
+    const radius = (r: Rect) => Math.hypot(centreOf(r).x - b.centre.x, centreOf(r).y - b.centre.y);
+    for (const c of b.choices) {
       expect(c.h).toBeGreaterThanOrEqual(15);
       expect(inside(c)).toBe(true);
-      expect(c.x).toBeGreaterThanOrEqual(rectRight(right.area));
-      for (const o of right.options) expect(overlap(c, o)).toBe(false);
+      // every choice on the same outer ring, outside the options' ring and over no option
+      expect(Math.abs(radius(c) - radius(b.choices[0]!))).toBeLessThanOrEqual(1);
+      expect(radius(c)).toBeGreaterThan(rectRight(b.area) - b.centre.x);
+      for (const o of b.options) expect(overlap(c, o)).toBe(false);
     }
-    const left = bubbleLayout({ at: { x: 280, y: 90 }, options: 8, screen: SCREEN, open: { option: 2, choices: 4 } });
-    for (const c of left.choices) {
-      expect(inside(c)).toBe(true);
-      expect(rectRight(c)).toBeLessThanOrEqual(left.area.x);
+    // neighbouring choices do not touch, and they read left to right over the top option
+    for (let i = 1; i < b.choices.length; i++) {
+      expect(overlap(b.choices[i - 1]!, b.choices[i]!)).toBe(false);
+      expect(b.choices[i]!.x).toBeGreaterThan(b.choices[i - 1]!.x);
     }
+    // centred on the pressed option: the middle of the arc lies straight above the centre, as slot 0 does
+    const mid = (centreOf(b.choices[3]!).x + centreOf(b.choices[4]!).x) / 2;
+    expect(mid).toBeCloseTo(b.centre.x, 0);
+    // the option on the right opens its few choices to the right of the bubble
+    const right = bubbleLayout({ at: { x: 160, y: 90 }, options: 8, screen: SCREEN, open: { option: 2, choices: 3 } });
+    for (const c of right.choices) expect(c.x).toBeGreaterThanOrEqual(rectRight(right.area));
     expect(bubbleLayout({ at: { x: 160, y: 90 }, options: 8, screen: SCREEN }).choices).toEqual([]);
+  });
+
+  it('ft_1_20.AC20 near an edge the outer ring turns round the bubble to the side with room, and stays on the screen', () => {
+    for (const at of [{ x: 160, y: 4 }, { x: 316, y: 90 }, { x: 4, y: 170 }, { x: 316, y: 176 }]) {
+      for (const option of [0, 2, 4, 6]) {
+        const b = bubbleLayout({ at, options: 8, screen: SCREEN, open: { option, choices: 8 } });
+        for (const c of b.choices) {
+          expect(inside(c), JSON.stringify({ at, option })).toBe(true);
+          for (const o of b.options) expect(overlap(c, o)).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('ft_1_20.AC20 near an edge the bubble moves only as far as its outer ring needs, and not at all where a turn is enough', () => {
+    const shut = bubbleLayout({ at: { x: 160, y: 40 }, options: 8, screen: SCREEN });
+    const open = bubbleLayout({ at: { x: 160, y: 40 }, options: 8, screen: SCREEN, open: { option: 0, choices: 8 } });
+    // the choices' top edge rests on the screen's top: moved no farther than that
+    expect(Math.min(...open.choices.map((c) => c.y))).toBeLessThanOrEqual(1);
+    expect(open.centre.x).toBe(shut.centre.x);
+    // a few choices turn round the bubble instead of moving it
+    const few = bubbleLayout({ at: { x: 160, y: 60 }, options: 8, screen: SCREEN, open: { option: 0, choices: 2 } });
+    expect(few.centre).toEqual(bubbleLayout({ at: { x: 160, y: 60 }, options: 8, screen: SCREEN }).centre);
   });
 
   it('ft_1_20.AC19 more options than slots: the last slot is More and turns to the rest', () => {
@@ -114,7 +147,10 @@ describe('the pinned strip (ft_1_20, d282)', () => {
 
   it('ft_1_20.AC19 keeps off the top strip a screen without a toolbar has: opened near the top it moves down below it', () => {
     const b = bubbleLayout({ at: { x: 160, y: 5 }, options: BUBBLE_SLOTS, screen: { y: 20, w: 320, h: 160 }, open: { option: 0, choices: 4 } });
-    expect(b.area.y).toBe(20);
+    expect(bubbleLayout({ at: { x: 160, y: 5 }, options: BUBBLE_SLOTS, screen: { y: 20, w: 320, h: 160 } }).area.y).toBe(20);
+    // with choices open over slot 0 it moves down as far as their outer ring needs
+    expect(b.area.y).toBeGreaterThanOrEqual(20);
+    expect(b.choices).toHaveLength(4);
     for (const r of [...b.options, ...b.choices]) expect(r.y).toBeGreaterThanOrEqual(20);
   });
 });

@@ -1,21 +1,26 @@
-import { rectRight, type Rect } from './rect';
+import { rectBottom, rectRight, type Rect } from './rect';
 
 /**
  * Actions without a band (ft_1_20, d282): a press of the right button (a long press on a tablet) opens a bubble of what
  * can be done with the thing under the pointer, each option in a fixed slot of a ring round it; an option with choices
- * opens them in a row beside the bubble. A screen may pin its few most-used actions in one slim row along its foot; the
+ * opens them on a second, outer ring round the bubble, centred on that option. A screen may pin its few most-used actions in one slim row along its foot; the
  * items a student keeps are in the backpack. Pure: the scenes only draw these boxes. Coordinates are layout cells.
  *
- * AX-3 provisional: eight slots, options 18 x 18 on a ring of radius 26 (a cell and a half between neighbouring round options, so a small
- * hand does not slip onto the next), a Close target in the centre, choices 18 x 18, cells of the strip 30 x 15.
+ * AX-3 provisional: eight slots, options 20 x 20 on a ring of radius 28 (a cell and a half between neighbouring round options, big enough that a picture has room round it, so a small
+ * hand does not slip onto the next), a Close target in the centre, choices 18 x 18 on an outer ring of radius 56 (as close
+ * as their boxes can come without touching an option's), 26 cells apart along it (so no two boxes touch, even on a slant),
+ * cells of the strip 30 x 15.
  */
 export const BUBBLE_SLOTS = 8;
-const OPTION = 18;
-const RING = 26;
+const OPTION = 20;
+const RING = 28;
 const HALF = RING + OPTION / 2;
 const CHOICE = 18;
-const CHOICE_GAP = 2;
-const AWAY = 4;
+const OUTER = 56;
+/** The turn between neighbouring choices on the outer ring: 26 cells apart. */
+const OUTER_STEP = 2 * Math.asin(13 / OUTER);
+/** How many steps the outer ring may turn away from its option to stay on the screen. */
+const TURN_STEPS = 2;
 
 export interface BubbleLayout {
   /** The ring's centre: the pointer, moved only as far as the whole bubble needs to stay on the screen. */
@@ -24,7 +29,7 @@ export interface BubbleLayout {
   area: Rect;
   /** The option in each slot used, slot 0 straight above the centre and then clockwise. */
   options: Rect[];
-  /** The open option's choices, left to right, or none. */
+  /** The open option's choices, on the outer ring, first to last reading left to right (top to bottom at the sides), or none. */
   choices: Rect[];
   /** The Close target in the centre of the ring. */
   close: Rect;
@@ -37,23 +42,32 @@ export function bubbleLayout(input: { at: { x: number; y: number }; options: num
   // `screen.y`: rows at the top the bubble keeps off (the top strip of a screen without a toolbar); `h` counts from there
   const top = input.screen.y ?? 0;
   const bottom = top + input.screen.h;
-  const centre = { x: Math.round(clamp(input.at.x, HALF, input.screen.w - HALF)), y: Math.round(clamp(input.at.y, top + HALF, bottom - HALF)) };
+  const slotAngle = (i: number) => -Math.PI / 2 + (2 * Math.PI * i) / BUBBLE_SLOTS;
+  const box = (c: { x: number; y: number }, angle: number, radius: number, size: number): Rect => ({ x: Math.round(c.x + radius * Math.cos(angle) - size / 2), y: Math.round(c.y + radius * Math.sin(angle) - size / 2), w: size, h: size });
+  let centre = { x: Math.round(clamp(input.at.x, HALF, input.screen.w - HALF)), y: Math.round(clamp(input.at.y, top + HALF, bottom - HALF)) };
+  let choices: Rect[] = [];
+  const n = input.open && input.open.option >= 0 && input.open.option < Math.min(BUBBLE_SLOTS, input.options) ? Math.max(0, input.open.choices) : 0;
+  if (n > 0 && input.open) {
+    // the outer ring centred on the option's slot, or turned round the bubble a step or two (farther would leave its option
+    // behind); the turn nearest the slot that fits the screen, else the one that needs the bubble moved least, moved by that much
+    let best: { shift: { x: number; y: number }; middle: number } | null = null;
+    for (let k = 0; k <= 2 * TURN_STEPS; k++) {
+      const middle = slotAngle(input.open.option) + (k % 2 === 1 ? 1 : -1) * Math.ceil(k / 2) * OUTER_STEP;
+      const arc = Array.from({ length: n }, (_, i) => box(centre, middle + (i - (n - 1) / 2) * OUTER_STEP, OUTER, CHOICE));
+      const out = (lo: number, hi: number, min: number, max: number) => Math.max(0, min - lo) - Math.max(0, hi - max);
+      const shift = { x: out(Math.min(...arc.map((r) => r.x)), Math.max(...arc.map(rectRight)), 0, input.screen.w), y: out(Math.min(...arc.map((r) => r.y)), Math.max(...arc.map(rectBottom)), top, bottom) };
+      if (!best || Math.abs(shift.x) + Math.abs(shift.y) < Math.abs(best.shift.x) + Math.abs(best.shift.y)) best = { shift, middle };
+    }
+    centre = { x: centre.x + best!.shift.x, y: centre.y + best!.shift.y };
+    const arc = Array.from({ length: n }, (_, i) => box(centre, best!.middle + (i - (n - 1) / 2) * OUTER_STEP, OUTER, CHOICE));
+    // first to last reads left to right, or top to bottom where the arc stands upright
+    const [a, z] = [arc[0]!, arc[n - 1]!];
+    if (z.x - a.x < 0 || (z.x === a.x && z.y < a.y)) arc.reverse();
+    choices = arc;
+  }
   const area = { x: centre.x - HALF, y: centre.y - HALF, w: 2 * HALF, h: 2 * HALF };
   const options: Rect[] = [];
-  for (let i = 0; i < Math.min(BUBBLE_SLOTS, Math.max(0, input.options)); i++) {
-    const angle = -Math.PI / 2 + (2 * Math.PI * i) / BUBBLE_SLOTS;
-    options.push({ x: Math.round(centre.x + RING * Math.cos(angle) - OPTION / 2), y: Math.round(centre.y + RING * Math.sin(angle) - OPTION / 2), w: OPTION, h: OPTION });
-  }
-  const choices: Rect[] = [];
-  const open = input.open && input.open.choices > 0 ? options[input.open.option] : undefined;
-  if (open && input.open) {
-    const n = input.open.choices;
-    const width = n * CHOICE + (n - 1) * CHOICE_GAP;
-    const right = rectRight(area) + AWAY;
-    const x = right + width <= input.screen.w ? right : area.x - AWAY - width >= 0 ? area.x - AWAY - width : clamp(right, 0, input.screen.w - width);
-    const y = Math.round(clamp(open.y + (OPTION - CHOICE) / 2, top, bottom - CHOICE));
-    for (let i = 0; i < n; i++) choices.push({ x: x + i * (CHOICE + CHOICE_GAP), y, w: CHOICE, h: CHOICE });
-  }
+  for (let i = 0; i < Math.min(BUBBLE_SLOTS, Math.max(0, input.options)); i++) options.push(box(centre, slotAngle(i), RING, OPTION));
   const close = { x: centre.x - OPTION / 2, y: centre.y - OPTION / 2, w: OPTION, h: OPTION };
   return { centre, area, options, choices, close };
 }
