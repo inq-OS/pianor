@@ -270,6 +270,32 @@ test.describe('admin page (ft_1_07.AC6)', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_1_07.AC6 a tablet types into the see-through field over the name box: it is focused, keeps only name letters and its caret stays at the end', async ({ page }) => {
+    const errors = await openGame(page);
+    await openAdmin(page);
+    await clickButton(page, 'admin', 2); // Rename player
+    await waitForScene(page, 'name');
+    const field = page.locator('#name-field');
+    await expect(field).toBeFocused();
+    // the field lies over the canvas, so a tap on the box lands on it and brings up a tablet's keyboard
+    const box = (await field.boundingBox())!;
+    const canvas = (await page.locator('canvas').boundingBox())!;
+    expect(box.width).toBeGreaterThan(50);
+    expect(box.x).toBeGreaterThanOrEqual(canvas.x);
+    expect(box.x + box.width).toBeLessThanOrEqual(canvas.x + canvas.width);
+    // a tablet's keyboard writes text, not keys: what is no name letter goes, the rest in capitals
+    await field.fill('mõ1ri');
+    await expect.poll(() => sceneTexts(page, 'name')).toContain('MÕRI');
+    expect(await field.inputValue()).toBe('MÕRI');
+    // a tap anywhere on the box puts the field's own caret back at the end, where the game draws its red one
+    await field.click({ position: { x: 2, y: box.height / 2 } });
+    expect(await field.evaluate((f: HTMLInputElement) => [f.selectionStart, f.selectionEnd])).toEqual([4, 4]);
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'admin');
+    expect(await playerName(page)).toBe('MÕRI');
+    expectNoErrors(errors);
+  });
+
   test('a blank name is refused on the picker and the player keeps the old name', async ({ page }) => {
     const errors = await openGame(page);
     await openAdmin(page);

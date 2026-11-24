@@ -515,7 +515,7 @@ Check: `src/core/editor/entryPrefs.test.ts` "ft_1_02d.AC34 the cursor following 
 
 The box is big, with a red caret where the next letter goes, and takes only the Estonian name letters, up to 12; Backspace deletes and Enter is Done, and Delete and Done stay as picture buttons. A see-through text field lies over the box and is focused, so a tablet's own keyboard comes up on a tap and types into it; the game draws the name and keeps only the name letters.
 
-Check: `src/core/text/nameEntry.test.ts` "ft_1_07.AC6 keeps the name letters in capitals, drops anything else and stops at the longest name"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box"
+Check: `src/core/text/nameEntry.test.ts` "ft_1_07.AC6 keeps the name letters in capitals, drops anything else and stops at the longest name"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 a tablet types into the see-through field over the name box: it is focused, keeps only name letters and its caret stays at the end"
 
 ## d296
 
