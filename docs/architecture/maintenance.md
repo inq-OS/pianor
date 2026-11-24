@@ -72,7 +72,7 @@ rule in `docs/testing.md` (CI does retry once), the test layer table, the README
   differ; the series-to-record mapping is `seriesRecords` in core/battle. The editor's file access went behind
   `GameContext.files`. Still open: English
   in the editor's status line and the tag ids on the info card.
-- **Item 7, partly done:** screenshot tests skip on any non-Windows machine without a baseline (a local `--update-snapshots`
+- **Item 7, partly done:** screenshot tests skip on any machine without a baseline (a local `--update-snapshots`
   still writes them); the three "nothing happened" e2e waits also wait on game frames (`letGameRun`); `press`, `totalXp`
   and `playerName` are shared helpers. Still open: items 1, 4, 5, 6 and 7.
 - **Done:** the scope of the complexity and nesting limits in [static-analysis.md](static-analysis.md).
@@ -90,9 +90,6 @@ These are judgement calls or questions for the maintainer rather than defects; l
 - **XP bank bite.** `baseBite` in `src/core/scoring/xpBank.ts` returns at least 1 even when the configured `bitePercent`
   is 0, which the content schema allows, so the bite cannot be switched off from content. Either the schema says
   `min(1)` or the code returns 0. The maintainer's call.
-- **Phase 1 of the campaign is stricter than Wait mode.** In `src/core/campaign/findKey.ts` pressing an already accepted
-  chord key again counts as wrong (tested on purpose); Wait and Tempo treat it as a harmless repeat. Is that wanted for a
-  young student?
 - **Sections are recognised by their id** (`isSection` looks for `#bars-` in the chart id), and that decides whether XP is
   paid. A field on the chart, or `sliceChart` returning `{ chart, section }`, would be sturdier; it touches the chart
   schema, so it is an architect question.

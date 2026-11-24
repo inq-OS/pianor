@@ -20,7 +20,7 @@ The on-screen piano is hidden so the student reads from the staff and the screen
 4. Without a piano the practice screen says "Use the computer keyboard" while the keys are hidden.
 5. The saved setting `settings.keyboard = { onScreen }` (profile v9, default on, migration 8 to 9, d054) is still in the save but drives nothing. Open for the maintainer: remove it or keep it for a later rule.
 6. Tests: `tests/e2e/onscreen-keyboard.spec.ts` (AC1 to AC4, AC2 at 1366x768, 1280x720, 1024x600), `tests/e2e/toolbar.spec.ts` (switch on the settings screen only, `?keys=1`), `src/core/layout/frame.test.ts`, migration and per-player unit tests (`migrate.test.ts`, `profile.test.ts`, `tests/progression/profile-service.test.ts`), a screenshot in `visual.spec.ts`.
-7. Not verified (needs human): the real EZ-220 with the keyboard hidden and hotplug; the Windows baselines `practice-keyboard-hidden-1366x768-chromium-win32.png` and the settings screenshot; how a student without the EZ-220 finds the keys again.
+7. Not verified (needs human): the real EZ-220 with the keyboard hidden and hotplug; the screenshot baselines `practice-keyboard-hidden-1366x768-chromium.png` and the settings screenshot; how a student without the EZ-220 finds the keys again.
 
 ## Acceptance criteria
 

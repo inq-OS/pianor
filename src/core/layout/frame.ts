@@ -1,4 +1,3 @@
-import { BAND_ROWS } from './band';
 import { pixelView } from './pixelView';
 import { rectRight, type Rect } from './rect';
 
@@ -79,7 +78,17 @@ export interface FrameOptions {
    * vine and no band, whatever `band` says. AX-3 provisional: asked of the architect (d088 has a toolbar on every screen).
    */
   whole?: boolean;
+  /**
+   * The rows of the strip at the foot (ft_1_20, d282: `pinRows`, 0 on a screen with nothing pinned); none when not given.
+   */
+  bandRows?: number;
 }
+
+/**
+ * How tall the board is that a talk or a tug lays over the foot of a painted place (ft_1_21, ft_1_22): the height the old
+ * band had, which its pictures are painted for.
+ */
+export const BOARD_ROWS = 56;
 
 export function frameView(screenWidth: number, screenHeight: number, options: FrameOptions = { band: false }): FrameView {
   const fine = pixelView(screenWidth, screenHeight, { minWidth: ART_CANVAS.width, minHeight: ART_CANVAS.height, maxScale: MAX_FINE_ZOOM }).scale;
@@ -90,8 +99,9 @@ export function frameView(screenWidth: number, screenHeight: number, options: Fr
   // the band stands on the last whole row, so none of it is cut off at the screen's foot
   const toolbar = options.toolbar ?? BAND_KEEPS_TOOLBAR;
   const top = toolbar ? FRAME_ROWS : 0;
-  const height = Math.floor(screenHeight / scale) - BAND_ROWS - top;
-  return { scale, fine, width, height, top, toolbar, band: { top: height, rows: BAND_ROWS } };
+  const rows = options.bandRows ?? 0;
+  const height = Math.floor(screenHeight / scale) - rows - top;
+  return { scale, fine, width, height, top, toolbar, band: { top: height, rows } };
 }
 
 /** What a screen puts on the toolbar; widths in art pixels, the texts measured by the caller. */

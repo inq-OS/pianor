@@ -1,6 +1,6 @@
 // Covers ft_0_10.AC2, ft_0_10.AC4, ft_0_15.AC5.
 import { expect, test, type Page } from '@playwright/test';
-import { LITTLE_STEPS, addPlayer, clickButton, clickToolbar, expectNoErrors, goToMainMenu, openAdminPage, openGame, openPiece, pickProfile, playWithKeys, profileButton, nameDone, sceneButton, sceneTexts, showMenuPageWith, toPieceList, toScoreScreen, waitForScene, bandAction } from './helpers';
+import { LITTLE_STEPS, addPlayer, clickButton, clickToolbar, expectNoErrors, goToMainMenu, openAdminPage, openGame, openPiece, pickProfile, playWithKeys, profileButton, nameDone, sceneButton, sceneTexts, showMenuPageWith, toPieceList, toScoreScreen, waitForScene, bandAction, reachButton } from './helpers';
 
 const progress = (page: Page) =>
   page.evaluate(() => {
@@ -38,6 +38,17 @@ test.describe('earning XP and levels', () => {
     await waitForScene(page, 'menu');
     await showMenuPageWith(page, 'Little Steps');
     expect(await sceneTexts(page, 'menu')).toEqual(expect.arrayContaining(['Level 2'])); // the card's piece level (the player's is in the room, ft_1_20.AC13)
+    // the level is never written over the card's small buttons, in the two-page book either
+    const overlaps = await page.evaluate(() => {
+      type Rect = { x: number; y: number; width: number; height: number };
+      type Small = Map<string, { rect: Rect }>;
+      const menu = window.__game.scene.getScene('menu') as unknown as { root: { list: (Rect & { text?: string })[] }; infoButtons: Small; statsButtons: Small; partsButtons: Small };
+      const small = [menu.infoButtons, menu.statsButtons, menu.partsButtons].flatMap((m) => [...m.values()].map((b) => b.rect));
+      const levels = menu.root.list.filter((o) => o.text === 'Level 2');
+      if (levels.length === 0 || small.length === 0) return -1;
+      return levels.flatMap((l) => small.filter((r) => l.x < r.x + r.width && r.x < l.x + l.width && l.y < r.y + r.height && r.y < l.y + l.height)).length;
+    });
+    expect(overlaps).toBe(0);
     expect((await progress(page)).pieceXp).toBe(85);
     expectNoErrors(errors);
   });
@@ -45,7 +56,7 @@ test.describe('earning XP and levels', () => {
   test('hints make a run earn less XP', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Note names'));
+    await clickButton(page, 'practice', await reachButton(page, 'practice', 'Note names'));
     await playWithKeys(page, LITTLE_STEPS);
     await toScoreScreen(page);
     expect(await sceneTexts(page, 'results')).toContain('+42 XP');

@@ -1,4 +1,4 @@
-// Covers ft_1_02a.AC1, ft_1_02a.AC9: the staff of the editor for a piece of both hands, also while a hand has no notes yet.
+// Covers ft_1_02a.AC1, ft_1_02a.AC9, ft_1_02d.AC33: the staff of the editor for a piece of both hands, also while a hand has no notes yet.
 import { describe, expect, it } from 'vitest';
 import { layoutStaff } from '../layout/staff';
 import { toChart } from './chart';
@@ -78,7 +78,7 @@ describe('the key signature in the editor (core_09.AC8)', () => {
     const chart = toChart(piece, { id: 'draft' });
     const layout = layoutStaff(chart, { viewport, allPlayTracks: true });
     const sharp = layout.keySignature[0]!;
-    expect(hitTest(layout, chart, { x: sharp.x, y: sharp.y })).toEqual({ kind: 'key', staff: 0 });
+    expect(hitTest(layout, chart, { x: sharp.x, y: sharp.y })).toEqual({ kind: 'key', staff: 0, system: 0 });
   });
 
   it('a click on the time signature of the first line is a time hit (it opens the time choice)', () => {
@@ -94,7 +94,7 @@ describe('the key signature in the editor (core_09.AC8)', () => {
     const staff = layout.systems[0]!.staves[0]!;
     const x = layout.clefs[0]!.x;
     const y = staff.bottomLineY - (8 * layout.staffSpace) / 2;
-    expect(hitTest(layout, chart, { x, y })).toEqual({ kind: 'key', staff: 0 });
+    expect(hitTest(layout, chart, { x, y })).toEqual({ kind: 'key', staff: 0, system: 0 });
   });
 
   it('a click in a bar is still a place, not a key (the bar line takes its area)', () => {
@@ -102,5 +102,25 @@ describe('the key signature in the editor (core_09.AC8)', () => {
     const layout = layoutStaff(chart, { viewport, allPlayTracks: true });
     const at = pointOf(layout, chart, { bar: 0, start: 0, staff: 0, position: 4 })!;
     expect(hitTest(layout, chart, at)).toMatchObject({ kind: 'place' });
+  });
+});
+
+describe('a click on a chord', () => {
+  it('ft_1_02d.AC33 picks the nearest head of a close chord, so each note of a second or a third can be selected for its finger', () => {
+    let piece: EditorPiece = emptyPiece({ title: 'T', hands: 'RH', beats: 4, bars: 1 });
+    for (const step of ['C', 'D', 'E'] as const) {
+      const edit = placeNote(piece, { hand: 'RH', bar: 0, start: 0, length: 'quarter', step, octave: 4 });
+      if (!edit.ok) throw new Error(edit.reason);
+      piece = edit.piece;
+    }
+    const chart = toChart(piece, { id: 'draft' });
+    const layout = layoutStaff(chart, { viewport, allPlayTracks: true });
+    // a click a little off the head's centre, toward its neighbour, still picks it: the nearest head wins
+    const quarter = layout.staffSpace / 5;
+    for (const head of layout.notes) {
+      for (const dy of [-quarter, 0, quarter]) {
+        expect(hitTest(layout, chart, { x: head.x, y: head.y + dy })).toEqual({ kind: 'note', noteIndex: head.index });
+      }
+    }
   });
 });

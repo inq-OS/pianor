@@ -20,6 +20,9 @@ const PORT = Number(process.env.PW_PORT) || 5180;
 // the tests open the game with `?loop=timer` (tests/e2e/helpers.ts `openGame`), which made a cloud run about twice as fast.
 const GPU_ARGS = E2E_GPU ? ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] : [];
 
+// No hinting and no LCD (coloured) smoothing of letters (d288): the staff font's edges come out the same on every machine.
+const BROWSER_ARGS = ['--autoplay-policy=no-user-gesture-required', '--font-render-hinting=none', '--disable-lcd-text'];
+
 export default defineConfig({
   testDir: 'tests/e2e',
   // The target laptop is slow under load: generous limits, so a busy machine is not a failure.
@@ -40,19 +43,26 @@ export default defineConfig({
     trace: 'retain-on-failure',
     launchOptions: {
       ...(CHROMIUM_PATH ? { executablePath: CHROMIUM_PATH } : {}),
-      args: ['--autoplay-policy=no-user-gesture-required', ...GPU_ARGS],
+      args: [...BROWSER_ARGS, ...GPU_ARGS],
     },
   },
-  // Screenshots differ a little per OS (fonts, anti-aliasing), so baselines are stored per platform.
-  // PW_EXPECT_TIMEOUT: the baseline workflow's slow Windows runner, where one screenshot of the software-drawn page takes over 20 s
+  // One baseline per screen (d289): no text asks the computer for a font and the screenshot tests always draw WebGL in
+  // software (the visual project below), so every machine makes the same pixels; the 2 percent tolerance covers what is left.
+  // PW_EXPECT_TIMEOUT: a slow runner making baselines, where one screenshot of the software-drawn page can take over 20 s
   expect: { timeout: Number(process.env['PW_EXPECT_TIMEOUT']) || 20_000, toHaveScreenshot: { maxDiffPixelRatio: 0.02 } },
-  // The baselines were named for the single project `chromium`; keep that name now that every area is a project.
-  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-chromium{-snapshotSuffix}{ext}',
+  // The baselines were named for the single project `chromium`; keep that name now that every area is a project. No
+  // platform in the name (d289): every machine checks the same file.
+  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-chromium{ext}',
   // One project per area (tools/e2e/areas.ts): `--project=editor` runs one area, `npm run test:e2e:affected` the changed ones.
   projects: E2E_AREAS.map((area) => ({
     name: area.name,
     testMatch: area.specs.map((spec) => `**/${spec}.spec.ts`),
-    use: { ...devices['Desktop Chrome'], ...TARGET_VIEW },
+    use: {
+      ...devices['Desktop Chrome'],
+      ...TARGET_VIEW,
+      // the screenshot area never uses a GPU, so a baseline is the same pixels on every machine (d289)
+      ...(area.name === 'visual' ? { launchOptions: { ...(CHROMIUM_PATH ? { executablePath: CHROMIUM_PATH } : {}), args: BROWSER_ARGS } } : {}),
+    },
   })),
   webServer: {
     command: `npx vite --port ${PORT} --strictPort`,

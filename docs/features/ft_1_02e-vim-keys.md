@@ -9,7 +9,7 @@ depends_on: ["ft_1_02d"]
 ---
 # ft_1_02e: Vim keys in the piece maker
 
-Part of ft_1_02. For an author who knows vim, the piece maker reads keys the vim way: a count, an operator, a motion. It is off by default, so a student never meets modes (d286). Index: [FEATURES.md](FEATURES.md).
+Part of ft_1_02. For an author who knows vim, the piece maker reads keys the vim way: a count, an operator, a motion. It is off by default, so a student never meets modes (d292). Index: [FEATURES.md](FEATURES.md).
 
 ## Rules
 

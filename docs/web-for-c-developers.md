@@ -64,7 +64,7 @@ is why every layer above `io` can be tested on any PC (`docs/testing.md` section
 | `src/io/` | The HAL and drivers | Small interfaces (`src/io/keyboard.ts`) with real and mock implementations behind them |
 | `src/game/` | The UI task | Draws; reads `core` and the `io` interfaces only (lint-enforced) |
 | `src/main.ts`, `src/compose.ts`, `src/profileSetup.ts` | `main()` and board init | The composition root: picks the real or mock drivers and wires them together |
-| `content/` | Data tables in flash | Pieces, levels, monsters: data, so adding content needs no code change |
+| `content/` | Data tables in flash | Pieces, levels, characters: data, so adding content needs no code change |
 | `tools/` | Host-side code generators and scripts | Piece compiler and linter, generators, docs tooling, test selection |
 
 ## First hour

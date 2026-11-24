@@ -79,6 +79,8 @@ async function expectIntroDone(page: Page): Promise<void> {
   await expect.poll(() => flags(page)).toContain('intro.done');
   await expect.poll(() => room(page, 'introState')).toBeNull();
   await expect.poll(() => showing(page)).toBeNull();
+  // the room is the player's again on this visit: Kiur on the bed can be pressed, the way into learning (ft_1_32 rule 14)
+  await expect.poll(() => sceneButton(page, 'profile', 'Kiur')).toBeGreaterThanOrEqual(0);
 }
 
 /** Reads the teacher's lines in the room to their end. */
@@ -192,6 +194,7 @@ test.describe('the first-run intro (ft_1_31)', () => {
     await page.keyboard.press('Escape');
     await expect.poll(() => flags(page)).toContain('intro.done');
     expect(await room(page, 'introState')).toBeNull();
+    await expect.poll(() => sceneButton(page, 'profile', 'Kiur')).toBeGreaterThanOrEqual(0);
     // a visit again: no intro
     await page.evaluate(() => { window.__game.scene.start('profile'); });
     await waitForScene(page, 'profile');

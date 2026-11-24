@@ -1,4 +1,5 @@
 import type { PlaySettings } from '../../../core/judge/playSettings';
+import { barNumbersToShow, type BarNumberMode } from '../../../core/layout/barNumbers';
 import type { DurationMark } from '../../../core/layout/durationHelp';
 import type { StaffSettings } from '../../../core/layout/staffSettings';
 import { createBitmap, type Bitmap } from './bitmap';
@@ -44,8 +45,8 @@ const DIGITS: Readonly<Record<string, readonly string[]>> = {
   '3': ['##.', '..#', '.#.', '..#', '##.'], '4': ['#.#', '#.#', '###', '..#', '..#'], '5': ['###', '#..', '##.', '..#', '##.'],
   '6': ['.##', '#..', '###', '#.#', '###'], '7': ['###', '..#', '.#.', '.#.', '.#.'], '8': ['###', '#.#', '###', '#.#', '###'], '9': ['###', '#.#', '###', '..#', '##.'],
 };
-const digits = (b: Canvas, x: number, y: number, value: string) => {
-  [...value].forEach((ch, i) => DIGITS[ch]!.forEach((row, dy) => [...row].forEach((bit, dx) => { if (bit === '#') put(b, x + i * 4 + dx, y + dy, INK); })));
+const digits = (b: Canvas, x: number, y: number, value: string, c: number = INK) => {
+  [...value].forEach((ch, i) => DIGITS[ch]!.forEach((row, dy) => [...row].forEach((bit, dx) => { if (bit === '#') put(b, x + i * 4 + dx, y + dy, c); })));
 };
 
 /** Tempo's timing view: three notes after they were played, plain (off), in the score colours, or with their scores. */
@@ -226,5 +227,52 @@ export function resumeSymbol(choice: 'continue' | 'over'): Bitmap {
   note(b, 22, top + 9);
   note(b, 28, top + 6);
   pointer(b, choice === 'continue' ? 19 : 2, top);
+  return b;
+}
+
+/** A finger number at (x, y) on a cream patch, so the staff lines do not run through it. */
+const finger = (b: Canvas, x: number, y: number, digit: string) => {
+  for (let dy = -1; dy <= 5; dy++) hline(b, x - 1, x + 3, y + dy, C.cream);
+  digits(b, x, y, digit, C.blue);
+};
+
+/**
+ * Finger numbers on the staff: two chords of two notes, each finger beside its head and level with it, as on the practice
+ * staff; none, the top note's finger only, or every note's.
+ */
+export function fingersSymbol(shown: 'off' | 'top' | 'all'): Bitmap {
+  const b = paper();
+  staff(b, 4);
+  const chords: readonly [number, number, number, string, string][] = [[5, 16, 10, '1', '5'], [20, 13, 7, '1', '3']];
+  for (const [x, low, high, lowFinger, highFinger] of chords) {
+    note(b, x, low, INK, low - high + 7);
+    note(b, x, high);
+    if (shown !== 'off') finger(b, x + 5, high - 2, highFinger);
+    if (shown === 'all') finger(b, x + 5, low - 2, lowFinger);
+  }
+  return b;
+}
+
+/** Bar numbers: five bars of a staff, and over a bar's start the numbers the setting shows (none, 1, 1 to 5, 1 3 5, 1 5). */
+export function barNumbersSymbol(mode: BarNumberMode): Bitmap {
+  const b = paper();
+  const top = 10, width = 6, bars = 5;
+  staff(b, top, { x0: 1, x1: 1 + width * bars, gap: 2 });
+  for (let i = 0; i <= bars; i++) vline(b, 1 + width * i, top, top + 8);
+  for (const { index, number } of barNumbersToShow(mode, bars)) digits(b, 2 + width * index, 3, String(number), C.blue);
+  return b;
+}
+
+/**
+ * The live tempo of a learning run (ft_1_32 rule 18): the practice screen's top bar over a scrap of staff, with the tempo
+ * written small at its right end when on, empty when off.
+ */
+export function liveTempoSymbol(on: boolean): Bitmap {
+  const b = paper();
+  for (let y = 0; y < 8; y++) hline(b, 0, SYMBOL_WIDTH - 1, y, C.panel);
+  if (on) digits(b, 24, 1, '90', C.cream);
+  staff(b, 10, { gap: 3, lines: 4 });
+  note(b, 8, 16);
+  note(b, 20, 13);
   return b;
 }

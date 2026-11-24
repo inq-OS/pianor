@@ -2,7 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Bitmap } from './bitmap';
 import { C } from './palette';
-import { SYMBOL_HEIGHT, SYMBOL_WIDTH, durationSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, resumeSymbol, scoreSymbol, staffGapSymbol } from './settingArt';
+import { BAR_NUMBER_MODES } from '../../../core/layout/barNumbers';
+import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, durationSymbol, fingersSymbol, liveTempoSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, resumeSymbol, scoreSymbol, staffGapSymbol } from './settingArt';
 
 const same = (a: Bitmap, b: Bitmap) => a.pixels.every((p, i) => p === b.pixels[i]);
 const count = (b: Bitmap, colour: number) => b.pixels.filter((p) => p === colour).length;
@@ -19,6 +20,9 @@ const SETTINGS: Record<string, Bitmap[]> = {
   learnHands: [false, true].map(learnHandsSymbol),
   naming: (['B', 'H'] as const).map(namingSymbol),
   resume: (['continue', 'over'] as const).map(resumeSymbol),
+  fingers: (['off', 'top', 'all'] as const).map(fingersSymbol),
+  barNumbers: BAR_NUMBER_MODES.map(barNumbersSymbol),
+  liveTempo: [false, true].map(liveTempoSymbol),
 };
 
 describe('settings button pictures', () => {
@@ -54,5 +58,18 @@ describe('settings button pictures', () => {
     const notesIn = (b: Bitmap, y0: number, y1: number) => [...b.pixels.keys()].filter((i) => b.pixels[i] === C.ink && Math.floor(i / b.width) >= y0 && Math.floor(i / b.width) <= y1 && i % b.width >= 7 && i % b.width <= 12).length;
     // the first column: lower staff notes only when both hands play
     expect(notesIn(learnHandsSymbol(false), 15, 19)).toBeGreaterThan(notesIn(learnHandsSymbol(true), 15, 19));
+  });
+
+  it('finger numbers and bar numbers are pictures with more blue digits the more the setting shows, and none when off', () => {
+    const fingers = (['off', 'top', 'all'] as const).map((v) => count(fingersSymbol(v), C.blue));
+    expect(fingers[0]).toBe(0);
+    expect(fingers[1]).toBeGreaterThan(0);
+    expect(fingers[2]).toBeGreaterThan(fingers[1]!);
+    const bars = Object.fromEntries(BAR_NUMBER_MODES.map((m) => [m, count(barNumbersSymbol(m), C.blue)]));
+    expect(bars.off).toBe(0);
+    expect(bars.every).toBeGreaterThan(bars.every2!);
+    expect(bars.every2).toBeGreaterThan(bars.every4!);
+    expect(bars.every4).toBeGreaterThan(bars.first!);
+    expect(bars.first).toBeGreaterThan(0);
   });
 });

@@ -225,6 +225,27 @@ export function pasteAt(
 }
 
 /**
+ * The bars a paste x1, x2 or x4 would take, first to last (d286, ft_1_02d.AC28): the pastes go one after another as the
+ * paste menu makes them, each after the bars the one before put in. Null when the first is refused; a later refusal ends
+ * the span where the pastes stop.
+ */
+export function pasteSpan(piece: EditorPiece, selection: BarRange | null, fresh: boolean, lastClicked: number | null, clip: Clip, times: number): BarRange | null {
+  let span: BarRange | null = null;
+  let p = piece;
+  let sel = selection;
+  let isFresh = fresh;
+  for (let i = 0; i < times; i += 1) {
+    const { edit, range } = pasteAt(p, sel, isFresh, lastClicked, clip);
+    if (!edit.ok || !range) break;
+    span = span ? { from: span.from, to: range.to } : range;
+    p = edit.piece;
+    sel = range;
+    isFresh = true;
+  }
+  return span;
+}
+
+/**
  * Empty bars put in before bar `at`: the later bars move forward, using up the empty bars at the
  * end first, so the piece only gets longer when its content needs the room. Refused past MAX_BARS.
  */

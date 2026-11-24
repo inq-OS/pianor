@@ -32,10 +32,10 @@ The beacon post at the quay's head is the quay's own gear, as the bollards and t
 
 - The underwater arches stay, with just their top part visible above the water.
 - Boats in the manner of the 1991 game's houseboat and small galleon. Franchise art is never copied, so these are two boats of our own in that manner: a tubby houseboat, a crooked little house on its deck and a grey seal carved at its bow, and a stubby carved galleon with a high stern castle and no letter or shield on it (`houseboat` and `galleon` in `portBoats.ts`). The houseboat lies at the quay while `PORT_MOORED` is provisional; the galleon is the teacher's and sails in with her arrival script (ft_1_27).
-- More Monkey Island quirkiness, especially underwater, where the painter is free to invent; a locked treasure chest. The coral beings need not exist in the real world.
+- More Monkey Island quirkiness, especially underwater, where the painter is free to invent; a locked treasure chest. The coral creatures need not exist in the real world.
 - For now the galleon is the teacher's boat.
 
-What changed: the three arches are full round heads that cross the water, no two alike (`PORT_ARCHES`): their crowns and wedge stones show above it, dark under them, their shoulders and piers under it. The ladder and the tyres hang on the piers between. Under the water are the wonders no real sea has (`portWonders.ts`): the locked chest and invented corals and beings.
+What changed: the three arches are full round heads that cross the water, no two alike (`PORT_ARCHES`): their crowns and wedge stones show above it, dark under them, their shoulders and piers under it. The ladder and the tyres hang on the piers between. Under the water are the wonders no real sea has (`portWonders.ts`): the locked chest and invented corals and creatures.
 
 ## Pass 4: smooth behind, grain on the things
 

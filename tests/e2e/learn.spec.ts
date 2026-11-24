@@ -1,6 +1,6 @@
 // Covers ft_1_32.AC4, ft_1_32.AC5, ft_1_32.AC6, ft_1_32.AC11, ft_1_32.AC12, ft_1_32.AC13, ft_1_32.AC14, ft_1_32.AC16, ft_1_32.AC17, ft_1_32.AC18.
 import { expect, test, type Page } from '@playwright/test';
-import { clickButton, clickToolbar, expectNoErrors, sceneTexts, isPieceLabel, menuLabels, letGameRun, openGame, openPiece, playWithKeys, sceneButton, showMenuPageWith, waitForScene } from './helpers';
+import { activeScenes, clickButton, clickToolbar, expectNoErrors, sceneTexts, isPieceLabel, menuLabels, letGameRun, openGame, openPiece, playWithKeys, sceneButton, showMenuPageWith, waitForScene } from './helpers';
 
 /** The bars the practice screen shows now (0-based, of the whole piece), and the notes to play in them in order. */
 async function shown(page: Page): Promise<{ bars: number; first: number; midis: number[] }> {
@@ -89,6 +89,9 @@ test('a new piece is learned bar by bar: one bar shown, a wrong key repeats it, 
   await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toMatch(/in bar 1\. Again from the start$/);
   expect(await shown(page)).toMatchObject({ bars: 1, first: 0 });
   expect(await progress(page)).toMatchObject({ step: 0, misses: 1 });
+  // the wrong key stays on the staff of the run started again, until its first key (ft_1_32.AC6)
+  const playedShown = () => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { staffView: { played: unknown } } }).playSession.staffView.played !== null);
+  expect(await playedShown()).toBe(true);
 
   // the same mistake again: the note it was for gets a mistake marker (ft_1_32.AC5, at the 2nd miss by default)
   await playWithKeys(page, [wrong]);
@@ -96,7 +99,9 @@ test('a new piece is learned bar by bar: one bar shown, a wrong key repeats it, 
   await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { staffView: { markersShown: number } } }).playSession.staffView.markersShown), { timeout: 10_000 }).toBeGreaterThanOrEqual(1);
 
   // every note right: the next step shows bars 1 and 2, and the first bar's note is earned
-  await playWithKeys(page, first.midis);
+  await playWithKeys(page, first.midis.slice(0, 1));
+  expect(await playedShown()).toBe(false); // the first right key takes the wrong one away
+  await playWithKeys(page, first.midis.slice(1));
   await expect.poll(async () => (await shown(page)).bars, { timeout: 10_000 }).toBe(2);
   expect(await progress(page)).toMatchObject({ step: 1, misses: 0 });
   expect(await kiurSays(page)).toBe('Every note right! Now bars 1 to 2');
@@ -182,16 +187,67 @@ test('ft_1_32.AC16 a half-learned piece opened again asks to go on or start over
   expectNoErrors(errors);
 });
 
-test('ft_1_32.AC17 the stats pane shows the run measured while it is played: tempo, spread and wobble', async ({ page }) => {
+test('ft_1_32.AC17 the live tempo is off by default; turned on in the settings, the top bar shows the run measured while it is played', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
+  const live = async () => (await sceneTexts(page, 'practice')).filter((text) => /^(Tempo|Spread) /.test(text));
   await learnPiece(page, 'Little Steps');
-  await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { toggleStatsPane: () => void }).toggleStatsPane());
-  const live = async () => (await sceneTexts(page, 'practice')).filter((text) => /^(Tempo|Spread|Wobble) /.test(text));
-  await expect.poll(live).toEqual(['Tempo -', 'Spread -', 'Wobble -']);
+  expect(await live()).toEqual([]); // off unless turned on: nothing over the student's staff
+  // turned on (the Learning page of the settings saves the same): the screen draws it from then on
+  await page.evaluate(async () => {
+    await window.__game.registry.get('context').profiles.updateLearnSettings({ liveTempo: true });
+    (window.__game.scene.getScene('practice') as unknown as { redraw: () => void }).redraw();
+  });
+  await expect.poll(live).toEqual(['Tempo -', 'Spread - Wobble -']);
   const { midis } = await shown(page);
   expect(midis.length).toBeGreaterThan(3);
   await playWithKeys(page, midis.slice(0, 3));
   await expect.poll(async () => (await live())[0]).toMatch(/^Tempo \d+$/);
-  expect((await live())[1]).toMatch(/^Spread \d+%$/);
+  expect((await live())[1]).toMatch(/^Spread \d+% Wobble \d+%$/);
+  // the stats pane no longer holds it
+  await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { toggleStatsPane: () => void }).toggleStatsPane());
+  await expect.poll(async () => (await live()).length).toBe(2);
+  expectNoErrors(errors);
+});
+
+test('ft_1_32.AC15 a piece learned keeps its reward and Kiur\'s line until a key, then goes back to the room', async ({ page }) => {
+  const errors = await openGame(page, '?device=virtual&learn=1');
+  await learnPiece(page, 'Little Steps');
+  const [steps, runs] = await page.evaluate(() => {
+    const { plan } = (window.__game.scene.getScene('practice') as unknown as { learn: { plan: { runs: number }[] } }).learn;
+    return [plan.length, plan[plan.length - 1]!.runs];
+  });
+  await page.keyboard.press('Escape');
+  await waitForScene(page, 'menu');
+  // the piece one run from learned: the last step's last run is all that is left
+  await page.evaluate(({ step, streak }) => {
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return window.__game.registry.get('context').profiles.saveLearnProgress('little-steps', {
+      step, wholeStreak: streak, recall: false, confirm: false, misses: 0, medals: [], lastDay: today, bpm: [100], stepBars: 1,
+    });
+  }, { step: steps - 1, streak: runs - 1 });
+  await learnPieceAsked(page, 'Little Steps');
+  await page.keyboard.press('Escape'); // go on
+  await waitForScene(page, 'practice');
+  // every note at its own time, at an even 100 BPM
+  const notes = await page.evaluate(() => {
+    const scene = window.__game.scene.getScene('practice') as unknown as { chart: { notes: { tick: number; midi: number; track: string }[]; tracks: { id: string; role: string }[] } };
+    const play = new Set(scene.chart.tracks.filter((t) => t.role === 'play').map((t) => t.id));
+    return scene.chart.notes.filter((n) => play.has(n.track)).sort((a, b) => a.tick - b.tick).map((n) => ({ tick: n.tick, midi: n.midi }));
+  });
+  let at = notes[0]!.tick;
+  for (const n of notes) {
+    if (n.tick > at) await page.waitForTimeout(((n.tick - at) / 480) * 600);
+    at = n.tick;
+    await page.evaluate((m) => { window.__virtualDevice!.press(m, 80); window.__virtualDevice!.release(m); }, n.midi);
+  }
+  await expect.poll(() => progress(page), { timeout: 10_000 }).toMatchObject({ step: steps });
+  // the learned moment stays: still the practice screen with Kiur's learned line, well after the next run would have started
+  await page.waitForTimeout(3000);
+  expect(await activeScenes(page)).toContain('practice');
+  expect(await sceneTexts(page, 'practice')).toEqual(expect.arrayContaining([expect.stringMatching(/^Learned: .*Play any key to go on$/)]));
+  // a key goes on, back to the room where Kiur waits with the tug
+  await page.evaluate(() => { window.__virtualDevice!.press(60, 80); window.__virtualDevice!.release(60); });
+  await waitForScene(page, 'profile');
   expectNoErrors(errors);
 });

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { BAND_ROWS } from '../../../core/layout/band';
+import { BOARD_ROWS } from '../../../core/layout/frame';
 import { TALK } from '../../../core/layout/talk';
 import { setLanguage } from '../../../core/text/language';
 import { CAP_HEIGHT, CELL_HEIGHT } from './font';
@@ -74,9 +74,9 @@ describe('the conversation\'s look (ft_1_22.AC1, WP-09 painter part, take A2)', 
   it('the board fills the band\'s rows, in the band\'s own wood and a dark board', () => {
     const board = talkBoard(320);
     expect(board.width).toBe(320);
-    expect(board.height).toBe(BAND_ROWS);
+    expect(board.height).toBe(BOARD_ROWS);
     expect([...board.pixels].every((p) => p !== 0)).toBe(true);
-    expect(board.pixels[(BAND_ROWS >> 1) * 320 + 160]).toBe(C.night);
+    expect(board.pixels[(BOARD_ROWS >> 1) * 320 + 160]).toBe(C.night);
     for (const c of colours(board.pixels)) expect([C.panel, C.groove, C.night, C.panelLit, C.panelDark]).toContain(c);
   });
 });

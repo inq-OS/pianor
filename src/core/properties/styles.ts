@@ -4,7 +4,7 @@ import { strings, type StringKey } from '../text/strings.ts';
 /**
  * The closed list of piece styles (core_05 item 1), kept as content in `content/pieces/styles.json`. A piece names
  * its styles in `styles` of its meta file; the linter refuses a word that is not here, and the info card shows the names.
- * Later a style stands for an RPG class (ft_Y_03). Free `tags` stay for technique and provenance.
+ * Free `tags` stay for technique and provenance.
  */
 const styleSchema = z.object({
   id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'use lowercase words joined by dashes'),

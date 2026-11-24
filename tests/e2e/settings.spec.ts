@@ -80,6 +80,8 @@ test.describe('settings', () => {
     }, index);
   /** The text a settings button draws (a number, or blank). */
   const buttonText = (page: Page, index: number) => page.evaluate((i) => (window.__game.scene.getScene('settings').buttons[i] as { options: { label: string } }).options.label, index);
+  /** The button shows its choice as a picture, never as a word that could be cut short. */
+  const isPicture = (page: Page, index: number) => page.evaluate((i) => (window.__game.scene.getScene('settings').buttons[i] as { options: { iconOnly?: boolean } }).options.iconOnly === true, index);
 
   test('ft_1_32.AC2 ft_1_32.AC12 the second page sets how a piece is learned: the step size, the rings and their threshold, the hands', async ({ page }) => {
     const errors = await openGame(page);
@@ -158,8 +160,8 @@ test.describe('settings', () => {
     await openSettings(page);
     expect(await sceneTexts(page, 'settings')).toEqual(expect.arrayContaining(['Bar numbers']));
     expect(await mode()).toBe('off');
-    expect(await shows(page, BAR_NUMBERS)).toBe('Off'); // the name, shown as the tooltip
-    expect(await buttonText(page, BAR_NUMBERS)).toBe(''); // blank: no numbers
+    expect(await shows(page, BAR_NUMBERS)).toBe('Off'); // the picture's name
+    expect(await isPicture(page, BAR_NUMBERS)).toBe(true); // five bars with no numbers
 
     await press(1);
     expect(await mode()).toBe('first');
@@ -167,7 +169,7 @@ test.describe('settings', () => {
     await press(2);
     expect(await mode()).toBe('every2');
     expect(await shows(page, BAR_NUMBERS)).toBe('Every 2nd');
-    expect(await buttonText(page, BAR_NUMBERS)).toBe('1 3 5');
+    expect(await isPicture(page, BAR_NUMBERS)).toBe(true); // 1, 3 and 5 over five bars
     expect(await settings(page)).toEqual({ lines: 2, barsPerLine: 'auto' }); // the other settings are left alone
 
     const errors = await openGame(page);
@@ -203,7 +205,7 @@ test.describe('settings', () => {
     expect(await page.evaluate(() => window.__game.registry.get('context').profiles.profile.settings.battle)).toEqual({ fights: 'one' });
   });
 
-  test('the finger numbers switch goes OFF, TOP, ALL and back, and the choice survives a reload', async ({ page }) => {
+  test('the finger numbers switch goes off, top note, every note and back, each a picture, and the choice survives a reload', async ({ page }) => {
     test.slow(); // the game loads twice
     const mode = () => page.evaluate(() => (window.__game.registry.get('context').profiles.fingerNumbers as string));
     await openGame(page);
@@ -211,17 +213,17 @@ test.describe('settings', () => {
     expect(await sceneTexts(page, 'settings')).toEqual(expect.arrayContaining(['Finger numbers']));
     expect(await mode()).toBe('off');
     expect(await shows(page, CHORD)).toBe('No finger numbers');
-    expect(await buttonText(page, CHORD)).toBe('OFF');
+    expect(await isPicture(page, CHORD)).toBe(true);
 
     await clickAndRedraw(page, 'settings', CHORD);
     await expect.poll(mode).toBe('top');
     expect(await shows(page, CHORD)).toBe('Top note only');
-    expect(await buttonText(page, CHORD)).toBe('TOP');
+    expect(await isPicture(page, CHORD)).toBe(true);
 
     await clickAndRedraw(page, 'settings', CHORD);
     await expect.poll(mode).toBe('all');
     expect(await shows(page, CHORD)).toBe('Every note');
-    expect(await buttonText(page, CHORD)).toBe('ALL');
+    expect(await isPicture(page, CHORD)).toBe(true);
 
     const errors = await openGame(page);
     expect(await mode()).toBe('all');
@@ -402,7 +404,7 @@ for (const lang of ['en', 'et'] as const) {
 }
 
 // each setting's button shows its current choice as a picture, the way the student sees it while playing, or
-// as a number where a number says it best (bars on a line, bar numbers), never as a word.
+// as a number where a number says it best (bars on a line), never as a word.
 test('the setting buttons show pictures or numbers, and the choice name only as a tooltip', async ({ page }) => {
   const errors = await openGame(page);
   await clickButton(page, 'menu', await menuButton(page, 'Settings'));
@@ -413,7 +415,7 @@ test('the setting buttons show pictures or numbers, and the choice name only as 
     })),
   );
   expect(buttons).toHaveLength(6); // Wait/Tempo moved to the practice screen; the keyboard switch is on this screen's toolbar (d099)
-  expect(buttons.filter((b) => !b.picture)).toEqual([{ name: 'Auto', picture: false, text: 'A' }, { name: 'Off', picture: false, text: '' }, { name: 'No finger numbers', picture: false, text: 'OFF' }]);
+  expect(buttons.filter((b) => !b.picture)).toEqual([{ name: 'Auto', picture: false, text: 'A' }]); // bar and finger numbers are pictures too
   const texts = await sceneTexts(page, 'settings');
   for (const word of ['Colors', 'Auto', 'Small', 'Back']) expect(texts).not.toContain(word);
   expectNoErrors(errors);

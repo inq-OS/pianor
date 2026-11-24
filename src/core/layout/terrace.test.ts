@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import keriJson from '../../../content/world/keri.json';
 import { insideRing, loadWorld } from '../world/world';
 import { ROOM_PICTURE } from './room';
-import { DECK, GRILL, LONG_EYE, REACH, TERRACE, TERRACE_ID, TERRACE_LAND, TERRACE_ROCKS, TERRACE_SPOTS, TORCHES, TORCH_FLAME, TORCH_SPARKS, TOWER, deckOf, fromTerrace, lampHook, onDeck, onReach, onTorch, onTower, reachSides, terraceFloor, terraceGrassy, terraceGroundAt, terracePlace, terracePlan, terraceProject, terraceRise, terraceShore, terraceView, underReach } from './terrace';
+import { DECK, GRILL, LONG_EYE, REACH, TERRACE, TERRACE_ID, TERRACE_LAND, TERRACE_ROCKS, TORCHES, TORCH_FLAME, TORCH_SPARKS, TOWER, deckOf, fromTerrace, lampHook, onDeck, onReach, onTorch, onTower, reachSides, terraceFloor, terraceGrassy, terraceGroundAt, terracePlace, terracePlan, terraceProject, terraceRise, terraceShore, underReach } from './terrace';
 
 const KERI = loadWorld(keriJson);
 const plan = terracePlan();
@@ -272,8 +272,6 @@ describe('the terrace: the plan of the picture (ft_1_19)', () => {
       expect(at.y).toBeLessThan(H * 0.55);
       // clear of the watchtower's lantern, which is a light of another kind
       expect(Math.hypot(at.x - plan.lamp.x, at.y - at.tall / 2 - plan.lamp.y)).toBeGreaterThan(30);
-      // no torch stands before a being, and none behind one either, where its flame would sit on the being's head (a figure is some 40 fine pixels wide)
-      for (const spot of plan.spots) expect(Math.abs(at.x - spot.feet.x)).toBeGreaterThan(24);
     });
     // the two that throw sparks are the two nearest the eye
     const byFar = TORCHES.map((torch, k) => ({ k, far: onTorch(torch)[2] })).sort((p, q) => p.far - q.far);
@@ -302,32 +300,5 @@ describe('the terrace: the plan of the picture (ft_1_19)', () => {
     expect(wet).toBeGreaterThan(TERRACE_ROCKS.length * 0.6);
     // a point behind the eye is held just before it, so nothing divides by nought
     expect(terraceProject(1, 0, -3).far).toBeCloseTo(0.05, 6);
-  });
-
-  it('ft_1_19.AC8 the beings stand on the deck\'s open boards in a row, to the picture\'s scale, their buttons inside the picture and apart', () => {
-    expect(plan.spots).toHaveLength(TERRACE_SPOTS.length);
-    const view = terraceView({ w: 320, h: 180 }, 0);
-    plan.spots.forEach((spot, k) => {
-      const { u, v } = TERRACE_SPOTS[k]!;
-      expect(u).toBeGreaterThan(DECK.u0);
-      expect(u).toBeLessThan(DECK.u1);
-      expect(v).toBeGreaterThan(DECK.v0);
-      expect(v).toBeLessThanOrEqual(DECK.v1);
-      // about seven metres ahead: a figure about 95 fine pixels tall is a grown person there
-      const [, , z] = onDeck(u, v);
-      expect(z).toBeGreaterThan(6.5);
-      expect(z).toBeLessThan(7.5);
-      // clear of the picnic set on the right, which stands nearer the eye than the row
-      expect(spot.feet.x).toBeLessThan(W * 0.7);
-      expect(spot.feet.x).toBeGreaterThan(40);
-      expect(spot.feet.x).toBeLessThan(W - 40);
-      expect(spot.feet.y).toBeGreaterThan(plan.horizon);
-      expect(spot.feet.y).toBeLessThan(H - 20);
-      expect(spot.button.x).toBeGreaterThanOrEqual(0);
-      expect(spot.button.y).toBeGreaterThanOrEqual(0);
-      expect(spot.button.x + spot.button.w).toBeLessThanOrEqual(view.picture.w);
-      expect(spot.button.y + spot.button.h).toBeLessThanOrEqual(view.picture.h);
-      if (k > 0) expect(spot.button.x).toBeGreaterThanOrEqual(plan.spots[k - 1]!.button.x + plan.spots[k - 1]!.button.w);
-    });
   });
 });

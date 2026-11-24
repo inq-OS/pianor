@@ -54,9 +54,9 @@ export const E2E_AREAS: E2eArea[] = [
     sources: ['src/dev/', 'content/dev/', 'src/spike/', 'spike.html', 'src/debugSetup.ts', 'src/core/debug/'],
   },
   {
-    // Screenshot tests; they skip without a baseline for the platform (on CI and in cloud sessions), so they cost little.
+    // Screenshot tests against the one baseline per screen (d289); a screen without a baseline skips.
     name: 'visual',
-    specs: ['visual', 'button-fit', 'toolbar', 'band', 'screen-guard'],
+    specs: ['visual', 'button-fit', 'toolbar', 'strip', 'bubble', 'screen-guard'],
     sources: ['src/game/'],
   },
 ];

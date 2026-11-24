@@ -4,7 +4,7 @@ import { chartWith } from '../../../tests/helpers/charts';
 import type { BarPlay } from '../progression/practiceLog';
 import { learnPlan } from './plan';
 import {
-  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnHandsApart, learnStepBars, measuredOutcome, medalOf, sitDown, START_PROGRESS, withTest,
+  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnHandsApart, learnLiveTempo, learnStepBars, measuredOutcome, medalOf, sitDown, START_PROGRESS, withTest,
   type LearnProgress, type RunOutcome,
 } from './progress';
 
@@ -242,6 +242,18 @@ describe('learnRewards', () => {
     expect(play(atWhole, [true, true, 'hinted'], '1998-11-22', three).wholeStreak).toBe(0);
   });
 
+  it('ft_1_32.AC12 with hands apart a bar earns its note only once both hands played it, not after one hand alone', () => {
+    const notes = [0, 1].flatMap((bar) => [{ tick: bar * 1920, dur: 480, midi: 64, track: 'rh' }, { tick: bar * 1920, dur: 480, midi: 48, track: 'lh' }]);
+    notes.push({ tick: 1920, dur: 1920, midi: 52, track: 'bk' });
+    const chart = chartWith(notes);
+    const apart = learnPlan(chart, 1, true); // bar 1 RH, bar 1 LH, bar 1, bars 1-2 RH, LH, both, confirm
+    expect(learnRewards(apart, play(START_PROGRESS, [true], '1998-11-22', apart), chart).chunks[0]!.quarters).toEqual([]);
+    expect(learnRewards(apart, play(START_PROGRESS, all(2), '1998-11-22', apart), chart).chunks[0]!.quarters).toEqual([]);
+    expect(learnRewards(apart, play(START_PROGRESS, all(3), '1998-11-22', apart), chart).chunks[0]!.quarters).toEqual(['gold']);
+    expect(learnRewards(apart, play(START_PROGRESS, all(4), '1998-11-22', apart), chart).chunks[0]!.quarters).toEqual(['gold']);
+    expect(learnRewards(apart, play(START_PROGRESS, all(6), '1998-11-22', apart), chart).chunks[0]!.quarters).toEqual(['gold', 'gold']);
+  });
+
   it('a recall check never takes a note away', () => {
     const p = sitDown(plan, play(START_PROGRESS, all(2), '1998-11-21'), '1998-11-22');
     expect(learnRewards(plan, play(p, [false]), eightBars).chunks[0]!.quarters).toHaveLength(2);
@@ -255,6 +267,14 @@ describe('the step size a piece is learned in', () => {
     expect(learnStepBars({ ...started, stepBars: 1 }, { ...DEFAULT_LEARN_SETTINGS, stepBars: 2 })).toBe(1);
     expect(learnStepBars(started, { ...DEFAULT_LEARN_SETTINGS, stepBars: 2 })).toBe(1); // kept before the field: step 1, the only size offered then
     expect(learnProgressSchema.parse({ ...started, stepBars: 2 }).stepBars).toBe(2);
+  });
+});
+
+describe('live tempo in learning', () => {
+  it('ft_1_32.AC17 the live tempo is off unless the player turned it on, and a setting saved before it reads as off', () => {
+    expect(learnLiveTempo(DEFAULT_LEARN_SETTINGS)).toBe(false);
+    expect(learnLiveTempo(learnSettingsSchema.parse({ stepBars: 1, markers: true, markersFrom: 2 }))).toBe(false);
+    expect(learnLiveTempo(learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, liveTempo: true }))).toBe(true);
   });
 });
 

@@ -169,7 +169,7 @@ export interface KitGround {
   trodden(x: number, y: number): number;
   /** Below 1 where the grass is kept short (a lawn round a fire), wild from about 1.55. */
   short(x: number, y: number): number;
-  /** Whether a thing may be laid here: not on the trodden place, not where a being stands. */
+  /** Whether a thing may be laid here: not on the trodden place. */
   free(x: number, y: number): boolean;
   /** Whether a stone or a cushion already lies here, so no blade grows. Outside the region: false. */
   bare(x: number, y: number): boolean;

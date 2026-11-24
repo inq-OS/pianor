@@ -128,7 +128,7 @@ export class NoteTrainerScene extends PixelScene {
       // the circle of fifths, with no key marked (ft_1_28 rule 3)
       circleItem(() => void openOverlay(this, 'circle', { key: null }).then(() => this.redraw())),
     ];
-    if (this.round.over) items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), onClick: () => this.startRound(this.stepIndex) });
+    if (this.round.over) items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), main: true, onClick: () => this.startRound(this.stepIndex) });
     return items;
   }
 

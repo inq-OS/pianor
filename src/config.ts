@@ -19,8 +19,6 @@ export interface AppConfig {
     readonly virtualDevice: boolean;
     /** Make real MIDI keys sound through the browser too (the EZ-220 normally sounds itself). Always on with the virtual device. */
     readonly monitorMidi: boolean;
-    /** Show the beings in the scenes on Keri (ft_1_19.AC8). Off: the scenes stay clean until the beings are overhauled; `?beings=1` shows them. */
-    readonly beings: boolean;
     /** Dev only (ft_1_24, WP-05): the demo cast (Kiur, a template villager and a placeholder box) stands in the adventure scenes, `?actors=1`. */
     readonly actors: boolean;
     /** Show the piece editor (preliminary): a Make mode in the menu. On; `?editor=0` hides it. */
@@ -145,7 +143,6 @@ export function createConfig(search: string = '', dev: boolean = import.meta.env
       showDraftContent: dev && mode !== 'start',
       virtualDevice: params.get('device') === 'virtual' || autoplay !== null,
       monitorMidi: params.get('device') === 'virtual' || autoplay !== null || params.get('monitor') === '1',
-      beings: params.get('beings') === '1',
       actors: dev && params.get('actors') === '1',
       editor: params.get('editor') !== '0',
       learn: params.get('learn') !== '0' && autoplay === null,
