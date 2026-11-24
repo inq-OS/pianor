@@ -3,7 +3,7 @@ id: "ft_1_19"
 title: "Scenes on Keri where the beings to be tamed are found"
 scope: "The campaign's monsters are met in scenes, places on Keri island each drawn as one painted picture, opened from the map of Keri; they replace the continuous side-scrolling trail; the campaign's rules, ladder and save do not change"
 effort: "large"
-status: "five scenes built (knoll, docks, crossroads, harbour, terrace); live motion, one wind, flocks and glowing motes built (AC11, AC12; not yet seen on the target laptop); beings hidden unless ?beings=1; trail removed (d117); the maintainer's look, students' try-out, the beings and the next places open"
+status: "five scenes built (knoll, docks, crossroads, harbour, terrace); live motion, one wind, flocks and glowing motes built (AC11, AC12; not yet seen on the target laptop); the beings removed (d290); trail removed (d117); the maintainer's look, students' try-out and the next places open"
 completeness: 64
 depends_on: ["ft_1_18", "ft_1_06"]
 ---

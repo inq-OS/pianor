@@ -114,7 +114,7 @@ export interface SceneLife<P extends ScenePicture = ScenePicture> {
   motes?(picture: P, look: SceneLook, air: Air, seed: number): { source: (time: number) => readonly Mote[]; most: number }[];
   /** The gulls over the sea by day (`flock.ts`): how many, how wide their wings, and the box of sky they keep to (fine pixels). */
   readonly gulls?: { readonly n: number; readonly span: number; readonly box: { x: number; y: number; w: number; h: number } };
-  /** Where the beings stand (`?beings=1`): feet in fine pixels and a button in layout cells, both from the picture's corner. */
+  /** Where characters stand: feet in fine pixels and a button in layout cells, both from the picture's corner. */
   readonly spots: readonly { readonly feet: { x: number; y: number }; readonly button: Rect }[];
   /** A second view under this one, where the place has one. */
   readonly dive?: SceneDive<P>;
