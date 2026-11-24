@@ -1,7 +1,7 @@
 // Covers ft_Y_04.AC5.
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { makeZip } from '../helpers/zip';
 
 /** The analyser page (`?demo=analyse`): MusicXML files scored in the browser, plain and compressed. */

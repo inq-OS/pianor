@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { expectNoErrors, menuButton, menuLabels, openGame, sceneButton } from './helpers';
 
 // ft_0_18: the students's game is in Estonian. The English game is covered by every other test, which opens with `?lang=en`.

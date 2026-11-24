@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { LITTLE_STEPS, buttonPoint, clickButton, expectNoErrors, letGameRun, openFromStand, openGame, pickUnderGear, playWithVirtualPiano, sceneButton, sceneTexts, waitForScene } from './helpers';
 
 /**

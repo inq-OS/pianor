@@ -1,5 +1,6 @@
 // Covers ft_1_32.AC2 (the learning settings), ft_0_16.AC3, ft_0_16.AC4, ft_1_11.AC1, ft_1_11.AC6, ft_1_16.AC1.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { addPlayer, clickAndRedraw, clickButton, clickToolbar, expectNoErrors, goToMainMenu, menuButton, openGame, openPiece, pickProfile, playerName, results, sceneButton, sceneTexts, toScoreScreen, useOneLine, waitForScene } from './helpers';
 
 /** The settings screen's buttons, in the order it makes them: one per setting, each press moving to its next choice; then the band's door (d088, ft_1_20). */

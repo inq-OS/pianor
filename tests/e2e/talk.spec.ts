@@ -1,5 +1,6 @@
 // Covers ft_1_22.AC1 and AC10 (WP-09): pressing a character opens a conversation over the scene; choices by mouse and keys.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { activeScenes, clickButton, expectNoErrors, letGameRun, openGame, sceneButton, waitForScene, type PageErrors } from './helpers';
 
 interface TalkState { showing: 'line' | 'student' | 'choices'; node: string; line: string; page: number; choices: string[]; lit: number }

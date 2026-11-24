@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { LITTLE_STEPS, activeScenes, clickButton, expectNoErrors, openGame, openPiece, pieceXp, playWithVirtualPiano, sceneTexts, totalXp, waitForScene, bandAction } from './helpers';
 
 /** The looping play of the training piano (ft_1_12, slice 2). */
