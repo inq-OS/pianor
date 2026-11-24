@@ -207,39 +207,66 @@ export function openBagPlaces(): { x: number; y: number; w: number; h: number }[
  * shown, down when rows lie below (the wheel, a drag or the arrows scroll them).
  */
 export function openBackpack(more: { up?: boolean; down?: boolean } = {}): Bitmap {
-  const { w: W, h: H } = OPEN_BAG;
-  const b = createBitmap(W, H);
-  const put = (x: number, y: number, c: number) => { if (x >= 0 && y >= 0 && x < W && y < H) b.pixels[y * W + x] = c; };
-  const rect = (x0: number, y0: number, w: number, h: number, c: number) => { for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) put(x, y, c); };
-  // the body: a leather sack, its sides bulging a cell, rounded at the foot
-  const bodyTop = 22, bodyBottom = H - 1;
-  const half = (y: number) => {
-    const t = (y - bodyTop) / (bodyBottom - bodyTop);
-    const bulge = Math.round(2 * Math.sin(Math.PI * Math.min(1, t * 1.2)));
-    const foot = t > 0.94 ? Math.round(((t - 0.94) / 0.06) ** 2 * 4) : 0;
-    return 52 + bulge - foot;
+  const b = createBitmap(OPEN_BAG.w, OPEN_BAG.h);
+  const bag = bagBrush(b);
+  const inBottom = BAG_INSIDE.y + BAG_INSIDE.rows * BAG_CELL.h + 2;
+  bagBody(bag);
+  bagInside(bag, inBottom);
+  bagLip(bag, inBottom);
+  bagFlap(bag);
+  // the side strap's arrows when rows lie above or below the ones shown
+  if (more.up) bagArrow(bag, OPEN_BAG.w - 10, BAG_TOP + 6, true);
+  if (more.down) bagArrow(bag, OPEN_BAG.w - 10, inBottom - 8, false);
+  return b;
+}
+
+const BAG_TOP = 22;
+
+interface BagBrush {
+  put: (x: number, y: number, c: number) => void;
+  rect: (x0: number, y0: number, w: number, h: number, c: number) => void;
+}
+
+function bagBrush(b: { width: number; height: number; pixels: Uint8Array }): BagBrush {
+  const put = (x: number, y: number, c: number) => {
+    if (x >= 0 && y >= 0 && x < b.width && y < b.height) b.pixels[y * b.width + x] = c;
   };
-  for (let y = bodyTop; y <= bodyBottom; y++) {
-    const h = half(y), l = 56 - h, r = 55 + h;
-    for (let x = l; x <= r; x++) {
-      const edge = x === l || x === r || y === bodyBottom;
-      put(x, y, edge ? C.ink : x <= l + 2 ? C.brownLight : x >= r - 3 ? C.brownDark : C.brown);
-    }
+  return { put, rect: (x0, y0, w, h, c) => { for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) put(x, y, c); } };
+}
+
+/** Half the body's width at row `y`: a leather sack, its sides bulging a cell, rounded at the foot. */
+function bagHalf(y: number): number {
+  const t = (y - BAG_TOP) / (OPEN_BAG.h - 1 - BAG_TOP);
+  const bulge = Math.round(2 * Math.sin(Math.PI * Math.min(1, t * 1.2)));
+  const foot = t > 0.94 ? Math.round(((t - 0.94) / 0.06) ** 2 * 4) : 0;
+  return 52 + bulge - foot;
+}
+
+function bagBody({ put }: BagBrush): void {
+  const bottom = OPEN_BAG.h - 1;
+  for (let y = BAG_TOP; y <= bottom; y++) {
+    const h = bagHalf(y), l = 56 - h, r = 55 + h;
+    for (let x = l; x <= r; x++) put(x, y, x === l || x === r || y === bottom ? C.ink : x <= l + 2 ? C.brownLight : x >= r - 3 ? C.brownDark : C.brown);
     // the straps down both sides, darker, stitched
-    for (const sx of [l + 4, r - 7]) for (let k = 0; k < 4; k++) put(sx + k, y, k === 0 || k === 3 ? C.brownDark : y % 4 === 0 ? C.brown : C.brownDark);
+    for (const sx of [l + 4, r - 7]) for (let k = 0; k < 4; k++) put(sx + k, y, k === 0 || k === 3 || y % 4 !== 0 ? C.brownDark : C.brown);
   }
-  // the opening: the back wall's rim, then the dark inside, shading to the deepest at the back
-  const inTop = bodyTop + 4, inBottom = BAG_INSIDE.y + BAG_INSIDE.rows * BAG_CELL.h + 2;
-  for (let y = bodyTop; y < inTop; y++) for (let x = 14; x < W - 14; x++) put(x, y, y === bodyTop ? C.ink : y === bodyTop + 1 ? C.brownLight : C.brown);
+}
+
+/** The opening: the back wall's rim, then the dark inside, deepest at the back. */
+function bagInside({ put }: BagBrush, inBottom: number): void {
+  const inTop = BAG_TOP + 4;
+  for (let y = BAG_TOP; y < inTop; y++) for (let x = 14; x < OPEN_BAG.w - 14; x++) put(x, y, y === BAG_TOP ? C.ink : y === BAG_TOP + 1 ? C.brownLight : C.brown);
   for (let y = inTop; y < inBottom; y++) {
-    const l = 56 - half(y) + 9, r = 55 + half(y) - 9;
+    const l = 56 - bagHalf(y) + 9, r = 55 + bagHalf(y) - 9;
     for (let x = l; x <= r; x++) put(x, y, x === l || x === r ? C.ink : y < inTop + 6 ? C.night : C.panelDark);
   }
-  // the front wall's lip, sagging a little in the middle, with a pocket and its stitched flap
+}
+
+/** The front wall's lip, curving up at its ends as soft leather does round a full bag, with a stitched pocket. */
+function bagLip({ put, rect }: BagBrush, inBottom: number): void {
+  const W = OPEN_BAG.w;
   for (let x = 6; x < W - 6; x++) {
-    // the lip curves up at its ends, as soft leather does round a full bag
-    const sag = -Math.round(3 * (1 - Math.sin((Math.PI * (x - 6)) / (W - 12))));
-    const top = inBottom - 3 + sag;
+    const top = inBottom - 3 - Math.round(3 * (1 - Math.sin((Math.PI * (x - 6)) / (W - 12))));
     put(x, top, C.ink);
     put(x, top + 1, C.brownLight);
     for (let y = top + 2; y < inBottom + 2; y++) put(x, y, C.brown);
@@ -249,28 +276,36 @@ export function openBackpack(more: { up?: boolean; down?: boolean } = {}): Bitma
   for (let x = 35; x < 77; x += 2) put(x, inBottom + 5, C.brownLight);
   rect(34, inBottom + 3, 1, 10, C.ink);
   rect(77, inBottom + 3, 1, 10, C.ink);
-  // the flap thrown back over the top: a lighter half round, its seam, and the strap and buckle hanging from it
-  for (let y = 0; y < bodyTop + 2; y++) {
-    const t = 1 - y / (bodyTop + 2);
+}
+
+/** The flap thrown back over the top, a lighter half round with its seam, and the strap and buckle hanging over the rim. */
+function bagFlap({ put, rect }: BagBrush): void {
+  for (let y = 0; y < BAG_TOP + 2; y++) {
+    const t = 1 - y / (BAG_TOP + 2);
     const halfW = Math.round(46 * Math.sqrt(Math.max(0, 1 - t * t * 0.55)));
     const l = 56 - halfW, r = 55 + halfW;
-    if (y < 3) { if (y === 0) rect(l + 6, y, r - l - 11, 1, C.ink); else { put(l + 4 - y, y, C.ink); put(r - 4 + y, y, C.ink); rect(l + 5 - y, y, r - l - 9 + 2 * y, 1, C.brownLight); } continue; }
-    for (let x = l; x <= r; x++) put(x, y, x === l || x === r ? C.ink : y === 3 ? C.honey : C.brownLight);
-    if (y > 4 && y < bodyTop - 1) { put(l + 3, y, y % 3 ? C.brown : C.brownLight); put(r - 3, y, y % 3 ? C.brown : C.brownLight); }
+    if (y === 0) rect(l + 6, y, r - l - 11, 1, C.ink);
+    else if (y < 3) {
+      put(l + 4 - y, y, C.ink);
+      put(r - 4 + y, y, C.ink);
+      rect(l + 5 - y, y, r - l - 9 + 2 * y, 1, C.brownLight);
+    } else {
+      for (let x = l; x <= r; x++) put(x, y, x === l || x === r ? C.ink : y === 3 ? C.honey : C.brownLight);
+      if (y > 4 && y < BAG_TOP - 1) {
+        put(l + 3, y, y % 3 ? C.brown : C.brownLight);
+        put(r - 3, y, y % 3 ? C.brown : C.brownLight);
+      }
+    }
   }
-  // the strap and the buckle hanging over the rim
-  rect(52, bodyTop - 2, 8, 10, C.brownDark);
-  rect(51, bodyTop - 2, 1, 10, C.ink);
-  rect(60, bodyTop - 2, 1, 10, C.ink);
-  rect(51, bodyTop + 8, 10, 1, C.ink);
-  rect(53, bodyTop + 3, 6, 4, C.gold);
-  rect(54, bodyTop + 4, 4, 2, C.brownDark);
-  put(53, bodyTop + 3, C.goldLight);
-  // the side strap's arrows when rows lie above or below the ones shown
-  const arrow = (x: number, y: number, up: boolean) => {
-    for (let k = 0; k < 4; k++) for (let i = -k; i <= k; i++) put(x + i, up ? y + k : y + 3 - k, k === 3 ? C.honeyDark : C.honey);
-  };
-  if (more.up) arrow(W - 10, inTop + 2, true);
-  if (more.down) arrow(W - 10, inBottom - 8, false);
-  return b;
+  rect(52, BAG_TOP - 2, 8, 10, C.brownDark);
+  rect(51, BAG_TOP - 2, 1, 10, C.ink);
+  rect(60, BAG_TOP - 2, 1, 10, C.ink);
+  rect(51, BAG_TOP + 8, 10, 1, C.ink);
+  rect(53, BAG_TOP + 3, 6, 4, C.gold);
+  rect(54, BAG_TOP + 4, 4, 2, C.brownDark);
+  put(53, BAG_TOP + 3, C.goldLight);
+}
+
+function bagArrow({ put }: BagBrush, x: number, y: number, up: boolean): void {
+  for (let k = 0; k < 4; k++) for (let i = -k; i <= k; i++) put(x + i, up ? y + k : y + 3 - k, k === 3 ? C.honeyDark : C.honey);
 }
