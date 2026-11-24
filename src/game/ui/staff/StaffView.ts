@@ -17,6 +17,7 @@ import { PARCHMENT_PAPER } from '../pixel/paint/parchment';
 import { t } from '../../../core/text/strings';
 import type { Dynamic } from '../../../core/chart/dynamics';
 import { ACCIDENTAL_STROKES, BASS_CLEF_BALL, BASS_CLEF_DOTS, BASS_CLEF_STROKE, BRACE_PATH, DIGITS, QUARTER_REST_STROKE, TREBLE_CLEF_STROKE, type Pt } from './glyphs';
+import { STAFF_FONT } from './staffFont';
 
 export type NoteState = 'pending' | 'correct' | 'wrong';
 
@@ -190,7 +191,7 @@ export class StaffView {
     const fits = wordFits(marked.map((n) => ({ system: n.system, staff: n.staff, column: n.column, word: t(DYNAMIC_WORD_KEY[n.dynamic!.text]) })), layout.staffSpace);
     let markIndex = 0;
     for (const n of layout.notes) {
-      const style = { fontFamily: 'monospace', fontStyle: 'bold', fontSize, color: theme.hint };
+      const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize, color: theme.hint };
       this.labels.push(scene.add.text(origin.x + n.column, origin.y + n.labelY, n.label, style).setOrigin(0.5));
       // a finger sits beside its head, level with it; the text is set by setHints
       this.fingerTexts.push(scene.add.text(origin.x + n.fingerX, origin.y + n.y, '', style).setOrigin(0.5));
@@ -202,13 +203,13 @@ export class StaffView {
       }
     }
     for (const g of layout.graces) {
-      const style = { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.max(8, Math.round(layout.staffSpace * 1.1 * g.scale))}px`, color: theme.hint };
+      const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.max(8, Math.round(layout.staffSpace * 1.1 * g.scale))}px`, color: theme.hint };
       this.graceLabels.push(scene.add.text(origin.x + g.x, origin.y + g.labelY, g.label, style).setOrigin(0.5));
     }
     // one word per slur, above the half that starts it (a slur across a line break has its word on the first line)
     for (const slur of layout.slurs) {
       if (slur.from === null) continue;
-      const word = scene.add.text(origin.x + slur.label.x, origin.y + slur.label.y, t('staff.legato'), { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.round(layout.staffSpace * 0.9)}px`, color: theme.hint }).setOrigin(0.5, 1);
+      const word = scene.add.text(origin.x + slur.label.x, origin.y + slur.label.y, t('staff.legato'), { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(layout.staffSpace * 0.9)}px`, color: theme.hint }).setOrigin(0.5, 1);
       this.slurTexts.push({ text: word, system: slur.system });
     }
     this.setHints(hints);
@@ -244,7 +245,7 @@ export class StaffView {
     for (const mark of this.markTexts) mark.text.destroy();
     this.markTexts.length = 0;
     const S = this.layout.staffSpace;
-    const style = { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: this.theme.sectionInk };
+    const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: this.theme.sectionInk };
     const used = new Map<number, number>();
     for (const { bar: index, text } of marks?.letters ?? []) {
       const bar = this.layout.bars[index];
@@ -729,7 +730,7 @@ export class StaffView {
     this.playedName = null;
     if (mark && this.onPage(mark.system)) {
       const S = this.layout.staffSpace;
-      const style = { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: PLAYED_INK };
+      const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: PLAYED_INK };
       this.playedName = this.scene.add.text(this.origin.x + mark.x, this.origin.y + mark.y + PLAYED_NAME_GAP * S, name, style).setOrigin(0.5).setAlpha(PLAYED_ALPHA);
     }
     this.drawNotes();
