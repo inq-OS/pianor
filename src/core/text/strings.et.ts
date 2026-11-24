@@ -722,7 +722,8 @@ export const stringsEt: Record<StringKey, string> = {
   'learn.clean': 'Iga noot õige!',
   'learn.nextOne': 'Nüüd takt {n}',
   'learn.next': 'Nüüd taktid {from} kuni {to}',
-  'learn.learned': 'Selge: iga noot õige, ühtlases tempos {bpm}',
+  'learn.goOn': 'Edasi: vajuta mõnda klahvi',
+  'learn.learned': 'Õpitud: iga noot õige, ühtlases tempos {bpm}',
   'learn.rewards': 'Õpitud taktid',
 
 

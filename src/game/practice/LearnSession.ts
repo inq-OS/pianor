@@ -114,7 +114,9 @@ export class LearnSession {
   endLine(outcome: RunOutcome, bpm: number | undefined): string {
     if (outcome === 'hinted') return '';
     if (outcome === 'unsteady') return t('learn.unsteady');
-    if (this.learned && this.baseline !== null) return t('learn.learned', { bpm: this.baseline });
+    // the pace of the run that learned it, the number the student just played
+    const pace = bpm ?? this.baseline;
+    if (this.learned && pace !== null) return t('learn.learned', { bpm: pace });
     return bpm === undefined ? t('learn.clean') : t('learn.pace', { bpm });
   }
 

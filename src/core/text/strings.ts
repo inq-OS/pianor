@@ -732,6 +732,7 @@ export const strings = {
   'learn.clean': 'Every note right!',
   'learn.nextOne': 'Now bar {n}',
   'learn.next': 'Now bars {from} to {to}',
+  'learn.goOn': 'Play any key to go on',
   'learn.learned': 'Learned: every note right, at an even {bpm}',
   'learn.rewards': 'Bars learned',
 

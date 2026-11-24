@@ -83,6 +83,16 @@ describe('LearnSession', () => {
     expect(session()).toBeNull();
   });
 
+  it('the learned line names the pace of the run that learned the piece, not the baseline', async () => {
+    const { session } = open({ ...START_PROGRESS, step: 1, wholeStreak: 2, lastDay: '1998-11-22', bpm: [60, 60] });
+    const last = session();
+    const played = playRun(last, [0, 800, 1600, 2400]);
+    expect(played).toEqual({ outcome: 'perfect', bpm: 75 });
+    await last.finish(played.outcome, played.bpm);
+    expect(last.learned).toBe(true);
+    expect(last.endLine(played.outcome, played.bpm)).toBe('Learned: every note right, at an even 75');
+  });
+
   it('counts nothing with note names shown', () => {
     expect(open().session().outcomeOf(piece, true)).toEqual({ outcome: 'hinted' });
   });

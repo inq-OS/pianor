@@ -266,6 +266,8 @@ export class PracticeScene extends PixelScene {
   private barRecorder: BarRecorder | null = null;
   private session: FreePlaySession = emptyFreePlay();
   private loopTimer: Phaser.Time.TimerEvent | null = null;
+  /** The piece just learned (ft_1_32 rule 5): the reward stays on the paper until a key or a press calls this, once. */
+  private learnedGoOn: (() => void) | null = null;
   /** The ramp buttons a mouse wheel changes: the button and what one notch up (1) or down does. */
   private rampWheel: { button: PixelButton; scroll: (direction: 1 | -1) => void }[] = [];
   /** This start wraps on from the lap before (`PracticeData.wrap`); null for any other start. */
@@ -297,6 +299,7 @@ export class PracticeScene extends PixelScene {
 
   init(data: PracticeData): void {
     this.startData = data;
+    this.learnedGoOn = null;
     this.preview = data.preview === true;
     this.returnTo = data.returnTo ?? 'preview';
     this.readLesson(data);
@@ -484,7 +487,9 @@ export class PracticeScene extends PixelScene {
     this.game.events.on(MIDI_CHANGED, midiChanged);
     // a key on the piano closes the bubble: the student's hands went back to playing (ft_1_20.AC22)
     const offBubbleKey = context.keyboard.onNote((e) => {
-      if (e.kind === 'on' && e.velocity > 0 && this.bubbleIsOpen) this.closeMenu();
+      if (e.kind !== 'on' || e.velocity === 0) return;
+      if (this.learnedGoOn) this.learnedGoOn();
+      else if (this.bubbleIsOpen) this.closeMenu();
     });
     this.input.keyboard?.on('keydown-ESC', () => (this.rampOpen && this.rampShown ? this.toggleRamp() : this.picking ? this.cancelPicking() : this.leave()));
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.onTap(pointer));
@@ -524,7 +529,8 @@ export class PracticeScene extends PixelScene {
   private bubbleHintDue(): boolean {
     const flags = contextOf(this).flags;
     // the intro switched off (the end-to-end tests) or a self-playing demo: no first-run words
-    if (this.locked || this.wrap || this.listening || flags.intro === 'off' || flags.autoplay) return false;
+    // nor over Kiur's line about a learning run just ended
+    if (this.locked || this.wrap || this.listening || this.startData.learnLine !== undefined || flags.intro === 'off' || flags.autoplay) return false;
     const key = `pianor.bubbleHint.${contextOf(this).profiles.profile.id}`;
     try {
       if (window.localStorage.getItem(key) === '1') return false;
@@ -868,18 +874,35 @@ export class PracticeScene extends PixelScene {
     // an uneven run is asked again with its own line; otherwise Kiur also says what comes next
     const line = learn.learned || outcome === 'unsteady' ? said : [said, learn.nextLine()].filter((part) => part !== '').join(' ');
     this.redraw(); // the new note shows at once
-    this.playSession.say(line);
+    this.playSession.say(learn.learned ? `${line}${/[.!?]$/.test(line) ? '' : '.'} ${t('learn.goOn')}` : line);
     this.loopTimer = this.time.delayedCall(LEARN_NEXT_MS, () => {
       this.loopTimer = null;
       void Promise.all([this.pendingPass, this.barsSaved]).then(() => {
         if (!this.scene.isActive() || this.loopTimer !== null) return;
         this.pendingPass = null;
-        // a character's piece learned: back to the character, who has taught it (ft_1_32.AC15)
-        const teacher = this.startData.teacher;
-        if (learn.learned && teacher) startScene(this, teacher.scene, {});
-        else this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });
+        if (!learn.learned) {
+          this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });
+          return;
+        }
+        // learned (ft_1_32 rule 5): the whole note and the clef stay with Kiur's line until the student plays a key or presses
+        this.learnedGoOn = () => {
+          this.learnedGoOn = null;
+          this.afterLearned(line);
+        };
       });
     });
+  }
+
+  /**
+   * Where a learned piece goes on: a character's piece back to the character, who has taught it (ft_1_32.AC15); a piece
+   * Kiur was asked to teach back to the room, where Kiur waits with the tug (rule 15); a character's piece learned at the
+   * piano opens for practice.
+   */
+  private afterLearned(line: string): void {
+    const teacher = this.startData.teacher;
+    if (teacher) startScene(this, teacher.scene, {});
+    else if (this.startData.learn === true) startScene(this, 'profile', {});
+    else this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });
   }
 
   private onCompleted(result: PieceResult): void {
@@ -1569,6 +1592,10 @@ export class PracticeScene extends PixelScene {
 
   /** A tap on the staff: while marking a section the first, then the last bar (then the scene starts over on that part); otherwise the play starts from the bar. */
   private onTap(pointer: Phaser.Input.Pointer): void {
+    if (this.learnedGoOn) {
+      this.learnedGoOn();
+      return;
+    }
     const { layout, staffView } = this.playSession;
     // a press while the bubble or a menu is open is theirs: it never starts the play from a bar under them
     if (!layout || !staffView || this.isBubblePress(pointer) || this.menuOpen) return;
