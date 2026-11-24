@@ -7,7 +7,7 @@ Chart model, ABC, the staff, notation features, pieces and their tools. One entr
 
 ## d002
 
-**Staff notation is core and there are no falling notes in the MVP.** Features: ft_0_05, ft_Y_05.
+**Staff notation is core and there are no falling notes in the MVP.** Features: ft_0_05.
 
 The goal is learning to read music, and falling notes let a student play without reading. The own-built staff renderer is the most important MVP piece.
 
@@ -97,7 +97,7 @@ Check: `src/core/editor/pieceFile.test.ts` "writes a readable file that says wha
 
 ## d066
 
-**Piece styles are a closed list in `content/pieces/styles.json` and a `styles` field in the meta file.** Features: core_05, ft_Y_03.
+**Piece styles are a closed list in `content/pieces/styles.json` and a `styles` field in the meta file.** Features: core_05.
 
 `styles.json` (`schemaVersion: 1`, provisional) lists `{ id, nameKey }` with names in `src/core/text/strings.ts`, loaded by pure code in `src/core/properties/styles.ts`; starters `folk`, `classical`, `exercise`, `original`. `piece.meta.json` gets `styles: string[]` (default empty, meta `schemaVersion` stays 1); `piece:lint` rule `style` errors on an unknown style and warns on a committed piece with none (own pieces get none); `tags` is no longer the style.
 
@@ -252,3 +252,11 @@ Check: `src/core/chart/pitch.test.ts` "middle C is MIDI 60 and A4 is 69"
 `|1`, `|[1` or `[1` opens a first ending that runs to the repeat's `:|`; `:|2`, `:|[2` or `[2` opens the second, which runs to the next `||`, `|]` or `|:`, or holds one bar. The chart's repeat gets `endings: { first, second }` (0-based bars, inclusive) with no `schemaVersion` bump, as `repeats` came in; an ending without a repeat, a third ending, a second not right after the first, a lone ending and one starting inside a bar are refused with their position. A section keeps a repeat only when it holds both endings.
 
 Check: `src/core/piece/abc.test.ts` "core_09.AC45 reads |1 and :|2 as the endings of the repeat, in every spelling"; `src/core/chart/repeats.test.ts` "core_09.AC46 plays the first ending on the first pass, and the second ending in its place on the second"; `src/core/layout/endings.test.ts` "core_09.AC47 an ending across a line break is two pieces: the label and the left hook on the first, the right hook on the last"
+
+## d292
+
+**The piece maker has opt-in vim keys, off by default and kept per device, that drive the piece maker's own moves, edits and tools.** Features: ft_1_02e.
+
+The parser is pure (`src/core/editor/vim.ts`) and its commands are carried out with the moves of `keyCursor.ts`, the edits of `keyEdits.ts` and `bars.ts`, and the tools by their `EDITOR_KEYS` name, so there is no second set of actions. A place in time is a character and a bar is a line; insert mode writes notes by letter, the nearest pitch of that letter. Ctrl + Shift + V or `:set novim` switches them; the setting is the optional `vimKeys` of the entry preferences, with no version bump.
+
+Check: `src/core/editor/vim.test.ts` "ft_1_02e.AC5 i, a, o and O go into insert mode, where a to g write notes and Esc comes back"; `src/core/editor/entryPrefs.test.ts` "ft_1_02e.AC1 keeps the vim keys switch beside the short tap, off when absent or mistyped, with no version bump"

@@ -7,7 +7,7 @@ These notes are what the agent saw on the reference pictures. They may be wrong,
 
 ## What it is
 
-The first scene: a grassy knoll with a bonfire place (just embers and smoke left), between the warden's house and the lighthouse, south off the trail. It is level 1, so open from the start, and its place on the map is a ring of stones with embers and a thread of smoke. The picture and its beings are [ft_1_19.AC8 and AC9](../features/ft_1_19-scenes-of-beings.md); the rules are in [d113](../decisions/game.md#d113) and the picture's manner in [d111](../decisions/art.md#d111). Its place in the world model (x -50, y -2 metres from the lighthouse) was set by eye from a marker on the photographs and is good to about 15 m.
+The first scene: a grassy knoll with a bonfire place (just embers and smoke left), between the warden's house and the lighthouse. It is level 1, so open from the start, and its place on the map is a ring of stones with embers and a thread of smoke. The picture is [ft_1_19.AC9](../features/ft_1_19-scenes-on-keri.md); the rules are in [d113](../decisions/game.md#d113) and the picture's manner in [d111](../decisions/art.md#d111). Its place in the world model (x -50, y -2 metres from the lighthouse) was set by eye from a marker on the photographs and is good to about 15 m.
 
 ## Sources
 
@@ -16,7 +16,7 @@ Input log items 14, 15 and 16 (drone and ground photographs with the knoll marke
 ## Direction for the picture
 
 - 2D pixel art in the Monkey Island 2 manner, with soul, depth and quirkiness, never photorealistic or pushed towards 3D; the model for how a knoll is shown is that game's grassy knoll: a round hill under a starry sky, its body painted with long sweeps that follow its roundness, crooked things on its top, a strip of verbs below. More of the sea shows than of the land.
-- No monsters for now; the picture stays clean. The right side is open sea, with nothing standing at the right edge.
+- No one stands in it but Puuvaim in his tree; the picture stays clean. The right side is open sea, with nothing standing at the right edge.
 - The clouds are curls and swirls, never two alike, drawn after Monkey Island 3's skies (d111; the studied pictures and a note of the rules are in `style-reference-mi3/`): each cloud one stroke with a fine tail, a fattening streamer and a solid rolled head, no outline, two big fat ones behind three long thin ones, small ones low over the sea, all heads leading to the left as the wind of this view blows.
 - The grass is alive, as Monkey Island 2 paints it: never a flat ground with tufts all or nothing, but every step between (see "How the picture is made").
 - The knoll is not symmetric: the land carries on to the left edge level with the top and does not drop off; a hedge of dog roses (kibuvits) closes the lower left corner, taller and thicker than a bush, since the wild dog rose grows at least 3 m high; the land right-back is rocky shore.
@@ -83,6 +83,6 @@ One thing the two sources disagree on: on the orthophoto the grass ends 10 to 20
 - White caps only at wind 2 and 3 (today the sea has them at every wind; the grass, the clouds and the smoke already follow the wind).
 - An overcast look, as on the reference photograph, on some days: the clouds' cover already varies by day, so the weather would only set it (and perhaps a darker cloud set).
 - A second view from the knoll turned toward the lighthouse (it must be grand).
-- Beings of Keri in place of today's monster art, peeking from the tall grass rather than standing in the open (`KERI-TODO`: what they are; off for now).
+- Characters of Keri peeking from the tall grass rather than standing in the open (`KERI-TODO`: who they are).
 - The room in the same manner, if one manner is chosen for all pictures (it is a lit set today).
 - The fire's light (the pick in the consistency review: light and heat after the docks' lantern, checked against Woodtick): it lands only on what is lit already and falls off fast; a pixel warms by how high it sits in its own run (counted twice, so the lit faces of the ring's stones and the logs' tops glow and their shaded sides keep the night's blue), in steps of the ember run with no dither. At night it takes stone, shingle, dry grass, earth and ash; by day, dawn and dusk only earth and ash.

@@ -84,7 +84,7 @@ After passes 1 and 2: a deck, but with added features and character; the boat wa
 - **light that lights its neighbours:** the lantern and the coals each lay a pool on the boards that keeps each board's own drawing and breaks up toward its rim, the dark boards dropping out first (no ruled edge), and the bench's end and the rail's posts by the grill take its warmth;
 - **a fuller left wing:** a second crate behind the first closes the strip of ground between the barrel and the crate.
 
-The beings' places moved left to the walk's mouth (`TERRACE_SPOTS`, `content/scenes/terrace.json`), clear of the picnic set.
+The characters' places moved left to the walk's mouth (`TERRACE_SPOTS`, `content/scenes/terrace.json`), clear of the picnic set.
 
 The third art review says "needs a pass": day 87, dawn and dusk 99, night 80. Answered in the same pass:
 
@@ -111,7 +111,7 @@ Known weak places, for the refining round: the night is plum on the deck's oiled
 
 After pass 4: torches burn at night; the terrace is the village plaza, not a random place.
 
-- **Where:** no torch stands before a being or behind one (a flame on a being's head), so the walk's two keep off the columns of the four places, and the head has none: its light is the watchtower's lantern. The pair at the mouth and the walk's further one are low (1.1 m) so that their flames stay under the string of lanterns. No two heads are alike: a fat bundle, an iron cup on a thin neck, a long thin bundle.
+- **Where:** no torch stands before a character or behind one (a flame on a character's head), so the walk's two keep off the columns of the four places, and the head has none: its light is the watchtower's lantern. The pair at the mouth and the walk's further one are low (1.1 m) so that their flames stay under the string of lanterns. No two heads are alike: a fat bundle, an iron cup on a thin neck, a long thin bundle.
 - **How they burn:** each torch is a layer of its own in the lamp's three looks (`torches` in `terracePicture.ts`), blended on its own beat (`glowAt`, `sceneLife.ts`), so no two flicker alike. A look is the flame (a tongue with a pale heart, taller and leaning another way in each), a halo in the air round it, darker than the flame, its rim scattered (`halo`), a pool on the boards in flat rings about the torch's foot (`pool`, `even`) and warmth on what stands by it (`warmed`, and the kit's `lights/lamp`). The two nearest the eye throw sparks. Leaves take no torchlight: scattered warm pixels on the thicket read as the bush on fire.
 - **By the hour:** lit at dusk and night, as the kit's lamps are. The pools lie only at night: at dusk the low sun lights the boards brighter than the embers' reds, and a pool read as a stain. At night the torches' light covers about 8% of the picture (the light note's aim is 5% to 10%), where the lantern and the coals alone left the night plum (art reviews 3 and 4).
 - **The fifth art review**: the torches answer the ask and the deck reads as a lit gathering place; it kept the flames. Answered before the maintainer's look: the pools were a rug on the pale board and rust on the walk's grained boards (now flat rings under each torch), two torches wore the kit's ring on the sky and five none (now each its own halo), one flame merged with a paper lantern (that torch is low now), and seven alike made a fence (three kinds of head).
@@ -125,4 +125,4 @@ Known weak places: the boards far from a torch are still plum at night, not navy
 - TODO(painter, R2): the right wing of the house, looking east from near the door toward the lighthouse, as its own scene and pull request.
 - TODO(painter, R2): the left side of the house, the facade, as its own scene and pull request.
 - NEEDS-HUMAN: the night on the target laptop. Each torch is a blended layer of its own, seven over the lantern's and the coals'; if the night runs less smoothly than the day there, the far torches go onto one layer (TODO(painter, R2) then).
-- TODO(builder, R3): beings and characters on the terrace's four places (`content/scenes/terrace.json` has no hotspot and no exit yet).
+- TODO(builder, R3): characters on the terrace's four places (`content/scenes/terrace.json` has no hotspot and no exit yet).

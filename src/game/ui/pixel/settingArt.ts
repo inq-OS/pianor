@@ -262,3 +262,17 @@ export function barNumbersSymbol(mode: BarNumberMode): Bitmap {
   for (const { index, number } of barNumbersToShow(mode, bars)) digits(b, 2 + width * index, 3, String(number), C.blue);
   return b;
 }
+
+/**
+ * The live tempo of a learning run (ft_1_32 rule 18): the practice screen's top bar over a scrap of staff, with the tempo
+ * written small at its right end when on, empty when off.
+ */
+export function liveTempoSymbol(on: boolean): Bitmap {
+  const b = paper();
+  for (let y = 0; y < 8; y++) hline(b, 0, SYMBOL_WIDTH - 1, y, C.panel);
+  if (on) digits(b, 24, 1, '90', C.cream);
+  staff(b, 10, { gap: 3, lines: 4 });
+  note(b, 8, 16);
+  note(b, 20, 13);
+  return b;
+}

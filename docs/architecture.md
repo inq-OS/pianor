@@ -8,7 +8,7 @@ Findings, proposals and the static analysis guide live in `docs/architecture/`: 
 
 ## 1. Project summary
 
-A piano-learning game for students using a Yamaha EZ-220 over USB-MIDI. MVP: tracks in musical notation (imported or hand-made), XP and levels, minimal pixel-art graphics. End goal: Pokémon-style RPG where playing bars of music powers attacks, and musical styles are character classes.
+A piano-learning game for students using a Yamaha EZ-220 over USB-MIDI. MVP: tracks in musical notation (imported or hand-made), XP and levels, minimal pixel-art graphics. The game around it is a point-and-click adventure on Keri island, where characters teach the student phrases and challenge them to trade phrases (d129, d132).
 
 The EZ-220 facts that matter:
 - 61 velocity-sensitive keys with USB-to-host. It is a MIDI input device, with no MIDI DIN ports.
@@ -40,19 +40,18 @@ The EZ-220 facts that matter:
 | VexFlow | TS, MIT (v5) | Renders notation to canvas or SVG: grand staff, ties, beams, accidentals, key signatures. The real alternative to a growing own renderer; see `docs/decisions/workflow.md#d024` |
 | xml2abc (W. Vree) | Python, LGPL | MusicXML to ABC converter; a candidate external tool for the import step, not linkable code in an MIT project. Fingerings are not translated |
 | musicjson | JS, MIT | MusicXML to JSON; last updated 2012, not a candidate |
-| Cody-Sims/Pokemon-Web | Phaser 3 + TS + Vite | Structural reference for a Pokémon-style game in the browser (check license before reuse) |
 | GodotGarden/piano-practice | Godot 4, Apache-2.0 | Early-stage; little to take |
 
-Avoid as a code base: ekkx/notefall and forks (PolyForm Shield, source-available, not FOSS). Pokémon-derived repos often bundle non-free art and music; take code ideas only.
+Avoid as a code base: ekkx/notefall and forks (PolyForm Shield, source-available, not FOSS).
 
-**Gap in the market:** nobody has combined a real RPG progression and battle loop with graded MIDI input. Everything above is either a trainer or a visualizer. The RPG layer is the novel part, so it is where your effort should go; the MIDI plumbing can be borrowed.
+**Gap in the market:** nobody has combined a point-and-click adventure, whose characters challenge the student to trade musical phrases, with graded MIDI input. Everything above is either a trainer or a visualizer. The adventure is the novel part, so it is where the effort goes; the MIDI plumbing can be borrowed.
 
 ## 3. Key decision: platform
 
 **Chosen: browser PWA, TypeScript, Vite, Phaser (version 4 since d007; the comparison below was written for Phaser 3 and still holds).**
 - Web MIDI supports both input and output, and you need output to light keys. Godot supports MIDI input only, and Web MIDI needs Chrome or Edge (Safari and Firefox are not reliable).
 - Runs on a laptop or an Android tablet with a USB OTG cable; no install, easy sharing with other students and parents.
-- Phaser handles pixel-art scaling, sprites, tilemaps and scenes, which suit the later Pokémon-style world. How sprites are drawn, composed from parts and handed to Phaser is in `docs/sprites.md` (d051).
+- Phaser handles pixel-art scaling, sprites, tilemaps and scenes, How pixel art is drawn and handed to Phaser is in `docs/sprites.md`.
 
 Alternatives: Godot 4 (nicer editor, but no MIDI out and more friction on the web); Electron (only worth it if browser MIDI proves flaky, as madiers/piano-midi shows it needs permission workarounds).
 
@@ -77,10 +76,8 @@ src/
     sky/                 The hour of the sky from the real sun (skyPhase, sceneLook, wind; ft_1_14, d097)
     scoring/             Stars, the two-hands bonus, the session lines of the looping play (ft_1_12)
     progression/         XP, levels, unlocks, profile (versioned save; the version history is the comment on PROFILE_SCHEMA_VERSION in profile.ts), migrations, repository
-    battle/              Battle rules and content, on hold (ft_Y_01)
     editor/              Piece editor model: edits, history, ABC and chart output, hit testing (ft_1_02a)
-    campaign/            Monster campaign rules: ladder content, find the key, find the door, campaign state (ft_1_06);
-                         which being is in which scene today (sceneBeings.ts, ft_1_19, d113)
+    campaign/            The campaign state kept in the save (ft_1_06)
     properties/          What a piece asks of the player (note values, range, hands), for the piece card and difficulty
     random.ts, issues.ts Seeded random numbers; schema problems as readable lines
     upgrade.ts, median.ts The schemaVersion loop every saved format shares (charts, profiles); the median
@@ -91,8 +88,8 @@ src/
     storage/             localStorage and in-memory stores
     files/               Download and pick text files (piece files of the editor)
     mock/                Virtual EZ-220 (fake MIDIAccess), on-screen and QWERTY keyboards, scripted/virtual player (no-hardware dev and tests)
-  game/                  Phaser scenes (draw only): Boot, Menu, Pieces, Practice, Results, Rundown, Settings, Battle,
-                         BattleResults, Editor, Preview, Credits, the player's room (ProfileDashboard), KeriMap, Knoll,
+  game/                  Phaser scenes (draw only): Boot, Menu, Pieces, Practice, Results, Rundown, Settings,
+                         Editor, Preview, Credits, the player's room (ProfileDashboard), KeriMap, Knoll,
                          the trainers, the admin pages, and the dev-only StaffDemo and ArtDemo; scenes.ts lists
                          every scene key with the data its init takes, and startScene checks both (Esc goes through back())
     ui/pixel/            The pixel-art kit: palette, font, sprites, PixelScene (base of every scene; topBar for the play screens), PixelObjects
@@ -102,14 +99,14 @@ src/
                          (knollPicture), the shared palette (keriPalette), clouds (curlCloud), and their packing. Also Node-safe.
                          The look and its rules: docs/art-direction.md
     ui/staff/            StaffView: draws a StaffLayout and the play state
-    results/             OutcomeScene: base of Results and BattleResults (XP line, level, what opened up)
-    practice/, profile/, editor/, battle/, preview/, menu/   small helpers per scene (PracticeController, ProfileService, OwnPieces, ...)
-    practice/PlaySession  what every screen where a piece is played shares (Practice, Battle, later the campaign phases):
+    results/             OutcomeScene: base of Results (XP line, level, what opened up)
+    practice/, profile/, editor/, preview/, menu/   small helpers per scene (PracticeController, ProfileService, OwnPieces, ...)
+    practice/PlaySession  what every screen where a piece is played shares (Practice, the tug):
                          the staff for the player's settings, the PracticeController (Wait or Tempo, hints, the per-frame
                          advance and playhead), Kiur's bubble with its timers and the wrong-note flash, and one destroy()
   dev/                   dev-only pages (?demo=keys, audio, profile, preview; staff and art are scenes) and the autoplay director (?autoplay=1, dev/autoplay/)
   spike/                 the hardware spike page (spike.html)
-content/                 JSON/ABC data: pieces, curriculum, battle rules, monsters, the world model of Keri (world/)
+content/                 JSON/ABC data: pieces, curriculum, the tug's rules, characters, conversations, the world model of Keri (world/)
 tools/                   CLI and build: piece compile/lint/build, generators, the Vite pieces plugin; vite-keri.ts paints
                          Keri's pictures when the game is built (module virtual:keri-pictures, one file per picture
                          and hour, loaded per scene, d143); art/ paints one to a PNG file
@@ -121,17 +118,16 @@ Roadmap: the phases (section 5) map onto the features in `docs/features/FEATURES
 ### Core data model (the part to get right early)
 
 - **Chart**: the canonical definition is `docs/authoring/au03-chart-format.md` (spelled pitch, tracks, tempo/meter/key maps, bars, phrases). One format that ABC compilation, MIDI import and hand authoring all produce. Do not redefine it here.
-- **Phrase**: a run of N bars (e.g. 4) inside a chart. This is the RPG unit: a "spell".
+- **Phrase**: a run of N bars (e.g. 4) inside a chart: the unit a character and the student trade in a tug (ft_1_21).
 - **Judge output per note**: `{ expected, played, timingErrorMs, verdict }`, with verdicts like Perfect/Good/Early/Late/WrongNote/Missed. Keep the *reason* a note was wrong (as piano-midi does); it drives student-friendly feedback.
-- **BarResult**: accuracy (0..1) and tempo score. A spell's power is the sum of bar results; all 4 bars played gives max power.
-- **Hands**: results carry `bothHands { notes, together }` (notes in steps where the right and left hand play at once, and how many of those were pressed together first try). `bothHandsMultiplier` turns that into an XP and spell-power multiplier (ft_0_15). It only adds, never penalises.
-- **Effect pipeline**: `PhraseResult + ClassModifiers -> effects[]` (damage, buff, heal, combo, and the two-hands multiplier). Classes and spells are JSON data, not code, so musical-style classes can be added without engine changes.
+- **BarResult**: accuracy (0..1) and tempo score.
+- **Hands**: results carry `bothHands { notes, together }` (notes in steps where the right and left hand play at once, and how many of those were pressed together first try). `bothHandsMultiplier` turns that into an XP multiplier (ft_0_15). It only adds, never penalises.
 
 ### Timing and input
 
 - Timestamp MIDI events with the `MIDIMessageEvent` timestamp and map them onto the audio clock; judge in song time, not frame time.
 - **MVP judges pitch first** (is it the right key?) and rhythm gently. Timing windows start much wider than MIDI-HERO's ±35/70/120 ms, which are for experienced players; tighten them as the student levels up. Tempo mode judges the onset and, since d093, how long the key is held (core_01 slice f); Wait mode judges onsets only.
-- **MVP is Wait mode only:** the cursor stays on the current note until the right key is pressed, and a gentle metronome plus tempo bonus adds rhythm later. **Tempo mode** (cursor advances with the beat, timing counts) arrives after the student is comfortable reading; the battle crits depend on it.
+- **MVP is Wait mode only:** the cursor stays on the current note until the right key is pressed, and a gentle metronome plus tempo bonus adds rhythm later. **Tempo mode** (cursor advances with the beat, timing counts) arrives after the student is comfortable reading.
 - Measure end-to-end latency in the spike before choosing window sizes.
 
 ### Notation display
@@ -149,7 +145,7 @@ Pieces must be fully custom, so authoring is a first-class pipeline, not an afte
 
 - **Source of truth:** ABC notation (`piece.abc`) plus a sidecar `piece.meta.json` (level, phrases, tags, status, provenance), compiled to the chart JSON the game loads.
 - **Linter** enforces the level definition: bar lengths, range, allowed note values, maximum leaps, fingering sanity, required source/license. It also outputs a difficulty score.
-- **Three ways to create pieces:** by hand, deterministic seeded generators (patterns, scales, drills, boss phrases), and an AI-agent loop (compose ABC, lint, fix, build). All output starts as `draft`.
+- **Three ways to create pieces:** by hand, deterministic seeded generators (patterns, scales, drills, phrases), and an AI-agent loop (compose ABC, lint, fix, build). All output starts as `draft`.
 - **Human approval gate:** only a parent or teacher can set `approved`, after previewing the piece (staff plus audio plus play-along).
 
 ### Content and licensing
@@ -183,7 +179,6 @@ The phased roadmap and every feature, with its scope and status, are in `docs/fe
 - https://github.com/Belf186/falling-notes
 - https://github.com/opensheetmusicdisplay/opensheetmusicdisplay
 - https://github.com/iBundin/Open-Web-Piano
-- https://github.com/Cody-Sims/Pokemon-Web
 - https://github.com/paulrosen/abcjs
 - https://github.com/GodotGarden/piano-practice
 - https://docs.godotengine.org/en/4.3/classes/class_inputeventmidi.html

@@ -18,7 +18,7 @@ The whole game is in Estonian and in capitals, because the game is made for Esto
 4. Estonian piece titles: optional `titles.et` in piece meta and chart (`src/core/text/pieceTitle.ts`; 27 pieces; generated pieces get one too). Content names are not done yet.
 5. A new Estonian player defaults to letter naming `H` (`defaultNoteNaming`).
 6. Note-name hints, finger numbers and section marks are not words and are never changed.
-7. Label fit is measured (`labelFit`, `tests/e2e/button-fit.spec.ts`) over menu, settings, pieces, profiles, room, admin, campaign, credits, editor, practice, battle and the stats screen with no saved play; results, battle results, rundown and the stats numbers need saved play and are not checked.
+7. Label fit is measured (`labelFit`, `tests/e2e/button-fit.spec.ts`) over menu, settings, pieces, profiles, room, admin, credits, editor, practice and the stats screen with no saved play; results, rundown and the stats numbers need saved play and are not checked.
 8. Labels changed for the student to check: settings `1. takt`, editor `Tühista` (undo) and `Uuesti` (redo).
 
 ## Acceptance criteria

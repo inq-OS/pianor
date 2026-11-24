@@ -63,4 +63,3 @@ Chord and key names in Estonian follow the way Estonian music teaching writes th
 - NEEDS-HUMAN: play a scale and a triad on the EZ-220 in the trainer, both hands, a few chords from their names, the scale switcher, and the chord names for held keys.
 - TODO(builder, Later): light the scale's or chord's keys on the EZ-220 once ft_Y_06's real output works (needs the silent-light test there).
 - IDEA(architect, Later): a two-player game with the keyboard split in half. Not now: it needs two profiles at once and a save answer for whose XP it is.
-- Rejected: skill training that levels a character's attributes; the battles and their attributes are deleted (d151).

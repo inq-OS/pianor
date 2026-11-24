@@ -1,9 +1,9 @@
 ---
 id: "ft_1_02"
 title: "Piece editor, pieces on and off"
-scope: "Click notes onto the staff; own pieces private (licence `NaN`); turn pieces on and off per player. Built in four parts:"
+scope: "Click notes onto the staff; own pieces private (licence `NaN`); turn pieces on and off per player. Built in five parts:"
 effort: "split"
-status: "split into four parts, each with its own file"
+status: "split into five parts, each with its own file"
 ---
 # ft_1_02: Piece editor and turning pieces on and off
 
@@ -15,6 +15,7 @@ An "Add piece" screen where anyone writes a piece by clicking on the staff, with
 - [ft_1_02b](ft_1_02b-own-pieces-as-files.md): own pieces as files: export and import, the dev server saving into `private/pieces/`, licence `NaN` accepted for private pieces only.
 - [ft_1_02c](ft_1_02c-pieces-on-and-off.md): turning pieces on and off, per player.
 - [ft_1_02d](ft_1_02d-editor-extras.md): dotted notes, entering notes from the piano, and the other editor extras.
+- [ft_1_02e](ft_1_02e-vim-keys.md): opt-in vim keys.
 
 ## Rules
 
@@ -23,7 +24,7 @@ An "Add piece" screen where anyone writes a piece by clicking on the staff, with
 3. **Interaction:** clicking an empty place puts a note of the current length there, with a faint preview note with its name following the pointer. Clicking a note lengthens it, Ctrl+click shortens it, the wheel over a note does either. Number keys choose the length; Delete, or Delete in the bubble a right click opens (ft_1_20), removes; Ctrl+Z and Ctrl+Y undo and redo. On a tablet an on-screen row of lengths and a delete button. Listen and try in Wait mode from the editor.
 4. **Output:** the editor writes ABC plus a meta file (the ft_0_12 ABC writer), so its pieces take the same path as every other piece, with `checkPiece` diagnostics live against the chosen level; warnings never block saving. Meta: title from a text field, id from the title, `source` "written in Pianor by <name>", **`license: "NaN"`** (own pieces are often local children's and folk songs typed in for private use). They stay private: a hosted build saves them in IndexedDB, the dev server in the gitignored `private/pieces/<id>/`. They are never written to `content/pieces/` and never deployed; the lint rule `license` accepts `NaN` for these private pieces only.
 5. **No limits:** anyone, parent or student, may write any piece. A saved piece is playable at once and earns XP like any piece of its level: the person who saves it is the human approving it (`status: "approved"` is set by that save; an agent or a test never saves into real content).
-6. **Pieces on and off:** a per-player list; a piece that is off is hidden from the menu and battles and restores with its stars when turned on (ft_1_02c). First step toward the spellbook (ft_Y_01): later pieces and short riffs are abilities and the character picks a limited number of active spells.
+6. **Pieces on and off:** a per-player list; a piece that is off is hidden from the menu and restores with its stars when turned on (ft_1_02c).
 
 ## Acceptance criteria
 
