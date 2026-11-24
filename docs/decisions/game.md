@@ -540,3 +540,11 @@ Check: `src/game/practice/introLearning.test.ts` "ft_1_31.AC8 starts from the be
 The settings live in the player's `curriculum` document as the optional `cast`, absent reading as before. Neediness 1 to 5 holds for every character: 3 keeps a tug level's share, each step moves it 10 points, never past all the notes; a wanderer counts from 80 per cent. A wanderer comes only on a day it was sent, plays one whole pass with the staff in Wait mode, and gives one keepsake a day when the play reaches its share, nothing taken away otherwise.
 
 Check: `src/core/island/cast.test.ts` "ft_1_37.AC8 neediness moves the share a play needs by 10 points a step from 3, never past all the notes"; `src/core/island/wanderer.test.ts` "ft_1_37.AC7 ft_1_37.AC8 keeps a keepsake when the play reaches the share its neediness needs, never takes anything"
+
+## d300
+
+**The whole piece is learned in three plays: the first two go on past a wrong key and count, the third must be perfect.** Features: ft_1_32.
+
+Every step before it still needs one perfect run. In the first two plays Wait mode waits for the right key and the play counts; in the third a wrong key starts the play again from its first bar, still the third play; a mistake never sends the count back and only lowers the clef's medal, as a run that did not count. Learning is meant to be reachable with some mistakes; the tug shows what still needs practice.
+
+Check: `src/core/learn/progress.test.ts` "ft_1_32.AC2 the third play must be perfect: a wrong key starts it again from the first bar, still the third play"; `tests/e2e/learn.spec.ts` "ft_1_32.AC2 the whole piece three times: the first plays go on past a wrong key and count, the third starts again on a mistake and stays the third"

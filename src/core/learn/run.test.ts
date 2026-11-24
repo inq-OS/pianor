@@ -9,9 +9,9 @@ const chart = chartWith([{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480,
 const press = (midi: number, timeMs: number): NoteEvent => ({ kind: 'on', midi, velocity: 80, timeMs, source: 'test' });
 
 /** Play `keys` through a Wait mode judge, hints as given, feeding a learning run. */
-function playRun(keys: readonly number[], options: { noteNames?: boolean } = {}) {
+function playRun(keys: readonly number[], options: { noteNames?: boolean; playOn?: boolean } = {}) {
   const mode = new WaitMode(chart, { hints: { noteNames: options.noteNames ?? false, fingers: true } });
-  const run = new LearnRunJudge();
+  const run = new LearnRunJudge(undefined, { playOn: options.playOn ?? false });
   let verdict = run.verdict;
   keys.forEach((midi, i) => {
     const events: JudgeEvent[] = mode.handle(press(midi, i * 500));
@@ -28,6 +28,12 @@ describe('LearnRunJudge', () => {
   it('stops at the first wrong key and says what it was', () => {
     const verdict = playRun([60, 63, 62, 64]);
     expect(verdict).toMatchObject({ state: 'stopped', wrong: { midi: 63, expectedMidi: 62, bar: 0, reason: 'neighbour-key' } });
+  });
+
+  it('ft_1_32.AC3 in a step played to the end a wrong key does not stop the run: it ends flawed, with its mistakes counted', () => {
+    expect(playRun([60, 63, 62, 61, 64], { playOn: true })).toEqual({ state: 'flawed', mistakes: 2 });
+    expect(playRun([60, 62, 64], { playOn: true })).toEqual({ state: 'perfect' });
+    expect(playRun([60, 63, 62], { playOn: true })).toEqual({ state: 'going' });
   });
 
   it('is still going before the last note', () => {

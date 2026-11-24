@@ -9,25 +9,32 @@ import { rushing } from './tempo';
  * Whether a learning run is perfect (ft_1_32.AC3). Pure; it reads the events of the Wait mode judge, so the judge itself is
  * unchanged. The first wrong key ends the run: the screen stops it and names the mistake, and the same step starts again,
  * so the student never plays on past a mistake. A run with note names shown is `hinted`: it does not count, and the next run
- * hides them (`afterRun`); finger numbers always count.
+ * hides them (`afterRun`); finger numbers always count. In a run played to the end (`playOn`: the first plays of the whole piece, d300) a
+ * wrong key does not end the run: Wait mode waits for the right key, and a run with wrong keys ends `flawed`.
  */
 export type LearnRunVerdict =
   | { state: 'going' }
   | { state: 'perfect' }
   | { state: 'hinted' }
   | { state: 'stopped'; wrong: WrongNoteJudged }
+  /** A run played to its end with `mistakes` wrong keys, in a step whose runs are played to the end (`playOn`). */
+  | { state: 'flawed'; mistakes: number }
   /** The run sped up beyond the piece's baseline tempo (`rushing`, ft_1_32.AC11): it is stopped and asked again. */
   | { state: 'rushed' };
 
 export class LearnRunJudge {
   private current: LearnRunVerdict = { state: 'going' };
   private readonly events: JudgeEvent[] = [];
+  private mistakes = 0;
+  private readonly playOn: boolean;
 
   /**
    * `rush`: the chart played and the piece's baseline tempo, when a run that speeds up beyond it is stopped (the rushing
    * stop); without it, or with no baseline yet, the pace never stops a run.
    */
-  constructor(private readonly rush?: { chart: Chart; baselineBpm: number | null }) {}
+  constructor(private readonly rush?: { chart: Chart; baselineBpm: number | null }, options: { playOn?: boolean } = {}) {
+    this.playOn = options.playOn ?? false;
+  }
 
   get verdict(): LearnRunVerdict {
     return this.current;
@@ -38,10 +45,14 @@ export class LearnRunJudge {
     for (const event of events) {
       if (this.current.state !== 'going') break;
       this.events.push(event);
-      if (event.type === 'NoteJudged' && event.verdict === 'wrong') this.current = { state: 'stopped', wrong: event };
+      if (event.type === 'NoteJudged' && event.verdict === 'wrong') {
+        if (this.playOn) this.mistakes += 1;
+        else this.current = { state: 'stopped', wrong: event };
+      }
       else if (event.type === 'NoteJudged' && this.rush && rushing(this.rush.chart, this.events, this.rush.baselineBpm)) this.current = { state: 'rushed' };
       else if (event.type === 'PieceCompleted') {
-        this.current = event.result.hints.noteNames > 0 ? { state: 'hinted' } : { state: 'perfect' };
+        if (event.result.hints.noteNames > 0) this.current = { state: 'hinted' };
+        else this.current = this.mistakes > 0 ? { state: 'flawed', mistakes: this.mistakes } : { state: 'perfect' };
       }
     }
     return this.current;

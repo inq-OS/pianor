@@ -916,8 +916,8 @@ export class PracticeScene extends PixelScene {
     const learn = this.learn!;
     const { outcome, bpm } = learn.outcomeOf(this.playSession.chart, result.hints.noteNames > 0);
     this.stopMetronome();
-    // a pass of the piece only when the run counts: one asked again is not a play of a piece the game calls unlearned
-    if (learn.wholePiece && outcome === 'perfect' && !this.intro) {
+    // a pass of the piece only when the run counts (a play to the end with wrong keys counts, d300): one asked again does not
+    if (learn.wholePiece && (outcome === 'perfect' || outcome === 'flawed') && !this.intro) {
       this.session = recordFreePlayRound(this.session, result);
       this.pendingPass = contextOf(this).profiles.completePiece(result, { mode: 'wait', tempoPercent: this.percent })
         .catch((error: unknown) => { console.error('completePiece failed', error); return undefined; });

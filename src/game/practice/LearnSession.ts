@@ -5,7 +5,7 @@ import { markersByNote, mistakeMarkers } from '../../core/learn/markers';
 import { PRIZE } from '../../core/layout/learnPrizes';
 import { handChart, learnPlan, learnUnits, type LearnStep } from '../../core/learn/plan';
 import {
-  afterRun, currentRun, goldenBars, halfLearned, isLearned, isMeasured, learnHandsApart, learnRewards, learnStepBars, measuredOutcome, sitDown, startOver, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
+  afterRun, currentRun, goldenBars, halfLearned, isLearned, isMeasured, learnHandsApart, learnRewards, learnStepBars, measuredOutcome, playsOn, sitDown, startOver, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
 } from '../../core/learn/progress';
 import { LearnRunJudge, type LearnRunVerdict } from '../../core/learn/run';
 import { prizeFocus, shownWithPiece, type PrizeFocus } from '../../core/learn/view';
@@ -136,6 +136,10 @@ export class LearnSession {
   endLine(outcome: RunOutcome, bpm: number | undefined): string {
     if (outcome === 'hinted') return '';
     if (outcome === 'unsteady') return t('learn.unsteady');
+    if (outcome === 'flawed') {
+      const verdict = this.verdict;
+      return t('learn.flawed', { n: verdict.state === 'flawed' ? verdict.mistakes : 1 });
+    }
     // the pace of the run that learned it, the number the student just played
     const pace = bpm ?? this.baseline;
     if (this.learned && pace !== null) return t('learn.learned', { bpm: pace });
@@ -150,7 +154,8 @@ export class LearnSession {
   push(events: readonly JudgeEvent[], played: Chart): LearnRunVerdict {
     this.events.push(...events);
     this.played = played;
-    this.judge ??= new LearnRunJudge(this.rushStops ? { chart: played, baselineBpm: this.baseline } : undefined);
+    // the plays of a step asked several times go on past a wrong key (d300)
+    this.judge ??= new LearnRunJudge(this.rushStops ? { chart: played, baselineBpm: this.baseline } : undefined, { playOn: this.run.kind === 'step' && playsOn(this.run.step, this.progress) });
     return this.judge.push(events);
   }
 
@@ -184,6 +189,8 @@ export class LearnSession {
   outcomeOf(played: Chart, noteNames: boolean): { outcome: RunOutcome; bpm?: number } {
     this.measured = null;
     if (noteNames) return { outcome: 'hinted' };
+    // a play with wrong keys counts as a play, with no tempo kept (d300)
+    if (this.verdict.state === 'flawed') return { outcome: 'flawed' };
     this.measured = isMeasured(this.run) ? runTempo(played, this.events) : null;
     return measuredOutcome(this.progress, this.measured);
   }
