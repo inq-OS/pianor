@@ -1,5 +1,6 @@
 // Covers core_05.AC3, core_05.AC5.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { activeScenes, expectNoErrors, openGame, sceneTexts, showMenuPageWith } from './helpers';
 
 type Target = { info: string } | 'close' | 'outside';

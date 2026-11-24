@@ -2,7 +2,8 @@
 // The main menu (who is playing, and free play), the player's room (the profile screen, with Settings and Quit), the book
 // (song list) and the admin page with its name picker. progress.spec.ts covers the first checks; these tests add the
 // buttons and the paths it did not reach.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { addPlayer, bandAction, clickButton, clickToolbar, expectNoErrors, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene } from './helpers';
 
 /** The main menu: from the piece list, the room's Quit goes there (`goToMainMenu`). */
@@ -249,6 +250,24 @@ test.describe('admin page (ft_1_07.AC6)', () => {
     await waitForScene(page, 'admin');
     expect(await sceneTexts(page, 'admin')).not.toContain('Renamed.');
     expect(await playerName(page)).toBe('TUVI');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box', async ({ page }) => {
+    const errors = await openGame(page);
+    await openAdmin(page);
+    await clickButton(page, 'admin', 2); // Rename player
+    await waitForScene(page, 'name');
+    const labels = () => page.evaluate(() => (window.__game.scene.getScene('name').buttons as { options: { label: string } }[]).map((b) => b.options.label));
+    expect((await labels()).filter((l) => /^\p{Lu}$/u.test(l))).toEqual([]);
+    await page.keyboard.type('MA1');
+    // a key that is not a name letter is not taken
+    await expect.poll(() => sceneTexts(page, 'name')).toContain('MA');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('ARI');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'admin');
+    expect(await playerName(page)).toBe('MARI');
     expectNoErrors(errors);
   });
 

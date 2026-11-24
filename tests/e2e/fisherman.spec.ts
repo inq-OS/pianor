@@ -1,6 +1,7 @@
 // Covers ft_1_22.AC1 and AC10 for the second character, the Prangli fisherman (WP-17): he stands at the port, is "???"
 // until asked who he is, and tells where his first tune comes from before teaching it.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { clickButton, expectNoErrors, letGameRun, openGame, sceneButton, waitForScene, type PageErrors } from './helpers';
 
 interface TalkState { showing: 'line' | 'student' | 'choices'; node: string; line: string; choices: string[] }

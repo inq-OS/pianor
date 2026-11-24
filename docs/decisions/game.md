@@ -500,3 +500,35 @@ Check: `tools/docs/oldWords.test.ts` "fails a line in code, content, tests or do
 A picture choice on the learning settings page turns it on; a setting saved before the choice reads as off. When on, the tempo, spread and wobble so far are two small dim lines at the right end of the strip's free stretch, never in the top bar or the stats pane, so they stay out of the student's sight while reading the staff.
 
 Check: `src/core/learn/progress.test.ts` "ft_1_32.AC17 the live tempo is off unless the player turned it on, and a setting saved before it reads as off"
+
+## d294
+
+**In the piece maker the keyboard cursor follows the pointer, the bubble offers only what applies, lassoed bars are slurred or tied from the bubble, and a paste that writes over notes warns first.** Features: ft_1_02d, ft_1_20.
+
+A move of the pointer over the staff takes the cursor and the selection to the note or place under it; the arrow keys still move it. The bubble and its menus hide an option that would do nothing there (no repeat on a note, no paste with nothing copied) and keep every other option in its slot. With bars selected the tie and slur menu slurs each hand over them or ties every repeat in them, previewed faint first. A paste over notes turns their bars red and says how many go; the same paste again does it.
+
+Check: `src/core/editor/rangeArcs.test.ts` "ft_1_02d.AC36 slurs each hand from its first note in the selected bars to its last, with no note picked first"; `src/core/editor/bars.test.ts` "ft_1_02d.AC37 counts the notes a paste over another selection would replace"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC34 the keyboard cursor follows the pointer: onto a note it selects it, onto a free place it goes there, and the arrows still move it"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC35 the bubble on a note offers no repeat signs, and paste only once something is copied"
+
+## d295
+
+**A name is typed on the computer keyboard into the game's name box; the box has no letter buttons.** Features: ft_1_07.
+
+The box is big, with a red caret where the next letter goes, and takes only the Estonian name letters, up to 12; Backspace deletes and Enter is Done, and Delete and Done stay as picture buttons. A tablet with no keyboard gets the system's on-screen keyboard later.
+
+Check: `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box"
+
+## d296
+
+**A learned piece's clef grows to twice its size on the practice screen, then the book opens at the piece and the clef drops onto the piece's clef sign.** Features: ft_1_32.
+
+At the learned moment the clef lifts off the prize column and grows smoothly about its centre (0.7 s) and stays with Kiur's line until a key or a press. The book then opens at the page of the piece, the card still showing the clef it had (the empty place or the old medal); after 0.3 s the clef drops from where the practice screen left it onto that sign, shrinking to its size (0.9 s), and the sign takes the new medal. A character's piece then goes on to the character and a piece Kiur was asked to teach to the room after 1.2 s, and Back goes there at once; a piece learned at the piano stays in the book. With the scenery still (`?motion=still`) the clef shows at once at its end.
+
+Check: `src/core/layout/clefFlight.test.ts` "ft_1_32.AC22 starts in the book where the practice screen left it, and lands on the sign at the height of the sign"; `tests/e2e/learn.spec.ts` "ft_1_32.AC15 ft_1_32.AC22 a piece learned keeps its reward and the learned line until a key, its clef grown to twice its size, then the book opens and the clef drops onto the card of the piece"
+
+## d297
+
+**The intro's learn stage learns the lesson's bars bar by bar and ends at the learned moment, with no extra whole play.** Features: ft_1_31, ft_1_32.
+
+The lesson (Twinkle's first four bars) is learned by the same plan as any piece, its progress kept only for the intro, so the piece itself is neither counted as learned nor as played. At the learned moment Kiur's line stays until a key, which goes on to the room's practise stage; the clef does not fly to the book in the intro.
+
+Check: `src/game/practice/introLearning.test.ts` "ft_1_31.AC8 starts from the beginning, keeps its steps for the next run only, and never saves the piece"; `tests/e2e/intro.spec.ts` "ft_1_31.AC1 ft_1_31.AC2 ft_1_31.AC3 ft_1_31.AC4 ft_1_31.AC6 ft_1_31.AC8 a new player is shown the room and the map and walked through learning bar by bar, practise and the tug on Twinkle"

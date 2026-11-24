@@ -83,14 +83,14 @@ describe('lintIds', () => {
 });
 
 describe('lintScripts', () => {
-  it('flags unknown scripts and scripts CLAUDE.md does not mention', () => {
-    const repo = makeRepo({ 'docs/a.md': 'run `npm run nope` or `npm run build`', 'CLAUDE.md': 'Use npm run build and npm test.' }, ['build', 'test', 'extra']);
-    expect(messages(lintScripts(repo))).toEqual(['npm run nope is not a script in package.json', 'the Commands list does not mention the script "extra"']);
+  it('flags unknown scripts and scripts the command reference does not mention', () => {
+    const repo = makeRepo({ 'docs/a.md': 'run `npm run nope` or `npm run build`', 'docs/commands.md': 'Use npm run build and npm test.', 'CLAUDE.md': 'npm run extra' }, ['build', 'test', 'extra']);
+    expect(messages(lintScripts(repo))).toEqual(['npm run nope is not a script in package.json', 'the command reference does not mention the script "extra"']);
   });
 
   it('takes the install hook named in backticks', () => {
-    expect(messages(lintScripts(makeRepo({ 'CLAUDE.md': 'npm install runs `prepare`' }, ['prepare'])))).toEqual([]);
-    expect(messages(lintScripts(makeRepo({ 'CLAUDE.md': 'nothing' }, ['prepare'])))).toEqual(['the Commands list does not mention the script "prepare"']);
+    expect(messages(lintScripts(makeRepo({ 'docs/commands.md': 'npm install runs `prepare`' }, ['prepare'])))).toEqual([]);
+    expect(messages(lintScripts(makeRepo({ 'docs/commands.md': 'nothing' }, ['prepare'])))).toEqual(['the command reference does not mention the script "prepare"']);
   });
 });
 

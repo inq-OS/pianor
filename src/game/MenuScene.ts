@@ -1,3 +1,4 @@
+import type Phaser from 'phaser';
 import { pieceTitle } from '../core/text/pieceTitle';
 import { cardGrid } from '../core/layout/cardGrid';
 import { pageOf, stepItem, type PagingOptions } from '../core/layout/paging';
@@ -31,6 +32,11 @@ import { HAT, hatPicture } from './ui/pixel/menuArt';
 import { ART_DETAIL } from '../core/layout/frame';
 import type { Rect } from '../core/layout/rect';
 import { startScene } from './scenes';
+import { CLEF_FLIGHT, clefDrop, type Box } from '../core/layout/clefFlight';
+import { clefSpaceFor, drawMedalClef } from './practice/prizeGlyphs';
+import type { Medal as LearnMedal } from '../core/learn/progress';
+import type { KeriScreen } from './visit/islandVisit';
+import { motionAllowed } from './motion';
 import { pressHide, type ArmedHide } from '../core/progression/pieceSwitch';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 
@@ -43,6 +49,20 @@ export const MAKER_KEY = 'maker';
  */
 export interface MenuData {
   forKiur?: 'learn' | 'tug';
+  /** A piece just learned: its clef drops onto its card (ft_1_32.AC22). */
+  clefFlight?: ClefFlight;
+}
+
+/**
+ * The learned piece's clef coming into the book (ft_1_32.AC22): the piece, its clef before and after learning, where the
+ * practice screen left the grown clef (screen pixels), and the character the piece goes on to after the landing.
+ */
+export interface ClefFlight {
+  chartId: string;
+  before: LearnMedal | null;
+  after: LearnMedal;
+  from: Box;
+  then?: KeriScreen | 'profile';
 }
 
 const CARD_HEIGHT = 32;
@@ -119,6 +139,12 @@ const HIDE_HINT = 0.35;
 export class MenuScene extends PixelScene {
   /** Which page of pieces is shown; kept when a piece is played and the player comes back. */
   private page = 0;
+  /** The learned piece's clef on its way onto its card, the sign it lands on, and the clef in the air (ft_1_32.AC22). */
+  private flight: ClefFlight | null = null;
+  private flightSign: PixelImage | null = null;
+  private flyer: Phaser.GameObjects.Graphics | null = null;
+  /** Where the screen goes on after the clef lands (a character, or the room where Kiur waits); Back goes there at once. */
+  private goOnTo: KeriScreen | 'profile' | null = null;
   /** The piece whose info card is open, if any. */
   private infoId: string | null = null;
   /** The small "i" button of each unlocked card on this page, by piece id (not in `buttons`: they are not piece cards). */
@@ -196,6 +222,11 @@ export class MenuScene extends PixelScene {
 
   /** Esc and the toolbar's Back: close a piece's info, or go back to the player's room, or to the main menu from the piece maker. */
   protected override back(): void {
+    // a learned piece's clef on its way: Back goes on at once to where the piece goes back to
+    if (this.goOnTo) {
+      this.goOn();
+      return;
+    }
     if (this.infoId !== null) {
       this.showInfo(null);
       return;
@@ -219,6 +250,11 @@ export class MenuScene extends PixelScene {
     this.disarmHide = null;
     this.maker = this.registry.get(MAKER_KEY) === true && contextOf(this).flags.editor;
     this.forKiur = this.maker ? null : (data?.forKiur ?? null);
+    this.flight = this.maker ? null : (data?.clefFlight ?? null);
+    this.flyer = null;
+    this.goOnTo = this.flight?.then ?? null;
+    // the book opens at the page of the piece whose clef is coming
+    if (this.flight) this.page = Number.POSITIVE_INFINITY;
     // the piece maker saves nothing for a player: the toolbar shows no name, level or settings
     this.toolbarPlayer = !this.maker;
     if (this.maker) {
@@ -284,6 +320,9 @@ export class MenuScene extends PixelScene {
     const { width, height } = this.px;
     const context = contextOf(this);
     const profiles = context.profiles;
+    // drawn again while the clef is in the air: it lands at once
+    if (this.flyer) this.landFlight();
+    this.flightSign = null;
     this.infoButtons.clear();
     this.statsButtons.clear();
     this.editButtons.clear();
@@ -322,6 +361,10 @@ export class MenuScene extends PixelScene {
     this.inkWriting = true;
     const grid = cardGrid({ width, height, top: top + 4, margin: BOOK_MARGIN, rowHeight: this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
     const { cardWidth } = grid;
+    if (this.page === Number.POSITIVE_INFINITY) {
+      const at = pieces.findIndex((p) => p !== 'new' && p.chart.id === this.flight?.chartId);
+      this.page = at < 0 ? 0 : Math.floor(at / grid.perPage);
+    }
     const slice = pageOf(pieces.length, this.page, { singlePageMax: grid.singlePageMax, perPage: grid.perPage });
     this.page = slice.page;
     this.paging = { total: pieces.length, options: { singlePageMax: grid.singlePageMax, perPage: grid.perPage }, first: slice.first };
@@ -352,6 +395,55 @@ export class MenuScene extends PixelScene {
     this.inkWriting = false;
     const open = this.infoId === null ? undefined : contextOf(this).pieces.find(this.infoId);
     if (open) this.infoClose = this.own(drawPieceInfo({ scene: this, root: this.root, width, height, close: () => this.showInfo(null) }, open));
+    this.startFlight();
+  }
+
+  /**
+   * The learned piece's clef drops from where the practice screen left it onto the piece's clef sign, into the empty place
+   * or onto the clef that was there (ft_1_32.AC22). With the piece not in the book, it simply shows in its new medal.
+   */
+  private startFlight(): void {
+    const flight = this.flight;
+    const sign = this.flightSign;
+    if (!flight || this.flyer) return;
+    if (!sign) {
+      this.landFlight();
+      return;
+    }
+    // drawn as the practice screen drew it, over the book, then on landing the book's own small clef
+    const k = this.root.scaleX;
+    const bitmap = clefPrize(flight.after);
+    const to = { x: this.root.x + sign.x * k, y: this.root.y + sign.y * k, w: bitmap.width * k, h: bitmap.height * k };
+    const { start, end } = clefDrop(flight.from, to);
+    const flyer = drawMedalClef(this, flight.after, { x: start.x, y: start.y }, clefSpaceFor(flight.from.h)).setName('clefFlight').setDepth(10);
+    this.flyer = flyer;
+    if (!motionAllowed()) {
+      this.landFlight();
+      return;
+    }
+    this.tweens.add({ targets: flyer, x: end.x, y: end.y, scale: end.scale, delay: CLEF_FLIGHT.waitMs, duration: CLEF_FLIGHT.dropMs, ease: 'Quad.easeIn', onComplete: () => this.landFlight() });
+  }
+
+  /** The clef is on its card: the sign shows its new medal, and the screen goes on to the character or the room. */
+  private landFlight(): void {
+    const flight = this.flight;
+    if (!flight) return;
+    if (this.flyer) {
+      this.tweens.killTweensOf(this.flyer);
+      this.flyer.destroy();
+      this.flyer = null;
+    }
+    this.flight = null;
+    this.flightSign?.setBitmap(clefPrize(flight.after)).setName(`clefPrize:${flight.after}`);
+    if (this.goOnTo) this.time.delayedCall(CLEF_FLIGHT.afterMs, () => this.goOn());
+  }
+
+  /** On to the character or the room the learned piece goes back to (ft_1_32 rule 5), once. */
+  private goOn(): void {
+    const to = this.goOnTo;
+    if (!to || !this.scene.isActive()) return;
+    this.goOnTo = null;
+    startScene(this, to, {});
   }
 
   /** The light rule in the gap under `cell`: one fine pixel high, a little shorter than the card at each end. */
@@ -429,7 +521,9 @@ export class MenuScene extends PixelScene {
     const context = contextOf(this);
     if (this.maker || !context.flags.learn) return [];
     const profiles = context.profiles;
-    const medal = pieceClef(piece.chart, profiles.learnProgressOf(piece.chart.id), profiles.learnSettings, profiles.practiceFor(piece.chart.id));
+    // the piece whose clef is coming shows the clef it had until the new one lands
+    const coming = this.flight?.chartId === piece.chart.id ? this.flight : null;
+    const medal = coming ? coming.before : pieceClef(piece.chart, profiles.learnProgressOf(piece.chart.id), profiles.learnSettings, profiles.practiceFor(piece.chart.id));
     return [{ bitmap: clefPrize(medal), name: `clefPrize:${medal ?? 'empty'}` }];
   }
 
@@ -504,7 +598,10 @@ export class MenuScene extends PixelScene {
       cursor -= SIGN_GAP;
       return image;
     };
-    prizes.forEach((p) => sign(p.bitmap, p.name));
+    prizes.forEach((p) => {
+      const image = sign(p.bitmap, p.name);
+      if (this.flight?.chartId === piece.chart.id) this.flightSign = image;
+    });
     if (mark) {
       sign(hatFor(mark), mark.finished ? `curriculumHat:${mark.medal ?? 'green'}` : 'curriculumHat');
       if (days !== null) {

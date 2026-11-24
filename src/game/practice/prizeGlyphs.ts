@@ -24,7 +24,7 @@ const LIT_ALPHA = 0.38;
 /** The soft box behind the lit prize: the staff cursor's box colour. */
 const LIT_FILL = 0xeceff1;
 
-export function drawPrizes(scene: Phaser.Scene, column: PrizeColumn, origin: { x: number; y: number }, staffSpace: number): Phaser.GameObjects.Graphics {
+export function drawPrizes(scene: Phaser.Scene, column: PrizeColumn, origin: { x: number; y: number }, staffSpace: number, options: { withoutClef?: boolean } = {}): Phaser.GameObjects.Graphics {
   const S = staffSpace;
   const { glyphs, stem } = column;
   const g = scene.add.graphics().setPosition(origin.x, origin.y);
@@ -37,7 +37,8 @@ export function drawPrizes(scene: Phaser.Scene, column: PrizeColumn, origin: { x
     const edge = ink?.edge ?? STAFF_INK;
     const fill = ink?.fill ?? STAFF_INK;
     if (p.kind === 'clef') {
-      clef(g, p, S, edge, fill, alpha);
+      // lifted off the column while it grows on its way to the book (ft_1_32.AC22)
+      if (!options.withoutClef) clef(g, p, S, edge, fill, alpha);
       continue;
     }
     const whole = p.kind === 'whole';
@@ -59,8 +60,27 @@ export function drawPrizes(scene: Phaser.Scene, column: PrizeColumn, origin: { x
   return g;
 }
 
+/**
+ * A clef in `medal` (a faint placeholder with none) drawn about its centre at `centre`, for a staff of `staffSpace`, so it
+ * can grow or move there: the learned piece's clef on its way to the book (ft_1_32.AC22).
+ */
+export function drawMedalClef(scene: Phaser.Scene, medal: Medal | null, centre: { x: number; y: number }, staffSpace: number): Phaser.GameObjects.Graphics {
+  const S = staffSpace;
+  const ink = medal ? MEDAL_INK[medal] : null;
+  const g = scene.add.graphics().setPosition(centre.x, centre.y);
+  const w = PRIZE.clefBox.w * PRIZE.clefScale * S;
+  const h = PRIZE.clefBox.h * PRIZE.clefScale * S;
+  clef(g, { x: -w / 2, y: -h / 2 }, S, ink?.edge ?? STAFF_INK, ink?.fill ?? STAFF_INK, ink ? 1 : PLACEHOLDER_ALPHA);
+  return g;
+}
+
+/** The staff space a clef of `drawMedalClef` takes to be `height` tall. */
+export function clefSpaceFor(height: number): number {
+  return height / (PRIZE.clefBox.h * PRIZE.clefScale);
+}
+
 /** The treble clef at `PRIZE.clefScale`: its outline, then its medal's colour along the middle of the stroke. */
-function clef(g: Phaser.GameObjects.Graphics, p: PrizeGlyph, S: number, edge: number, fill: number, alpha: number): void {
+function clef(g: Phaser.GameObjects.Graphics, p: Pick<PrizeGlyph, 'x' | 'y'>, S: number, edge: number, fill: number, alpha: number): void {
   const k = S * PRIZE.clefScale;
   const path = (width: number, colour: number, a: number) => {
     g.lineStyle(width, colour, a).beginPath();

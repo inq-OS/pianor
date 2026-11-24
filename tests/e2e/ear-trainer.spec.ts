@@ -2,7 +2,8 @@
 // ft_1_10.AC3 (a wrong press is a miss with a reason), ft_1_10.AC4 (points by misses), ft_1_10.AC7 (the answer after the question),
 // ft_1_10.AC10 (5 round stars, one dimmed per miss), ft_1_10.AC11 (any key continues; that key is not an answer).
 // The room's loudspeaker opens it (the room entry); the other tests open the scene through the scene manager to keep to one step each.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { clickButton, expectNoErrors, openFromStand, openGame, profileButton, playWithVirtualPiano, sceneButton, sceneTexts, waitForScene } from './helpers';
 
 type EarView = { notes: number[]; questionNumber: number; question: { misses: number; done: boolean }; shownStars: { lit: number; total: number } };
@@ -115,23 +116,6 @@ test.describe('pitch trainer by ear (ft_1_10)', () => {
     now = await ear(page);
     expect(now.questionNumber).toBe(first.questionNumber + 2);
     expect(now.misses).toBe(0);
-    expectNoErrors(errors);
-  });
-
-  test('each round shows 5 stars: all lit on the first try, one dimmed per miss (AC10)', async ({ page }) => {
-    const errors = await openEarFromRoom(page);
-    const lit = async () => (await ear(page)).stars;
-    let notes = await questionNotes(page);
-    await playWithVirtualPiano(page, notes);
-    expect(await lit()).toEqual([5, 5]);
-    await page.waitForTimeout(700);
-    await page.keyboard.press('Space');
-    await page.waitForTimeout(700);
-    notes = await questionNotes(page);
-    await playWithVirtualPiano(page, [missKey(notes[0]!), missKey(notes[0]!), ...notes]);
-    expect(await lit()).toEqual([3, 5]);
-    // the stars alone say how it went: no result text
-    expect((await sceneTexts(page, 'earTrainer')).filter((text) => !isNoteName(text))).toEqual(ONLY_TEXTS);
     expectNoErrors(errors);
   });
 

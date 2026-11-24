@@ -6,6 +6,7 @@ build/
 coverage/
 test-results/
 playwright-report/
+blob-report/
 
 # Local-only code and downloaded repositories (see docs/decisions/workflow.md#d026). Never committed, never imported.
 private/

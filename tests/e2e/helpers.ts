@@ -268,8 +268,13 @@ export async function openSettings(page: Page): Promise<void> {
 /** Chrome says this on machines whose audio device is busy or missing; it is not a fault of the game (see CLAUDE.md). */
 const KNOWN_NOISE = /AudioContext encountered an error from the audio device/;
 
+/** The errors of a page that are faults of the game: `list` without Chrome's known noise. */
+export function realPageErrors(list: readonly string[]): string[] {
+  return list.filter((message) => !KNOWN_NOISE.test(message));
+}
+
 export function expectNoErrors(errors: PageErrors): void {
-  const real = errors.list.filter((message) => !KNOWN_NOISE.test(message));
+  const real = realPageErrors(errors.list);
   expect(real, real.join('\n')).toEqual([]);
 }
 
@@ -426,15 +431,13 @@ export async function openAdminPage(page: Page, password = 'pianor'): Promise<vo
   await waitForScene(page, 'admin');
 }
 
-/** The name box's letters are buttons 0 to 29 in NAME_LETTERS order; Done is 31. */
-const NAME_LETTER_ORDER = 'ABCDEFGHIJKLMNOPRSŠZŽTUVÕÄÖÜXY';
-/** The name box's Done: a band action since ft_1_20 (after the 30 letters, the door and Delete). */
+/** The name box's Done: a band action since ft_1_20. */
 export const nameDone = (page: Page): Promise<number> => sceneButton(page, 'name', 'DONE');
 
-/** Types `name` (capitals from the name box's letters) on the name box and presses Done. */
+/** Types `name` on the computer keyboard into the name box (it has no letter buttons, ft_1_07.AC6) and presses Done. */
 export async function typeName(page: Page, name: string): Promise<void> {
   await waitForScene(page, 'name');
-  for (const letter of name) await clickButton(page, 'name', NAME_LETTER_ORDER.indexOf(letter));
+  await page.keyboard.type(name);
   await clickButton(page, 'name', await nameDone(page));
 }
 
