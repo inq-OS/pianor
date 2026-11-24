@@ -144,7 +144,9 @@ export function lintOldIds(repo: Repo): Issue[] {
   return issues;
 }
 
-/** `npm run X` in the docs must be a real script, and CLAUDE.md must list every script. */
+const COMMANDS_DOC = 'docs/commands.md';
+
+/** `npm run X` in the docs must be a real script, and the command reference (`docs/commands.md`) must list every script. */
 export function lintScripts(repo: Repo): Issue[] {
   const issues: Issue[] = [];
   for (const [file, text] of repo.docs) {
@@ -155,11 +157,11 @@ export function lintScripts(repo: Repo): Issue[] {
       }
     }
   }
-  const claude = repo.docs.get('CLAUDE.md') ?? '';
+  const reference = repo.docs.get(COMMANDS_DOC) ?? '';
   for (const script of repo.scripts) {
-    const lifecycle = ['prepare', 'postinstall'].includes(script) && claude.includes(`\`${script}\``);
-    if (!lifecycle && !claude.includes(`npm run ${script}`) && !(script === 'test' && claude.includes('npm test'))) {
-      issues.push(error('CLAUDE.md', `the Commands list does not mention the script "${script}"`));
+    const lifecycle = ['prepare', 'postinstall'].includes(script) && reference.includes(`\`${script}\``);
+    if (!lifecycle && !reference.includes(`npm run ${script}`) && !(script === 'test' && reference.includes('npm test'))) {
+      issues.push(error(COMMANDS_DOC, `the command reference does not mention the script "${script}"`));
     }
   }
   return issues;
