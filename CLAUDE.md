@@ -79,7 +79,7 @@ Keep this list accurate (`docs:check` fails if a script is missing here).
 - **No silent tool action (d286):** every tool previews its result before it commits (a pick draws its mark faint where the click would put it; an item shows its change on the note under the pointer), as a picture, never as text.
 - Layout is a pure function; Phaser views only draw it. Views read play state and never decide correctness.
 - All UI text goes through string keys; save data is profile-scoped. Do not hardcode text in art or scenes.
-- Do not build features that have no file in `docs/features/`; keep only the seams listed in `docs/futureproofing.md`. Retired ideas are deleted, not kept on hold; a rejected idea stays as one line so it is not proposed again ([d151](docs/decisions/workflow.md#d151)).
+- Do not build features that have no file in `docs/features/`; keep only the seams listed in `docs/futureproofing.md`. Docs say only what is relevant: the current state, what is planned or partly built, and future or shelved ideas still wanted. A feature or idea that is none of these is deleted from code and docs with no trace: no stub, no rejected or retired line, no note that it was removed or how things used to be ([d151](docs/decisions/workflow.md#d151)).
 
 ## Music conventions
 

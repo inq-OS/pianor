@@ -1,5 +1,5 @@
 import keriJson from '../../content/world/keri.json';
-import { isTester, openScenes } from '../core/campaign/sceneBeings';
+import { isTester, openScenes } from '../core/world/openScenes';
 import { ART_DETAIL } from '../core/layout/frame';
 import { keriMapPlan, keriMapView } from '../core/layout/keriMap';
 import { rectCentre, type Rect } from '../core/layout/rect';

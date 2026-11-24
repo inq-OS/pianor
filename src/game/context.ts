@@ -26,8 +26,6 @@ export interface StaffDemoView {
 
 /** The page settings scenes act on, read once from the URL by `src/config.ts`: scenes never read the URL themselves. */
 export interface GameFlags {
-  /** Show the beings in the scenes on Keri (`?beings=1`; off while they are overhauled). */
-  beings: boolean;
   /** Dev only: the demo cast stands in the adventure scenes (`?actors=1`, ft_1_24). */
   actors: boolean;
   /** Offer the piece editor (a Make mode in the menu). */

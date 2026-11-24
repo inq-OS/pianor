@@ -61,7 +61,7 @@ Release R2. The note-name trainer (ft_0_17) asks "which key is this note on the 
 
 ## Not in scope (later, see the brainstorm)
 
-Chords (X + Y + ... sounded together), LOOM-style tunes to repeat, intervals, singing into a microphone, wrong-note detective in a known piece, battle tie-ins.
+Chords (X + Y + ... sounded together), LOOM-style tunes to repeat, intervals, singing into a microphone, wrong-note detective in a known piece.
 
 **Human:** whether a young student hears the laptop speakers' notes well; whether the level table is too slow or fast (playtest).
 
