@@ -41,7 +41,7 @@ Check: untestable: licence choice, reviewed with docs/dependencies.md by the mai
 
 **End-to-end tests use Playwright on port 5180, driving the game like a student would.** Features: ft_0_09.
 
-Config in `playwright.config.ts`: own dev server, viewport 1366x768, 2 workers, traces on failure. Tests use computer keys, the virtual EZ-220 bytes, real clicks on Phaser buttons and on-screen keys via `window.__game` and `window.__virtualDevice`, read canvas text from scene text objects, and assert no page or console errors. Screenshot baselines are per OS (`*-chromium-win32.png`); a platform without a baseline skips. The staff rooms are computed from the notes in the piece so switching hints never moves the staff.
+Config in `playwright.config.ts`: own dev server, viewport 1366x768, 2 workers, traces on failure. Tests use computer keys, the virtual EZ-220 bytes, real clicks on Phaser buttons and on-screen keys via `window.__game` and `window.__virtualDevice`, read canvas text from scene text objects, and assert no page or console errors. Screenshot baselines are one file per screen for every machine (d289); a screen without a baseline skips. The staff rooms are computed from the notes in the piece so switching hints never moves the staff.
 
 Check: `playwright.config.ts` "Number(process.env.PW_PORT) || 5180"
 
@@ -65,7 +65,7 @@ Check: `eslint.config.js` "Nothing outside private/ may import private/"
 
 **Feature ids are `core_XX` for core behaviour and `ft_Y_XX` for features, Y being the iteration.** Features: all.
 
-Iteration 0 is the MVP; an undecided iteration keeps the letter Y (`ft_Y_03`); parts keep a letter (`ft_1_02a`); files are `<id>-name.md`. Effort ratings (trivial, simple, medium, large, high friction) are a column in `FEATURES.md` for unbuilt features. Playing with key lighting disabled is a 1.10x XP modifier (core_07) and the confuser (ft_Y_08) lights random keys, both resting on key lighting verified in ft_0_01.
+Iteration 0 is the MVP; an undecided iteration keeps the letter Y (`ft_Y_04`); parts keep a letter (`ft_1_02a`); files are `<id>-name.md`. Effort ratings (trivial, simple, medium, large, high friction) are a column in `FEATURES.md` for unbuilt features. Playing with key lighting disabled is a 1.10x XP modifier (core_07), resting on key lighting verified in ft_0_01.
 
 Check: `tools/docs/lint.test.ts` "flags ids with no file in docs and in code"
 
@@ -97,17 +97,13 @@ Check: `tools/docs/completeness.test.ts` "makes a done feature 100, and 100 only
 
 **End-to-end tests are split into areas; pull requests run the areas they touch and every run writes a log.** Features: none.
 
-`tools/e2e/areas.ts` puts every spec in one area (practice, staff, menu, battle, editor, preview, dev, visual), each a Playwright project with the source paths it guards; shared paths and unnamed paths run every area, docs and unit tests none. `npm run test:e2e:affected` runs the touched areas plus smoke; `main` runs every area. A reporter writes `test-logs/runs/<start>_<areas>/` and `test-logs/history.jsonl`; baselines keep `-chromium` names via `snapshotPathTemplate`.
+`tools/e2e/areas.ts` puts every spec in one area (practice, staff, menu, editor, preview, dev, visual), each a Playwright project with the source paths it guards; shared paths and unnamed paths run every area, docs and unit tests none. `npm run test:e2e:affected` runs the touched areas plus smoke; `main` runs every area. A reporter writes `test-logs/runs/<start>_<areas>/` and `test-logs/history.jsonl`; baselines keep `-chromium` names via `snapshotPathTemplate`.
 
 Check: `tools/e2e/areas.test.ts` "puts every spec file in exactly one area"; `tools/e2e/affected.test.ts` "runs the area whose source changed"; `tools/e2e/runLog.test.ts` "writes a summary with a table per area"
 
 ## d062
 
-**Screenshot baselines are Windows only, checked by a Windows CI job and made by a Windows workflow.** Features: none.
-
-Only `-win32.png` baselines exist (hint letters use a `monospace` font that differs per OS); Linux CI and cloud sessions skip screenshot tests. The `visual (Windows)` job runs the visual area on `windows-latest` (software WebGL, one test at a time, 4-minute limit) on pull requests touching the visual area, on `main` pushes and weekly; the workflow "Update screenshot baselines (Windows)" (`update-snapshots.yml`) makes new ones, which the maintainer looks at before merge. Changes d042.
-
-Check: `tools/ci/workflows.test.ts` "are checked by a Windows job and made by a Windows workflow run by hand"
+**Screenshot baselines were Windows only, checked by a Windows CI job and made by a Windows workflow.** Features: none. Superseded by d289.
 
 ## d063
 
@@ -121,7 +117,7 @@ Check: `eslint.config.js` "complexity: ['error', 30], 'max-depth': ['error', 5]"
 
 **CI runs on GitHub's hosted runners: `check` and `art rules` on every pull request push, the browser jobs on a label or weekly.** Features: none.
 
-A pull request push runs `check` (with the changes and docs-touched steps folded in) and `art rules` on `ubuntu-latest`; Linux e2e runs only with the `ci:e2e` label and the Windows screenshot job (`windows-latest`) only with `ci:visual`. A push to `main` runs only the privacy workflow (d165); `check` runs on `main` daily, everything every week and by hand. Labels and description edits are handled in `.github/workflows/pr-events.yml`; the browser jobs are the reusable `.github/workflows/browser-tests.yml`. Changes the CI part of d062.
+A pull request push runs `check` (with the changes and docs-touched steps folded in) and `art rules` on `ubuntu-latest`; e2e runs only with the `ci:e2e` label and the screenshot job only with `ci:visual` (d289). A push to `main` runs only the privacy workflow (d165); `check` runs on `main` daily, everything every week and by hand. Labels and description edits are handled in `.github/workflows/pr-events.yml`; the browser jobs are the reusable `.github/workflows/browser-tests.yml`. Changes d042.
 
 Check: `tools/ci/workflows.test.ts` "runs check and art rules on Ubuntu with Node 22 on every pull request push, never on a push to main"; `tools/ci/workflows.test.ts` "runs the browser tests only on a label, by hand or on the schedule"
 
@@ -143,11 +139,11 @@ Check: `src/config.test.ts` "is off unless ?autoplay=1, also in a dev build"
 
 ## d151
 
-**An idea that is given up is deleted, not kept on hold; a rejected idea stays as one line.** Features: none.
+**Docs say only what is relevant: the current state, what is planned or partly built, and future or shelved ideas still wanted; anything else is deleted with no trace.** Features: none.
 
-When an idea is given up, its code, content, feature files, design pages and the decisions only about it are deleted in the same round by their owning projects. Frozen migration steps for old save fields stay (d064); a rejected idea (e.g. falling notes, ft_Y_05) stays as one line in `docs/features/FEATURES.md`'s "Rejected" list; decisions about live things are never rewritten. A ledger rule to keep something wins (the band's toolbar code stays behind its flag, d115).
+When a feature or idea is no longer part of the game or its plan, its code, content, feature file, design pages, the decisions only about it and every mention of it are deleted in the same round: no stub file, no rejected or retired line, no note that it was removed. Decisions about live things are rewritten to say only what is. Frozen migration steps for old save fields stay (d064), and the banned words of `docs/glossary.md` are the one list that names old words (d290). A ledger rule to keep something wins (the band's toolbar code stays behind its flag, d115).
 
-Check: untestable: process rule for agents (delete retired ideas)
+Check: untestable: process rule for agents (what a doc may say)
 
 ## d152
 
@@ -417,7 +413,7 @@ Check: untestable: an order of authority applied by agents and reviewers
 
 **Before a push the branch is up to date with `main`, `npm run check:ci` passes, `npm run test:e2e:affected` ran if the game changed, and the pull request body says what was not verified.** Features: none.
 
-The body follows `.github/pull_request_template.md`: `Closes #N` or `Part of #N`, every `AX-3 provisional:` choice, `[save]` in the title for a save bump, real EZ-220 behaviour as needs human, changed Windows baselines named, and a changed screen checked against the Windows baselines first (`before-pr` skill). A pull request changing `src/core`, `tools` or `content/curriculum` touches a doc or says `docs: n/a` and why.
+The body follows `.github/pull_request_template.md`: `Closes #N` or `Part of #N`, every `AX-3 provisional:` choice, `[save]` in the title for a save bump, real EZ-220 behaviour as needs human, changed screenshot baselines named, and a changed screen checked against the baselines first (`before-pr` skill). A pull request changing `src/core`, `tools` or `content/curriculum` touches a doc or says `docs: n/a` and why.
 
 Check: `tools/docs/misc.test.ts` "asks for a doc, or for"
 
@@ -524,3 +520,27 @@ Check: untestable: a merge rule for threads and a repository setting
 Changes d153 and d199. The top of `docs/architect/roadmap.md` lists each area of the game with its level (the mean `completeness` of its features, lowest first) and what holds it back; the maintainer may rank an area lower by how it feels in play. When the maintainer turns to another area the work follows it, and queued items are not pushed as the current focus. The weekly architect run is retired.
 
 Check: untestable: how work is chosen
+
+## d288
+
+**No game text uses a font of the computer: the staff's text is JetBrains Mono Bold shipped with the game and every other text the pixel font, so one screenshot baseline per screen serves every machine.** Features: none. Changed by d289.
+
+Changes d062. The staff's letters (note names, fingers, dynamics in the italic, section letters, the played key, the piece maker's ghost letter) use `STAFF_FONT` (`src/game/ui/staff/staffFont.ts`; SIL OFL, `public/assets/jetbrains-mono/`, upright and italic, Latin and Latin Extended for š and ž), loaded before the game starts. Baselines are named without the platform (`<name>-chromium.png`) and compared with the 2 percent tolerance; every run starts Chrome with `--font-render-hinting=none` and `--disable-lcd-text`.
+
+Check: `src/game/ui/staff/staffFont.test.ts` "every text of the game in a screen font uses the shipped staff font, never one of the computer"; `tools/ci/workflows.test.ts` "names a baseline without the platform, and the baseline workflow hands back those names"; `tests/e2e/visual.spec.ts` "the shipped staff font is loaded before the game draws, upright and italic (d288)"
+
+## d289
+
+**Screenshot tests and baselines make no difference between Windows and Linux: every job runs on Linux, a baseline is made by the baseline workflow or any local run, and the screenshot area always draws in software.** Features: none.
+
+Supersedes d062. The `visual` job (label `ci:visual`, weekly and by hand) and the workflow "Update screenshot baselines" (`update-snapshots.yml`, by hand, commits to the branch it ran on, never to main) run on `ubuntu-latest`; a cloud session may make baselines with `--update-snapshots` too. The Playwright project `visual` starts Chrome without GPU flags, so a local GPU run elsewhere makes the same pixels; the maintainer looks at new baselines in the pull request before it merges.
+
+Check: `tools/ci/workflows.test.ts` "runs every screenshot job on Linux, the baselines committed to the branch, never to main"; `tools/ci/workflows.test.ts` "draws the screenshot area without a GPU on every machine"
+
+## d293
+
+**Every change to how the game is controlled or used (input, keys, buttons, menus, where an action sits) gets an ergonomics review and analysis before it merges; art and look do not.** Features: none.
+
+A fresh reviewer agent, bounded in words, weighs how often each action is used against how far the hand travels, consistency with the keys and places already there, and discoverability for the student and the author; its findings are folded in or written as tags, and the pull request says what changed because of it.
+
+Check: untestable: a review step of the work

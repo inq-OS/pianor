@@ -42,4 +42,14 @@ describe('the piece maker entry preferences', () => {
   it('reads back the default after a roundtrip', () => {
     expect(parseEntryPrefs(serializeEntryPrefs(DEFAULT_ENTRY_PREFS))).toEqual(DEFAULT_ENTRY_PREFS);
   });
+
+  it('ft_1_02e.AC1 keeps the vim keys switch beside the short tap, off when absent or mistyped, with no version bump', () => {
+    const on = { ...DEFAULT_ENTRY_PREFS, vimKeys: true };
+    expect(parseEntryPrefs(serializeEntryPrefs(on))).toEqual(on);
+    // a record from before the switch reads as off and keeps its short tap
+    expect(parseEntryPrefs(JSON.stringify({ schemaVersion: 1, shortTapEighth: true }))).toEqual({ schemaVersion: 1, shortTapEighth: true });
+    expect(parseEntryPrefs(JSON.stringify({ schemaVersion: 1, shortTapEighth: true, vimKeys: 'yes' }))).toEqual({ schemaVersion: 1, shortTapEighth: true });
+    // off is not written, so the record is as it was before the switch
+    expect(serializeEntryPrefs(DEFAULT_ENTRY_PREFS)).toBe(JSON.stringify({ schemaVersion: 1, shortTapEighth: false }));
+  });
 });

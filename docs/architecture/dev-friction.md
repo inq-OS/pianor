@@ -37,8 +37,8 @@ Claude Code cloud container (Linux, no GPU); the CI figures are estimates.
 - CI (`.github/workflows/ci.yml`) runs two jobs on `ubuntu-latest` on every pull request push: `check` (typecheck,
   lint, analyze, unit tests with the coverage gate, the piece build and lint, the production build, the docs check and
   `docs:touched`; a docs-only change runs only the docs steps) and `art rules`. The browser jobs
-  (`browser-tests.yml`) run only on a label: `ci:e2e` for the Linux end-to-end tests of the affected areas, `ci:visual`
-  for the Windows screenshot tests; the weekly and manual runs start every area. `pr-events.yml` starts them when a label
+  (`browser-tests.yml`) run only on a label: `ci:e2e` for the end-to-end tests of the affected areas, `ci:visual`
+  for the screenshot tests; the weekly and manual runs start every area. `pr-events.yml` starts them when a label
   is added and reruns a failed check when the description is edited.
 - The `check` job ran the typecheck twice (`npm run typecheck`, then `npm run build`, which starts with `tsc`). The build
   step is now `vite build` alone.

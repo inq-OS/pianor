@@ -3,7 +3,7 @@
 // ft_1_10.AC10 (5 round stars, one dimmed per miss), ft_1_10.AC11 (any key continues; that key is not an answer).
 // The room's loudspeaker opens it (the room entry); the other tests open the scene through the scene manager to keep to one step each.
 import { expect, test, type Page } from '@playwright/test';
-import { clickButton, expectNoErrors, openFromStand, openGame, profileButton, playWithVirtualPiano, sceneTexts, waitForScene } from './helpers';
+import { clickButton, expectNoErrors, openFromStand, openGame, profileButton, playWithVirtualPiano, sceneButton, sceneTexts, waitForScene } from './helpers';
 
 type EarView = { notes: number[]; questionNumber: number; question: { misses: number; done: boolean }; shownStars: { lit: number; total: number } };
 const ear = (page: Page) => page.evaluate(() => {
@@ -145,11 +145,8 @@ test.describe('pitch trainer by ear (ft_1_10)', () => {
     expect((await ear(page)).questionNumber).toBe(first.questionNumber + 1);
     const seconds = () => page.evaluate(() => (window.__game.scene.getScene('earTrainer') as unknown as { seconds: number }).seconds);
     expect(await seconds()).toBe(1);
-    // the length button is the last of the screen's own toolbar items; a real click on it
-    const lengthButton = () => page.evaluate(() => {
-      const scene = window.__game.scene.getScene('earTrainer') as unknown as { buttons: unknown[]; toolbarButtons: { items: unknown[] } };
-      return scene.buttons.indexOf(scene.toolbarButtons.items[scene.toolbarButtons.items.length - 1]);
-    });
+    // the length button, a cell of the strip; a real click on it
+    const lengthButton = () => sceneButton(page, 'earTrainer', 'Note length');
     for (const expected of [2, 3, 1]) {
       await clickButton(page, 'earTrainer', await lengthButton());
       await expect.poll(seconds).toBe(expected);

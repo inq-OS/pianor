@@ -1,7 +1,7 @@
 import { bubbleLayout, cellSpan, pinFlow, PIN_ROWS } from '../../src/core/layout/bubble.ts';
 import { blit, createBitmap, type Bitmap } from '../../src/game/ui/pixel/bitmap.ts';
-import { BACKPACK, backpackPage, choicePlate, choicesBack, closePlate, NEW_ITEM_DOT, optionFocus, optionPlate, pinCell, pressRing, ringBack, stripBitmap, wornChip, type PlateLook } from '../../src/game/ui/pixel/bubbleArt.ts';
-import { trayBitmap, tinted } from '../../src/game/ui/pixel/frames.ts';
+import { BACKPACK, backpackPage, choicePlate, choicesBack, closePlate, NEW_ITEM_DOT, optionFocus, optionPlate, pinCell, pressRing, stripBitmap, wornChip, type PlateLook } from '../../src/game/ui/pixel/bubbleArt.ts';
+import { tinted } from '../../src/game/ui/pixel/frames.ts';
 import { measure, renderText } from '../../src/game/ui/pixel/font.ts';
 import { ICONS } from '../../src/game/ui/pixel/iconArt.ts';
 import { acorn, oakLeaf } from '../../src/game/ui/pixel/prizeArt.ts';
@@ -90,7 +90,6 @@ export function practiceMock(): Mock {
   const options = [TOOL_ICONS.sectionShort, TOOL_ICONS.tempo, TOOL_ICONS.click, TOOL_ICONS.circle, TOOL_ICONS.statsPane, TOOL_ICONS.analyse, TOOL_ICONS.noteNamesOn, TOOL_ICONS.fingers];
   const choices = [TOOL_ICONS.stop, TOOL_ICONS.click, TOOL_ICONS.tick];
   const layout = bubbleLayout({ at: { x: 130, y: 82 }, options: options.length, screen: { w: W, h: main }, open: { option: 2, choices: choices.length } });
-  blit(b, ringBack(), layout.area.x, layout.area.y);
   layout.options.forEach((r, i) => {
     const look: PlateLook = i === 2 ? 'down' : i === 6 || i === 7 ? 'on' : i === 1 ? 'off' : i === 4 ? 'hover' : 'plain';
     blit(b, optionPlate(look), r.x, r.y);
@@ -127,8 +126,8 @@ export function sceneMock(): Mock {
   const kept = [oakLeaf(), acorn()];
   const fine: FineOverlay[] = [];
   kept.forEach((pic, i) => {
+    // the items lie on the leather as they are, no box round them
     const slot = { x: px + 8 + i * 32, y: py + 8, w: 30, h: 23 };
-    blit(b, trayBitmap(slot.w, slot.h, 'slot'), slot.x, slot.y);
     fine.push({ pic, x: slot.x * 2 + ((slot.w * 2 - pic.width) >> 1), y: slot.y * 2 + (((slot.h - 1) * 2 - pic.height) >> 1) });
   });
   return { cells: b, fine };
@@ -143,14 +142,13 @@ export function kitMock(): Mock {
   looks.forEach((look, i) => {
     const x = 4 + i * 52;
     blit(b, optionPlate(look), x, 4);
-    centred(b, pale(TOOL_ICONS.click, look === 'off' ? C.lock : C.cream), x, 4, 18, 18);
-    blit(b, choicePlate(look), x + 22, 4);
+    centred(b, pale(TOOL_ICONS.click, look === 'off' ? C.lock : C.cream), x, 4, 20, 20);
+    blit(b, choicePlate(look), x + 24, 5);
     blit(b, pinCell(1, look), x, 26);
     centred(b, pale(TOOL_ICONS.repeat, look === 'off' ? C.lock : C.cream), x, 26, 30, 15);
     blit(b, text(look.toUpperCase(), C.dim), x, 44);
   });
-  blit(b, ringBack(), 4, 58);
-  blit(b, closePlate(), 4 + 29, 58 + 29);
+  blit(b, closePlate(), 4, 60);
   blit(b, closePlate('hover'), 84, 60);
   blit(b, optionFocus(), 84, 82);
   [0, 0.25, 0.5, 0.75, 1].forEach((f, i) => blit(b, pressRing(f), 110 + i * 27, 60));

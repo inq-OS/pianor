@@ -24,7 +24,7 @@ describe('a quote of the maintainer (d165)', () => {
   ])('finds %s', (line) => expect(MAINTAINER_QUOTE.test(line)).toBe(true));
 
   it.each([
-    'the maintainer runs the "Update screenshot baselines (Windows)" workflow',
+    'the maintainer runs the "Update screenshot baselines" workflow',
     'a button labelled "KLAVER" that the maintainer picked',
   ])('leaves %s', (line) => expect(MAINTAINER_QUOTE.test(line)).toBe(false));
 
@@ -111,13 +111,20 @@ describe('files of every kind (d165)', () => {
   });
 
   it('fails a binary file outside the allowed kinds, and leaves allowed ones alone', () => {
-    const issues = lintPrivacy(makeRepo({ 'docs/photo.jpg': 'JFIF\u0000data', 'public/audio/piano/C4.mp3': mp3([['TSSE', 'LAME']]), 'tests/e2e/visual.spec.ts-snapshots/a-chromium-win32.png': png([]) }), []);
+    const issues = lintPrivacy(makeRepo({ 'docs/photo.jpg': 'JFIF\u0000data', 'public/audio/piano/C4.mp3': mp3([['TSSE', 'LAME']]), 'tests/e2e/visual.spec.ts-snapshots/a-chromium.png': png([]) }), []);
     expect(issues.map((i) => `${i.file} ${i.message.split(':')[0]}`)).toEqual(['docs/photo.jpg a binary file the check cannot read']);
   });
 
   it('skips what git ignores', () => {
     const repo = { ...makeRepo({ 'logs/run-2000-01-12/a.txt': 'sent 2000-01-12' }), ignored: (p: string) => p.startsWith('logs') };
     expect(lintPrivacy(repo, [])).toEqual([]);
+  });
+});
+
+describe('a font pack (d165, d288)', () => {
+  it('allows WOFF2 fonts in a pack folder only, and the version date of the pack\'s own licence', () => {
+    const issues = lintPrivacy(makeRepo({ 'public/assets/p/LICENSE': 'SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007', 'docs/LICENSE': 'Version 1.1 - 26 February 2007', 'src/a.woff2': 'wOF2\u0000' }), []);
+    expect(issues.map((i) => `${i.file} ${i.message.split(':')[0]}`)).toEqual(['docs/LICENSE a date', 'src/a.woff2 a binary file the check cannot read']);
   });
 });
 
@@ -194,6 +201,16 @@ describe('names, hidden letters and history (d165)', () => {
     expect(found('a.mp3', 'ID3\u0003\u0000\u0040\u0000\u0000\u0000\u0010')).toBe('an ID3 extended header');
     expect(found('a.mp3', `\u00ff\u00fbaudio3DI\u0004\u0000\u0000\u0000\u0000\u0000\u0000`)).toBe('an ID3 tag at the end');
     expect(found('a.ogg', 'OggS')).toBe('a ogg file, which the check cannot read');
+    const woff2 = (meta: number, priv: number, extra = ''): string => {
+      const u32 = (n: number): string => String.fromCharCode((n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255);
+      const head = (length: number): string => `wOF2${u32(0)}${u32(length)}${'\u0000'.repeat(20)}${u32(meta)}${u32(0)}${u32(0)}${u32(priv)}`;
+      return head(48 + extra.length) + extra;
+    };
+    expect(found('a.woff2', woff2(0, 0))).toBeNull();
+    expect(found('a.woff2', woff2(48, 0))).toBe('WOFF2 extended metadata');
+    expect(found('a.woff2', woff2(0, 48))).toBe('a WOFF2 private data block');
+    expect(found('a.woff2', `${woff2(0, 0)}secret`)).toBe('a WOFF2 whose length is not the file\'s');
+    expect(found('a.woff2', 'wOFF')).toBe('not a WOFF2 file');
     expect(lines({ 'public/audio/p/C4.ogg': 'OggS\u0000vorbis' })).toEqual(['public/audio/p/C4.ogg:undefined']);
   });
 });

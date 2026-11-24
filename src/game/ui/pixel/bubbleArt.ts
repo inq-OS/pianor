@@ -4,8 +4,7 @@ import { C } from './palette';
 /**
  * The look of the bubble, the pinned strip and the backpack (ft_1_20, d282), in the band's manner (d118): one warm board,
  * a plate only cut into it, a dark line all round with a lighter line beside it; pictures pale, gold for what is on.
- * Everything here is in layout cells and sized to `src/core/layout/bubble.ts`: an option and a choice 18 x 18, the ring
- * `2 * (29 + 9)` = 76 across, a strip cell 30 x 15, the strip 17 rows. The builder places them; this file only paints.
+ * Everything here is in layout cells and sized to `src/core/layout/bubble.ts`: an option 20 x 20 on a ring of radius 28, a choice 18 x 18, a strip cell 30 x 15, the strip 17 rows. The builder places them; this file only paints.
  *
  * Original, drawn for this project. The backpack follows the shape of the Kenney 1-Bit Pack's backpack (CC0,
  * kenney.nl/assets/1-bit-pack), redrawn in colour with the kit's ink outline (d084, `docs/assets.md`).
@@ -33,10 +32,10 @@ const PLATES: Readonly<Record<PlateLook, PlateColours>> = {
   main: { fill: C.panelLit, light: C.honey, shade: C.honeyDark, outline: C.groove },
 };
 
-/** The size of an option and of a choice (`bubble.ts`). */
-export const OPTION_SIZE = 18;
-/** The square the ring is drawn in: `2 * HALF` of `bubble.ts`. */
-export const RING_SIZE = 76;
+/** The size of an option (`bubble.ts`): a round plate, opaque, with room round its picture. */
+export const OPTION_SIZE = 20;
+/** The size of a choice in the row beside the ring (`bubble.ts`). */
+export const CHOICE_SIZE = 18;
 /** A cell of the strip and the strip's height (`bubble.ts`: `PIN_CELL`, `PIN_ROWS`). */
 export const PIN_CELL_SIZE = { w: 30, h: 15 } as const;
 export const STRIP_ROWS = 17;
@@ -73,12 +72,12 @@ const disc = (size: number): Inside => {
 };
 const roundedRect = (width: number, height: number): Inside => (x, y) => !((x === 0 || x === width - 1) && (y === 0 || y === height - 1));
 
-/** An option of the bubble: a round plate 18 across. Its picture is drawn on it by the scene, centred. */
+/** An option of the bubble: a round plate 20 across, opaque, with nothing behind the ring (the staff shows between the plates). Its picture is drawn on it by the scene, centred. */
 export function optionPlate(look: PlateLook = 'plain'): Bitmap {
   return plateOf(OPTION_SIZE, OPTION_SIZE, disc(OPTION_SIZE), PLATES[look]);
 }
 
-/** The keyboard's focus on an option: a gold ring two cells wide just outside the plate, 22 across. */
+/** The keyboard's focus on an option: a gold ring two cells wide just outside the plate, 24 across. */
 export function optionFocus(): Bitmap {
   const size = OPTION_SIZE + 4;
   const outer = disc(size);
@@ -98,29 +97,14 @@ export function closePlate(look: 'plain' | 'hover' = 'plain'): Bitmap {
   return b;
 }
 
-/** The ring's own radius and how wide its band of wood is, in cells. */
-const RING_RADIUS = 29;
-const RING_HALF_WIDTH = 3;
-
-/**
- * The wooden ring the options sit on, `RING_SIZE` square: a band of dark wood round the centre with a groove at each
- * edge, so the eight plates read as one thing over the staff or a picture, and an empty slot still shows where it is.
- */
-export function ringBack(): Bitmap {
-  const c = RING_SIZE / 2;
-  const d = (x: number, y: number) => Math.hypot(x + 0.5 - c, y + 0.5 - c);
-  const inside: Inside = (x, y) => Math.abs(d(x, y) - RING_RADIUS) <= RING_HALF_WIDTH;
-  return plateOf(RING_SIZE, RING_SIZE, inside, { fill: C.panel, light: C.panelLight, shade: C.panelDark, outline: C.groove });
-}
-
 /** A choice in the row beside the ring: a square plate 18 x 18 with its corners cut. */
 export function choicePlate(look: PlateLook = 'plain'): Bitmap {
-  return plateOf(OPTION_SIZE, OPTION_SIZE, roundedRect(OPTION_SIZE, OPTION_SIZE), PLATES[look], look === 'down');
+  return plateOf(CHOICE_SIZE, CHOICE_SIZE, roundedRect(CHOICE_SIZE, CHOICE_SIZE), PLATES[look], look === 'down');
 }
 
 /** The board under the row of `n` choices, 2 cells round them: drawn at the first choice's x - 2, y - 2. */
 export function choicesBack(n: number): Bitmap {
-  const w = n * OPTION_SIZE + (n - 1) * 2 + 4, h = OPTION_SIZE + 4;
+  const w = n * CHOICE_SIZE + (n - 1) * 2 + 4, h = CHOICE_SIZE + 4;
   return plateOf(w, h, roundedRect(w, h), { fill: C.panelDark, light: C.panel, shade: C.groove, outline: C.groove });
 }
 
@@ -206,7 +190,7 @@ export const NEW_ITEM_DOT: Bitmap = fromAscii(['.kk.', 'kyrk', 'krrk', '.kk.'], 
 
 /**
  * The page the backpack opens over the picture, `width` by `height` cells: a leather flap with a stitched seam inside
- * its edge. The item slots are the band's (`trayBitmap(.., 'slot')`), drawn on it by the scene; no empty slot is shown.
+ * its edge. The items lie on it as they are, with no box or slot round them; no empty place is shown.
  */
 export function backpackPage(width: number, height: number): Bitmap {
   const b = plateOf(width, height, roundedRect(width, height), { fill: C.brown, light: C.brownLight, shade: C.brownDark, outline: C.ink });

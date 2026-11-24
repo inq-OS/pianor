@@ -7,7 +7,7 @@ import { C } from './palette';
  * hints; for the editor's toolbar (d088) a floppy disk for Save and an arrow into or out of a tray for Import and
  * Export; a loop for the ear trainer's repeat and the note trainer's new round, stairs for the note trainer's step, and undo, redo, a bin, play, stop, backspace and a tick for the piece maker and the name box. Original, drawn for this project (the Kenney pack page refused the download, and these are a few pixels each). Each fits inside a 14 pixel bar button with its frame (10 rows at most).
  */
-export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'analyse' | 'speed' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort';
+export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'backpack' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'speed' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort';
 
 const LEGEND = { k: C.ink, w: C.white, g: C.gold, G: C.goldDark, s: C.skin } as const;
 
@@ -81,6 +81,18 @@ function fingers(): Bitmap {
 }
 
 export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
+  /** More (ft_1_20, d282): the bubble's own shape, a ring of eight dots round a centre, so the picture matches what opens. */
+  more: art(['....ww....', '.ww....ww.', '.ww....ww.', '..........', 'ww..ww..ww', 'ww..ww..ww', '..........', '.ww....ww.', '.ww....ww.', '....ww....']),
+  /** The bubble's centre: close it without doing anything. */
+  /** The staff played notes go on: five lines. */
+  staff: art(['wwwwwwwwww', '..........', 'wwwwwwwwww', '..........', 'wwwwwwwwww', '..........', 'wwwwwwwwww', '..........', 'wwwwwwwwww']),
+  /** The short tap: an eighth note, what a short tap can write. */
+  shortTap: art(['...w...', '...ww..', '...w.w.', '...w..w', '...w...', '.www...', 'wwww...', '.ww....']),
+  /** The time panel: a 4 over a 4. */
+  timePanel: art(['w..w', 'w..w', 'wwww', '...w', '....', 'w..w', 'w..w', 'wwww', '...w']),
+  close: art(['w.....w', '.w...w.', '..w.w..', '...w...', '..w.w..', '.w...w.', 'w.....w']),
+  /** The backpack the student's kept items are in (ft_1_20, d282): a bag with a flap and a buckle. */
+  backpack: fromAscii(['...kkkk...', '..k....k..', '.kkkkkkkk.', 'kggggggggk', 'kgGGGGGGgk', 'kgGGkkGGgk', 'kggggggggk', 'kggggggggk', 'kGGGGGGGGk', '.kkkkkkkk.'], LEGEND),
   // a fermata: the sign that says hold, wait
   wait: art(['..wwwwwww..', '.w.......w.', 'w.........w', 'w...www...w', '....www....']),
   // a note running forward
@@ -131,8 +143,6 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   grace: art(['.........w', '...w.....w', '..ww.....w', '..w......w', '.ww......w', 'w.w......w', 'www......w', '.w....wwww', '.....wwwww', '......www.']),
   /** The circle of fifths (ft_1_28): a ship's helm, as the wheel on the overlay (the painter): a thick brass-bound rim, four spokes, four wooden handles and four small brass ones between, and a brass boss. Original, a few pixels. */
   circle: art(['....ww....', '.G..gg..G.', '..gggggg..', '.gg.ww.gg.', 'wggwGGwggw', 'wggwGGwggw', '.gg.ww.gg.', '..gggggg..', '.G..gg..G.', '....ww....']),
-  /** More (VEEL, ft_1_20): the bubble's own ring of eight plates in small; it opens the bubble from the strip. */
-  more: art(['....ww....', '.ww.ww.ww.', '.ww....ww.', '..........', 'ww......ww', 'ww......ww', '..........', '.ww....ww.', '.ww.ww.ww.', '....ww....']),
   /** Analyse (ft_1_12): a magnifying glass over a played line. */
   analyse: art(['..wwww....', '.w....w...', 'w......w..', 'w.w..w.w..', 'w..ww..w..', 'w......w..', '.w....w...', '..wwwwww..', '.......ww.', '........ww']),
   /** The tempo's percent: a gauge with its needle, beside the number (BPM in the tooltip). */

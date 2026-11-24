@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { strokePolyline } from './polyline';
 import type { NoteProgress, NoteTiming } from '../../../core/judge/types';
 import type { PlaySettings } from '../../../core/judge/playSettings';
 import type { BarNumber } from '../../../core/layout/barNumbers';
@@ -9,12 +10,14 @@ import { wordFits } from '../../../core/layout/dynamicWords';
 import type { PlayedMark } from '../../../core/layout/playedMark';
 import { accidentalKind, pageOfNotes, type BeamGlyph, type NoteGlyph, type NoteValue, type SlurGlyph, type StaffLayout, type TieGlyph, type TupletGlyph } from '../../../core/layout/staff';
 import type { GraceGlyph } from '../../../core/layout/staffTypes';
+import { slurPoints, tiePoints } from '../../../core/layout/preview';
 import { STAFF_LAYERS, type StaffLayer } from './layers';
 import { addSheet } from './sheetGround';
 import { PARCHMENT_PAPER } from '../pixel/paint/parchment';
 import { t } from '../../../core/text/strings';
 import type { Dynamic } from '../../../core/chart/dynamics';
 import { ACCIDENTAL_STROKES, BASS_CLEF_BALL, BASS_CLEF_DOTS, BASS_CLEF_STROKE, BRACE_PATH, DIGITS, QUARTER_REST_STROKE, TREBLE_CLEF_STROKE, type Pt } from './glyphs';
+import { STAFF_FONT } from './staffFont';
 
 export type NoteState = 'pending' | 'correct' | 'wrong';
 
@@ -188,7 +191,7 @@ export class StaffView {
     const fits = wordFits(marked.map((n) => ({ system: n.system, staff: n.staff, column: n.column, word: t(DYNAMIC_WORD_KEY[n.dynamic!.text]) })), layout.staffSpace);
     let markIndex = 0;
     for (const n of layout.notes) {
-      const style = { fontFamily: 'monospace', fontStyle: 'bold', fontSize, color: theme.hint };
+      const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize, color: theme.hint };
       this.labels.push(scene.add.text(origin.x + n.column, origin.y + n.labelY, n.label, style).setOrigin(0.5));
       // a finger sits beside its head, level with it; the text is set by setHints
       this.fingerTexts.push(scene.add.text(origin.x + n.fingerX, origin.y + n.y, '', style).setOrigin(0.5));
@@ -200,13 +203,13 @@ export class StaffView {
       }
     }
     for (const g of layout.graces) {
-      const style = { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.max(8, Math.round(layout.staffSpace * 1.1 * g.scale))}px`, color: theme.hint };
+      const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.max(8, Math.round(layout.staffSpace * 1.1 * g.scale))}px`, color: theme.hint };
       this.graceLabels.push(scene.add.text(origin.x + g.x, origin.y + g.labelY, g.label, style).setOrigin(0.5));
     }
     // one word per slur, above the half that starts it (a slur across a line break has its word on the first line)
     for (const slur of layout.slurs) {
       if (slur.from === null) continue;
-      const word = scene.add.text(origin.x + slur.label.x, origin.y + slur.label.y, t('staff.legato'), { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.round(layout.staffSpace * 0.9)}px`, color: theme.hint }).setOrigin(0.5, 1);
+      const word = scene.add.text(origin.x + slur.label.x, origin.y + slur.label.y, t('staff.legato'), { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(layout.staffSpace * 0.9)}px`, color: theme.hint }).setOrigin(0.5, 1);
       this.slurTexts.push({ text: word, system: slur.system });
     }
     this.setHints(hints);
@@ -242,7 +245,7 @@ export class StaffView {
     for (const mark of this.markTexts) mark.text.destroy();
     this.markTexts.length = 0;
     const S = this.layout.staffSpace;
-    const style = { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: this.theme.sectionInk };
+    const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: this.theme.sectionInk };
     const used = new Map<number, number>();
     for (const { bar: index, text } of marks?.letters ?? []) {
       const bar = this.layout.bars[index];
@@ -660,8 +663,14 @@ export class StaffView {
     } else this.stroke(g, QUARTER_REST_STROKE, x - S * 0.5, y - S * 1.5, S * 0.28);
   }
 
+  /** Whether a staff of a system is a resting hand's, drawn to be read and not played (ft_1_32.AC18). */
+  private resting(system: number, staff: number): boolean {
+    return this.layout.systems[system]?.staves[staff]?.resting === true;
+  }
+
   private noteColor(slot: number): number {
     const note = this.layout.notes[slot]!;
+    if (this.resting(note.system, note.staff)) return PAST_GREY;
     if (this.wrong.has(note.index)) return this.theme.wrong;
     // a played or missed note keeps its timing colour (objective feedback); only the rest of the past goes grey
     const scored = this.scoreColours[slot];
@@ -721,7 +730,7 @@ export class StaffView {
     this.playedName = null;
     if (mark && this.onPage(mark.system)) {
       const S = this.layout.staffSpace;
-      const style = { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: PLAYED_INK };
+      const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: PLAYED_INK };
       this.playedName = this.scene.add.text(this.origin.x + mark.x, this.origin.y + mark.y + PLAYED_NAME_GAP * S, name, style).setOrigin(0.5).setAlpha(PLAYED_ALPHA);
     }
     this.drawNotes();
@@ -800,35 +809,13 @@ export class StaffView {
   /** A tie: a quadratic curve that bows away from the heads (core_09.AC10), drawn as a polyline in the ink colour. */
   private drawTie(tie: TieGlyph): void {
     const S = this.layout.staffSpace;
-    const bow = (tie.up ? -1 : 1) * tie.height * 2;
-    const xm = (tie.x1 + tie.x2) / 2;
-    const ym = tie.y + bow;
-    const g = this.notesGfx;
-    g.lineStyle(Math.max(2, S * 0.13), this.theme.ink, 1).beginPath();
-    for (let i = 0; i <= 12; i++) {
-      const t = i / 12;
-      const x = (1 - t) * (1 - t) * tie.x1 + 2 * (1 - t) * t * xm + t * t * tie.x2;
-      const y = (1 - t) * (1 - t) * tie.y + 2 * (1 - t) * t * ym + t * t * tie.y;
-      if (i === 0) g.moveTo(x, y);
-      else g.lineTo(x, y);
-    }
-    g.strokePath();
+    strokePolyline(this.notesGfx.lineStyle(Math.max(2, S * 0.13), this.theme.ink, 1), tiePoints(tie));
   }
 
   /** A slur (core_09.AC27): a quadratic curve from the first head to the last, in the ink colour, bowing as the layout says. */
   private drawSlur(slur: SlurGlyph): void {
     const S = this.layout.staffSpace;
-    const xm = (slur.x1 + slur.x2) / 2;
-    const g = this.notesGfx;
-    g.lineStyle(Math.max(2, S * 0.1), this.theme.ink, 1).beginPath();
-    for (let i = 0; i <= 16; i++) {
-      const t = i / 16;
-      const x = (1 - t) * (1 - t) * slur.x1 + 2 * (1 - t) * t * xm + t * t * slur.x2;
-      const y = (1 - t) * (1 - t) * slur.y1 + 2 * (1 - t) * t * slur.controlY + t * t * slur.y2;
-      if (i === 0) g.moveTo(x, y);
-      else g.lineTo(x, y);
-    }
-    g.strokePath();
+    strokePolyline(this.notesGfx.lineStyle(Math.max(2, S * 0.1), this.theme.ink, 1), slurPoints(slur));
   }
 
   /** The beams of a run of eighths and sixteenths, in the colour of its notes once all are right. */
@@ -837,7 +824,7 @@ export class StaffView {
     const slots = beam.notes.map((index) => this.layout.notes.findIndex((n) => n.index === index));
     const wrong = beam.notes.some((index) => this.wrong.has(index));
     const correct = slots.every((slot) => this.states[slot] === 'correct');
-    const color = wrong ? this.theme.wrong : correct ? this.theme.correct : this.theme.ink;
+    const color = this.resting(beam.system, beam.staff) ? PAST_GREY : wrong ? this.theme.wrong : correct ? this.theme.correct : this.theme.ink;
     const half = Math.max(2, S * 0.13) / 2;
     const top = beam.up ? beam.y : beam.y - beam.thickness;
     this.notesGfx.fillStyle(color, 1).fillRect(beam.x1 - half, top, beam.x2 - beam.x1 + half * 2, beam.thickness);

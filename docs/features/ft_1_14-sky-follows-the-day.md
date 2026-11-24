@@ -1,7 +1,7 @@
 ---
 id: "ft_1_14"
 title: "The sky follows the real day"
-scope: "The painted room, the map of Keri and its scenes show dawn, day, dusk or night from the sun's real height over Keri, computed offline from the PC clock (first built for the campaign trail, removed by d117); one alternate palette per phase for the sky, cloud, moon and halo ramps; the room's window shows a sea view in the same phase; a look resolver that seasons and holidays (ft_Y_14) later extend"
+scope: "The painted room, the map of Keri and its scenes show dawn, day, dusk or night from the sun's real height over Keri, computed offline from the PC clock; one alternate palette per phase for the sky, cloud, moon and halo ramps; the room's window shows a sea view in the same phase; a look resolver that seasons and holidays (ft_Y_14) later extend"
 effort: "medium"
 status: "in progress: MVP slice built (sun, phase, look, palettes, room window); polish slice (R3) open"
 completeness: 80
@@ -11,7 +11,7 @@ depends_on: ["ft_1_06"]
 
 Index: [FEATURES.md](FEATURES.md). decision [d097](../decisions/art.md#d097).
 
-The painted room, the map of Keri and its scenes show the real time of day on Keri: a pale dawn, a blue day with a sun, an orange dusk, and night. In a Keri winter the day is short (sunset at 13 h 17 min UTC at the winter solstice). The trail this was first built for is gone (d117); each picture has one version per phase (ft_1_19.AC5).
+The painted room, the map of Keri and its scenes show the real time of day on Keri: a pale dawn, a blue day with a sun, an orange dusk, and night. In a Keri winter the day is short (sunset at 13 h 17 min UTC at the winter solstice). Each picture has one version per phase (ft_1_19.AC5).
 
 ## Rules
 
@@ -22,8 +22,8 @@ The painted room, the map of Keri and its scenes show the real time of day on Ke
 5. **Flags per phase** (polish slice, R3, not built): stars and specks off in day (built), faint (half) at dawn and dusk; in dawn, day and dusk the moon is drawn in the sun colours without craters; a campfire glow only at dusk and night.
 6. **When it changes:** the phase is decided when a scene opens and does not change while it is open (AX-3 provisional).
 7. **Dev switches:** `?sky=dawn|day|dusk|night` forces a phase (built); `?now=<ISO time>` sets the instant (polish slice); `docs/url-switches.md`. Nothing is saved.
-8. **The room's window** shows the sea view in the same phase: sky, sun or moon, a cloud or two, the sea with a horizon and a strip of far shore, nothing from the campaign (`outside` in `src/game/ui/pixel/keri/roomSet.ts`, d111); the whole room is lit for the phase (daylight by day, lamps and fire from dusk to dawn). Same sky, cloud, moon and halo slots as item 4; stars only where item 5 allows.
-9. **Polish slice (R3):** item 5 in full, `?now=`, one end-to-end screenshot per phase (Windows baselines from the workflow).
+8. **The room's window** shows the sea view in the same phase: sky, sun or moon, a cloud or two, the sea with a horizon and a strip of far shore (`outside` in `src/game/ui/pixel/keri/roomSet.ts`, d111); the whole room is lit for the phase (daylight by day, lamps and fire from dusk to dawn). Same sky, cloud, moon and halo slots as item 4; stars only where item 5 allows.
+9. **Polish slice (R3):** item 5 in full, `?now=`, one end-to-end screenshot per phase (baselines from the baseline workflow).
 10. No save change, no new dependency. Not in this feature: seasons, weather, holidays, a fade between phases, the sun moving across the sky, a place other than Keri in settings.
 
 ## Acceptance criteria
@@ -31,10 +31,10 @@ The painted room, the map of Keri and its scenes show the real time of day on Ke
 - **ft_1_14.AC1** The computed sunrise and sunset (elevation -0.833 degrees) for Keri are within 3 minutes of the reference, in UTC: on the first of November, 5 h 41 min and 14 h 26 min; at the winter solstice, 7 h 19 min and 13 h 17 min; at the summer solstice, 1 h 00 min and 19 h 45 min. The builder checks these values against the NOAA solar calculator before writing the test.
 - **ft_1_14.AC2** The phase is night below -6 degrees, dawn or dusk from -6 to +3 degrees by the direction of the sun, and day above +3 degrees; on Keri on the first of November it is night before 4 h 56 min UTC, dawn to 6 h 17 min, day to 13 h 50 min, dusk to 15 h 11 min, night after (within 3 minutes).
 - **ft_1_14.AC3** The result depends only on the instant: the same instant gives the same phase whatever the computer's time zone.
-- **ft_1_14.AC4** Retired (d117): the campaign map drew its sky in the phase's colours; the pictures of Keri are painted for each phase instead (d111).
+- **ft_1_14.AC4** Each phase has one palette: night is the base palette, and dawn, day and dusk change only its sky, cloud, moon and halo slots (`paletteFor`).
 - **ft_1_14.AC5** In every phase the stars keep the contrast the art tests ask of them against the phase's sky.
 - **ft_1_14.AC6** `?sky=` and `?now=` set the phase and the instant; nothing is saved.
-- **ft_1_14.AC8** The room's window shows a sea view (sky, sun or moon, sea, far shore) in the same phase as the map of Keri and its scenes, with nothing from the campaign in it, and the same `?sky=` switch sets it.
+- **ft_1_14.AC8** The room's window shows a sea view (sky, sun or moon, sea, far shore) in the same phase as the map of Keri and its scenes, and the same `?sky=` switch sets it.
 - **ft_1_14.AC7** The four phases look calm and right on the target laptop, in the room, on the map and in the scenes. [human]
 
 ## Phase colours (mock values, dark to light)

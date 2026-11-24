@@ -1,7 +1,6 @@
 import { insideRing, type World, type WorldPoint } from '../world/world';
 import { ART_DETAIL } from './frame';
 import { toRing } from './knoll';
-import type { Rect } from './rect';
 import { ROOM_PICTURE, roomView } from './room';
 
 /**
@@ -140,7 +139,7 @@ export const GRILL = { u: 6.9, v: 5.7, r: 0.36, high: 0.9 } as const;
  */
 export const TORCHES: readonly { on: 'deck' | 'reach'; u: number; v: number; high: number; lean: number }[] = [
   { on: 'deck', u: -0.2, v: DECK.v1 - 0.1, high: 1.6, lean: 0.05 },
-  // two down the walk's right side, where no flame stands behind a being's head (`TERRACE_SPOTS`)
+  // two down the walk's right side
   { on: 'reach', u: REACH.u1 - 0.1, v: 1.6, high: 1.5, lean: -0.05 },
   // the further one is low, its flame under the string of lanterns there
   { on: 'reach', u: REACH.u1 - 0.1, v: 5.8, high: 1.1, lean: 0.04 },
@@ -282,21 +281,6 @@ export function terraceGroundAt(shore: readonly TerraceShore[], x: number, z: nu
   return terraceRise(far - z);
 }
 
-/**
- * Where a being stands on the deck: in the deck's frame (metres), in a row across the open boards, all about seven
- * metres ahead, where a figure of the game's size is to the picture's scale. AX-3 provisional: four places, as the
- * knoll has.
- */
-export const TERRACE_SPOTS: readonly { u: number; v: number }[] = [
-  { u: 2.67, v: 6.43 },
-  { u: 3.61, v: 5.78 },
-  { u: 4.55, v: 5.12 },
-  { u: 5.48, v: 4.46 },
-];
-
-/** A being's button in layout cells: the being with its name and stars over it. */
-const SPOT_HIT = { w: 26, h: 44 } as const;
-
 export interface TerracePlan {
   /** The picture's size in fine pixels. */
   fine: { w: number; h: number };
@@ -310,8 +294,6 @@ export interface TerracePlan {
   pennant: { x: number; y: number };
   /** For each torch of `TORCHES`: the top of its head, where its flame stands (fine pixels), and how `tall` the flame is at that distance (fine pixels). */
   torches: { x: number; y: number; tall: number }[];
-  /** For each place of `TERRACE_SPOTS`: where a being's feet are (fine pixels) and its button (layout cells from the picture's top-left corner). */
-  spots: { feet: { x: number; y: number }; button: Rect }[];
 }
 
 export function terracePlan(): TerracePlan {
@@ -330,11 +312,6 @@ export function terracePlan(): TerracePlan {
     torches: TORCHES.map((torch) => {
       const head = onTorch(torch, torch.high);
       return { ...at(head), tall: Math.max(5, Math.round((TERRACE.lens * TORCH_FLAME) / head[2])) };
-    }),
-    spots: TERRACE_SPOTS.map(({ u, v }) => {
-      const feet = at(onDeck(u, v));
-      const x = Math.round(feet.x / ART_DETAIL - SPOT_HIT.w / 2), bottom = Math.round(feet.y / ART_DETAIL) + 2;
-      return { feet, button: { x, y: bottom - SPOT_HIT.h, w: SPOT_HIT.w, h: SPOT_HIT.h } };
     }),
   };
 }

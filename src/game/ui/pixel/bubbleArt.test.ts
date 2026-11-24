@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bubbleLayout, cellSpan, PIN_ROWS } from '../../../core/layout/bubble';
 import { inkCount, type Bitmap } from './bitmap';
-import { BACKPACK, backpackPage, choicePlate, choicesBack, closePlate, NEW_ITEM_DOT, OPTION_SIZE, optionFocus, optionPlate, PIN_CELL_SIZE, pinCell, pressRing, RING_SIZE, ringBack, STRIP_ROWS, stripBitmap, wornChip, type PlateLook } from './bubbleArt';
+import { BACKPACK, backpackPage, choicePlate, choicesBack, closePlate, NEW_ITEM_DOT, OPTION_SIZE, optionFocus, optionPlate, PIN_CELL_SIZE, pinCell, pressRing, STRIP_ROWS, stripBitmap, wornChip, type PlateLook } from './bubbleArt';
 import { ICONS } from './iconArt';
 import { C } from './palette';
 import { TOOL_ICONS } from './toolArt';
@@ -11,20 +11,21 @@ const same = (a: Bitmap, b: Bitmap) => a.width === b.width && a.height === b.hei
 const LOOKS: PlateLook[] = ['plain', 'hover', 'down', 'on', 'off', 'main'];
 
 describe('the bubble, the strip and the backpack (ft_1_20, d282): their look fits the layout', () => {
-  it('ft_1_20.AC19 an option is a round plate as large as the layout\'s option, and the ring is as large as the bubble', () => {
+  it('ft_1_20.AC19 an option is an opaque round plate as large as the layout\'s option, with room between neighbours', () => {
     const layout = bubbleLayout({ at: { x: 160, y: 90 }, options: 8, screen: { w: 320, h: 180 } });
     expect(optionPlate().width).toBe(layout.options[0]!.w);
     expect(optionPlate().height).toBe(layout.options[0]!.h);
     expect(closePlate().width).toBe(layout.close.w);
-    expect(ringBack().width).toBe(layout.area.w);
-    expect(RING_SIZE).toBe(layout.area.w);
     // round: the corners are clear, the middle of each side is the outline
     const plate = optionPlate();
     expect(at(plate, 0, 0)).toBe(0);
     expect(at(plate, OPTION_SIZE - 1, OPTION_SIZE - 1)).toBe(0);
     expect(at(plate, OPTION_SIZE >> 1, 0)).toBe(C.groove);
-    // the ring's centre is open, so the Close target and the picture under it show
-    expect(at(ringBack(), RING_SIZE >> 1, RING_SIZE >> 1)).toBe(0);
+    // opaque: every pixel inside the outline is painted
+    expect(at(plate, OPTION_SIZE >> 1, OPTION_SIZE >> 1)).toBe(C.panel);
+    // neighbouring plates do not touch
+    const [a, b] = layout.options;
+    expect(Math.hypot(a!.x - b!.x, a!.y - b!.y)).toBeGreaterThan(OPTION_SIZE);
   });
 
   it('every look of a plate is told apart from the others', () => {

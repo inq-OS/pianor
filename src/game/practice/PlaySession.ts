@@ -24,6 +24,12 @@ import { staffSpaceLimits } from '../../core/layout/canvasSize';
 
 /** The levels' hand positions, which the hand-shift arrows prefer (ft_1_30.AC10). */
 const LEVELS = levelsFileSchema.parse(levelsJson).levels;
+/** A wrong key and the notes it was played for (indices of the written notes). */
+export interface WrongKey {
+  midi: number;
+  awaiting: readonly number[];
+}
+
 /** How long a wrong note flashes, how long its feedback stays in the bubble, and how long Kiur looks puzzled. */
 const WRONG_FLASH_MS = 700;
 export const MESSAGE_MS = 3500;
@@ -54,6 +60,10 @@ export interface PlaySessionOptions {
   chart: Chart;
   /** While a section is played: the whole piece (it sets the size of the staff) and the section's first bar (its bar numbers). */
   section?: { whole: Chart; first: number };
+  /** Tracks drawn grey on their own staves and not played: the resting hand of a hand step in learning (ft_1_32.AC18). */
+  restingTracks?: readonly string[];
+  /** A wrong key on the staff from the start, as the run before ended on it (ft_1_32.AC6); gone at the first right key. */
+  wrongKey?: WrongKey;
   keyboard: KeyboardInput;
   callbacks: PlaySessionCallbacks;
   hints?: Hints;
@@ -102,6 +112,7 @@ export class PlaySession {
   private messageNow = '';
   /** Until when (scene time) a message said with `hold` stays, even when right notes are played. */
   private holdUntil = 0;
+  private lastWrong: WrongKey | null = null;
   private wrongTimer: Phaser.Time.TimerEvent | null = null;
   private messageTimer: Phaser.Time.TimerEvent | null = null;
 
@@ -110,6 +121,7 @@ export class PlaySession {
     this.play = unrollRepeats(options.chart);
     this.chart = this.play.chart;
     this.hints = options.hints ?? { noteNames: false, fingers: false };
+    this.lastWrong = options.wrongKey ?? null;
     this.scoreView = options.tempo?.scoreView ?? 'colour';
     const tempo = options.tempo;
     // a looped section's next lap goes on at `startAtMs` with no count-in: the clock was already running; a start on the
@@ -200,7 +212,7 @@ export class PlaySession {
     const settings = prefs.staffSettings;
     // in Tempo mode with the Scores view, room above chords for their stacked scores, so none goes off the page
     // the staff space range counts CSS pixels, so Windows display scaling keeps the notes as big as the player had them
-    const options = { viewport: { width: area.width, height: area.height }, ...staffSpaceLimits(this.scene.scale.zoom), scoreRoom: this.transport !== null && this.scoreView === 'number', staffGap: prefs.staffGap, noteNaming: prefs.noteNaming };
+    const options = { viewport: { width: area.width, height: area.height }, ...staffSpaceLimits(this.scene.scale.zoom), scoreRoom: this.transport !== null && this.scoreView === 'number', staffGap: prefs.staffGap, noteNaming: prefs.noteNaming, ...(this.options.restingTracks ? { restingTracks: this.options.restingTracks } : {}) };
     this.naming = prefs.noteNaming;
     const section = this.options.section;
     const whole = layoutForSettings(section?.whole ?? this.written, options, settings);
@@ -214,6 +226,7 @@ export class PlaySession {
     this.view.setHandShifts(handShiftMap(this.written, LEVELS.find((l) => l.level === this.written.level)));
     if (this.transport) this.view.followPlayhead(true);
     this.applyState(this.controllerNow.getState());
+    if (this.lastWrong) this.showWrongKey(this.lastWrong);
     return this.view;
   }
 
@@ -277,15 +290,27 @@ export class PlaySession {
     if (event.verdict === 'correct') {
       if (this.scene.time.now >= this.holdUntil) this.say('');
       this.view?.setPlayed(null);
+      this.lastWrong = null;
       return;
     }
     const awaiting = this.toWritten(state).awaiting;
-    const mark = this.layoutNow ? playedMark(this.layoutNow, this.written, awaiting, event.midi) : null;
-    this.view?.setPlayed(mark, mark ? noteLabel(mark.spelling, this.naming) : '');
+    this.showWrongKey({ midi: event.midi, awaiting });
     this.mascot?.setMood('hmm', HMM_MS);
     this.view?.flashWrong(awaiting); // MIDI cannot say which hand it was, so every awaited note flashes
     this.wrongTimer?.remove();
     this.wrongTimer = this.scene.time.delayedCall(WRONG_FLASH_MS, () => this.view?.flashWrong(null));
+  }
+
+  /** The wrong key played last, while it is on the staff (null after a right one): carried to the next learning run. */
+  get wrongKey(): WrongKey | null {
+    return this.lastWrong;
+  }
+
+  /** Put a wrong key on the staff beside the awaited note (`awaiting`, of the written notes), with its name; it stays until a right key. */
+  showWrongKey(wrong: WrongKey): void {
+    this.lastWrong = wrong;
+    const mark = this.layoutNow ? playedMark(this.layoutNow, this.written, wrong.awaiting, wrong.midi) : null;
+    this.view?.setPlayed(mark, mark ? noteLabel(mark.spelling, this.naming) : '');
   }
 
   private showMessage(): void {

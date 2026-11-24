@@ -5,7 +5,7 @@ import { studentShare, tugFact, tugSetupOf, turnChartBars } from '../../core/exc
 import { TempoMode, WaitMode, type NoteJudged, type PieceResult } from '../../core/judge';
 import { clickPlan } from '../../core/transport/practiceSpeed';
 import { Transport } from '../../core/transport/transport';
-import { BAND_ROWS } from '../../core/layout/band';
+import { BOARD_ROWS } from '../../core/layout/frame';
 import { lineSpot } from '../../core/layout/talk';
 import { ragPlace, risingNotes, TUG, tugBoard, turnNoteBob } from '../../core/layout/tug';
 import { strings, t, type StringKey } from '../../core/text/strings';
@@ -363,8 +363,8 @@ export class TugView {
    * and a note bobbing over the token of whoever plays now. `core/layout/tug.ts` places it; `tugArt.ts` paints it.
    */
   private drawBoard(): void {
-    const { area, bandTop } = this.place;
-    const top = bandTop ?? area.h - BAND_ROWS;
+    const { area } = this.place;
+    const top = area.h - BOARD_ROWS;
     const board = tugBoard(area.w, this.rules.steps);
     const ends = { student: talkColour('student'), character: talkColour('character', this.character.id) };
     this.add(new PixelImage(this.scene, 0, top, tugBoardPicture(area.w, this.rules.steps, ends)).setName('tugBoard'));

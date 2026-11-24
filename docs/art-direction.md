@@ -79,7 +79,7 @@ Six pictures are painted so far: the warden's room, the map of Keri, the grassy 
 
 The map of Keri is a third case: painted in full colour from the world model at a tilt, without the ray caster, and brought down to its palette by the same `reduce.ts` (`keri/mapPicture.ts`).
 
-Outdoors is always flat pixel art. For another interior, a battle ground or a menu whose manner is not chosen yet: of rooms, only the warden's room is settled, and it stays as it is for now. Ask before painting the first of a kind, with a small trial of each manner side by side.
+Outdoors is always flat pixel art. For another interior or a menu whose manner is not chosen yet: of rooms, only the warden's room is settled, and it stays as it is for now. Ask before painting the first of a kind, with a small trial of each manner side by side.
 
 ## 4. How a picture reaches the game
 
@@ -102,7 +102,7 @@ A row of numbers cannot be judged by reading it. Paint, look, fix, and only then
 
 A gauge score is never a reason to add something the eye did not ask for (d266).
 
-Done for a picture means: its acceptance criteria in the feature file pass; all four hours looked at; `art:check` has no finding left unexplained; the picture is in `tools/art/pictures.ts` with its runs, so `pictureRules.test.ts` holds it; tests for what must hold (sizes, what a button's box covers, no laid-on shadow, the hours' palettes); `docs/assets.md` has its row with its sources; the scene's file under `docs/keri/` says how it is made and what was noticed; `npm run check:ci` and the affected end-to-end tests pass; the Windows screenshot baselines are named as "to be made again"; the maintainer has seen it.
+Done for a picture means: its acceptance criteria in the feature file pass; all four hours looked at; `art:check` has no finding left unexplained; the picture is in `tools/art/pictures.ts` with its runs, so `pictureRules.test.ts` holds it; tests for what must hold (sizes, what a button's box covers, no laid-on shadow, the hours' palettes); `docs/assets.md` has its row with its sources; the scene's file under `docs/keri/` says how it is made and what was noticed; `npm run check:ci` and the affected end-to-end tests pass; the screenshot baselines are named as "to be made again"; the maintainer has seen it.
 
 ## 6. Finding and studying examples
 
@@ -161,7 +161,6 @@ What Pianor already does the same way: one background picture, moving things as 
 | A hill as a round ball in the middle, the same on both sides | a perfect spheroid, symmetric | rule 24 |
 | Short runs of four to six far-apart tones with coarse dither between | (measured: the reference steps 2 to 4.5 L*, ours stepped 10 to 18) | whole runs with steps of at most 8 L* (rule 19) |
 | A golden ratio or rule of thirds for horizons and subjects | (measured on 93 pictures, not found) | the stage set of rule 21 |
-| Monsters standing in the first scene | no monsters for now | built but hidden (`?beings=1`) until they are redrawn |
 | Kiur in true proportions in profile, and Kiur in three quarters with a big head and long legs | an interactive Kiur needs every side (front, back, sides, angles, sleeping) | the round friend seen from the front, as one model with every side (d114) |
 
 ## 9. Adding a scene, step by step

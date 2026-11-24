@@ -20,6 +20,20 @@ const PORT = Number(process.env.PW_PORT) || 5180;
 // the tests open the game with `?loop=timer` (tests/e2e/helpers.ts `openGame`), which made a cloud run about twice as fast.
 const GPU_ARGS = E2E_GPU ? ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] : [];
 
+// No hinting and no LCD (coloured) smoothing of letters (d288): the staff font's edges come out the same on every machine.
+const BROWSER_ARGS = ['--autoplay-policy=no-user-gesture-required', '--font-render-hinting=none', '--disable-lcd-text'];
+
+// The tests play a bundled build of the game, not the dev server. On the dev server every page that opens the game asks for
+// about 520 separate source files, each run through Vite, and every test opens the game in a new page: a start took about
+// 2 s alone and much more with three browsers and the server sharing the processor. The bundle is about 30 files, built
+// once before the run (a few seconds; Keri's pictures come from their cache), and a start takes about 1 s. It is built in
+// Vite mode `development`, so the dev-only handles the tests use (`window.__game`, the virtual keyboard, draft pieces)
+// are in it as on the dev server. `PW_DEV_SERVER=1` runs against the dev server instead, e.g. to debug with live edits.
+const E2E_OUT = 'build/e2e';
+const SERVER_COMMAND = process.env.PW_DEV_SERVER === '1'
+  ? `npx vite --port ${PORT} --strictPort`
+  : `npx vite build --mode development --outDir ${E2E_OUT} --emptyOutDir --logLevel warn && npx vite preview --mode development --outDir ${E2E_OUT} --port ${PORT} --strictPort`;
+
 export default defineConfig({
   testDir: 'tests/e2e',
   // The target laptop is slow under load: generous limits, so a busy machine is not a failure.
@@ -40,29 +54,38 @@ export default defineConfig({
     trace: 'retain-on-failure',
     launchOptions: {
       ...(CHROMIUM_PATH ? { executablePath: CHROMIUM_PATH } : {}),
-      args: ['--autoplay-policy=no-user-gesture-required', ...GPU_ARGS],
+      args: [...BROWSER_ARGS, ...GPU_ARGS],
     },
   },
-  // Screenshots differ a little per OS (fonts, anti-aliasing), so baselines are stored per platform.
-  // PW_EXPECT_TIMEOUT: the baseline workflow's slow Windows runner, where one screenshot of the software-drawn page takes over 20 s
+  // One baseline per screen (d289): no text asks the computer for a font and the screenshot tests always draw WebGL in
+  // software (the visual project below), so every machine makes the same pixels; the 2 percent tolerance covers what is left.
+  // PW_EXPECT_TIMEOUT: a slow runner making baselines, where one screenshot of the software-drawn page can take over 20 s
   expect: { timeout: Number(process.env['PW_EXPECT_TIMEOUT']) || 20_000, toHaveScreenshot: { maxDiffPixelRatio: 0.02 } },
-  // The baselines were named for the single project `chromium`; keep that name now that every area is a project.
-  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-chromium{-snapshotSuffix}{ext}',
+  // The baselines were named for the single project `chromium`; keep that name now that every area is a project. No
+  // platform in the name (d289): every machine checks the same file.
+  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-chromium{ext}',
   // One project per area (tools/e2e/areas.ts): `--project=editor` runs one area, `npm run test:e2e:affected` the changed ones.
   projects: E2E_AREAS.map((area) => ({
     name: area.name,
     testMatch: area.specs.map((spec) => `**/${spec}.spec.ts`),
-    use: { ...devices['Desktop Chrome'], ...TARGET_VIEW },
+    use: {
+      ...devices['Desktop Chrome'],
+      ...TARGET_VIEW,
+      // the screenshot area never uses a GPU, so a baseline is the same pixels on every machine (d289)
+      ...(area.name === 'visual' ? { launchOptions: { ...(CHROMIUM_PATH ? { executablePath: CHROMIUM_PATH } : {}), args: BROWSER_ARGS } } : {}),
+    },
   })),
   webServer: {
-    command: `npx vite --port ${PORT} --strictPort`,
+    command: SERVER_COMMAND,
     url: `http://localhost:${PORT}`,
     // Off by default: a server already on the port may be another worktree's code, and the tests would
     // silently run against it. Playwright then fails with "port already used". Set PW_REUSE_SERVER=1 to
     // reuse a server you started yourself on purpose.
     reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
     // the pieces in the machine's gitignored private/pieces/ would change the piece lists the tests see
-    env: { PIANOR_NO_PRIVATE_PIECES: '1' },
+    // PIANOR_E2E: the preview server answers the preview tool's requests as the dev server does (tools/vite-pieces.ts)
+    // NODE_ENV: without it `vite build` makes `import.meta.env.DEV` false even in mode development, and the handles are gone
+    env: { PIANOR_NO_PRIVATE_PIECES: '1', PIANOR_E2E: '1', ...(process.env.PW_DEV_SERVER === '1' ? {} : { NODE_ENV: 'development' }) },
     // A cold start paints Keri's pictures first (tools/vite-keri.ts): over a minute on a slow machine since the
     // room's set grew (82 s in a cloud session); the painting is cached after that.
     timeout: 180_000,

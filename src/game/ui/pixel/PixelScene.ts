@@ -2,15 +2,17 @@ import Phaser from 'phaser';
 import { pagerBoxes } from '../../../core/layout/cardGrid';
 import type { PageSlice } from '../../../core/layout/paging';
 import { ART_DETAIL, FRAME_ROWS, VINE_ROWS, frameCorners, frameView, toolbarLayout, type FrameView } from '../../../core/layout/frame';
-import { BAND_ROWS, bandCells, bandItemPage, bandLayout, wheelChoice, wheelPage, type BandCell } from '../../../core/layout/band';
+import { BUBBLE_SLOTS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, twoFingerTap, twoFingersSlid, wheelChoice } from '../../../core/layout/bubble';
 import type { PixelView } from '../../../core/layout/pixelView';
 import { rectCentre, type Rect } from '../../../core/layout/rect';
 import { dropMenuLayout } from '../../../core/layout/dropMenu';
-import { clipToWidth } from '../../../core/text/clip';
 import { t } from '../../../core/text/strings';
+import { clipToWidth } from '../../../core/text/clip';
 import { initialFocus, moveFocus, refocus, type FocusMove } from '../../../core/layout/focus';
-import { panelBitmap, trayBitmap } from './frames';
+import { panelBitmap } from './frames';
 import { ICONS } from './iconArt';
+import { TOOL_ICONS } from './toolArt';
+import { signOnly } from './itemArt';
 import { PALETTE, C } from './palette';
 import { createBitmap, recolor, type Bitmap } from './bitmap';
 import { LiveImage, PixelBar, PixelButton, PixelImage, PixelText, type PixelButtonOptions, type RgbaArt } from './PixelObjects';
@@ -59,8 +61,12 @@ export interface ToolbarItem {
   menu?: { items: () => readonly (MenuItem | null)[]; cell: { w: number; h: number }; columns: number };
   /** Hears the button made for the item, so a screen can change its label, picture or light later without drawing again. */
   ref?: (button: PixelButton) => void;
-  /** The key that does what the item does (the piece maker): drawn on the item while `shortcutsShown`. */
+  /** The key that does what the item does (the piece maker): drawn on the item while `shortcutsShown`, and always in the bubble. */
   shortcut?: string;
+  /** The screen's main action (Play again, Done): it stands at the right end of the strip, in the same place on every screen (ft_1_20, d282). */
+  main?: boolean;
+  /** A worn option (note names, fingers): picked in the bubble it switches and leaves the bubble open, and while on it stands lit beside More. */
+  worn?: boolean;
   onClick: () => void;
 }
 
@@ -90,11 +96,42 @@ export interface MenuItem {
   fineIcon?: boolean;
   /** The key that picks this choice while the menu is open from the keyboard (a digit): drawn on its cell. */
   shortcut?: string;
+  /** Shows (true) and takes away (false) what picking the choice would do, while the pointer rests on it (d286). */
+  preview?: (on: boolean) => void;
   onPick: () => void;
 }
 
 /** A drop-down is drawn over everything of its screen, the staff too (the staff draws at depth 8 to 10). */
 const MENU_DEPTH = 1000;
+/** A cell of the strip, in layout cells (ft_1_20, d282: `src/core/layout/bubble.ts`). */
+const STRIP_CELL_WIDTH = 30;
+/** A worn option that is on, beside More: a small square picture. */
+const CHIP = 15;
+/** Room between the backpack and the gear, so the two are not taken for each other. */
+const BACKPACK_GAP = 2;
+/** A long press opens the bubble after this long (ft_1_20, d282); moving the finger farther than `LONG_PRESS_SLIP` screen pixels cancels it. */
+/** The largest music sign (fine pixels) in a round option of the bubble and in a cell of the strip. */
+const BUBBLE_SIGN = 24;
+const STRIP_SIGN = 22;
+/** How much of the bubble's ground covers what is under it. */
+const BUBBLE_GROUND_ALPHA = 0.45;
+/** The long press's ring starts to fill this long after the finger went down. */
+const LONG_PRESS_RING_FROM_MS = 150;
+/** More pulses on this many first visits of a screen. */
+const MORE_PULSE_VISITS = 3;
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_SLIP = 12;
+
+/** The bubble's ground: a round board as wide as `size` layout cells, with a dark rim. */
+function ringBitmap(size: number): Bitmap {
+  const b = createBitmap(size, size);
+  const r = size / 2;
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const d = Math.hypot(x + 0.5 - r, y + 0.5 - r);
+    if (d <= r) b.pixels[y * size + x] = d > r - 1.5 ? C.groove : C.panel;
+  }
+  return b;
+}
 const MENU_GAP = 2;
 const MENU_PAD = 3;
 
@@ -175,10 +212,26 @@ export abstract class PixelScene extends Phaser.Scene {
   private backAction: (() => void) | null = null;
   /** The frame this screen is drawn in: with or without the toolbar and the band (ft_1_20), set before `draw`. */
   private screenFrame!: FrameView;
-  /** The band's state (ft_1_20): which set of actions More has turned to and which page of items the arrows show; kept over redraws. */
-  private bandPages = { actions: 0, items: 0 };
-  /** Where the inventory is drawn (art pixels) and its items by slot, for the wheel (ft_1_20.AC16); null without the band. */
-  private inventoryBand: { area: Rect; slots: { rect: Rect; item: ToolbarItem }[]; items: number; perPage: number } | null = null;
+  /** The bubble's page (More in its last slot turns it, ft_1_20.AC19); kept over redraws. */
+  private bubblePageNo = 0;
+  /** Pinned actions the strip had no room for: they go into the bubble's empty slots (ft_1_20.AC21). */
+  private stripOverflow: ToolbarItem[] = [];
+  /** Where the strip's items are drawn (art pixels), for the wheel over an item with choices (ft_1_20.AC16); null without a strip. */
+  private inventoryBand: { area: Rect; slots: { rect: Rect; item: ToolbarItem }[] } | null = null;
+  /** The strip's free stretch between its left group (with the worn options) and its main action, in art pixels; null without a strip. */
+  private stripFree: { left: number; right: number; top: number; rows: number } | null = null;
+  /** A long press on a touch screen that may open the bubble (ft_1_20, d282): where it began and its timer. */
+  private longPress: { x: number; y: number; timer: Phaser.Time.TimerEvent; ring: Phaser.GameObjects.Graphics } | null = null;
+  /** The bubble was just opened by a long press: the lift of that finger must not close it or pick anything. */
+  private bubbleFreshTouch = false;
+  /** The fingers on a touch screen now, where and when each landed, for the two-finger tap (ft_1_20.AC25). */
+  private touches = new Map<number, { x: number; y: number; t: number; palm: boolean }>();
+  /** The two fingers that opened the bubble, where they landed: sliding apart is a pinch, which closes it again. */
+  private twoFinger: { ids: number[]; start: { x: number; y: number }[] } | null = null;
+  /** Lifts of the fingers that opened the bubble still to come: they pick nothing. */
+  private bubbleTouchLifts = 0;
+  /** Whether the fingers now on the screen, or the last ones, came down two or more at once (a gesture, never a tap). */
+  private manyFingers = false;
   /** The door and the gear over the top corners with the band and no toolbar: faded until the pointer or the focus is on them. */
   private corners: PixelButton[] = [];
   /** Everything of the scene goes in here, positions in art pixels. */
@@ -196,7 +249,8 @@ export abstract class PixelScene extends Phaser.Scene {
   /** Counts the scene's visits: a picture that arrives after the visit it was asked for has ended draws nothing. */
   private visit = 0;
   /** The open drop-down menu, if any: its container and its choices (which are also in `buttons` while it is open). */
-  private menu: { container: Phaser.GameObjects.Container; buttons: PixelButton[]; focusBefore: number } | null = null;
+  /** The open menu; `previews` are its choices' previews, taken away when it closes (a closing menu sends no pointer-out). */
+  private menu: { container: Phaser.GameObjects.Container; buttons: PixelButton[]; focusBefore: number; bubble?: boolean; ring?: PixelButton[]; previews?: ((on: boolean) => void)[] } | null = null;
   /** F1 in the piece maker: every band item with a key shows it in its corner. */
   protected shortcutsShown = false;
   /** The band's buttons by their key, as last drawn: a key opens its item's menu from the item. */
@@ -217,6 +271,13 @@ export abstract class PixelScene extends Phaser.Scene {
 
   /** Draw the scene into `this.root` for the current `this.px`. Called again after every resize. */
   protected abstract draw(): void;
+
+  /**
+   * Called after the frame is drawn, with the strip's free stretch (between its left group and its main action, in art
+   * pixels from the main area's top), so a screen can show a small reading there; nothing by default.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected afterFrame(_free: { left: number; right: number; top: number; rows: number } | null): void {}
 
   /**
    * True while a screen writes on parchment (a card, a book): `label` writes in ink, with no
@@ -504,12 +565,22 @@ export abstract class PixelScene extends Phaser.Scene {
     this.focusIndex = -1;
     this.focusShown = false;
     this.lastFocusRect = null;
-    this.bandPages = { actions: 0, items: 0 };
+    this.bubblePageNo = 0;
     if (this.framed) this.cameras.main.setBackgroundColor(PALETTE[C.night]);
     // the pointer left the canvas (up into the toolbar, or down to the on-screen keys): no button stays lit or keeps its tooltip
     this.input.on('gameout', () => this.buttons.forEach((b) => b.leave()));
-    // the wheel over the inventory pages it, and over an item with choices steps through them (ft_1_20.AC16)
+    // the wheel over an item of the strip with choices steps through them (ft_1_20.AC16)
     this.input.on('wheel', (p: Phaser.Input.Pointer, _over: unknown, _dx: number, dy: number) => this.inventoryWheel(p, dy));
+    // the bubble (ft_1_20, d282): a right click, a long press on a touch screen, the context-menu key or Shift + F10
+    this.input.mouse?.disableContextMenu();
+    this.moreVisitCounted = false;
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.bubblePointerDown(p));
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      if (this.longPress && Math.hypot(p.x - this.longPress.x, p.y - this.longPress.y) > LONG_PRESS_SLIP) this.cancelLongPress();
+    });
+    this.input.on('pointerup', () => this.cancelLongPress());
+    this.listenForTwoFingers();
+    this.onWindowKey((e) => this.bubbleKey(e));
     // the keyboard switch on the toolbar lights while the on-screen keyboard is shown, whoever changed it
     const keys = contextOf(this).keyboardSwitch;
     const stop = keys.onChange(() => this.lightKeys(keys.shown()));
@@ -590,6 +661,7 @@ export abstract class PixelScene extends Phaser.Scene {
         ...rectCentre(layout.cells[i]!), label: item.label, iconOnly: item.icon !== undefined,
         ...(item.icon ? { icon: item.icon } : {}), ...(item.fineIcon ? { fineIcon: true } : {}), ...(item.tooltip ? { tooltip: item.tooltip } : {}), ...(item.keepCase ? { keepCase: true } : {}),
         ...(item.disabled ? { disabled: true } : {}), ...(options.paper ? { look: 'ink' as const } : {}),
+        ...(item.preview ? { onHover: item.preview } : {}),
         onClick: () => {
           this.closeMenu();
           item.onPick();
@@ -599,7 +671,7 @@ export abstract class PixelScene extends Phaser.Scene {
       if (item.shortcut) this.keyBadge(container, button, item.shortcut);
       buttons.push(button);
     });
-    this.menu = { container, buttons, focusBefore: this.focusIndex };
+    this.menu = { container, buttons, focusBefore: this.focusIndex, previews: items.flatMap((item) => (item?.preview ? [item.preview] : [])) };
     this.buttons.push(...buttons);
     // the keyboard starts on the choice in use
     if (this.keyboardNavigation) {
@@ -613,6 +685,7 @@ export abstract class PixelScene extends Phaser.Scene {
     const menu = this.menu;
     if (!menu) return;
     this.menu = null;
+    for (const preview of menu.previews ?? []) preview(false);
     this.buttons = this.buttons.filter((b) => !menu.buttons.includes(b));
     menu.buttons.forEach((b) => b.destroy());
     menu.container.destroy(true);
@@ -790,10 +863,16 @@ export abstract class PixelScene extends Phaser.Scene {
     return this.screenFrame.top * this.px.scale;
   }
 
-  /** Whether the action and inventory band is drawn under the main area (ft_1_20): a painted place then keeps no strip of its own. */
+  /**
+   * Whether the screen has the frame without a toolbar (ft_1_20, d282): the door and the gear over the main area's top
+   * corners, the strip at the foot when the screen pins actions; every screen but the teacher's, an overlay and the main menu.
+   */
   protected get bandShown(): boolean {
-    return this.screenFrame.band !== null;
+    return this.cornerFramed;
   }
+
+  /** Set in `rebuild`: the frame without a toolbar (`bandShown`). */
+  private cornerFramed = false;
 
   /**
    * With the band and no toolbar: the strip along the main area's top that the door and the gear stand in (`rows` high), and
@@ -801,7 +880,9 @@ export abstract class PixelScene extends Phaser.Scene {
    */
   protected get cornerStrip(): { rows: number; left: number; right: number } {
     const { back, settings } = frameCorners(this.px.width);
-    return { rows: Math.max(back.y + back.h, settings.y + settings.h) + 1, left: back.x + back.w + 2, right: settings.x - 2 };
+    // the piano's status and the backpack stand left of the gear, each one corner wide
+    const extra = (this.cornerStatus() ? 1 : 0) + (this.backpackItems() ? 1 : 0);
+    return { rows: Math.max(back.y + back.h, settings.y + settings.h) + 1, left: back.x + back.w + 2, right: settings.x - extra * (settings.w + BACKPACK_GAP) - 2 };
   }
 
   /** Where a screen's title starts: `margin`, or right of the door when the band puts the door in the top left corner (ft_1_20). */
@@ -832,7 +913,7 @@ export abstract class PixelScene extends Phaser.Scene {
   private drawFrame(): void {
     const band = this.screenFrame.band;
     if (this.screenFrame.toolbar) this.drawToolbar(band ? [] : this.toolbarItems());
-    if (band) this.drawBand(band.top);
+    if (band) this.drawFootStrip(band.top);
   }
 
   /**
@@ -875,96 +956,504 @@ export abstract class PixelScene extends Phaser.Scene {
   }
 
   /**
-   * The action and inventory band at the foot (ft_1_20, d115), `top` rows below the main area's top, with no text on it:
-   * the 3 x 3 grid of the screen's actions with Back bottom left and Settings bottom right, the
-   * arrows and the item slots. Today's plain panels and buttons: the painter draws the band's look.
+   * The actions pinned in the strip along the foot (ft_1_20, d282), left to right in their order; the one marked `main`
+   * stands at the right end. By default every action and item of the screen: a screen whose actions fit pins them all and has
+   * no bubble.
    */
-  private drawBand(top: number): void {
-    const context = contextOf(this);
-    const width = this.px.width;
-    const keepsToolbar = this.screenFrame.toolbar;
-    // the band's ground: one warm board with a dark line along its top; the plates are cut into it
-    const ground = createBitmap(Math.max(5, width), BAND_ROWS);
-    ground.pixels.fill(C.panel);
-    ground.pixels.fill(C.groove, 0, ground.width);
-    this.root.add(new PixelImage(this, 0, top, ground));
-    const layout = bandLayout(width);
-    const box = (r: Rect) => ({ ...rectCentre(r), y: top + r.y + r.h / 2 });
-
-    // Back and Settings: the door and the gear where the toolbar had them, over the screen's top corners
-    const corners = keepsToolbar ? null : frameCorners(width);
-    // over the staff too: a screen whose staff fills the main area (practice, the piece maker) would hide them
-    const cornerLayer = corners ? this.overStaff() : null;
-    const corner = (r: Rect, label: string, icon: Bitmap, onClick: () => void): PixelButton => {
-      // the picture alone, no button behind it (the gear and exit corner buttons show only their pictures, with no button background)
-      const button: PixelButton = this.buttonOn(cornerLayer!, { ...rectCentre(r), label, picture: icon, onHover: (over) => button.setAlpha(over ? 1 : CORNER_FADED), onClick });
-      button.setAlpha(CORNER_FADED);
-      this.corners.push(button);
-      return button;
-    };
-    const back = corners && this.hasBack ? corner(corners.back, t('ui.back'), ICONS.quit, () => (this.backAction ?? (() => this.back()))()) : null;
-    const settings = corners && this.scene.key !== 'settings' && this.toolbarPlayer ? corner(corners.settings, t('menu.settingsButton'), ICONS.settings, () => this.openSettingsScreen()) : null;
-
-    // the action grid: the screen's actions, and the keyboard switch on the settings screen (d099)
-    const actions = this.bandActions();
-    const keysAction = !keepsToolbar && this.toolbarKeys;
-    if (keysAction) actions.push({ label: t('settings.keyboard'), icon: ICONS.freePlay, onClick: () => context.keyboardSwitch.toggle() });
-    const grid = bandCells({ actions: actions.length, page: this.bandPages.actions });
-    this.bandPages.actions = grid.page;
-    const made = grid.cells.map((cell, i) => this.bandCell(cell, actions, box(layout.cells[i]!)));
-    const actionButtons = grid.cells.flatMap((cell, i) => (cell !== null && typeof cell === 'object' ? [{ action: cell.action, button: made[i]! }] : []));
-    if (!keepsToolbar) {
-      this.toolbarButtons = {
-        back,
-        settings,
-        keys: keysAction ? actionButtons.find((a) => a.action === actions.length - 1)?.button ?? null : null,
-        items: actionButtons.filter((a) => !keysAction || a.action < actions.length - 1).map((a) => a.button),
-      };
-      if (keysAction) this.toolbarButtons.keys?.setDisabled(!context.keyboardSwitch.enabled());
-      this.lightKeys(context.keyboardSwitch.shown());
-    }
-
-    // the inventory: the arrows page it, a page of slots at a time (rule 5)
-    const items = this.bandItems();
-    const page = bandItemPage({ items: items.length, slots: layout.slots.length, page: this.bandPages.items });
-    this.bandPages.items = page.page;
-    const turn = (by: number) => () => {
-      this.bandPages.items = page.page + by;
-      this.redraw();
-    };
-    this.button({ ...box(layout.arrows.up), label: t('band.itemsUp'), icon: ICONS.up, iconOnly: true, look: 'bandCell', disabled: !page.up, onClick: turn(-1) });
-    this.button({ ...box(layout.arrows.down), label: t('band.itemsDown'), icon: ICONS.down, iconOnly: true, look: 'bandCell', disabled: !page.down, onClick: turn(1) });
-    const shown: { rect: Rect; item: ToolbarItem }[] = [];
-    layout.slots.forEach((slot, i) => {
-      const item = items[page.first + i];
-      if (i >= page.count || !item) {
-        this.root.add(new PixelImage(this, slot.x, top + slot.y, trayBitmap(slot.w, slot.h, 'slotEmpty')));
-        return;
-      }
-      this.bandButton(item, box(slot), 'bandSlot', slot.w - CELL_PAD);
-      shown.push({ rect: { ...slot, y: top + slot.y }, item });
-    });
-    const parts = [layout.arrows.up, layout.arrows.down, ...layout.slots];
-    const left = Math.min(...parts.map((r) => r.x)), right = Math.max(...parts.map((r) => r.x + r.w));
-    const upper = Math.min(...parts.map((r) => r.y)), lower = Math.max(...parts.map((r) => r.y + r.h));
-    this.inventoryBand = { area: { x: left, y: top + upper, w: right - left, h: lower - upper }, slots: shown, items: items.length, perPage: layout.slots.length };
+  protected stripActions(): ToolbarItem[] {
+    return [...this.bandActions(), ...this.bandItems()];
   }
 
-  /** One cell of the action grid: an action, More, or an empty panel. */
-  private bandCell(cell: BandCell, actions: readonly ToolbarItem[], at: { x: number; y: number; width: number; height: number }): PixelButton | null {
-    // a cell with no action is not drawn: the band shows only what can be done (AX-3 provisional, asked of the architect)
-    if (cell === null) return null;
-    const make = (item: ToolbarItem): PixelButton => this.bandButton(item, at, 'bandCell', at.width - CELL_PAD);
-    if (cell === 'more') {
-      return make({
-        label: t('band.more'),
+  /**
+   * The bubble's options for a right click at `at` (art pixels; null when More opened it), slot by slot (slot 0 straight
+   * up, then clockwise; a `null` leaves its slot empty), or null for no bubble there (ft_1_20, d282). None by default.
+   */
+  /**
+   * Whether a press at `at` would open a bubble, asked at the start of a press before the bubble opens (a long press may
+   * still turn into a drag): it changes nothing. By default, whether `bubbleOptions` gives any; a screen whose
+   * `bubbleOptions` selects what is under the pointer answers without it.
+   */
+  protected hasBubbleAt(at: { x: number; y: number }): boolean {
+    return this.bubbleOptions(at) !== null;
+  }
+
+  // the base screen has no bubble wherever it is opened; a screen overrides this and reads `at`
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
+    return null;
+  }
+
+  /** The items the student keeps, in the backpack in the top right corner (ft_1_20, d282), or null on a screen without it. */
+  protected backpackItems(): ToolbarItem[] | null {
+    return null;
+  }
+
+  /** A status picture left of the gear (the piano on the practice screen): lit while all is well, what it means in its tooltip; none by default. */
+  protected cornerStatus(): { label: string; icon: Bitmap; lit: boolean } | null {
+    return null;
+  }
+
+  /** The strip's rows on this screen (none without a strip). */
+  protected get stripHeight(): number {
+    return this.screenFrame.band?.rows ?? 0;
+  }
+
+  /** Whether the screen has a bubble (More is then drawn at the end of the strip's left group). */
+  private get hasBubble(): boolean {
+    return this.bubbleOptions(null) !== null;
+  }
+
+  /** The strip's rows: none on a screen with nothing pinned and no bubble (ft_1_20.AC21). */
+  private stripRows(): number {
+    try {
+      return pinRows(this.stripActions().length + (this.hasBubble ? 1 : 0));
+    } catch {
+      // a screen whose actions need what its `draw` sets up has a strip of one row
+      return pinRows(1);
+    }
+  }
+
+  /** How many cells of the strip an item takes: one for a picture, as many as its whole word needs (ft_1_20.AC18). */
+  private stripSpan(item: ToolbarItem): number {
+    return item.icon ? 1 : cellSpan(measure(drawnText(item.label)) + CELL_PAD + 2, STRIP_CELL_WIDTH);
+  }
+
+  /** The door and the gear over the top corners (rule 3), faded until the pointer or the focus is on them, and the backpack. */
+  private drawCorners(): void {
+    const corners = frameCorners(this.px.width);
+    // over the staff too: a screen whose staff fills the main area (practice, the piece maker) would hide them
+    const layer = this.overStaff();
+    const touch = this.sys.game.device.input.touch && !this.sys.game.device.os.desktop;
+    const corner = (r: Rect, label: string, icon: Bitmap, onClick: () => void): PixelButton => {
+      // the picture alone, no button behind it; never faded on a touch screen, which has no hover to show it
+      const button: PixelButton = this.buttonOn(layer, { ...rectCentre(r), label, picture: icon, onHover: (over) => button.setAlpha(over || touch ? 1 : CORNER_FADED), onClick });
+      button.setAlpha(touch ? 1 : CORNER_FADED);
+      if (!touch) this.corners.push(button);
+      return button;
+    };
+    const back = this.hasBack ? corner(corners.back, t('ui.back'), ICONS.quit, () => (this.backAction ?? (() => this.back()))()) : null;
+    const showSettings = this.scene.key !== 'settings' && this.toolbarPlayer;
+    const settings = showSettings ? corner(corners.settings, t('menu.settingsButton'), ICONS.settings, () => this.openSettingsScreen()) : null;
+    let left = corners.settings.x;
+    const status = this.cornerStatus();
+    if (status) {
+      left -= corners.settings.w + BACKPACK_GAP;
+      const r = { ...corners.settings, x: left };
+      // a picture, not a button: it does nothing when pressed, its tooltip says what it means
+      const shown = this.buttonOn(layer, { ...rectCentre(r), label: status.label, tooltip: status.label, picture: status.lit ? status.icon : recolor(status.icon, { [C.white]: C.lock }), onClick: () => undefined });
+      shown.setAlpha(status.lit ? 1 : CORNER_FADED);
+    }
+    const kept = this.backpackItems();
+    if (kept) {
+      left -= corners.settings.w + BACKPACK_GAP;
+      const r = { ...corners.settings, x: left };
+      // the items are read at the press, so one won while the screen is open is there
+      const bag: PixelButton = this.buttonOn(layer, {
+        ...rectCentre(r), label: t('band.backpack'), picture: TOOL_ICONS.backpack,
         onClick: () => {
-          this.bandPages.actions += 1;
-          this.redraw();
+          const items = this.backpackItems() ?? [];
+          const choices: MenuItem[] = items.length
+            ? items.map((item) => ({ label: item.label, ...(item.icon ? { icon: item.icon } : {}), ...(item.fineIcon ? { fineIcon: true } : {}), ...(item.tooltip ? { tooltip: item.tooltip } : {}), onPick: item.onClick }))
+            : [{ label: t('band.backpackEmpty'), disabled: true, onPick: () => undefined }];
+          this.openMenu(bag, choices, { cell: items.length ? { w: 30, h: 30 } : { w: 120, h: 15 }, columns: Math.min(4, Math.max(1, items.length)), open: 'below' });
         },
       });
     }
-    return make(actions[cell.action]!);
+    this.toolbarButtons = { ...this.toolbarButtons, back, settings };
+  }
+
+  /**
+   * The strip along the foot (ft_1_20, d282), `top` rows below the main area's top: the pinned actions left to right, More
+   * (when the screen has a bubble) after them, the worn options that are on as small lit pictures after More, and the main
+   * action at the right end. A word is never cut short: it takes the cells it needs, and what does not fit goes into the bubble.
+   */
+  private drawFootStrip(top: number): void {
+    const context = contextOf(this);
+    const width = this.px.width;
+    this.stripOverflow = [];
+    if (!this.screenFrame.toolbar) this.drawCorners();
+    const rows = this.screenFrame.band?.rows ?? 0;
+    this.stripFree = null;
+    if (rows === 0) {
+      this.toolbarButtons = { ...this.toolbarButtons, keys: null, items: [] };
+      return;
+    }
+    // the strip's ground: one warm board with a dark line along its top
+    const ground = createBitmap(Math.max(5, width), rows);
+    ground.pixels.fill(C.panel);
+    ground.pixels.fill(C.groove, 0, ground.width);
+    this.root.add(new PixelImage(this, 0, top, ground));
+    const actions = this.stripActions();
+    const keysAction = !this.screenFrame.toolbar && this.toolbarKeys;
+    if (keysAction) actions.push({ label: t('settings.keyboard'), icon: ICONS.freePlay, onClick: () => context.keyboardSwitch.toggle() });
+    let bubble = this.hasBubble;
+    const moreItem: ToolbarItem = { label: t('band.more'), icon: TOOL_ICONS.more, onClick: () => this.openBubble(null) };
+    const plan = (withMore: boolean) => {
+      const list = withMore ? [...actions.filter((a) => !a.main), moreItem, ...actions.filter((a) => a.main)] : actions;
+      const main = list.findIndex((a) => a.main);
+      return { list, flow: pinFlow({ spans: list.map((a) => this.stripSpan(a)), width, ...(main >= 0 ? { main } : {}) }) };
+    };
+    let { list, flow } = plan(bubble);
+    if (!bubble && flow.toBubble.length > 0) {
+      bubble = true;
+      ({ list, flow } = plan(true));
+    }
+    this.stripOverflow = flow.toBubble.map((i) => list[i]!).filter((a) => a !== moreItem);
+    const box = (r: Rect) => ({ ...rectCentre(r), y: top + r.y + r.h / 2 });
+    const made = new Map<ToolbarItem, PixelButton>();
+    const shown: { rect: Rect; item: ToolbarItem }[] = [];
+    let moreRight = 0;
+    for (const placed of flow.placed) {
+      const item = list[placed.action]!;
+      const button = this.bandButton(item, box(placed.rect), 'bandCell', placed.rect.w - CELL_PAD);
+      made.set(item, button);
+      shown.push({ rect: { ...placed.rect, y: top + placed.rect.y }, item });
+      if (item === moreItem) {
+        moreRight = placed.rect.x + placed.rect.w;
+        this.pulseMore(button);
+      }
+    }
+    const mainLeft = Math.min(width, ...flow.placed.filter((p) => list[p.action]!.main).map((p) => p.rect.x));
+    let freeLeft = Math.max(0, ...flow.placed.filter((p) => !list[p.action]!.main).map((p) => p.rect.x + p.rect.w));
+    // the worn options that are on, beside More: a press turns one off (ft_1_20, d282)
+    if (bubble && moreRight > 0) {
+      let x = moreRight + 3;
+      for (const worn of (this.bubbleOptions(null) ?? []).filter((o): o is ToolbarItem => o !== null && o.worn === true && o.active === true && o.icon !== undefined)) {
+        if (x + CHIP > mainLeft - 2) break;
+        const chip = this.button({ x: x + CHIP / 2, y: top + 1 + 15 / 2, width: CHIP, height: 15, label: worn.label, icon: worn.icon!, iconOnly: true, look: 'bandCell', ...(worn.tooltip ? { tooltip: worn.tooltip } : {}), onClick: worn.onClick });
+        chip.setActive(true);
+        x += CHIP + 1;
+      }
+      freeLeft = Math.max(freeLeft, x);
+    }
+    this.stripFree = { left: freeLeft, right: mainLeft, top, rows };
+    const items = actions.map((a) => made.get(a)).filter((b): b is PixelButton => b !== undefined);
+    this.toolbarButtons = {
+      ...this.toolbarButtons,
+      keys: keysAction ? made.get(actions[actions.length - 1]!) ?? null : null,
+      items: keysAction ? items.filter((b) => b !== made.get(actions[actions.length - 1]!)) : items,
+    };
+    if (keysAction) this.toolbarButtons.keys?.setDisabled(!context.keyboardSwitch.enabled());
+    if (!this.screenFrame.toolbar) this.lightKeys(context.keyboardSwitch.shown());
+    this.inventoryBand = { area: { x: 0, y: top, w: width, h: rows }, slots: shown };
+  }
+
+  /**
+   * More pulses on a screen's first three visits (ft_1_20, d282), so a student finds what is behind it; once a visit, kept
+   * per screen in this browser. AX-3 provisional: three visits.
+   */
+  private pulseMore(button: PixelButton): void {
+    // once a visit: a screen drawn again (a tempo change, a hint) does not pulse again
+    if (this.moreVisitCounted) return;
+    // a self-playing demo keeps the browser's storage as it was (ft_Y_09.AC4)
+    if (contextOf(this).flags.autoplay) return;
+    const key = `pianor.morePulse.${this.scene.key}`;
+    let seen = MORE_PULSE_VISITS;
+    try {
+      seen = Number(window.localStorage.getItem(key) ?? '0') || 0;
+      window.localStorage.setItem(key, String(seen + 1));
+    } catch {
+      // storage is blocked: no pulse
+    }
+    this.moreVisitCounted = true;
+    if (seen >= MORE_PULSE_VISITS || !motionAllowed()) return;
+    this.tweens.add({ targets: button, alpha: 0.45, duration: 450, yoyo: true, repeat: 3, ease: 'Sine.easeInOut' });
+  }
+
+  /** Whether this visit was counted for More's pulse. */
+  private moreVisitCounted = false;
+
+  /** Opens the bubble at the right click's `p`, or starts a long press on a touch screen (ft_1_20, d282). */
+  private bubblePointerDown(p: Phaser.Input.Pointer): void {
+    if (this.sys.isPaused() || !this.screenFrame?.band) return;
+    if (this.isBubblePress(p)) {
+      if (this.menuOpen) return;
+      const at = this.artPoint(p);
+      if (this.hasBubbleAt(at) || this.stripOverflow.length > 0) this.openBubble(at);
+      return;
+    }
+    if (!p.wasTouch || this.menuOpen || this.pointerOnButton(p)) return;
+    this.cancelLongPress();
+    const at = this.artPoint(p);
+    if (!this.hasBubbleAt(at)) return;
+    const timer = this.time.delayedCall(LONG_PRESS_MS, () => {
+      this.cancelLongPress();
+      this.bubbleFreshTouch = true;
+      this.openBubble(at);
+    });
+    // a ring fills round the finger from a moment in, so the student sees that holding on opens something
+    const ring = this.add.graphics().setDepth(MENU_DEPTH);
+    const radius = 10 * this.px.scale;
+    const started = this.time.now;
+    ring.on('destroy', () => this.events.off('update', fill));
+    const fill = () => {
+      const done = (this.time.now - started - LONG_PRESS_RING_FROM_MS) / (LONG_PRESS_MS - LONG_PRESS_RING_FROM_MS);
+      ring.clear();
+      if (done <= 0) return;
+      ring.lineStyle(Math.max(2, this.px.scale), PALETTE[C.goldLight] ?? 0xffd36b, 0.9);
+      ring.beginPath().arc(p.x, p.y, radius, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * Math.min(1, done)).strokePath();
+    };
+    this.events.on('update', fill);
+    this.longPress = { x: p.x, y: p.y, timer, ring };
+  }
+
+  /**
+   * The two-finger tap (ft_1_20.AC25), read from the canvas's own touch events (the game follows one finger): the second of
+   * two fingers that land together opens the bubble at once midway between them, and the first finger's lift picks
+   * nothing; two fingers that then slide apart are a pinch, which closes it again.
+   */
+  /** Whether the touch now ending was part of two or more fingers at once: its lift is no tap. */
+  protected get severalFingers(): boolean {
+    return this.manyFingers;
+  }
+
+  private listenForTwoFingers(): void {
+    const canvas = this.game.canvas;
+    // fingers are followed in CSS pixels of the page, the same distance under the finger on any screen
+    const at = (touch: Touch) => ({ x: touch.clientX, y: touch.clientY });
+    const onCanvas = (p: { x: number; y: number }) => {
+      const rect = canvas.getBoundingClientRect();
+      return { x: ((p.x - rect.left) / rect.width) * canvas.width, y: ((p.y - rect.top) / rect.height) * canvas.height };
+    };
+    // a resting palm or the side of a hand is no finger
+    const PALM = 40;
+    const start = (e: TouchEvent) => {
+      const now = this.time.now;
+      // a finger alone on the screen starts a new gesture: what the last one left behind is gone
+      if (e.touches.length === 1) {
+        this.manyFingers = false;
+        this.bubbleTouchLifts = 0;
+      } else if (e.touches.length > 1) this.manyFingers = true;
+      for (const touch of Array.from(e.changedTouches)) this.touches.set(touch.identifier, { ...at(touch), t: now, palm: Math.max(touch.radiusX, touch.radiusY) > PALM });
+      if (e.touches.length !== 2 || this.touches.size !== 2 || this.sys.isPaused() || !this.screenFrame?.band || this.menuOpen) return;
+      const [one, two] = Array.from(e.touches);
+      const first = this.touches.get(one!.identifier), second = this.touches.get(two!.identifier);
+      if (!first || !second || first.palm || second.palm) return;
+      const [early, late, earlyNow] = first.t <= second.t ? [first, second, at(one!)] : [second, first, at(two!)];
+      const middle = twoFingerTap({ ...early, now: earlyNow }, late);
+      if (!middle) return;
+      const art = this.artPoint(onCanvas(middle));
+      if (!this.hasBubbleAt(art) && this.stripOverflow.length === 0) return;
+      this.cancelLongPress();
+      this.twoFinger = { ids: [one!.identifier, two!.identifier], start: [first, second].map((f) => ({ x: f.x, y: f.y })) };
+      // both lifts pick nothing, whichever frames they come on (the count is cleared once every finger is up)
+      this.bubbleTouchLifts = 2;
+      this.openBubble(art);
+    };
+    const move = (e: TouchEvent) => {
+      const two = this.twoFinger;
+      if (!two || !this.bubbleIsOpen) return;
+      const now = two.ids.map((id) => Array.from(e.touches).find((t) => t.identifier === id));
+      if (now.every((t): t is Touch => t !== undefined) && twoFingersSlid(two.start, now.map(at))) {
+        this.twoFinger = null;
+        this.closeMenu();
+      }
+    };
+    const end = (e: TouchEvent) => {
+      for (const touch of Array.from(e.changedTouches)) this.touches.delete(touch.identifier);
+      // the lifts still to be swallowed stay counted until the next finger or mouse press starts afresh, whichever order
+      // the game and this listener see the last lift in
+      if (e.touches.length === 0) {
+        this.touches.clear();
+        this.twoFinger = null;
+      }
+    };
+    const options = { passive: true };
+    canvas.addEventListener('touchstart', start, options);
+    canvas.addEventListener('touchmove', move, options);
+    canvas.addEventListener('touchend', end, options);
+    canvas.addEventListener('touchcancel', end, options);
+    this.touches.clear();
+    this.twoFinger = null;
+    this.bubbleTouchLifts = 0;
+    this.manyFingers = false;
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      if (!p.wasTouch) this.bubbleTouchLifts = 0;
+    });
+    this.events.once('shutdown', () => {
+      canvas.removeEventListener('touchstart', start);
+      canvas.removeEventListener('touchmove', move);
+      canvas.removeEventListener('touchend', end);
+      canvas.removeEventListener('touchcancel', end);
+    });
+  }
+
+  /** Whether a press is the right button's, which opens the bubble: a screen's own press on its staff leaves it alone (ft_1_20, d282). */
+  protected isBubblePress(p: Phaser.Input.Pointer): boolean {
+    return p.rightButtonDown() || (p.event as MouseEvent | undefined)?.button === 2;
+  }
+
+  private cancelLongPress(): void {
+    this.longPress?.timer.remove(false);
+    this.longPress?.ring.destroy();
+    this.longPress = null;
+  }
+
+  /** Esc closes an open menu or bubble before the screen sees it; the context-menu key and Shift + F10 open the bubble at the focus. */
+  private bubbleKey(e: KeyboardEvent): void {
+    if (this.sys.isPaused() || !this.scene.isActive()) return;
+    if (e.key === 'Escape' && this.menuOpen) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      this.closeMenu();
+      return;
+    }
+    // in the bubble the arrows walk its options round the ring: right and down clockwise, left and up back (ft_1_20, d282)
+    const ring = this.menu?.ring?.filter((b) => !b.disabled) ?? [];
+    const walk = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    // Enter or Space picks the focused option before the screen under the bubble hears the key
+    if (this.bubbleIsOpen && (e.key === 'Enter' || e.key === ' ') && this.focusedButton) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (!e.repeat) this.focusedButton.press();
+      return;
+    }
+    if (walk !== undefined && ring.length > 0) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const at = this.focusedButton ? ring.indexOf(this.focusedButton) : -1;
+      this.focusOn(ring[at < 0 ? 0 : (at + walk + ring.length) % ring.length]);
+      return;
+    }
+    if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
+      if (!this.screenFrame?.band || this.menuOpen || (!this.hasBubble && this.stripOverflow.length === 0)) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const focused = this.focusedButton?.rect;
+      this.openBubble(focused ? { x: focused.x + focused.width / 2, y: focused.y + focused.height / 2 } : null, { keyboard: true });
+    }
+  }
+
+  /** Whether the bubble is open (an end-to-end test or a screen that takes the piano's keys closes it, ft_1_20.AC22). */
+  get bubbleIsOpen(): boolean {
+    return this.menu?.bubble === true;
+  }
+
+  /**
+   * Opens the bubble (ft_1_20, d282) round `at` (art pixels; null: over More, from the strip) with the options for what is
+   * there, each in its fixed slot; `open` shows that slot's choices in a row beside the ring. A pick does it and closes the
+   * bubble; a worn option switches and opens the bubble again where it was; More in the last slot turns to the next options.
+   */
+  openBubble(at: { x: number; y: number } | null, options: { open?: number; keyboard?: boolean; page?: number } = {}): void {
+    const target = at;
+    const listed = [...(this.bubbleOptions(target) ?? [])];
+    // the pinned actions the strip had no room for take the empty slots
+    for (const extra of this.stripOverflow) {
+      const free = listed.findIndex((o, i) => o === null && i < BUBBLE_SLOTS);
+      if (free >= 0) listed[free] = extra;
+      else listed.push(extra);
+    }
+    if (listed.every((o) => o === null)) return;
+    this.closeMenu();
+    if (options.page !== undefined) this.bubblePageNo = options.page;
+    const paging = bubblePage({ options: listed.length, page: this.bubblePageNo });
+    this.bubblePageNo = paging.page;
+    const strip = this.screenFrame.band;
+    // never under the top strip between the door and the gear (the piece maker's title is a text field over the canvas)
+    const top = this.screenFrame.toolbar ? 0 : this.cornerStrip.rows;
+    const whole = { x: 0, y: 0, w: this.px.width, h: this.mainRows + (strip?.rows ?? 0) };
+    const bounds = { ...whole, y: top, h: whole.h - top };
+    const more = this.inventoryBand?.slots.find((s) => s.item.icon === TOOL_ICONS.more)?.rect;
+    // from More the bubble stands on the strip over More, never over the strip: the pointer goes straight up to it
+    if (at === null && strip) bounds.h = this.mainRows - top;
+    const centre = at ?? (more ? { x: more.x + more.w / 2, y: more.y } : { x: bounds.w / 2, y: bounds.y + bounds.h / 2 });
+    const open = options.open !== undefined ? listed[paging.slots[options.open] as number] : undefined;
+    const choices = open?.menu?.items() ?? [];
+    const layout = bubbleLayout({ at: centre, options: BUBBLE_SLOTS, screen: bounds, ...(open && options.open !== undefined ? { open: { option: options.open, choices: choices.length } } : {}) });
+    const container = this.add.container(this.root.x, this.root.y).setScale(this.px.scale).setDepth(MENU_DEPTH);
+    // the catcher takes every press outside the bubble and closes it on release, so the press never reaches the screen
+    // under it; the lift of the long press that opened it is not such a press
+    const catcher = this.add.zone(whole.x, whole.y, whole.w, whole.h).setOrigin(0).setInteractive();
+    // a press inside the ring but between the options picks the option in that direction (a slice of the ring each), so a
+    // quick move toward an option is enough; outside the ring it closes the bubble
+    const sectorPick: ((() => void) | null)[] = [];
+    catcher.on('pointerup', (p: Phaser.Input.Pointer) => {
+      if (this.bubbleFreshTouch) {
+        this.bubbleFreshTouch = false;
+        return;
+      }
+      // the lifts of the two fingers that opened the bubble
+      if (this.bubbleTouchLifts > 0) {
+        this.bubbleTouchLifts -= 1;
+        return;
+      }
+      const a = this.artPoint(p);
+      const dx = a.x - layout.centre.x, dy = a.y - layout.centre.y;
+      const d = Math.hypot(dx, dy);
+      if (d > layout.close.w / 2 + 1 && d <= layout.area.w / 2) {
+        const turn = (Math.atan2(dy, dx) + Math.PI / 2 + 2 * Math.PI) % (2 * Math.PI);
+        const pick = sectorPick[Math.round(turn / ((2 * Math.PI) / BUBBLE_SLOTS)) % BUBBLE_SLOTS];
+        if (pick) {
+          pick();
+          return;
+        }
+      }
+      this.closeMenu();
+    });
+    // the ground is see-through: the staff under it still reads while the bubble is open
+    container.add([catcher, new PixelImage(this, layout.area.x, layout.area.y, ringBitmap(layout.area.w)).setAlpha(BUBBLE_GROUND_ALPHA)]);
+    const buttons: PixelButton[] = [];
+    // the options in slot order, for the arrows
+    const ring: PixelButton[] = [];
+    const make = (r: Rect, item: ToolbarItem, onClick: () => void, onHover?: (over: boolean) => void): PixelButton => {
+      const button = new PixelButton(this, container, {
+        ...(onHover ? { onHover } : {}),
+        ...rectCentre(r), label: item.label, labelWidth: r.w - CELL_PAD, look: 'bubble',
+        // a music sign on its scrap of parchment is too big for a round option: the sign alone, in the option's colour
+        ...(item.icon ? { icon: item.fineIcon ? signOnly(item.icon, BUBBLE_SIGN, BUBBLE_SIGN) : item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}),
+        tooltip: item.tooltip ?? item.label, ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}),
+        // the lift of a finger that opened the bubble by a two-finger tap picks nothing, even over an option
+        onClick: () => {
+          if (this.bubbleTouchLifts > 0) {
+            this.bubbleTouchLifts -= 1;
+            return;
+          }
+          onClick();
+        },
+      });
+      if (item.active) button.setActive(true);
+      if (item.armed) button.setArmed(true);
+      // opened from the keyboard, the bubble shows each option's key in its corner; for the mouse the key is in the tooltip
+      if (item.shortcut && (options.keyboard || this.shortcutsShown)) this.keyBadge(container, button, item.shortcut);
+      buttons.push(button);
+      return button;
+    };
+    paging.slots.forEach((slot, i) => {
+      const r = layout.options[i]!;
+      if (slot === 'more') {
+        const turn = () => this.openBubble(at, { page: this.bubblePageNo + 1 });
+        ring.push(make(r, { label: t('band.more'), icon: TOOL_ICONS.more, onClick: () => undefined }, turn));
+        sectorPick[i] = turn;
+        return;
+      }
+      const item = slot === null ? null : listed[slot];
+      if (!item) return;
+      const pick = () => {
+        if (item.menu) {
+          this.openBubble(at, options.open === i ? {} : { open: i });
+          return;
+        }
+        this.closeMenu();
+        item.onClick();
+        // a worn option leaves the bubble open, so several can be set in a row
+        if (item.worn) this.time.delayedCall(0, () => this.openBubble(at));
+      };
+      ring.push(make(r, item, pick));
+      if (!item.disabled) sectorPick[i] = pick;
+    });
+    choices.forEach((choice, j) => {
+      const r = layout.choices[j];
+      if (!choice || !r) return;
+      const button = make(r, { label: choice.label, ...(choice.icon ? { icon: choice.icon } : {}), ...(choice.fineIcon ? { fineIcon: true } : {}), ...(choice.tooltip ? { tooltip: choice.tooltip } : {}), ...(choice.disabled ? { disabled: true } : {}), ...(choice.keepCase ? { keepCase: true } : {}), ...(choice.shortcut ? { shortcut: choice.shortcut } : {}), onClick: () => undefined }, () => {
+        this.closeMenu();
+        choice.onPick();
+      }, choice.preview);
+      if (choice.active) button.setActive(true);
+    });
+    make(layout.close, { label: t('band.close'), icon: TOOL_ICONS.close, onClick: () => undefined }, () => this.closeMenu());
+    this.menu = { container, buttons, focusBefore: this.focusIndex, bubble: true, ring, previews: choices.flatMap((choice) => (choice?.preview ? [choice.preview] : [])) };
+    this.buttons.push(...buttons);
+    if (options.keyboard || this.keyboardNavigation) this.focusOn(ring.find((b) => !b.disabled) ?? buttons[0]);
   }
 
   /**
@@ -973,13 +1462,12 @@ export abstract class PixelScene extends Phaser.Scene {
    * An opening item with a `menu` opens its choices from the button.
    */
   private bandButton(item: ToolbarItem, at: { x: number; y: number; width: number; height: number }, look: 'bandCell' | 'bandSlot', room: number): PixelButton {
-    const width = (s: string) => measure(drawnText(s));
-    const fits = width(item.label) <= room;
-    const label = fits || item.icon ? item.label : clipToWidth(item.label, room, width);
-    const tooltip = item.tooltip ?? (fits || item.icon ? undefined : item.label);
+    // a word is never cut short (ft_1_20.AC18): the strip gives it the cells it needs
+    const label = item.label;
+    const tooltip = item.tooltip;
     const menu = item.menu;
     const button: PixelButton = this.button({
-      ...at, label, labelWidth: room, look, ...(item.icon ? { icon: item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}), ...(tooltip ? { tooltip } : {}),
+      ...at, label, labelWidth: room, look, ...(item.icon ? { icon: item.fineIcon && look === 'bandCell' ? signOnly(item.icon, STRIP_SIGN, STRIP_SIGN) : item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}), ...(tooltip ? { tooltip } : {}),
       ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}),
       // a band item's menu opens above it, toward the staff, where the pointer goes next
       onClick: menu ? () => this.openMenu(button, menu.items(), { cell: menu.cell, columns: menu.columns, open: 'above' }) : item.onClick,
@@ -994,7 +1482,12 @@ export abstract class PixelScene extends Phaser.Scene {
   /** Names `key` as the button's key: a key menu opens from it, and its name shows on it while `shortcutsShown`. */
   protected markKey(button: PixelButton, key: string, parent: Phaser.GameObjects.Container = this.root): void {
     this.shortcutButtons.set(key, button);
-    if (this.shortcutsShown) this.keyBadge(parent, button, key);
+    if (this.shortcutsShown) this.keyBadge(parent, button, this.keyName(key));
+  }
+
+  /** The name F1 shows for a key: its own, unless a screen reads its keys another way (the piece maker's vim keys). */
+  protected keyName(key: string): string {
+    return key;
   }
 
   /** A key's name in the top left corner of a button, white on a dark box so it reads on any cell, gone with the button. */
@@ -1052,12 +1545,7 @@ export abstract class PixelScene extends Phaser.Scene {
       const choices = over.item.menu.items();
       const next = wheelChoice(choices, dy);
       if (next !== null) choices[next]!.onPick();
-      return;
     }
-    const page = wheelPage({ items: inventory.items, slots: inventory.perPage, page: this.bandPages.items }, dy);
-    if (page === null) return;
-    this.bandPages.items = page;
-    this.redraw();
   }
 
   /** Whether the pointer is on one of the screen's buttons: a screen that takes presses on its staff leaves those to the button. */
@@ -1141,13 +1629,18 @@ export abstract class PixelScene extends Phaser.Scene {
     this.rebuild();
   }
 
+  /** Set while `rebuild` draws the screen again for its strip's height, so it does so once. */
+  private stripRedrawn = false;
+
   private rebuild(): void {
     const previous = this.lastFocusRect;
     this.teardown();
     const { width, height } = this.scale;
     // an overlay (d070) keeps the plain frame: it draws over the whole paused screen under it
-    const view = frameView(width, height, { band: this.framed && !this.keepsToolbar, whole: this.wholeScreen });
+    const strip = this.framed && !this.keepsToolbar && !this.wholeScreen;
+    const view = frameView(width, height, { band: strip, whole: this.wholeScreen, bandRows: strip ? this.stripRows() : 0 });
     this.screenFrame = view;
+    this.cornerFramed = strip;
     this.px = { scale: view.scale, fine: view.fine, width: view.width, height: view.height };
     this.backAction = null;
     this.root = this.add.container(0, view.top * view.scale).setScale(this.px.scale);
@@ -1155,7 +1648,16 @@ export abstract class PixelScene extends Phaser.Scene {
     this.loading = false;
     this.draw();
     this.inkWriting = false;
+    // a screen whose strip actions are made in `draw` (the score screen's) has a strip of another height than was guessed:
+    // it is drawn once more with the strip it has
+    if (strip && !this.stripRedrawn && this.stripRows() !== view.band?.rows) {
+      this.stripRedrawn = true;
+      this.rebuild();
+      this.stripRedrawn = false;
+      return;
+    }
     if (this.framed) this.drawFrame();
+    this.afterFrame(this.stripFree);
     if (this.keyboardNavigation) {
       this.focusIndex = refocus(previous, this.focusables().map((b) => ({ ...b.rect, disabled: b.disabled })));
       this.paintFocus();

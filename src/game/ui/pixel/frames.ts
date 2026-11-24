@@ -102,6 +102,33 @@ export function trayBitmap(width: number, height: number, kind: TrayKind): Bitma
   return bitmap;
 }
 
+/**
+ * A round plate of the bubble (ft_1_20, d282): the band's tray as a disc `width` wide, the dark line all round and the
+ * lighter line inside its upper left (raised) or lower right (pressed, switched on); switched on, a gold ring inside it.
+ */
+export function roundTrayBitmap(width: number, height: number, kind: TrayKind): Bitmap {
+  const look = TRAYS[kind];
+  const bitmap = createBitmap(width, height);
+  const d = Math.min(width, height - 1);
+  const r = d / 2;
+  const ox = Math.floor((width - d) / 2);
+  for (let y = 0; y < d; y++) {
+    for (let x = 0; x < d; x++) {
+      const dx = x + 0.5 - r;
+      const dy = y + 0.5 - r;
+      const dist = Math.hypot(dx, dy);
+      if (dist > r) continue;
+      const upperLeft = dx + dy < 0;
+      let colour = look.fill;
+      if (dist > r - 1) colour = C.groove;
+      else if (dist > r - 2) colour = look.raised === upperLeft ? C.panelLight : look.fill;
+      else if (look.corner && dist > r - 3) colour = look.corner;
+      bitmap.pixels[y * width + ox + x] = colour;
+    }
+  }
+  return bitmap;
+}
+
 /** A picture in one colour: every pixel of `picture` that is not its outline (`C.ink`) becomes `colour`, the outline `outline`. For the band's action pictures, which have the letters' colour on the board. */
 export function tinted(picture: Bitmap, colour: number, outline: number = C.groove): Bitmap {
   const out = createBitmap(picture.width, picture.height);
@@ -134,10 +161,8 @@ export interface BarColors {
 }
 
 export const GOLD_BAR: BarColors = { light: C.goldLight, mid: C.gold, dark: C.goldDark };
-/** The player's health in a battle: mint green, so it is not mistaken for the monster's gold HP bar. */
-export const HEALTH_BAR: BarColors = { light: C.white, mid: C.green, dark: C.tealDark };
 
-/** A bar (XP, HP): a dark trough cut into the wood, with a fill of `fraction` (0 to 1), gold unless other `colors` are given. The fill never looks empty while there is any left. */
+/** A bar (XP): a dark trough cut into the wood, with a fill of `fraction` (0 to 1), gold unless other `colors` are given. The fill never looks empty while there is any left. */
 export function barBitmap(width: number, height: number, fraction: number, colors: BarColors = GOLD_BAR): Bitmap {
   if (width < 5 || height < 5) throw new Error(`a bar needs at least 5 x 5 pixels, not ${width} x ${height}`);
   const bitmap = createBitmap(width, height);

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { clickButton, expectNoErrors, letGameRun, openGame, openPiece, playWithVirtualPiano, pieceXp, pressPracticeButton as press, sceneTexts, toScoreScreen, useOneLine, waitForScene, bandAction, sceneWords } from './helpers';
+import { clickButton, expectNoErrors, letGameRun, openBubbleFromMore, openGame, openPiece, playWithVirtualPiano, pieceXp, pressPracticeButton as press, sceneTexts, toScoreScreen, useOneLine, waitForScene, bandAction, sceneWords } from './helpers';
 
 /** The practice screen's tools strip: the metronome click, the tempo percent, and a section to practise. */
 
@@ -42,10 +42,11 @@ const chartId = (page: Page) => page.evaluate(() => window.__game.scene.getScene
 const percent = (page: Page) => page.evaluate(() => window.__game.scene.getScene('practice').percent as number);
 
 test.describe('practice tools (core_02 and core_03)', () => {
-  test('the strip has the click, the tempo percent and the section button @smoke', async ({ page }) => {
+  test('the strip has the tempo percent, the bubble the click and the section button @smoke', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
     expect(await sceneTexts(page, 'practice')).toEqual(expect.arrayContaining(['-', '100%', '+']));
+    expect(await openBubbleFromMore(page, 'practice')).toBe(true);
     expect(await buttonNames(page)).toEqual(expect.arrayContaining(['Click [Shift+M]', 'Section [Shift+R]'])); // the metronome and A | -> | B
     expectNoErrors(errors);
   });
@@ -109,7 +110,8 @@ test.describe('practice tools (core_02 and core_03)', () => {
     await tapBar(page, 2);
     await expect.poll(() => chartId(page)).toBe('little-steps#bars-2-3');
     expect(await page.evaluate(() => window.__game.scene.getScene('practice').chart.title as string)).toBe('Little Steps (bars 2 to 3)');
-    // no title on the practice screen under the band (ft_1_20, AX-3 provisional): the section is said by Whole piece
+    // no title on the practice screen (ft_1_20, AX-3 provisional): the section is said by Whole piece in the bubble
+    expect(await openBubbleFromMore(page, 'practice')).toBe(true);
     expect(await buttonNames(page)).toContain('Whole piece [Shift+R]');
 
     // play the six notes of bars 2 and 3: no results screen, no XP, and it starts over
@@ -307,7 +309,9 @@ test.describe('practice tools (core_02 and core_03)', () => {
     await expect.poll(() => sceneTexts(page, 'practice')).toContain('Now tap its last bar.');
     await page.keyboard.press('Digit3');
     await expect.poll(() => chartId(page)).toBe('little-steps#bars-2-3');
+    expect(await openBubbleFromMore(page, 'practice')).toBe(true);
     expect(await buttonNames(page)).toContain('Whole piece [Shift+R]');
+    await page.keyboard.press('Escape'); // closes the bubble
     await page.keyboard.press('Shift+KeyR');
     await expect.poll(() => chartId(page)).toBe('little-steps');
     expectNoErrors(errors);
@@ -361,7 +365,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
     expectNoErrors(errors);
   });
 
-  test('the band\'s cells do not overlap, with a section and the BPM of Tempo mode (ft_1_20.AC1)', async ({ page }) => {
+  test('the strip\'s cells do not overlap and none is cut off, with a section and the BPM of Tempo mode (ft_1_20.AC18)', async ({ page }) => {
     const errors = await openGame(page);
     await page.evaluate(() => window.__game.registry.get('context').profiles.updatePlaySettings({ mode: 'tempo' }));
     await openPiece(page, 'Little Steps');
@@ -376,7 +380,8 @@ test.describe('practice tools (core_02 and core_03)', () => {
       const rects = scene.buttons.map((b: { rect: { x: number; y: number; width: number; height: number } }) => b.rect).filter((r: { y: number }) => r.y >= (scene.px.height as number));
       return { width: scene.px.width as number, rects: rects as { x: number; y: number; width: number; height: number }[] };
     });
-    expect(band.rects.length).toBeGreaterThanOrEqual(9);
+    // Listen, Start again, the mode, slower, the tempo, faster and More
+    expect(band.rects.length).toBeGreaterThanOrEqual(7);
     for (const [i, a] of band.rects.entries()) {
       expect(a.x + a.width, `cell ${i}`).toBeLessThanOrEqual(band.width);
       for (const b of band.rects.slice(i + 1)) expect(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y, `cells ${i}`).toBe(true);

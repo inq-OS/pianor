@@ -14,6 +14,8 @@ export interface EntryPrefs {
   readonly schemaVersion: 1;
   /** A short tap enters an eighth note instead of a quarter note. */
   readonly shortTapEighth: boolean;
+  /** The vim keys are on (ft_1_02e). Optional and additive (no version bump): absent reads as off. */
+  readonly vimKeys?: boolean;
 }
 
 /** The record a fresh device uses: every option off. */
@@ -21,7 +23,7 @@ export const DEFAULT_ENTRY_PREFS: EntryPrefs = { schemaVersion: ENTRY_PREFS_VERS
 
 /** The record as stored (JSON). */
 export function serializeEntryPrefs(prefs: EntryPrefs): string {
-  return JSON.stringify({ schemaVersion: prefs.schemaVersion, shortTapEighth: prefs.shortTapEighth });
+  return JSON.stringify({ schemaVersion: prefs.schemaVersion, shortTapEighth: prefs.shortTapEighth, ...(prefs.vimKeys ? { vimKeys: true } : {}) });
 }
 
 /**
@@ -37,7 +39,8 @@ export function parseEntryPrefs(text: string | null): EntryPrefs {
     return DEFAULT_ENTRY_PREFS;
   }
   if (typeof value !== 'object' || value === null) return DEFAULT_ENTRY_PREFS;
-  const { schemaVersion, shortTapEighth } = value as Record<string, unknown>;
+  const { schemaVersion, shortTapEighth, vimKeys } = value as Record<string, unknown>;
   if (schemaVersion !== ENTRY_PREFS_VERSION || typeof shortTapEighth !== 'boolean') return DEFAULT_ENTRY_PREFS;
-  return { schemaVersion: ENTRY_PREFS_VERSION, shortTapEighth };
+  // a mistyped vimKeys reads as off and never spoils the short-tap setting beside it
+  return { schemaVersion: ENTRY_PREFS_VERSION, shortTapEighth, ...(vimKeys === true ? { vimKeys: true } : {}) };
 }

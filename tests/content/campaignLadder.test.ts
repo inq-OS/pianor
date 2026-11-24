@@ -30,7 +30,7 @@ describe('campaign ladder and its pieces (content/campaign/ladder.json)', () => 
     const [id, bars] = [...barsById][0]!;
     const synthetic = loadLadder({
       schemaVersion: 1,
-      monsters: [{ id: 'm1', name: 'Synthetic', piece: id, levels: [1, 2, bars + 1].map((end) => ({ bars: [1, end], accuracy: 0.5 })) }],
+      monsters: [{ id: 'm1', name: 'Synthetic', piece: id, levels: [1, 2, bars + 1].map((end) => ({ bars: [1, end] })) }],
     });
     expect(ladderPieceProblems(synthetic, (pieceId) => barsById.get(pieceId))).toEqual([{ monster: 'm1', piece: id, problem: 'too-short', bars, needs: bars + 1 }]);
   });

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import keriJson from '../../../content/world/keri.json';
 import { bearing, insideRing, loadWorld } from '../world/world';
 import { ART_DETAIL } from './frame';
-import { CROSSROADS, CROSSROADS_PICTURE, CROSSROADS_SPOTS, crossroadsEye, crossroadsHouses, crossroadsPaths, crossroadsPlace, crossroadsPlan, crossroadsShore, depthOfRow, onPicture, toCrossroads } from './crossroads';
+import { CROSSROADS, CROSSROADS_PICTURE, crossroadsEye, crossroadsHouses, crossroadsPaths, crossroadsPlace, crossroadsPlan, crossroadsShore, depthOfRow, onPicture, toCrossroads } from './crossroads';
 import { ROOM_PICTURE } from './room';
 
 const KERI = loadWorld(keriJson);
@@ -66,15 +66,5 @@ describe('the crossroads: its plan', () => {
     for (const z of [3.5, 8, 20, 60]) expect(depthOfRow(onPicture({ x: 0, z }).y)).toBeCloseTo(z, 6);
     expect(depthOfRow(plan.horizon)).toBe(Infinity);
     for (const water of crossroadsShore(KERI)) expect(water).toBeGreaterThan(plan.horizon);
-  });
-
-  it('ft_1_19.AC8 the beings\' places are on the grass under the horizon, their buttons inside the picture', () => {
-    for (const [i, spot] of CROSSROADS_SPOTS.entries()) {
-      expect(spot.y).toBeGreaterThan(plan.horizon + 20);
-      const b = plan.spots[i]!.button;
-      expect(b.x).toBeGreaterThanOrEqual(0);
-      expect(b.y).toBeGreaterThanOrEqual(0);
-      expect(b.x + b.w).toBeLessThanOrEqual(CROSSROADS_PICTURE.w);
-    }
   });
 });

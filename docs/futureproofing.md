@@ -23,20 +23,20 @@ Build now: the schema and the validator. Build later: renderer and judge support
 ### 1.2 The judge consumes abstract events and has pluggable play modes
 
 - Input is `NoteEvent { kind, midi, velocity, timeMs, source }` (`src/core/judge/types.ts`; `timeMs` is on the song/audio clock), never a Web MIDI object. The same events can come from the EZ-220, the mock keyboard, a recorded replay, a different keyboard, or later an audio pitch detector.
-- Play mode is a strategy behind one interface (`PlayMode`): **Wait** and **Tempo** (core_01) built, with looping play (ft_1_12) over either; **Echo/call-and-response** later. The battle system will call a mode, not reimplement judging.
+- Play mode is a strategy behind one interface (`PlayMode`): **Wait** and **Tempo** (core_01) built, with looping play (ft_1_12) over either; **Echo/call-and-response** later. The tug calls a mode, it does not reimplement judging.
 - The judge outputs domain events (section 1.3), not UI instructions.
 
 ### 1.3 Domain events are the seam between systems
 
-The core emits `NoteJudged`, `BarCompleted`, `PhraseCompleted`, `PieceCompleted` (with accuracy, timing, hints used). Progression listens to them now. The battle system, achievements, a parent dashboard and analytics can listen to the same stream later without touching the judge. Keep the event types versioned and documented.
+The core emits `NoteJudged`, `BarCompleted`, `PhraseCompleted`, `PieceCompleted` (with accuracy, timing, hints used). Progression listens to them now. The tug, achievements, a parent dashboard and analytics can listen to the same stream later without touching the judge. Keep the event types versioned and documented.
 
 ### 1.4 Rendering is split: layout, view, state
 
 - A **pure layout function** turns chart plus viewport into positioned glyphs (testable, no Phaser).
-- A **view** draws those glyphs. The staff view is the MVP; a falling-notes view, a keyboard view or a battle-overlay view are other views over the same chart and the same play state.
+- A **view** draws those glyphs. The staff view is the main one; a keyboard view or the tug's overlay are other views over the same chart and the same play state.
 - A **play state** object (cursor, per-note status) is the only thing views read. Views never decide correctness.
 
-This is what keeps the "optional falling notes" and later "phrase as spell" visuals cheap, and stops Phaser from leaking into rules.
+This is what keeps other views cheap, and stops Phaser from leaking into rules.
 
 ### 1.5 Persistence is versioned, profile-scoped and exportable
 
@@ -55,9 +55,8 @@ One audio-clock-based song time inside the core, in ticks; the io layer converts
 
 | Future feature | Early protection | Not built yet |
 |---|---|---|
-| Tempo mode, rhythm scoring, crits | `PlayMode` strategy (`TempoMode` built, core_01); note events carry timing; tempo map in chart; timing windows and the song transport built | Rhythm scoring in battles (crits) |
-| Challenges / RPG / classes (no battles, d129) | Domain events; `PhraseResult`; challenge rules and characters are data with schemas and versions (classes and spells on hold, d129); the saved battle keys keep their historical names and a challenge record comes in the next save round (d129); a battle log in the save (profile versions 3, 7 and 8: the player's HP left and maximum, the Fights setting, one battle record per monster of a series) | The challenge (ft_1_21) is built; the map of Keri and its first scene exist (ft_1_18, ft_1_19; world model d108), the trail stands until scenes replace it (d112); spells, classes, inventory |
-| Modular monsters, more characters, outfits | Art is text rows in colour slots, filled from palette ramps; bases and parts are versioned content; composing is a pure function that returns indexed bitmaps, and Phaser only gets the finished RGBA sheet (`docs/sprites.md`, d051) | The composer, the sprite tools and the generator (ft_Y_11, ft_Y_02) |
+| Tempo mode, rhythm scoring | `PlayMode` strategy (`TempoMode` built, core_01); note events carry timing; tempo map in chart; timing windows and the song transport built | Rhythm scoring beyond the tug's Tempo levels |
+| Challenges with characters (d129, d290) | Domain events; `PhraseResult`; the tug's rules and the characters are data with schemas and versions; one tug record per finished tug in the save (d290) | More characters and their tugs (ft_1_21, ft_1_22) |
 | Key lighting, hints | `KeyLightOutput` interface; hints are an options object with a cost in results | Real EZ-220 lighting until ft_0_01 verifies it |
 | Accompaniment / backing tracks | `tracks[]` with roles; audio engine plays non-played tracks | Accompaniment generation |
 | Bass clef, grand staff, accidentals, key signatures | Spelled pitch, clef per track, key signature map; layout function written clef-aware | Grand staff in ft_0_15 (done); accidentals and key signatures later |
@@ -75,7 +74,7 @@ One audio-clock-based song time inside the core, in ticks; the io layer converts
 
 ## 3. Practices that protect the future
 
-- **Thin engine, fat data:** spells, classes, levels, enemies, rewards and curriculum live in validated JSON, so game design can evolve without engine code changes.
+- **Thin engine, fat data:** characters, conversations, levels, prizes and the curriculum live in validated JSON, so game design can evolve without engine code changes.
 - **Boundary enforcement in CI** (see `docs/testing.md`): core purity and io interfaces are lint-enforced, not just documented.
 - **Migrations are tested:** each schema keeps fixtures of every older version. A migration step writes the values of its own version as literals, never today's defaults, and a golden test freezes its output (d064).
 - **Feature flags** in one config object (dev tools, draft content, experimental modes), so unfinished features can ship dark; unfinished work merges early behind one, off by default, rather than waiting on a long branch (d147).

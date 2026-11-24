@@ -3,23 +3,26 @@ import { repeatAround, toggleRepeatEnd, toggleRepeatStart } from '../core/editor
 import { mouseAction, type MouseAction } from '../core/editor/mouse';
 import { HELP_CARDS, KEY_CAP, KEY_TOUR, type HeldKey, type KeyTourSpot } from '../core/editor/help';
 import { helpGridLayout } from '../core/layout/helpCards';
-import { BAND_ROWS } from '../core/layout/band';
 import type { Rect } from '../core/layout/rect';
 import { moveBar, moveInTime, movePitch, otherStaff, startKeyCursor, withPitch, type KeyCursor } from '../core/editor/keyCursor';
 import { nextLength } from '../core/editor/nextLength';
 import { beatsFit, confirmBeats, firstBarFull, guessBeats, type Beats } from '../core/editor/meterGuess';
 import { chordKeyPress, moveNoteKeepingLegato, repeatTied } from '../core/editor/keyEdits';
-import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, moveBars, pasteAt, type BarRange, type Clip } from '../core/editor/bars';
+import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, moveBars, pasteAt, pasteSpan, replaceBars, type BarRange, type Clip } from '../core/editor/bars';
+import { deleteNotes, eraseBefore, nearestPitch, pitchAbove, snapToNote, stepsTo, VIM_START, vimKey, vimMotion, vimShowCmd, type VimCommand, type VimState } from '../core/editor/vim';
 import { samePitchNotAdjacent, tieAll } from '../core/editor/ties';
 import { arcInto, toggleArc } from '../core/editor/arcs';
 import { graceFromKey, graceFromPlace, graceItem } from '../core/editor/graces';
 import { barNumbersToShow } from '../core/layout/barNumbers';
+import { addedMarks, NO_MARKS, pendingArc, slurPoints, tiePoints, type AddedMarks } from '../core/layout/preview';
 import Phaser from 'phaser';
+import { strokePolyline } from './ui/staff/polyline';
+import { DIGITS } from './ui/staff/glyphs';
 import { firstPrintedBar, levelsFileSchema, playbackLengthMs, playbackNotes, staffPosition, type Chart, type LevelDefinition, type Step } from '../core/chart';
 import { toChart } from '../core/editor/chart';
 import { autoFingers } from '../core/editor/fingers';
 import levelsJson from '../../content/curriculum/levels.json';
-import type { KeyMode } from '../core/editor/key';
+import { keyLabel, type KeyMode } from '../core/editor/key';
 import { canRedo, canUndo, push, redo, startHistory, undo, type History } from '../core/editor/history';
 import { debugLog } from '../core/debug/debugLog';
 import { entryBackspace, entryDown, entryTick, entryUp, moveCursor, startEntry, type EntryKey, type EntryOptions, type EntryState } from '../core/editor/entryMachine';
@@ -27,7 +30,7 @@ import { DEFAULT_ENTRY_PREFS, ENTRY_PREFS_KEY, parseEntryPrefs, serializeEntryPr
 import { cursorAfter, cursorOf, type StaffMode } from '../core/editor/playEntry';
 import type { NoteEvent } from '../core/judge/types';
 import { hitTest, placeClick, pointOf, targetOf, type ActionTarget, type EntryMode, type Hit } from '../core/editor/hitTest';
-import { barBoxes, barsInRect, drawnWhileWriting, editorStaff, pageOfBar, shadowsFor, targetBox } from '../core/editor/staff';
+import { barBoxes, barsInRect, drawnWhileWriting, editorStaff, keyNameSpot, pageOfBar, repeatPreview, shadowsFor, snapBar, targetBox } from '../core/editor/staff';
 import { onRepeatHandle, repeatCopies, repeatHandleBox } from '../core/editor/repeatHandle';
 import chordsJson from '../../content/trainer/chords.json';
 import { nameChord } from '../core/trainer/chordNamer';
@@ -35,6 +38,7 @@ import { chordLabel, loadChordContent } from '../core/trainer/chordTrainer';
 import {
   BARS_DEFAULT, BPM_MAX, soundingMidi, EDITOR_LENGTHS, cycleLength, emptyPiece, findNote, lengthen, lengthenRest, lengthsFor, stepChord, placeNote, placeRest, placedRests, removeNote, removeRest, setAlter, nextAlter, longestFit, setDynamic, nextDynamic, setBeats, setPickup, onBothStaves, setKey, setFinger, bpmOf, stepBpm, setLength, setTitle, shorten, shortenRest, stepBars,
   type Edit, type EditorHand, type EditorLength, type EditorPiece, type NoteRef,
+  midiOf,
 } from '../core/editor/model';
 import type { Alter } from '../core/chart/key';
 import { DYNAMICS, type Dynamic } from '../core/chart/dynamics';
@@ -45,7 +49,7 @@ import { fitsLabel, problemLabel } from '../core/text/labels';
 import { strings, t, type StringKey } from '../core/text/strings';
 import { contextOf } from './context';
 import { compileOwn } from './editor/OwnPieces';
-import { digitOf, EDITOR_KEYS, editorKeyOf, type EditorKeyName } from './editor/shortcuts';
+import { digitOf, EDITOR_KEYS, editorKeyOf, VIM_HELP, vimHelpColumns, vimKeyOf, vimLabelOf, vimWordOf, type EditorKeyName } from './editor/shortcuts';
 import { ChartPlayer } from './preview/ChartPlayer';
 import { panelBitmap } from './ui/pixel/frames';
 import { ACCIDENTAL_ICONS, NOTE_ICONS, REST_ICONS } from './ui/pixel/lengthArt';
@@ -53,7 +57,8 @@ import { C, hexCss } from './ui/pixel/palette';
 import { GESTURE_SIZE, HELP_ARROW, SKETCH_SIZE, gesturePicture, keyCap, staffSketch } from './ui/pixel/mouseArt';
 import { PixelImage, PixelText, type PixelButton, type PixelButtonOptions } from './ui/pixel/PixelObjects';
 import { SpeechBubble } from './ui/pixel/SpeechBubble';
-import { drawnText, measure } from './ui/pixel/font';
+import { CELL_HEIGHT, drawnText, measure } from './ui/pixel/font';
+import { ART_DETAIL } from '../core/layout/frame';
 import { BAR_BUTTON_HEIGHT, BAR_EDGE } from './ui/pixel/playBars';
 import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
 import { itemPicture, type ItemSign } from './ui/pixel/itemArt';
@@ -65,6 +70,7 @@ import { PhotoOverlay, barsToFill, photoServer, sendPhoto, type PhotoReply } fro
 import { PhotoTool } from './editor/photoTool';
 import { CANCELLED, openOverlay, startScene } from './scenes';
 import { circleItem } from './CircleOfFifthsScene';
+import { STAFF_FONT } from './ui/staff/staffFont';
 
 /**
  * Heights in art pixels of the options rows and the bottom bar. No top bar: the staff needs every row it can get, as a
@@ -145,6 +151,14 @@ const dynamicPicture = (mark: Dynamic | undefined): Bitmap => itemPicture(mark ?
 /** The accidental item's sign for each alter. */
 const ACCIDENTAL_SIGN: Readonly<Record<Alter, 'sharp' | 'flat' | 'natural'>> = { 1: 'sharp', [-1]: 'flat', 0: 'natural' };
 
+/** The vim commands that act on bars, and those of insert mode (ft_1_02e). */
+type VimBarKind = 'deleteBars' | 'yankBars' | 'paste' | 'visual' | 'visualDelete' | 'visualYank' | 'visualPaste' | 'visualPitch';
+type VimInsertKind = 'write' | 'writeRest' | 'octave' | 'erase' | 'chordNote' | 'sharpen';
+const BAR_COMMANDS: ReadonlySet<string> = new Set<VimBarKind>(['deleteBars', 'yankBars', 'paste', 'visual', 'visualDelete', 'visualYank', 'visualPaste', 'visualPitch']);
+const INSERT_COMMANDS: ReadonlySet<string> = new Set<VimInsertKind>(['write', 'writeRest', 'octave', 'erase', 'chordNote', 'sharpen']);
+const isBarCommand = (c: VimCommand): c is Extract<VimCommand, { kind: VimBarKind }> => BAR_COMMANDS.has(c.kind);
+const isInsertCommand = (c: VimCommand): c is Extract<VimCommand, { kind: VimInsertKind }> => INSERT_COMMANDS.has(c.kind);
+
 const KEY_LENGTHS: Readonly<Record<string, EditorLength>> = {
   Digit1: 'whole', Digit3: 'dottedHalf', Digit2: 'half', Digit5: 'dottedQuarter', Digit4: 'quarter', Digit9: 'dottedEighth', Digit8: 'eighth', Digit6: 'sixteenth',
   Numpad1: 'whole', Numpad3: 'dottedHalf', Numpad2: 'half', Numpad5: 'dottedQuarter', Numpad4: 'quarter', Numpad9: 'dottedEighth', Numpad8: 'eighth', Numpad6: 'sixteenth',
@@ -194,6 +208,10 @@ export class EditorScene extends PixelScene {
    * tie when that is the same key right after, else a slur. Only one pick waits at a time.
    */
   private arcFrom: NoteRef | null = null;
+  /** The last pick preview laid out (d286): the piece it was made on, its target and the marks the click would add. */
+  private previewCache: { piece: EditorPiece; key: string; marks: AddedMarks } | null = null;
+  /** Where a menu item's preview is drawn while the pointer rests on it (d286). */
+  private itemGhost: Phaser.GameObjects.Graphics | null = null;
   /** The repeat item's pick: waiting for the bar the repeat starts on, then for the bar it ends on. */
   private repeatPick: { startBar: number | null } | null = null;
   /** The accidental item (with the band): it shows the selected note's sharp, flat or natural. */
@@ -274,6 +292,12 @@ export class EditorScene extends PixelScene {
   private staffMode: StaffMode = 'auto';
   /** A short tap writes an eighth note; kept on this device (ENTRY_PREFS_KEY). */
   private shortTapEighth = DEFAULT_ENTRY_PREFS.shortTapEighth;
+  /** The vim keys (ft_1_02e): their state while they are on, null while off; on or off is kept on this device (ENTRY_PREFS_KEY). */
+  private vim: VimState | null = null;
+  /** In vim's insert mode, the note written last: ' and , move it an octave. */
+  private vimLast: NoteRef | null = null;
+  /** The vim mode line at the top left of the staff, drawn again with each key. */
+  private vimText: PixelText | null = null;
   private staffButton: PixelButton | null = null;
   /** The dynamic mark of the selected note, cycled pp to ff then none (core_09.AC16). */
   private dynamicButton: PixelButton | null = null;
@@ -338,6 +362,8 @@ export class EditorScene extends PixelScene {
     this.message = '';
     this.staffMode = 'auto';
     this.shortTapEighth = this.loadEntryPrefs();
+    this.vim = this.loadVimPref() ? VIM_START : null;
+    this.vimLast = null;
     if (back) {
       ({ id: this.id, history: this.history, saved: this.saved, length: this.length, meterAuto: this.meterAuto } = back);
       this.message = '';
@@ -499,6 +525,8 @@ export class EditorScene extends PixelScene {
     this.ghost = null;
     this.ghostLabel?.destroy();
     this.ghostLabel = null;
+    this.itemGhost?.destroy();
+    this.itemGhost = null;
     this.shadows?.destroy();
     this.shadows = null;
     this.target?.destroy();
@@ -516,7 +544,7 @@ export class EditorScene extends PixelScene {
 
   // ------------------------------------------------------------------------------------------------------------ input
 
-  private hit(p: Phaser.Input.Pointer): Hit | null {
+  private hit(p: { x: number; y: number }): Hit | null {
     if (!this.layout || !this.chart) return null;
     const y = p.y - this.staffTop;
     if (y < 0 || y > this.staffHeight) return null;
@@ -539,12 +567,169 @@ export class EditorScene extends PixelScene {
     const hit = this.menuOpen ? null : this.hit(p);
     this.ghost?.clear();
     this.ghostLabel?.setVisible(false);
-    this.drawTarget(this.targetAt(hit));
+    // while a pick waits, the click under the pointer makes the pick's mark, not a note: that mark is what shows (d286)
+    const picking = this.arcFrom !== null || this.graceFor !== null || this.repeatPick !== null;
+    this.drawTarget(picking ? null : this.targetAt(hit));
+    if (picking) return this.previewPick(p, hit);
+    if (hit?.kind === 'key') return this.showKeyName(hit.system);
     if (!hit || hit.kind !== 'place' || !this.layout || !this.chart || !this.ghost || !this.ghostLabel) return;
     const at = pointOf(this.layout, this.chart, hit)!;
     const S = this.layout.staffSpace;
     this.ghost.fillStyle(DEFAULT_THEME.cursor, 0.35).fillEllipse(at.x, this.staffTop + at.y, 1.3 * S, S);
     this.ghostLabel.setText(this.entry === 'rest' ? t('editor.entry.rest') : `${hit.step}${hit.octave}`).setPosition(this.staffLeft + at.x, this.staffTop + at.y - 1.6 * S).setVisible(true);
+  }
+
+  /**
+   * The result of the click a waiting pick would take, drawn faint over the staff before the click (d286): a tie or slur from
+   * its first note to the note under the pointer, or to the pointer itself while it is on no note it can end on
+   * (ft_1_02d.AC25); the pre-note at the pointed pitch (ft_1_02d.AC26); the repeat's bars and signs (ft_1_02d.AC27).
+   */
+  private previewPick(p: Phaser.Input.Pointer, hit: Hit | null): void {
+    if (!this.ghost || !this.layout || this.menuOpen) return;
+    if (this.arcFrom) this.previewArc(this.ghost, this.layout, this.arcFrom, p, hit);
+    else if (this.graceFor) this.previewGrace(this.ghost, this.layout, this.graceFor, hit);
+    else if (this.repeatPick) this.previewRepeat(this.ghost, this.layout, this.repeatPick.startBar, this.repeatBarAt(p));
+  }
+
+  /** A waiting tie or slur (ft_1_02d.AC25): its first note ringed, and the curve to the note under the pointer or to the pointer. */
+  private previewArc(g: Phaser.GameObjects.Graphics, layout: StaffLayout, fromRef: NoteRef, p: Phaser.Input.Pointer, hit: Hit | null): void {
+    const S = layout.staffSpace;
+    const ink = DEFAULT_THEME.cursor;
+    const onPage = (system: number) => layout.systems[system]?.page === this.page;
+    const from = layout.notes.find((n) => n.index === this.indexOf(fromRef));
+    if (!from || !onPage(from.system)) return;
+    const into = hit?.kind === 'note' ? this.refOf(hit.noteIndex) : null;
+    const marks = into ? this.marksOf(`arc:${hit?.kind === 'note' ? hit.noteIndex : ''}`, () => arcInto(this.piece, fromRef, into)) : null;
+    const arcs = marks ? [...marks.ties.filter((m) => onPage(m.system)).map(tiePoints), ...marks.slurs.filter((m) => onPage(m.system)).map(slurPoints)] : [];
+    // the first note is ringed, so the author sees which note the curve leaves
+    g.lineStyle(Math.max(1, S * 0.12), ink, 0.9).strokeEllipse(from.x, this.staffTop + from.y, from.headRx * 2 + S * 0.6, from.headRy * 2 + S * 0.6);
+    if (arcs.length > 0) {
+      for (const arc of arcs) strokePolyline(g.lineStyle(Math.max(2, S * 0.16), ink, 0.85), arc.map((pt) => ({ x: pt.x, y: this.staffTop + pt.y })));
+      return;
+    }
+    // on no note it can end on: a thin curve follows the pointer; the slur's side is away from the stem
+    const up = !(from.stem?.up ?? true);
+    const start = { x: from.x, y: this.staffTop + from.y + (up ? -1 : 1) * from.headRy };
+    const end = { x: p.x - this.staffLeft, y: p.y };
+    strokePolyline(g.lineStyle(Math.max(2, S * 0.12), ink, 0.7), pendingArc(start, end, up, S * 2));
+  }
+
+  /** A waiting pre-note (ft_1_02d.AC26): the small head the click would write, at the pitch under the pointer. */
+  private previewGrace(g: Phaser.GameObjects.Graphics, layout: StaffLayout, graceRef: NoteRef, hit: Hit | null): void {
+    const S = layout.staffSpace;
+    const ink = DEFAULT_THEME.cursor;
+    const pitch = hit?.kind === 'place' ? hit : hit?.kind === 'note' ? this.refOf(hit.noteIndex) : null;
+    if (!pitch) return;
+    for (const grace of this.marksOf(`grace:${pitch.step}${pitch.octave}`, () => graceFromPlace(this.piece, graceRef, pitch.step, pitch.octave)).graces) {
+      if (layout.systems[grace.system]?.page !== this.page) continue;
+      g.fillStyle(ink, 0.7).fillEllipse(grace.x, this.staffTop + grace.y, grace.headRx * 2, grace.headRy * 2);
+      g.lineStyle(Math.max(1, S * 0.1), ink, 0.7).lineBetween(grace.stem.x, this.staffTop + grace.stem.y1, grace.stem.x, this.staffTop + grace.stem.y2);
+      for (const ledger of grace.ledgerLines) g.lineBetween(ledger.x1, this.staffTop + ledger.y, ledger.x2, this.staffTop + ledger.y);
+    }
+  }
+
+  /** The key's name (C, Em) over the key signature while the pointer is on it (ft_1_02d.AC32). */
+  private showKeyName(system: number): void {
+    const spot = this.layout ? keyNameSpot(this.layout, system) : null;
+    if (!spot || !this.ghostLabel || this.layout?.systems[system]?.page !== this.page) return;
+    const name = keyLabel(this.piece.fifths, this.piece.mode, contextOf(this).profiles.noteNaming);
+    this.ghostLabel.setText(name).setPosition(this.staffLeft + spot.x, this.staffTop + spot.y).setVisible(true);
+  }
+
+  /** The repeat item asking for its bars (ft_1_02d.AC27): the bars lit and the two signs where the click would put them. */
+  private previewRepeat(g: Phaser.GameObjects.Graphics, layout: StaffLayout, startBar: number | null, bar: number | null): void {
+    const S = layout.staffSpace;
+    const ink = DEFAULT_THEME.cursor;
+    if (bar === null) return;
+    const { boxes, signs } = repeatPreview(layout, startBar, bar, this.page);
+    for (const box of boxes) g.fillStyle(ink, 0.14).fillRect(box.x1, this.staffTop + box.y1, box.x2 - box.x1, box.y2 - box.y1);
+    // the thick bar and its two dots of each sign, the dots on the side of the repeated bars
+    for (const sign of signs) {
+      const x = sign.side === 'start' ? sign.x + S * 0.25 : sign.x - S * 0.25;
+      const mid = this.staffTop + (sign.y1 + sign.y2) / 2;
+      const dx = (sign.side === 'start' ? 1 : -1) * S * 0.8;
+      g.fillStyle(ink, 0.8).fillRect(x - S * 0.25, this.staffTop + sign.y1, S * 0.5, sign.y2 - sign.y1);
+      g.fillCircle(x + dx, mid - S * 0.5, S * 0.22).fillCircle(x + dx, mid + S * 0.5, S * 0.22);
+    }
+  }
+
+  /** The bar the repeat item's next click goes to: the one at the bar line nearest the pointer (ft_1_02d.AC31). */
+  private repeatBarAt(p: Phaser.Input.Pointer): number | null {
+    if (!this.layout || !this.repeatPick) return null;
+    const y = p.y - this.staffTop;
+    if (y < 0 || y > this.staffHeight) return null;
+    return snapBar(this.layout, this.page, { x: p.x - this.staffLeft, y }, this.repeatPick.startBar === null ? 'start' : 'end');
+  }
+
+  /** The ties, slurs and fingers an edit would add, faint in the cursor's blue on the page shown (d286). */
+  private drawMarks(g: Phaser.GameObjects.Graphics, layout: StaffLayout, marks: AddedMarks): void {
+    const S = layout.staffSpace;
+    const ink = DEFAULT_THEME.cursor;
+    const onPage = (system: number) => layout.systems[system]?.page === this.page;
+    const arcs = [...marks.ties.filter((m) => onPage(m.system)).map(tiePoints), ...marks.slurs.filter((m) => onPage(m.system)).map(slurPoints)];
+    for (const arc of arcs) strokePolyline(g.lineStyle(Math.max(2, S * 0.16), ink, 0.85), arc.map((pt) => ({ x: pt.x, y: this.staffTop + pt.y })));
+    // a finger as the staff's 3 x 5 digit, faint where its number will stand
+    const dot = Math.max(1, S * 0.2);
+    for (const f of marks.fingers) {
+      if (!onPage(f.system)) continue;
+      const rows = DIGITS[String(f.finger)] ?? [];
+      rows.forEach((row, ry) => [...row].forEach((c, rx) => {
+        if (c === '#') g.fillStyle(ink, 0.85).fillRect(f.x + (rx - 1.5) * dot, this.staffTop + f.y + (ry - 2.5) * dot, dot, dot);
+      }));
+    }
+  }
+
+  /**
+   * The preview of a menu item that acts at once (d286): while the pointer rests on it, what it would add is drawn faint on
+   * the staff; it goes when the pointer leaves or the menu closes.
+   */
+  private itemPreview(key: string, edit: () => Edit): (on: boolean) => void {
+    return (on) => {
+      const g = this.itemGhostGraphics();
+      g.clear();
+      if (on && this.layout) this.drawMarks(g, this.layout, this.marksOf(key, edit));
+    };
+  }
+
+  /** PASTE x1, x2 or x4 (ft_1_02d.AC28): the bars the pastes would take, outlined like the drag-repeat's ghost bars. */
+  private pastePreview(times: 1 | 2 | 4): (on: boolean) => void {
+    return (on) => {
+      const g = this.itemGhostGraphics();
+      g.clear();
+      if (!on || !this.layout || !this.barClip) return;
+      const fresh = !!this.barSel && !!this.clipRange && this.barSel.from === this.clipRange.from && this.barSel.to === this.clipRange.to;
+      const span = pasteSpan(this.piece, this.barSel, fresh, this.barAnchor, this.barClip, times);
+      if (!span) return;
+      const S = this.layout.staffSpace;
+      const ink = DEFAULT_THEME.cursor;
+      const boxes = barBoxes(this.layout, span);
+      for (const box of boxes) {
+        if (box.page !== this.page) continue;
+        g.fillStyle(ink, 0.12).fillRect(box.x1, this.staffTop + box.y1, box.x2 - box.x1, box.y2 - box.y1);
+        g.lineStyle(1, ink, 0.7).strokeRect(box.x1, this.staffTop + box.y1, box.x2 - box.x1, box.y2 - box.y1);
+      }
+      // where they go in: a thick line at the left of the first
+      const first = boxes[0];
+      if (first?.page === this.page) g.fillStyle(ink, 0.9).fillRect(first.x1 - S * 0.2, this.staffTop + first.y1, S * 0.4, first.y2 - first.y1);
+    };
+  }
+
+  /** The layer a menu item's preview is drawn on, over the staff and under the menu. */
+  private itemGhostGraphics(): Phaser.GameObjects.Graphics {
+    if (!this.itemGhost?.scene) this.itemGhost = this.add.graphics().setDepth(10);
+    return this.itemGhost.setX(this.staffLeft);
+  }
+
+  /**
+   * The marks an edit would add to the staff as it is drawn now (none when it is refused), laid out once per target: kept
+   * while the pointer stays on the same note or pitch and the piece is unchanged, so a moving pointer lays out nothing.
+   */
+  private marksOf(key: string, edit: () => Edit): AddedMarks {
+    if (this.previewCache?.piece === this.piece && this.previewCache.key === key) return this.previewCache.marks;
+    const made = edit();
+    const marks = made.ok && this.layout ? addedMarks(this.layout, editorStaff(made.piece, toChart(made.piece, { id: this.id ?? DRAFT_ID }), this.staffViewport())) : NO_MARKS;
+    this.previewCache = { piece: this.piece, key, marks };
+    return marks;
   }
 
   /** What an action at `hit` changes: the chord under it or in its column, a placed rest, or the room a new note takes. */
@@ -568,7 +753,7 @@ export class EditorScene extends PixelScene {
 
   /**
    * A press on the staff: the middle button (or Alt + left) places and changes notes, the left
-   * button selects, Shift + left extends the bar selection, a left drag is the lasso, and the right button removes.
+   * button selects, Shift + left extends the bar selection, a left drag is the lasso; the right button opens the bubble.
    */
   private press(p: Phaser.Input.Pointer): void {
     const event = p.event as MouseEvent | undefined;
@@ -579,23 +764,19 @@ export class EditorScene extends PixelScene {
     const hit = this.hit(p);
     if (!hit || action === 'none' || this.meterAsk !== null) return;
     if (this.repeatPick) {
-      const bar = this.barOf(hit);
-      if (action === 'remove' || bar === null) {
+      // the bar the sign snaps to, as its preview shows (ft_1_02d.AC31)
+      const bar = this.repeatBarAt(p) ?? this.barOf(hit);
+      if (bar === null) {
         this.disarm();
         return this.refreshStaff();
       }
       return this.pickRepeatBar(bar);
     }
-    if (action !== 'remove' && this.askMeter(this.barOf(hit) ?? 0)) return;
+    if (this.askMeter(this.barOf(hit) ?? 0)) return;
     if (action === 'select') this.lassoFrom = { x: p.x, y: p.y };
     if (this.barPress(hit, action)) return;
     const ctrl = !!event?.ctrlKey || !!event?.metaKey;
     if (hit.kind === 'note') return this.pressNote(hit.noteIndex, action, ctrl);
-    if (action === 'remove') {
-      // a right click on a rest the author placed takes it away
-      if (hit.kind === 'place') this.apply(removeRest(this.piece, { hand: this.handOf(hit.trackId), bar: hit.bar, start: hit.start }), null);
-      return;
-    }
     // a press on a clef or the key signature opens the circle of fifths to set the key, on the time signature the time panel
     if (hit.kind === 'key') return this.openCircle();
     if (hit.kind === 'time') return this.openPanel('time');
@@ -603,11 +784,10 @@ export class EditorScene extends PixelScene {
     this.placeAt(this.length, hit);
   }
 
-  /** A press on a note head: remove (right), end a waiting pick, select it (left), or lengthen it, Ctrl shortens (middle). */
+  /** A press on a note head: end a waiting pick, select it (left), or lengthen it, Ctrl shortens (middle). */
   private pressNote(noteIndex: number, action: MouseAction, ctrl: boolean): void {
     const ref = this.refOf(noteIndex);
     if (!ref) return;
-    if (action === 'remove') return this.apply(removeNote(this.piece, ref), null);
     if (this.pickWaits()) return this.endPick(ref);
     this.keyCursor = ref;
     this.select(ref);
@@ -1006,7 +1186,10 @@ export class EditorScene extends PixelScene {
       e.preventDefault();
       e.stopPropagation();
     };
-    if (this.menuOrPanelKey(e) || this.shortcutKey(e)) return;
+    if (this.menuOrPanelKey(e)) return;
+    // the vim keys come before the plain ones; a key vim does not use goes on to them (ft_1_02e)
+    if (this.vim && this.vimKeyDown(e)) return;
+    if (this.shortcutKey(e)) return;
     if (ctrl && (e.code === 'KeyZ' || e.code === 'KeyY')) {
       handled();
       if (e.code === 'KeyY' || e.shiftKey) this.redo();
@@ -1074,6 +1257,7 @@ export class EditorScene extends PixelScene {
       repeats: () => this.pressRepeat(),
       staff: () => this.openKeyMenu('staff', this.staffItems(), (STAFF_ORDER.indexOf(this.staffMode) + 1) % STAFF_ORDER.length, { w: 40, h: BAR_BUTTON_HEIGHT }, 3),
       shortTap: () => this.toggleShortTap(),
+      vimKeys: () => this.toggleVim(),
       paste: () => this.openKeyMenu('paste', this.pasteItems(), 0, { w: PASTE_ITEM_WIDTH, h: BAR_BUTTON_HEIGHT }, 3, ['1', '2', '4']),
     };
     return acts[name] ?? null;
@@ -1146,6 +1330,7 @@ export class EditorScene extends PixelScene {
    */
   private drawKeyHelp(top: number): void {
     if (!this.shortcutsShown || this.touring) return;
+    if (this.vim) return this.drawVimHelp(top);
     const { width } = this.px;
     const layer = this.overStaff();
     // a key's name as it is printed on the key (keepCase): small capitals would not fit the cap
@@ -1185,6 +1370,35 @@ export class EditorScene extends PixelScene {
   }
 
   /**
+   * F1 with the vim keys on (ft_1_02e.AC8): their keymap over the staff from `top` (art rows), in columns by group (move, edit,
+   * insert, the : line), the keys as they are typed and what each does; the tools' own keys still show on their buttons.
+   */
+  private drawVimHelp(top: number): void {
+    const { width } = this.px;
+    const layer = this.overStaff();
+    const height = this.mainRows - top;
+    layer.add(new PixelImage(this, 0, top, panelBitmap(Math.max(5, width), height, 'panel')));
+    // the text is drawn on the fine grid (d110), half an art pixel to a font pixel, so the whole keymap fits over the staff
+    const fine = 1 / ART_DETAIL;
+    const pad = 4;
+    const lineRows = (CELL_HEIGHT + 1) * fine;
+    const columns = vimHelpColumns(VIM_HELP, Math.max(1, Math.floor((height - 2 * pad) / lineRows)));
+    const columnWidth = Math.floor((width - 2 * pad) / columns.length);
+    const text = (x: number, y: number, words: string, color: number, keepCase = false) => layer.add(new PixelText(this, x, y, words, { color, keepCase }).setScale(fine));
+    columns.forEach((lines, i) => {
+      const x = pad + i * columnWidth;
+      // the keys as typed (keepCase: G is not g), then what they do, after the widest keys of the column
+      const keysWidth = (Math.max(...lines.map((l) => (l.kind === 'row' ? measure(drawnText(l.keys)) : 0))) + 12) * fine;
+      lines.forEach((line, row) => {
+        const y = top + pad + row * lineRows;
+        if (line.kind === 'title') return void text(x, y, t(line.text), C.gold);
+        text(x, y, line.keys, C.white, true);
+        text(x + keysWidth, y, t(line.does), C.white);
+      });
+    });
+  }
+
+  /**
    * Kiur's tour of the keys on the staff (ft_1_33.AC3), through the first-run intro's spotlight (ft_1_31): the cursor is
    * shown first, where writing goes on; the help panel is hidden while it runs and is there again after it. The piece is not
    * touched.
@@ -1209,7 +1423,7 @@ export class EditorScene extends PixelScene {
     const fromScreen = (x1: number, y1: number, x2: number, y2: number): Rect => ({ x: Math.floor(x1 / scale), y: Math.floor(y1 / scale), w: Math.ceil((x2 - x1) / scale), h: Math.ceil((y2 - y1) / scale) });
     if (spot === 'band') {
       const bandTop = this.bandTop;
-      if (this.bandShown && bandTop !== null) return { x: 0, y: this.mainTopRows + bandTop, w: this.px.width, h: BAND_ROWS };
+      if (this.bandShown && bandTop !== null) return { x: 0, y: this.mainTopRows + bandTop, w: this.px.width, h: this.stripHeight };
       return { x: 0, y: this.mainTopRows, w: this.px.width, h: OPTIONS };
     }
     const c = this.keyCursor;
@@ -1657,6 +1871,7 @@ export class EditorScene extends PixelScene {
     this.arcFrom = from;
     // the message stays while the pick waits for its note
     this.say(t('editor.arc.pick'));
+    this.hover(this.input.activePointer);
   }
 
   /** The tie or slur on the selected note (core_09.AC13, AC30): a tie to the same key right after, else a slur; a second press takes it away. */
@@ -1676,6 +1891,7 @@ export class EditorScene extends PixelScene {
     this.disarm();
     this.graceFor = this.selected;
     this.say(t('editor.grace.pick'));
+    this.hover(this.input.activePointer);
   }
 
   /**
@@ -1873,7 +2089,7 @@ export class EditorScene extends PixelScene {
   private toggleShortTap(): void {
     this.shortTapEighth = !this.shortTapEighth;
     try {
-      window.localStorage.setItem(ENTRY_PREFS_KEY, serializeEntryPrefs({ ...DEFAULT_ENTRY_PREFS, shortTapEighth: this.shortTapEighth }));
+      window.localStorage.setItem(ENTRY_PREFS_KEY, serializeEntryPrefs({ ...DEFAULT_ENTRY_PREFS, shortTapEighth: this.shortTapEighth, vimKeys: this.vim !== null }));
     } catch {
       // storage is blocked: the setting holds for this visit only
     }
@@ -1887,6 +2103,329 @@ export class EditorScene extends PixelScene {
     } catch {
       return DEFAULT_ENTRY_PREFS.shortTapEighth;
     }
+  }
+
+  /** Whether the vim keys are on on this device; storage that is blocked or broken reads as off. */
+  private loadVimPref(): boolean {
+    try {
+      return parseEntryPrefs(window.localStorage.getItem(ENTRY_PREFS_KEY)).vimKeys === true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ------------------------------------------------------------------------------------------------------- vim keys
+
+  /** Ctrl + Shift + V, `:set vim` or `:set novim` (ft_1_02e.AC1): the vim keys on or off, kept on this device. */
+  private toggleVim(on = this.vim === null): void {
+    this.vim = on ? VIM_START : null;
+    this.vimLast = null;
+    try {
+      window.localStorage.setItem(ENTRY_PREFS_KEY, serializeEntryPrefs({ ...DEFAULT_ENTRY_PREFS, shortTapEighth: this.shortTapEighth, vimKeys: on }));
+    } catch {
+      // storage is blocked: the setting holds for this visit only
+    }
+    if (on && !this.keyCursor) this.setKeyCursor(this.defaultCursor());
+    this.say(t(on ? 'editor.vim.on' : 'editor.vim.off'), MESSAGE_MS * 2);
+    // F1 names the keys the vim way while they are on
+    if (this.shortcutsShown) this.redraw();
+    this.drawVimLine();
+  }
+
+  protected override keyName(key: string): string {
+    return this.vim ? vimLabelOf(key) : key;
+  }
+
+  /** A key with the vim keys on: true when vim took it, false when it goes on to the plain keys. */
+  private vimKeyDown(e: KeyboardEvent): boolean {
+    const out = vimKey(this.vim!, vimKeyOf(e));
+    this.vim = out.state;
+    if (out.command.kind === 'pass') {
+      this.drawVimLine();
+      return false;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    this.runVim(out.command);
+    this.drawVimLine();
+    return true;
+  }
+
+  /** The cursor the vim keys act from: shown, or where it would appear first. */
+  private vimCursor(): KeyCursor {
+    return this.keyCursor ?? this.defaultCursor();
+  }
+
+  /** The bars from the cursor's bar, `count` of them, as far as the piece goes. */
+  private vimBars(count: number): BarRange {
+    const from = this.vimCursor().bar;
+    return { from, to: Math.min(this.piece.bars - 1, from + Math.max(1, count) - 1) };
+  }
+
+  /** Carries out one vim command with the piece maker's own moves, edits and tools (ft_1_02e). */
+  private runVim(command: VimCommand): void {
+    if (command.kind === 'pass' || command.kind === 'wait') return;
+    if (command.kind === 'ex') return this.vimEx(command.name, command.bang, command.arg);
+    if (isBarCommand(command)) return this.runVimBars(command);
+    if (isInsertCommand(command)) return this.runVimInsert(command);
+    this.runVimNote(command);
+  }
+
+  /** The moves, the note edits, undo and redo, and the changes of mode. */
+  private runVimNote(command: Exclude<VimCommand, { kind: 'pass' | 'wait' | 'ex' | VimBarKind | VimInsertKind }>): void {
+    const c = this.vimCursor();
+    const visual = this.vim?.mode === 'visual';
+    switch (command.kind) {
+      case 'move': {
+        const next = vimMotion(this.piece, c, command.motion, command.count, this.length);
+        if (visual) {
+          this.keyCursor = next;
+          this.follow = next.bar;
+          return this.extendBarSelection(next.bar);
+        }
+        const hadBars = this.barSel !== null;
+        this.barSel = null;
+        return this.setKeyCursor(next, hadBars);
+      }
+      case 'deleteNote': {
+        const edit = deleteNotes(this.piece, c, command.count, this.length);
+        if (!edit.ok) return this.say(t('editor.cursor.none'), MESSAGE_MS);
+        this.apply(edit, null);
+        return this.setKeyCursor(c, true);
+      }
+      case 'pitch': return this.vimPitch(c, command.direction * command.count);
+      case 'replace': {
+        const note = findNote(this.piece, c);
+        if (!note) return this.say(t('editor.cursor.none'), MESSAGE_MS);
+        return this.vimPitch(c, stepsTo(note, command.step));
+      }
+      case 'accidental': {
+        if (!findNote(this.piece, c)) return this.say(t('editor.cursor.none'), MESSAGE_MS);
+        // sharp, flat, natural go round, a count past three round again: one edit, so one u takes it back
+        let alter = findNote(this.piece, c)!.alter;
+        for (let i = 0; i < ((command.count - 1) % 3) + 1; i++) alter = nextAlter(alter);
+        this.apply(setAlter(this.piece, c, alter), c);
+        return this.setKeyCursor(c, true);
+      }
+      case 'undo': case 'redo':
+        for (let i = 0; i < command.count; i++) {
+          const can = command.kind === 'undo' ? canUndo(this.history) : canRedo(this.history);
+          if (i > 0 && !can) break;
+          if (command.kind === 'undo') this.undo();
+          else this.redo();
+        }
+        // the cursor stands on what is there now, as vim's undo puts it on the change
+        return this.setKeyCursor(snapToNote(this.piece, { ...c, bar: Math.min(c.bar, this.piece.bars - 1) }), true);
+      case 'insert': return this.vimInsert(c, command.where);
+      case 'normal':
+        // Esc: out of insert or visual mode; in normal mode it ends a waiting pick and the bar selection, and never leaves
+        this.flushEntry();
+        if (command.from !== 'insert') {
+          this.disarm();
+          this.barSel = null;
+          this.refreshStaff();
+        }
+        return;
+    }
+  }
+
+  /** The bar commands: dd, yy, p and P, and visual mode. */
+  private runVimBars(command: Extract<VimCommand, { kind: VimBarKind }>): void {
+    const c = this.vimCursor();
+    switch (command.kind) {
+      case 'deleteBars': {
+        this.barSel = this.vimBars(command.count);
+        this.cutSelection();
+        return this.setKeyCursor({ ...c, bar: Math.min(c.bar, this.piece.bars - 1), start: 0 }, true);
+      }
+      case 'yankBars': {
+        const range = this.vimBars(command.count);
+        this.barClip = copyBars(this.piece, range);
+        this.clipRange = null;
+        return this.say(t('editor.copy.done'), MESSAGE_MS);
+      }
+      case 'paste': {
+        if (!this.barClip) return this.say(t('editor.paste.none'), MESSAGE_MS);
+        const at = command.before ? c.bar : c.bar + 1;
+        const edit = insertBars(this.piece, at, this.barClip, command.count);
+        this.apply(edit, null);
+        if (edit.ok) this.setKeyCursor({ ...c, bar: at, start: 0 }, true);
+        return;
+      }
+      case 'visual':
+        this.barAnchor = c.bar;
+        this.keyCursor = c;
+        return this.extendBarSelection(c.bar);
+      case 'visualDelete':
+        if (!this.barSel) return;
+        this.cutSelection();
+        return this.setKeyCursor({ ...c, bar: Math.min(this.barAnchor ?? c.bar, this.piece.bars - 1), start: 0 }, true);
+      case 'visualYank':
+        this.copyBar();
+        this.barSel = null;
+        return this.refreshStaff();
+      case 'visualPaste': {
+        const sel = this.barSel;
+        this.barSel = null;
+        if (!this.barClip) return this.say(t('editor.paste.none'), MESSAGE_MS);
+        if (sel) this.apply(replaceBars(this.piece, sel, this.barClip), null);
+        return this.refreshStaff();
+      }
+      case 'visualPitch': {
+        const sel = this.barSel;
+        if (!sel) return;
+        let piece = this.piece;
+        for (let i = 0; i < command.count; i++) {
+          const moved = moveBars(piece, sel, command.direction, 'step');
+          if (!moved.ok) {
+            if (i === 0) return this.apply(moved, null);
+            break;
+          }
+          piece = moved.piece;
+        }
+        return this.apply({ ok: true, piece }, null);
+      }
+    }
+  }
+
+  /** Insert mode: the notes, rests and octaves typed, and Backspace. */
+  private runVimInsert(command: Extract<VimCommand, { kind: VimInsertKind }>): void {
+    const c = this.vimCursor();
+    switch (command.kind) {
+      case 'write': {
+        const pitch = nearestPitch(c, command.step);
+        return this.vimWrite({ ...c, ...pitch }, 'note');
+      }
+      case 'writeRest': return this.vimWrite(c, 'rest');
+      case 'octave': {
+        const last = this.vimLast;
+        if (!last || !findNote(this.piece, last)) return this.say(t('editor.cursor.none'), MESSAGE_MS);
+        const moved = moveNoteKeepingLegato(this.piece, last, command.direction, true);
+        if (!moved.ok) return this.apply(moved, last);
+        this.vimLast = moved.to;
+        this.apply({ ok: true, piece: moved.piece }, null);
+        // the next letter is read from the moved note's pitch
+        return this.setKeyCursor(withPitch(c, moved.to), true);
+      }
+      case 'chordNote': return this.vimChordNote(command.step);
+      case 'sharpen': {
+        const last = this.vimLast;
+        const note = last ? findNote(this.piece, last) : null;
+        if (!last || !note) return this.say(t('editor.cursor.none'), MESSAGE_MS);
+        const alter = Math.max(-1, Math.min(1, note.alter + command.direction)) as Alter;
+        if (alter === note.alter) return;
+        return this.apply(setAlter(this.piece, last, alter), null);
+      }
+      case 'erase': {
+        const out = eraseBefore(this.piece, c, this.length);
+        if (out.edit.ok) this.apply(out.edit, null);
+        return this.setKeyCursor(out.cursor, true);
+      }
+    }
+  }
+
+  /** Ctrl-A, Ctrl-X and r: the note under the cursor `steps` staff steps up (or down), one edit, the cursor going with it. */
+  private vimPitch(c: KeyCursor, steps: number): void {
+    if (!findNote(this.piece, c)) return this.say(t('editor.cursor.none'), MESSAGE_MS);
+    if (steps === 0) return;
+    const direction = steps > 0 ? 1 : -1;
+    let piece = this.piece;
+    let ref: NoteRef = c;
+    for (let i = 0; i < Math.abs(steps); i++) {
+      const moved = moveNoteKeepingLegato(piece, ref, direction, false);
+      if (!moved.ok) {
+        if (i === 0) return this.apply(moved, c);
+        break;
+      }
+      piece = moved.piece;
+      ref = moved.to;
+    }
+    this.apply({ ok: true, piece }, ref);
+    this.setKeyCursor(withPitch(c, ref), true);
+  }
+
+  /** i, a, o and O: insert mode at the cursor, after it, or in a new empty bar after or before the cursor's bar. */
+  private vimInsert(c: KeyCursor, where: 'here' | 'after' | 'barAfter' | 'barBefore'): void {
+    this.vimLast = null;
+    if (where === 'here') return this.setKeyCursor(c);
+    if (where === 'after') return this.setKeyCursor(moveInTime(this.piece, c, 1, this.length));
+    const at = where === 'barAfter' ? c.bar + 1 : c.bar;
+    const edit = insertBlankBars(this.piece, at, 1);
+    this.apply(edit, null);
+    if (edit.ok) this.setKeyCursor({ ...c, bar: at, start: 0 }, true);
+  }
+
+  /** Insert mode: a note (or a rest) of the selected length at `c`, as Ctrl + Enter writes it, the cursor moving on. */
+  private vimWrite(c: KeyCursor, entry: EntryMode): void {
+    const kept = this.entry;
+    this.entry = entry;
+    try {
+      this.enterKey(c, false, true);
+    } finally {
+      this.entry = kept;
+    }
+    this.vimLast = entry === 'note' && findNote(this.piece, c) ? c : null;
+  }
+
+  /**
+   * Insert mode, an uppercase letter: that note joins the chord just written, the next of its letter above the chord's top
+   * head, as a click on that place adds a head; the cursor stays where writing goes on.
+   */
+  private vimChordNote(step: Step): void {
+    const last = this.vimLast;
+    if (!last || !findNote(this.piece, last)) return this.say(t('editor.cursor.none'), MESSAGE_MS);
+    const heads = this.piece.notes.filter((n) => n.hand === last.hand && n.bar === last.bar && n.start === last.start);
+    const top = heads.reduce((a, b) => (midiOf(b.step, b.octave) > midiOf(a.step, a.octave) ? b : a));
+    const pitch = pitchAbove(top, step);
+    const clef = last.hand === 'LH' ? 'bass' : 'treble';
+    const length = top.length;
+    const after = this.keyCursor;
+    this.placeAt(length, { kind: 'place', staff: 0, trackId: last.hand.toLowerCase(), clef, bar: last.bar, start: last.start, position: staffPosition({ ...pitch, alter: 0 }, clef), ...pitch });
+    // + and - and the octave keys act on the head just added
+    const added = { ...last, ...pitch };
+    if (findNote(this.piece, added)) this.vimLast = added;
+    if (after) {
+      this.keyCursor = after;
+      this.drawKeyCursor();
+    }
+  }
+
+  /** A `:` line (ft_1_02e.AC6): w, q, q!, wq, x, set vim and set novim, a bar number, or any tool by its name. */
+  private vimEx(name: string, bang: boolean, arg: string): void {
+    const word = name.toLowerCase();
+    if (word === 'w') return void this.save();
+    if (word === 'q') return bang ? startScene(this, 'menu') : this.leave();
+    if (word === 'wq' || word === 'x') {
+      void this.save().then(() => {
+        if (this.scene.isActive() && !this.dirty()) startScene(this, 'menu');
+      });
+      return;
+    }
+    if (word === 'set' && (arg === 'novim' || arg === 'vim')) return this.toggleVim(arg === 'vim');
+    const tool = vimWordOf(word);
+    const own: Partial<Record<EditorKeyName, () => void>> = {
+      save: () => void this.save(),
+      undo: () => this.undo(),
+      redo: () => this.redo(),
+      delete: () => this.deleteSelected(),
+      copy: () => this.copyBar(),
+      chord: () => this.chordKey(this.vimCursor()),
+    };
+    const act = tool ? own[tool] ?? this.shortcutActs(tool) : null;
+    if (!act) return this.say(t('editor.vim.unknown', { name: `${name}${bang ? '!' : ''}${arg ? ` ${arg}` : ''}` }), MESSAGE_MS);
+    act();
+  }
+
+  /** The mode line: the mode and the keys of a command half typed, or the `:` line; nothing while the vim keys are off. */
+  private drawVimLine(): void {
+    const text = this.vimText;
+    if (!text || !text.active) return;
+    if (!this.vim) {
+      text.setVisible(false);
+      return;
+    }
+    const { mode, keys } = vimShowCmd(this.vim);
+    text.setText(t(`editor.vim.${mode}`, { keys }).trimEnd()).setVisible(true);
   }
 
   /** Shows the staff mode and the short-tap state on their buttons. */
@@ -2134,7 +2673,13 @@ export class EditorScene extends PixelScene {
    * Draw the staff again for the current piece (after every edit), keeping the rest of the screen. A page turn keeps its
    * page: a selected note on another page keeps its mark but does not pull the page back to it.
    */
+  /** Whether the next `refreshStaff` keeps the page shown (a page turn that drew the screen again). */
+  private pageTurnPending = false;
+
   private refreshStaff(pageTurn = false): void {
+    // a page turned that drew the screen again (its page buttons or the bar buttons changed) stays turned
+    if (this.pageTurnPending) pageTurn = true;
+    this.pageTurnPending = false;
     this.nameSelectedChord();
     this.staffView?.destroy();
     this.drawnPiece = this.piece;
@@ -2163,7 +2708,8 @@ export class EditorScene extends PixelScene {
       const grip = repeatHandleBox(this.layout, this.barSel, this.page);
       if (grip) this.band.fillStyle(DEFAULT_THEME.cursor, 0.9).fillRect(grip.x1, this.staffTop + grip.y1, grip.x2 - grip.x1, grip.y2 - grip.y1);
     }
-    this.staffView = new StaffView(this, drawn, undefined, { noteNames: true, fingers: true, chordFingers: contextOf(this).profiles.chordFingers }, { x: this.staffLeft, y: this.staffTop }, numbers, { x: 0, width: this.scale.width });
+    // the author writes a finger for every note of a chord, so the piece maker shows them all (ft_1_02d.AC33)
+    this.staffView = new StaffView(this, drawn, undefined, { noteNames: true, fingers: true, chordFingers: true }, { x: this.staffLeft, y: this.staffTop }, numbers, { x: 0, width: this.scale.width });
     this.staffView.setHandShifts(handShiftMap(this.chart, LEVEL_TABLE.find((l) => l.level === contextOf(this).profiles.progress.level.level)));
     this.staffView.showPage(this.page, false);
     const index = this.selected ? this.indexOf(this.selected) : -1;
@@ -2175,8 +2721,8 @@ export class EditorScene extends PixelScene {
     this.drawShadows();
     this.drawKeyCursor();
     this.drawPhoto();
-    // the box follows the edit: the chord or the room under the pointer may have changed
-    this.drawTarget(this.targetAt(this.hit(this.input.activePointer)));
+    // the box and a waiting pick's preview follow the edit: the chord or the room under the pointer may have changed
+    this.hover(this.input.activePointer);
     this.ghost?.setDepth(10);
     this.ghostLabel?.setDepth(10);
     // the option buttons are drawn once: show the tempo of the piece now (also after undo and redo)
@@ -2187,6 +2733,7 @@ export class EditorScene extends PixelScene {
     this.meterText?.setText(this.meterLabel());
     // with the band, the page buttons over the staff are there only while the piece has more than one page
     if (this.bandShown && ((this.layout.pageCount > 1) !== this.pageButtonsDrawn || this.barEndKey !== spotKey(this.barEnd(this.layout)))) {
+      this.pageTurnPending = pageTurn;
       this.redraw();
       return;
     }
@@ -2239,66 +2786,136 @@ export class EditorScene extends PixelScene {
   }
 
   /**
-   * The piece maker's actions in the band's grid (ft_1_20 rule 1): Listen, Try it, the circle of fifths; Undo, Redo, Delete;
-   * Copy, Paste. Save, Import and Export are in the top strip. Pictures, their words in the tooltips.
+   * The strip along the foot (ft_1_20, d282): Listen or Stop, Try it, Undo, Redo and the writer: the note or rest a click
+   * writes, with its length, armed (purple); a press opens the eight lengths, the wheel over it turns them. Save, Import
+   * and Export stay in the top strip; everything else is in the bubble (`bubbleOptions`).
    */
-  protected override bandActions(): ToolbarItem[] {
+  protected override stripActions(): ToolbarItem[] {
     const playing = this.player?.isPlaying === true;
-    const action = (key: StringKey, icon: Bitmap, shortcut: string, onClick: () => void, ref?: (b: PixelButton) => void): ToolbarItem => ({ label: t(key), icon, shortcut, onClick, ...(ref ? { ref } : {}) });
+    const action = (key: StringKey, icon: Bitmap, shortcut: string, onClick: () => void): ToolbarItem => ({ label: t(key), icon, shortcut, onClick });
+    const kind = this.entry;
     return [
       { label: t(playing ? 'editor.stop' : 'editor.listen'), icon: playing ? TOOL_ICONS.stop : ICONS.ear, shortcut: EDITOR_KEYS.listen.label, onClick: () => this.listen(), ref: (b) => (this.listenButton = b) },
       action('editor.try', TOOL_ICONS.play, EDITOR_KEYS.tryIt.label, () => this.tryIt()),
-      // the circle of fifths (ft_1_28 rule 1: easy to reach), with the actions
-      circleItem(() => this.openCircle()),
       action('editor.undo', TOOL_ICONS.undo, EDITOR_KEYS.undo.label, () => this.undo()),
       action('editor.redo', TOOL_ICONS.redo, EDITOR_KEYS.redo.label, () => this.redo()),
-      action('editor.delete', TOOL_ICONS.trash, EDITOR_KEYS.delete.label, () => this.deleteSelected()),
-      action('editor.copy', TOOL_ICONS.copy, EDITOR_KEYS.copy.label, () => this.copyBar()),
-      { label: t('editor.paste'), icon: TOOL_ICONS.paste, shortcut: EDITOR_KEYS.paste.label, onClick: () => undefined, menu: { items: () => this.pasteItems(), cell: { w: PASTE_ITEM_WIDTH, h: BAR_BUTTON_HEIGHT }, columns: 3 } },
+      {
+        label: t(`editor.entry.${kind}`), icon: this.lengthPicture(this.length, kind), fineIcon: true, armed: true, tooltip: t(`editor.entry.${kind}.tip`),
+        shortcut: (kind === 'note' ? EDITOR_KEYS.notes : EDITOR_KEYS.rests).label, onClick: () => undefined, ref: (b) => (this.lengthItem = b),
+        menu: { items: () => this.lengthItems(kind), cell: ITEM_MENU_CELL, columns: LENGTH_ORDER.length },
+      },
     ];
   }
 
   /**
-   * The piece maker's items in the band's slots (ft_1_20 rule 2): notes and rests (two items, each showing its length and
-   * cycling it; the one a click writes is armed, on purple); sharp, flat, natural; the ties, the slurs and the fingers
-   * (each a menu of its choices); the dynamic of the selected note; the repeat signs; the staff the played notes go on and
-   * the short tap. Each acts on the selected note at once, as its button did. AX-3 provisional: held items that ride on the
-   * pointer (rule 2, AC4) wait for the item model and the painter's cursor; the order of the items.
+   * The bubble (ft_1_20, d282) for what is under the pointer, each option in its fixed slot. On a note (it becomes the
+   * selected note, unless it is in the selected bars, which the options then act on): 0 length, 1 accidental, 2 delete, 3 tie
+   * or slur, 4 dynamic, 5 fingers, 6 grace note, 7 copy; with bars selected also paste and repeat. On the time signature: 0
+   * the time panel. Elsewhere on the staff (the entry cursor moves there): 0 notes or rests, 1 paste at that bar, 2 repeat, 3
+   * the staff for played notes, 4 the short tap, 6 the key. From More (`at` null): the note's options while one is
+   * selected, else the place's.
    */
-  protected override bandItems(): ToolbarItem[] {
-    const dynamic = this.selected ? findNote(this.piece, this.selected)?.dynamic : undefined;
-    const sign = ACCIDENTAL_SIGN[this.selectedAlter() ?? 1];
-    return [
-      // notes and rests are two items, each showing the length a click writes, its menu and the wheel
-      // over it choosing the length; the one a click on the staff writes with is on a purple ground
-      ...(['note', 'rest'] as const).map((kind): ToolbarItem => ({
-        label: t(`editor.entry.${kind}`), icon: this.lengthPicture(this.length, kind), fineIcon: true, armed: this.entry === kind, tooltip: t(`editor.entry.${kind}.tip`),
-        shortcut: (kind === 'note' ? EDITOR_KEYS.notes : EDITOR_KEYS.rests).label, onClick: () => undefined,
-        ref: (b) => (kind === 'note' ? (this.lengthItem = b) : (this.restItem = b)),
-        menu: { items: () => this.lengthItems(kind), cell: ITEM_MENU_CELL, columns: LENGTH_ORDER.length },
-      })),
-      // sharp, flat and natural are one item: it shows the selected note's sign, a press gives the next
-      { label: t(`editor.acc.${sign}`), icon: itemPicture(sign), fineIcon: true, tooltip: t('editor.acc.tip'), shortcut: EDITOR_KEYS.accidentals.label, onClick: () => this.cycleAccidental(), ref: (b) => (this.accidentalButton = b) },
-      // ties and slurs are one item: which curve it draws follows from the notes
+  /** A bubble opens anywhere unless the time is being asked for; asked before the bubble opens, so it selects nothing. */
+  protected override hasBubbleAt(): boolean {
+    return this.meterAsk === null;
+  }
+
+  protected override bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
+    if (this.meterAsk !== null) return null;
+    const hit = at ? this.hit({ x: this.root.x + at.x * this.px.scale, y: this.root.y + at.y * this.px.scale }) : null;
+    if (hit?.kind === 'time') return [{ label: t('editor.timePanel'), icon: TOOL_ICONS.timePanel, onClick: () => this.openPanel('time') }];
+    if (hit?.kind === 'note') {
+      const ref = this.refOf(hit.noteIndex);
+      const sel = this.barSel;
+      if (ref && !(sel && ref.bar >= sel.from && ref.bar <= sel.to)) {
+        this.barSel = null;
+        this.keyCursor = ref;
+        if (this.selected?.bar !== ref.bar || this.selected.start !== ref.start || this.selected.step !== ref.step || this.selected.octave !== ref.octave || this.selected.hand !== ref.hand) this.select(ref);
+      }
+      return this.noteOptions();
+    }
+    if (hit?.kind === 'place') {
+      this.barSel = null;
+      this.barAnchor = hit.bar;
+      this.selectSpot(hit);
+      return this.placeOptions();
+    }
+    if (at === null && (this.selected || this.barSel)) return this.noteOptions();
+    return this.placeOptions();
+  }
+
+  /** The bubble on a note or the selected bars: what is done to them. */
+  private noteOptions(): (ToolbarItem | null)[] {
+    const note = this.selected ? findNote(this.piece, this.selected) : undefined;
+    const sign = ACCIDENTAL_SIGN[note?.alter ?? 1];
+    const sel = this.barSel;
+    const options: (ToolbarItem | null)[] = [
+      { label: t(`editor.length.${this.length}` as StringKey), icon: this.lengthPicture(this.length, 'note'), fineIcon: true, onClick: () => undefined, menu: { items: () => this.lengthItems('note'), cell: ITEM_MENU_CELL, columns: LENGTH_ORDER.length } },
+      { label: t(`editor.acc.${sign}`), icon: itemPicture(sign), fineIcon: true, tooltip: t('editor.acc.tip'), shortcut: EDITOR_KEYS.accidentals.label, onClick: () => undefined, menu: { items: () => this.accidentalItems(), cell: ITEM_MENU_CELL, columns: 3 } },
+      { label: t('editor.delete'), icon: TOOL_ICONS.trash, shortcut: EDITOR_KEYS.delete.label, onClick: () => (sel ? this.change(clearBars(this.piece, sel)) : this.deleteSelected()) },
       { label: t('editor.arc.menu'), icon: itemPicture('tie'), fineIcon: true, shortcut: EDITOR_KEYS.ties.label, onClick: () => undefined, menu: { items: () => this.arcItems(), cell: ITEM_MENU_CELL, columns: 3 } },
-      { label: t('editor.grace'), icon: TOOL_ICONS.grace, tooltip: t('editor.grace.tip'), onClick: () => this.pressGrace() },
-      { label: dynamic ?? '-', icon: dynamicPicture(dynamic), fineIcon: true, keepCase: true, tooltip: t('editor.dyn.tip'), shortcut: EDITOR_KEYS.dynamics.label, onClick: () => this.cycleDynamic(), ref: (b) => (this.dynamicButton = b) },
+      { label: note?.dynamic ?? '-', icon: dynamicPicture(note?.dynamic ?? 'mf'), fineIcon: true, keepCase: true, tooltip: t('editor.dyn.tip'), shortcut: EDITOR_KEYS.dynamics.label, onClick: () => undefined, menu: { items: () => this.dynamicItems(), cell: ITEM_MENU_CELL, columns: 7 } },
       { label: t('editor.finger.menu'), icon: TOOL_ICONS.fingers, shortcut: EDITOR_KEYS.fingers.label, onClick: () => undefined, menu: { items: () => this.fingerItems(), cell: FINGER_MENU_CELL, columns: 6 } },
-      // the two repeat signs are one item: a press asks for the start bar, then the end bar
-      { label: t('editor.repeat'), icon: itemPicture('repeat'), fineIcon: true, active: this.repeatPick !== null, tooltip: t('editor.repeat.tip'), shortcut: EDITOR_KEYS.repeats.label, onClick: () => this.pressRepeat(), ref: (b) => (this.repeatButton = b) },
-      { label: t(STAFF_LABEL[this.staffMode]), tooltip: t('editor.staff.tip'), shortcut: EDITOR_KEYS.staff.label, onClick: () => this.cycleStaff(), ref: (b) => (this.staffButton = b) },
-      {
-        label: t(this.shortTapEighth ? SHORT_TAP_LABEL.on : SHORT_TAP_LABEL.off), tooltip: t('editor.shortTap.tip'), active: this.shortTapEighth, shortcut: EDITOR_KEYS.shortTap.label,
-        onClick: () => this.toggleShortTap(), ref: (b) => (this.shortTapButton = b),
-      },
+      { label: t('editor.grace'), icon: TOOL_ICONS.grace, tooltip: t('editor.grace.tip'), onClick: () => this.pressGrace() },
+      { label: t('editor.copy'), icon: TOOL_ICONS.copy, shortcut: EDITOR_KEYS.copy.label, onClick: () => this.copyBar() },
     ];
+    if (sel) options.push(this.pasteOption(), this.repeatOption());
+    return options;
+  }
+
+  /** The bubble on an empty place of the staff: how the next notes are written. */
+  private placeOptions(): (ToolbarItem | null)[] {
+    return [
+      { label: t(`editor.entry.${this.entry}`), icon: this.lengthPicture(this.length), fineIcon: true, onClick: () => undefined, menu: { items: () => this.entryItems(), cell: ITEM_MENU_CELL, columns: 2 } },
+      this.pasteOption(),
+      this.repeatOption(),
+      { label: t(STAFF_LABEL[this.staffMode]), icon: TOOL_ICONS.staff, tooltip: t('editor.staff.tip'), shortcut: EDITOR_KEYS.staff.label, onClick: () => undefined, menu: { items: () => this.staffItems(), cell: { w: 40, h: BAR_BUTTON_HEIGHT }, columns: 3 } },
+      {
+        label: t(this.shortTapEighth ? SHORT_TAP_LABEL.on : SHORT_TAP_LABEL.off), icon: TOOL_ICONS.shortTap, tooltip: t('editor.shortTap.tip'), shortcut: EDITOR_KEYS.shortTap.label, onClick: () => undefined,
+        menu: { items: () => this.shortTapItems(), cell: { w: 40, h: BAR_BUTTON_HEIGHT }, columns: 2 } },
+      null,
+      circleItem(() => this.openCircle()),
+      null,
+    ];
+  }
+
+  private pasteOption(): ToolbarItem {
+    return { label: t('editor.paste'), icon: TOOL_ICONS.paste, shortcut: EDITOR_KEYS.paste.label, onClick: () => undefined, menu: { items: () => this.pasteItems(), cell: { w: PASTE_ITEM_WIDTH, h: BAR_BUTTON_HEIGHT }, columns: 3 } };
+  }
+
+  private repeatOption(): ToolbarItem {
+    return { label: t('editor.repeat'), icon: itemPicture('repeat'), fineIcon: true, active: this.repeatPick !== null, tooltip: t('editor.repeat.tip'), shortcut: EDITOR_KEYS.repeats.label, onClick: () => this.pressRepeat() };
+  }
+
+  /** Sharp, flat and natural for the selected note, its own lit. */
+  private accidentalItems(): MenuItem[] {
+    const now = this.selectedAlter();
+    return ([1, -1, 0] as const).map((alter) => {
+      const sign = ACCIDENTAL_SIGN[alter];
+      return { label: t(`editor.acc.${sign}`), icon: itemPicture(sign), fineIcon: true, active: alter === now, onPick: () => this.accidental(alter) };
+    });
+  }
+
+  /** Notes or rests from now on, the one in use lit, each at the length in use. */
+  private entryItems(): MenuItem[] {
+    return (['note', 'rest'] as const).map((kind) => ({ label: t(`editor.entry.${kind}`), icon: this.lengthPicture(this.length, kind), fineIcon: true, active: kind === this.entry, tooltip: t(`editor.entry.${kind}.tip`), onPick: () => {
+      this.setEntry(kind);
+      this.redraw();
+    } }));
+  }
+
+  /** What a short tap writes: an eighth or a quarter, the one in use lit. */
+  private shortTapItems(): MenuItem[] {
+    return ([true, false] as const).map((eighth) => ({ label: t(eighth ? SHORT_TAP_LABEL.on : SHORT_TAP_LABEL.off), active: eighth === this.shortTapEighth, onPick: () => {
+      if (eighth !== this.shortTapEighth) this.toggleShortTap();
+    } }));
   }
 
   /** The finger menu (with the band): 1 to 5 set the selected note's finger, AUTO fills the notes that have none (ft_1_02d.AC4, AC13). */
   private fingerItems(): MenuItem[] {
     return [
       ...([1, 2, 3, 4, 5] as const).map((finger) => ({ label: String(finger), keepCase: true, tooltip: t('editor.finger.tip'), onPick: () => this.setFingerTo(finger) })),
-      { label: t('editor.finger.auto'), keepCase: true, tooltip: t('editor.finger.auto.tip'), onPick: () => this.autoFillFingers() },
+      { label: t('editor.finger.auto'), keepCase: true, tooltip: t('editor.finger.auto.tip'), preview: this.itemPreview('auto', () => ({ ok: true, piece: autoFingers(this.piece, this.fingerLevel()).piece })), onPick: () => this.autoFillFingers() },
     ];
   }
 
@@ -2320,13 +2937,18 @@ export class EditorScene extends PixelScene {
     this.ghost = this.add.graphics().setDepth(10).setX(this.staffLeft);
     this.shadows = this.add.graphics().setDepth(9).setX(this.staffLeft);
     this.target = this.add.graphics().setDepth(8).setX(this.staffLeft);
-    this.ghostLabel = this.add.text(0, 0, '', { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.round(5 * scale)}px`, color: hexCss(DEFAULT_THEME.cursor) }).setOrigin(0.5).setDepth(10).setVisible(false);
+    this.ghostLabel = this.add.text(0, 0, '', { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(5 * scale)}px`, color: hexCss(DEFAULT_THEME.cursor) }).setOrigin(0.5).setDepth(10).setVisible(false);
 
     const layer = this.overStaff();
     const make = (options: PixelButtonOptions) => this.buttonOn(layer, options);
     if (this.meterAsk !== null) this.drawMeterAsk(layer, rows);
     else if (this.panel === 'time') this.drawTimePanel(layer, rows);
     this.drawKeyHelp(strip.rows);
+    // the vim mode line at the top left of the staff (ft_1_02e), under the strip
+    // keepCase: the keys typed are shown as typed (G is not g)
+    this.vimText = new PixelText(this, Math.ceil((SHEET.staffInset * this.px.fine) / scale) + 2, strip.rows + 2, '', { color: C.ink, keepCase: true });
+    layer.add(this.vimText);
+    this.drawVimLine();
     // the top strip between the door and the gear: Save after the door, the title, the page buttons,
     // then Import and Export before the gear
     const y = strip.rows / 2;
@@ -2449,9 +3071,14 @@ export class EditorScene extends PixelScene {
     this.titleInput = input;
   }
 
-  /** The paste menu: the copied bar once, twice or four times at the end. */
+  /**
+   * The paste menu: the copied bars once, twice or four times where Ctrl+V puts them (before the bar last pressed, or after
+   * a fresh copy). AX-3 provisional: x2 and x4 are that many pastes, each its own undo step.
+   */
   private pasteItems(): MenuItem[] {
-    return ([1, 2, 4] as const).map((times) => ({ label: t(`editor.paste.${times}`), tooltip: t('editor.paste.tip'), keepCase: true, onPick: () => this.pasteBar(times) }));
+    return ([1, 2, 4] as const).map((times) => ({ label: t(`editor.paste.${times}`), tooltip: t('editor.paste.tip'), keepCase: true, preview: this.pastePreview(times), onPick: () => {
+      for (let i = 0; i < times; i++) this.pasteSelection();
+    } }));
   }
 
   /**
@@ -2462,7 +3089,7 @@ export class EditorScene extends PixelScene {
     return [
       { label: t('editor.arc'), icon: itemPicture('tie'), fineIcon: true, tooltip: t('editor.arc.tip'), onPick: () => this.toggleArcOnSelected() },
       { label: t('editor.arc.pick.button'), icon: itemPicture('tieTo'), fineIcon: true, tooltip: t('editor.arc.pick.tip'), onPick: () => this.armArc() },
-      { label: t('editor.tie.all'), icon: TOOL_ICONS.tieAll, tooltip: t('editor.tie.all.tip'), onPick: () => this.tieEverything() },
+      { label: t('editor.tie.all'), icon: TOOL_ICONS.tieAll, tooltip: t('editor.tie.all.tip'), preview: this.itemPreview('tieAll', () => tieAll(this.piece)), onPick: () => this.tieEverything() },
     ];
   }
 
@@ -2621,7 +3248,7 @@ export class EditorScene extends PixelScene {
     this.ghost = this.add.graphics().setDepth(10).setX(this.staffLeft);
     this.shadows = this.add.graphics().setDepth(9).setX(this.staffLeft);
     this.target = this.add.graphics().setDepth(8).setX(this.staffLeft);
-    this.ghostLabel = this.add.text(0, 0, '', { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.round(5 * scale)}px`, color: hexCss(DEFAULT_THEME.cursor) }).setOrigin(0.5).setDepth(10).setVisible(false);
+    this.ghostLabel = this.add.text(0, 0, '', { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(5 * scale)}px`, color: hexCss(DEFAULT_THEME.cursor) }).setOrigin(0.5).setDepth(10).setVisible(false);
 
     // bottom bar: lengths, delete, undo, redo, and under them what the checker says
     const barY = rows - BOTTOM;

@@ -3,7 +3,7 @@ id: "ft_1_10"
 title: "Pitch trainer by ear"
 scope: "No staff while listening: the game sounds one note or two, the student finds them on the keys; settings for the note length (1 to 3 s) and repeat; an ear level of 5 + N stars of 100 points, 100/50/25/12/6/0 points by misses"
 effort: "medium"
-status: "in progress: built and merged; the Windows visual check is open"
+status: "in progress: built and merged; the visual check is open"
 completeness: 90
 depends_on: ["ft_0_07", "ft_0_17"]
 ---
@@ -61,7 +61,7 @@ Release R2. The note-name trainer (ft_0_17) asks "which key is this note on the 
 
 ## Not in scope (later, see the brainstorm)
 
-Chords (X + Y + ... sounded together), LOOM-style tunes to repeat, intervals, singing into a microphone, wrong-note detective in a known piece, battle tie-ins.
+Chords (X + Y + ... sounded together), LOOM-style tunes to repeat, intervals, singing into a microphone, wrong-note detective in a known piece.
 
 **Human:** whether a young student hears the laptop speakers' notes well; whether the level table is too slow or fast (playtest).
 
@@ -69,4 +69,4 @@ Chords (X + Y + ... sounded together), LOOM-style tunes to repeat, intervals, si
 
 Work tags ([todo-tags.md](../automation/todo-tags.md)); the closed issue in brackets keeps the earlier discussion.
 
-- NEEDS-HUMAN: the visual check of the room and the trainer screen on Windows (the Windows baselines need making again after the room change), and a native speaker's check of the Estonian strings.
+- NEEDS-HUMAN: the visual check of the room and the trainer screen on the laptop (the screenshot baselines need making again after the room change), and a native speaker's check of the Estonian strings.

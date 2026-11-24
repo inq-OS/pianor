@@ -7,7 +7,7 @@ These notes are what the agent saw on the reference pictures. They may be wrong,
 
 ## What it is
 
-The map of Keri is one painted picture of the island seen at a slant from the south, reached through the room's door ([ft_1_18.AC2](../features/ft_1_18-keri-island.md), [d111](../decisions/art.md#d111) points 8 and 11 to 14). It shows a painted place for every scene ([ft_1_19.AC2](../features/ft_1_19-scenes-of-beings.md), [d113](../decisions/game.md#d113)). Everything on it comes from the world model ([d108](../decisions/game.md#d108), `content/world/keri.json`) except the few things the picture adds for looks.
+The map of Keri is one painted picture of the island seen at a slant from the south, reached through the room's door ([ft_1_18.AC2](../features/ft_1_18-keri-island.md), [d111](../decisions/art.md#d111) points 8 and 11 to 14). It shows a painted place for every scene ([ft_1_19.AC2](../features/ft_1_19-scenes-on-keri.md), [d113](../decisions/game.md#d113)). Everything on it comes from the world model ([d108](../decisions/game.md#d108), `content/world/keri.json`) except the few things the picture adds for looks.
 
 ## The map as a caricature (d125)
 

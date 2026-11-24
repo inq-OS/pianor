@@ -1,14 +1,14 @@
 ---
 id: "core_04"
 title: "Piece stats and history"
-scope: "Per player and piece: history, speed, accuracy, proficiency; the RPG skills"
+scope: "Per player and piece: history, speed, accuracy, proficiency"
 effort: "medium"
 status: "built (history, proficiency, accuracy, timing, speed, start tempo, stats page with graph); numbers provisional, confirm what played well means"
 completeness: 80
 ---
 # core_04: Piece stats and history per player
 
-Each piece keeps numbers and a history for each player; they are the skills of the later RPG. Built (d044). Index: [FEATURES.md](FEATURES.md).
+Each piece keeps numbers and a history for each player. Built (d044). Index: [FEATURES.md](FEATURES.md).
 
 ## Rules
 
@@ -21,8 +21,7 @@ Each piece keeps numbers and a history for each player; they are the skills of t
 3. **Played well** (AX-1; `stats` in `content/curriculum/progression.json`, tunable): at least 90 percent of notes right the first time, no hint, and in Tempo mode a timing score of at least 70.
 4. **Results screen:** "Keeping it up: N%", and after a Tempo play "Timing N" and "Fastest: N%". Only true and kind numbers, never "worse than before". A piece starts at the tempo percent where this player last played it (100 when never; finishes core_03's initial tempo). The graph below also shows on the score screen after every session ([ft_1_12](ft_1_12-training-piano.md)).
 5. **Stats page**: the `S` button beside `i` on a menu card shows plays, keeping it up, right the first time, fastest, and a graph drawn with the pixel kit (`core/layout/historyGraph.ts`). Full plays (`pieceHistory`) are spaced evenly left to right, oldest first, at the height of their accuracy, dashed lines at 0, 50 and 100, first and last date under it; Wait plays are blue dots, Tempo gold, with a legend once a Tempo play shows. When more plays than fit (one per 3 art pixels) only the latest show and the page says how many. No save change. A piece learned bar by bar has a third button there that opens its learning stats ([ft_1_32](ft_1_32-learn-a-piece-bar-by-bar.md) rule 10).
-6. **RPG mapping (idea, ft_Y_01, ft_Y_03):** accuracy to crit chance, speed to combo chance, proficiency to damage. Stats are stored, not RPG numbers, so the mapping can change.
-7. **Not built:** stats on the piece's card (core_05); the RPG mapping; per-note timing in the history (only totals).
+6. **Not built:** stats on the piece's card (core_05); per-note timing in the history (only totals).
 
 ## Acceptance criteria
 
