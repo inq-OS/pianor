@@ -334,9 +334,9 @@ export function learnRewards(
     return true;
   };
   const done = plan.slice(0, Math.min(progress.step, plan.length));
-  // each unit's medal: that of the first finished step that reached it
+  // each unit's medal: that of the first finished step that reached it with both hands (a one-hand step earns nothing, rule 13)
   const unitMedal = (u: number): Medal | null => {
-    const at = done.findIndex((s) => s.firstUnit <= u && s.lastUnit >= u);
+    const at = done.findIndex((s) => s.hand === undefined && s.firstUnit <= u && s.lastUnit >= u);
     if (at < 0) return null;
     return shines(u) ? 'gold' : progress.medals[at] ?? 'bronze';
   };

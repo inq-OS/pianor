@@ -93,6 +93,37 @@ describe('LearnSession', () => {
     expect(last.endLine(played.outcome, played.bpm)).toBe('Learned: every note right, at an even 75');
   });
 
+  it('a step played three times in a row says which play it is, so its line is never the same twice', async () => {
+    const { session } = open({ ...START_PROGRESS, step: 1, lastDay: '1998-11-22' });
+    const lines: string[] = [];
+    for (let run = 0; run < 3; run++) {
+      const now = session();
+      lines.push(now.startLine());
+      const played = playRun(now, [0, 1000, 2000, 3000]);
+      await now.finish(played.outcome, played.bpm);
+    }
+    expect(lines).toEqual(['Bar 1 once more, at an even pace (play 1 of 3)', 'Bar 1 once more, at an even pace (play 2 of 3)', 'Bar 1 once more, at an even pace (play 3 of 3)']);
+  });
+
+  it('ft_1_32.AC12 with hands apart, the step after each hand alone says both hands', async () => {
+    const notes = [0, 1].flatMap((bar) => [{ tick: bar * 1920, dur: 480, midi: 64, track: 'rh' }, { tick: bar * 1920, dur: 480, midi: 48, track: 'lh' }]);
+    notes.push({ tick: 1920, dur: 1920, midi: 52, track: 'bk' });
+    const twoHands = chartWith(notes);
+    const kept = { progress: START_PROGRESS };
+    const profileOf: LearnProfile = {
+      learnSettings: { ...DEFAULT_LEARN_SETTINGS, handsApart: true }, learnProgressOf: () => kept.progress, practiceFor: () => [], recordFor: () => undefined,
+      saveLearnProgress: (_, progress) => { kept.progress = progress; return Promise.resolve(true); },
+    };
+    const lines: string[] = [];
+    for (let run = 0; run < 3; run++) {
+      const now = LearnSession.open(profileOf, twoHands, '1998-11-22')!;
+      lines.push(now.startLine());
+      await now.finish('perfect');
+      if (run === 1) lines.push(now.nextLine());
+    }
+    expect(lines).toEqual(['Bar 1, right hand alone: every note right', 'Bar 1, left hand alone: every note right', 'Bar 1, both hands: every note right', 'Bar 1, both hands: every note right']);
+  });
+
   it('counts nothing with note names shown', () => {
     expect(open().session().outcomeOf(piece, true)).toEqual({ outcome: 'hinted' });
   });

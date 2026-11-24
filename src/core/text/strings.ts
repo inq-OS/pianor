@@ -729,10 +729,13 @@ export const strings = {
   'learn.reason.wrongOctave': 'Right letter, wrong octave',
   'learn.reason.neighbourKey': 'The key next to it',
   'learn.reason.wrongLetter': 'Wrong note',
+  'learn.bothStepOne': 'Bar {n}, both hands: every note right',
+  'learn.bothStep': 'Bars {from} to {to}, both hands: every note right',
   'learn.clean': 'Every note right!',
   'learn.nextOne': 'Now bar {n}',
   'learn.next': 'Now bars {from} to {to}',
   'learn.goOn': 'Play any key to go on',
+  'learn.round': '(play {n} of {runs})',
   'learn.learned': 'Learned: every note right, at an even {bpm}',
   'learn.rewards': 'Bars learned',
 
