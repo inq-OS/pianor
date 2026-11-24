@@ -24,4 +24,24 @@ describe('a script run in a scene (ft_1_24.AC6)', () => {
     expect(gave).toEqual(['shell']);
     expect(running.given).toEqual(['shell']);
   });
+
+  it('keeps time on a slow machine: a frame of 400 ms moves the script as far as four of 100 ms', () => {
+    const run = () => new SceneScript(scriptSchema.parse(boatArrives), scene, pieces, audio, () => undefined);
+    const slow = run(), even = run();
+    slow.tick(1000);
+    slow.tick(1400);
+    for (const time of [1000, 1100, 1200, 1300, 1400]) even.tick(time);
+    expect(slow.view()).toEqual(even.view());
+    expect(slow.view()).not.toEqual(run().view());
+  });
+
+  it('never jumps ahead after a pause: a frame of ten seconds counts as one second', () => {
+    const run = () => new SceneScript(scriptSchema.parse(boatArrives), scene, pieces, audio, () => undefined);
+    const paused = run(), second = run();
+    paused.tick(0);
+    paused.tick(10_000);
+    second.tick(0);
+    second.tick(1000);
+    expect(paused.view()).toEqual(second.view());
+  });
 });

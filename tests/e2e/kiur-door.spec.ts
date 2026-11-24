@@ -1,7 +1,7 @@
-// Covers ft_1_15.AC4, ft_1_15.AC5, ft_1_15.AC7.
+// Covers ft_1_15.AC4, ft_1_15.AC5, ft_1_15.AC7, ft_1_15.AC8.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { clickButton, expectNoErrors, openGame, openPiece, pickChoice, sceneButton, waitForScene } from './helpers';
+import { LITTLE_STEPS, clickButton, expectNoErrors, openFromStand, openGame, openPiece, pickChoice, playWithVirtualPiano, profileButton, sceneButton, waitForScene } from './helpers';
 
 /** Palms on the keys: eleven keys down at once on the virtual EZ-220, away from the awaited note, then all up. */
 async function bash(page: Page, release = true): Promise<void> {
@@ -92,6 +92,59 @@ test.describe('Kiur at the door', () => {
     await backAtPiece(page);
     await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { leaving: boolean }).leaving)).toBe(false);
     // a second bash, and the door out to the room
+    await bash(page);
+    await waitForScene(page, 'kiurDoor');
+    await clickButton(page, 'kiurDoor', await sceneButton(page, 'kiurDoor', 'Out the door'));
+    await waitForScene(page, 'profile');
+    expectNoErrors(errors);
+  });
+});
+
+test.describe('Kiur at the door whatever the screen does (ft_1_15.AC8)', () => {
+  test('ft_1_15.AC8 a bash while the game plays the piece stops it and brings Kiur; Back has the piece ready to play', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { listen: (on: boolean) => void }).listen(true));
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { listening: boolean }).listening)).toBe(true);
+    await bash(page);
+    await waitForScene(page, 'kiurDoor');
+    await clickButton(page, 'kiurDoor', await sceneButton(page, 'kiurDoor', 'Back to the piece'));
+    await backAtPiece(page);
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { listening: boolean }).listening)).toBe(false);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_15.AC8 a bash while the score of a pass shows brings Kiur, Back goes on to the next pass and the door to the room', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    const lap = () => page.evaluate(() => (window.__game.scene.getScene('practice').startData.lap ?? 0) as number);
+    const scoreShown = () => page.evaluate(() => (window.__game.scene.getScene('practice').playSession.passScore as unknown[]).length > 0);
+    await playWithVirtualPiano(page, LITTLE_STEPS);
+    await expect.poll(scoreShown).toBe(true);
+    await bash(page);
+    await waitForScene(page, 'kiurDoor');
+    await clickButton(page, 'kiurDoor', await sceneButton(page, 'kiurDoor', 'Back to the piece'));
+    await expect.poll(lap).toBe(1);
+    await playWithVirtualPiano(page, LITTLE_STEPS);
+    await expect.poll(scoreShown).toBe(true);
+    await bash(page);
+    await waitForScene(page, 'kiurDoor');
+    await clickButton(page, 'kiurDoor', await sceneButton(page, 'kiurDoor', 'Out the door'));
+    await waitForScene(page, 'profile');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_15.AC8 a bash in a trainer brings Kiur; Back goes on with the trainer, the door to the room', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
+    await clickButton(page, 'profiles', await profileButton(page, 'TUVI'));
+    await waitForScene(page, 'profile');
+    await openFromStand(page, 'Note names');
+    await waitForScene(page, 'noteTrainer');
+    await bash(page);
+    await waitForScene(page, 'kiurDoor');
+    expect(await running(page, 'noteTrainer')).toBe(false);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => running(page, 'noteTrainer')).toBe(true);
     await bash(page);
     await waitForScene(page, 'kiurDoor');
     await clickButton(page, 'kiurDoor', await sceneButton(page, 'kiurDoor', 'Out the door'));
