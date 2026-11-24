@@ -14,7 +14,7 @@ const world = (page: Page) => page.evaluate(async () => {
   const { profiles } = window.__game.registry.get('context');
   return (await profiles.worldOf(profiles.profile.id)) as { items: string[]; met: Record<string, { tugs: { won: number; lost: number }; lastLostTug?: { piece: string } }> };
 });
-const battles = (page: Page) => page.evaluate(() => (window.__game.registry.get('context').profiles.profile.battles as { monsterId: string; won: boolean; xp: number }[]));
+const tugs = (page: Page) => page.evaluate(() => (window.__game.registry.get('context').profiles.profile.tugs as { characterId: string; won: boolean; xp: number }[]));
 
 /** Puuvaim's first phrase, its first two bars: what the student plays back at level 1. */
 const PHRASE = [64, 64, 65, 64, 62, 62, 60];
@@ -131,8 +131,8 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     await page.evaluate((k) => { window.__game.scene.stop(k); window.__game.scene.start(k); }, knoll);
     await waitForScene(page, knoll);
     await expect.poll(() => inventory(page)).toEqual(['oak-leaf']);
-    // ft_1_21.AC8 the prize is kept as before (AC9: under the battle's keys)
-    expect(await battles(page)).toEqual([expect.objectContaining({ monsterId: 'puuvaim', won: true, xp: 30 })]);
+    // ft_1_21.AC8 ft_1_21.AC9 the prize is kept as a tug record
+    expect(await tugs(page)).toEqual([expect.objectContaining({ characterId: 'puuvaim', won: true, xp: 30 })]);
     expectNoErrors(errors);
   });
 
@@ -162,7 +162,7 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     await expect.poll(() => tug(page)).toBeNull();
     await expect.poll(async () => (await world(page)).met['puuvaim']?.lastLostTug?.piece).toBe('puuvaim-1');
     expect((await world(page)).items).toEqual([]);
-    expect(await battles(page)).toEqual([expect.objectContaining({ won: false, xp: 0 })]);
+    expect(await tugs(page)).toEqual([expect.objectContaining({ won: false, xp: 0 })]);
     expect(await inventory(page)).toEqual([]);
     expectNoErrors(errors);
   });
@@ -175,16 +175,16 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     await letGameRun(page, 3, 50);
     expect(await activeScenes(page)).toContain(knoll);
     expect((await world(page)).met['puuvaim']!.tugs).toMatchObject({ won: 0, lost: 0 });
-    expect(await battles(page)).toEqual([]);
+    expect(await tugs(page)).toEqual([]);
     expectNoErrors(errors);
   });
-  test('ft_1_06.AC15 the tug waits for practice: under three plays in the room Puuvaim says how many more, and nothing is played', async ({ page }) => {
+  test('ft_1_21.AC19 the tug waits for practice: under three plays in the room Puuvaim says how many more, and nothing is played', async ({ page }) => {
     const errors = await openTug(page, 1);
     await expect.poll(async () => (await tug(page))?.saying).toBe('Practice my tune in your room first: 2 more plays.');
     expect((await tug(page))!.who).toBeNull();
     await page.keyboard.press('Space');
     await expect.poll(() => tug(page)).toBeNull();
-    expect(await battles(page)).toEqual([]);
+    expect(await tugs(page)).toEqual([]);
     expectNoErrors(errors);
   });
 
@@ -213,7 +213,7 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     await page.keyboard.press('Space');
     await expect.poll(() => tug(page)).toBeNull();
     await expect.poll(async () => (await world(page)).met['puuvaim']?.tugs.won).toBe(1);
-    // level 2 waits for practice of its own piece in Tempo mode (ft_1_06.AC15)
+    // level 2 waits for practice of its own piece in Tempo mode (ft_1_21.AC19)
     await practise(page, 3, true, LEVEL_2, 'tempo');
     await pickTug(page);
     await expect.poll(async () => (await tug(page))?.who).toBe('character');
@@ -288,9 +288,9 @@ test.describe('Kiur the trainer in the room (ft_1_21.AC14)', () => {
     await expect.poll(async () => (await roomTug(page))?.saying).toContain('Practice the piece more');
     await page.keyboard.press('Space');
     await expect.poll(() => roomTug(page)).toBeNull();
-    // nothing kept: no character record and no battle record
+    // nothing kept: no character record and no tug record
     expect((await world(page)).met).toEqual({});
-    expect(await battles(page)).toEqual([]);
+    expect(await tugs(page)).toEqual([]);
     // no cool-down: he tugs again at once; Esc leaves it, and the room stays
     await pressKiur(page);
     await expect.poll(async () => (await roomTug(page))?.who).toBe('character');

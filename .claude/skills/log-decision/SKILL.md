@@ -13,11 +13,11 @@ Rules: [DECISIONS.md](../../../docs/decisions/DECISIONS.md) (top), [d041](../../
    ```markdown
    ## dNNN
 
-   **The decision in one sentence.** Features: ft_0_08 (or none). Supersedes dXXX.
+   **The decision in one sentence.** Features: ft_0_08 (or none).
 
    One to four sentences: the rule, the values a builder needs, the one-clause why. No story, no "given up" list, no quote of a person and nothing personal: an answer becomes a plain rule, with no date and no word on who asked for it (d165).
    ```
-   The rule itself also goes into the doc of its area (feature file, architecture, art direction); the entry says why (the dNNN order says which is newer). A decision that changes an older one edits that entry to say what still holds and "Changed by dNNN." (or adds "Superseded by dNNN." / "Retired." to its first line).
+   The rule itself also goes into the doc of its area (feature file, architecture, art direction); the entry says why (the dNNN order says which is newer). A decision that changes an older one rewrites that entry to the rule as it now stands, and an entry that no longer holds is deleted with every link to it; no entry says what it used to say (d151).
 4. **The maintainer's answer?** If it generalises (a `new rule`), add a `TODO(architect)` tag in `docs/axioms.md` to propose the corollary.
 5. Update docs that the decision changes (CLAUDE.md "Stack", a feature file) and point them to `dNNN`.
 6. `npm run docs:index` (never edit the index table by hand), then `npm run docs:check`.

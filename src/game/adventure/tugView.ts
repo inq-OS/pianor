@@ -103,7 +103,7 @@ export class TugView {
 
   /**
    * Starts the tug on `chart` at `level` with `character`; its first turn plays at once. With `notYet` the tug does not
-   * start: the character says that line (what practice it waits for, ft_1_06.AC15), and a press ends it with nothing played.
+   * start: the character says that line (what practice it waits for, ft_1_21.AC19), and a press ends it with nothing played.
    * `kind` is `practiceTug` for Kiur's practice tug in the room (AC14): the same play, kept differently by the caller.
    */
   static open(

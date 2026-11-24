@@ -11,7 +11,8 @@ import { curriculumMark, type CurriculumMark } from '../core/curriculum/bookMark
 import { dayNumber } from '../core/curriculum/evaluate';
 import type { Medal } from '../core/curriculum/play';
 import { CHARACTER_PIECES } from './adventure/scenesData';
-import { pieceLearned } from '../core/learn/route';
+import { pieceClef, pieceLearned } from '../core/learn/route';
+import { clefPrize } from './practice/rewardNotes';
 import { CHARACTER_INK } from './ui/pixel/talkArt';
 import { teacherStatuses } from './teacher/teacherStatuses';
 import { dayString } from '../io/teacher/teacherDesk';
@@ -30,6 +31,8 @@ import { HAT, hatPicture } from './ui/pixel/menuArt';
 import { ART_DETAIL } from '../core/layout/frame';
 import type { Rect } from '../core/layout/rect';
 import { startScene } from './scenes';
+import { pressHide, type ArmedHide } from '../core/progression/pieceSwitch';
+import { TOOL_ICONS } from './ui/pixel/toolArt';
 
 /** Piece maker (from the main menu): the Make list opens directly, with Back to the main menu. Saves no progress. */
 export const MAKER_KEY = 'maker';
@@ -101,6 +104,12 @@ const INFO_SIZE = 11;
 const STATS_OFFSET = INFO_SIZE + 3;
 /** The five grade stars on a card, one pixel apart. */
 const GRADE_WIDTH = GRADE_STARS * (STAR_FULL.width + 1) - 1;
+/** An armed hide (ft_1_02c.AC8) goes back to rest after this long without its second press. */
+const HIDE_ARMED_MS = 4000;
+/** A card whose hide is armed is drawn this faint, its title struck through: what the second press will do. */
+const HIDE_FADE = 0.45;
+/** Under the pointer the hide's stroke is drawn this faint before the first press (d286). */
+const HIDE_HINT = 0.35;
 
 /**
  * The piece picker: Kiur, the player's level and XP, and the pieces as cards in two columns, six to a page. A card shows
@@ -118,6 +127,11 @@ export class MenuScene extends PixelScene {
   protected statsButtons = new Map<string, PixelButton>();
   /** An own piece's pencil, which opens it in the piece maker (ft_1_12), by piece id. */
   protected editButtons = new Map<string, PixelButton>();
+  /** The hide button of each piece that may be taken out of the book (ft_1_02c.AC8), by piece id. */
+  protected hideButtons = new Map<string, PixelButton>();
+  /** The piece whose hide was pressed once (armed): a second press takes it out of the book. */
+  protected armedHide: ArmedHide | null = null;
+  private disarmHide: Phaser.Time.TimerEvent | null = null;
   /** The parts button of a piece that has parts (core_06), by piece id. */
   protected partsButtons = new Map<string, PixelButton>();
   /** The Close button of the open info card (kept for the tests, which press it with the mouse). */
@@ -177,13 +191,19 @@ export class MenuScene extends PixelScene {
   /** While the info card is open only its Close button is reachable; otherwise the cards and their info buttons. */
   protected override focusables(): PixelButton[] {
     if (this.infoId !== null) return this.infoClose ? [this.infoClose] : [];
-    return [...this.buttons, ...this.partsButtons.values(), ...this.editButtons.values(), ...this.statsButtons.values(), ...this.infoButtons.values()];
+    return [...this.buttons, ...this.partsButtons.values(), ...this.editButtons.values(), ...this.statsButtons.values(), ...this.infoButtons.values(), ...this.hideButtons.values()];
   }
 
   /** Esc and the toolbar's Back: close a piece's info, or go back to the player's room, or to the main menu from the piece maker. */
   protected override back(): void {
     if (this.infoId !== null) {
       this.showInfo(null);
+      return;
+    }
+    // an armed hide goes back to rest first (ft_1_02c.AC8)
+    if (this.armedHide !== null) {
+      this.armedHide = null;
+      this.redraw();
       return;
     }
     startScene(this, this.maker ? 'profiles' : 'profile');
@@ -195,6 +215,8 @@ export class MenuScene extends PixelScene {
 
   init(data?: MenuData): void {
     this.infoId = null;
+    this.armedHide = null;
+    this.disarmHide = null;
     this.maker = this.registry.get(MAKER_KEY) === true && contextOf(this).flags.editor;
     this.forKiur = this.maker ? null : (data?.forKiur ?? null);
     // the piece maker saves nothing for a player: the toolbar shows no name, level or settings
@@ -244,15 +266,18 @@ export class MenuScene extends PixelScene {
   /** The filter (ft_1_12.AC10): a switch in the band for each group, lit while its pieces are shown. Not in the piece maker. */
   protected override bandActions(): ToolbarItem[] {
     if (this.maker) return [];
-    return PIECE_GROUPS.map((group) => ({
+    // every piece there is, hidden ones too, where a piece is put back in the book (ft_1_02c.AC9)
+    const all: ToolbarItem = { label: t('menu.allPieces'), icon: TOOL_ICONS.pieces, iconOnly: true, onClick: () => startScene(this, 'pieces', { back: this.forKiur ? { forKiur: this.forKiur } : {} }) };
+    return [...PIECE_GROUPS.map((group): ToolbarItem => ({
       label: t(`menu.group.${group}`), icon: this.hiddenGroups.has(group) ? struckThrough(GROUP_ICON[group]()) : GROUP_ICON[group](), iconOnly: true, active: !this.hiddenGroups.has(group),
       onClick: () => {
         if (this.hiddenGroups.has(group)) this.hiddenGroups.delete(group);
         else this.hiddenGroups.add(group);
         this.page = 0;
+        this.armedHide = null;
         this.redraw();
       },
-    }));
+    })), all];
   }
 
   protected draw(): void {
@@ -263,6 +288,7 @@ export class MenuScene extends PixelScene {
     this.statsButtons.clear();
     this.editButtons.clear();
     this.partsButtons.clear();
+    this.hideButtons.clear();
     this.pieceButtons = [];
     this.paging = { total: 0, options: {}, first: 0 };
     this.infoClose = null;
@@ -318,6 +344,7 @@ export class MenuScene extends PixelScene {
     if (slice.paged) {
       this.pager(slice, (page) => {
         this.page = page;
+        this.armedHide = null;
         this.scene.restart();
       });
     }
@@ -335,13 +362,80 @@ export class MenuScene extends PixelScene {
     this.fineImage((cell.x + inset) * ART_DETAIL, (cell.y + cell.h) * ART_DETAIL + Math.floor((gap * ART_DETAIL - 1) / 2), line);
   }
 
+  /**
+   * A piece's hide (ft_1_02c.AC8): under the pointer a faint stroke through the title shows what it does (d286); the first
+   * press arms it, the card faint with its title struck through, the picture of the book without it; a second press within
+   * a few seconds takes the piece out of the book (the piece is turned off, its stars kept), else it goes back to rest.
+   */
+  private hideButton(id: string, card: PixelButton, at: { x: number; y: number }): void {
+    const armed = this.armedHide?.piece === id;
+    // a stroke through the middle of each line of the title, as long as that line
+    const strokes = card.textLines().map((line, i) => {
+      const stroke = createBitmap(Math.max(1, Math.round((line.width + 2) * ART_DETAIL)), 2);
+      stroke.pixels.fill(C.redDark);
+      const image = this.fineImage(Math.round((line.x - 1) * ART_DETAIL), Math.round((line.y + line.height / 2) * ART_DETAIL) - 1, stroke).setName(armed ? `hideStroke:armed:${i}` : `hideStroke:${i}`);
+      image.setAlpha(armed ? 1 : HIDE_HINT).setVisible(armed);
+      return image;
+    });
+    const hide = this.own(new PixelButton(this, this.root, {
+      ...at, width: INFO_SIZE, height: INFO_SIZE, label: t(armed ? 'menu.hideAgain' : 'menu.hide'), look: 'ink', inkBox: true, icon: TOOL_ICONS.hide, iconOnly: true,
+      ...(armed ? {} : { onHover: (over: boolean) => strokes.forEach((s) => s.setVisible(over)) }),
+      onClick: () => this.pressHide(id),
+    }));
+    hide.setActive(armed);
+    if (armed) {
+      // the armed hide is ringed in red ink: the one thing on the faded card still to press
+      const { x, y, width, height } = hide.rect;
+      const w = (width + 2) * ART_DETAIL, h = (height + 2) * ART_DETAIL;
+      const ring = createBitmap(w, h);
+      for (let i = 0; i < w; i++) for (const row of [0, 1, h - 2, h - 1]) ring.pixels[row * w + i] = C.redDark;
+      for (let j = 0; j < h; j++) for (const col of [0, 1, w - 2, w - 1]) ring.pixels[j * w + col] = C.redDark;
+      this.fineImage((x - 1) * ART_DETAIL, (y - 1) * ART_DETAIL, ring).setName('hideRing');
+    }
+    this.hideButtons.set(id, hide);
+  }
+
+  /** A piece whose hide is armed is drawn faint, all but its hide: the book as it will be without it (ft_1_02c.AC8). */
+  private fadeIfArmed(id: string, ...buttons: PixelButton[]): void {
+    if (this.armedHide?.piece !== id) return;
+    for (const b of [...buttons, this.partsButtons.get(id), this.editButtons.get(id)]) b?.setAlpha(HIDE_FADE);
+  }
+
+  /** A press on a piece's hide: arms it, or (the second press) takes the piece out of the book and draws the book without it. */
+  private pressHide(id: string): void {
+    const press = pressHide(this.armedHide, id, this.time.now);
+    this.armedHide = press.armed;
+    this.disarmHide?.remove();
+    this.disarmHide = press.armed === null ? null : this.time.delayedCall(HIDE_ARMED_MS, () => {
+      this.armedHide = null;
+      this.redraw();
+    });
+    if (press.hide === null) return this.redraw();
+    void contextOf(this).profiles.setPieceOn(press.hide, false).then(() => {
+      if (this.scene.isActive()) this.redraw();
+    });
+  }
+
   /** A card's row height: smaller under the band. */
   private get cardRow(): number {
     return this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT;
   }
 
+  /**
+   * The clef prize of learning `piece` (ft_1_32.AC21), the rightmost sign of its card: in its medal once learned, an empty
+   * placeholder before; none in the piece maker or with learning off.
+   */
+  private clefSigns(piece: Piece): { bitmap: Bitmap; name: string }[] {
+    const context = contextOf(this);
+    if (this.maker || !context.flags.learn) return [];
+    const profiles = context.profiles;
+    const medal = pieceClef(piece.chart, profiles.learnProgressOf(piece.chart.id), profiles.learnSettings, profiles.practiceFor(piece.chart.id));
+    return [{ bitmap: clefPrize(medal), name: `clefPrize:${medal ?? 'empty'}` }];
+  }
+
   private showInfo(id: string | null): void {
     this.infoId = id;
+    this.armedHide = null;
     this.redraw();
   }
 
@@ -377,7 +471,9 @@ export class MenuScene extends PixelScene {
     // the signs, right to left: the hat (with the days and the bar left of it), the bubble, the pencil
     const days = mark && !mark.finished ? String(mark.daysLeft) : null;
     const daysWidth = days === null ? 0 : Math.max(measure(drawnText(days)), NEAR_BAR.w);
+    const prizes = this.clefSigns(piece);
     const signs = [
+      ...prizes.map((p) => p.bitmap.width),
       ...(mark ? [HAT.w + (days === null ? 0 : daysWidth + SIGN_GAP)] : []),
       ...(teacher !== undefined ? [BUBBLE.width] : []),
       ...(piece.own === true ? [editable ? INFO_SIZE : PENCIL.width] : []),
@@ -408,6 +504,7 @@ export class MenuScene extends PixelScene {
       cursor -= SIGN_GAP;
       return image;
     };
+    prizes.forEach((p) => sign(p.bitmap, p.name));
     if (mark) {
       sign(hatFor(mark), mark.finished ? `curriculumHat:${mark.medal ?? 'green'}` : 'curriculumHat');
       if (days !== null) {
@@ -452,10 +549,13 @@ export class MenuScene extends PixelScene {
     if (piece.chart.phrases.length > 0 && !this.maker) {
       this.partsButtons.set(piece.chart.id, small(t('parts.button'), () => startScene(this, 'parts', { chartId: piece.chart.id })));
     }
+    // right of i, away from the others: take the piece out of the book, in two presses (ft_1_02c.AC8); never the last piece in it
+    if (!this.maker && contextOf(this).profiles.canTurnOff(piece.chart.id)) this.hideButton(piece.chart.id, button, { x: rightEdge - 34 + STATS_OFFSET, y: top + 23 });
     if (record) this.pieceLevel(button, record, title, rightEdge - 34 - (slot - 1) * STATS_OFFSET - INFO_SIZE / 2, cursor);
     // the five-star grade of the best play, packed one pixel apart so the title keeps its room
     const earned = pixelStars(this, this.root, left + 6, top + 19, record?.bestGrade ?? 0, { gap: 1, ink: true });
     button.attach(...earned, ...signImages);
+    this.fadeIfArmed(piece.chart.id, button, info, stats);
     return button;
   }
 }

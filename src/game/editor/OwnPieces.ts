@@ -5,7 +5,8 @@ import { unlimitedLevels } from '../../core/piece/levelsTable';
 import { levelsFileSchema, type Chart, type LevelDefinition } from '../../core/chart';
 import { toAbc, toMeta } from '../../core/editor/abc';
 import { editorPieceV1Schema, migrateEditorPieceV1 } from '../../core/editor/migrate';
-import { editorPieceSchema, playedPiece, type EditorPiece } from '../../core/editor/model';
+import { editorPieceSchema, playedPiece, setTitle, type EditorPiece } from '../../core/editor/model';
+import { freeTitle } from '../../core/editor/title';
 import { exportPieceFile, importPieceFile, ownIdFor, pieceFileName, type ImportRefusal } from '../../core/editor/pieceFile';
 import type { KeyValueStore } from '../../core/progression';
 import type { PieceProblem } from '../../core/text/labels';
@@ -153,15 +154,23 @@ export class OwnPieces {
 
   /**
    * Add the piece in a piece file as a new own piece (a new id when its title is taken: an import never replaces a piece).
-   * `reservedIds` are the ids of the bundled pieces, which a file must not claim.
+   * `reservedIds` are the ids of the bundled pieces, which a file must not claim. A title another piece has (an own piece, or
+   * one of `takenTitles`, the game's pieces), in any case, gets the next free number (ft_1_02a.AC15).
    */
-  async importFile(text: string, options: { reservedIds?: Iterable<string> } = {}): Promise<ImportOutcome> {
+  async importFile(text: string, options: { reservedIds?: Iterable<string>; takenTitles?: Iterable<string> } = {}): Promise<ImportOutcome> {
     const read = importPieceFile(text, options);
     if (!read.ok) return read;
-    const { piece, author } = read.file;
+    const { author } = read.file;
+    const piece = this.withFreeTitle(read.file.piece, options.takenTitles ?? []);
     const saved = await this.save(piece, { author });
     if (!saved.ok) return saved;
     return { ok: true, id: saved.id, title: piece.title, saved: saved.saved };
+  }
+
+  /** The piece with a title no own piece and none of `takenTitles` has: its own, or that with the next free number (ft_1_02a.AC15). */
+  withFreeTitle(piece: EditorPiece, takenTitles: Iterable<string>): EditorPiece {
+    const title = freeTitle(piece.title, [...takenTitles, ...this.list().map((r) => r.piece.title)]);
+    return title === piece.title || title === '' ? piece : setTitle(piece, title);
   }
 
   async remove(id: string): Promise<void> {

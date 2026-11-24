@@ -11,8 +11,8 @@ const CLOUDS = [
   { x: 596, y: 50, width: 33, height: 13, near: 0.4 },
 ];
 
-describe('the pace of the scenery with the one wind, and the day\'s sky (ft_1_06.AC12, ft_1_19.AC9)', () => {
-  it('ft_1_06.AC12 a gust runs through a picture\'s looks faster in more wind, and even a calm day breathes', () => {
+describe('the pace of the scenery with the one wind, and the day\'s sky (ft_1_14.AC9, ft_1_19.AC9)', () => {
+  it('ft_1_14.AC9 a gust runs through a picture\'s looks faster in more wind, and even a calm day breathes', () => {
     // a calm day had shown no movement on the knoll
     expect(lookMs(0, 8)).toBeGreaterThan(lookMs(1, 8));
     expect(lookMs(0, 8) * 8).toBeLessThanOrEqual(6000);
@@ -70,7 +70,7 @@ describe('the pace of the scenery with the one wind, and the day\'s sky (ft_1_06
     }
   });
 
-  it('ft_1_06.AC12 a cloud drifts the wind\'s way, leaves the picture on one side and comes in on the other', () => {
+  it('ft_1_14.AC9 a cloud drifts the wind\'s way, leaves the picture on one side and comes in on the other', () => {
     const course = { x: 100, y: 10, speed: 10 };
     expect(cloudX(course, 50, 640, 0, -1)).toBe(100);
     expect(cloudX(course, 50, 640, 2000, -1)).toBe(80);

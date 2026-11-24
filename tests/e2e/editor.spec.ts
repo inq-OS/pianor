@@ -168,7 +168,6 @@ test.describe('piece editor (preliminary)', () => {
     await expect.poll(() => menuButton(page, '+ New piece')).toBeGreaterThanOrEqual(0);
     // the piece maker saves no progress: it lists own pieces only and a card opens the editor, so no piece can be played from it
     expect(await menuButton(page, 'Practice')).toBe(-1);
-    expect(await menuButton(page, 'Fight')).toBe(-1);
     expect(await page.evaluate(() => window.__game.registry.get('context').profiles.progress.totalXp as number)).toBe(xpBefore);
     await clickButton(page, 'menu', await menuButton(page, 'Back'));
     await waitForScene(page, 'profiles');
@@ -655,11 +654,11 @@ test.describe('piece editor (preliminary)', () => {
     expect(JSON.parse(text)).toMatchObject({ kind: 'pianor-piece', schemaVersion: 3, id: 'own-carry-me' });
     await expect.poll(() => status(page)).toContain('Saved the file');
 
-    // Import adds the piece from the file as a new own piece, and the piece being written stays as it is
+    // Import adds the piece from the file as a new own piece, under a free title (ft_1_02a.AC15), and the piece being written stays as it is
     const chooser = page.waitForEvent('filechooser');
     await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
     await (await chooser).setFiles(path);
-    await expect.poll(() => status(page)).toContain('Added "Carry Me" to your pieces.');
+    await expect.poll(() => status(page)).toContain('Added "Carry Me 2" to your pieces.');
     expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().map((r: { id: string }) => r.id))).toEqual(['own-carry-me', 'own-carry-me-2']);
     expect(await notes(page)).toEqual(['0:0:E:quarter', '0:480:G:quarter']);
 
@@ -1836,6 +1835,32 @@ test.describe('the next length and the A time', () => {
     await page.press('#editor-title', 'Enter');
     await expect.poll(() => status(page)).toContain('Saved. It is in the menu now.');
     expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().map((r: { id: string }) => r.id))).toEqual(['own-bells']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02a.AC15 a piece is never saved under a blank name or one another piece has, in any case: the field turns red until the name is new', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'C');
+    // spaces are no name
+    await page.fill('#editor-title', '   ');
+    await clickButton(page, 'editor', await editorButton(page, 'Save'));
+    expect(await status(page)).toContain('Give the piece a name, then press Enter.');
+    // a piece of the game has this name, in other letters
+    await page.fill('#editor-title', 'twinkle TWINKLE little star');
+    await page.press('#editor-title', 'Enter');
+    await clickButton(page, 'editor', await editorButton(page, 'Save'));
+    await expect.poll(() => status(page)).toContain('Another piece has this name.');
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('editor-title');
+    const ring = () => page.evaluate(() => getComputedStyle(document.querySelector('#editor-title')!).borderTopColor);
+    const red = await ring();
+    expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().length)).toBe(0);
+    // a new name: the ring goes back, and Enter saves
+    await page.fill('#editor-title', 'Twinkle for Me');
+    expect(await ring()).not.toBe(red);
+    await page.press('#editor-title', 'Enter');
+    await expect.poll(() => status(page)).toContain('Saved. It is in the menu now.');
+    expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().map((r: { piece: { title: string } }) => r.piece.title))).toEqual(['Twinkle for Me']);
     expectNoErrors(errors);
   });
 

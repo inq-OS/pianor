@@ -5,7 +5,7 @@ import type { Wind } from '../../../../core/sky/wind';
 import { KERI } from '../../../../core/sky/skyPhase';
 
 /**
- * The phase colours of the sky (ft_1_14 scope item 4, d097), first made for the old campaign trail and now the base of the
+ * The phase colours of the sky (ft_1_14 scope item 4, d097), the base of the
  * painted room's palette. Pixel art is palette indexes; a phase
  * replaces the colours of the sky, cloud, moon and halo slots, dark to light, and leaves every other colour alone. The
  * night phase is the base palette. Table values are the mock colours of the feature file (AX-3 provisional).
