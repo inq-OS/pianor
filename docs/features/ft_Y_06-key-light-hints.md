@@ -14,7 +14,6 @@ An optional "show me the next note" help that lights the next key on the EZ-220,
 
 - **Verified** (`docs/hardware-notes.md`): notes sent on MIDI channel 1 light the matching keys, **and the keyboard also sounds them**, so a hint would give the answer by ear (AX-0). Before building, check that a note at channel volume 0 (CC 7) or on a silent voice still lights the key. Other channels, velocity and the Light Guide button are untested.
 - **Ready today:** the `KeyLightOutput` interface (ft_0_06); the real output is `nullKeyLights`, which does nothing, and the on-screen keyboard shows lit keys.
-- **Prior art:** Midiano lights keyboard keys over Web MIDI by sending quiet notes ahead of time (`docs/architecture.md`, prior art).
 - **Rule ready:** the "light after N wrong presses" rule is pure and lives in `src/core/judge/keyLightHint.ts` (tested for ft_Y_06.AC2). The scene wiring and the settings are not done yet.
 
 ## Rules

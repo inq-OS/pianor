@@ -12,13 +12,13 @@ describe('the working-tree guard of the unit-test run', () => {
   });
 
   it('warns when the checked-out commit changed during the run, as a pull would', () => {
-    const warning = treeChangedWarning(`${HEAD_A}\n`, `${HEAD_B}\n M content/campaign/ladder.json\n`);
+    const warning = treeChangedWarning(`${HEAD_A}\n`, `${HEAD_B}\n M content/characters/kiur.json\n`);
     expect(warning).toContain('the checked-out commit changed (aaaaaaa to bbbbbbb)');
     expect(warning).toContain('Run the tests again');
   });
 
   it('warns when tracked files changed on the same commit', () => {
-    expect(treeChangedWarning(`${HEAD_A}\n`, `${HEAD_A}\n M src/core/campaign/content.ts\n`)).toContain('tracked files changed');
+    expect(treeChangedWarning(`${HEAD_A}\n`, `${HEAD_A}\n M src/core/character/rules.ts\n`)).toContain('tracked files changed');
   });
 
   it('reads the commit and the changed files from git, and gives null when git fails', () => {

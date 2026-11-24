@@ -1,4 +1,4 @@
-// The play session: one component that wires the staff, the judge and Kiur's bubble for Practice and Battle.
+// The play session: one component that wires the staff, the judge and Kiur's bubble for Practice and the tug.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import littleSteps from '../fixtures/charts/little-steps.v2.json';
 import { chartSchema, sliceChart } from '../../src/core/chart';

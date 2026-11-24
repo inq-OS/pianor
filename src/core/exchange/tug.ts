@@ -6,7 +6,6 @@
  * AX-3 provisional until the students have played it (d129).
  */
 import { z } from 'zod';
-import { levelBars } from '../campaign/content';
 import type { PieceId } from '../contracts';
 import type { ExchangeKind, ExchangeResult, Turn, TurnPlan, TurnResult } from './exchange';
 
@@ -40,7 +39,7 @@ export function parseTugRules(raw: unknown): TugRules {
 /** The defaults of d129; content/challenge/rules.json holds the same (a test keeps them equal). */
 export const DEFAULT_TUG_RULES: TugRules = {
   schemaVersion: 1,
-  note: "AX-3 provisional (d129). The tug of ft_1_21: the student wins at +steps, the character at -steps; phraseBars bars per phrase; per level the share of the student's phrase that wins an exchange (the ladder's accuracy, ft_1_06.AC9), the play mode (d100) and the XP a won tug pays (the old battle's 30 at level 1, more for the harder levels).",
+  note: "AX-3 provisional (d129). The tug of ft_1_21: the student wins at +steps, the character at -steps; phraseBars bars per phrase; per level the share of the student's phrase that wins an exchange (ft_1_21.AC5), the play mode (d100) and the XP a won tug pays (30 at level 1, more for the harder levels).",
   steps: 3,
   practiceSteps: 2,
   phraseBars: 2,
@@ -56,13 +55,12 @@ type Level = 1 | 2 | 3;
 type Bars = { readonly from: number; readonly to: number };
 
 /**
- * The bars a tug plays (ft_1_21.AC3, ft_1_06.AC9): level 1 the first half of the piece (rounded up), levels 2 and 3 the
- * whole piece, as the ladder's `levelBars`. Full bars count from 1 as printed (d120); a pick-up is added by `tugPhrases`.
+ * The bars a tug plays (ft_1_21.AC3, ft_1_21.AC20): level 1 the first half of the piece (rounded up), levels 2 and 3 the
+ * whole piece (d095). Full bars count from 1 as printed (d120); a pick-up is added by `tugPhrases`.
  */
 export function tugPart(bars: number, level: Level): Bars {
   if (!Number.isInteger(bars) || bars < 1) throw new RangeError(`a piece has at least one bar, got ${bars}`);
-  const [from, to] = levelBars(level, bars);
-  return { from, to };
+  return { from: 1, to: level === 1 ? Math.ceil(bars / 2) : bars };
 }
 
 /** The part cut into phrases of `phraseBars` bars (2), a pick-up bar 0 joined to the first, a short last phrase alone. */

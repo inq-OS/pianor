@@ -27,8 +27,6 @@
     "original"
   ],
   "tags": [
-    "starter-song",
-    "class-wizard",
     "c-position",
     "thirds",
     "three-four"
@@ -40,8 +38,7 @@
     "params": {
       "model": "Claude",
       "theme": "a gentle classical waltz in three",
-      "class": "wizard",
-      "note": "Starter song of the wizard class for the turn battle: the fallback for every spellbook slot. The style is flavour only in the MVP, so it is marked original.",
+      "note": "An eight-bar song in one hand; the style is flavour only, so it is marked original.",
       "prompt": "docs/authoring/au07-agent-composing.md"
     }
   }

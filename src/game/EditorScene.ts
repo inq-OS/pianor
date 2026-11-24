@@ -48,6 +48,7 @@ import type { StaffLayout } from '../core/layout/staff';
 import { fitsLabel, problemLabel } from '../core/text/labels';
 import { strings, t, type StringKey } from '../core/text/strings';
 import { contextOf } from './context';
+import { titleProblem } from '../core/editor/title';
 import { compileOwn } from './editor/OwnPieces';
 import { digitOf, EDITOR_KEYS, editorKeyOf, VIM_HELP, vimHelpColumns, vimKeyOf, vimLabelOf, vimWordOf, type EditorKeyName } from './editor/shortcuts';
 import { ChartPlayer } from './preview/ChartPlayer';
@@ -271,6 +272,8 @@ export class EditorScene extends PixelScene {
   private titleInput: HTMLInputElement | null = null;
   /** Save asked for a title (a new piece without a name of its own): Enter in the title field saves once it has one. */
   private titleAsked = false;
+  /** Save found the title taken by another piece (ft_1_02a.AC15): the field stays ringed red until the title is changed. */
+  private titleTaken = false;
   private player: ChartPlayer | null = null;
   private listenButton: PixelButton | null = null;
   private lengthButtons = new Map<EditorLength, PixelButton>();
@@ -357,6 +360,7 @@ export class EditorScene extends PixelScene {
     this.meterAsk = null;
     this.meterDismissed = false;
     this.titleAsked = false;
+    this.titleTaken = false;
     this.page = 0;
     this.follow = null;
     this.message = '';
@@ -2522,16 +2526,38 @@ export class EditorScene extends PixelScene {
     return !this.id && this.piece.title === t('editor.untitled') ? '' : this.piece.title;
   }
 
-  private askTitle(): void {
+  /**
+   * The titles of every other piece (the game's, in each language, and the own ones): a piece is never saved under one of
+   * them, in any case (ft_1_02a.AC15).
+   */
+  private takenTitles(): string[] {
+    const { pieces, ownPieces } = contextOf(this);
+    const game = pieces.list().filter((p) => p.chart.id !== this.id).flatMap((p) => [p.chart.title, ...(p.chart.titles?.et ? [p.chart.titles.et] : [])]);
+    return [...game, ...ownPieces.list().filter((r) => r.id !== this.id).map((r) => r.piece.title)];
+  }
+
+  /** Puts the typing in the title field, ringed red while its title is taken, and says what it needs. */
+  private askTitle(taken = false): void {
     this.titleAsked = true;
+    this.titleTaken = taken;
+    this.markTitleField();
     this.titleInput?.focus();
     this.titleInput?.select();
-    this.say(t('editor.title.ask'));
+    this.say(t(taken ? 'editor.title.taken' : 'editor.title.ask'));
+  }
+
+  /** The title field's ring: red while the title typed is another piece's, the cursor's colour otherwise. */
+  private markTitleField(): void {
+    if (this.titleInput) this.titleInput.style.borderColor = hexCss(this.titleTaken ? C.featherStreak : DEFAULT_THEME.cursor);
   }
 
   private save(): Promise<void> {
     if (this.needsTitle()) {
       this.askTitle();
+      return Promise.resolve();
+    }
+    if (titleProblem(this.piece.title, this.takenTitles()) === 'taken') {
+      this.askTitle(true);
       return Promise.resolve();
     }
     this.saving = this.saving.catch(() => undefined).then(() => this.saveNow());
@@ -2572,7 +2598,7 @@ export class EditorScene extends PixelScene {
       text = file ? new TextDecoder().decode(file.bytes) : null;
     } else text = await context.files.pick({ accept: '.json,application/json', id: 'editor-import-file' });
     if (text === null) return this.say(t('editor.importEmpty'), MESSAGE_MS);
-    const result = await context.ownPieces.importFile(text, { reservedIds: context.pieces.bundledIds() });
+    const result = await context.ownPieces.importFile(text, { reservedIds: context.pieces.bundledIds(), takenTitles: this.takenTitles() });
     if (!result.ok) {
       const key = `editor.import.${result.reason}` as StringKey;
       return this.say(key in strings ? t(key) : t('editor.import.cannotSave', { problem: result.message }), MESSAGE_MS * 2);
@@ -2610,7 +2636,9 @@ export class EditorScene extends PixelScene {
 
   /** A piece read from a photo and checked in the photo tool, saved as a new own piece and opened. */
   private async openRead(piece: EditorPiece, author: string, reply: Extract<PhotoReply, { ok: true }>): Promise<void> {
-    const saved = await contextOf(this).ownPieces.save(piece, { author });
+    // a title another piece has gets the next free number, as an imported file's does (ft_1_02a.AC15)
+    const ownPieces = contextOf(this).ownPieces;
+    const saved = await ownPieces.save(ownPieces.withFreeTitle(piece, this.takenTitles()), { author });
     if (!this.scene.isActive()) return;
     if (!saved.ok) return this.say(t('editor.import.cannotSave', { problem: saved.message }), MESSAGE_MS * 2);
     const bars = barsToFill(reply.problems);
@@ -3063,12 +3091,17 @@ export class EditorScene extends PixelScene {
       }
     });
     input.addEventListener('input', () => {
-      // typing the title is not an edit to undo: it changes the piece in place
+      // typing the title is not an edit to undo: it changes the piece in place; a changed title is no longer the taken one
       this.history = { ...this.history, present: setTitle(this.piece, input.value) };
+      if (this.titleTaken && titleProblem(input.value, this.takenTitles()) !== 'taken') {
+        this.titleTaken = false;
+        this.markTitleField();
+      }
       this.resync();
     });
     document.body.append(input);
     this.titleInput = input;
+    this.markTitleField();
   }
 
   /**

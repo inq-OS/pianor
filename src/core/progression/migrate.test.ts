@@ -20,23 +20,34 @@ import v14 from '../../../tests/fixtures/saves/profile.v14.json';
 import v15 from '../../../tests/fixtures/saves/profile.v15.json';
 import v16 from '../../../tests/fixtures/saves/profile.v16.json';
 import v17 from '../../../tests/fixtures/saves/profile.v17.json';
-import ladderJson from '../../../content/campaign/ladder.json';
-import { startCampaign } from '../campaign/campaign';
-import { loadLadder } from '../campaign/content';
 import { parseProgressionConfig } from './config';
-import { BAR_NUMBER_SETTINGS_SINCE, HELPS_SINCE, KEYBOARD_SETTINGS_SINCE, NOTE_TIMINGS_SINCE, V11_SETTINGS_SINCE, V14_CAMPAIGN_MONSTERS, PRACTICE_SINCE, EAR_TRAINER_SINCE, ProfileMigrationError, migrateProfile, parseProfile, profileMigrations, TRAINER_XP_SINCE } from './migrate';
+import { BAR_NUMBER_SETTINGS_SINCE, HELPS_SINCE, KEYBOARD_SETTINGS_SINCE, NOTE_TIMINGS_SINCE, V11_SETTINGS_SINCE, PRACTICE_SINCE, EAR_TRAINER_SINCE, ProfileMigrationError, migrateProfile, parseProfile, profileAfterRecord17, profileMigrations, TRAINER_XP_SINCE, validateProfile } from './migrate';
 import { EMPTY_PRACTICE_LOG } from './practiceLog';
-import { CAMPAIGN_MONSTERS, PROFILE_SCHEMA_VERSION, deriveProgress, emptyProfile, profileSchema } from './profile';
+import { PROFILE_SCHEMA_VERSION, deriveProgress, profileSchema } from './profile';
 
 const config = parseProgressionConfig(progressionJson);
-const ONE = { fights: 'one' }; // what every older save arrives with: One monster
 const SHOWN = { onScreen: true }; // and with the on-screen keyboard shown
 const NO_NUMBERS = { mode: 'off' }; // and with no bar numbers
 const V11 = { noteNaming: 'B', staffGap: 'wide', keyLights: { enabled: false, afterWrong: 0 } }; // and the three settings of version 11
 const V17 = { earTrainer: { seconds: 1, repeat: true } }; // and the ear trainer's settings of version 17 (ft_1_10)
 
+type Battle = { n: number; at: string; monsterId: string; pieceId: string; won: boolean; potentialXp: number; rounds: number; xp: number };
+
+/** The battle records of a save before version 18 as they arrive in it: tug records with the same number, time, piece, outcome and XP. */
+const toTugs = (battles: readonly Battle[]) =>
+  battles.map((b) => ({ n: b.n, at: b.at, characterId: b.monsterId, pieceId: b.pieceId, won: b.won, potentialXp: b.potentialXp, exchanges: b.rounds, xp: b.xp }));
+
+/** Settings of a save before version 18 as they arrive in it: the battle setting gone. */
+const noBattle = <T extends object>(settings: T) => Object.fromEntries(Object.entries(settings).filter(([key]) => key !== 'battle'));
+
+/** A record shaped as version 17 as the game holds it today (profile document version 2): tug records in place of battles, no campaign, no battle setting. */
+function today(save: { battles: readonly Battle[]; settings: object; [key: string]: unknown }) {
+  const rest = Object.fromEntries(Object.entries(save).filter(([key]) => key !== 'battles' && key !== 'campaign'));
+  return { ...rest, schemaVersion: PROFILE_SCHEMA_VERSION, settings: noBattle(save.settings), tugs: toTugs(save.battles) };
+}
+
 /** Battles of a save before version 7 as they arrive after it: the 5 hearts left become a share of 100 HP. */
-const inHealth = (battles: readonly { heartsLeft: number }[]) =>
+const inHealth = <T extends { heartsLeft: number }>(battles: readonly T[]) =>
   battles.map(({ heartsLeft, ...rest }) => ({ ...rest, playerHpLeft: heartsLeft * 20, playerMaxHp: 100 }));
 
 /** The attempts of a migrated save without the `play` field that version 5 added, the `noteTimings` of version 12 and the `helps` of version 13, to compare with an older fixture. */
@@ -46,10 +57,10 @@ const withoutPlay = (attempts: { play?: unknown }[]) => attempts.map((attempt) =
 const withTimings = (attempts: readonly object[]) => attempts.map((attempt) => ({ ...attempt, noteTimings: [], helps: [] }));
 
 describe('profile migration', () => {
-  it('the current version loads unchanged', () => {
+  it('the last record version loads in today\'s shape, its tugs kept', () => {
     const result = parseProfile(v17, config);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.profile).toEqual(v17);
+    if (result.ok) expect(result.profile).toEqual(today(v17));
     expect(v17.schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
     expect(EAR_TRAINER_SINCE).toBe(PROFILE_SCHEMA_VERSION);
     expect(PRACTICE_SINCE).toBe(16);
@@ -60,19 +71,19 @@ describe('profile migration', () => {
     expect(BAR_NUMBER_SETTINGS_SINCE).toBe(10);
   });
 
-  it('every fixture, from v0 to v16, reaches the current version, is valid there, and migrating twice gives the same save', () => {
-    const fixtures = [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16];
-    expect(fixtures.map((f) => f.schemaVersion)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+  it('every fixture, from v0 to v17, reaches the current version, is valid there, and migrating twice gives the same save', () => {
+    const fixtures = [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17];
+    expect(fixtures.map((f) => f.schemaVersion)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]);
     expect(Object.keys(profileMigrations).map(Number)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
     for (const old of fixtures) {
       const once = parseProfile(old, config);
       expect(once.ok).toBe(true);
       if (!once.ok) continue;
       expect(once.profile.schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
-      expect(once.profile.settings).toMatchObject({ pieces: { hidden: expect.any(Array) }, battle: { fights: expect.stringMatching(/^(one|many)$/) }, keyboard: { onScreen: expect.any(Boolean) }, barNumbers: { mode: expect.stringMatching(/^(off|first|every2|every4)$/) }, noteNaming: expect.stringMatching(/^[BH]$/), staffGap: expect.stringMatching(/^(wide|short)$/), keyLights: { enabled: expect.any(Boolean), afterWrong: expect.any(Number) } });
+      expect(once.profile.settings).toMatchObject({ pieces: { hidden: expect.any(Array) }, keyboard: { onScreen: expect.any(Boolean) }, barNumbers: { mode: expect.stringMatching(/^(off|first|every2|every4)$/) }, noteNaming: expect.stringMatching(/^[BH]$/), staffGap: expect.stringMatching(/^(wide|short)$/), keyLights: { enabled: expect.any(Boolean), afterWrong: expect.any(Number) } });
       expect(once.profile.attempts.every((a) => a.play.tempoPercent > 0)).toBe(true);
-      expect(once.profile.battles.every((b) => b.playerMaxHp > 0)).toBe(true);
-      const again = parseProfile(JSON.parse(JSON.stringify(once.profile)), config);
+      expect(once.profile.tugs.every((t) => t.exchanges > 0)).toBe(true);
+      const again = validateProfile(JSON.parse(JSON.stringify(once.profile)));
       expect(again.ok && again.profile).toEqual(once.profile);
     }
   });
@@ -86,17 +97,17 @@ describe('profile migration', () => {
     expect(result.battles).toEqual(v4.battles);
   });
 
-  it('migrates a v7 save to v8: everything kept, and every player on One monster (the fight they know)', () => {
+  it('migrates a v7 save on: everything kept', () => {
     const result = parseProfile(v7, config);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.profile.schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
-    expect(result.profile.settings).toEqual({ ...v7.settings, battle: { fights: 'one' }, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 });
-    expect(result.profile.battles).toEqual(v7.battles);
+    expect(result.profile.settings).toEqual(noBattle({ ...v7.settings, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 }));
+    expect(result.profile.tugs).toEqual(toTugs(v7.battles));
     expect(result.profile.attempts).toEqual(withTimings(v7.attempts));
-    // the v8 fixture is the migrated v7 save apart from its id, the chosen Many monsters and the three records of a series
-    expect(result.profile).toEqual({ ...v8, campaign: FRESH_CAMPAIGN, id: v7.id, attempts: withTimings(v8.attempts), trainerXp: 0, practice: { bars: [] }, earPoints: 0, schemaVersion: PROFILE_SCHEMA_VERSION, settings: { ...v8.settings, ...V17, battle: { fights: 'one' }, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 }, battles: v8.battles.slice(0, 2) });
-    const again = parseProfile(JSON.parse(JSON.stringify(result.profile)), config); // migrating twice gives the same save
+    // the v8 fixture is the migrated v7 save apart from its id, its battle setting and its three later records
+    expect(result.profile).toEqual(today({ ...v8, id: v7.id, attempts: withTimings(v8.attempts), trainerXp: 0, practice: { bars: [] }, earPoints: 0, settings: { ...v8.settings, ...V17, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 }, battles: v8.battles.slice(0, 2) }));
+    const again = validateProfile(JSON.parse(JSON.stringify(result.profile))); // reading it again gives the same profile
     expect(again.ok && again.profile).toEqual(result.profile);
   });
 
@@ -106,12 +117,12 @@ describe('profile migration', () => {
     if (!result.ok) return;
     expect(result.profile.schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
     expect(KEYBOARD_SETTINGS_SINCE).toBe(9);
-    expect(result.profile.settings).toEqual({ ...v8.settings, keyboard: { onScreen: true }, barNumbers: NO_NUMBERS, ...V11, ...V17 });
-    expect(result.profile.battles).toEqual(v8.battles);
+    expect(result.profile.settings).toEqual(noBattle({ ...v8.settings, keyboard: { onScreen: true }, barNumbers: NO_NUMBERS, ...V11, ...V17 }));
+    expect(result.profile.tugs).toEqual(toTugs(v8.battles));
     expect(result.profile.attempts).toEqual(withTimings(v8.attempts));
     // the v9 fixture is the migrated v8 save apart from its id, its schema version and the keyboard turned off
-    expect(result.profile).toEqual({ ...v9, campaign: FRESH_CAMPAIGN, id: v8.id, attempts: withTimings(v9.attempts), trainerXp: 0, practice: { bars: [] }, earPoints: 0, schemaVersion: PROFILE_SCHEMA_VERSION, settings: { ...v9.settings, ...V17, keyboard: { onScreen: true }, barNumbers: NO_NUMBERS, ...V11, ...V17 } });
-    const again = parseProfile(JSON.parse(JSON.stringify(result.profile)), config); // migrating twice gives the same save
+    expect(result.profile).toEqual(today({ ...v9, id: v8.id, attempts: withTimings(v9.attempts), trainerXp: 0, practice: { bars: [] }, earPoints: 0, settings: { ...v9.settings, ...V17, keyboard: { onScreen: true }, barNumbers: NO_NUMBERS, ...V11, ...V17 } }));
+    const again = validateProfile(JSON.parse(JSON.stringify(result.profile))); // reading it again gives the same profile
     expect(again.ok && again.profile).toEqual(result.profile);
   });
 
@@ -128,12 +139,12 @@ describe('profile migration', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.profile.schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
-    expect(result.profile.settings).toEqual({ ...v10.settings, noteNaming: 'B', staffGap: 'wide', keyLights: { enabled: false, afterWrong: 0 }, ...V17 });
-    expect(result.profile.battles).toEqual(v10.battles);
+    expect(result.profile.settings).toEqual(noBattle({ ...v10.settings, noteNaming: 'B', staffGap: 'wide', keyLights: { enabled: false, afterWrong: 0 }, ...V17 }));
+    expect(result.profile.tugs).toEqual(toTugs(v10.battles));
     expect(result.profile.attempts).toEqual(withTimings(v10.attempts));
-    // the v14 fixture is the migrated v10 save apart from its id and its campaign (not started)
-    expect(result.profile).toEqual({ ...v17, id: v10.id, campaign: FRESH_CAMPAIGN, earPoints: 0, settings: { ...v17.settings, earTrainer: V17.earTrainer } });
-    const again = parseProfile(JSON.parse(JSON.stringify(result.profile)), config); // migrating twice gives the same save
+    // the v17 fixture is the migrated v10 save apart from its id and its campaign
+    expect(result.profile).toEqual(today({ ...v17, id: v10.id, earPoints: 0, settings: { ...v17.settings, earTrainer: V17.earTrainer } }));
+    const again = validateProfile(JSON.parse(JSON.stringify(result.profile))); // reading it again gives the same profile
     expect(again.ok && again.profile).toEqual(result.profile);
   });
 
@@ -154,12 +165,12 @@ describe('profile migration', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.profile.schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
-    expect(result.profile.settings).toEqual({ ...v9.settings, barNumbers: NO_NUMBERS, ...V11, ...V17 });
-    expect(result.profile.battles).toEqual(v9.battles);
+    expect(result.profile.settings).toEqual(noBattle({ ...v9.settings, barNumbers: NO_NUMBERS, ...V11, ...V17 }));
+    expect(result.profile.tugs).toEqual(toTugs(v9.battles));
     expect(result.profile.attempts).toEqual(withTimings(v9.attempts));
-    // the v14 fixture is the migrated v9 save apart from its id, its campaign and the chosen bar numbers
-    expect(result.profile).toEqual({ ...v17, id: v9.id, campaign: FRESH_CAMPAIGN, earPoints: 0, settings: { ...v17.settings, barNumbers: NO_NUMBERS, earTrainer: V17.earTrainer } });
-    const again = parseProfile(JSON.parse(JSON.stringify(result.profile)), config); // migrating twice gives the same save
+    // the v17 fixture is the migrated v9 save apart from its id, its campaign and the chosen bar numbers
+    expect(result.profile).toEqual(today({ ...v17, id: v9.id, earPoints: 0, settings: { ...v17.settings, barNumbers: NO_NUMBERS, earTrainer: V17.earTrainer } }));
+    const again = validateProfile(JSON.parse(JSON.stringify(result.profile))); // reading it again gives the same profile
     expect(again.ok && again.profile).toEqual(result.profile);
   });
 
@@ -171,16 +182,7 @@ describe('profile migration', () => {
     expect(parseProfile(v11, config)).toMatchObject({ ok: true, profile: { settings: { barNumbers: { mode: 'every2' } } } });
   });
 
-  it('every older save arrives on One monster, and the v8 fixture keeps Many monsters and a series of battle records', () => {
-    for (const old of [v0, v1, v2, v3, v4, v5, v6, v7]) {
-      const once = parseProfile(old, config);
-      expect(once.ok && once.profile.settings.battle).toEqual({ fights: 'one' });
-    }
-    expect(v8.settings.battle).toEqual({ fights: 'many' });
-    expect(v8.battles.slice(2).map((b) => [b.n, b.won, b.maxHp, b.potentialXp])).toEqual([[3, true, 20, 30], [4, true, 30, 38], [5, false, 45, 47]]);
-  });
-
-  it('whatever the settings of a v7 save, only the battle choice is added (property)', () => {
+  it('whatever the settings of a v7 save, only the later settings are added (property)', () => {
     fc.assert(
       fc.property(
         fc.record({
@@ -191,29 +193,28 @@ describe('profile migration', () => {
         (settings) => {
           const result = parseProfile({ ...v7, settings }, config);
           expect(result.ok).toBe(true);
-          if (result.ok) expect(result.profile.settings).toEqual({ ...settings, battle: ONE, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 });
+          if (result.ok) expect(result.profile.settings).toEqual(noBattle({ ...settings, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 }));
         },
       ),
     );
   });
 
-  it('migrates a v6 save to v7: battles kept, hearts left scaled from 5 hearts to 100 HP, everything else as it was', () => {
+  it('migrates a v6 save on: its battles kept as tug records with their XP, everything else as it was', () => {
     const result = parseProfile(v6, config);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.profile.schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
-    expect(result.profile.battles.map((b) => [b.n, b.won, b.hpTaken, b.xp, b.playerHpLeft, b.playerMaxHp])).toEqual([[1, true, 20, 30, 80, 100], [2, false, 5, 4, 0, 100]]);
-    expect(result.profile.battles[0]).not.toHaveProperty('heartsLeft');
+    expect(result.profile.tugs.map((b) => [b.n, b.won, b.xp])).toEqual([[1, true, 30], [2, false, 4]]);
     expect(result.profile.attempts).toEqual(withTimings(v6.attempts));
-    expect(result.profile.settings).toEqual({ ...v6.settings, battle: ONE, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 });
-    expect(result.profile).toEqual({ ...v7, campaign: FRESH_CAMPAIGN, id: v6.id, attempts: withTimings(v7.attempts), trainerXp: 0, practice: { bars: [] }, earPoints: 0, schemaVersion: PROFILE_SCHEMA_VERSION, settings: { ...v7.settings, ...V17, battle: ONE, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 } }); // the v7 fixture is exactly the migrated v6 save, apart from its id
+    expect(result.profile.settings).toEqual(noBattle({ ...v6.settings, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 }));
+    expect(result.profile).toEqual(today({ ...v7, id: v6.id, attempts: withTimings(v7.attempts), trainerXp: 0, practice: { bars: [] }, earPoints: 0, settings: { ...v7.settings, ...V17, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 } })); // the v7 fixture is exactly the migrated v6 save, apart from its id
   });
 
   it('hearts scale to the new maximum: 5 of 5 is full, 3 is 60, 0 is 0, and odd values stay in range', () => {
-    const withHearts = (heartsLeft: unknown) => parseProfile({ ...v6, battles: [{ ...v6.battles[0], heartsLeft }] }, config);
+    // the step of version 6 to 7 alone: version 18 drops the HP numbers again
     const hpLeft = (heartsLeft: unknown) => {
-      const r = withHearts(heartsLeft);
-      return r.ok ? r.profile.battles[0]!.playerHpLeft : null;
+      const out = profileMigrations[6]!({ ...v6, battles: [{ ...v6.battles[0], heartsLeft }] }, config) as { battles: { playerHpLeft: number }[] };
+      return out.battles[0]!.playerHpLeft;
     };
     expect([5, 4, 3, 2, 1, 0].map(hpLeft)).toEqual([100, 80, 60, 40, 20, 0]);
     expect([9, -2, undefined].map(hpLeft)).toEqual([100, 0, 0]);
@@ -224,11 +225,11 @@ describe('profile migration', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.profile.schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
-    expect(result.profile.settings).toEqual({ ...v5.settings, pieces: { hidden: [] }, battle: ONE, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 });
-    expect(result.profile.battles).toEqual(inHealth(v5.battles));
+    expect(result.profile.settings).toEqual(noBattle({ ...v5.settings, pieces: { hidden: [] }, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 }));
+    expect(result.profile.tugs).toEqual(toTugs(inHealth(v5.battles)));
     expect(result.profile.attempts).toEqual(withTimings(v5.attempts));
     // the v6 fixture is the migrated v5 save plus the pieces its player turned off, apart from its id
-    expect(result.profile).toEqual({ ...v6, campaign: FRESH_CAMPAIGN, id: v5.id, attempts: withTimings(v6.attempts), trainerXp: 0, practice: { bars: [] }, earPoints: 0, schemaVersion: PROFILE_SCHEMA_VERSION, settings: { ...v6.settings, ...V17, pieces: { hidden: [] }, battle: ONE, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 }, battles: inHealth(v5.battles) });
+    expect(result.profile).toEqual(today({ ...v6, id: v5.id, attempts: withTimings(v6.attempts), trainerXp: 0, practice: { bars: [] }, earPoints: 0, settings: { ...v6.settings, ...V17, pieces: { hidden: [] }, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 }, battles: inHealth(v5.battles) }));
   });
 
   it('ft_1_02c.AC2: every older save also arrives with every piece on, and migrating twice gives the same save', () => {
@@ -237,7 +238,7 @@ describe('profile migration', () => {
       expect(once.ok).toBe(true);
       if (!once.ok) continue;
       expect(once.profile.settings.pieces).toEqual({ hidden: [] });
-      const again = parseProfile(JSON.parse(JSON.stringify(once.profile)), config);
+      const again = validateProfile(JSON.parse(JSON.stringify(once.profile)));
       expect(again.ok && again.profile).toEqual(once.profile);
     }
   });
@@ -247,8 +248,8 @@ describe('profile migration', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.profile.schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
-    expect(result.profile.settings).toEqual({ ...v4.settings, pieces: { hidden: [] }, battle: ONE, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 });
-    expect(result.profile.battles).toEqual(inHealth(v4.battles));
+    expect(result.profile.settings).toEqual(noBattle({ ...v4.settings, pieces: { hidden: [] }, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 }));
+    expect(result.profile.tugs).toEqual(toTugs(inHealth(v4.battles)));
     expect(result.profile.attempts.every((a) => a.play.mode === 'wait' && a.play.tempoPercent === 100)).toBe(true);
     expect(withoutPlay(result.profile.attempts)).toEqual(v4.attempts);
   });
@@ -258,18 +259,18 @@ describe('profile migration', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.profile.schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
-    expect(result.profile.settings).toEqual({ ...v3.settings, play: { mode: 'wait', scoreView: 'colour' }, pieces: { hidden: [] }, battle: ONE, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 });
-    expect(result.profile.battles).toEqual(inHealth(v3.battles));
+    expect(result.profile.settings).toEqual(noBattle({ ...v3.settings, play: { mode: 'wait', scoreView: 'colour' }, pieces: { hidden: [] }, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 }));
+    expect(result.profile.tugs).toEqual(toTugs(inHealth(v3.battles)));
     expect(withoutPlay(result.profile.attempts)).toEqual(v3.attempts);
   });
 
-  it('migrates a v2 save to the current version: everything kept, and an empty battle log', () => {
+  it('migrates a v2 save to the current version: everything kept, and no tug records', () => {
     const result = parseProfile(v2, config);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.profile.schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
-    expect(result.profile.battles).toEqual([]);
-    expect(result.profile.settings).toEqual({ ...v2.settings, play: { mode: 'wait', scoreView: 'colour' }, pieces: { hidden: [] }, battle: ONE, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 });
+    expect(result.profile.tugs).toEqual([]);
+    expect(result.profile.settings).toEqual(noBattle({ ...v2.settings, play: { mode: 'wait', scoreView: 'colour' }, pieces: { hidden: [] }, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 }));
     expect(withoutPlay(result.profile.attempts)).toEqual(v2.attempts);
   });
 
@@ -278,7 +279,7 @@ describe('profile migration', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.profile.schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
-    expect(result.profile.settings).toEqual({ staff: { lines: 1, barsPerLine: 'auto' }, play: { mode: 'wait', scoreView: 'colour' }, pieces: { hidden: [] }, battle: ONE, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 });
+    expect(result.profile.settings).toEqual(noBattle({ staff: { lines: 1, barsPerLine: 'auto' }, play: { mode: 'wait', scoreView: 'colour' }, pieces: { hidden: [] }, keyboard: SHOWN, barNumbers: NO_NUMBERS, ...V11, ...V17 }));
     expect(withoutPlay(result.profile.attempts)).toEqual(v1.attempts);
     expect(deriveProgress(result.profile, config).totalXp).toBe(224);
   });
@@ -328,105 +329,51 @@ describe('profile migration', () => {
   });
 });
 
-const ladder = loadLadder(ladderJson);
-const LOCKED = [false, false, false];
-const FRESH_CAMPAIGN = { unlocked: [true, false, false, false], beaten: [[false, false, false], [false, false, false], [false, false, false], [false, false, false]], doorOpen: [false, false, false, false], phase: ['find-key', 'find-key', 'find-key', 'find-key'] };
-
-describe('campaign state in the save (ft_1_06.AC7, version 14)', () => {
-  it('ft_1_06.AC7 the number of monsters in the save is the ladder\'s, and a new player starts where the campaign starts', () => {
-    expect(ladder.monsters.length).toBe(V14_CAMPAIGN_MONSTERS);
-    expect(CAMPAIGN_MONSTERS).toBe(V14_CAMPAIGN_MONSTERS);
-    expect(startCampaign(ladder)).toEqual(FRESH_CAMPAIGN);
-    expect(emptyProfile('p', 'P', 'now').campaign).toEqual(startCampaign(ladder));
-  });
-
-  it('ft_1_06.AC7 a v13 save migrates to v14 with the empty campaign, everything else kept, the input unchanged and migrating twice the same', () => {
-    const before = JSON.stringify(v13);
-    const once = parseProfile(v13, config);
+describe('tug records in the profile (ft_1_21.AC9, d290)', () => {
+  it('ft_1_21.AC9 a v17 record arrives with each battle record a tug record with its XP, the campaign and the battle setting gone, the input unchanged', () => {
+    const before = JSON.stringify(v17);
+    const once = parseProfile(v17, config);
     expect(once.ok).toBe(true);
     if (!once.ok) return;
-    expect(JSON.stringify(v13)).toBe(before);
-    expect(once.profile.schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
-    expect(once.profile.campaign).toEqual(startCampaign(ladder));
-    const rest: Record<string, unknown> = { ...once.profile };
-    delete rest.campaign;
-    delete rest.schemaVersion;
-    delete rest.trainerXp;
-    delete rest.practice;
-    delete rest.earPoints;
-    const oldRest: Record<string, unknown> = { ...v13 };
-    delete oldRest.schemaVersion;
-    expect(rest).toEqual({ ...oldRest, attempts: withTimings(v13.attempts), settings: { ...v13.settings, ...V17 } });
-    const again = parseProfile(JSON.parse(JSON.stringify(once.profile)), config);
+    expect(JSON.stringify(v17)).toBe(before);
+    expect(once.profile).not.toHaveProperty('battles');
+    expect(once.profile).not.toHaveProperty('campaign');
+    expect(once.profile.settings).not.toHaveProperty('battle');
+    expect(once.profile.tugs.map((t) => [t.n, t.characterId, t.won, t.exchanges, t.xp])).toEqual(v17.battles.map((b) => [b.n, b.monsterId, b.won, b.rounds, b.xp]));
+    const again = validateProfile(JSON.parse(JSON.stringify(once.profile)));
     expect(again).toEqual(once);
-    expect(migrateProfile(v13, config)).toEqual(migrateProfile(migrateProfile(v13, config), config));
   });
 
-  it('ft_1_06.AC7 the v14 fixture is a valid campaign: one monster beaten, the next unlocked, the door open on the first', () => {
-    const result = parseProfile(v14, config);
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.profile.campaign).toEqual(v14.campaign);
-    expect(v14.campaign).toEqual({
-      unlocked: [true, true, false, false],
-      beaten: [[true, true, true], LOCKED, LOCKED, LOCKED],
-      doorOpen: [true, false, false, false],
-      phase: ['battle', 'find-key', 'find-key', 'find-key'],
-    });
+  it('ft_1_21.AC9 the move keeps the player\'s XP: the tugs pay what the battles paid', () => {
+    const once = parseProfile(v17, config);
+    expect(once.ok).toBe(true);
+    if (!once.ok) return;
+    expect(once.profile.tugs.reduce((sum, t) => sum + t.xp, 0)).toBe(v17.battles.reduce((sum, b) => sum + b.xp, 0));
+    expect(once.profile.tugs.reduce((sum, t) => sum + t.xp, 0)).toBe(30 + 4 + 30 + 38 + 5);
   });
 
-  it('ft_1_06.AC7 a campaign that is missing, or of another length, is rejected', () => {
-    const noCampaign: Record<string, unknown> = { ...v14 };
-    delete noCampaign.campaign;
-    expect(profileSchema.safeParse(noCampaign).success).toBe(false);
-    expect(profileSchema.safeParse({ ...v14, campaign: { ...v14.campaign, phase: ['battle', 'find-key', 'find-key'] } }).success).toBe(false);
-    expect(profileSchema.safeParse({ ...v14, campaign: { ...v14.campaign, beaten: [[true, true, true], LOCKED, LOCKED] } }).success).toBe(false);
+  it('the step is frozen and leaves its input unchanged', () => {
+    const input = structuredClone(v17) as Record<string, unknown>;
+    expect(profileAfterRecord17(input)).toEqual(today(v17));
+    expect(input).toEqual(v17);
   });
 
-  it('ft_1_06.AC5 a level beaten on a locked monster is rejected (the monster is not playable)', () => {
-    const bad = { ...v14, campaign: { ...FRESH_CAMPAIGN, beaten: [[false, false, false], [true, false, false], LOCKED, LOCKED] } };
-    expect(profileSchema.safeParse(bad).success).toBe(false);
-  });
-
-  it('ft_1_06.AC5 a level beaten out of order is rejected (level 2 needs level 1, level 3 needs level 2)', () => {
-    const skipOne = { ...v14, campaign: { ...FRESH_CAMPAIGN, beaten: [[false, true, false], LOCKED, LOCKED, LOCKED] } };
-    const skipTwo = { ...v14, campaign: { ...FRESH_CAMPAIGN, beaten: [[true, false, true], LOCKED, LOCKED, LOCKED], unlocked: [true, false, false, false] } };
-    expect(profileSchema.safeParse(skipOne).success).toBe(false);
-    expect(profileSchema.safeParse(skipTwo).success).toBe(false);
-  });
-
-  it('ft_1_06.AC5 the next monster is unlocked only by beating level 3 of the one before, and the unlocked monsters are a run from the first', () => {
-    const noUnlock = { ...v14, campaign: { ...v14.campaign, beaten: [[true, true, true], LOCKED, LOCKED, LOCKED], unlocked: [true, false, false, false], doorOpen: [false, false, false, false], phase: ['find-key', 'find-key', 'find-key', 'find-key'] } };
-    expect(profileSchema.safeParse(noUnlock).success).toBe(false);
-    const gap = { ...v14, campaign: { ...FRESH_CAMPAIGN, unlocked: [true, false, true, false] } };
-    expect(profileSchema.safeParse(gap).success).toBe(false);
-    const notFirst = { ...v14, campaign: { ...FRESH_CAMPAIGN, unlocked: [false, false, false, false] } };
-    expect(profileSchema.safeParse(notFirst).success).toBe(false);
-  });
-
-  it('ft_1_06.AC5 a monster is unlocked only after level 3 of the one before: an unlocked monster 2 with no level 3 beaten on monster 1 is rejected, and with it accepted', () => {
-    const chainBroken = { ...v17, campaign: { ...FRESH_CAMPAIGN, unlocked: [true, true, false, false] } };
-    expect(profileSchema.safeParse(chainBroken).success).toBe(false);
-    const chainOk = { ...v17, campaign: { ...FRESH_CAMPAIGN, beaten: [[true, true, true], LOCKED, LOCKED, LOCKED], unlocked: [true, true, false, false] } };
-    expect(profileSchema.safeParse(chainOk).success).toBe(true);
-  });
-
-  it('ft_1_06.AC3 a door open on a locked monster is rejected, and the door is open exactly in the battle phase', () => {
-    const lockedOpen = { ...v14, campaign: { ...FRESH_CAMPAIGN, doorOpen: [false, false, true, false], phase: ['find-key', 'find-key', 'battle', 'find-key'] } };
-    expect(profileSchema.safeParse(lockedOpen).success).toBe(false);
-    const openNotBattle = { ...v14, campaign: { ...v14.campaign, phase: ['find-door', 'find-key', 'find-key', 'find-key'] } };
-    expect(profileSchema.safeParse(openNotBattle).success).toBe(false);
-    const battleClosed = { ...v14, campaign: { ...v14.campaign, doorOpen: [false, false, false, false] } };
-    expect(profileSchema.safeParse(battleClosed).success).toBe(false);
-  });
-
-  it('ft_1_06.AC7 a locked monster carries no progress', () => {
-    const phaseOnLocked = { ...v14, campaign: { ...FRESH_CAMPAIGN, phase: ['find-key', 'find-door', 'find-key', 'find-key'] } };
-    expect(profileSchema.safeParse(phaseOnLocked).success).toBe(false);
+  it('a tug record out of order, with negative XP or no exchange is rejected', () => {
+    const broken = (change: (tug: Record<string, unknown>) => void, index = 0) => {
+      const save = structuredClone(today(v17)) as { tugs: Record<string, unknown>[] };
+      change(save.tugs[index]!);
+      return profileSchema.safeParse(save).success;
+    };
+    expect(profileSchema.safeParse(today(v17)).success).toBe(true);
+    expect(broken((t) => { t.n = 5; }, 1)).toBe(false);
+    expect(broken((t) => { t.xp = -1; })).toBe(false);
+    expect(broken((t) => { t.exchanges = 0; })).toBe(false);
+    expect(broken((t) => { delete t.characterId; })).toBe(false);
   });
 });
 
 describe('a damaged save', () => {
-  const fixtures = [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14] as Record<string, unknown>[];
+  const fixtures = [v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v16, v17] as Record<string, unknown>[];
 
   it('is reported, never thrown, whatever field of whatever version is broken (property)', () => {
     fc.assert(fc.property(fc.nat(fixtures.length - 1), fc.jsonValue(), fc.nat(), (index, junk, pick) => {
@@ -443,7 +390,7 @@ describe('practice log in the save (core_10, d092, version 16)', () => {
   const barPlay = { at: '1998-10-30T10:00:00.000Z', pieceId: 'little-steps', bar: 0, notes: 4, firstTry: 3, timing: null, mode: 'wait', tempoPercent: 100, section: null, misses: [{ tick: 240, track: 'right', midi: 62 }] };
 
   // core_10.AC3
-  it('a v15 save migrates to v17 with an empty practice log, everything else kept, and migrating twice gives the same save', () => {
+  it('a v15 save migrates to the current version with an empty practice log, everything else kept, and migrating twice gives the same save', () => {
     const before = JSON.stringify(v15);
     const once = parseProfile(v15, config);
     expect(once.ok).toBe(true);
@@ -456,30 +403,34 @@ describe('practice log in the save (core_10, d092, version 16)', () => {
     delete rest.earPoints;
     delete rest.schemaVersion;
     delete rest.settings;
+    delete rest.tugs;
     const oldRest: Record<string, unknown> = { ...v15 };
     delete oldRest.schemaVersion;
     delete oldRest.settings;
+    delete oldRest.campaign;
+    delete oldRest.battles;
     expect(rest).toEqual(oldRest);
-    expect(once.profile.settings).toEqual({ ...v15.settings, ...V17 });
-    const again = parseProfile(JSON.parse(JSON.stringify(once.profile)), config);
+    expect(once.profile.tugs).toEqual(toTugs(v15.battles));
+    expect(once.profile.settings).toEqual(noBattle({ ...v15.settings, ...V17 }));
+    const again = validateProfile(JSON.parse(JSON.stringify(once.profile)));
     expect(again).toEqual(once);
   });
 
-  it('a v17 save with a valid bar play round-trips through JSON unchanged', () => {
-    const save = { ...v17, practice: { bars: [barPlay] } };
-    const result = parseProfile(JSON.parse(JSON.stringify(save)), config);
+  it('a profile with a valid bar play round-trips through JSON unchanged', () => {
+    const save = { ...today(v17), practice: { bars: [barPlay] } };
+    const result = validateProfile(JSON.parse(JSON.stringify(save)));
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.profile.practice).toEqual({ bars: [barPlay] });
   });
 
-  it('a v17 save with an invalid bar play (midi 200) is rejected', () => {
-    const bad = { ...v17, practice: { bars: [{ ...barPlay, misses: [{ tick: 240, track: 'right', midi: 200 }] }] } };
+  it('a profile with an invalid bar play (midi 200) is rejected', () => {
+    const bad = { ...today(v17), practice: { bars: [{ ...barPlay, misses: [{ tick: 240, track: 'right', midi: 200 }] }] } };
     expect(profileSchema.safeParse(bad).success).toBe(false);
     expect(parseProfile(bad, config).ok).toBe(false);
   });
 
-  it('a v17 save without the practice field is rejected', () => {
-    const noPractice: Record<string, unknown> = { ...v17 };
+  it('a profile without the practice field is rejected', () => {
+    const noPractice: Record<string, unknown> = { ...today(v17) };
     delete noPractice.practice;
     expect(profileSchema.safeParse(noPractice).success).toBe(false);
   });

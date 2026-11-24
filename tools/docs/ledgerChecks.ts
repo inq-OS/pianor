@@ -4,12 +4,14 @@ import type { Repo } from './repo.ts';
 
 /**
  * Every live ledger entry says how its rule is checked (d165): a line `Check: <test file> "<test title>"`, several
- * joined by `; `, or `Check: untestable: <reason>`. A retired or superseded entry needs none.
+ * joined by `; `, or `Check: untestable: <reason>`. An entry says only what holds (d151): a retired or superseded entry
+ * is deleted, and no entry keeps a note of how it used to read.
  */
 const CHECK_LINE = /^Check: (.+)$/;
 const TEST_REF = /^`([^`]+)`(?: "([^"]+)")?$/;
-/** A retired or superseded entry ends its rule sentence with the word, so a rule about retiring things still needs its check. */
+/** A retired or superseded entry ends its rule sentence with the word; a rule about retiring things is not one. */
 const DONE = /\b(?:Retired|Superseded by d\d{3})\.(?:\*\*|\s*$)/;
+const CHANGED = /\b(Changed by|Supersedes) d\d{3}\b/;
 
 export function lintLedgerChecks(repo: Repo): Issue[] {
   const issues: Issue[] = [];
@@ -26,10 +28,9 @@ export function lintLedgerChecks(repo: Repo): Issue[] {
       const at = (n: number): number => i + 2 + n;
       const checks = entry.map((l, n) => ({ m: CHECK_LINE.exec(l), n })).filter((c) => c.m);
       const id = head[1] as string;
-      if (DONE.test(first)) {
-        i = end - 1;
-        continue;
-      }
+      if (DONE.test(first)) issues.push({ severity: 'error', file, line: i + 1, message: `${id}: a retired or superseded entry is deleted, not kept (d151)` });
+      const changed = entry.map((l) => CHANGED.exec(l)).find((m) => m);
+      if (changed) issues.push({ severity: 'error', file, line: i + 1, message: `${id}: "${changed[1]} dNNN" tells what an entry used to say; say only what holds (d151)` });
       if (checks.length !== 1) {
         issues.push({ severity: 'error', file, line: i + 1, message: `${id}: a live entry needs exactly one "Check:" line (a test, or "untestable: reason"; d165)` });
       } else {

@@ -8,8 +8,7 @@ import { z } from 'zod';
 import type { Curriculum } from '../curriculum/curriculum';
 import type { WorldState } from '../island/worldState';
 import { formatIssues } from '../issues';
-import type { ProgressionConfig } from '../progression/config';
-import { parseProfile } from '../progression/migrate';
+import { profileAfterRecord17, validateProfile } from '../progression/migrate';
 import { practiceLogSchema, type PracticeLog } from '../progression/practiceLog';
 import { PROFILE_SCHEMA_VERSION, type ProfileData } from '../progression/profile';
 import { upgradeToCurrent } from '../upgrade';
@@ -88,12 +87,18 @@ export type ProfileCore = Omit<ProfileData, 'schemaVersion' | 'practice'>;
  */
 export const PROFILE_DOCUMENT_V1_HOLDS = 17;
 
-/** The profile document: everything the profile held, less the practice log (d136). Needs the XP rules to validate. */
-export function profileDocument(config: ProgressionConfig): SaveDocument<ProfileCore> {
-  return document<ProfileCore>('profile', 1, [], () => {
+/**
+ * Version 2 of the profile document (d290): the tug records in place of the old battle records, the old campaign and its
+ * battle setting gone (`profileAfterRecord17`, frozen). The input is not changed.
+ */
+const profileV1ToV2: Migration = { from: 1, migrate: (doc) => ({ ...profileAfterRecord17(doc as Record<string, unknown>), schemaVersion: 2 }) };
+
+/** The profile document: everything the profile held, less the practice log (d136). */
+export function profileDocument(): SaveDocument<ProfileCore> {
+  return document<ProfileCore>('profile', 2, [profileV1ToV2], () => {
     throw new SaveDocumentError('profile: a player has no empty profile; create one with the repository');
   }, (value) => {
-    const parsed = parseProfile({ ...value, schemaVersion: PROFILE_DOCUMENT_V1_HOLDS, practice: { bars: [] } }, config);
+    const parsed = validateProfile({ ...value, schemaVersion: PROFILE_SCHEMA_VERSION, practice: { bars: [] } });
     if (!parsed.ok) throw new SaveDocumentError(`profile: ${parsed.errors.join('; ')}`);
     return splitProfile(parsed.profile).core;
   });

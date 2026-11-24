@@ -5,7 +5,6 @@
  */
 import { z } from 'zod';
 import { scenarioFileSchema } from '../../src/dev/autoplay/scenario.ts';
-import { ladderSchema } from '../../src/core/campaign/content.ts';
 import { CHART_SCHEMA_VERSION, levelsFileSchema, pieceMetaSchema } from '../../src/core/chart/index.ts';
 import { PIECE_FILE_VERSION } from '../../src/core/editor/pieceFile.ts';
 import { progressionConfigSchema } from '../../src/core/progression/config.ts';
@@ -73,7 +72,6 @@ export const PERSISTED_FORMATS: readonly PersistedFormat[] = [
   { format: 'Progression', where: '`content/curriculum/progression.json`', file: 'content/curriculum/progression.json', ...fromSchema('progressionConfigSchema', progressionConfigSchema), source: 'src/core/progression/config.ts' },
   { format: 'Level modifiers', where: '`content/curriculum/modifiers.json`', file: 'content/curriculum/modifiers.json', ...fromSchema('modifierTableSchema', modifierTableSchema), source: 'src/core/progression/modifiers.ts' },
   { format: 'XP bank', where: '`content/curriculum/xpBank.json`', file: 'content/curriculum/xpBank.json', ...fromSchema('xpBankConfigSchema', xpBankConfigSchema), source: 'src/core/scoring/xpBankContent.ts' },
-  { format: 'Campaign ladder', where: '`content/campaign/ladder.json`', file: 'content/campaign/ladder.json', ...fromSchema('ladderSchema', ladderSchema), source: 'src/core/campaign/content.ts' },
   { format: 'Trainer steps', where: '`content/trainer/steps.json`', file: 'content/trainer/steps.json', ...fromSchema('trainerStepsSchema', trainerStepsSchema), source: 'src/core/trainer/steps.ts' },
   { format: 'Ear levels', where: '`content/trainer/ear-levels.json`', file: 'content/trainer/ear-levels.json', ...fromSchema('earLevelsSchema', earLevelsSchema), source: 'src/core/trainer/earLevels.ts' },
   { format: 'Piece styles', where: '`content/pieces/styles.json`', file: 'content/pieces/styles.json', ...fromSchema('styleListSchema', styleListSchema), source: 'src/core/properties/styles.ts' },

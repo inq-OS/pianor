@@ -1,6 +1,6 @@
 ---
 name: save-format-bump
-description: Use before changing anything pianor saves or loads (the player profile, settings, campaign, chart or piece meta format), to avoid a bump if possible, or bump schemaVersion with a frozen, golden-tested migration.
+description: Use before changing anything pianor saves or loads (the player profile, settings, the world, chart or piece meta format), to avoid a bump if possible, or bump schemaVersion with a frozen, golden-tested migration.
 ---
 
 # Change a saved format

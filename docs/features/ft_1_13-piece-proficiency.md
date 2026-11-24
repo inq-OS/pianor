@@ -5,7 +5,7 @@ scope: "Practice earns each piece its own XP and level per player instead of pla
 effort: "medium"
 status: "built (piece XP and level, no player XP from practice, no piece locks); the try-out with the student is open"
 completeness: 90
-depends_on: ["ft_1_12", "core_04", "ft_0_10", "ft_1_06"]
+depends_on: ["ft_1_12", "core_04", "ft_0_10"]
 ---
 # ft_1_13: Piece proficiency
 

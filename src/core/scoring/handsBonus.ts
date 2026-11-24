@@ -4,7 +4,7 @@ import type { PlayStats } from '../judge/types';
 export const BOTH_HANDS_MAX_BONUS = 0.5;
 
 /**
- * XP and spell-power multiplier for playing both hands at the same time:
+ * XP multiplier for playing both hands at the same time:
  * 1 + maxBonus x (notes played together first try) / (notes played). It only ever adds: a piece with no two-hand steps,
  * or none played together, gives 1, and nothing is ever taken away. It does not change stars.
  */
