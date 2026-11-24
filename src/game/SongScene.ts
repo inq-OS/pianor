@@ -191,16 +191,13 @@ export class SongScene extends PixelScene {
   private toggleLabel(outline: ResolvedSong, label: string): void {
     const on = labelOn(outline.rows, this.off, label);
     const step = setLabelOn(outline.rows, this.off, label, !on);
-    if (!on || step.off.length - this.off.length === outline.rows.filter((r) => r.labels.includes(label)).length) {
-      if (step.changed) this.saveOff(step.off);
-      return;
-    }
-    // some part kept on as the last written part: the notice stands on it, its page turned to
     if (step.changed) this.saveOff(step.off);
-    const kept = outline.rows.find((r) => r.labels.includes(label) && !step.off.includes(r.id));
+    // turning off, a part with the label may have been kept on as the last written part: the notice stands on it
+    const kept = on ? outline.rows.find((r) => r.labels.includes(label) && !step.off.includes(r.id)) : undefined;
+    if (!kept) return;
     const at = kept ? this.items.findIndex((item) => item?.row.id === kept.id) : -1;
     if (at >= 0) this.page = Math.floor(at / this.perPage);
-    this.say(t('song.lastPart'), at >= 0 ? kept!.id : null);
+    this.say(t('song.lastPart'), at >= 0 ? kept.id : null);
   }
 
   private saveOff(off: readonly string[]): void {

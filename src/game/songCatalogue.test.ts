@@ -42,4 +42,15 @@ describe('SongCatalogue', () => {
     expect(songs.pieceFor('a')).toBeUndefined();
     expect(songs.pieceFor('song:nope')).toBeUndefined();
   });
+
+  it('ft_1_36.AC8 plays a group as the section of the whole song its parts fill', () => {
+    const songs = new SongCatalogue({
+      files: [{ ...song('grouped', 'approved'), nodes: [{ kind: 'piece', id: 'one', piece: 'a' }, { kind: 'group', id: 'g', name: 'G', nodes: [{ kind: 'piece', id: 'two', piece: 'b' }] }] }],
+      showDrafts: false,
+      piece: (id) => pieces.get(id),
+      partsOff: () => [],
+    });
+    const part = songs.joinedChart(songs.find('grouped')!)!.parts.find((p) => p.node === 'g');
+    expect(part).toMatchObject({ startBar: 1, endBar: 1 });
+  });
 });
