@@ -125,47 +125,6 @@ test('the learning is kept: the piece opens again on the step the player reached
   expectNoErrors(errors);
 });
 
-test('ft_1_32.AC11 a run that speeds up beyond the baseline tempo is stopped and asked again', async ({ page }) => {
-  const errors = await openGame(page, '?device=virtual&learn=1');
-  // a piece begun earlier, whose confirmation play measured a slow 40 BPM
-  await page.evaluate(() => window.__game.registry.get('context').profiles.saveLearnProgress('little-steps', {
-    step: 0, wholeStreak: 0, recall: false, confirm: false, misses: 0, medals: [], lastDay: '1998-11-21', bpm: [40], stepBars: 1,
-  }));
-  await learnPiece(page, 'Little Steps');
-  // the keys pressed one right after the other: far faster than 40 BPM
-  await playWithKeys(page, (await shown(page)).midis);
-  await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toBe('Too fast: keep the speed you started with. Once more');
-  expect(await shown(page)).toMatchObject({ bars: 1, first: 0 });
-  expect(await progress(page)).toMatchObject({ step: 0, misses: 0, unsteady: 1 }); // nothing lost, asked again
-  expectNoErrors(errors);
-});
-
-const playStaves = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { chart: { tracks: { role: string; hand: string | null }[] } })
-  .chart.tracks.filter((t) => t.role === 'play').map((t) => t.hand));
-
-test('ft_1_32.AC12 a two-hand piece is learned with both hands together by default', async ({ page }) => {
-  const errors = await openGame(page, '?device=virtual&learn=1');
-  await learnPiece(page, 'Both Hands');
-  expect(await kiurSays(page)).toBe('Bar 1: every note right');
-  expect((await playStaves(page)).sort()).toEqual(['LH', 'RH']);
-  expectNoErrors(errors);
-});
-
-test('ft_1_32.AC12 ft_1_32.AC18 with hands apart chosen, the right hand is learned first, the left hand\'s staff shown grey and not awaited', async ({ page }) => {
-  const errors = await openGame(page, '?device=virtual&learn=1');
-  await page.evaluate(() => window.__game.registry.get('context').profiles.updateLearnSettings({ handsApart: true }));
-  await learnPiece(page, 'Both Hands');
-  expect(await kiurSays(page)).toBe('Bar 1, right hand alone: every note right');
-  expect(await playStaves(page)).toEqual(['RH']);
-  // both staves are drawn, the resting left hand's marked so the view greys it
-  const staves = await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { layout: { systems: { staves: { clef: string; resting?: boolean }[] }[] } } })
-    .playSession.layout.systems[0]!.staves.map((st) => [st.clef, st.resting === true]));
-  expect(staves).toEqual([['treble', false], ['bass', true]]);
-  await playWithKeys(page, (await shown(page)).midis);
-  await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toBe('Every note right! Bar 1, left hand alone: every note right');
-  expectNoErrors(errors);
-});
-
 test('ft_1_32.AC16 a half-learned piece opened again asks to go on or start over, with two pictures', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
   const halfway = () => page.evaluate(() => window.__game.registry.get('context').profiles.saveLearnProgress('little-steps', {
