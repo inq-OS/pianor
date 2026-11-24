@@ -135,7 +135,7 @@ test.describe('the bubble and the strip (ft_1_20, d282)', () => {
     // the right click removes nothing itself and selects the note
     expect((await notes()).length).toBe(1);
     expect(await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { selected: object | null }).selected !== null)).toBe(true);
-    // fingers: its choices open in a row beside the ring, a pick sets the finger and closes the bubble
+    // fingers: its choices open on the outer ring, a pick sets the finger and closes the bubble
     await clickButton(page, 'editor', await sceneButton(page, 'editor', 'Fingers'));
     await expect.poll(() => sceneButton(page, 'editor', '3')).toBeGreaterThanOrEqual(0);
     await clickButton(page, 'editor', await sceneButton(page, 'editor', '3'));

@@ -124,6 +124,8 @@ const worldStateSchema = z.object({
     lastLostTug: z.object({ piece: z.string().min(1), at: z.string().min(1) }).exactOptional(),
   })),
   teacherVisits: z.array(z.object({ day, piece: z.string().min(1), result: z.enum(['passed', 'notYet']) })),
+  // ft_1_37: added without a version step (d069.3)
+  wandererGifts: z.array(z.object({ day, wanderer: z.string().min(1), item: z.string().min(1) })).exactOptional(),
 });
 
 /** The world document: `WorldState` (ft_1_25, WP-08; contract A.8). */
@@ -156,6 +158,17 @@ const curriculumSchema = z.object({
   // ft_1_26.AC9: added without a version step (d069.3); absent, the defaults (Sunday and Wednesday, from the day's start)
   testWeekdays: z.array(z.int().min(0).max(6)).exactOptional(),
   testTime: clock.exactOptional(),
+  // ft_1_37: added without a version step (d069.3); absent, every character as before
+  cast: z.object({
+    characters: z.record(z.string().min(1), z.object({
+      on: z.boolean().exactOptional(),
+      weekdays: z.array(z.int().min(0).max(6)).exactOptional(),
+      chance: z.number().min(0).max(1).exactOptional(),
+      piece: z.string().min(1).exactOptional(),
+      neediness: z.int().min(1).max(5).exactOptional(),
+    })).exactOptional(),
+    sent: z.array(z.object({ wanderer: z.string().min(1), day, piece: z.string().min(1).exactOptional() })).exactOptional(),
+  }).exactOptional(),
 });
 
 /** The curriculum document: `Curriculum` (core_12, WP-04; contract A.12). Base 85 by d139. */

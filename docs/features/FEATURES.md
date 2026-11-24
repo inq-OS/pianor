@@ -32,10 +32,10 @@ Every feature file carries `completeness: N` (an integer, 0 to 100) in its front
 | Scope | Features at 100 | Done % |  |
 |---|---|---|---|
 | MVP, iteration 0 | 15 of 19 | 88 | `##################..` |
-| Iteration 1 | 4 of 35 | 64 | `#############.......` |
+| Iteration 1 | 4 of 36 | 63 | `#############.......` |
 | Core behaviour | 0 of 13 | 66 | `#############.......` |
 | Iteration not defined yet | 0 of 8 | 38 | `########............` |
-| Overall | 19 of 75 | 64 | `#############.......` |
+| Overall | 19 of 76 | 64 | `#############.......` |
 <!-- /docs:completeness -->
 
 ## MVP, iteration 0 (ft_0_00 to ft_0_17)
@@ -129,6 +129,7 @@ Every feature file carries `completeness: N` (an integer, 0 to 100) in its front
 | [ft_1_34](ft_1_34-curriculum-telephone.md) | The telephone: the teacher's new piece calls the student to learn it | An old wall telephone in the room rings while the teacher's curriculum holds a piece whose learning has not begun; pressed, it opens that piece in bar-by-bar learning (ft_1_32) | simple | 70 |  | built: the call's rule, the builder's first picture on the room's wall with its ringing look, the press that opens the learning, with unit and end-to-end tests; open: the painter's picture in the room and a ring that is heard |
 | [ft_1_35](ft_1_35-autotrainer.md) | Autotrainer | One tool that trains a whole piece to its tempo with no bar left behind: it plays the piece through in the clock that follows the student, sends a bar with a wrong note into a short loop until it is clean and then goes on from that bar, brings in the metronome and the beat helpers to walk the student through a bar that clearly loses the pace, raises the tempo only when every bar holds at the current one, and learns the piece bar by bar first when it is new; a practice tool, not part of the game | large | 0 | 1 | designed, held until the maintainer starts it |
 | [ft_1_36](ft_1_36-songs.md) | Songs made of pieces | A song is a tree like a folder of folders: groups, pieces, links to a piece that repeats, and blanks not written yet; the song's tempo, key and meter pass down to every part that does not set its own, an own value shown beside the crossed-out default; each player turns parts on and off; a piece plays alone, a group or the whole song plays as one staff the student pages through, with a map of the song's parts; songs listed behind a bookmark of the piece book and each song a page of the same book; one page for a song's tree and a piece's parts | large | 15 | 1 | slice 1 done: the song schema, the resolved tree, songChart, the song checks in piece:lint and the example song Morning Song (au11). Slices 2 to 4 open |
+| [ft_1_37](ft_1_37-teacher-runs-the-cast.md) | The teacher runs the cast: characters on and off, their days, how often, their piece; wanderers who ask for a piece | On the teacher's screen, per player: each character on or off, the weekdays it may come, how often it comes, and the piece it teaches in place of its own; a new kind of character, the wanderer, who teaches nothing, is sent by the teacher, asks the student to play one piece with the staff, and gives a plain keepsake (an old coin and the like) into the backpack when the play is clean enough for its neediness, which the teacher sets | large | 50 | 1 | in progress: slices 1 and 2 built (the cast in the curriculum document, presence reading it, neediness, the wanderer's rules and keepsakes in core; the teacher's Characters page); the game's side (slice 3) to come |
 <!-- /docs:index -->
 
 ## Iteration not defined yet (ft_Y_XX; outlines, write a plan before starting)
