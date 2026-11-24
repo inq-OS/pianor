@@ -1,5 +1,6 @@
 // Covers ft_Y_13.AC2, ft_Y_13.AC3, ft_Y_13.AC5.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { activeScenes, expectNoErrors, openGame, sceneTexts, showMenuPageWith, waitForScene } from './helpers';
 
 /** The index of the button of a scene that shows the focus ring, or -1. */

@@ -1,5 +1,6 @@
 // Covers ft_1_32.AC9, ft_1_32.AC10.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { clickButton, expectNoErrors, openGame, sceneTexts, showMenuPageWith, waitForScene, bandAction } from './helpers';
 
 /** Give the active player measured runs of Little Steps over three days: uneven with stops at first, even at the end. */

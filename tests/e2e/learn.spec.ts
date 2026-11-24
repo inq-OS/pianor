@@ -1,5 +1,6 @@
 // Covers ft_1_32.AC4, ft_1_32.AC5, ft_1_32.AC6, ft_1_32.AC11, ft_1_32.AC12, ft_1_32.AC13, ft_1_32.AC14, ft_1_32.AC16, ft_1_32.AC17, ft_1_32.AC18.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { activeScenes, clickButton, clickToolbar, expectNoErrors, sceneTexts, isPieceLabel, menuLabels, letGameRun, openGame, openPiece, playWithKeys, sceneButton, showMenuPageWith, waitForScene } from './helpers';
 
 /** The bars the practice screen shows now (0-based, of the whole piece), and the notes to play in them in order. */

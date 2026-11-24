@@ -114,6 +114,24 @@ export async function toScoreScreen(page: Page): Promise<void> {
   await waitForScene(page, 'results');
 }
 
+/**
+ * Starts scene `key` with `data` straight from the screen shown now, as the first player, and waits until it is up: for a
+ * test of one screen's wiring that does not need the way there (the screens' own tests click their way, as a player would).
+ */
+export async function startScene(page: Page, key: string, data: object = {}): Promise<void> {
+  await page.evaluate(async ({ k, d }) => {
+    const profiles = window.__game.registry.get('context').profiles as { profiles: readonly { id: string }[]; switchTo(id: string): Promise<string> };
+    const first = profiles.profiles[0];
+    if (!first) throw new Error('no player to start as');
+    const result = await profiles.switchTo(first.id);
+    if (result !== 'ok') throw new Error(`cannot start as the first player: ${result}`);
+    const shown = window.__game.scene.getScenes(true)[0] as unknown as { scene: { start(key: string, data: object): void } } | undefined;
+    if (!shown) throw new Error('no scene is shown');
+    shown.scene.start(k, d);
+  }, { k: key, d: data });
+  await waitForScene(page, key);
+}
+
 /** From the main menu, through the first player's room, to the piano: the piece list. */
 export async function toPieceList(page: Page): Promise<void> {
   await waitForScene(page, 'profiles');
@@ -268,8 +286,13 @@ export async function openSettings(page: Page): Promise<void> {
 /** Chrome says this on machines whose audio device is busy or missing; it is not a fault of the game (see CLAUDE.md). */
 const KNOWN_NOISE = /AudioContext encountered an error from the audio device/;
 
+/** The errors of a page that are faults of the game: `list` without Chrome's known noise. */
+export function realPageErrors(list: readonly string[]): string[] {
+  return list.filter((message) => !KNOWN_NOISE.test(message));
+}
+
 export function expectNoErrors(errors: PageErrors): void {
-  const real = errors.list.filter((message) => !KNOWN_NOISE.test(message));
+  const real = realPageErrors(errors.list);
   expect(real, real.join('\n')).toEqual([]);
 }
 

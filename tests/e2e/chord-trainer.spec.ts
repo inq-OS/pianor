@@ -1,7 +1,8 @@
 // Covers ft_1_29.AC2.
 // The stand's panel opens chord from its name (ft_1_29 slice B): the chord's name stands large, the student plays it in any
 // inversion and octave with all its notes held together, and a key outside the chord costs a heart and is named.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { clickButton, expectNoErrors, openFromStand, openGame, profileButton, sceneButton, sceneTexts, totalXp, waitForScene } from './helpers';
 
 const SCENE = 'chordTrainer';

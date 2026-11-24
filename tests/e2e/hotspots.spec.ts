@@ -1,6 +1,7 @@
 // Covers ft_1_24.AC1 and ft_1_24.AC4 (WP-05): a scene's hotspots and exits are pressed; a hotspot's look line is said
 // over it, an exit leaves to its place.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { activeScenes, clickButton, expectNoErrors, letGameRun, openGame, sceneButton, waitForScene, type PageErrors } from './helpers';
 
 interface Box { x: number; y: number; width: number; height: number }

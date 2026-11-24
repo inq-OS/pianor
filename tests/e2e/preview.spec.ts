@@ -1,5 +1,6 @@
 // Covers ft_0_11.AC1.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { activeScenes, playWithVirtualPiano, waitForScene } from './helpers';
 
 /**
@@ -223,14 +224,18 @@ test.describe('approving a piece', () => {
     expect(errors).toEqual([]);
   });
 
-  test('shows the reason when the server refuses', async ({ page }) => {
-    await openPreview(page);
-    await fakeServer(page, { status: 422, body: { ok: false, message: '1 error(s), so it cannot be approved: nope' } });
-    await page.getByTestId('piece-stair-steps').click();
-    page.once('dialog', (dialog) => void dialog.accept());
-    await page.getByTestId('approve').click();
-    await expect(page.getByTestId('status')).toContainText('so it cannot be approved: nope');
-    await expect(page.getByTestId('approve')).toHaveText('Approve for the student'); // still a draft
+  test.describe(() => {
+    // the faked refusal is a 422, which Chrome logs as an error
+    test.use({ allowPageErrors: true });
+    test('shows the reason when the server refuses', async ({ page }) => {
+      await openPreview(page);
+      await fakeServer(page, { status: 422, body: { ok: false, message: '1 error(s), so it cannot be approved: nope' } });
+      await page.getByTestId('piece-stair-steps').click();
+      page.once('dialog', (dialog) => void dialog.accept());
+      await page.getByTestId('approve').click();
+      await expect(page.getByTestId('status')).toContainText('so it cannot be approved: nope');
+      await expect(page.getByTestId('approve')).toHaveText('Approve for the student'); // still a draft
+    });
   });
 
   test('cannot be pressed for a piece with errors or with edits that are not in the file', async ({ page }) => {

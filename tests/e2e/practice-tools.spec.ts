@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { clickButton, expectNoErrors, letGameRun, openBubbleFromMore, openGame, openPiece, playWithVirtualPiano, pieceXp, pressPracticeButton as press, sceneTexts, toScoreScreen, useOneLine, waitForScene, bandAction, sceneWords } from './helpers';
 
 /** The practice screen's tools strip: the metronome click, the tempo percent, and a section to practise. */
