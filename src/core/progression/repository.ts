@@ -98,7 +98,7 @@ export class ProfileRepository {
     this.now = options.now ?? (() => new Date());
     this.idFactory = options.idFactory ?? (() => `p-${this.now().getTime().toString(36)}-${Math.random().toString(36).slice(2, 8)}`);
     this.seedNames = options.seedNames ?? [];
-    this.docs = { profile: profileDocument(config), practiceLog: practiceLogDocument, world: worldDocument, curriculum: curriculumDocument };
+    this.docs = { profile: profileDocument(), practiceLog: practiceLogDocument, world: worldDocument, curriculum: curriculumDocument };
   }
 
   /** Every player id: those with documents and those with only a record of before the split. */

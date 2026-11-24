@@ -18,7 +18,7 @@ const flags = (page: Page) => page.evaluate(async () => {
 
 /** Twinkle's first four bars: C C G G | A A G | F F E E | D D C. */
 const LESSON = [60, 60, 67, 67, 69, 69, 67, 65, 65, 64, 64, 62, 62, 60];
-/** The tug's line at level 1: the first half of the lesson (ft_1_06), its one line of two bars, played back each turn. */
+/** The tug's line at level 1: the first half of the lesson (ft_1_21.AC3), its one line of two bars, played back each turn. */
 const LINE = LESSON.slice(0, 7);
 
 /** A new player's first visit to the room, with the intro left to come by itself (the helper turns it off for other tests). */

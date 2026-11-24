@@ -35,7 +35,6 @@ import v15 from '../../../tests/fixtures/saves/profile.v15.json';
 import s15 from '../../../tests/fixtures/saves/steps/profile.v15-to-v16.json';
 import v16 from '../../../tests/fixtures/saves/profile.v16.json';
 import s16 from '../../../tests/fixtures/saves/steps/profile.v16-to-v17.json';
-import { DEFAULT_BATTLE_SETTINGS } from './battleSettings';
 import { DEFAULT_PLAY_SETTINGS } from '../judge/playSettings';
 import { DEFAULT_BAR_NUMBER_SETTINGS } from '../layout/barNumbers';
 import { DEFAULT_KEYBOARD_SETTINGS } from '../layout/keyboardSettings';
@@ -55,7 +54,7 @@ const steps: [number, object, object][] = [
 ];
 
 /** Every default a migration once read, and their values today, to put back after a test changes them. */
-const defaults = [DEFAULT_STAFF_SETTINGS, DEFAULT_PLAY_SETTINGS, DEFAULT_PIECES_SETTINGS, DEFAULT_BATTLE_SETTINGS, DEFAULT_KEYBOARD_SETTINGS, DEFAULT_BAR_NUMBER_SETTINGS, DEFAULT_PROFILE_SETTINGS] as Record<string, unknown>[];
+const defaults = [DEFAULT_STAFF_SETTINGS, DEFAULT_PLAY_SETTINGS, DEFAULT_PIECES_SETTINGS, DEFAULT_KEYBOARD_SETTINGS, DEFAULT_BAR_NUMBER_SETTINGS, DEFAULT_PROFILE_SETTINGS] as Record<string, unknown>[];
 const saved = defaults.map((d) => structuredClone(d));
 
 afterEach(() => {
@@ -64,7 +63,7 @@ afterEach(() => {
     Object.assign(d, structuredClone(saved[i]));
   });
   // DEFAULT_PROFILE_SETTINGS holds the other defaults by reference, as it does in profile.ts
-  Object.assign(DEFAULT_PROFILE_SETTINGS, { staff: DEFAULT_STAFF_SETTINGS, play: DEFAULT_PLAY_SETTINGS, pieces: DEFAULT_PIECES_SETTINGS, battle: DEFAULT_BATTLE_SETTINGS, keyboard: DEFAULT_KEYBOARD_SETTINGS, barNumbers: DEFAULT_BAR_NUMBER_SETTINGS });
+  Object.assign(DEFAULT_PROFILE_SETTINGS, { staff: DEFAULT_STAFF_SETTINGS, play: DEFAULT_PLAY_SETTINGS, pieces: DEFAULT_PIECES_SETTINGS, keyboard: DEFAULT_KEYBOARD_SETTINGS, barNumbers: DEFAULT_BAR_NUMBER_SETTINGS });
 });
 
 /** Change every default a player could get today, as a later version of the game might. */
@@ -72,7 +71,6 @@ function changeTodaysDefaults(): void {
   Object.assign(DEFAULT_STAFF_SETTINGS, { lines: 'all', barsPerLine: 2 });
   Object.assign(DEFAULT_PLAY_SETTINGS, { mode: 'tempo', scoreView: 'number' });
   Object.assign(DEFAULT_PIECES_SETTINGS, { hidden: ['some-piece'] });
-  Object.assign(DEFAULT_BATTLE_SETTINGS, { fights: 'many' });
   Object.assign(DEFAULT_KEYBOARD_SETTINGS, { onScreen: false });
   Object.assign(DEFAULT_BAR_NUMBER_SETTINGS, { mode: 'every4' });
   Object.assign(DEFAULT_PROFILE_SETTINGS, { noteNaming: 'H', staffGap: 'short', keyLights: { enabled: true, afterWrong: 2 } });

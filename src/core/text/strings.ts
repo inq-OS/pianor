@@ -55,7 +55,7 @@ export const strings = {
   'card.pieces': 'Pieces played',
   'card.passes': 'Times played through',
   'card.fiveStars': 'Pieces with five stars',
-  'card.campaign': 'Monster levels beaten',
+  'card.tugsWon': 'Wins against characters',
   'card.noteTrainer': 'XP from theory',
   'card.earPoints': 'Points by ear',
   'room.door': 'Door',
@@ -489,6 +489,11 @@ export const strings = {
   'editor.dragRepeat.none': 'No copies: drag right',
   'editor.chordName': 'Chord: {chord}',
   'editor.paste.none': 'Copy a bar first.',
+  'editor.paste.over': 'Notes this paste writes over (red): {n}. Paste again to do it.',
+  'editor.slur.bars': 'Slur',
+  'editor.slur.bars.tip': 'One slur over the selected bars for each hand, from its first note to its last',
+  'editor.tie.bars': 'Tie',
+  'editor.tie.bars.tip': 'Ties every repeated chord in the selected bars',
   'editor.why.bars-full': 'The piece is full: no more bars fit.',
   'editor.why.meter': 'The copied bar is in another meter.',
   'editor.why.no-room': 'Another note is in the way.',
@@ -550,9 +555,6 @@ export const strings = {
   'editor.import.cannotSave': 'Could not add that piece: {problem}',
   'editor.nothingToUndo': 'Nothing to undo.',
   'editor.nothingToRedo': 'Nothing to redo.',
-  // A monster in a scene of Keri (ft_1_19) with nothing to play now. Gentle, never "failed".
-
-  // Monster campaign, find the key (ft_1_06). Gentle: a broken key is never "failed".
   'settings.pageLearn': 'Learning',
   'settings.learnStep': 'New bars in learning',
   'settings.learnStepOne': 'One bar at a time',

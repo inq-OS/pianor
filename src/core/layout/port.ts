@@ -73,9 +73,8 @@ export const PORT_MOORED: readonly BoatKind[] = ['houseboat'];
 /** Where the beacon's lantern hangs at the quay's head (fine pixels): its light glows round it at dusk and night. */
 const LAMP = { x: PORT.head - 18, y: 82 } as const;
 
-/** Where people stand: on the quay's top, and on the sand of the bed after a dive (feet, fine pixels of the tall picture). */
-const STAND_ON_QUAY = [{ x: 210, y: PORT.deck + 2 }, { x: 400, y: PORT.deck + 2 }] as const;
-const STAND_ON_BED = [{ x: 150, y: PORT.bed + 14 }, { x: 470, y: PORT.bed + 16 }] as const;
+/** Where the light falls in pools on the sand of the bed (centres, fine pixels of the tall picture). */
+const SAND_LIGHT = [{ x: 150, y: PORT.bed + 14 }, { x: 470, y: PORT.bed + 16 }] as const;
 
 export interface PortPlan {
   /** The screen's picture, fine pixels. */
@@ -93,9 +92,8 @@ export interface PortPlan {
   head: number;
   lamp: { x: number; y: number };
   berths: readonly { x: number; water: number; room: number }[];
-  /** Feet on the quay and on the bed (rows of the tall picture). */
-  quay: readonly { x: number; y: number }[];
-  under: readonly { x: number; y: number }[];
+  /** The pools of light on the sand of the bed. */
+  sandLight: readonly { x: number; y: number }[];
   /** Where a press dives (the near water) and where one rises again (the deep stage's top, over the water), layout cells. */
   diveAt: Rect;
   riseAt: Rect;
@@ -114,8 +112,7 @@ export function portPlan(): PortPlan {
     head: PORT.head,
     lamp: { ...LAMP },
     berths: PORT_BERTHS.map((b) => ({ ...b })),
-    quay: STAND_ON_QUAY.map((p) => ({ ...p })),
-    under: STAND_ON_BED.map((p) => ({ ...p })),
+    sandLight: SAND_LIGHT.map((p) => ({ ...p })),
     diveAt: { x: 0, y: Math.ceil((PORT.water + 4) / ART_DETAIL), w: PORT_PICTURE.w, h: PORT_PICTURE.h - Math.ceil((PORT.water + 4) / ART_DETAIL) },
     riseAt: { x: 0, y: 0, w: PORT_PICTURE.w, h: Math.floor((PORT.water - PORT.dive) / ART_DETAIL) },
   };

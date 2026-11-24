@@ -99,7 +99,7 @@ describe('the frame of every screen (d088)', () => {
 
   it('fits the smallest screen with the longest name: the XP numbers go first, then the screen\'s items show as icons', () => {
     const longest = { nameWidth: 72, rankWidth: 34, xpTextWidth: 64 };
-    // the fullest bar: settings and the keyboard switch (no screen has both since d099, so this is the worst case)
+    // the fullest bar: settings and the keyboard switch (no screen has both, d099, so this is the worst case)
     const numbersGone = toolbarLayout({ ...base, keys: true, width: 320, player: longest });
     expect(numbersGone.fits).toBe(true);
     expect(numbersGone.xpText).toBeNull();

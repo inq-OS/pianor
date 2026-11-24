@@ -215,7 +215,7 @@ export function startAutoplay(options: AutoplayOptions): AutoplayHandle {
 
   /**
    * Tempo mode: after the lead-in, the first key only starts the count-in and is not a note; then every note of `chart`
-   * goes where the transport says it is, at the piece's own tempo (the find-the-door screen runs at it whatever `?speed=` says).
+   * goes where the transport says it is, at the piece's own tempo (a screen that plays at its own tempo runs at it whatever `?speed=` says).
    */
   async function performInTempo(chart: Chart, transport: () => TransportLike | null | undefined): Promise<void> {
     await sleep(leadMs);
@@ -270,7 +270,7 @@ export function startAutoplay(options: AutoplayOptions): AutoplayHandle {
     if (scenario.activity === 'script') return playScript();
     if (scenario.activity === 'teacher') await putOnCurriculum(scenario.piece!);
     if (scenario.activity === 'week') await setUpWeek(scenario.piece!);
-    // a challenge practises the character's phrase in the room first, so its gate opens (ft_1_06.AC15)
+    // a challenge practises the character's phrase in the room first, so its gate opens (ft_1_21.AC19)
     const order = offeredIds();
     let pieceId: string | undefined = scenario.piece;
     for (let run = 1; run <= scenario.maxRuns; run++) {

@@ -213,8 +213,6 @@ export class SettingsScene extends PixelScene {
     const barNumbers = BAR_NUMBER_MODES.map((mode) => ({ value: mode, label: barNumberLabels[mode], symbol: barNumbersSymbol(mode) }));
     this.setting(1, 1, t('settings.barNumbers'), barNumbers, profiles.barNumberSettings.mode, (mode) => profiles.updateBarNumberSettings({ mode }));
     // the on-screen keyboard's switch is on this screen's toolbar (d099)
-    // every note of a chord shows its finger, or only the top one: the monster-count setting left the screen
-    // (the battle it was for is gone, ft_1_21); the saved choice stays, so the save format is unchanged
     // finger numbers: off, the top note of a chord, or every note of a chord; one button, so the grid keeps its size
     const fingerNumbers = [
       { value: 'off' as const, label: t('settings.fingerNumbersOff'), symbol: fingersSymbol('off') },

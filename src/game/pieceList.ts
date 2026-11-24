@@ -55,7 +55,7 @@ export function offeredPieces(candidates: readonly Piece[], showDrafts: boolean)
 }
 
 /**
- * The pieces a player sees in the menu and can play in the campaign: `pieces` without the ones turned off (`hidden` holds their ids,
+ * The pieces a player sees in the menu and can play in a tug: `pieces` without the ones turned off (`hidden` holds their ids,
  * and ids of pieces that no longer exist are ignored). The list screen still shows every piece, so one can be turned on again.
  */
 export function piecesThatAreOn(pieces: readonly Piece[], hidden: readonly string[]): Piece[] {

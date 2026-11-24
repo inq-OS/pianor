@@ -138,7 +138,7 @@ const MENU_PAD = 3;
 /**
  * A scene drawn in art pixels. It works out the whole-number zoom for the screen (`frameView`), puts everything in a
  * `root` container scaled by that zoom, and draws again when the window changes size. Subclasses only say what to
- * draw, in art pixels, in the main area. Since d110 an art pixel of `root` is a layout cell of 2 x 2 fine pixels; art
+ * draw, in art pixels, in the main area. An art pixel of `root` is a layout cell of 2 x 2 fine pixels; art
  * drawn on the finer 640 x 360 grid goes through `fineImage`: every screen's frame (d088), the toolbar and the vine above the main area, is
  * drawn here. `root`'s origin is the main area's top-left corner; the toolbar sits at negative y above it.
  */
@@ -1502,7 +1502,7 @@ export abstract class PixelScene extends Phaser.Scene {
   }
 
   /**
-   * A layer over the staff (ft_1_20): with the band the staff fills the whole main area, so what used to sit in a bar beside
+   * A layer over the staff (ft_1_20): with the band the staff fills the whole main area, so what would sit in a bar beside
    * it (Kiur and his bubble, the page buttons of a section, an open panel) is drawn on top of it here. Same origin and zoom as
    * `root`; removed when the scene is drawn again.
    */
@@ -1583,7 +1583,7 @@ export abstract class PixelScene extends Phaser.Scene {
 
   /**
    * A bitmap drawn on the fine grid of the art canvas (d110): `x`, `y` and the bitmap count fine pixels from the main
-   * area's top-left corner, `ART_DETAIL` per layout cell. Art drawn before d110 stays on cells and shows at twice its size.
+   * area's top-left corner, `ART_DETAIL` per layout cell. Art drawn on cells stays on cells and shows at twice its size.
    */
   protected fineImage(x: number, y: number, bitmap: Bitmap | RgbaArt, palette?: readonly number[]): PixelImage {
     const image = new PixelImage(this, x / ART_DETAIL, y / ART_DETAIL, bitmap, palette).setScale(1 / ART_DETAIL);

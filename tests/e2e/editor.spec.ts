@@ -1,8 +1,8 @@
-// Covers ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_02e.AC8, ft_1_02d.AC25, ft_1_02d.AC31, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
+// Covers ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_02e.AC8, ft_1_02d.AC25, ft_1_02d.AC34, ft_1_02d.AC35, ft_1_02d.AC36, ft_1_02d.AC37, ft_1_02d.AC31, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
 import { readFileSync } from 'node:fs';
 import { encode as encodePng } from 'fast-png';
 import { expect, test, type Page } from '@playwright/test';
-import { activeScenes, clickButton, clickToolbar, bubbleOpen, closeBubble, expectNoErrors, lastButton, menuButton, openBubbleFromMore, openGame, openPiece, letGameRun, playWithVirtualPiano, sceneButton, sceneTexts, sceneWords, showMenuPageWith, toScoreScreen, waitForScene } from './helpers';
+import { activeScenes, buttonPoint, clickButton, clickToolbar, bubbleOpen, closeBubble, expectNoErrors, lastButton, menuButton, openBubbleFromMore, openGame, openPiece, letGameRun, playWithVirtualPiano, sceneButton, sceneTexts, sceneWords, showMenuPageWith, toScoreScreen, waitForScene } from './helpers';
 
 /** The editor is preliminary, on in the menu; `?editor=0` hides it. */
 const EDITOR = '?device=virtual';
@@ -168,7 +168,6 @@ test.describe('piece editor (preliminary)', () => {
     await expect.poll(() => menuButton(page, '+ New piece')).toBeGreaterThanOrEqual(0);
     // the piece maker saves no progress: it lists own pieces only and a card opens the editor, so no piece can be played from it
     expect(await menuButton(page, 'Practice')).toBe(-1);
-    expect(await menuButton(page, 'Fight')).toBe(-1);
     expect(await page.evaluate(() => window.__game.registry.get('context').profiles.progress.totalXp as number)).toBe(xpBefore);
     await clickButton(page, 'menu', await menuButton(page, 'Back'));
     await waitForScene(page, 'profiles');
@@ -881,7 +880,7 @@ test.describe('tie pick and selection', () => {
   test('a pick stays armed through a refused edit: its message returns once the refusal fades, and a click selects the note at once', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
-    // a B and a C after it: no repeated chord, so ALL refuses and nothing is tied by it
+    // a B and a C after it: no repeated chord, so nothing is tied
     await clickNote(page, 0, 0, 'B');
     await clickNote(page, 0, 480, 'C');
     await selectNote(page, 0, 0, 'B');
@@ -892,10 +891,9 @@ test.describe('tie pick and selection', () => {
     expect(pickAt).toBeGreaterThanOrEqual(0);
     await clickButton(page, 'editor', pickAt);
     expect(await sceneTexts(page, 'editor')).toContain('Now click the note the tie or slur goes to.');
-    // ALL refuses: its message shows for a moment, the pick stays armed, and its message returns when the refusal fades
-    const allAt = (await openTieMenu(page)).findIndex((l) => l === 'ALL' || l === 'KÕIK');
-    expect(allAt).toBeGreaterThanOrEqual(0);
-    await clickButton(page, 'editor', allAt);
+    // a paste with nothing copied is refused: its message shows for a moment, the pick stays armed, and its message
+    // returns when the refusal fades (ALL is not offered here: nothing repeats, ft_1_02d.AC35)
+    await page.keyboard.press('Control+KeyV');
     await expect.poll(() => status(page)).not.toContain('Now click the note the tie or slur goes to.');
     // the refusal is on the editor's own timer (scene time, MESSAGE_MS), which runs slower than the wall clock when
     // frames are slow or the page has no focus (Phaser caps each frame's step), so fast-forward that clock rather than
@@ -1685,9 +1683,12 @@ test.describe('piece maker keys on the tools (ft_1_02d.AC19)', () => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
     const texts = () => sceneTexts(page, 'editor');
-    // a B written from the keyboard
+    // two Bs written from the keyboard, so the first has a tie to offer (T, ft_1_02d.AC35)
     await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Control+Enter');
     await page.keyboard.press('Enter');
+    // a bar copied, so the place's bubble offers paste (ft_1_02d.AC35)
+    await page.keyboard.press('Control+KeyC');
     expect(await texts()).not.toContain('^S');
     await page.keyboard.press('F1');
     // the keys on the tools (the lengths show their number keys), and the mouse picture over the staff (ft_1_33.AC1); the
@@ -1978,6 +1979,109 @@ test.describe('piece maker: vim keys (ft_1_02e)', () => {
     expect(chord).toEqual(['0:C4:0', '0:E4:0', '0:G4:1']);
     // the cursor stayed where writing goes on, after the chord
     expect((await keyState(page)).cursor).toBe('RH:0:480:C4');
+    expectNoErrors(errors);
+  });
+});
+
+test.describe('piece maker: the cursor follows the pointer, the bubble offers what applies (ft_1_02d)', () => {
+  /** The words of the open bubble after a right click at this place of the right hand's staff. */
+  async function bubbleAt(page: Page, place: { bar: number; start: number; step: Step; octave?: number }): Promise<string[]> {
+    await closeBubble(page, 'editor');
+    const at = await canvasPoint(page, place);
+    await page.mouse.click(at.x, at.y, { button: 'right' });
+    await expect.poll(() => bubbleOpen(page, 'editor')).toBe(true);
+    return sceneWords(page, 'editor');
+  }
+
+  /** A left drag from bar 0 to bar 1: the lasso selects both bars. */
+  async function lassoBars(page: Page): Promise<void> {
+    const from = await canvasPoint(page, { bar: 0, start: 240, step: 'C' });
+    const to = await canvasPoint(page, { bar: 1, start: 1200, step: 'A' });
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(to.x, to.y, { steps: 6 });
+    await page.mouse.up();
+    expect(await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { barSel: unknown }).barSel)).toEqual({ from: 0, to: 1 });
+  }
+
+  test('ft_1_02d.AC34 the keyboard cursor follows the pointer: onto a note it selects it, onto a free place it goes there, and the arrows still move it', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await eAndGQuarters(page);
+    // the pointer is still where G was written: it moves off and back onto it
+    const e = await canvasPoint(page, { bar: 0, start: 0, step: 'E' });
+    await page.mouse.move(e.x, e.y, { steps: 3 });
+    await expect.poll(async () => (await keyState(page)).selected).toBe('0:E');
+    const g = await canvasPoint(page, { bar: 0, start: 480, step: 'G' });
+    await page.mouse.move(g.x, g.y, { steps: 3 });
+    await expect.poll(async () => (await keyState(page)).selected).toBe('480:G');
+    expect((await keyState(page)).cursor).toBe('RH:0:480:G4');
+    const free = await canvasPoint(page, { bar: 1, start: 0, step: 'C', octave: 5 });
+    await page.mouse.move(free.x, free.y, { steps: 3 });
+    await expect.poll(async () => (await keyState(page)).cursor).toBe('RH:1:0:C5');
+    expect((await keyState(page)).selected).toBeNull();
+    // an arrow moves the cursor on from there, and it stays where the key put it while the pointer rests
+    await page.keyboard.press('ArrowUp');
+    expect((await keyState(page)).cursor).toBe('RH:1:0:D5');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC35 the bubble on a note offers no repeat signs, and paste only once something is copied', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await eAndGQuarters(page);
+    const onNote = await bubbleAt(page, { bar: 0, start: 0, step: 'E' });
+    expect(onNote).toContain('Copy');
+    expect(onNote).not.toContain('|: :|');
+    expect(onNote).not.toContain('Paste');
+    const onPlace = await bubbleAt(page, { bar: 2, start: 0, step: 'A', octave: 5 });
+    expect(onPlace).toContain('|: :|');
+    expect(onPlace).not.toContain('Paste');
+    await closeBubble(page, 'editor');
+    await selectNote(page, 0, 0, 'E');
+    await page.keyboard.press('Control+KeyC');
+    expect(await bubbleAt(page, { bar: 2, start: 0, step: 'A', octave: 5 })).toContain('Paste');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC36 lassoed bars are slurred from a right click, with no first note picked, and the slur is drawn faint before the press', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await eAndGQuarters(page);
+    await clickNote(page, 1, 0, 'C', 5);
+    await lassoBars(page);
+    // a right click on a note inside the selection keeps the selection
+    await bubbleAt(page, { bar: 0, start: 480, step: 'G' });
+    await clickButton(page, 'editor', await lastButton(page, 'editor', 'Ties and slurs'));
+    const slur = await lastButton(page, 'editor', 'Slur');
+    expect(slur).toBeGreaterThanOrEqual(0);
+    // the pointer on SLUR draws the slur faint first (d286)
+    const ghost = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { itemGhost: { commandBuffer: unknown[] } | null }).itemGhost?.commandBuffer.length ?? 0);
+    const point = await buttonPoint(page, 'editor', slur);
+    await page.mouse.move(point.x, point.y, { steps: 2 });
+    await expect.poll(ghost).toBeGreaterThan(0);
+    expect((await keyState(page)).slurs).toBe(0);
+    await clickButton(page, 'editor', slur);
+    expect(await page.evaluate(() => window.__game.scene.getScene('editor').history.present.slurs)).toEqual([{ hand: 'RH', from: { bar: 0, start: 0 }, to: { bar: 1, start: 0 } }]);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC37 a paste over bars with notes warns first and writes over them only when pasted again', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'E');
+    await clickNote(page, 1, 0, 'G');
+    // copy bar 0, then select bar 1, which has a note
+    await selectNote(page, 0, 0, 'E');
+    await selectNote(page, 0, 0, 'E', 4, ['Shift']);
+    await page.keyboard.press('Control+KeyC');
+    await selectNote(page, 1, 0, 'G');
+    await selectNote(page, 1, 0, 'G', 4, ['Shift']);
+    await page.keyboard.press('Control+KeyV');
+    expect(await notes(page)).toEqual(['0:0:E:quarter', '1:0:G:quarter']);
+    expect(await status(page)).toContain('Notes this paste writes over (red): 1.');
+    await page.keyboard.press('Control+KeyV');
+    expect(await notes(page)).toEqual(['0:0:E:quarter', '1:0:E:quarter']);
     expectNoErrors(errors);
   });
 });

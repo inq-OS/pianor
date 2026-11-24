@@ -46,7 +46,7 @@ async function leavePieces(page: Page): Promise<void> {
 }
 
 test.describe('turning pieces on and off', () => {
-  test('a piece turned off leaves the menu and fights, survives a reload, belongs to one player and comes back when turned on', async ({ page }) => {
+  test('a piece turned off leaves the menu, survives a reload, belongs to one player and comes back when turned on', async ({ page }) => {
     test.slow(); // the game loads twice
     const errors = await openGame(page);
     const all = await allMenuTitles(page);

@@ -14,7 +14,7 @@ export interface WaitModeOptions {
   togetherWindowMs?: number;
   /**
    * A wrong key does not wait: it is judged wrong, the step's notes not yet pressed are missed and the cursor moves on
-   * (a level-1 monster battle, played from memory with no tempo; d100). Default false.
+   * (a level-1 tug, played from memory with no tempo; d100). Default false.
    */
   moveOnWrong?: boolean;
 }

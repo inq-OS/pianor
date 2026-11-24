@@ -176,7 +176,7 @@ export class PlaySession {
   }
 
   /**
-   * A fresh judge for the same chart: the piece again from its first note (find the key started over). Wait mode only: a
+   * A fresh judge for the same chart: the piece again from its first note (the play started over). Wait mode only: a
    * Tempo-mode transport cannot start over.
    */
   restart(): void {
@@ -220,7 +220,7 @@ export class PlaySession {
     this.controllerNow.setHints(hints);
   }
 
-  /** Stop listening to the keyboard (the piece or the fight is over); what is on screen stays. */
+  /** Stop listening to the keyboard (the piece or the tug is over); what is on screen stays. */
   stop(): void {
     this.controllerNow.dispose();
   }

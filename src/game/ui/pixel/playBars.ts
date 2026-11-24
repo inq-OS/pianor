@@ -1,5 +1,5 @@
 /**
- * The bars of the play screens (practice, battle), in art pixels. Both have a top bar with Back at its left end and the
+ * The bars of the play screens (practice, the piece maker), in art pixels. They have a top bar with Back at its left end and the
  * piece's title right of it, and Kiur's bubble starting at the same x, so the two screens feel like one.
  */
 export const TOP_BAR = 20;

@@ -1,9 +1,8 @@
 /**
  * The tug as a scene plays it (ft_1_21, WP-13, on WP-10's `tug.ts`): which chart bars a turn plays, the fact said after
  * each exchange, and what a finished tug leaves behind: the character's record and its item in the world (A.8), and the
- * XP kept as a battle record under the old keys until the next shared save round (AC9). Pure.
+ * tug record with its XP in the profile (AC9). Pure.
  */
-import { doorShareFromTempo } from '../campaign/findDoor';
 import type { Chart } from '../chart';
 import type { PlayStats } from '../judge';
 import { pickupTicks } from '../chart/time';
@@ -11,7 +10,7 @@ import type { CharacterId, ItemId } from '../contracts';
 import { applyTalkEffects } from '../dialogue/talkWorld';
 import { recordTug } from '../island/presenceRules';
 import type { WorldState } from '../island/worldState';
-import type { BattleInput } from '../progression/profile';
+import type { TugInput } from '../progression/profile';
 import { exchangeResult, tugPrize, type TugRules, type TugSetup, type TugState } from './tug';
 
 type Level = 1 | 2 | 3;
@@ -50,10 +49,21 @@ export function tugFact(
 
 /**
  * The share of a student's phrase that is held against the level's share (AC5, AC6): in Wait mode the notes right first
- * try, in Tempo mode the notes on time (`doorShareFromTempo`), the same number the fact says (AX-2.1).
+ * try, in Tempo mode the notes on time (`onTimeShare`), the same number the fact says (AX-2.1).
  */
 export function studentShare(stats: Pick<PlayStats, 'notes' | 'accuracy' | 'timing'>, mode: 'wait' | 'tempo'): number {
-  return mode === 'tempo' ? doorShareFromTempo(stats) : stats.accuracy;
+  return mode === 'tempo' ? onTimeShare(stats) : stats.accuracy;
+}
+
+/**
+ * The share of a phrase played on time in Tempo mode: the notes inside the judge's good window (`TimingStats.onTime`)
+ * over the phrase's notes. Early, late, wrong and missed notes do not count, so the student has to keep up with the clock,
+ * not only reach the end. A phrase with no notes counts as on time; a result with no timing (not played in Tempo mode)
+ * counts as none on time.
+ */
+export function onTimeShare(result: Pick<PlayStats, 'notes' | 'timing'>): number {
+  if (result.notes === 0) return 1;
+  return (result.timing?.onTime ?? 0) / result.notes;
 }
 
 /**
@@ -98,25 +108,18 @@ export function trainerRules(rules: TugRules): TugRules {
 }
 
 /**
- * The finished tug as the profile's battle record (AC9: the old keys, no save bump): the character as `monsterId`, the
- * standing reached toward the character as the HP taken of `steps`, the student's as the health left, the student's
- * phrases as the rounds, and the XP of `tugPrize` from the level's prize.
+ * The finished tug as the profile's tug record (AC9): the character, the piece, the outcome, the student's phrases as the
+ * exchanges, and the XP of `tugPrize` from the level's prize.
  */
-export function tugBattle(state: TugState, character: CharacterId, rules: TugRules): BattleInput {
+export function tugRecord(state: TugState, character: CharacterId, rules: TugRules): TugInput {
   const result = exchangeResult(state);
-  const { steps } = rules;
   const potentialXp = rules.levels[state.setup.level - 1]!.prize;
-  const clamp = (n: number) => Math.max(0, Math.min(steps, n));
   return {
-    monsterId: character,
+    characterId: character,
     pieceId: state.setup.piece,
     won: result.outcome === 'won',
-    hpTaken: clamp(state.best),
-    maxHp: steps,
     potentialXp,
-    rounds: Math.max(1, state.results.length),
-    playerHpLeft: clamp(steps + Math.min(0, state.standing)),
-    playerMaxHp: steps,
+    exchanges: Math.max(1, state.results.length),
     xp: tugPrize({ kind: state.setup.kind, outcome: result.outcome, best: state.best }, potentialXp, rules),
   };
 }

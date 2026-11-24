@@ -24,7 +24,7 @@ const BAR_HEIGHT = 9;
 const EVENT_GAP = 4;
 
 /**
- * What a results screen shares (the battle's results used it too until it was deleted, ft_1_21): the keyboard and Esc go
+ * What a results screen shares: the keyboard and Esc go
  * back to the menu, the two buttons on the left, and in the numbers column the XP line and a level with its bar (the
  * piece's after a piece: ft_1_13), a level-up and a failed save. Positions in art pixels.
  */

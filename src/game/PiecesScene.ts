@@ -38,7 +38,7 @@ interface Filed { id: string; title: string; piece: Piece }
  * Every piece (hand-written, generated and own), where the active player turns each one on or off, as a library's card
  * catalogue (ft_1_02c.AC7): a cabinet of drawers sorted by first letter (`libraryDrawers`), a
  * drawer with no pieces a blank front that takes no tap; an open drawer shows its index cards, one per piece, and a tap
- * on a card turns its piece on or off. A piece that is off is hidden from the menu and from the campaign; its stars stay.
+ * on a card turns its piece on or off. A piece that is off is hidden from the menu and from the tugs; its stars stay.
  * The last piece that is on cannot be turned off. The rules live in `core/progression/pieceSwitch`; this screen only
  * draws them and saves through `ProfileService`.
  */

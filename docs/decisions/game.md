@@ -3,7 +3,7 @@ title: "Decisions: Game design"
 ---
 # Decisions: Game design
 
-The campaign, characters and challenges, the teacher and curriculum, Keri, progression and screens. One entry per decision, oldest first. Index: [DECISIONS.md](DECISIONS.md).
+Characters and challenges, the teacher and curriculum, Keri, progression and screens. One entry per decision, oldest first. Index: [DECISIONS.md](DECISIONS.md).
 
 ## d004
 
@@ -57,7 +57,7 @@ Check: `src/core/editor/pieceFile.test.ts` "ft_1_02b.AC1 export then import give
 
 **The mascot is Kiur, a songbird, and the main menu offers the editor as a tab.** Features: ft_1_02a, ft_0_13.
 
-`?editor` is on unless the address says `=0`; menu tabs are each as wide as their word with the chosen one drawn flat and dark with gold letters. Kiur is 24 x 20 with moods idle, cheer and thinking. Changed by d114 (Kiur is a tree pipit).
+`?editor` is on unless the address says `=0`; menu tabs are each as wide as their word with the chosen one drawn flat and dark with gold letters. Kiur is 24 x 20 with moods idle, cheer and thinking; how he looks is d114.
 
 Check: `src/game/ui/pixel/kiur/kiurModel.test.ts` "takes 24 x 20 layout cells as the mascot, every mood the same size"
 
@@ -65,7 +65,7 @@ Check: `src/game/ui/pixel/kiur/kiurModel.test.ts` "takes 24 x 20 layout cells as
 
 **UI text is kept per language in typed catalogs, the letter case is applied where text is drawn, and Estonian is the default.** Features: ft_0_18.
 
-The English catalog (`src/core/text/strings.ts`) is the key source; `strings.et.ts` is `Record<StringKey, string>`, so a missing key fails typecheck; no i18n library. The active language is module state in `src/core/text/language.ts`, set once at boot, Estonian by default, `?lang=en` for English (used by e2e); unit tests run in English (`tools/test/englishText.ts`) unless they set the language. Catalogs hold sentence case; the pure `displayText` applies the case at the render boundary (`PixelText`, `keepCase` only with a reason in code). Changed by d086 (Estonian drawn in small capitals; no reserved mark rows).
+The English catalog (`src/core/text/strings.ts`) is the key source; `strings.et.ts` is `Record<StringKey, string>`, so a missing key fails typecheck; no i18n library. The active language is module state in `src/core/text/language.ts`, set once at boot, Estonian by default, `?lang=en` for English (used by e2e); unit tests run in English (`tools/test/englishText.ts`) unless they set the language. Catalogs hold sentence case; the pure `displayText` applies the case at the render boundary (`PixelText`, `keepCase` only with a reason in code). Estonian is drawn in small capitals (d086).
 
 Check: `src/core/text/language.test.ts` "ft_0_18.AC2 has an Estonian entry for every English key, and no extra ones"
 
@@ -87,15 +87,15 @@ Check: `src/core/editor/key.test.ts` "names the key on the key button with the p
 
 ## d088
 
-**Every screen has one frame of toolbar, vine, main area and keyboard, drawn by PixelScene.** Features: ft_Y_12, ft_0_16.
+**Every screen has one frame of main area and keyboard, drawn by PixelScene, with the top toolbar when its flag is on.** Features: ft_Y_12, ft_0_16.
 
-The bands are toolbar, one vine line across the screen, the main area, and the auxiliary area (the on-screen keyboard); `PixelScene` draws the frame for every scene with a pure layout in `src/core/layout/frame.ts`, unit-tested at 320 art pixels wide. Global static items are the player's name, rank, XP, settings and Back; when space runs out the XP numbers go first, then screen items become icons, then a long name is cut (the name screen allows 12 letters, an imported save up to 40). Screens without a player (profile picker, admin) omit name, rank and XP; the first screen omits Back; settings omits its own gear. Height is about 20 art rows plus 3 for the vine. Dev pages (spike, keys, audio, preview, profile demos) are not framed. Changed by d099 (the keyboard switch is on the settings toolbar only) and d115 (items move to the action and inventory band at the foot).
+The bands are the toolbar (when on, d115), the main area, and the auxiliary area (the on-screen keyboard); `PixelScene` draws the frame for every scene with a pure layout in `src/core/layout/frame.ts`, unit-tested at 320 art pixels wide. Global static items are the player's name, rank, XP, settings and Back; when space runs out the XP numbers go first, then screen items become icons, then a long name is cut (the name screen allows 12 letters, an imported save up to 40). Screens without a player (profile picker, admin) omit name, rank and XP; the first screen omits Back; settings omits its own gear. The toolbar is about 20 art rows high. Dev pages (spike, keys, audio, preview, profile demos) are not framed. The keyboard switch is on the settings screen only (d099); actions are in the bubble and the strip, items in the backpack (d282).
 
 Check: `src/core/layout/frame.test.ts` "fits the smallest screen with the longest name: the XP numbers go first"
 
 ## d095
 
-**The tug plays the student's piece; a character sets only the level.** Features: ft_1_06, ft_1_21.
+**The tug plays the student's piece; a character sets only the level.** Features: ft_1_21.
 
 Level 1 plays the first half of the piece rounded up, levels 2 and 3 the whole piece (`tugPart`, `src/core/exchange/tug.ts`). Students can use pieces from their lessons, their own pieces and any piece turned on (AX-0.3).
 
@@ -143,9 +143,9 @@ Check: `src/core/world/openScenes.test.ts` "ft_1_19.AC2 a scene is open when the
 
 ## d115
 
-**A band at the foot of the screen holds a 3 x 3 grid of actions and an inventory of items; places are used in their picture.** Features: ft_1_20, ft_0_13, ft_1_18, core_09.
+**Actions and items share one model, and a painted place is used in its picture.** Features: ft_1_20, ft_0_13, ft_1_18, core_09.
 
-The band (56 rows) replaces the top toolbar and the vine, so a painted place (124 rows) and the band fill the 180 rows; the toolbar stays in code behind one frame-layout flag, off by default (with it on the main area is 101 rows). An action is a cell; a thing with a state or put somewhere is an item (the piece maker's lengths, rest, accidentals, ties, dynamics are held items put on a note by a click; a pure model in `src/core/`). There is no sentence line (a cell names itself in a tooltip bubble, a screen's message is a Kiur speech bubble) and no verb-and-object grammar; Back and Settings are the door and the gear in the top corners, faded until the pointer is on them; the player's name is on the room's rank shield and a plant on the piano grows with XP. In a painted place (room, map, every scene) a thing is pressed in the picture only, not also in the grid, and shows a contour or second look under the pointer; a cell with no action is not drawn. Sizes and per-screen mapping are in ft_1_20; the painter draws the band, the 10x dev builds it, plain panels stay behind a URL switch until every screen uses it. Look set by d118. Changed by d282 (the bubble, the strip and the backpack replace the band).
+An action is a cell of the bubble or the strip (d282); a thing with a state or put somewhere is an item (the piece maker's lengths, rest, accidentals, ties, dynamics are held items put on a note by a click; a pure model in `src/core/`). There is no sentence line (an action names itself in a tooltip bubble, a screen's message is a Kiur speech bubble) and no verb-and-object grammar; Back and Settings are the door and the gear in the top corners, faded until the pointer is on them; the player's name is on the room's rank shield. In a painted place (room, map, every scene) a thing is pressed in the picture only and shows a contour or second look under the pointer. The top toolbar stays in code behind one frame-layout flag (`BAND_KEEPS_TOOLBAR` in `src/core/layout/frame.ts`), off. The look is d118.
 
 Check: `src/core/layout/frame.test.ts` "ft_1_20.AC21 gives the main area 163 rows over a strip on the target screen and all 180 without one (d282)"
 
@@ -161,7 +161,7 @@ Check: `src/core/visit/islandVisit.test.ts` "ft_1_17.AC4 the screensaver goes ro
 
 **The map draws a caricature of Keri, 1.45 times as wide and turned 8 degrees, with places and rocks larger than to scale.** Features: ft_1_18, ft_1_19.
 
-The step from measured island to map is one pure function `caricature(world, shape)` (`src/core/layout/keriMapShape.ts`) with every number in `MAP_SHAPE` (`src/core/layout/keriMap.ts`: fat, tail, tip, turn, swells, spreads, moves, lines); the true shape returns the measured island exactly, and the world model stays measured (only the map's plan and painter use the caricature, `plan.at` places a measured point). The island is 1.45 times as wide on its short side and turned 8 degrees counter-clockwise (north is no longer up; the compass rose turns with it); the lighthouse is drawn 3.3 times, houses about 3 times as tall on a ground plan about twice as large, the mast 2.4 times, with about fifteen large rocks in the sea. `spreads` push houses, landmarks, scenes and paths outward round the lighthouse, warden's house and power station; `tip` sharpens the north-west end; the south-east is no land but a sand strip (`SAND_ROOT`, `beyondCut`, `plan.sand`) drawn as an almost unrecognizable sea creature's back; `moves` (with optional `hold`) and `lines` (with `keep`) place things and paths where the maintainer marked. Departures are listed in `docs/keri.md` section 9.
+The step from measured island to map is one pure function `caricature(world, shape)` (`src/core/layout/keriMapShape.ts`) with every number in `MAP_SHAPE` (`src/core/layout/keriMap.ts`: fat, tail, tip, turn, swells, spreads, moves, lines); the true shape returns the measured island exactly, and the world model stays measured (only the map's plan and painter use the caricature, `plan.at` places a measured point). The island is 1.45 times as wide on its short side and turned 8 degrees counter-clockwise (north is not up; the compass rose turns with it); the lighthouse is drawn 3.3 times, houses about 3 times as tall on a ground plan about twice as large, the mast 2.4 times, with about fifteen large rocks in the sea. `spreads` push houses, landmarks, scenes and paths outward round the lighthouse, warden's house and power station; `tip` sharpens the north-west end; the south-east is no land but a sand strip (`SAND_ROOT`, `beyondCut`, `plan.sand`) drawn as an almost unrecognizable sea creature's back; `moves` (with optional `hold`) and `lines` (with `keep`) place things and paths where the maintainer marked. Departures are listed in `docs/keri.md` section 9.
 
 Check: `src/core/layout/keriMapShape.test.ts` "ft_1_18.AC2 a fatter island is wider across its short side and as long as before"; `src/core/layout/keriMapShape.test.ts` "ft_1_18.AC2 the true shape changes nothing"
 
@@ -175,7 +175,7 @@ Check: `src/core/layout/mainMenu.test.ts` "the picture is the whole target scree
 
 ## d129
 
-**A character challenges the student in a scene, and the two trade the phrases of the student's piece.** Features: ft_1_21, ft_1_06, ft_1_19.
+**A character challenges the student in a scene, and the two trade the phrases of the student's piece.** Features: ft_1_21, ft_1_19.
 
 A challenge (VÄLJAKUTSE) is held with a character (TEGELANE), over the scene picture where it was met, with no stage of its own. The student's piece is cut into two-bar phrases (a pick-up joins the first bar); the character plays one, the student answers with the next, each answer is an exchange won when the share of notes right first try (on time in Tempo mode) reaches the level's share (60, 80, 95 per cent); a standing of three steps each way moves one step per exchange, the student wins at +3 and the character at -3, and if the part ends first it restarts with roles swapped. Levels are d100's (from memory, no staff; 1 Wait mode, 2 Tempo mode with click, 3 Tempo mode with only the count-in); feedback is one objective fact per exchange and wrong notes keep their reason; a won challenge pays the prize, a lost one half the prize times furthest standing over 3, nothing taken, retry at once. Numbers (three steps, the shares) are unverified with children.
 
@@ -183,7 +183,7 @@ Check: `src/core/exchange/tug.test.ts` "content/challenge/rules.json parses and 
 
 ## d132
 
-**Characters are met by practising, talked to first, teach phrases for a phrase book, and give an item for a won tug; every character ties to music.** Features: ft_1_21, ft_1_22, ft_1_23, ft_1_19, ft_1_20, ft_1_06, ft_1_07.
+**Characters are met by practising, talked to first, teach phrases for a phrase book, and give an item for a won tug; every character ties to music.** Features: ft_1_21, ft_1_22, ft_1_23, ft_1_19, ft_1_20, ft_1_07.
 
 The challenge is the tug of reputation (one marker, three steps each way; Kiur's practice tug changed by d160); question and answer is the advanced-level challenge. A character can appear only after enough practice in the room (from the practice records, never time spent), semi-randomly in an open scene, replacing d113 point 2 for characters; a lost tug is followed by a cool-down counted in real practice, never hours. Pressing a character opens a conversation first; a won tug gives an item into the band's inventory (ft_1_20). Every character ties to music: it teaches a phrase of its style (three tries, shown on the staff and heard), a phrase becomes "mine" only when played clean in the room on a later day, and learned phrases go in the phrase book (no class screen); phrases are original or public domain. The knowledge layer (a character's field, with control-question levels) is optional, per player, switched under admin, and gated by playing; the birth date is stored as year and month only in the local save, never in reports or logs, and sets the default text level (ft_1_23).
 
@@ -191,17 +191,17 @@ Check: `src/core/island/presenceRules.test.ts` "needs the practice threshold, ne
 
 ## d135
 
-**A character's piece goes learn, practise, show.** Features: ft_1_06, ft_1_21, ft_1_22.
+**A character's piece goes learn, practise, show.** Features: ft_1_21, ft_1_22.
 
 The three phases are learn (the character teaches the piece, ft_1_22), practise (in the room and trainers until the evaluation says good enough, core_12) and show (the tug, ft_1_21). The gate to the tug is the practice evidence the evaluation already keeps, not a separate timed screen.
 
-Check: `src/core/exchange/tugGate.test.ts` "ft_1_06.AC15 it opens when the median of the last plays reaches the level"
+Check: `src/core/exchange/tugGate.test.ts` "ft_1_21.AC19 it opens when the median of the last plays reaches the level"
 
 ## d138
 
-**One difficulty scale 1 to 10 for phrases and pieces, proposed by the estimator and confirmed by a person.** Features: ft_1_22, core_08. Changed by d157: its ten steps are now the Beginner grade, the rest still holds.
+**One difficulty scale 1 to 10 for phrases and pieces, proposed by the estimator and confirmed by a person.** Features: ft_1_22, core_08.
 
-Every phrase and piece may carry an integer `difficulty` 1 to 10 in its meta file (1 a few notes in five-finger position, one hand; 10 a whole piece in full complexity; anchors in `docs/architect/cast-and-phrases.md` section 3). The core_08 estimator proposes it, a person confirms it, and a generated draft carries it marked `proposed`; `piece:lint` checks the range. MVP phrases are 1 to 3, and levels (`content/curriculum/levels.json`) stay a separate field.
+Every phrase and piece may carry an integer `difficulty` 1 to 10 in its meta file (1 a few notes in five-finger position, one hand; 10 a whole piece in full complexity; anchors in `docs/architect/cast-and-phrases.md` section 3). The core_08 estimator proposes it, a person confirms it, and a generated draft carries it marked `proposed`; `piece:lint` checks the range. MVP phrases are 1 to 3, and levels (`content/curriculum/levels.json`) stay a separate field. The ten steps are the Beginner grade of d157.
 
 Check: `src/core/piece/difficulty.test.ts` "core_08.AC2 gives 1 to 100, two points per step of d138 in the Beginner grade"; `src/core/chart/schema.test.ts` "takes an optional difficulty"
 
@@ -331,7 +331,7 @@ Check: untestable: whether a fact was invented is judged by the art review and t
 
 AX-1.1: a lost tug pays half the prize times the furthest standing over 3, leaving pays nothing, and no total ever goes down (CLAUDE.md, product rules; `docs/axioms.md`).
 
-Check: `src/core/progression/profile.test.ts` "a lost battle pays what it paid, and nothing is ever taken away"; `src/core/exchange/tug.test.ts` "a won tug pays the prize"
+Check: `src/core/progression/profile.test.ts` "a lost tug pays what it paid, and nothing is ever taken away"; `src/core/exchange/tug.test.ts` "a won tug pays the prize"
 
 ## d247
 
@@ -379,7 +379,7 @@ Check: `src/core/character/content.test.ts` "plays only pieces with an open lice
 
 Gates (a character's tug, a scene opening) read the piece level of core_12, not the player's XP. A lit key costs reward as ft_Y_06 says.
 
-Check: `src/core/exchange/tugGate.test.ts` "ft_1_06.AC15 it opens when the median of the last plays reaches the level"
+Check: `src/core/exchange/tugGate.test.ts` "ft_1_21.AC19 it opens when the median of the last plays reaches the level"
 
 ## d268
 
@@ -455,7 +455,7 @@ Check: `src/core/curriculum/phoneCall.test.ts` "ft_1_34.AC1 rings for a curricul
 
 ## d282
 
-**The band under every screen goes: actions open in a bubble round the pointer on a right click, a screen pins its few most-used actions in one slim strip, and the items a student keeps are in a backpack.** Features: ft_1_20. Changes d115.
+**Actions open in a bubble round the pointer on a right click, a screen pins its few most-used actions in one slim strip, and the items a student keeps are in a backpack.** Features: ft_1_20.
 
 The bubble's options keep fixed slots (eight round a ring, slot 0 up, then clockwise), an option with choices opens them in a row beside it, and a long press or the context-menu key opens it too. The strip is one row of 15-row cells along the foot (17 rows, none on a screen with nothing pinned) and ends with More, which opens the bubble, so nothing is reached by the right click alone; a word is never cut short. Only practice and the piece maker have a bubble; a screen whose actions fit the strip pins them all. Which action goes where is the table in ft_1_20, AX-3 provisional until the maintainer tunes it on the laptop.
 
@@ -465,7 +465,7 @@ Check: `src/core/layout/bubble.test.ts` "ft_1_20.AC19 an option keeps its slot w
 
 **A two-hand piece is learned with both hands together by default; hands apart is a learning setting the player chooses.** Features: ft_1_32.
 
-The learning settings page has a two-hand pieces choice: both hands together (the default) or hands apart (each growing step by the right hand, the left hand, then both). It applies to the next piece begun; a piece in progress keeps the plan it began with. Changes rule 13 of ft_1_32, which had hands apart for every new piece.
+The learning settings page has a two-hand pieces choice: both hands together (the default) or hands apart (each growing step by the right hand, the left hand, then both). It applies to the next piece begun; a piece in progress keeps the plan it began with.
 
 Check: `src/core/learn/progress.test.ts` "ft_1_32.AC12 a new piece is learned with both hands together unless the player chose hands apart, and a piece begun keeps the plan it began with"
 
@@ -489,9 +489,9 @@ Check: `src/core/layout/learnPrizes.test.ts` "ft_1_32.AC19 one narrow column at 
 
 **Code, content, tests and docs use only the words of `docs/glossary.md`; a dropped idea leaves no trace.** Features: none.
 
-A current thing named with a word the glossary bans is renamed with no change of behaviour. What belongs to no current feature is deleted with every mention of it: no stub file, no rejected row, no note that it was removed. Only a frozen migration step may read an old save key (d064), and only the glossary's list of banned words names them.
+A current thing named with a word of the old vision is renamed with no change of behaviour. What belongs to no current feature is deleted with every mention of it: no stub file, no rejected row, no note that it was removed. The old words are listed in `tools/docs/oldWords.ts`, and only the files it allows hold one: a frozen migration step that reads an old save key (d064), the old saves it reads, and the rules that keep the words off the screen.
 
-Check: untestable: the word check against the glossary comes with its own CI step
+Check: `tools/docs/oldWords.test.ts` "fails a line in code, content, tests or docs, and skips the allowed files and other kinds of file"
 
 ## d291
 
@@ -500,3 +500,19 @@ Check: untestable: the word check against the glossary comes with its own CI ste
 A picture choice on the learning settings page turns it on; a setting saved before the choice reads as off. When on, the tempo, spread and wobble so far are two small dim lines at the right end of the strip's free stretch, never in the top bar or the stats pane, so they stay out of the student's sight while reading the staff.
 
 Check: `src/core/learn/progress.test.ts` "ft_1_32.AC17 the live tempo is off unless the player turned it on, and a setting saved before it reads as off"
+
+## d294
+
+**In the piece maker the keyboard cursor follows the pointer, the bubble offers only what applies, lassoed bars are slurred or tied from the bubble, and a paste that writes over notes warns first.** Features: ft_1_02d, ft_1_20.
+
+A move of the pointer over the staff takes the cursor and the selection to the note or place under it; the arrow keys still move it. The bubble and its menus hide an option that would do nothing there (no repeat on a note, no paste with nothing copied) and keep every other option in its slot. With bars selected the tie and slur menu slurs each hand over them or ties every repeat in them, previewed faint first. A paste over notes turns their bars red and says how many go; the same paste again does it.
+
+Check: `src/core/editor/rangeArcs.test.ts` "ft_1_02d.AC36 slurs each hand from its first note in the selected bars to its last, with no note picked first"; `src/core/editor/bars.test.ts` "ft_1_02d.AC37 counts the notes a paste over another selection would replace"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC34 the keyboard cursor follows the pointer: onto a note it selects it, onto a free place it goes there, and the arrows still move it"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC35 the bubble on a note offers no repeat signs, and paste only once something is copied"
+
+## d295
+
+**A name is typed on the computer keyboard into the game's name box; the box has no letter buttons.** Features: ft_1_07.
+
+The box is big, with a red caret where the next letter goes, and takes only the Estonian name letters, up to 12; Backspace deletes and Enter is Done, and Delete and Done stay as picture buttons. A tablet with no keyboard gets the system's on-screen keyboard later.
+
+Check: `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box"
