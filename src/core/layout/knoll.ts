@@ -33,19 +33,19 @@ const FINE = { w: KNOLL_PICTURE.w * ART_DETAIL, h: KNOLL_PICTURE.h * ART_DETAIL 
 
 /**
  * The knoll as it is painted, in fine pixels: a plateau, not a round hill (the knoll is a plateau
- * that rises gradually away from the house and cuts off abruptly to a drop to a rocky shore, where one could sit on the
- * edge with the feet over it). The viewer stands on
+ * that rises gradually away from the house, with a rocky shore below its far edge). The viewer stands on
  * it; the ground rises gently to its lip, and over the lip is the sea. `top` is the lip's highest point, by the fire;
  * from there it falls a little to the picture's left edge (`left`, the row there) and to its `shoulder` on the right.
- * Past the shoulder the plateau cuts off: its lip falls `drop` rows within `wide` pixels, then its side comes toward
- * the viewer, `side` rows lower for each pixel right, with the rocky shore below it.
+ * Past the shoulder the plateau's edge leads off to the right with no step and no wedge: the lip eases `drop` rows
+ * lower within `wide` pixels and runs on `side` rows lower for each pixel right, so grass stands high at the right
+ * edge and the rocky shore is a strip between it and the water.
  */
 export const KNOLL_PLATEAU = {
   top: { x: 300, y: 149 },
   left: { y: 157 },
   shoulder: { x: 452, y: 153 },
-  cut: { wide: 12, drop: 24 },
-  side: 0.46,
+  cut: { wide: 46, drop: 12 },
+  side: 0.2,
 } as const;
 
 /** The lip's small bumps and bites, so it is never ruled: a sum of a few slow waves, in rows. */
@@ -64,8 +64,10 @@ export function knollCrest(px: number): number {
     return lip + tussocks(px);
   }
   const past = px - shoulder.x, t = Math.min(1, past / cut.wide);
-  // the cut: steep at once, as a bank breaks off, then the side running down toward the viewer with a few slumps in it
-  return shoulder.y + tussocks(shoulder.x) + cut.drop * (1 - (1 - t) ** 2) + side * past + 5 * Math.sin(past / 23 + 0.5) + 2.4 * Math.sin(past / 7.3 + 1) + 1.2 * Math.sin(past / 3.1);
+  // no step and no wedge: the lip eases over the shoulder (slow, faster, slow again) and the edge runs on down to the right, with a few slumps in it that start from nothing at the shoulder
+  const ease = t * t * (3 - 2 * t);
+  const slumps = (p: number): number => 5 * Math.sin(p / 23 + 0.5) + 2.4 * Math.sin(p / 7.3 + 1) + 1.2 * Math.sin(p / 3.1);
+  return shoulder.y + tussocks(shoulder.x) + cut.drop * ease + side * past + (slumps(past) - slumps(0)) * Math.min(1, past / 30);
 }
 
 /** The fire ring near the plateau's lip, in fine pixels (seen from the house, the sea horizon meets the fireplace): its middle and its half width and half height as the viewer sees it. */

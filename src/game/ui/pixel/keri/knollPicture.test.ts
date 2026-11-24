@@ -128,7 +128,7 @@ describe('the painted knoll with the bonfire place (ft_1_19.AC9)', () => {
     expect(rises).toBeGreaterThanOrEqual(2);
   });
 
-  it('ft_1_19.AC9 the land carries on to the left and does not drop off; tall dog roses close the left side; below the cut on the right is rocky shore', () => {
+  it('ft_1_19.AC9 the land carries on to the left and does not drop off; tall dog roses close the left side; a strip of rocky shore lies below its right edge', () => {
     // the left side continues and does not drop off, with dog roses in front of it (corner cover), while the lower
     // land in the right-back is rocky shore; the dog rose is at least 3 m high
     const land = ([, g, b]: Rgb) => g > b + 12;
@@ -152,12 +152,12 @@ describe('the painted knoll with the bonfire place (ft_1_19.AC9)', () => {
     };
     expect(flowers(0, 240)).toBeGreaterThan(60);
     expect(flowers(240, W)).toBe(0);
-    // right-back, below the cut: grey stone between the water's edge and the bank's top (dark earth), no meadow
+    // right-back, below the plateau's edge: a strip of grey stone between the water's edge and the grass, no meadow
     const shore = knollShore(KERI);
     const grey = ([r, g, b]: Rgb) => Math.abs(r - g) < 30 && Math.abs(g - b) < 36 && r > 70;
-    const x = 600, from = Math.round(shore[x]!.water) + 8, to = Math.floor(knollCrest(x - 10)) - 14;
-    expect(to - from).toBeGreaterThan(12);
-    expect(share(pictures.day, { x: x - 10, y: from, w: 40, h: to - from }, grey)).toBeGreaterThan(0.8);
+    const x = 600, from = Math.round(shore[x]!.water) + 5, to = Math.floor(knollCrest(x)) - 8;
+    expect(to - from).toBeGreaterThan(5);
+    expect(share(pictures.day, { x, y: from, w: 30, h: to - from }, grey)).toBeGreaterThan(0.8);
   });
 
   it('ft_1_19.AC9 the bonfire place: grey stones round dark ash, and embers that glow by day and by night in three strengths', () => {

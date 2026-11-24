@@ -306,8 +306,10 @@ test.describe('the player room', () => {
         root: { list: { type: string; visible: boolean; x: number; y: number; width: number; height: number; scaleX: number }[] };
       };
       const images = scene.root.list.filter((o) => o.type === 'Image');
-      const looks = images.filter((o) => o.width === 640 && o.height === 248).map((o) => ({ shown: o.visible, x: o.x, y: o.y }));
-      const sky = images.filter((o) => o.width === scene.px.width * 2 && o.height === scene.px.height * 2).length;
+      // the tall picture is as large as the screen, so the sky and the room's looks are told apart by their order: the sky is laid first
+      const full = images.filter((o) => o.width === scene.px.width * 2 && o.height === scene.px.height * 2);
+      const looks = full.slice(1).map((o) => ({ shown: o.visible, x: o.x, y: o.y }));
+      const sky = full.length - looks.length;
       // not the door, the gear and the backpack over the picture's corners (ft_1_20)
       const own = scene.buttons.filter((b) => b !== scene.toolbarButtons.back && b !== scene.toolbarButtons.settings && b.options.label !== 'Backpack').map((b) => b.rect);
       return { looks, sky, buttons: own.filter((r) => r.y >= 0 && r.y < scene.px.height), height: scene.px.height };
@@ -319,8 +321,8 @@ test.describe('the player room', () => {
     const shown = looks.filter((l) => l.shown).length;
     expect(shown).toBeGreaterThanOrEqual(1);
     expect(shown).toBeLessThanOrEqual(2);
-    const picture = { x: looks[0]!.x, y: looks[0]!.y, w: 320, h: 124 };
-    // with no strip (nothing pinned, ft_1_20.AC21) the picture stands in the middle of the screen, the sky round it (d111)
+    const picture = { x: looks[0]!.x, y: looks[0]!.y, w: 320, h: 180 };
+    // with no strip (nothing pinned, ft_1_20.AC21) the tall picture fills the screen's main rows (d111)
     expect(picture.y).toBe(Math.floor((height - picture.h) / 2));
     // piano, door, stand, the shield, which opens the player's card (ft_1_20.AC13), Kiur the trainer (ft_1_21.AC14) and
     // the wall telephone (ft_1_34); the window is no button since d117
