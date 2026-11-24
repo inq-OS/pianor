@@ -38,7 +38,8 @@ import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { openOverlay, startScene, type OverlayOutcome } from './scenes';
 import { goBackFrom, type SongReturn } from './songReturn';
 import { songIdOfChart, songStaffMarks } from '../core/song/songChart';
-import type { PartMarks } from './ui/staff/StaffView';
+import type { PartMarks, StaffView } from './ui/staff/StaffView';
+import { songBarX, songMapLayout, songMapParts, type MapBlock, type MapPart } from '../core/song/songMap';
 import type { KeriScreen } from './visit/islandVisit';
 import type { ClefFlight } from './MenuScene';
 import { introLearnProfile } from './practice/introLearning';
@@ -54,8 +55,8 @@ const RESULTS_DELAY_MS = 1000;
 /** The loop (ft_1_12): how long the score of a pass stays past the last bar before the piece starts again at bar 1. */
 const PASS_SCORE_MS = 2000;
 /**
- * Learning bar by bar (ft_1_32): how long the wrong key and Kiur's line stay before the same step starts again, and how long
- * a perfect run's line stays before the next step. AX-3 provisional.
+ * Learning bar by bar (ft_1_32): how long the wrong key stays before the same step starts again, and how long a perfect
+ * run's new prize note stays before the next step. AX-3 provisional.
  */
 const LEARN_STOP_MS = 1800;
 const LEARN_NEXT_MS = 1400;
@@ -95,6 +96,17 @@ const MASCOT_X = 6;
 const MASCOT_DROP = 4;
 const BOTTOM_EDGE = 6;
 const PAGE_BUTTON_WIDTH = 16;
+/** The song map (ft_1_36 rule 8): its rows over the paper, and a block's least width (`AX-3 provisional:` a finger). */
+/** The song map's rows: the blocks, and under them the bar that marks the page on screen. */
+const MAP_ROWS = 15;
+const MAP_BLOCK_ROWS = 11;
+const MAP_PAGE_BAR = 2;
+const MAP_MIN = 16;
+const MAP_SIDE = 4;
+/** How faint a part that is off, and a blank part, show on the song map. */
+const MAP_OFF_FADE = 0.45;
+const MAP_BLANK_FADE = 0.7;
+const MAP_MARK_ROOM = 4;
 /** The bubble starts this far under the bottom bar's top; the piano status line sits this far above its bottom. */
 const BUBBLE_DROP = 2;
 const STATUS_RISE = 11;
@@ -129,8 +141,8 @@ export interface PracticeData {
    * a wanderer's ask (ft_1_37.AC7): the same one pass, heard back in the wanderer's scene instead of the room.
    */
   checkup?: { since: string; wanderer?: { id: string; scene: KeriScreen } };
-  /** Learning bar by bar (ft_1_32): what Kiur says as this start begins, about the run just ended. */
-  learnLine?: string;
+  /** Learning bar by bar (ft_1_32): this start is the next run after one that ended; Kiur says nothing between runs. */
+  learnNext?: true;
   /** The wrong key that stopped the last learning run (ft_1_32.AC6): it stays on the staff until the first key of this run. */
   learnWrong?: { key: WrongKey; firstBar: number; lastBar: number };
   /**
@@ -217,6 +229,13 @@ export class PracticeScene extends PixelScene {
   /** The whole piece; `chart` is a section of it while one is being practised. */
   private fullChart!: Chart;
   private startData: PracticeData = {};
+  /**
+   * The song map of a song or a group played as one staff (ft_1_36 rule 8): its parts, the song bar of every chart bar,
+   * the chart bar the staff starts at, and what is drawn now (the blocks, the frame of the page, the part being played).
+   */
+  private songMap: { parts: MapPart[]; songBars: readonly number[]; first: number } | null = null;
+  private mapDrawn: { top: number; blocks: MapBlock[]; buttons: Map<string, PixelButton>; frame: PixelImage | null } | null = null;
+  private mapBar = 0;
   private percent = 100;
   private clickOn = false;
   private clickOffset = 0;
@@ -282,7 +301,7 @@ export class PracticeScene extends PixelScene {
   private clefFlight: Omit<ClefFlight, 'then'> | null = null;
   /** Where the intro's lesson is in learning its bars, handed to the next run (ft_1_31.AC8). */
   private introLearning: LearnProgress | null = null;
-  /** This start follows a learning run, whose line Kiur says: no other words over it. */
+  /** This start follows a learning run that ended (the end-to-end tests wait on it for the next run). */
   private afterLearnRun = false;
   /** The wrong key carried from the run before (`learnWrong`), shown again on this run's staff. */
   private carriedWrong: PracticeData['learnWrong'] | null = null;
@@ -307,7 +326,7 @@ export class PracticeScene extends PixelScene {
   /** Kiur is at the door (ft_1_15), or the intro's spotlight is up (ft_1_31): the overlay is up and this screen is paused. */
   private atDoor = false;
   /**
-   * A learning run stopped (a wrong key or rushing) and the same step starts again after Kiur's line: this starts it. A bash
+   * A learning run stopped (a wrong key or rushing) and the same step starts again after a moment: this starts it. A bash
    * in that moment still brings Kiur to the door (ft_1_15.AC7), as the bash's own first key is often what stopped the run.
    */
   private learnAgain: (() => void) | null = null;
@@ -375,8 +394,8 @@ export class PracticeScene extends PixelScene {
     // the wrap, the step-up note and the summary belong to this start only: a later restart (a tempo change, Whole
     // piece) must not wrap on from an old time or say them again
     this.wrap = data.wrap ?? null;
-    // a restart between learning runs carries Kiur's line: the piece was open already, so it never asks to go on (ft_1_32.AC16)
-    this.startData = { ...data, ...(data.learnLine !== undefined ? { resumeAsked: true } : {}) };
+    // a restart between learning runs: the piece was open already, so it never asks to go on (ft_1_32.AC16)
+    this.startData = { ...data, ...(data.learnNext ? { resumeAsked: true } : {}) };
     this.takeLearnCarry(data);
     delete this.startData.sectionSummary;
     delete this.startData.passSummary;
@@ -389,9 +408,13 @@ export class PracticeScene extends PixelScene {
     delete this.startData.listen;
   }
 
-  /** What Kiur says first: about the learning run just ended or the one starting, a section left, the last pass, or the start. */
+  /**
+   * What Kiur says first: nothing while learning (the staff shows the run's bars and hand, ft_1_32 rule 22), else a section
+   * left, the last pass, or the start.
+   */
   private openingLine(data: PracticeData, looping: boolean): string {
-    return data.learnLine ?? this.learn?.startLine() ?? data.sectionSummary ?? (looping ? (data.passSummary ?? '') : t('practice.start'));
+    if (this.learn) return '';
+    return data.sectionSummary ?? (looping ? (data.passSummary ?? '') : t('practice.start'));
   }
 
   /**
@@ -465,6 +488,7 @@ export class PracticeScene extends PixelScene {
     const { section, logged } = this.playedBars();
     this.atDoor = false;
     this.guarded = new GuardedKeyboard(context.keyboard, { passHeld: passHeldFor(this.chart) }, () => this.onBash());
+    this.prepareSongMap(section);
     this.playSession = new PlaySession(this, {
       chart: this.chart,
       ...(section ? { section: { whole: this.fullChart, first: section.first } } : {}),
@@ -579,8 +603,8 @@ export class PracticeScene extends PixelScene {
   private bubbleHintDue(): boolean {
     const flags = contextOf(this).flags;
     // the intro switched off (the end-to-end tests) or a self-playing demo: no first-run words
-    // nor over Kiur's line about a learning run just ended
-    if (this.locked || this.wrap || this.listening || this.afterLearnRun || flags.intro === 'off' || flags.autoplay) return false;
+    // nor while a piece is learned (ft_1_32 rule 22)
+    if (this.locked || this.wrap || this.listening || this.learn || flags.intro === 'off' || flags.autoplay) return false;
     const key = `pianor.bubbleHint.${contextOf(this).profiles.profile.id}`;
     try {
       if (window.localStorage.getItem(key) === '1') return false;
@@ -776,6 +800,100 @@ export class PracticeScene extends PixelScene {
     };
   }
 
+  /**
+   * The song map's parts (ft_1_36 rule 8) for a song played as one staff, or a group played as a section of it: only the
+   * group's own parts then. None for a piece, a phrase or learning.
+   */
+  private prepareSongMap(section: { first: number; last: number } | undefined): void {
+    this.songMap = null;
+    this.mapDrawn = null;
+    this.mapBar = 0;
+    const songs = contextOf(this).songs;
+    const songId = songIdOfChart(this.fullChart.id);
+    const song = songId === null ? undefined : songs.find(songId);
+    const joined = song ? songs.joinedChart(song) : null;
+    if (!song || !joined || joined.chart !== this.fullChart || this.learn) return;
+    const group = section ? joined.parts.find((p) => p.startBar === section.first && p.endBar === section.last && song.nodes.some(function has(n): boolean { return n.id === p.node ? n.kind === 'group' : n.kind === 'group' && n.nodes.some(has); })) : undefined;
+    if (section && !group) return;
+    const parts = songMapParts(songs.resolved(song).rows, group?.node ?? null);
+    if (parts.length < 2) return;
+    this.songMap = { parts, songBars: joined.songBars, first: section?.first ?? 0 };
+  }
+
+  /**
+   * The song map over the paper (ft_1_36 rule 8): a block per part as wide as its bars, its name in it when it fits, a
+   * blank paler with its dashed mark, a part that is off pale, a link with its curled arrow. A white bar under the blocks shows the page on
+   * screen; the part being played is lit. A press on a block turns the staff to that part and flashes its name; it never
+   * starts play.
+   */
+  private drawSongMap(staffView: StaffView, top: number): void {
+    const map = this.songMap;
+    if (!map) return;
+    const blocks = songMapLayout(map.parts, this.px.width - 2 * MAP_SIDE, MAP_MIN);
+    const buttons = new Map<string, PixelButton>();
+    for (const b of blocks) {
+      // a link's curled arrow only where it fits beside the name; a blank is hatched instead
+      const kind = b.look === 'link' ? TOOL_ICONS.link : undefined;
+      const mark = kind && b.w >= fits(b.name) + 2 * (kind.width + MAP_MARK_ROOM) ? kind : undefined;
+      const button = this.button({
+        x: MAP_SIDE + b.x + b.w / 2, y: top + 1 + MAP_BLOCK_ROWS / 2, width: Math.max(1, b.w - 1), height: MAP_BLOCK_ROWS, label: b.name, labelWidth: Math.max(1, b.w - 4),
+        ...(mark ? { icon: mark } : {}), onClick: () => this.turnToPart(b),
+      });
+      if (b.look === 'off') button.setAlpha(MAP_OFF_FADE);
+      else if (b.look === 'blank') button.setAlpha(MAP_BLANK_FADE);
+      buttons.set(b.id, button);
+      if (b.look === 'blank') {
+        const w = Math.max(1, b.w - 1);
+        this.root.add(new PixelImage(this, MAP_SIDE + b.x, top + 1, mapHatch(w, MAP_BLOCK_ROWS, Math.min(w, fits(b.name) + MAP_MARK_ROOM))).setName('songMapHatch'));
+      }
+    }
+    this.mapDrawn = { top, blocks, buttons, frame: null };
+    staffView.onPageShown = (page) => { if (this.playSession.staffView === staffView) this.frameMapPage(staffView, page); };
+    this.frameMapPage(staffView, staffView.currentPage);
+    this.lightMapPart(this.mapBar);
+  }
+
+  /** The frame over the song bars of the page on screen. */
+  private frameMapPage(staffView: StaffView, page: number): void {
+    const map = this.songMap;
+    const drawn = this.mapDrawn;
+    if (!map || !drawn) return;
+    drawn.frame?.destroy();
+    drawn.frame = null;
+    const bars = staffView.barsOnPage(page);
+    if (!bars) return;
+    const first = map.songBars[bars.first + map.first];
+    const last = map.songBars[bars.last + map.first];
+    if (first === undefined || last === undefined) return;
+    const x1 = Math.floor(songBarX(drawn.blocks, first));
+    const x2 = Math.ceil(songBarX(drawn.blocks, last + 1));
+    drawn.frame = new PixelImage(this, MAP_SIDE + x1, drawn.top + MAP_ROWS - MAP_PAGE_BAR, mapFrame(Math.max(3, x2 - x1), MAP_PAGE_BAR)).setName('songMapFrame');
+    this.root.add(drawn.frame);
+  }
+
+  /** The part holding chart bar `bar` (of the staff) is lit; the others are not. */
+  private lightMapPart(bar: number): void {
+    const map = this.songMap;
+    const drawn = this.mapDrawn;
+    this.mapBar = bar;
+    if (!map || !drawn) return;
+    const songBar = map.songBars[bar + map.first];
+    for (const b of drawn.blocks) drawn.buttons.get(b.id)?.setActive(songBar !== undefined && songBar >= b.startBar && songBar <= b.endBar);
+  }
+
+  /** A press on a block: the staff turns to the part's first bar (for a part left out, the bar after its fold) and its name flashes. */
+  private turnToPart(block: MapBlock): void {
+    const map = this.songMap;
+    const staffView = this.playSession.staffView;
+    if (!map || !staffView) return;
+    const at = map.songBars.findIndex((songBar, i) => i >= map.first && songBar >= block.startBar);
+    const bar = at < 0 ? map.songBars.length - 1 - map.first : at - map.first;
+    const page = staffView.pageOfBar(bar);
+    if (page === null) return;
+    staffView.showPage(page);
+    staffView.flashPart(bar);
+  }
+
   private leave(): void {
     // while a pass's score shows the scene is already "leaving" for the next pass; Back still ends the session then
     if (this.leaving && this.loopTimer === null) return;
@@ -880,6 +998,7 @@ export class PracticeScene extends PixelScene {
   private onJudged(event: NoteJudged, state: PlayState): void {
     if (!this.preview) this.session = recordFreePlayNote(this.session, event, contextOf(this).audio.clock.nowMs());
     this.playSession.feedback(event, state);
+    this.lightMapPart(event.bar);
   }
 
   /** Log the bars the judge has just finished (core_10); a failed save is reported, never shown to the student. */
@@ -900,8 +1019,8 @@ export class PracticeScene extends PixelScene {
   }
 
   /**
-   * A learning run sped up beyond the piece's baseline tempo (the rushing stop, ft_1_32.AC11): it stops, Kiur says so, and
-   * the same step starts again. Nothing was played wrong, so no bar is logged with a miss; it counts as a run asked again.
+   * A learning run sped up beyond the piece's baseline tempo (the rushing stop, ft_1_32.AC11): it stops, and the same step
+   * starts again. Nothing was played wrong, so no bar is logged with a miss; it counts as a run asked again.
    */
   private stopRushedRun(): void {
     const learn = this.learn!;
@@ -909,12 +1028,12 @@ export class PracticeScene extends PixelScene {
     this.stopMetronome();
     this.playSession.stop();
     void learn.finish('unsteady');
-    this.againAfter(learn.rushLine());
+    this.againAfter();
   }
 
   /**
-   * A wrong key ended a learning run (ft_1_32.AC6): the judge stops, the wrong key stays on the staff, Kiur names the mistake
-   * and its bar, the bar is logged with its miss (for the markers), and the same step starts again.
+   * A wrong key ended a learning run (ft_1_32.AC6): the judge stops, the wrong key stays on the staff (where it sits says
+   * the mistake), the bar is logged with its miss (for the markers), and the same step starts again.
    */
   private stopLearnRun(wrong: WrongNoteJudged): void {
     const learn = this.learn!;
@@ -923,23 +1042,21 @@ export class PracticeScene extends PixelScene {
     this.playSession.stop();
     const play = this.barRecorder?.stop(wrong);
     if (play) this.barsSaved = contextOf(this).profiles.recordBarPlays([play]).catch((error: unknown) => console.error('recordBarPlays failed', error));
-    const bar = learn.run.firstBar + (this.playSession.play.writtenBar[wrong.bar] ?? wrong.bar);
     const run = learn.run; // the run that ended, before its end moves the progress on
     void learn.finish('stopped');
-    this.againAfter(learn.stopLine(wrong, bar), run);
+    this.againAfter(run);
   }
 
   /**
-   * A stopped learning run: Kiur says `line`, and after a moment the same step starts again with it; a wrong key that ended
-   * `stopped` (on the staff by then) is carried, to stay until the next run's first key.
+   * A stopped learning run: after a moment the same step starts again, with nothing said; a wrong key that ended `stopped`
+   * (on the staff by then) is carried, to stay until the next run's first key.
    */
-  private againAfter(line: string, stopped?: { firstBar: number; lastBar: number }): void {
-    this.playSession.say(line);
+  private againAfter(stopped?: { firstBar: number; lastBar: number }): void {
     this.learnAgain = () => {
       this.learnAgain = null;
       const key = this.playSession.wrongKey;
       const learnWrong = stopped && key ? { learnWrong: { key, firstBar: stopped.firstBar, lastBar: stopped.lastBar } } : {};
-      this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line, ...learnWrong });
+      this.scene.restart({ ...this.startData, ...this.carry(), learnNext: true, ...learnWrong });
     };
     this.loopTimer = this.time.delayedCall(LEARN_STOP_MS, () => {
       this.loopTimer = null;
@@ -950,8 +1067,8 @@ export class PracticeScene extends PixelScene {
   /**
    * A learning run reached its end with every note right (ft_1_32.AC2): it counts unless note names were shown, or it was a
    * measured run (a confirmation play, the whole piece) whose pace was uneven, which Kiur asks again, slower (AC7). A
-   * measured run of the whole piece is also a pass of the piece, saved as one (XP as before). The next run starts after
-   * Kiur's line; once the piece is learned, the screen opens it for practice.
+   * measured run of the whole piece is also a pass of the piece, saved as one (XP as before). The new prize note says how it
+   * went, with no words; then the next run starts, or once the piece is learned the clef grows and waits for a key.
    */
   private finishLearnRun(result: PieceResult): void {
     const learn = this.learn!;
@@ -964,9 +1081,6 @@ export class PracticeScene extends PixelScene {
         .catch((error: unknown) => { console.error('completePiece failed', error); return undefined; });
     }
     void learn.finish(outcome, bpm);
-    const said = learn.endLine(outcome, bpm);
-    // an uneven run is asked again with its own line; otherwise Kiur also says what comes next
-    const line = learn.learned || outcome === 'unsteady' ? said : [said, learn.nextLine()].filter((part) => part !== '').join(' ');
     const clefBefore = this.playSession.prizesShown.find((p) => p.role === 'piece')?.medal ?? null;
     this.redraw(); // the new note shows at once
     // learned: the clef lifts off the column and grows, on its way to the book (ft_1_32.AC22)
@@ -975,20 +1089,19 @@ export class PracticeScene extends PixelScene {
       const after = this.playSession.prizesShown.find((p) => p.role === 'piece')?.medal ?? null;
       this.clefFlight = from && after ? { chartId: this.fullChart.id, before: clefBefore, after, from } : null;
     }
-    this.playSession.say(learn.learned ? `${line}${/[.!?]$/.test(line) ? '' : '.'} ${t('learn.goOn')}` : line);
     this.loopTimer = this.time.delayedCall(LEARN_NEXT_MS, () => {
       this.loopTimer = null;
       void Promise.all([this.pendingPass, this.barsSaved]).then(() => {
         if (!this.scene.isActive() || this.loopTimer !== null) return;
         this.pendingPass = null;
         if (!learn.learned) {
-          this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });
+          this.scene.restart({ ...this.startData, ...this.carry(), learnNext: true });
           return;
         }
-        // learned (ft_1_32 rule 5): the whole note and the clef stay with Kiur's line until the student plays a key or presses
+        // learned (ft_1_32 rule 5): the whole note and the clef stay until the student plays a key or presses
         this.learnedGoOn = () => {
           this.learnedGoOn = null;
-          this.afterLearned(line);
+          this.afterLearned();
         };
       });
     });
@@ -1000,7 +1113,7 @@ export class PracticeScene extends PixelScene {
    * Kiur waits with the tug (rule 15); a piece learned at the piano stays in the book. With no clef shown, straight there
    * (a piece learned at the piano opens for practice).
    */
-  private afterLearned(line: string): void {
+  private afterLearned(): void {
     // the intro's lesson is learned: on to the room's next stage, practise (ft_1_31.AC8)
     if (this.intro) {
       startScene(this, 'profile', { intro: afterPlay('learn', true) });
@@ -1012,7 +1125,7 @@ export class PracticeScene extends PixelScene {
     if (this.clefFlight) startScene(this, 'menu', { clefFlight: { ...this.clefFlight, ...(then ? { then } : {}) } });
     else if (teacher) startScene(this, teacher.scene, {});
     else if (this.startData.learn === true) startScene(this, 'profile', {});
-    else this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });
+    else this.scene.restart({ ...this.startData, ...this.carry(), learnNext: true });
   }
 
   private onCompleted(result: PieceResult): void {
@@ -1083,8 +1196,8 @@ export class PracticeScene extends PixelScene {
 
   /**
    * Key bashing (ft_1_15): the piece pauses and Kiur points at the door (`KiurDoorScene`), in whatever the screen is doing
-   * (ft_1_15.AC8): the student playing, the game playing the piece (Kuula), a pass's score or Kiur's line after a learning
-   * run waiting for the next run. The keys of the bash were never judged (`KeyBashGuard`), and nothing earned is touched.
+   * (ft_1_15.AC8): the student playing, the game playing the piece (Kuula), a pass's score, or a learning run ended
+   * and waiting for the next run. The keys of the bash were never judged (`KeyBashGuard`), and nothing earned is touched.
    * Not when the screen is already on its way out (no next run waits) or another overlay is up.
    */
   private onBash(): void {
@@ -1100,7 +1213,7 @@ export class PracticeScene extends PixelScene {
     this.atDoor = true;
     this.guarded.setMuted(true);
     this.stopMetronome();
-    // a pass's score or Kiur's line after a learning run stays for the rest of its wait after Back
+    // a pass's score stays for the rest of its wait after Back
     if (!this.leaving) this.playSession.say('');
     // the keys judged before the bash could be told from playing leave no mark on the staff
     this.playSession.staffView?.setPlayed(null);
@@ -1261,8 +1374,12 @@ export class PracticeScene extends PixelScene {
     this.liveLabels = null;
     const foot = rows - paneRows;
     const strip = this.cornerStrip;
-    this.staffOrigin = this.mainTop + strip.rows * scale;
-    const staffView = this.playSession.drawStaff({ top: this.staffOrigin, width: this.scale.width, height: Math.max(1, (foot - strip.rows) * scale) }, contextOf(this).profiles);
+    // the song map starts under Kiur's feet, which hang below the strip
+    const mapGap = this.songMap ? Math.max(0, Math.ceil(BAND_STRIP_DROP + MASCOT_SIZE.h + 1) - strip.rows) : 0;
+    const mapRows = this.songMap ? MAP_ROWS + mapGap : 0;
+    this.staffOrigin = this.mainTop + (strip.rows + mapRows) * scale;
+    const staffView = this.playSession.drawStaff({ top: this.staffOrigin, width: this.scale.width, height: Math.max(1, (foot - strip.rows - mapRows) * scale) }, contextOf(this).profiles);
+    this.drawSongMap(staffView, this.mainTopRows + strip.rows + mapGap);
     staffView.setMarkers(this.markers);
     this.drawPrizes();
     const layout = this.playSession.layout!;
@@ -1425,11 +1542,11 @@ export class PracticeScene extends PixelScene {
     }
   }
 
-  /** What a restart between learning runs carries: Kiur's line, said instead of any other words, and the wrong key. */
+  /** What a restart between learning runs carries: that it is one, and the wrong key. */
   private takeLearnCarry(data: PracticeData): void {
-    this.afterLearnRun = data.learnLine !== undefined;
+    this.afterLearnRun = data.learnNext === true;
     this.carriedWrong = data.learnWrong ?? null;
-    delete this.startData.learnLine;
+    delete this.startData.learnNext;
     delete this.startData.learnWrong;
   }
 
@@ -1759,7 +1876,7 @@ export class PracticeScene extends PixelScene {
     if (!layout || !staffView || this.isBubblePress(pointer) || this.menuOpen) return;
     // a press on a button over the staff (the page buttons, with the band) is the button's
     if (this.pointerOnButton(pointer)) return;
-    const top = this.mainTop + (this.bandShown ? this.cornerStrip.rows : TOP_BAR + this.toolRows) * this.px.scale;
+    const top = this.bandShown && this.staffOrigin !== null ? this.staffOrigin : this.mainTop + (TOP_BAR + this.toolRows) * this.px.scale;
     const bar = barAtPoint(layout, pointer.x, pointer.y - top, staffView.currentPage);
     if (bar === null) return;
     if (this.picking === null) {
@@ -1958,4 +2075,23 @@ export class PracticeScene extends PixelScene {
     // the on-screen keys are hidden unless the settings screen's switch showed them (d099): point at the keys there are
     return t(contextOf(this).keyboardSwitch.shown() ? 'midi.notConnected' : 'midi.notConnectedHidden');
   }
+}
+
+/** The song map's mark of the page on screen: a white bar under the blocks, so it never covers a name nor looks like the lit part. */
+function mapFrame(w: number, h: number): Bitmap {
+  const box = createBitmap(w, h);
+  box.pixels.fill(C.white);
+  return box;
+}
+
+const fits = (text: string): number => measure(drawnText(text));
+
+/** A blank part's hatching on the song map: dark diagonal strokes, left clear round its name (`clear` wide, centred). */
+function mapHatch(w: number, h: number, clear: number): Bitmap {
+  const box = createBitmap(w, h);
+  const from = Math.floor((w - clear) / 2);
+  for (let j = 0; j < h; j++) {
+    for (let i = 0; i < w; i++) if ((i + j) % 4 === 0 && (i < from || i >= from + clear)) box.pixels[j * w + i] = C.umberDark;
+  }
+  return box;
 }

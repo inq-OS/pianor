@@ -1,4 +1,4 @@
-// Covers ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20.
+// Covers ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { allMenuTitles, clickButton, expectNoErrors, openGame, sceneButton, sceneTexts, waitForScene } from './helpers';
@@ -21,6 +21,22 @@ async function press(page: Page, key: string): Promise<void> {
 const staffWords = (page: Page) => page.evaluate(() => {
   const view = (window.__game.scene.getScene('practice') as unknown as { playSession: { view: { partTexts: { text: { text: string } }[] } } }).playSession.view;
   return view.partTexts.map((p) => p.text.text);
+});
+
+/** The song map over the practice staff (ft_1_36 rule 8): its blocks, the lit one, whether a page frame is drawn, and the staff's page. */
+const songMap = (page: Page) => page.evaluate(() => {
+  const scene = window.__game.scene.getScene('practice') as unknown as {
+    mapDrawn: { blocks: { id: string; name: string; w: number }[]; buttons: Map<string, { active: boolean }>; frame: unknown } | null;
+    playSession: { view: { currentPage: number } };
+  };
+  const drawn = scene.mapDrawn;
+  return {
+    names: drawn?.blocks.map((b) => b.name) ?? [],
+    widths: drawn?.blocks.map((b) => b.w) ?? [],
+    lit: drawn?.blocks.filter((b) => drawn.buttons.get(b.id)?.active).map((b) => b.name) ?? [],
+    framed: Boolean(drawn?.frame),
+    page: scene.playSession.view.currentPage,
+  };
 });
 
 async function openSongPage(page: Page): Promise<void> {
@@ -111,6 +127,28 @@ test.describe('songs made of pieces', () => {
     expect(some.bars).toBe(12);
     expect(some.id).not.toBe('song:morning-song');
     expect(await staffWords(page)).toContain('Outro, bars 71 to 82, off');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC10 the song map shows the parts by their bars, frames the page and lights the part being played; a press turns the page without starting play', async ({ page }) => {
+    const errors = await openGame(page);
+    await openSongPage(page);
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'Play Morning Song'));
+    await waitForScene(page, 'practice');
+    const map = await songMap(page);
+    expect(map.names).toEqual(['Intro', 'Verse 1', 'Chorus', 'Verse 2', 'Outro']);
+    // a 24-bar verse is wider than the 12-bar intro; no block is narrower than the minimum
+    expect(map.widths[1]!).toBeGreaterThan(map.widths[0]!);
+    expect(Math.min(...map.widths)).toBeGreaterThanOrEqual(16);
+    expect(map.lit).toEqual(['Intro']);
+    expect(map.framed).toBe(true);
+    expect(map.page).toBe(0);
+    // the outro's block turns the staff to the outro; the intro is still the part to play
+    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Outro'));
+    const turned = await songMap(page);
+    expect(turned.page).toBeGreaterThan(0);
+    expect(turned.lit).toEqual(['Intro']);
+    expect(turned.framed).toBe(true);
     expectNoErrors(errors);
   });
 
