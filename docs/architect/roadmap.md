@@ -33,7 +33,7 @@ Open work is a doc tag (d116). Count a release's work with the grep in [todo-tag
 | R1 | **Done** |
 | R2 | **Open now.** Count the tags with the grep above (about 50). Built since then: dynamic marks, repeat signs, ties, slurs and grace notes (d120, d121), the band on practice, the piece maker, the trainers and results (ft_1_20), the warm wood on every screen (d118), Kiur (d114), the circle of fifths (ft_1_28), the tug with Puuvaim (ft_1_21). Open, in order: learning a piece bar by bar (ft_1_32 slice 2); scales and chords (ft_1_29); the pictures loaded per hour; the piece maker's drag-repeat handle (ft_1_02d); the band's item model and the other screens (ft_1_20); the v18 save round (rhythm practice, helper marks, the wheel, text settings; none started); pick-up bars (d120 slice 1); the key-light settings and wiring, the real light after the maintainer's silent-light test (ft_Y_06); the painter's inventory sheet and the staff screens ([painter-project.md](painter-project.md) section 7) |
 | R3 | ft_1_21 (challenges with characters, d129), the campaign phase screens (now in the scenes of ft_1_19), the admin settings page, four character songs, harder campaign defaults, EZ-220 sounds; per-piece XP built, try-out open |
-| R4 | "Living characters" (d132): the phrase book, the knowledge layer, question and answer, the birth month (ft_1_22, ft_1_23); the turn battle deleted (d151) |
+| R4 | "Living characters" (d132): the phrase book, the knowledge layer, question and answer, the birth month (ft_1_22, ft_1_23) |
 | R5 | the cold start (the pictures' weight), the world (open since d112) |
 | Later | the trainers' two-player split (ft_1_29), the rhythm clock, vim-style editing, earned trophies, seasonal looks (ft_Y_14, now with the motion kit's weather seam), EZ-220 command keys |
 | Keri (maintainer-driven, R2) | ft_1_18 and ft_1_19: the room, the map (a caricature of Keri since d125), the knoll, the docks and the crossroads are painted on one painter's kit (d124) and one motion kit; the garden is paused (d252). Each new scene adds about 1.3 MB to the game file until the pictures load per hour |
@@ -119,7 +119,7 @@ Open work is a doc tag (d116). Count a release's work with the grep in [todo-tag
 
 **Since d132:** characters teach phrases of their style into a phrase book (the classes come back as styles), the knowledge layer per player, question and answer as the advanced challenge, the birth month (ft_1_22 slices B and C, ft_1_23); one shared save round.
 
-The turn battle with classes and spells that R4 used to be is deleted ([d151](../decisions/workflow.md#d151)); the classes come back as music styles (d132).
+The old battle vision is gone ([d290](../decisions/game.md#d290)).
 
 ## R5 "The world": overworld RPG
 
@@ -129,7 +129,6 @@ The turn battle with classes and spells that R4 used to be is deleted ([d151](..
 
 | Content | What |
 |---|---|
-| ft_Y_03 | Overworld, inventory, classes from the closed style list (d066) |
 | Phaser review R3 to R8 | A world base scene (PixelScene's full redraw does not suit scrolling), Tiled maps as content, events as data with a pure core interpreter, a loading scene, world save |
 | Candidate dependency | **Grid Engine** (Apache-2.0) for grid movement; **Tiled** as the map editor (a tool, GPL, not shipped; its JSON output is fine). Needs a decision file and `docs/dependencies.md` |
 

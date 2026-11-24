@@ -45,7 +45,7 @@ The EZ-220 facts that matter:
 
 Avoid as a code base: ekkx/notefall and forks (PolyForm Shield, source-available, not FOSS). Pokémon-derived repos often bundle non-free art and music; take code ideas only.
 
-**Gap in the market:** nobody has combined a real RPG progression and battle loop with graded MIDI input. Everything above is either a trainer or a visualizer. The RPG layer is the novel part, so it is where your effort should go; the MIDI plumbing can be borrowed.
+**Gap in the market:** nobody has combined a point-and-click adventure, whose characters challenge the student to trade musical phrases, with graded MIDI input. Everything above is either a trainer or a visualizer. The adventure is the novel part, so it is where the effort goes; the MIDI plumbing can be borrowed.
 
 ## 3. Key decision: platform
 
@@ -77,10 +77,8 @@ src/
     sky/                 The hour of the sky from the real sun (skyPhase, sceneLook, wind; ft_1_14, d097)
     scoring/             Stars, the two-hands bonus, the session lines of the looping play (ft_1_12)
     progression/         XP, levels, unlocks, profile (versioned save; the version history is the comment on PROFILE_SCHEMA_VERSION in profile.ts), migrations, repository
-    battle/              Battle rules and content, on hold (ft_Y_01)
     editor/              Piece editor model: edits, history, ABC and chart output, hit testing (ft_1_02a)
-    campaign/            Monster campaign rules: ladder content, find the key, find the door, campaign state (ft_1_06);
-                         which being is in which scene today (sceneBeings.ts, ft_1_19, d113)
+    campaign/            The campaign state kept in the save (ft_1_06); goes with the save migration of d290
     properties/          What a piece asks of the player (note values, range, hands), for the piece card and difficulty
     random.ts, issues.ts Seeded random numbers; schema problems as readable lines
     upgrade.ts, median.ts The schemaVersion loop every saved format shares (charts, profiles); the median
@@ -91,8 +89,8 @@ src/
     storage/             localStorage and in-memory stores
     files/               Download and pick text files (piece files of the editor)
     mock/                Virtual EZ-220 (fake MIDIAccess), on-screen and QWERTY keyboards, scripted/virtual player (no-hardware dev and tests)
-  game/                  Phaser scenes (draw only): Boot, Menu, Pieces, Practice, Results, Rundown, Settings, Battle,
-                         BattleResults, Editor, Preview, Credits, the player's room (ProfileDashboard), KeriMap, Knoll,
+  game/                  Phaser scenes (draw only): Boot, Menu, Pieces, Practice, Results, Rundown, Settings,
+                         Editor, Preview, Credits, the player's room (ProfileDashboard), KeriMap, Knoll,
                          the trainers, the admin pages, and the dev-only StaffDemo and ArtDemo; scenes.ts lists
                          every scene key with the data its init takes, and startScene checks both (Esc goes through back())
     ui/pixel/            The pixel-art kit: palette, font, sprites, PixelScene (base of every scene; topBar for the play screens), PixelObjects
@@ -102,14 +100,14 @@ src/
                          (knollPicture), the shared palette (keriPalette), clouds (curlCloud), and their packing. Also Node-safe.
                          The look and its rules: docs/art-direction.md
     ui/staff/            StaffView: draws a StaffLayout and the play state
-    results/             OutcomeScene: base of Results and BattleResults (XP line, level, what opened up)
-    practice/, profile/, editor/, battle/, preview/, menu/   small helpers per scene (PracticeController, ProfileService, OwnPieces, ...)
-    practice/PlaySession  what every screen where a piece is played shares (Practice, Battle, later the campaign phases):
+    results/             OutcomeScene: base of Results (XP line, level, what opened up)
+    practice/, profile/, editor/, preview/, menu/   small helpers per scene (PracticeController, ProfileService, OwnPieces, ...)
+    practice/PlaySession  what every screen where a piece is played shares (Practice, the tug):
                          the staff for the player's settings, the PracticeController (Wait or Tempo, hints, the per-frame
                          advance and playhead), Kiur's bubble with its timers and the wrong-note flash, and one destroy()
   dev/                   dev-only pages (?demo=keys, audio, profile, preview; staff and art are scenes) and the autoplay director (?autoplay=1, dev/autoplay/)
   spike/                 the hardware spike page (spike.html)
-content/                 JSON/ABC data: pieces, curriculum, battle rules, monsters, the world model of Keri (world/)
+content/                 JSON/ABC data: pieces, curriculum, the tug's rules, characters, conversations, the world model of Keri (world/)
 tools/                   CLI and build: piece compile/lint/build, generators, the Vite pieces plugin; vite-keri.ts paints
                          Keri's pictures when the game is built (module virtual:keri-pictures, one file per picture
                          and hour, loaded per scene, d143); art/ paints one to a PNG file
@@ -149,7 +147,7 @@ Pieces must be fully custom, so authoring is a first-class pipeline, not an afte
 
 - **Source of truth:** ABC notation (`piece.abc`) plus a sidecar `piece.meta.json` (level, phrases, tags, status, provenance), compiled to the chart JSON the game loads.
 - **Linter** enforces the level definition: bar lengths, range, allowed note values, maximum leaps, fingering sanity, required source/license. It also outputs a difficulty score.
-- **Three ways to create pieces:** by hand, deterministic seeded generators (patterns, scales, drills, boss phrases), and an AI-agent loop (compose ABC, lint, fix, build). All output starts as `draft`.
+- **Three ways to create pieces:** by hand, deterministic seeded generators (patterns, scales, drills, phrases), and an AI-agent loop (compose ABC, lint, fix, build). All output starts as `draft`.
 - **Human approval gate:** only a parent or teacher can set `approved`, after previewing the piece (staff plus audio plus play-along).
 
 ### Content and licensing

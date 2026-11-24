@@ -170,50 +170,6 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_19.AC8 with ?beings=1 the first being stands by the fire; its game is gone (d135), so it is not a button', async ({ page }) => {
-    const errors = await toRoom(page, 'en', '&beings=1');
-    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
-    await waitForScene(page, 'keriMap');
-    await clickButton(page, 'keriMap', await sceneButton(page, 'keriMap', 'Grassy knoll'));
-    await waitForScene(page, 'knoll');
-    // a new player has unlocked the ladder's first monster only, and the knoll is the one open scene: it is here
-    expect(await sceneTexts(page, 'knoll')).toContain('Locria');
-    expect(await sceneTexts(page, 'knoll')).not.toContain('Doria');
-    expect(await sceneButton(page, 'knoll', 'Locria')).toBe(-1);
-    expectNoErrors(errors);
-  });
-
-  test('ft_1_19.AC8 with ?beings=1 a tester sees the one unlocked being in exactly one open place, and every place keeps its Back (the docks have no spot to stand on)', async ({ page }) => {
-    // the tester has every place open, the docks among them; a being sent to the docks broke their redraw
-    const errors = await openGame(page, '?device=virtual&beings=1', 'en', 'profiles');
-    await clickButton(page, 'profiles', await sceneButton(page, 'profiles', 'New player'));
-    await waitForScene(page, 'name');
-    for (const letter of 'tester') await page.keyboard.press(letter);
-    await page.keyboard.press('Enter');
-    await waitForScene(page, 'profile');
-    // every open place in turn; the new player's profile settles a moment after its screen shows, so the round is
-    // repeated until the being is found (a being in two places still fails: the round never gives one)
-    const visitAll = async (): Promise<string[]> => {
-      const found: string[] = [];
-      for (const place of ['knoll', 'docks', 'port', 'crossroads']) {
-        await page.evaluate((key) => {
-          const g = window.__game;
-          for (const s of g.scene.getScenes(true)) g.scene.stop(s.scene.key);
-          g.scene.start(key);
-        }, place);
-        await waitForScene(page, place);
-        const back = await page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as { toolbarButtons: { back: unknown } }).toolbarButtons.back !== null, place);
-        expect(back, `${place} has its Back`).toBe(true);
-        if ((await sceneTexts(page, place)).includes('Locria')) found.push(place);
-      }
-      return found;
-    };
-    let found: string[] = [];
-    await expect.poll(async () => (found = await visitAll()).length, { timeout: 20_000 }).toBe(1);
-    expect(found).not.toContain('docks');
-    expectNoErrors(errors);
-  });
-
   test('ft_1_18.AC2 ft_1_18.AC4 the map of Keri is one painted picture with the sea in two looks, a lamp, three clouds and its painted name; the house and the open scene are its buttons, on the picture', async ({ page }) => {
     // by day, so the map's gulls fly (they rest at night, ft_1_19.AC13); the real hour made this test depend on the clock
     const errors = await toRoom(page, 'en', '&sky=day');

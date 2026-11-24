@@ -106,16 +106,15 @@ From the marks on the reference pictures:
 - An interactive map: players leave clues and treasures around the island for each other.
 - Landmarks to visit as scenery without interaction: the sunken tracked tractor, the helicopter pad, the Kaleva plane memorial, a dead seal, a mummified seagull, the tar pit, the big rock.
 
-## 8. Scenes where the beings are found (d112, ft_1_19)
+## 8. Scenes (d112, ft_1_19)
 
-There is no continuous, uniform trail: the beings to be tamed are found in **scenes**, places on Keri, each its own painted picture, opened from the map. The first place is the grassy knoll; nothing else is drawn until the maintainer names more.
+The student meets the characters in **scenes**, places on Keri, each its own painted picture, opened from the map. The first place is the grassy knoll; nothing else is drawn until the maintainer names more.
 
 | # | Needed from the maintainer | State |
 |---|---|---|
 | S1 | Which places on Keri are scenes (marks on the map or satellite image) | first place named: the grassy knoll; the others `KERI-TODO` |
 | S2 | Photos or words for each place, with where the photo was taken from and its direction | the knoll: items 14 to 17 (section 4); the others `KERI-TODO` |
-| S3 | What the beings are and which lives in which place | beings turn up at random in the open scenes ([d113](decisions/game.md#d113)); what they look like on Keri is `KERI-TODO` |
-| S4 | Whether a being is seen at once or looked for in the picture; one being per scene or several | AX-3 provisional: seen at once, several per scene (d113) |
+| S3 | Which characters live in which place | each character has its own scene and place (ft_1_22); who comes next is the maintainer's call |
 
 Levelling up opens new scenes. Notes on the map and each scene, with sources, what was noticed and improvement tips that wait for the maintainer: [map](keri/map.md), [the room](keri/scene-room.md), [the knoll](keri/scene-knoll.md).
 

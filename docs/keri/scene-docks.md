@@ -64,6 +64,6 @@ Props, not known on Keri (the maintainer may take any out): the lantern on the t
 - IDEA(painter, Later): the tower as a scene of its own (it can become an additional scene later): the view from its platform over the bay, with birds to watch.
 - The other two viewpoints (B from the shore to the east, C back to the house) as more scenes or a second look.
 
-TODO(painter, R2): the beings (ft_1_19.AC8): once the docks are open (level 2), with `?beings=1` some beings are drawn into the docks, which show none yet; they need places to stand on the shingle or the jetty when the beings are turned on.
+TODO(painter, R2): places for characters to stand on the shingle or the jetty, once a character lives at the docks (ft_1_22).
 
 TODO(painter, R2): the north docks' open list: navy boards at night, a softer lantern halo, the landing's stub behind the rock, a fish board, and the lamp's warmth matched to the Woodtick model.

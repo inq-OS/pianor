@@ -34,8 +34,8 @@ Every feature file carries `completeness: N` (an integer, 0 to 100) in its front
 | MVP, iteration 0 | 15 of 19 | 88 | `##################..` |
 | Iteration 1 | 4 of 34 | 65 | `#############.......` |
 | Core behaviour | 0 of 13 | 66 | `#############.......` |
-| Iteration not defined yet | 0 of 15 | 19 | `####................` |
-| Overall | 19 of 81 | 58 | `############........` |
+| Iteration not defined yet | 0 of 15 | 17 | `###.................` |
+| Overall | 19 of 81 | 56 | `###########.........` |
 <!-- /docs:completeness -->
 
 ## MVP, iteration 0 (ft_0_00 to ft_0_17)
@@ -135,17 +135,17 @@ Every feature file carries `completeness: N` (an integer, 0 to 100) in its front
 <!-- docs:index features ft_Y -->
 | ID | Feature | Scope | Effort | Done % | Human | Status |
 |---|---|---|---|---|---|---|
-| [ft_Y_01](ft_Y_01-battle-and-spellbook.md) | Battle and spellbook | Turn-based battles; pieces and riffs as spells; a spellbook of active spells | large | 0 |  | on hold (d129): waits on the maintainer's answer on what carries over into challenges. Was: idea |
-| [ft_Y_02](ft_Y_02-modular-monsters.md) | Modular monsters | A base body plus parts, more parts at higher levels; seeded recipes | medium | 0 |  | on hold (d129): waits on the maintainer's answer on what carries over into challenges. Was: idea, refined |
-| [ft_Y_03](ft_Y_03-rpg-shell.md) | RPG shell | Overworld, inventory, classes mapped to musical styles | large | 0 |  | on hold (d129): waits on the maintainer's answer on what carries over into challenges |
+| [ft_Y_01](ft_Y_01-battle-and-spellbook.md) | Battle and spellbook | Turn-based battles; pieces and riffs as spells; a spellbook of active spells | large | 0 |  | rejected (d129, d290) |
+| [ft_Y_02](ft_Y_02-modular-monsters.md) | Modular monsters | A base body plus parts, more parts at higher levels; seeded recipes | large | 0 |  | rejected (d129, d290) |
+| [ft_Y_03](ft_Y_03-rpg-shell.md) | RPG shell | Overworld, inventory, classes mapped to musical styles | large | 0 |  | rejected (d129, d290) |
 | [ft_Y_04](ft_Y_04-piece-import.md) | Piece import | MusicXML, then MIDI, to ABC plus a draft meta file | large | 75 |  | slices 1 to 5 built for MusicXML: read to a chart for analysis; `piece:import` writes a draft game piece (ABC plus meta) into the private folder the game plays, or into content/pieces with an open licence; a scan or photo to an own piece through Audiveris (`piece:photo`, or Import in the piece maker on the PC: a photo tool to turn, crop and check it, the photo then behind the staff). MIDI open |
 | [ft_Y_05](ft_Y_05-falling-notes-mode.md) | Falling-notes mode | Optional and last; never replaces the staff | medium | 0 |  | rejected (AX-0.1) |
 | [ft_Y_06](ft_Y_06-key-light-hints.md) | Key-light hints | Light the next key on the EZ-220 as a hint with a cost; an option to switch it on and to light a key after N wrong presses | simple | 50 | 1 | rule and save fields built (settings.keyLights, save v11); settings screen and scene wiring open; real lighting needs ft_0_01 |
 | [ft_Y_07](ft_Y_07-content-packs-and-sync.md) | Content packs and sync | Piece packs from parents and teachers; optional cloud sync | high friction | 0 |  | idea |
-| [ft_Y_08](ft_Y_08-confuser.md) | Confuser | Optional boss-fight trick: random keys light up to disorient the player | simple | 0 |  | on hold (d129): waits on the maintainer's answer on what carries over into challenges |
+| [ft_Y_08](ft_Y_08-confuser.md) | Confuser | Optional boss-fight trick: random keys light up to disorient the player | large | 0 |  | rejected (d129, d290) |
 | [ft_Y_09](ft_Y_09-demo-director.md) | Demo scenario (autoplay) | A dev switch that plays the real flow from the menu through a piece by itself, in Wait or Tempo mode, with seeded mistakes | simple | 90 | 2 | built (dev only); watching it in a normal browser with sound open (Human) |
-| [ft_Y_10](ft_Y_10-defend-the-power-attack.md) | Defend the power attack | Red-aura power attack: a popup counts in one bar, the student plays a short riff; good blocks, perfect counterattacks, a miss lets it land | large | 0 | 3 | on hold (d129): waits on the maintainer's answer on what carries over into challenges. Was: idea, refined; answers recorded |
-| [ft_Y_11](ft_Y_11-sprite-toolkit.md) | Sprite toolkit | Colour ramps and slots, bases and parts as content, a pure composer, render, contact-sheet and lint tools, a sprite preview page | medium | 0 |  | planned; design confirmed, not scheduled |
+| [ft_Y_10](ft_Y_10-defend-the-power-attack.md) | Defend the power attack | Red-aura power attack: a popup counts in one bar, the student plays a short riff; good blocks, perfect counterattacks, a miss lets it land | large | 0 |  | rejected (d129, d290) |
+| [ft_Y_11](ft_Y_11-sprite-toolkit.md) | Sprite toolkit | Colour ramps and slots, bases and parts as content, a pure composer, render, contact-sheet and lint tools, a sprite preview page | medium | 0 |  | rejected (d290) |
 | [ft_Y_12](ft_Y_12-hide-on-screen-keyboard.md) | Hide the on-screen keyboard | A per-player setting that hides the on-screen piano so the student reads from the staff only | trivial | 95 |  | built: every visit starts with the keyboard hidden, a toolbar switch on the settings screen shows it for the visit (d099); real EZ-220 with it hidden open (Human) |
 | [ft_Y_13](ft_Y_13-menu-by-keyboard.md) | Menu by keyboard | Move, select and go back in the menus with the PC keyboard (arrows, Enter or Space, Esc), with a visible focus outline | medium | 85 | 1 | built (focus model, PixelScene support, menu-like screens) |
 | [ft_Y_14](ft_Y_14-seasonal-and-holiday-looks.md) | Seasonal and holiday looks | The campaign scene changes with the season (winter snow, autumn leaves, summer), on holidays (Christmas, Halloween, jaanipäev and others) and, when the laptop is online, with the weather on Keri (rain, cloud, snow, blizzard, frost), by layers on top of the day phase of ft_1_14; nothing saved | medium | 0 |  | idea, Later pool; hook designed in d097 |

@@ -63,7 +63,7 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d045](saves.md#d045) | The list of pieces turned off lives in `settings.pieces.hidden`; save v6 | ft_1_02c |
 | [d048](workflow.md#d048) | Every feature file carries a `completeness` percentage rated by a rule and rolled up by the generator |  |
 | [d050](notation.md#d050) | An own piece is one versioned `<id>.pianor-piece.json` file, and licence `NaN` is allowed only for private pieces | ft_1_02b |
-| [d051](art.md#d051) | Sprites are text-row JSON composed by a pure core composer from colour slots, on Phaser | ft_Y_11, ft_Y_02 |
+| [d051](art.md#d051) | Sprites are text-row JSON composed by a pure core composer from colour slots, on Phaser (the monster pipeline, gone with the battle vision by d290). Retired | ft_Y_11, ft_Y_02 |
 | [d054](saves.md#d054) | The on-screen keyboard setting is `settings.keyboard.onScreen`; save v9 | ft_Y_12, ft_0_16 |
 | [d055](saves.md#d055) | Bar numbers are `settings.barNumbers.mode` (off, first, every2, every4); save v10 | ft_0_16, core_03 |
 | [d056](workflow.md#d056) | End-to-end tests are split into areas; pull requests run the areas they touch and every run writes a log |  |

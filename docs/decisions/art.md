@@ -15,11 +15,7 @@ Check: `src/game/ui/pixel/font.test.ts` "cover every letter, digit and mark the 
 
 ## d051
 
-**Sprites are text-row JSON composed by a pure core composer from colour slots, on Phaser.** Features: ft_Y_11, ft_Y_02.
-
-Bases and parts are JSON with letter rows (PNGs are build output), filled from three-shade colour ramps; sockets are paths with hand overrides; the composer is pure in core (the sprite code) and packs one RGBA texture per sprite for Phaser. Tools are our own and small (PNG writer on Node `zlib`, no image library); no AI image generators or third-party packs for these; art carries no approval `status`; monster format version 2 takes a recipe or a fixed picture (migration from 1) and the palette grows from 21 to about 32 colours.
-
-Check: untestable: sprite composer and tools are not held by a test of their own; monster art only in `src/game/ui/pixel/beings/monsterArt.test.ts`
+**Sprites are text-row JSON composed by a pure core composer from colour slots, on Phaser (the monster pipeline, gone with the battle vision by d290). Retired.** Features: ft_Y_11, ft_Y_02.
 
 ## d084
 

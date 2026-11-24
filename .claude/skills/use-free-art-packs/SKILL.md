@@ -21,10 +21,8 @@ The art canvas is 640 x 360 fine pixels (d110); layouts, the font and most sprit
 | Button icons, arrows, lock, "?", hands, pointer | Kenney `cursor-pixel-pack` (16 px, already black outline); Kenney `1-bit-pack` (16 px, about 1000 tiles; the person, key and gear icons came from it) |
 | Map markers, tiny glyphs | Kenney `minimap-pack` (8 px), `micro-roguelike` (8 px) |
 | Kiur's reactions | Kenney `emotes-pack`, pixel style (16 px); objective only, no praise bubbles (AX-2) |
-| Reward, spell and item icons | OGA "496 pixel art icons for RPG" (7Soul1, 32 px) |
-| Hit and spell effects | OGA "Pixel FX Pack" (CodeManu); OGA "Tiny Magic Glyphs" (5 px) |
-| Overworld tiles and props | Kenney `tiny-town`, `tiny-dungeon`, `tiny-farm`, `tiny-battle`, `monochrome-rpg` (16 px); OGA "Zelda-like tilesets" (ArMM1998; keep it from looking like the franchise) |
-| Overworld monsters (CC BY, needs credit) | OGA "DawnLike" (DragonDePlatino + DawnBringer, CC BY 4.0); Redshrike RPG enemies (CC BY 3.0) |
+| Prize and item icons | OGA "496 pixel art icons for RPG" (7Soul1, 32 px) |
+| Small tiles and props | Kenney `tiny-town`, `tiny-farm` (16 px); OGA "Zelda-like tilesets" (ArMM1998; keep it from looking like the franchise) |
 
 Kenney: `kenney.nl/assets/<name>`. OGA: opengameart.org, licence per file on the author's page.
 

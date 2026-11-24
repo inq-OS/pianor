@@ -137,9 +137,9 @@ Check: `src/core/layout/keriMap.test.ts` "ft_1_19.AC2 every scene of the world m
 
 **Levelling up opens scenes, and every unlocked being turns up in exactly one open scene, drawn at random per student and day.** Features: ft_1_19, ft_1_18, ft_1_06. Supersedes point 4 of d112.
 
-A scene carries a `level` in `content/world/keri.json` and is open when the level from total XP (`levelForXp`, `src/core/progression/xp.ts`) is at least that; the knoll (x -50, y -2 m from the lighthouse, good to about 15 m) is level 1. Every monster the ladder has unlocked is in exactly one open scene, chosen at random per student per day by a pure core rule (ft_1_19.AC8), so an unlocked being is never hidden (AX-0); where it is is computed, not saved, so no save bump; a scene not yet open is painted on the map but is no button. For each reference picture, the agent notes what it sees in `docs/keri/` (map, room, knoll) with improvement tips that are not built until picked. Changed by d132 (a character comes only after enough practice and not every day).
+A scene carries a `level` in `content/world/keri.json` and is open when the level from total XP (`levelForXp`, `src/core/progression/xp.ts`) is at least that; the knoll (x -50, y -2 m from the lighthouse, good to about 15 m) is level 1. Every monster the ladder has unlocked is in exactly one open scene, chosen at random per student per day by a pure core rule (ft_1_19.AC8), so an unlocked being is never hidden (AX-0); where it is is computed, not saved, so no save bump; a scene not yet open is painted on the map but is no button. For each reference picture, the agent notes what it sees in `docs/keri/` (map, room, knoll) with improvement tips that are not built until picked. Changed by d132 (a character comes only after enough practice and not every day) and d290 (the beings are gone; only the opening of scenes holds).
 
-Check: `src/core/campaign/sceneBeings.test.ts` "ft_1_19.AC8 every unlocked monster is in exactly one open scene, and none is anywhere else"; `src/core/campaign/sceneBeings.test.ts` "ft_1_19.AC2 a scene is open when the student"
+Check: `src/core/world/openScenes.test.ts` "ft_1_19.AC2 a scene is open when the student"
 
 ## d115
 
@@ -153,7 +153,7 @@ Check: `src/core/layout/frame.test.ts` "ft_1_20.AC21 gives the main area 163 row
 
 **The old campaign trail and the walk are removed; after two idle minutes in the room a screensaver visits the open scenes.** Features: ft_1_06, ft_1_17, ft_1_18, ft_1_19, ft_1_14. Carries out d112 point 6.
 
-The side-scrolling trail (screen, art, map dot, the piece list's "door" mode), the walk and the room's window button are gone; nothing saved changes. The screensaver opens the first scene the student's level has opened, stays 45 seconds, then goes to the next in the world model's order, round and round (`src/core/visit/islandVisit.ts`); any key, note, tap, pointer move or Back returns to the room. The campaign rules, ladder, save, the monster frames (`src/game/ui/pixel/beings/monsterArt.ts`), the hour's look (`src/game/ui/pixel/sky/skyLooks.ts`) and `meetings.ts` (what pressing a monster opens; removed by d135) stay; beings are hidden in scenes unless `?beings=1`.
+The side-scrolling trail (screen, art, map dot, the piece list's "door" mode), the walk and the room's window button are gone; nothing saved changes. The screensaver opens the first scene the student's level has opened, stays 45 seconds, then goes to the next in the world model's order, round and round (`src/core/visit/islandVisit.ts`); any key, note, tap, pointer move or Back returns to the room. The campaign rules, ladder, save, the hour's look (`src/game/ui/pixel/sky/skyLooks.ts`) and `meetings.ts` (what pressing a monster opens; removed by d135) stay; beings are hidden in scenes unless `?beings=1`.
 
 Check: `src/core/visit/islandVisit.test.ts` "ft_1_17.AC4 the screensaver goes round the open scenes in order and starts over"
 
@@ -299,7 +299,7 @@ Check: untestable: product rule on what stays hidden, judged by the maintainer
 
 So a new scene can be tried before a player's progress opens it. Nothing is saved for it.
 
-Check: `src/core/campaign/sceneBeings.test.ts` "opens every scene there is to the player called tester, whatever the level and the letter case"
+Check: `src/core/world/openScenes.test.ts` "opens every scene there is to the player called tester, whatever the level and the letter case"
 
 ## d193
 

@@ -159,9 +159,3 @@ Recommendation, in order of cost:
 - Do you want the advisory `warn` rule from point 2 added (small config change plus a decision file, since it touches the
   lint setup), or only the manual cleanup of items 1 to 4?
 - Item 9 and the hex colours touch how the pixel UI is designed; they are left for whoever works on the next UI feature.
-
-## TODO
-
-Work tags ([todo-tags.md](../automation/todo-tags.md)); the closed issue in brackets keeps the earlier discussion.
-
-- IDEA(builder, R4): on hold with the turn battle (d129): one named constant per shared battle limit in src/core/battle (bars of a special or defence 16, turn counts 20, HP and attack 10000), the tilt's and the base cast's `comboMaxLoops` from one constant, and a test that the schemas agree; no content or version change. Do it when R4 battle work next touches those files.

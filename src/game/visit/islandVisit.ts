@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import keriJson from '../../../content/world/keri.json';
-import { isTester, openScenes } from '../../core/campaign/sceneBeings';
+import { isTester, openScenes } from '../../core/world/openScenes';
 import { t } from '../../core/text/strings';
 import { VISIT, nextVisit } from '../../core/visit/islandVisit';
 import { loadWorld, type World } from '../../core/world/world';
