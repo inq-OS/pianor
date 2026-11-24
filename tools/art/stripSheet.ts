@@ -7,9 +7,11 @@ import { ICONS } from '../../src/game/ui/pixel/iconArt.ts';
 import { acorn, goldenLeaf, oakLeaf, seedOfLife, singingBranch } from '../../src/game/ui/pixel/prizeArt.ts';
 import { C, PALETTE } from '../../src/game/ui/pixel/palette.ts';
 import { TOOL_ICONS } from '../../src/game/ui/pixel/toolArt.ts';
+import { itemPicture, signOnly, type ItemSign } from '../../src/game/ui/pixel/itemArt.ts';
+import { EDITOR_LENGTHS } from '../../src/core/editor/model.ts';
 
 /**
- * The bubble's, the strip's and the backpack's sheet (`npm run art:render -- ui <practice|scene|kit>`): a mock screen of
+ * The bubble's, the strip's and the backpack's sheet (`npm run art:render -- ui <practice|note|scene|kit>`): a mock screen of
  * 320 x 180 layout cells, the size of the smallest screen (d110), so a zoom of 6 is 1920 x 1080. The practice mock shows
  * the strip with every cell of ft_1_20's table and the bubble opened with a row of choices; the scene mock the door,
  * the gear and the backpack with its page open; the kit every plate in every look and every picture in a strip cell.
@@ -113,6 +115,54 @@ export function practiceMock(): Mock {
   return { cells: b, glass: [{ pic: glass, x: 0, y: 0 }] };
 }
 
+/** The piece maker with the bubble opened on a note and its Length option pressed: every length in one sausage, the one in use lit. */
+export function noteMock(): Mock {
+  const b = createBitmap(W, H);
+  const main = H - PIN_ROWS;
+  paperWithStaff(b, main);
+  corners(b, true);
+  blit(b, stripBitmap(W), 0, main);
+  const fine: FineOverlay[] = [];
+  // a music sign is drawn on the fine grid, in the letters' colour, centred in a box given in cells
+  const sign = (name: ItemSign, box: { x: number; y: number; w: number; h: number }, max: number) => {
+    const pic = tinted(signOnly(itemPicture(name), max, max), C.cream);
+    fine.push({ pic, x: box.x * 2 + ((box.w * 2 - pic.width) >> 1), y: box.y * 2 + ((box.h * 2 - pic.height) >> 1) });
+  };
+  // the strip: Listen, Try, Undo, Redo, the length item
+  const strip: { pic?: Bitmap; sign?: ItemSign }[] = [{ pic: ICONS.ear }, { pic: TOOL_ICONS.play }, { pic: TOOL_ICONS.undo }, { pic: TOOL_ICONS.redo }, { sign: 'note.quarter' }];
+  const flow = pinFlow({ spans: strip.map(() => 1) });
+  for (const { action, rect } of flow.placed) {
+    const c = strip[action]!;
+    blit(b, pinCell(1, action === 4 ? 'on' : 'plain'), rect.x, main + rect.y);
+    if (c.pic) centred(b, pale(c.pic), rect.x, main + rect.y, rect.w, rect.h);
+    else sign(c.sign!, { x: rect.x, y: main + rect.y, w: rect.w, h: rect.h }, 22);
+  }
+  // the note pressed (the third of the upper staff), lit as selected
+  const at = { x: 78, y: 59 };
+  fill(b, at.x, at.y, 5, 3, C.gold);
+  fill(b, at.x + 4, at.y - 14, 1, 15, C.gold);
+  // the bubble on it, slot 0 (length) pressed and its choices out
+  const slots: ({ sign: ItemSign } | { pic: Bitmap })[] = [
+    { sign: 'note.quarter' }, { sign: 'sharp' }, { pic: TOOL_ICONS.trash }, { sign: 'tie' },
+    { sign: 'dynamic.mf' }, { pic: TOOL_ICONS.fingers }, { pic: TOOL_ICONS.grace }, { pic: TOOL_ICONS.copy },
+  ];
+  const lengths = EDITOR_LENGTHS;
+  const layout = bubbleLayout({ at: { x: at.x + 2, y: at.y + 1 }, options: slots.length, screen: { w: W, h: main }, open: { option: 0, choices: lengths.length } });
+  const glass = createBitmap(W, H);
+  const off = (r: { w: number }) => (OPTION_PLATE - r.w) >> 1;
+  layout.options.forEach((r, i) => {
+    blit(glass, optionPlate(i === 0 ? 'down' : 'plain'), r.x - off(r), r.y - off(r));
+    const slot = slots[i]!;
+    if ('pic' in slot) centred(glass, pale(slot.pic), r.x, r.y, r.w, r.h);
+    else sign(slot.sign, r, 26);
+  });
+  blit(glass, closePlate(), layout.close.x - off(layout.close), layout.close.y - off(layout.close));
+  const first = layout.choices[0]!;
+  blit(glass, choicesSausage(lengths.length, lengths.indexOf('quarter')), first.x - 3, first.y - 3);
+  layout.choices.forEach((r, i) => sign(`note.${lengths[i]!}`, r, 28));
+  return { cells: b, glass: [{ pic: glass, x: 0, y: 0 }], fine };
+}
+
 /** A scene with the backpack in the top right corner and its page open. */
 export function sceneMock(): Mock {
   const b = createBitmap(W, H);
@@ -173,7 +223,7 @@ export function kitMock(): Mock {
   return { cells: b };
 }
 
-export const UI_SHEETS = { practice: practiceMock, scene: sceneMock, kit: kitMock } as const;
+export const UI_SHEETS = { practice: practiceMock, note: noteMock, scene: sceneMock, kit: kitMock } as const;
 export type UiSheet = keyof typeof UI_SHEETS;
 
 /** One sheet on the fine grid (640 x 360, d110) with the game's palette, ready for `pngBytes`. */

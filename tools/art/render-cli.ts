@@ -17,7 +17,7 @@ import { UI_SHEETS, uiSheet, type UiSheet } from './stripSheet.ts';
  * `npm run art:render -- kit [family] [hour] [file] [zoom]` paints the painter's kit instead: every type of every
  * family (or of one: `kit stones`) in every variant, to pick from (`kitSheet.ts`, d124); its zoom defaults to 3.
  *
- * `npm run art:render -- ui <practice|scene|kit> [file] [zoom]` paints the bubble's, the strip's and the backpack's sheet
+ * `npm run art:render -- ui <practice|note|scene|kit> [file] [zoom]` paints the bubble's, the strip's and the backpack's sheet
  * on a mock screen (`stripSheet.ts`, ft_1_20); its zoom defaults to 3, which is 1920 x 1080.
  *
  * `npm run art:render -- figures [hour] [file] [zoom]` paints the template character's sheet: the sample people in every
