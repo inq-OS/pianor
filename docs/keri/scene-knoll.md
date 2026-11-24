@@ -7,7 +7,7 @@ These notes are what the agent saw on the reference pictures. They may be wrong,
 
 ## What it is
 
-The first scene: a grassy knoll with a bonfire place (just embers and smoke left), between the warden's house and the lighthouse, south off the trail. It is level 1, so open from the start, and its place on the map is a ring of stones with embers and a thread of smoke. The picture and its beings are [ft_1_19.AC8 and AC9](../features/ft_1_19-scenes-of-beings.md); the rules are in [d113](../decisions/game.md#d113) and the picture's manner in [d111](../decisions/art.md#d111). Its place in the world model (x -50, y -2 metres from the lighthouse) was set by eye from a marker on the photographs and is good to about 15 m.
+The first scene: a grassy knoll with a bonfire place (just embers and smoke left), between the warden's house and the lighthouse. It is level 1, so open from the start, and its place on the map is a ring of stones with embers and a thread of smoke. The picture is [ft_1_19.AC9](../features/ft_1_19-scenes-on-keri.md); the rules are in [d113](../decisions/game.md#d113) and the picture's manner in [d111](../decisions/art.md#d111). Its place in the world model (x -50, y -2 metres from the lighthouse) was set by eye from a marker on the photographs and is good to about 15 m.
 
 ## Sources
 

@@ -31,7 +31,7 @@ A change on the right side goes to the builder or the architect as a tag in the 
 
 ## 4. Rules of work
 
-1. **Scaffold and wait.** Scaffold and wait for the maintainer's input, and never invent information that must come from the maintainer (maps, pictures). What a place looks like, what a being looks like, where a thing stands on Keri: asked, never invented. Write `KERI-TODO` where the answer is missing.
+1. **Scaffold and wait.** Scaffold and wait for the maintainer's input, and never invent information that must come from the maintainer (maps, pictures). What a place looks like, what a character looks like, where a thing stands on Keri: asked, never invented. Write `KERI-TODO` where the answer is missing.
 2. **Every picture goes to the maintainer's eye** before it counts as done. Show it at 1920 x 1080, at each hour of the day it has, next to the picture it replaces. Write each verdict as a plain rule (no date, no quote, d165) into the decision it belongs to and into art-direction.md section 8.
 3. **One screen, one pull request.** A screen's behaviour, buttons and text do not change in a repaint. A wish to change them is a separate question for the maintainer.
 4. **The staff stays plain** where a piece is read and played. A frame round it may be painted; nothing behind or over the notes.
@@ -71,11 +71,11 @@ The next work is to overhaul all existing screens to the agreed MI2-like style. 
 | Group | Scenes | Today | What a repaint must settle |
 |---|---|---|---|
 | Painted places | `profile` (the warden's room), `keriMap`, `knoll`, `docks`, `crossroads` | done in the manner, on the painter's kit (d124) | nothing; they are the models |
-| Places still to paint | `kiurDoor` | flat pixel art on the game's 53 colours | which become scenes on Keri (the battle screens are gone, d129; the trail and the walk are removed, d117; the room's screensaver shows the painted scenes, ft_1_17) |
+| Places still to paint | `kiurDoor` | flat pixel art on the game's 53 colours | which become scenes on Keri (the room's screensaver shows the painted scenes, ft_1_17) |
 | Screens with a staff | `practice`, `noteTrainer`, `earTrainer`, `analyze`, `results`, `editor`, `preview` | a plain staff, toolbars, panels | how much picture a staff screen may carry at all (rule 4 above) |
 | Lists and forms | `boot`, `profiles`, `name`, `menu`, `pieces`, `parts`, `settings`, `credits` | panels and buttons on a plain ground | one painted ground behind them, or each its own place (the menu as a place on Keri?) |
 | Admin | `admin`, `adminGate`, `adminPages`, `adminPassword`, `adminDelete` | plain | probably none: a parent's tool, not the student's world |
-| Dev only | `staff-demo`, `art-demo`, `battle-art-demo` | plain | none |
+| Dev only | `staff-demo`, `art-demo` | plain | none |
 
 The groups are the architect's reading of the code, not a decision. **The painter's first step is its own inventory:** a screenshot of every screen as it is today, in one sheet, with a proposal per group, for the maintainer to mark.
 

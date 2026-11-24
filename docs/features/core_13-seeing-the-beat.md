@@ -9,7 +9,7 @@ depends_on: ["core_01", "core_02"]
 ---
 # core_13: Seeing the beat
 
-Index: [FEATURES.md](FEATURES.md). The click of core_02 is heard; these helpers show the same beat to the eye, for a student who does not yet hear where the beat falls, and for the walk of the autotrainer (ft_1_35 rule 6). AX-0: each shows **when**, never **which key**, so none of them lets a student play without reading the staff; that is also why falling notes stay out (ft_Y_05).
+Index: [FEATURES.md](FEATURES.md). The click of core_02 is heard; these helpers show the same beat to the eye, for a student who does not yet hear where the beat falls, and for the walk of the autotrainer (ft_1_35 rule 6). AX-0: each shows **when**, never **which key**, so none of them lets a student play without reading the staff.
 
 ## Rules
 

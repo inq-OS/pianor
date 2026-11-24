@@ -1,6 +1,5 @@
 import type { World, WorldPoint } from '../world/world';
 import { ART_DETAIL } from './frame';
-import type { Rect } from './rect';
 import { ROOM_PICTURE, roomView } from './room';
 
 /**
@@ -75,7 +74,7 @@ export const KNOLL_FIRE = { x: KNOLL_PLATEAU.top.x - 6, y: KNOLL_PLATEAU.top.y +
 /** The moon's place in the night's sky, in fine pixels: its middle and radius. The day's clouds start off it (`cloudCourses`). */
 export const KNOLL_MOON = { x: 392, y: 25, r: 9 } as const;
 
-/** Round the fire the grass is short, kept down by feet: this oval of the picture (fine pixels). The beings stand in it. */
+/** Round the fire the grass is short, kept down by feet: this oval of the picture (fine pixels). */
 export const KNOLL_CLEARING = { x: KNOLL_FIRE.x, y: KNOLL_FIRE.y + 13, rx: 118, ry: 30 } as const;
 
 /** A point of the island (world metres) on the viewer's plan, in metres: `x` to the viewer's right and `z` toward the viewer, from the knoll. */
@@ -138,20 +137,6 @@ export function knollShore(world: World): KnollShore[] {
   return out;
 }
 
-/**
- * Where a being stands by the fire: its feet on the short grass, in fine pixels of the picture. The first two stand left
- * and right of the fire; more stand before it. AX-3 provisional: four places, as many as the ladder has monsters.
- */
-export const KNOLL_SPOTS: readonly { x: number; y: number }[] = [
-  { x: 196, y: 143 },
-  { x: 392, y: 142 },
-  { x: 254, y: 159 },
-  { x: 336, y: 160 },
-];
-
-/** A being's button in layout cells: the being with its name and stars over it. */
-const SPOT_HIT = { w: 26, h: 44 } as const;
-
 export interface KnollPlan {
   /** The picture's size in fine pixels. */
   fine: { w: number; h: number };
@@ -159,8 +144,6 @@ export interface KnollPlan {
   horizon: number;
   /** The embers' middle on the picture, in fine pixels: the smoke rises from here. */
   fire: { x: number; y: number };
-  /** For each place of `KNOLL_SPOTS`: where a being's feet are (fine pixels) and its button (layout cells from the picture's top-left corner). */
-  spots: { feet: { x: number; y: number }; button: Rect }[];
 }
 
 export function knollPlan(): KnollPlan {
@@ -168,9 +151,5 @@ export function knollPlan(): KnollPlan {
     fine: { ...FINE },
     horizon: KNOLL.horizon,
     fire: { x: KNOLL_FIRE.x, y: KNOLL_FIRE.y - 1 },
-    spots: KNOLL_SPOTS.map((feet) => {
-      const x = Math.round(feet.x / ART_DETAIL - SPOT_HIT.w / 2), bottom = Math.round(feet.y / ART_DETAIL) + 2;
-      return { feet: { ...feet }, button: { x, y: bottom - SPOT_HIT.h, w: SPOT_HIT.w, h: SPOT_HIT.h } };
-    }),
   };
 }

@@ -26,13 +26,12 @@ Since d129 there are no battles or monsters: the monsters are characters (same l
 - **Costs:** phases before the show pay no XP and take nothing away. The show pays by ft_1_21. No XP is ever taken away.
 - **Save:** the campaign state (unlocked, levels beaten) is in the profile (version 14), with a tested migration.
 - **Wording:** gentle; no screen says "failed".
-- **Meetings:** the trail is gone (d117). A character is met in a scene on Keri ([ft_1_19](ft_1_19-scenes-of-beings.md)) and talked to (ft_1_22); its tug opens from that talk once the practice gate is open (AC15, ft_1_21). The find-the-key and find-the-door screens, the piece list's campaign mode and the monsters' meetings that opened them were removed (d135, ft_1_21); their pure rules were deleted with the battle helpers (`levelChart`) and the Tempo door's frame (`tempoFrame.ts`). Not built in the new flow: picking any piece of the list for a character's level (AC9); the tug plays the piece the character taught.
+- **Meetings:** the trail is gone (d117). A character is met in a scene on Keri ([ft_1_19](ft_1_19-scenes-on-keri.md)) and talked to (ft_1_22); its tug opens from that talk once the practice gate is open (AC15, ft_1_21). The find-the-key and find-the-door screens, the piece list's campaign mode and the monsters' meetings that opened them were removed (d135, ft_1_21); their pure rules were deleted with the battle helpers (`levelChart`) and the Tempo door's frame (`tempoFrame.ts`). Not built in the new flow: picking any piece of the list for a character's level (AC9); the tug plays the piece the character taught.
 
-Not in this feature: piece decomposition beyond bar ranges (core_06), more characters (ft_Y_02), the spellbook (ft_Y_01), art beyond placeholders (ft_Y_11), piece import (ft_Y_04).
 
 ## Acceptance criteria
 
-- **ft_1_06.AC1** Only the first monster is playable at the start; the other three are locked placeholders with no gameplay under them. Where a monster is met is a scene on Keri ([ft_1_19](ft_1_19-scenes-of-beings.md)); the side-scrolling trail that did this first is removed (d117).
+- **ft_1_06.AC1** Only the first monster is playable at the start; the other three are locked placeholders with no gameplay under them. Where a monster is met is a scene on Keri ([ft_1_19](ft_1_19-scenes-on-keri.md)); the side-scrolling trail that did this first is removed (d117).
 - **ft_1_06.AC2** Retired (d135): find the key is no longer a gate; practice evidence is (AC15).
 - **ft_1_06.AC3** Retired (d135): find the door is no longer a gate; its Tempo share lives on as the measure of AC15.
 - **ft_1_06.AC4** Phase 3 is the challenge of ft_1_21, the student's phrases played with no staff (d100): level 1 judges only the keys and a wrong key moves on, level 2 is Tempo mode with the click, level 3 Tempo mode with only the count-in heard; a loss is never followed by a new practice gate, only by the cool-down of ft_1_21.AC13.

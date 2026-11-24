@@ -16,10 +16,10 @@ Softer, more musical menus: icon buttons with a delayed tooltip, and a player ro
 
 1. Slices: 1 vine corners, 2 icon buttons and tooltip, 3 the room as a real room, 4 the room lives, 5 the stand panel (AC11). All built.
 2. The room is one painted picture ([d111](../decisions/art.md#d111)); nothing is laid over a painting. Placement is `core/layout/room.ts`, unit tested at 320 x 180 (d110), 342 x 192, 384 x 216 and 400 x 225 cells.
-3. The room's objects are the buttons (AC7). Today they are the piano (practice songs, key `room.piano`, "Klaver"), the door (campaign) and the stand (the easel, key `room.stand`, "Exercises", "Harjutused"). The gramophone and its button are gone; all non-piano trainers and minigames go through the stand. The book on the lectern is hidden (art and layout stay). Name, level and XP are at the top left, Settings and Quit are icon buttons at the top right.
+3. The room's objects are the buttons (AC7). Today they are the piano (practice songs, key `room.piano`, "Klaver"), the door (the map of Keri) and the stand (the easel, key `room.stand`, "Exercises", "Harjutused"). All non-piano trainers and minigames go through the stand. The book on the lectern is hidden (art and layout stay). Name, level and XP are at the top left, Settings and Quit are icon buttons at the top right.
 4. Reduced motion is `config.theme.reducedMotion`, set by `?motion=still`. The system setting is not read (d127: the scenes move even where Windows animations are off). No in-game switch yet.
 5. The name bubble's 0.6 s delay runs on the game's clock, which runs slow when the frame rate drops (software WebGL), so end-to-end tests wait for it generously.
-6. Not on the campaign map (removed with the trail, d117) or the book. Free packs for later screens are mapped in the `use-free-art-packs` skill; level badges belong to the rank diploma. Tablet check of label-less room objects: Later pool.
+6. Not on the book. Free packs for later screens are mapped in the `use-free-art-packs` skill; level badges belong to the rank diploma. Tablet check of label-less room objects: Later pool.
 7. Not verified (needs human, AC8): the look on the laptop's real screen and the screenshot baselines of the room (slice 4 changed it; needs the "Update screenshot baselines" workflow).
 
 ## Acceptance criteria

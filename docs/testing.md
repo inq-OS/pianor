@@ -9,7 +9,7 @@ Principle: almost all game rules live in pure TypeScript (`src/core`), so they c
 
 | Layer | What | Tools | Where |
 |---|---|---|---|
-| Unit | Chart math, staff positions, judge, scoring, progression, battle rules, linter rules | Vitest | next to the module (`src/**/*.test.ts`, `tools/**/*.test.ts`) when it tests one module; `tests/<area>/` (practice, progression, editor, judge, content, integration) when it tests several together |
+| Unit | Chart math, staff positions, judge, scoring, progression, challenge rules, linter rules | Vitest | next to the module (`src/**/*.test.ts`, `tools/**/*.test.ts`) when it tests one module; `tests/<area>/` (practice, progression, editor, judge, content, integration) when it tests several together |
 | Property-based | Invariants that must hold for any input (see section 2) | fast-check (MIT, `docs/dependencies.md`) | next to unit tests |
 | Golden | ABC to chart compiler output (staff layout and generator goldens are planned) | Committed fixtures, compared by the test; `UPDATE_GOLDEN=1 npx vitest run tools/piece/compile.test.ts` rewrites them after a deliberate change | `tests/golden/` |
 | Replay | Scripted or recorded MIDI event sequences replayed through the judge and scoring | Vitest + JSON fixtures | `tests/replays/` |

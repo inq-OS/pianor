@@ -40,27 +40,23 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_18.AC2 ft_1_18.AC4 ft_1_19.AC6 the door opens the map of Keri, which has no trail dot (d117), and the warden\'s house returns to the room', async ({ page }) => {
+  test('ft_1_18.AC2 ft_1_18.AC4 the door opens the map of Keri, and the warden\'s house returns to the room', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
     // the island's name is painted into the picture; the map's source is named on the credits screen, not here
     expect(await sceneTexts(page, 'keriMap')).not.toContain(MAP_CREDIT);
-    expect(await sceneButton(page, 'keriMap', 'Monster trail')).toBe(-1);
     await clickButton(page, 'keriMap', await sceneButton(page, 'keriMap', "Warden's house"));
     await waitForScene(page, 'profile');
     expectNoErrors(errors);
   });
 
-  test('ft_1_19.AC2 ft_1_19.AC9 the knoll on the map opens the scene with the bonfire place: a clean picture with no beings in it, its grass, clouds, embers and smoke moving, and Back returns to the map', async ({ page }) => {
+  test('ft_1_19.AC2 ft_1_19.AC9 the knoll on the map opens the scene with the bonfire place, its grass, clouds, embers and smoke moving, and Back returns to the map', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
     await clickButton(page, 'keriMap', await sceneButton(page, 'keriMap', 'Grassy knoll'));
     await waitForScene(page, 'knoll');
-    // no being shows for now: neither its name nor its button
-    expect(await sceneTexts(page, 'knoll')).not.toContain('Locria');
-    expect(await sceneButton(page, 'knoll', 'Locria')).toBe(-1);
     // the grass and the sea (a gust in a loop of looks), the drifting clouds, the embers and the thread of smoke move
     const moving = await page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { animators: unknown[] }).animators.length);
     expect(moving).toBeGreaterThan(5);
@@ -80,7 +76,6 @@ test.describe('the player room', () => {
       window.__game.scene.start('crossroads');
     });
     await waitForScene(page, 'crossroads');
-    expect(await sceneButton(page, 'crossroads', 'Locria')).toBe(-1);
     // the grass and the sea (a gust in a loop of looks) and the drifting clouds move
     const moving = await page.evaluate(() => (window.__game.scene.getScene('crossroads') as unknown as { animators: unknown[] }).animators.length);
     expect(moving).toBeGreaterThan(3);
@@ -203,7 +198,7 @@ test.describe('the player room', () => {
     expect(first.clouds).toHaveLength(3);
     // the sea, the lamp, the gulls' flock (ft_1_19.AC13) and three clouds move
     expect(first.animators).toBe(6);
-    // the warden's house and the knoll (ft_1_19.AC2: the one scene a new player has open); the trail's dot is gone (d117)
+    // the warden's house and the knoll (ft_1_19.AC2: the one scene a new player has open)
     expect(first.buttons).toHaveLength(2);
     for (const b of first.buttons) {
       expect(b.x).toBeGreaterThanOrEqual(0);
@@ -245,8 +240,6 @@ test.describe('the player room', () => {
     });
     await waitForScene(page, 'knoll');
     expect(await page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { visiting: boolean }).visiting)).toBe(true);
-    // a visit shows the scene as it is: no being, no text but the toolbar's
-    expect(await sceneTexts(page, 'knoll')).not.toContain('Locria');
     // a key does nothing in the scene but go home
     await letGameRun(page, 3, 50);
     await page.keyboard.press('KeyQ');

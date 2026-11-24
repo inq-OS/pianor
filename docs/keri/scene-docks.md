@@ -7,7 +7,7 @@ These notes are what the painter saw on the reference pictures. They may be wron
 
 ## What it is
 
-The jetty on the north shore behind the warden's house (it can be seen behind the warden's house; it looks like Monkey Island 2, not like modern equipment). A scene of [ft_1_19](../features/ft_1_19-scenes-of-beings.md), level 2 (AX-3 provisional: the knoll is level 1, and levelling up opens new scenes, d113). Its place in the world model (x -101, y 100 metres from the lighthouse) is the jetty's middle, set by eye from the reference aerial photograph on the orthophoto's shore, good to about 10 m.
+The jetty on the north shore behind the warden's house (it can be seen behind the warden's house; it looks like Monkey Island 2, not like modern gear). A scene of [ft_1_19](../features/ft_1_19-scenes-on-keri.md), level 2 (AX-3 provisional: the knoll is level 1, and levelling up opens new scenes, d113). Its place in the world model (x -101, y 100 metres from the lighthouse) is the jetty's middle, set by eye from the reference aerial photograph on the orthophoto's shore, good to about 10 m.
 
 ## Sources
 
@@ -15,7 +15,7 @@ Reference pictures ([keri.md](../keri.md) section 4) items 24 (the aerial photog
 
 ## Direction for the picture
 
-- The northern jetty, which can be seen behind the warden's house, in the manner of Monkey Island 2 and never like modern equipment; the 1991 game's docks of Scabb Island are the kind of spot that serves as inspiration. The view is along the jetty from its root.
+- The northern jetty, which can be seen behind the warden's house, in the manner of Monkey Island 2 and never like modern gear; the 1991 game's docks of Scabb Island are the kind of spot that serves as inspiration. The view is along the jetty from its root.
 - Never trying to look realistic; quirkiness is good ([docs/art-direction.md](../art-direction.md) section 1).
 - The walk comes round the big rock from the left side, and the landing area is behind the rock. The small roofed tower on the rock is a birdwatching tower, not a hut to stay in, and can become a scene of its own later.
 

@@ -43,7 +43,7 @@ An optional helper on the staff shows how long each note sounds, so the student 
   follow the time signature.
 - **ft_1_11.AC4** Each hand's notes get its own choice: A only ghost heads, B only bands, A+B both, off nothing.
 - **ft_1_11.AC5** The marks are drawn on their own layer under the staff lines and the notes.
-- **ft_1_11.AC6** The practice staff (and every staff drawn through the play session: practice, battle, campaign) shows the
+- **ft_1_11.AC6** The practice staff (and every staff drawn through the play session) shows the
   marks the player chose, and none when off.
 - **ft_1_11.AC7** [human] The maintainer checks the look on Windows, at the laptop size and the smallest size.
 - **ft_1_11.AC8** Tied notes get one unbroken band: no gap before the tied head, none across the bar line, and over a line

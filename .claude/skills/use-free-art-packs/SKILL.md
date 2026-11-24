@@ -5,7 +5,7 @@ description: Use before drawing any icon, sprite, panel, frame, tile, effect or 
 
 # Use free art packs before drawing
 
-Rule: [d084](../../../docs/decisions/art.md#d084). Standard shapes (arrows, check, cross, lock, gear, key, cursor, frames, sparks, tiles) come from a free pack; draw your own only when nothing fits or the thing is the game's identity (Kiur, the monsters, the staff).
+Rule: [d084](../../../docs/decisions/art.md#d084). Standard shapes (arrows, check, cross, lock, gear, key, cursor, frames, sparks, tiles) come from a free pack; draw your own only when nothing fits or the thing is the game's identity (Kiur, the characters, the staff).
 
 ## 1. Will it fit?
 

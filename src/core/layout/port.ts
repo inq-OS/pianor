@@ -77,16 +77,6 @@ const LAMP = { x: PORT.head - 18, y: 82 } as const;
 const STAND_ON_QUAY = [{ x: 210, y: PORT.deck + 2 }, { x: 400, y: PORT.deck + 2 }] as const;
 const STAND_ON_BED = [{ x: 150, y: PORT.bed + 14 }, { x: 470, y: PORT.bed + 16 }] as const;
 
-/** A being's button in layout cells: the being with its name and stars over it. */
-const SPOT_HIT = { w: 26, h: 44 } as const;
-
-/** A being's place: its feet (fine pixels) and its button (layout cells from the picture's corner), on a stage whose top is row `top` of the tall picture. */
-function spotOf(feet: { x: number; y: number }, top: number): { feet: { x: number; y: number }; button: Rect } {
-  const at = { x: feet.x, y: feet.y - top };
-  const x = Math.round(at.x / ART_DETAIL - SPOT_HIT.w / 2), bottom = Math.round(at.y / ART_DETAIL) + 2;
-  return { feet: at, button: { x, y: bottom - SPOT_HIT.h, w: SPOT_HIT.w, h: SPOT_HIT.h } };
-}
-
 export interface PortPlan {
   /** The screen's picture, fine pixels. */
   fine: { w: number; h: number };
@@ -106,9 +96,6 @@ export interface PortPlan {
   /** Feet on the quay and on the bed (rows of the tall picture). */
   quay: readonly { x: number; y: number }[];
   under: readonly { x: number; y: number }[];
-  /** The beings' places on each stage: on the quay, and on the bed (feet and buttons from that stage's own corner). */
-  spots: { feet: { x: number; y: number }; button: Rect }[];
-  deepSpots: { feet: { x: number; y: number }; button: Rect }[];
   /** Where a press dives (the near water) and where one rises again (the deep stage's top, over the water), layout cells. */
   diveAt: Rect;
   riseAt: Rect;
@@ -129,8 +116,6 @@ export function portPlan(): PortPlan {
     berths: PORT_BERTHS.map((b) => ({ ...b })),
     quay: STAND_ON_QUAY.map((p) => ({ ...p })),
     under: STAND_ON_BED.map((p) => ({ ...p })),
-    spots: STAND_ON_QUAY.map((p) => spotOf(p, 0)),
-    deepSpots: STAND_ON_BED.map((p) => spotOf(p, PORT.dive)),
     diveAt: { x: 0, y: Math.ceil((PORT.water + 4) / ART_DETAIL), w: PORT_PICTURE.w, h: PORT_PICTURE.h - Math.ceil((PORT.water + 4) / ART_DETAIL) },
     riseAt: { x: 0, y: 0, w: PORT_PICTURE.w, h: Math.floor((PORT.water - PORT.dive) / ART_DETAIL) },
   };

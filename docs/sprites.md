@@ -3,7 +3,7 @@ title: "Sprites: how pixel art is made, organised and used"
 ---
 # Sprites: how pixel art is made, organised and used
 
-What pixel art the game has and where it lives. The painted pictures of Keri are made as [art-direction.md](art-direction.md) says (d111). The planned sprite pipeline for monsters built from parts was removed with the battle vision (d290); a new pipeline, if one is needed, starts from the current vision with its own feature file. Read this before adding a picture to the game.
+What pixel art the game has and where it lives. The painted pictures of Keri are made as [art-direction.md](art-direction.md) says (d111). Read this before adding a picture to the game.
 
 ## 1. Where we are today
 

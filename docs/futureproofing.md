@@ -33,10 +33,10 @@ The core emits `NoteJudged`, `BarCompleted`, `PhraseCompleted`, `PieceCompleted`
 ### 1.4 Rendering is split: layout, view, state
 
 - A **pure layout function** turns chart plus viewport into positioned glyphs (testable, no Phaser).
-- A **view** draws those glyphs. The staff view is the MVP; a falling-notes view, a keyboard view or the tug's overlay are other views over the same chart and the same play state.
+- A **view** draws those glyphs. The staff view is the main one; a keyboard view or the tug's overlay are other views over the same chart and the same play state.
 - A **play state** object (cursor, per-note status) is the only thing views read. Views never decide correctness.
 
-This is what keeps the "optional falling notes" and later "phrase as spell" visuals cheap, and stops Phaser from leaking into rules.
+This is what keeps other views cheap, and stops Phaser from leaking into rules.
 
 ### 1.5 Persistence is versioned, profile-scoped and exportable
 
@@ -74,7 +74,7 @@ One audio-clock-based song time inside the core, in ticks; the io layer converts
 
 ## 3. Practices that protect the future
 
-- **Thin engine, fat data:** spells, classes, levels, enemies, rewards and curriculum live in validated JSON, so game design can evolve without engine code changes.
+- **Thin engine, fat data:** characters, conversations, levels, prizes and the curriculum live in validated JSON, so game design can evolve without engine code changes.
 - **Boundary enforcement in CI** (see `docs/testing.md`): core purity and io interfaces are lint-enforced, not just documented.
 - **Migrations are tested:** each schema keeps fixtures of every older version. A migration step writes the values of its own version as literals, never today's defaults, and a golden test freezes its output (d064).
 - **Feature flags** in one config object (dev tools, draft content, experimental modes), so unfinished features can ship dark; unfinished work merges early behind one, off by default, rather than waiting on a long branch (d147).

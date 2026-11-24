@@ -1,43 +1,39 @@
 ---
 id: "ft_1_19"
-title: "Scenes on Keri where the beings to be tamed are found"
-scope: "The campaign's monsters are met in scenes, places on Keri island each drawn as one painted picture, opened from the map of Keri; they replace the continuous side-scrolling trail; the campaign's rules, ladder and save do not change"
+title: "Scenes on Keri"
+scope: "Places on Keri island, each drawn as one painted picture and opened from the map of Keri, where the student meets the characters"
 effort: "large"
-status: "five scenes built (knoll, docks, crossroads, harbour, terrace); live motion, one wind, flocks and glowing motes built (AC11, AC12; not yet seen on the target laptop); the beings removed (d290); trail removed (d117); the maintainer's look, students' try-out and the next places open"
+status: "five scenes built (knoll, docks, crossroads, harbour, terrace); live motion, one wind, flocks and glowing motes built (AC11, AC12; not yet seen on the target laptop); the maintainer's look, students' try-out and the next places open"
 completeness: 64
-depends_on: ["ft_1_18", "ft_1_06"]
+depends_on: ["ft_1_18"]
 ---
-# ft_1_19: Scenes on Keri where the beings to be tamed are found
+# ft_1_19: Scenes on Keri
 
-The student opens the map of Keri, goes to a place, and finds beings there; each place is one painted picture. Decisions: [d112](../decisions/game.md#d112), [d113](../decisions/game.md#d113). Index: [FEATURES.md](FEATURES.md). Notes on the map and each scene: [docs/keri/map.md](../keri/map.md), [scene-room.md](../keri/scene-room.md), [scene-knoll.md](../keri/scene-knoll.md), [scene-docks.md](../keri/scene-docks.md), [scene-crossroads.md](../keri/scene-crossroads.md), [scene-port.md](../keri/scene-port.md), [scene-terrace.md](../keri/scene-terrace.md).
+The student opens the map of Keri and goes to a place; each place is one painted picture. Decisions: [d112](../decisions/game.md#d112), [d113](../decisions/game.md#d113). Index: [FEATURES.md](FEATURES.md). Notes on the map and each scene: [docs/keri/map.md](../keri/map.md), [scene-room.md](../keri/scene-room.md), [scene-knoll.md](../keri/scene-knoll.md), [scene-docks.md](../keri/scene-docks.md), [scene-crossroads.md](../keri/scene-crossroads.md), [scene-port.md](../keri/scene-port.md), [scene-terrace.md](../keri/scene-terrace.md).
 
 ## Rules
 
-1. Scenes replace the old trail; the campaign's rules, ladder, unlock order and save are ft_1_06's, unchanged ([ft_1_06](ft_1_06-monster-campaign.md)). Levelling up opens scenes; a being has no fixed home and turns up at random in an open scene (d113).
-2. Since [d129](../decisions/game.md#d129) the beings are characters who challenge the student in the scene ([ft_1_21](ft_1_21-challenges-with-characters.md)): no fight, no battle stage, the challenge is drawn over the picture. Since [d132](../decisions/game.md#d132) a character is met only after enough practice and not every day, and pressing it opens a conversation first ([ft_1_22](ft_1_22-conversations-and-phrase-book.md)).
-3. AX-0: a scene is the way to a piece, never a place to stay: one press starts a being's game, and nothing in a scene must be solved before the student may play. AX-2: scenes give no reward of their own. AX-3: what is not yet decided is built simply and marked provisional.
-4. No being stands in a scene: the beings of the battle vision, their monster art and the `?beings=1` switch were removed (d290). A character stands in its scene by its own place (ft_1_22).
-5. The trail, its screen, art and map dot are removed (d117). The room's screensaver visits the open scenes ([ft_1_17](ft_1_17-a-walk.md)).
-6. The tester: the player named `tester` (case aside) has every scene open whatever the level (`TESTER_NAMES`, `isTester` in `src/core/world/openScenes.ts`); the map, the scenes and the island visit read it; nothing is saved.
-7. Scenes built, each one pixel-art picture per sky hour made at build time, in Keri's shared palette (`keri/keriPalette.ts`, d111):
+1. Levelling up opens scenes ([d113](../decisions/game.md#d113)).
+2. A character challenges the student in its scene ([d129](../decisions/game.md#d129), [ft_1_21](ft_1_21-challenges-with-characters.md)); the challenge is drawn over the picture. A character is met only after enough practice and not every day, and pressing it opens a conversation first ([d132](../decisions/game.md#d132), [ft_1_22](ft_1_22-conversations-and-phrase-book.md)).
+3. AX-0: a scene is the way to a piece, never a place to stay: one press starts a character's game, and nothing in a scene must be solved before the student may play. AX-2: scenes give no reward of their own. AX-3: what is not yet decided is built simply and marked provisional.
+4. The room's screensaver visits the open scenes ([ft_1_17](ft_1_17-a-walk.md)).
+5. The tester: the player named `tester` (case aside) has every scene open whatever the level (`TESTER_NAMES`, `isTester` in `src/core/world/openScenes.ts`); the map, the scenes and the island visit read it; nothing is saved.
+6. Scenes built, each one pixel-art picture per sky hour made at build time, in Keri's shared palette (`keri/keriPalette.ts`, d111):
    - **Knoll** (level 1): `knollPicture.ts`, `src/core/layout/knoll.ts`; how it is made: [scene-knoll.md](../keri/scene-knoll.md). Clouds are one stroke each, no two alike (`keri/curlCloud.ts`, d111). The right side is open to the sea. A gust runs through the grass, stems and sea in eight looks (faster in more wind), clouds drift behind the stems, smoke is one thin thread bent east (`paint/motion.ts`, `paint/smoke.ts`, `windMotion.ts`). The ground stands still (`GROUND_MOVES`; sky and sea move); sea looks and lights dissolve one into the next (`fadeWeights`); clouds glide on screen pixels. No wind-dependent white caps yet.
    - **Docks** (level 2, AX-3 provisional): the jetty on the north shore behind the warden's house; `docksPicture.ts`, `src/core/layout/docks.ts`, `content/scenes/docks.json` on `src/game/adventure/AdventureScene.ts`; notes [scene-docks.md](../keri/scene-docks.md).
    - **Crossroads** (level 2, AX-3 provisional): the path's Y fork by the green hut, the lighthouse at the end of its right arm; `crossroadsPicture.ts`, `src/core/layout/crossroads.ts`; notes [scene-crossroads.md](../keri/scene-crossroads.md).
    - **Harbour** (level 2, AX-3 provisional): the southern port at the slipway, the wider stone dock most visitors land at; `portPicture.ts` (the surface, the underwater view and the boats, `portBoats.ts`), `src/core/layout/port.ts`, `content/scenes/port.json`; the second view is `SceneLife.dive` (`sceneLife.ts`); notes [scene-port.md](../keri/scene-port.md).
    - **Terrace** (level 2, AX-3 provisional): the deck before the main door of the warden's house, seen from its end by the door looking away from the house, a little south of west, out over the beach to the sea; the first of three scenes of the house. It has more on it than the real one and reaches out over the beach as a walk of boards on piles to a head over the water, where a small thatched watchtower with a fixed long spyglass stands; its rails are stout wood (a deck with features and character, no boat; wooden handrails; a small watchtower of about two floors with a fixed long spyglass to scan the horizon; torches at night, as the terrace is like the village plaza: seven torches round the deck and down the walk burn from dusk on; the other things on it are the painter's, for the maintainer to judge); `terracePicture.ts`, `src/core/layout/terrace.ts`, `content/scenes/terrace.json`; notes [scene-terrace.md](../keri/scene-terrace.md).
-8. The map paints a place for each scene (the knoll a ring of stones, the docks a jetty of boards, the crossroads a Y of pale slabs; the terrace is the deck the map already draws before the house). Tests: `src/core/layout/keriMap.test.ts`, `src/game/ui/pixel/keri/mapPicture.test.ts`, `tests/e2e/room.spec.ts`, `tools/art/pictureRules.test.ts`.
+7. The map paints a place for each scene (the knoll a ring of stones, the docks a jetty of boards, the crossroads a Y of pale slabs; the terrace is the deck the map already draws before the house). Tests: `src/core/layout/keriMap.test.ts`, `src/game/ui/pixel/keri/mapPicture.test.ts`, `tests/e2e/room.spec.ts`, `tools/art/pictureRules.test.ts`.
 
 ## Acceptance criteria
 
 AC2 to AC10 are AX-3 provisional (d112, d113).
 
-- **ft_1_19.AC1** The beings of the campaign are met in scenes, no screen shows them along one continuous trail. Each scene is a real place on Keri named by the maintainer, drawn as one painted picture ([d111](../decisions/art.md#d111)): seen from inside the place, lit by the hour, never darkened at its corners by a laid-on shadow (a corner is closed by placed things or left open, d111), a strip free under it.
+- **ft_1_19.AC1** Each scene is a real place on Keri named by the maintainer, drawn as one painted picture ([d111](../decisions/art.md#d111)): seen from inside the place, lit by the hour, never darkened at its corners by a laid-on shadow (a corner is closed by placed things or left open, d111), a strip free under it.
 - **ft_1_19.AC2** The map of Keri shows a painted place for every scene of the world model, where the maintainer marked it. A scene is open when the student's level (from total XP, `levelForXp`) is at least the scene's level. Pressing an open place opens the scene; Back returns to the map. A scene not open yet is painted but is no button.
-- **ft_1_19.AC4** The campaign's rules, ladder, unlock order and save are those of ft_1_06, unchanged: no save bump, and progress on the old trail is progress in the scenes.
-- **ft_1_19.AC5** A scene shows the sky phase of the hour ([ft_1_14](ft_1_14-sky-follows-the-day.md)) and the one wind of all scenery (ft_1_06.AC12).
-- **ft_1_19.AC6** The trail, its dot and its code are removed ([d117](../decisions/game.md#d117)), even though the beings are still hidden.
+- **ft_1_19.AC5** A scene shows the sky phase of the hour ([ft_1_14](ft_1_14-sky-follows-the-day.md)) and the one wind of all scenery (AC12).
 - **ft_1_19.AC7** [human] The maintainer and a student visit the scenes on the laptop and say whether each feels like its place.
-- **ft_1_19.AC8** Retired (d290): the beings that turned up at random in open scenes were removed with the monster ladder.
 - **ft_1_19.AC9** Scene 1 is the grassy knoll with the bonfire place: a ring of stones with embers that glow and smoke that drifts with the wind, grass that is blades all over on ground that swells, the view south-south-west over the hill to a wide sea, the land carrying on to the left and rocky shore right-back, painted as pixel art (d111; flat tones for small things, whole runs of small steps for what shades off, point 19) in the colours of the hour from Keri's shared palette (d111), the left corners closed by placed things (dry stems, a stone among dog roses), the right side open to the sea, and a strip free below.
 - **ft_1_19.AC10** The southern harbour, where most visitors land: a big, heavy stone quay seen side-on from the west, nothing in view but the sky, the sea, the quay and the boats the visitors came in, moored behind it, painted in the 1991 game's manner. It has two views: on top the quay over opaque water; a press on the water pans the view down through the surface to the rich underwater world (the quay's arches, whose tops show above the water too, a reef, fish, and things no real sea has, a locked treasure chest among them), and a press near its top or Back pans up again; Back on top returns to the map.
 - **ft_1_19.AC11** What is organic in a painted place moves live, not in painted loops (the changing frames of shimmering water were too noticeable, and fish should behave like the clouds do; [d156](../decisions/art.md#d156)): the water's strokes, glints, rings and surf are lit by the game from a field the painter records; fish, jellies and bubbles swim on their own courses and come and go off the edges; the stove's flames lick, going round one smooth loop of drawings that blend one into the next at a pace that wanders (it should lick, not bite), and a fire's light and every lamp's wander in strength; the map's beam sweeps at any angle. All of it is worked out from the time and the day's seed, so the same moment always looks the same, and with `?motion=still` it stands at its first moment.
@@ -49,9 +45,9 @@ AC2 to AC10 are AX-3 provisional (d112, d113).
 
 The agent does not invent places on Keri or what lives there. Still to come from the maintainer (`KERI-TODO`):
 
-- KERI-TODO: which other places are scenes (first answer: the grassy knoll, between the warden's house and the lighthouse, south off the trail, photographs 18 to 20; the next scene after the knoll, docks and crossroads) and what each looks like (the knoll has photograph 21).
+- KERI-TODO: which other places are scenes (first answer: the grassy knoll, between the warden's house and the lighthouse, photographs 18 to 20; the next scene after the knoll, docks and crossroads) and what each looks like (the knoll has photograph 21).
 - KERI-TODO: who the characters are: speaking spirits and nature from Estonian folk belief, visitors of the kinds that really come to Keri, ghosts of its past (ft_1_21); the cast after Puuvaim and the fisherman, and how each looks, is the maintainer's call.
-- KERI-TODO: random presence: a new draw each day (provisional) or each visit? How a locked scene looks on the map: painted and no button (provisional); dim or hidden are other options.
+- KERI-TODO: how a locked scene looks on the map: painted and no button (provisional); dim or hidden are other options.
 - KERI-TODO: the letters A, B and D on photograph 19 (C is guessed to be the jetty on the north shore): what do they mark?
 - NEEDS-HUMAN: the look on the laptop, with the student (AC7); the screenshot baselines have no picture of the knoll yet.
 - NEEDS-HUMAN: whether the live motion (AC11, AC12) runs smoothly on the target laptop; shaders (Phaser 4 filters) stay out until it is known.
