@@ -16,8 +16,6 @@ private/
 
 # End-to-end run logs (tools/e2e/runLogReporter.ts)
 test-logs/
-# Added by code-review-graph
-.code-review-graph/
 /release/
 __pycache__/
 
