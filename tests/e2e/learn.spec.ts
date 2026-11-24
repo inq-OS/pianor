@@ -198,6 +198,27 @@ test('ft_1_32.AC17 the live tempo is off by default; turned on in the settings, 
     (window.__game.scene.getScene('practice') as unknown as { redraw: () => void }).redraw();
   });
   await expect.poll(live).toEqual(['Tempo -', 'Spread - Wobble -']);
+  // in the slim strip at the foot, never in the top bar: both lines in the screen's lowest tenth, at its right side
+  const where = await page.evaluate(() => {
+    type Node = { type: string; text?: string; pixelText?: boolean; visible: boolean; list?: Node[]; getBounds?: () => { x: number; y: number; height: number } };
+    const scene = window.__game.scene.getScene('practice') as unknown as { children: { list: Node[] }; scale: { width: number; height: number } };
+    const found: { x: number; y: number; bottom: number }[] = [];
+    const visit = (nodes: Node[]) => {
+      for (const o of nodes) {
+        if (!o.visible) continue;
+        if ((o.type === 'Text' || o.pixelText === true) && /^(Tempo|Spread) /.test(o.text ?? '') && o.getBounds) { const b = o.getBounds(); found.push({ x: b.x, y: b.y, bottom: b.y + b.height }); }
+        if (o.type === 'Container' && o.list) visit(o.list);
+      }
+    };
+    visit(scene.children.list);
+    return { boxes: found, width: scene.scale.width, height: scene.scale.height };
+  });
+  expect(where.boxes).toHaveLength(2);
+  for (const box of where.boxes) {
+    expect(box.y).toBeGreaterThan(where.height * 0.9);
+    expect(box.bottom).toBeLessThanOrEqual(where.height);
+    expect(box.x).toBeGreaterThan(where.width / 2);
+  }
   const { midis } = await shown(page);
   expect(midis.length).toBeGreaterThan(3);
   await playWithKeys(page, midis.slice(0, 3));
