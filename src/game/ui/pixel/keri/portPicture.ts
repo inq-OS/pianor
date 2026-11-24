@@ -1417,7 +1417,7 @@ class PortPainter {
     this.as(() => this.ladder(LADDER, PORT.water + 20, PORT.water));
     this.bed(look);
     this.reef(look);
-    // what no real sea has: the chest, the invented corals and beings (`portWonders.ts`)
+    // what no real sea has: the chest, the invented corals and creatures (`portWonders.ts`)
     this.moving(() => paintWonders({
       put: (x, y, c) => this.put(x, y, c), thing: (draw) => this.as(draw), fine: F, ink: R.ink, foam: R.foam,
       look, looks: PORT_DEEP_FRAMES, sway: (phase) => swing(look, PORT_DEEP_FRAMES, phase), lit: lampLit(this.brush(look, PORT_DEEP_FRAMES)),

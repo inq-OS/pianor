@@ -45,7 +45,7 @@ mutants), that only matter for input the code never receives, or proposal 3.
 
 The 17 changes no test catches, and why none should:
 
-- `findDoor.ts`, `time.ts`, `profile.ts` (attempt loop) and `config.ts`: a loop bound or a first-index check one step
+- `time.ts`, `profile.ts` (attempt loop) and `config.ts`: a loop bound or a first-index check one step
   wider reads `undefined`, which the next comparison or `Number.isFinite` turns into "no change".
 - `ties.ts` `next !== undefined && next !== index` to `||`: a missing continuation
   is then stored as `undefined` and never followed.

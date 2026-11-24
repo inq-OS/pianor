@@ -5,8 +5,8 @@ import { C } from '../ui/pixel/palette';
 const PORTRAIT_MIN = 16;
 
 /**
- * The private portrait for the room (d026), or null. It is a picture in the monster files' format (rows of
- * letters and a legend of palette colour names) kept in the gitignored `private/room/portrait.json`: art the project
+ * The private portrait for the room (d026), or null. It is a picture as rows of
+ * letters and a legend of palette colour names, kept in the gitignored `private/room/portrait.json`: art the project
  * does not ship. A build made where
  * the file is absent has none, and the room shows the drawn portrait. A file that is not a sound picture is ignored.
  */

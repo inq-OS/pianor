@@ -32,9 +32,9 @@ through the function table, and one module kept a private copy of a peripheral's
 
 Larger than a maintenance fix, or touching a seam; each names its issue when one was filed.
 
-1. **Barrels used half the time.** Five core folders have an `index.ts` (`battle`, `chart`, `judge`, `progression`,
-   `transport`), the others do not, and code outside core imports `core/judge/types`, `core/judge/playSettings` and
-   core/battle/battleSettings directly 17 times although the barrel exports them. `core/chart/tempoLabel.ts` is
+1. **Barrels used half the time.** Four core folders have an `index.ts` (`chart`, `judge`, `progression`,
+   `transport`), the others do not, and code outside core imports `core/judge/types` and `core/judge/playSettings`
+   directly although the barrel exports them. `core/chart/tempoLabel.ts` is
    not in its barrel at all. Pick one rule: either every core folder has a barrel and outside code imports only that
    (a lint pattern `**/core/*/*` for `src/game` and `src/io` enforces it), or barrels go. The first gives each core
    module a declared public interface, which is the encapsulation the rest of the design assumes. A choice for the

@@ -42,7 +42,7 @@ describe('palette', () => {
 
   // The night sky's ramps are deliberately dark (sky and sea, clouds, moon halo): they sit
   // behind the scene, not on the ink outline or the panels, so the contrast checks below do not hold for them.
-  // The wood of the screens and the dusk of the battle stage (ft_1_20) are what the others are drawn on.
+  // The wood of the screens and the dusk (ft_1_20) are what the others are drawn on.
   const NIGHT_RAMPS = ['sky', 'cloud', 'moon', 'halo', 'wood', 'dusk'];
 
   it('sets every mid shade off from the ink outline, the stage backdrop and the ground, and from the wood of the screens', () => {

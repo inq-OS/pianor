@@ -1,6 +1,6 @@
 /**
  * Which pieces a player has turned off (profile version 5 on). A piece that is off is hidden from the menu and never offered
- * in a battle; nothing is deleted, so turning it on again brings it back with its stars. Pure rules; the menu and the list
+ * in a tug; nothing is deleted, so turning it on again brings it back with its stars. Pure rules; the menu and the list
  * screen only call them.
  */
 import { z } from 'zod';

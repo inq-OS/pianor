@@ -215,7 +215,7 @@ describe('the painted knoll with the bonfire place (ft_1_19.AC9)', () => {
     expect(share(pictures.day, { x: 150, y: plan.horizon + 2, w: W - 150, h: 10 }, blue)).toBeGreaterThan(0.8);
   });
 
-  it('ft_1_19.AC9 the trodden ground round the fire is no circle, and logs to sit on lie round it, clear of the beings\' places', () => {
+  it('ft_1_19.AC9 the trodden ground round the fire is no circle, and logs to sit on lie round it, clear of the fire', () => {
     // the trodden ground round the bonfire is no perfect circle, with a few logs
     // people sit on
     const earth = new Set(scenePalette().run.earth);

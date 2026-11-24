@@ -110,8 +110,8 @@ export const attemptSchema = z.object({
 
 /**
  * One finished tug with a character (ft_1_21; profile document version 2 on): the character, the piece, whether the student won, the XP the
- * level offered, the student's phrases played (the exchanges) and the XP it paid then. Records from before version 2 were
- * the old battles and may name characters that are gone; their XP still counts.
+ * level offered, the student's phrases played (the exchanges) and the XP it paid then. Records moved from an older save may
+ * name characters that are gone; their XP still counts.
  */
 export const tugRecordSchema = z.object({
   /** 1, 2, 3 ... in order. */
@@ -165,7 +165,7 @@ export const profileSchema = z
     createdAt: z.string().min(1),
     settings: profileSettingsSchema,
     attempts: z.array(attemptSchema),
-    /** The finished tugs (profile document version 2 on; the battle records before it). */
+    /** The finished tugs (profile document version 2 on). */
     tugs: z.array(tugRecordSchema),
     /** The note-name trainer's XP (version 15 on): whole XP that only grows; it counts towards the level like a tug's (d083). */
     trainerXp: count,

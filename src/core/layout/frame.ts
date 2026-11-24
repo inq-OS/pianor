@@ -69,7 +69,7 @@ export interface FrameView {
 export const BAND_KEEPS_TOOLBAR = false;
 
 export interface FrameOptions {
-  /** Draw the action and inventory band at the foot (ft_1_20): every framed screen but the battle screens (d129). */
+  /** Draw the action and inventory band at the foot (ft_1_20): every framed screen but the tug (d129). */
   band: boolean;
   /** With the band: keep the toolbar too. `BAND_KEEPS_TOOLBAR` by default; only tests pass it. */
   toolbar?: boolean;
