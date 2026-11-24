@@ -9,7 +9,7 @@ depends_on: ["ft_0_10"]
 ---
 # core_11: The saved player as documents, each with its own version
 
-One profile object used to carry everything, so every new block (world, curriculum, phrase book, finer practice log) would migrate all of it. Now a player is a set of documents, each with its own version. A futureproofing seam ([programme](../architect/program-characters-teacher.md), plan). Index: [FEATURES.md](FEATURES.md).
+A player is a set of documents, each with its own version. A futureproofing seam ([programme](../architect/program-characters-teacher.md), plan). Index: [FEATURES.md](FEATURES.md).
 
 ## Rules
 

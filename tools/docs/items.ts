@@ -43,7 +43,7 @@ export function classify(path: string): { kind: Kind; fileId: string } | null {
  *
  *     ## d095
  *
- *     **The piece is the player's.** Features: ft_1_21, core_12. Supersedes d057.
+ *     **The piece is the player's.** Features: ft_1_21, core_12.
  *
  *     The rule, in a few sentences.
  *
@@ -57,7 +57,7 @@ export function isLedger(path: string): boolean {
 }
 
 const ENTRY_HEAD = /^## (d\d{3})\s*$/;
-const ENTRY_LINE = /^\*\*(.+?)\*\* Features: ([^.]*)\.(?: Supersedes ((?:d\d{3}(?:, )?)+)\.)?/;
+const ENTRY_LINE = /^\*\*(.+?)\*\* Features: ([^.]*)\./;
 
 export function readLedger(path: string, text: string): Item[] {
   const file = path.slice(path.lastIndexOf('/') + 1);
@@ -78,7 +78,6 @@ export function readLedger(path: string, text: string): Item[] {
     } else {
       const features = (m[2] as string).trim() === 'none' ? [] : (m[2] as string).split(',').map((f) => f.trim()).filter(Boolean);
       const raw: Record<string, unknown> = { id, title: (m[1] as string).replace(/\.$/, ''), features };
-      if (m[3]) raw.supersedes = m[3].split(',').map((f) => f.trim());
       const parsed = KINDS.decision.schema.safeParse(raw);
       const body = `# ${id}: ${raw.title as string}\n\n${entry.join('\n')}`;
       if (parsed.success) items.push({ ...base, meta: parsed.data, problem: null, body });

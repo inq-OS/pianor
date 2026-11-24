@@ -74,4 +74,4 @@ State: `drawn` (it is in the map picture), `not drawn`, or `unsure`.
 
 ## Checked against the refined rules
 
-With the room, checked again ([art-direction.md](../art-direction.md) rules 19 to 25, d111). The map's runs had steps up to 16 L* (the sea at night, parchment, stone); they are made long (142 to 174 colours), which shows as a smoother sea. Three shallows colours that no hour ever used were removed. The clouds keep their ranges. The island's shape, grass and shore come from the world model and were left alone; rules 23 to 25 ask nothing more of a map at this size.
+With the room, checked again ([art-direction.md](../art-direction.md) rules 19 to 25, d111). The map's runs had steps up to 16 L* (the sea at night, parchment, stone); they are made long (142 to 174 colours), which shows as a smoother sea. The clouds keep their ranges. The island's shape, grass and shore come from the world model and were left alone; rules 23 to 25 ask nothing more of a map at this size.

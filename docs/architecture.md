@@ -48,7 +48,7 @@ Avoid as a code base: ekkx/notefall and forks (PolyForm Shield, source-available
 
 ## 3. Key decision: platform
 
-**Chosen: browser PWA, TypeScript, Vite, Phaser (version 4 since d007; the comparison below was written for Phaser 3 and still holds).**
+**Chosen: browser PWA, TypeScript, Vite, Phaser (version 4, d007; the comparison below holds for it).**
 - Web MIDI supports both input and output, and you need output to light keys. Godot supports MIDI input only, and Web MIDI needs Chrome or Edge (Safari and Firefox are not reliable).
 - Runs on a laptop or an Android tablet with a USB OTG cable; no install, easy sharing with other students and parents.
 - Phaser handles pixel-art scaling, sprites, tilemaps and scenes, How pixel art is drawn and handed to Phaser is in `docs/sprites.md`.
@@ -125,7 +125,7 @@ Roadmap: the phases (section 5) map onto the features in `docs/features/FEATURES
 ### Timing and input
 
 - Timestamp MIDI events with the `MIDIMessageEvent` timestamp and map them onto the audio clock; judge in song time, not frame time.
-- **MVP judges pitch first** (is it the right key?) and rhythm gently. Timing windows start much wider than MIDI-HERO's ±35/70/120 ms, which are for experienced players; tighten them as the student levels up. Tempo mode judges the onset and, since d093, how long the key is held (core_01 slice f); Wait mode judges onsets only.
+- **MVP judges pitch first** (is it the right key?) and rhythm gently. Timing windows start much wider than MIDI-HERO's ±35/70/120 ms, which are for experienced players; tighten them as the student levels up. Tempo mode judges the onset and how long the key is held (core_01 slice f, d093); Wait mode judges onsets only.
 - **MVP is Wait mode only:** the cursor stays on the current note until the right key is pressed, and a gentle metronome plus tempo bonus adds rhythm later. **Tempo mode** (cursor advances with the beat, timing counts) arrives after the student is comfortable reading.
 - Measure end-to-end latency in the spike before choosing window sizes.
 

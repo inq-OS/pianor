@@ -7,14 +7,14 @@ Add a decision when a change touches something listed in `docs/futureproofing.md
 ```markdown
 ## dNNN
 
-**The decision in one sentence.** Features: ft_0_08, core_12 (or none). Supersedes dXXX.
+**The decision in one sentence.** Features: ft_0_08, core_12 (or none).
 
 One to four sentences: the rule, the values a builder needs, the one-clause why.
 ```
 
 An entry says the rule in plain words with no date, never a copy of what anyone wrote: no quotes, no conversation, nothing personal (d165). `npm run docs:check` fails on a quote of a person.
 
-A later decision that changes one edits the old entry to say what still holds and "Changed by dNNN." (or adds "Superseded by dNNN." / "Retired." to its first line). Run `npm run docs:index`: the table below is generated from the entries.
+An entry says only what holds now (d151): a later decision that changes one rewrites it to the rule as it stands, and an entry that no longer holds is deleted; `npm run docs:check` refuses "Retired", "Superseded by", "Supersedes" and "Changed by". Run `npm run docs:index`: the table below is generated from the entries.
 
 <!-- docs:index decisions -->
 | ID | Decision | Features |
@@ -69,7 +69,6 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d058](saves.md#d058) | Three settings added in one save bump: `noteNaming`, `staffGap`, `keyLights` (v11) | ft_0_17, ft_Y_06, ft_0_16 |
 | [d059](saves.md#d059) | Every attempt stores per-note timing scores in `noteTimings`; save v12 | core_01 |
 | [d060](saves.md#d060) | Every attempt stores the ids of the helps in force in `helps`; save v13 | core_07 |
-| [d062](workflow.md#d062) | Screenshot baselines were Windows only, checked by a Windows CI job and made by a Windows workflow |  |
 | [d063](workflow.md#d063) | Static analysis: `npm run analyze` runs type-aware ESLint, knip and jscpd in CI |  |
 | [d064](saves.md#d064) | Save migration steps write frozen literals, never today's defaults |  |
 | [d065](stack.md#d065) | Flags and the piece catalogue reach scenes through `GameContext`; a production build ships approved pieces only |  |
@@ -88,7 +87,7 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d084](art.md#d084) | Free third-party assets are welcome and preferred over redrawing standard symbols | ft_0_13 |
 | [d086](art.md#d086) | Estonian text is drawn in small capitals, with Õ Ä Ö Ü Š Ž inside the capital height | ft_0_18 |
 | [d087](game.md#d087) | Every letter name the student sees follows the player's note naming: H for B natural, B for B flat | core_09, ft_0_17, ft_0_18, ft_1_02 |
-| [d088](game.md#d088) | Every screen has one frame of toolbar, vine, main area and keyboard, drawn by PixelScene | ft_Y_12, ft_0_16 |
+| [d088](game.md#d088) | Every screen has one frame of main area and keyboard, drawn by PixelScene, with the top toolbar when its flag is on | ft_Y_12, ft_0_16 |
 | [d090](workflow.md#d090) | CI runs on GitHub's hosted runners: `check` and `art rules` on every pull request push, the browser jobs on a label or weekly |  |
 | [d092](saves.md#d092) | Profile v16 adds the practice log, one list of per-bar plays | core_10 |
 | [d093](play.md#d093) | Tempo mode grades how long each note is held | core_01 |
@@ -108,7 +107,7 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d112](game.md#d112) | Keri's places are painted scenes, each one picture opened from the map | ft_1_19, ft_1_18, ft_1_14, ft_1_17 |
 | [d113](game.md#d113) | Levelling up opens scenes | ft_1_19, ft_1_18 |
 | [d114](art.md#d114) | Kiur is a tree pipit drawn from one small model on the fine grid | ft_0_13, ft_1_15, ft_1_08, ft_1_18 |
-| [d115](game.md#d115) | A band at the foot of the screen holds a 3 x 3 grid of actions and an inventory of items; places are used in their picture | ft_1_20, ft_0_13, ft_1_18, core_09 |
+| [d115](game.md#d115) | Actions and items share one model, and a painted place is used in its picture | ft_1_20, ft_0_13, ft_1_18, core_09 |
 | [d116](workflow.md#d116) | GitHub issues are for people; agents track their own work as tags in the docs | all |
 | [d117](game.md#d117) | After two idle minutes in the room a screensaver visits the open scenes | ft_1_17, ft_1_18, ft_1_19, ft_1_14 |
 | [d118](art.md#d118) | The band and every screen are warm wood; the cold tones stay in the palette as paints | ft_1_20 |
@@ -183,7 +182,7 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d196](notation.md#d196) | The note-length helper is a ghost head on each held beat (A) and a thin band to the end of the sound (B), switched per hand | ft_1_11 |
 | [d197](play.md#d197) | An admin setting picks the piano sound: full, light or the EZ-220 itself; full stays the default until the maintainer has listened |  |
 | [d198](workflow.md#d198) | No agent works on, pushes to or merges an item labelled `architect:blocker`, and only the maintainer removes that label; `needs:maintainer` is taken off by whoever added it |  |
-| [d199](workflow.md#d199) | The architect writes one playable goal at the top of `docs/architect/roadmap.md` each week, deletes once a month what nobody read or used, and keeps the roadmap ordered by gates with no dates |  |
+| [d199](workflow.md#d199) | The architect deletes once a month what nobody read or used, and keeps the roadmap ordered by gates with no dates |  |
 | [d200](workflow.md#d200) | A question the axioms do not settle is decided under AX-3 and marked, never waited on, except a step that cannot be undone |  |
 | [d201](workflow.md#d201) | Only the maintainer approves a change to `docs/axioms.md`; each change comes as one pull request that names it and gets a ledger entry |  |
 | [d202](workflow.md#d202) | Only a person runs `npm run docs:verify`; agents never stamp a doc as re-read |  |
@@ -257,13 +256,13 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d272](game.md#d272) | Each level's piece is a real public-domain piece or an open-licence line in the manner of a named folk tradition, never one made for the game | ft_1_21, ft_1_22 |
 | [d273](game.md#d273) | Each level's piece has its background in one line, said in the talk that teaches it, and the talk teaches something of the character's specialty | ft_1_21, ft_1_22 |
 | [d274](game.md#d274) | Every level beaten gives a new, named, drawn rung of the character's prize ladder, and no rung is on two characters' ladders | ft_1_21 |
-| [d275](workflow.md#d275) | A part of a feature is named by its feature id and slice; the work-package ids (WP-nn) are retired |  |
+| [d275](workflow.md#d275) | A part of a feature is named by its feature id and slice, never by a work-package id |  |
 | [d276](workflow.md#d276) | Every thread approves and merges its own pull requests once its checks pass; no pull request waits for the maintainer |  |
 | [d277](game.md#d277) | A new instance of the game starts with no players; the first screen asks for the first player's name, and players are only ever added by the person | ft_1_07 |
 | [d278](game.md#d278) | The piano is a sandbox: a piece picked there plays in full with no learning gate, except a character's piece, which is still learned bar by bar first; learning and tugging go through Kiur, and a tug needs a learned piece | ft_1_32, ft_1_21 |
 | [d279](game.md#d279) | An old wall telephone in the room rings while the teacher's curriculum holds a piece whose learning has not begun, and a press on it opens that piece in bar-by-bar learning | ft_1_34 |
 | [d281](play.md#d281) | A learning run with every note right counts for its pace unless it was clearly uneven; a beginner's wobble passes, and an uneven run is asked again at most once | ft_1_32 |
-| [d282](game.md#d282) | The band under every screen goes: actions open in a bubble round the pointer on a right click, a screen pins its few most-used actions in one slim strip, and the items a student keeps are in a backpack | ft_1_20 |
+| [d282](game.md#d282) | Actions open in a bubble round the pointer on a right click, a screen pins its few most-used actions in one slim strip, and the items a student keeps are in a backpack | ft_1_20 |
 | [d283](workflow.md#d283) | Work raises the shortest stave: every area of the game is kept at a similar level, and the next work is the area that lags most in play, chosen with the maintainer; there is no weekly goal |  |
 | [d284](game.md#d284) | A two-hand piece is learned with both hands together by default; hands apart is a learning setting the player chooses | ft_1_32 |
 | [d285](art.md#d285) | Every choice the player picks from shows a picture, never a word; its words are in the tooltip | ft_1_32, ft_0_16 |

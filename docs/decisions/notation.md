@@ -90,7 +90,7 @@ Check: `tools/generate/generate.test.ts` "makes pieces that pass piece:lint with
 
 **An own piece is one versioned `<id>.pianor-piece.json` file, and licence `NaN` is allowed only for private pieces.** Features: ft_1_02b.
 
-The file is JSON with `kind: "pianor-piece"`, `schemaVersion`, own id, author, the editor's piece and the ABC and meta text it makes (`src/core/editor/pieceFile.ts`; file I/O in `src/io/files/textFiles.ts`); a higher version is refused, a lower one migrated, and the fixture rewrite must stay byte-identical. Import refuses non-pieces, damaged content, any licence but `NaN`, non-own ids (`own-...`) and bundled ids, and always saves as a new own piece. `piece:lint` warns on `NaN` anywhere except a `private/pieces` folder. Changed by d073 (file version 2 adds key and note alters).
+The file is JSON with `kind: "pianor-piece"`, `schemaVersion`, own id, author, the editor's piece and the ABC and meta text it makes (`src/core/editor/pieceFile.ts`; file I/O in `src/io/files/textFiles.ts`); a higher version is refused, a lower one migrated, and the fixture rewrite must stay byte-identical. Import refuses non-pieces, damaged content, any licence but `NaN`, non-own ids (`own-...`) and bundled ids, and always saves as a new own piece. `piece:lint` warns on `NaN` anywhere except a `private/pieces` folder. File version 2 adds key and note alters (d073).
 
 
 Check: `src/core/editor/pieceFile.test.ts` "writes a readable file that says what it is and which version it is"; `tools/piece/license.test.ts` "ft_1_02b.AC3 warns about NaN in content/pieces and says why"; `tools/piece/license.test.ts` "ft_1_02b.AC3 accepts NaN without a warning under private/pieces"
@@ -99,7 +99,7 @@ Check: `src/core/editor/pieceFile.test.ts` "writes a readable file that says wha
 
 **Piece styles are a closed list in `content/pieces/styles.json` and a `styles` field in the meta file.** Features: core_05.
 
-`styles.json` (`schemaVersion: 1`, provisional) lists `{ id, nameKey }` with names in `src/core/text/strings.ts`, loaded by pure code in `src/core/properties/styles.ts`; starters `folk`, `classical`, `exercise`, `original`. `piece.meta.json` gets `styles: string[]` (default empty, meta `schemaVersion` stays 1); `piece:lint` rule `style` errors on an unknown style and warns on a committed piece with none (own pieces get none); `tags` is no longer the style.
+`styles.json` (`schemaVersion: 1`, provisional) lists `{ id, nameKey }` with names in `src/core/text/strings.ts`, loaded by pure code in `src/core/properties/styles.ts`; starters `folk`, `classical`, `exercise`, `original`. `piece.meta.json` gets `styles: string[]` (default empty, meta `schemaVersion` stays 1); `piece:lint` rule `style` errors on an unknown style and warns on a committed piece with none (own pieces get none); the style is not a tag.
 
 
 Check: `tools/piece/lint.test.ts` "a style the list does not have is an error that names the list"; `tools/piece/lint.test.ts` "a committed piece with no style"; `src/core/properties/styles.test.ts` "reads the style list of the content, and every style has a name in the strings"

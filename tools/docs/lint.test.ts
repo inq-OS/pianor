@@ -36,14 +36,14 @@ describe('lintItems', () => {
     expect(issues).toEqual(['id ft_0_01 is also used by docs/features/ft_0_01-a.md']);
   });
 
-  it('checks depends_on, supersedes and a decision\'s features', () => {
+  it('checks depends_on and a decision\'s features', () => {
     const issues = messages(
       lint({
         'docs/features/ft_0_01-a.md': feature('ft_0_01', { extra: { depends_on: ['ft_0_09'] } }),
-        'docs/decisions/d001-a.md': decision('d001', ['ft_0_77', 'all'], { supersedes: ['d009'] }),
+        'docs/decisions/d001-a.md': decision('d001', ['ft_0_77', 'all']),
       }),
     );
-    expect(issues).toEqual(['depends_on names ft_0_09, which has no file', 'supersedes names d009, which has no file', 'features names ft_0_77, which has no file']);
+    expect(issues).toEqual(['depends_on names ft_0_09, which has no file', 'features names ft_0_77, which has no file']);
   });
 
   it('lets a part id refer to its feature', () => {
@@ -125,11 +125,12 @@ describe('docs:ignore, planned paths and old numbering', () => {
     expect(messages(lintLinks(repo))).toEqual(['`tools/other/` does not exist']);
   });
 
-  it('flags the old numbering outside the decision files', () => {
+  it('flags the old numbering in every doc', () => {
     const repo = makeRepo({ 'docs/a.md': 'Was FT17 and WP9a.\n', 'docs/decisions/d001-x.md': 'History: FT17.\n' });
     expect(messages(lintOldIds(repo))).toEqual([
       'FT17 is the old numbering; use the id from docs/decisions/workflow.md#d037',
       'WP9a is the old numbering; use the id from docs/decisions/workflow.md#d037',
+      'FT17 is the old numbering; use the id from docs/decisions/workflow.md#d037',
     ]);
   });
 });

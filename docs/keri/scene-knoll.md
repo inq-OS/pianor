@@ -33,7 +33,7 @@ State: `drawn` (it is in the scene or its map place), `not drawn`, or `unsure`.
 |---|---|---|
 | Tall wind-blown grass, dry gold and green | 21 | drawn nearest the viewer (blades of every height, gold mixed into the green, bent by a gust through eight looks); the rest of the plateau is low meadow, as described |
 | A plateau that rises gently from the house and breaks off over a rocky shore; rocky ground, moss, low meadow plants | the description and photographs | drawn (the lip across the picture with the sea over it; the cut on the right, where the grass ends over the shingle below with no bank drawn; flat stones sunk in the turf, moss cushions, small white and yellow flowers) |
-| Firewood stacked at the fireplace | the description and photographs | not drawn: painted, then removed on review |
+| Firewood stacked at the fireplace | the description and photographs | not drawn (art review) |
 | Red slat chairs by the fireplace | photograph 3 | not drawn: the logs stand for the seats; `KERI-TODO`: ask the maintainer whether the chairs are wanted |
 | Small white flowers among the grass | 21 | drawn |
 | A stone at the lower left | 21 | not drawn: the art review found the boulder a sticker that pulled the eye into the corner; the tall roses close that corner now, and stones lie all over the plateau |
