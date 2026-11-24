@@ -51,6 +51,17 @@ export function repeatAround(piece: EditorPiece, a: number, b: number): EditorPi
   return withRepeats(piece, [...repeats.filter((r) => r.endBar < startBar || r.startBar > endBar), { startBar, endBar }]);
 }
 
+/** The repeat bar `bar` lies in, or null. */
+export function repeatAt(piece: Pick<EditorPiece, 'repeats' | 'bars'>, bar: number): EditorRepeat | null {
+  return repeatsOf(piece).find((r) => r.startBar <= bar && bar <= r.endBar) ?? null;
+}
+
+/** Takes away the repeat bar `bar` lies in (the bubble's "remove repeat"); a bar in none leaves the piece as it is. */
+export function removeRepeatAt(piece: EditorPiece, bar: number): EditorPiece {
+  const at = repeatAt(piece, bar);
+  return at ? withRepeats(piece, repeatsOf(piece).filter((r) => r.startBar !== at.startBar)) : piece;
+}
+
 /** The ABC bar line before bar `b` (0 to `bars`): `|`, `|:`, `:|`, `::`, or the end `|]` / `:|]`. */
 export function abcBarLine(repeats: readonly EditorRepeat[], b: number, bars: number): string {
   const ends = repeats.some((r) => r.endBar === b - 1);

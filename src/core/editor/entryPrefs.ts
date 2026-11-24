@@ -16,6 +16,8 @@ export interface EntryPrefs {
   readonly shortTapEighth: boolean;
   /** The vim keys are on (ft_1_02e). Optional and additive (no version bump): absent reads as off. */
   readonly vimKeys?: boolean;
+  /** The keyboard cursor follows the pointer over the staff (ft_1_02d.AC34). Optional and additive: absent reads as off. */
+  readonly followPointer?: boolean;
 }
 
 /** The record a fresh device uses: every option off. */
@@ -23,7 +25,7 @@ export const DEFAULT_ENTRY_PREFS: EntryPrefs = { schemaVersion: ENTRY_PREFS_VERS
 
 /** The record as stored (JSON). */
 export function serializeEntryPrefs(prefs: EntryPrefs): string {
-  return JSON.stringify({ schemaVersion: prefs.schemaVersion, shortTapEighth: prefs.shortTapEighth, ...(prefs.vimKeys ? { vimKeys: true } : {}) });
+  return JSON.stringify({ schemaVersion: prefs.schemaVersion, shortTapEighth: prefs.shortTapEighth, ...(prefs.vimKeys ? { vimKeys: true } : {}), ...(prefs.followPointer ? { followPointer: true } : {}) });
 }
 
 /**
@@ -39,8 +41,8 @@ export function parseEntryPrefs(text: string | null): EntryPrefs {
     return DEFAULT_ENTRY_PREFS;
   }
   if (typeof value !== 'object' || value === null) return DEFAULT_ENTRY_PREFS;
-  const { schemaVersion, shortTapEighth, vimKeys } = value as Record<string, unknown>;
+  const { schemaVersion, shortTapEighth, vimKeys, followPointer } = value as Record<string, unknown>;
   if (schemaVersion !== ENTRY_PREFS_VERSION || typeof shortTapEighth !== 'boolean') return DEFAULT_ENTRY_PREFS;
-  // a mistyped vimKeys reads as off and never spoils the short-tap setting beside it
-  return { schemaVersion: ENTRY_PREFS_VERSION, shortTapEighth, ...(vimKeys === true ? { vimKeys: true } : {}) };
+  // a mistyped vimKeys or followPointer reads as off and never spoils the settings beside it
+  return { schemaVersion: ENTRY_PREFS_VERSION, shortTapEighth, ...(vimKeys === true ? { vimKeys: true } : {}), ...(followPointer === true ? { followPointer: true } : {}) };
 }

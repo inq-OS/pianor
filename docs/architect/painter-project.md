@@ -100,5 +100,6 @@ A URL switch that opens a scene directly is not needed: `npm run art:render` sho
 ## 8. Known open ends handed over
 
 - TODO(painter, R2): the maintainer's verdict on the clean-sheet clouds (d111), if the scenes painted since do not already carry it.
+- TODO(painter, R2): try the MIT library pixelfx (github.com/patch-gg/pixelfx: 244 pixel effects written as code, among them fireflies, rain, fog, snow, ripples, drips, a candle and a campfire, birds, butterflies and a fish school) for the moving life of a place (`keri/roomLife.ts`, `keri/portBoats.ts`): one effect ported to the shared palette (rule 9) and the 640 x 360 grid, held to the art rules, a row in `docs/assets.md` for the credit; keep it only if it beats what the painter draws and adds no light laid over the picture. Its loop (render a contact sheet, look, refine) is ours already.
 - The letters A, B and D on drone photograph 19 and every `KERI-TODO`: in [keri.md](../keri.md) and [keri/map.md](../keri/map.md), asked of the maintainer there.
 - NEEDS-HUMAN: [axioms.md](../axioms.md) AX-2.3 still says minimal original assets, while d084 and `CLAUDE.md` welcome free packs. The axioms are the maintainer's to word.
