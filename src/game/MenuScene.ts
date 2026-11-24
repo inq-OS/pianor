@@ -6,7 +6,9 @@ import { t } from '../core/text/strings';
 import { contextOf } from './context';
 import type { Piece } from './content';
 import { drawPieceInfo } from './menu/PieceInfoCard';
-import { groupsOf, piecesInShownGroups, piecesThatAreOn, PIECE_GROUPS, type PieceGroup } from './pieceList';
+import { BOOKMARKS, groupsOf, piecesUnderBookmark, piecesThatAreOn, type Bookmark, type PieceGroup } from './pieceList';
+import { BOOK_ORDERS, orderBook, type BookOrder } from '../core/layout/bookOrder';
+import type { MenuItem } from './ui/pixel/PixelScene';
 import { curriculumMark, type CurriculumMark } from '../core/curriculum/bookMark';
 import { dayNumber } from '../core/curriculum/evaluate';
 import type { Medal } from '../core/curriculum/play';
@@ -24,7 +26,7 @@ import { PixelScene } from './ui/pixel/PixelScene';
 import { STAR_FULL } from './ui/pixel/sprites';
 import { GRADE_STARS } from '../core/scoring/stars';
 import { BUBBLE, ICONS, NEW_PIECE_HEIGHT, PENCIL, newPieceArt } from './ui/pixel/iconArt';
-import { createBitmap, recolor, type Bitmap } from './ui/pixel/bitmap';
+import { blit, createBitmap, recolor, type Bitmap } from './ui/pixel/bitmap';
 import { measure, drawnText } from './ui/pixel/font';
 import { clipToWidth } from '../core/text/clip';
 import { HAT, hatPicture } from './ui/pixel/menuArt';
@@ -68,21 +70,37 @@ const FINISHED_HAT: Readonly<Record<Medal | 'none', readonly [number, number, nu
   bronze: [C.orangeLight, C.orange, C.orangeDark],
   none: [C.leafLight, C.leaf, C.leafDark],
 };
-/** The group signs, also the filter's pictures in the band. */
-const GROUP_ICON: Readonly<Record<PieceGroup, () => Bitmap>> = { own: () => ICONS.maker, curriculum: hatPicture, character: () => BUBBLE };
+/** Each bookmark's picture (ft_1_12.AC10): the book's whole list, the pencil of an own piece, the teacher's hat, a character's bubble. */
+const BOOKMARK_ICON: Readonly<Record<Bookmark, () => Bitmap>> = { all: () => TOOL_ICONS.bookOpen, own: () => ICONS.maker, curriculum: () => TOOL_ICONS.teacherHat, character: () => BUBBLE };
+/** Each bookmark's ribbon: its cloth, and the cloth's dark edge. */
+const BOOKMARK_CLOTH: Readonly<Record<Bookmark, readonly [number, number]>> = {
+  all: [C.redDark, C.umberDark], own: [C.leaf, C.leafDark], curriculum: [C.duskLight, C.duskDark], character: [C.teal, C.tealDark],
+};
+/** The bookmarks hang in the left page's outer margin: this much more room is kept there (both pages keep it, the book is symmetric). */
+const TAB_ROOM = 8;
+/** A bookmark's ribbon, in cells: its width (the chosen one reaches this far left of the others), height and the gap between two. */
+const TAB = { w: 21, h: 19, gap: 3, out: 5 } as const;
+/** The bookmarks start this far under the book's top, clear of the door in the screen's top left corner. */
+const TAB_TOP = 22;
+/** Each order's picture in the order button's choices (ft_1_12.AC11). */
+const ORDER_ICON: Readonly<Record<BookOrder, Bitmap>> = {
+  book: TOOL_ICONS.orderBook, achieved: TOOL_ICONS.orderAchieved, deadline: TOOL_ICONS.orderDeadline, difficulty: TOOL_ICONS.steps, title: TOOL_ICONS.orderTitle, recent: TOOL_ICONS.orderRecent,
+};
+const ORDER_CELL = { w: 26, h: 20 } as const;
+/** While an order choice is under the pointer, the cards it would move are drawn this faint (d286). */
+const PREVIEW_FADE = 0.12;
 
-/** A filter switch's picture while its group is hidden: struck through corner to corner, with a clear pixel each side of the stroke. */
-function struckThrough(icon: Bitmap): Bitmap {
-  const out = createBitmap(icon.width, icon.height);
-  out.pixels.set(icon.pixels);
-  const { width: w, height: h } = icon;
-  for (let x = 0; x < w; x++) {
-    const y = Math.round(((h - 1) * x) / Math.max(1, w - 1));
-    for (let d = -2; d <= 2; d++) {
-      const row = y + d;
-      if (row >= 0 && row < h) out.pixels[row * w + x] = Math.abs(d) === 2 ? 0 : C.ink;
-    }
+/** A bookmark's ribbon with its picture on it: a band of cloth with a dark edge and a notch cut in its left end. */
+function ribbon(mark: Bookmark, width: number, height: number): Bitmap {
+  const [cloth, edge] = BOOKMARK_CLOTH[mark];
+  const out = createBitmap(width, height);
+  const notch = Math.floor(height / 2);
+  for (let y = 0; y < height; y++) {
+    const cut = 3 - Math.min(3, Math.abs(y - notch));
+    for (let x = cut; x < width; x++) out.pixels[y * width + x] = y === 0 || y === height - 1 || x === cut ? edge : cloth;
   }
+  const icon = BOOKMARK_ICON[mark]();
+  blit(out, icon, 4 + Math.max(0, Math.floor((width - 6 - icon.width) / 2)), Math.floor((height - icon.height) / 2));
   return out;
 }
 
@@ -149,8 +167,17 @@ export class MenuScene extends PixelScene {
    * each visit and kept over a page turn (a restart), so a hat does not blink away while the read is out.
    */
   protected curriculumMarks: ReadonlyMap<string, CurriculumMark> = new Map();
-  /** The groups the filter hides (ft_1_12.AC10): this visit of the game only, not saved (AX-3 provisional). */
-  protected hiddenGroups = new Set<PieceGroup>();
+  /** The bookmark the book is open at (ft_1_12.AC10): this visit of the game only, not saved (AX-3 provisional). */
+  protected bookmark: Bookmark = 'all';
+  /** The order the book's pieces are read in (ft_1_12.AC11): this visit of the game only, not saved (AX-3 provisional). */
+  protected order: BookOrder = 'book';
+  /** The pieces in the book as drawn (under the bookmark, in the order), and each card on this page with its place among them. */
+  private shown: Piece[] = [];
+  private slots: { index: number; card: PixelButton; id: string }[] = [];
+  /** What an order choice under the pointer draws (d286): the titles that would stand on this page, faint over the faded cards. */
+  private orderPreview: Phaser.GameObjects.GameObject[] = [];
+  /** The bookmarks as drawn, by mark (for the tests and the keyboard). */
+  protected bookmarkButtons = new Map<Bookmark, PixelButton>();
   private curriculumPlayer: string | null = null;
   /** Counts the curriculum reads: a read that comes back after its visit ended draws nothing. */
   private curriculumRead = 0;
@@ -191,7 +218,7 @@ export class MenuScene extends PixelScene {
   /** While the info card is open only its Close button is reachable; otherwise the cards and their info buttons. */
   protected override focusables(): PixelButton[] {
     if (this.infoId !== null) return this.infoClose ? [this.infoClose] : [];
-    return [...this.buttons, ...this.partsButtons.values(), ...this.editButtons.values(), ...this.statsButtons.values(), ...this.infoButtons.values(), ...this.hideButtons.values()];
+    return [...this.buttons, ...this.partsButtons.values(), ...this.editButtons.values(), ...this.statsButtons.values(), ...this.infoButtons.values(), ...this.hideButtons.values(), ...this.bookmarkButtons.values()];
   }
 
   /** Esc and the toolbar's Back: close a piece's info, or go back to the player's room, or to the main menu from the piece maker. */
@@ -263,21 +290,96 @@ export class MenuScene extends PixelScene {
     return groupsOf(piece, new Set(this.curriculumMarks.keys()), CHARACTER_PIECES);
   }
 
-  /** The filter (ft_1_12.AC10): a switch in the band for each group, lit while its pieces are shown. Not in the piece maker. */
+  /**
+   * The strip of the book (ft_1_12.AC11, ft_1_02c.AC9): the order, one button whose choices open as pictures from it, and
+   * All pieces, the catalogue of every piece. Not in the piece maker.
+   */
   protected override bandActions(): ToolbarItem[] {
     if (this.maker) return [];
+    const order: ToolbarItem = {
+      label: t('menu.order'), tooltip: t(`menu.order.${this.order}`), icon: TOOL_ICONS.order, iconOnly: true, onClick: () => undefined,
+      menu: { items: () => this.orderItems(), cell: ORDER_CELL, columns: BOOK_ORDERS.length },
+    };
     // every piece there is, hidden ones too, where a piece is put back in the book (ft_1_02c.AC9)
     const all: ToolbarItem = { label: t('menu.allPieces'), icon: TOOL_ICONS.pieces, iconOnly: true, onClick: () => startScene(this, 'pieces', { back: this.forKiur ? { forKiur: this.forKiur } : {} }) };
-    return [...PIECE_GROUPS.map((group): ToolbarItem => ({
-      label: t(`menu.group.${group}`), icon: this.hiddenGroups.has(group) ? struckThrough(GROUP_ICON[group]()) : GROUP_ICON[group](), iconOnly: true, active: !this.hiddenGroups.has(group),
-      onClick: () => {
-        if (this.hiddenGroups.has(group)) this.hiddenGroups.delete(group);
-        else this.hiddenGroups.add(group);
+    return [order, all];
+  }
+
+  /** The order button's choices, each a picture with its name in the tooltip; the one in use lit. */
+  private orderItems(): MenuItem[] {
+    return BOOK_ORDERS.map((order) => ({
+      label: t(`menu.order.${order}`), icon: ORDER_ICON[order], tooltip: t(`menu.order.${order}`), active: order === this.order,
+      preview: (on) => this.previewOrder(on ? order : null),
+      onPick: () => {
+        this.order = order;
         this.page = 0;
         this.armedHide = null;
         this.redraw();
       },
-    })), all];
+    }));
+  }
+
+  /**
+   * Shows what an order would do before it is picked (d286, ft_1_12.AC11): the cards on this page fade, and over each is
+   * written faintly in red the title that order would put there. `null` takes the preview away.
+   */
+  private previewOrder(order: BookOrder | null): void {
+    for (const o of this.orderPreview) if (o.scene) o.destroy();
+    this.orderPreview = [];
+    const fade = order === null || order === this.order ? 1 : PREVIEW_FADE;
+    for (const { card, id } of this.slots) for (const b of [card, this.infoButtons.get(id), this.statsButtons.get(id), this.partsButtons.get(id), this.editButtons.get(id), this.hideButtons.get(id)]) b?.setAlpha(fade);
+    if (order === null || order === this.order) return;
+    const saved = this.order;
+    this.order = order;
+    const next = this.ordered(this.shown);
+    this.order = saved;
+    this.inkWriting = true;
+    for (const { index, card } of this.slots) {
+      const piece = next[index];
+      if (!piece) continue;
+      const { x, y, height } = card.rect;
+      const text = this.label(x + 6, y + Math.floor(height / 2) - 4, pieceTitle(piece.chart), C.redDark, { maxWidth: card.rect.width - 8 }).setName('orderPreview');
+      this.orderPreview.push(text);
+    }
+    this.inkWriting = false;
+  }
+
+  /** The pieces in the order chosen (ft_1_12.AC11). */
+  private ordered(pieces: readonly Piece[]): Piece[] {
+    const { profiles } = contextOf(this);
+    const entries = pieces.map((piece) => {
+      const record = profiles.recordFor(piece.chart.id);
+      const mark = this.curriculumMarks.get(piece.chart.id);
+      return { piece, id: piece.chart.id, title: pieceTitle(piece.chart), level: piece.level, stars: record?.bestGrade ?? 0, daysLeft: mark && !mark.finished ? mark.daysLeft : null, lastPlayedAt: record?.lastPlayedAt ?? null };
+    });
+    return orderBook(entries, this.order).map((e) => e.piece);
+  }
+
+  /**
+   * The bookmarks (ft_1_12.AC10) in the left page's outer margin, one under another: All, Own, the teacher's, the
+   * characters'. The one the book is open at reaches out past the book's edge in full colour; a press on another opens the book there.
+   */
+  private bookmarks(top: number): void {
+    BOOKMARKS.forEach((mark, i) => {
+      const open = mark === this.bookmark;
+      const x = open ? 0 : TAB.out;
+      const y = top + i * (TAB.h + TAB.gap);
+      // not one of the screen's `buttons`: those are the pieces and the pager, which the tests and the wheel walk
+      const button = this.own(new PixelButton(this, this.root, {
+        x: x + (TAB.w - x) / 2, y: y + TAB.h / 2, width: TAB.w - x, height: TAB.h, label: t(`menu.group.${mark}`), tooltip: t(`menu.group.${mark}`), iconOnly: true,
+        picture: ribbon(mark, TAB.w - x, TAB.h),
+        onClick: () => {
+          if (this.bookmark === mark) return;
+          this.bookmark = mark;
+          this.page = 0;
+          this.armedHide = null;
+          this.redraw();
+        },
+      }));
+      button.setActive(open);
+      if (!open) button.setAlpha(0.85);
+      this.bookmarkButtons.set(mark, button);
+    });
   }
 
   protected draw(): void {
@@ -289,7 +391,11 @@ export class MenuScene extends PixelScene {
     this.editButtons.clear();
     this.partsButtons.clear();
     this.hideButtons.clear();
+    this.bookmarkButtons.clear();
     this.pieceButtons = [];
+    this.slots = [];
+    this.shown = [];
+    this.orderPreview = [];
     this.paging = { total: 0, options: {}, first: 0 };
     this.infoClose = null;
     // pieces turned off are hidden; the Make list keeps own pieces that are off, so they can still be edited
@@ -297,19 +403,23 @@ export class MenuScene extends PixelScene {
     // One list (ft_1_12): a card plays its piece, an own piece's pencil opens it in the editor. The piece maker (main
     // menu, no player) lists only own pieces, and a card opens the editor, so nothing is played (and saved) from it.
     const editable = context.flags.editor;
-    const listed = this.maker ? offered.filter((p) => p.own) : piecesInShownGroups(piecesThatAreOn(offered, profiles.hiddenPieces), (p) => this.groups(p), this.hiddenGroups);
+    const listed = this.maker ? offered.filter((p) => p.own) : piecesUnderBookmark(piecesThatAreOn(offered, profiles.hiddenPieces), (p) => this.groups(p), this.bookmark);
     // picking for Kiur's tug: only the pieces that may be tugged, the learned ones (ft_1_32 rule 15; all with learning off)
     const tuggable = (p: Piece) => !context.flags.learn || pieceLearned(p.chart, profiles.learnProgressOf(p.chart.id), profiles.learnSettings);
-    const on = this.forKiur === 'tug' ? listed.filter(tuggable) : listed;
+    const on = this.ordered(this.forKiur === 'tug' ? listed.filter(tuggable) : listed);
+    this.shown = on;
     // a new piece is made from the piano's book only, never while picking for Kiur
-    const pieces: (Piece | 'new')[] = editable && this.forKiur === null ? ['new', ...on] : on;
+    // at the bookmarks of the teacher's and the characters' pieces there is no new piece to make
+    const pieces: (Piece | 'new')[] = editable && this.forKiur === null && (this.bookmark === 'all' || this.bookmark === 'own' || this.maker) ? ['new', ...on] : on;
     this.sky();
 
     // one list for everything (ft_1_12): no mode tabs and no hint
     const listTop = LIST_TOP;
     if (!context.savesPersist) this.label(MARGIN, listTop - 1, t('menu.noSave'), C.gold, { shadow: false, maxWidth: width - 2 * MARGIN });
 
-    if (pieces.length === 0) {
+    // a bookmark with no pieces still shows the book and its bookmarks, so another can be opened
+    const marked = !this.maker && this.bookmark !== 'all';
+    if (pieces.length === 0 && !marked) {
       const why = this.forKiur === 'tug' && listed.length > 0 ? 'menu.noneLearned' : offered.length > 0 ? 'menu.allOff' : 'menu.noPieces';
       this.label(MARGIN, listTop + 16, t(why), C.dim, { maxWidth: width - 2 * MARGIN });
       return;
@@ -319,8 +429,19 @@ export class MenuScene extends PixelScene {
     const top = context.savesPersist ? listTop : listTop + NO_SAVE_ROOM;
     // the list is written in an open book on the desk, a column on each page
     this.openBook({ x: BOOK_SIDE, y: top - 2, w: width - 2 * BOOK_SIDE, h: height - top + 1 });
+    if (!this.maker) this.bookmarks(top + TAB_TOP);
+    const margin = BOOK_MARGIN + (this.maker ? 0 : TAB_ROOM);
+    if (pieces.length === 0) {
+      // the bookmark's own picture on the empty page, then the sentence under it
+      const picture = BOOKMARK_ICON[this.bookmark]();
+      this.root.add(new PixelImage(this, margin + 6, top + 10, picture).setName('emptyBookmark'));
+      this.inkWriting = true;
+      this.label(margin + 6, top + 16 + picture.height, t(this.forKiur === 'tug' ? 'menu.noneLearned' : 'menu.noneHere'), C.umberDark, { maxWidth: width / 2 - margin - BOOK_GUTTER - 6 });
+      this.inkWriting = false;
+      return;
+    }
     this.inkWriting = true;
-    const grid = cardGrid({ width, height, top: top + 4, margin: BOOK_MARGIN, rowHeight: this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
+    const grid = cardGrid({ width, height, top: top + 4, margin, rowHeight: this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
     const { cardWidth } = grid;
     const slice = pageOf(pieces.length, this.page, { singlePageMax: grid.singlePageMax, perPage: grid.perPage });
     this.page = slice.page;
@@ -338,7 +459,9 @@ export class MenuScene extends PixelScene {
         this.pieceButtons.push(this.button({ x, y: y + 1, width: cardWidth, height: NEW_PIECE_HEIGHT + 4, label: t('menu.newPiece'), icon: newPieceArt(cardWidth - 2 * NEW_PIECE_INSET), iconOnly: true, look: 'ink', onClick: () => startScene(this, 'editor', {}) }));
         return;
       }
-      this.pieceButtons.push(this.card(piece, x, y, cardWidth, profiles.recordFor(piece.chart.id) ?? null));
+      const card = this.card(piece, x, y, cardWidth, profiles.recordFor(piece.chart.id) ?? null);
+      this.pieceButtons.push(card);
+      this.slots.push({ index: slice.first + i - (pieces[0] === 'new' ? 1 : 0), card, id: piece.chart.id });
     });
 
     if (slice.paged) {

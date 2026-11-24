@@ -151,7 +151,7 @@ test.describe('taking a piece out of the book (ft_1_02c.AC8, AC9)', () => {
     expect(await hidden(page)).toEqual(['twinkle-twinkle']);
 
     // the book's strip opens every piece; the hidden one is put back, and Back goes to the book
-    await clickButton(page, 'menu', await bandAction(page, 'menu', 3));
+    await clickButton(page, 'menu', await bandAction(page, 'menu', 1));
     await waitForScene(page, 'pieces');
     const card = await openDrawerWith(page, TWINKLE);
     expect(await sceneTexts(page, 'pieces')).toContain('Off');

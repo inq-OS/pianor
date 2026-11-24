@@ -3,7 +3,7 @@
 // (song list) and the admin page with its name picker. progress.spec.ts covers the first checks; these tests add the
 // buttons and the paths it did not reach.
 import { expect, test, type Page } from '@playwright/test';
-import { addPlayer, bandAction, clickButton, clickToolbar, expectNoErrors, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene } from './helpers';
+import { addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene } from './helpers';
 
 /** The main menu: from the piece list, the room's Quit goes there (`goToMainMenu`). */
 const openProfiles = async (page: Page) => {
@@ -579,22 +579,52 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
     expectNoErrors(errors);
   });
 
-  test("ft_1_12.AC10 the band's filter hides the teacher's pieces and shows them again", async ({ page }) => {
+  test("ft_1_12.AC10 ft_1_12.AC11 the teacher's bookmark shows only the teacher's pieces; the order button puts the nearest deadline first", async ({ page }) => {
     const errors = await openGame(page);
     const title: string = await page.evaluate(async () => {
       const context = window.__game.registry.get('context');
-      const piece = context.pieces.list()[0];
+      const pieces = context.pieces.list();
+      // the last piece of the book, so that ordering by deadline visibly moves it to the front
+      const piece = pieces[pieces.length - 1];
       await context.profiles.saveCurriculum(context.profiles.profile.id, { base: 85, calendar: [], pieces: [{ piece: piece.chart.id, deadline: '1998-12-20', priority: 5 }] });
       (window.__game.scene.getScene('menu') as unknown as { scene: { restart(): void } }).scene.restart();
       return piece.chart.title as string;
     });
     await waitForScene(page, 'menu');
-    await expect.poll(() => menuButton(page, title)).toBeGreaterThanOrEqual(0);
-    // the band's switches: own, curriculum, character
-    await clickButton(page, 'menu', await bandAction(page, 'menu', 1));
-    await expect.poll(() => menuButton(page, title)).toBe(-1);
-    await clickButton(page, 'menu', await bandAction(page, 'menu', 1));
-    await expect.poll(() => menuButton(page, title)).toBeGreaterThanOrEqual(0);
+    const all = await allMenuTitles(page);
+    expect(all).toContain(title);
+    expect(all[0]).not.toBe(title);
+    /** Press a bookmark with the real mouse. */
+    const pressBookmark = async (mark: string) => {
+      const point = await page.evaluate((m) => {
+        const c = (window.__game.scene.getScene('menu').bookmarkButtons.get(m) as { screenCenter(): { x: number; y: number } }).screenCenter();
+        const canvas = document.querySelector('canvas')!;
+        const r = canvas.getBoundingClientRect();
+        return { x: r.left + (c.x / canvas.width) * r.width, y: r.top + (c.y / canvas.height) * r.height };
+      }, mark);
+      await page.mouse.click(point.x, point.y);
+      await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('menu').bookmark as string)).toBe(mark);
+    };
+    await pressBookmark('curriculum');
+    await expect.poll(() => allMenuTitles(page)).toEqual([title]);
+    await pressBookmark('character');
+    expect(await allMenuTitles(page)).not.toContain(title);
+    await pressBookmark('all');
+    await expect.poll(() => allMenuTitles(page)).toEqual(all);
+    // the order button opens its choices as pictures; the nearest deadline first brings the teacher's piece to the front
+    await showMenuPageWith(page, all[0]!);
+    await clickButton(page, 'menu', await bandAction(page, 'menu', 0));
+    // under the pointer a choice shows the titles it would put on the page, faintly, before it is picked (d286)
+    const choice = await lastButton(page, 'menu', 'Nearest deadline first');
+    const point = await buttonPoint(page, 'menu', choice);
+    await page.mouse.move(point.x, point.y);
+    const previewed = () => page.evaluate(() => (window.__game.scene.getScene('menu').children.list as unknown as { list?: { name: string; text?: string }[] }[])
+      .flatMap((o) => o.list ?? []).filter((o) => o.name === 'orderPreview').map((o) => o.text));
+    await expect.poll(async () => (await previewed())[0]).toBe(title);
+    expect(await page.evaluate(() => window.__game.scene.getScene('menu').order as string)).toBe('book');
+    await clickButton(page, 'menu', choice);
+    await expect.poll(async () => (await allMenuTitles(page))[0]).toBe(title);
     expectNoErrors(errors);
   });
+
 });
