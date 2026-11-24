@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { blit, createBitmap, recolor, toRgba, type Bitmap } from './bitmap';
 import { barBitmap, focusRingBitmap, inkBarBitmap, inkStar, labelOverflow, panelBitmap, tinted, trayBitmap, type BarColors, type PanelKind, type TrayKind } from './frames';
-import { BUBBLE_ALPHA, choicePatch, closePlate, OPTION_PLATE, OPTION_SIZE, optionFocus, optionPlate, type PlateLook } from './bubbleArt';
+import { BUBBLE_ALPHA, choicePatch, closePlate, OPTION_PLATE, OPTION_SIZE, optionFocus, optionPlate, stripCell, type PlateLook } from './bubbleArt';
 import { C } from './palette';
 import { drawnText, letterBoxOf, LINE_GAP, LINE_HEIGHT, renderText, type TextOptions } from './font';
 import { MASCOT, STAR_EMPTY, STAR_FULL, type MascotFrame } from './sprites';
@@ -207,6 +207,8 @@ export interface PixelButtonOptions {
    * line drawn under them; its icon is drawn in the same ink.
    */
   look?: 'button' | 'card' | 'tab' | 'bandCell' | 'bandSlot' | 'ink' | 'bubble' | 'bubbleClose' | 'bubbleChoice';
+  /** A cell of the strip that is the screen's main action (Play again, Done): a lighter wood with a honey edge (ft_1_20). */
+  main?: boolean;
   /** With the `ink` look: a box drawn round it by hand, so a small button written on paper reads as something to press (d130). */
   inkBox?: boolean;
   /** Letters twice as big, for headings. */
@@ -511,7 +513,8 @@ export class PixelButton {
       const look = this.plateLook();
       return look === 'plain' || look === 'off' ? createBitmap(width, height) : choicePatch(look);
     }
-    if (!picture && (this.look === 'bandCell' || this.look === 'bandSlot')) return trayBitmap(width, height, this.trayKind());
+    if (!picture && this.look === 'bandCell') return stripCell(width, height, this.options.main && this.plateLook() === 'plain' ? 'main' : this.plateLook());
+    if (!picture && this.look === 'bandSlot') return trayBitmap(width, height, this.trayKind());
     if (!picture) return panelBitmap(width, height, this.panelKind());
     const face = createBitmap(width, height);
     blit(face, picture, Math.floor((width - picture.width) / 2), Math.floor((height - picture.height) / 2) + (this.down ? 1 : 0));
@@ -540,7 +543,8 @@ export class PixelButton {
   /** The look of a bubble's plate for the button's state. */
   private plateLook(): PlateLook {
     if (this.disabled) return 'off';
-    if (this.armed || this.active) return 'on';
+    if (this.armed) return this.isBubble() ? 'on' : 'armed';
+    if (this.active) return 'on';
     if (this.down) return 'down';
     return this.hover ? 'hover' : 'plain';
   }

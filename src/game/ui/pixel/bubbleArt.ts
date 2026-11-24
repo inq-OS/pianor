@@ -14,7 +14,7 @@ import { C } from './palette';
  */
 
 /** How a plate looks: at rest, under the pointer, pressed, switched on (lit), with nothing to do, or the screen's main action. */
-export type PlateLook = 'plain' | 'hover' | 'down' | 'on' | 'off' | 'main';
+export type PlateLook = 'plain' | 'hover' | 'down' | 'on' | 'off' | 'main' | 'armed';
 
 interface PlateColours {
   fill: number;
@@ -31,6 +31,8 @@ const PLATES: Readonly<Record<PlateLook, PlateColours>> = {
   // lit: the plate stays wood, its edge turns gold, so the picture keeps its colour and still reads
   on: { fill: C.panelLit, light: C.goldLight, shade: C.gold, outline: C.groove },
   off: { fill: C.panel, light: C.panel, shade: C.panel, outline: C.panelDark },
+  // the piece maker's writer while a click on the staff writes with it: purple, as the staff's preview of the next note
+  armed: { fill: C.purple, light: C.purpleLight, shade: C.purpleDark, outline: C.groove },
   // the main action (Play again, Done) at the strip's right end: a lighter wood with a honey edge, the same on every screen
   main: { fill: C.panelLit, light: C.honey, shade: C.honeyDark, outline: C.groove },
 };
@@ -208,8 +210,12 @@ export function stripBitmap(width: number): Bitmap {
 
 /** A cell of the strip: `span` cells of 30 x 15 joined (a word wider than one cell takes more, `cellSpan`), raised. */
 export function pinCell(span = 1, look: PlateLook = 'plain'): Bitmap {
-  const w = span * PIN_CELL_SIZE.w + (span - 1), h = PIN_CELL_SIZE.h;
-  return plateOf(w, h, roundedRect(w, h), PLATES[look], look === 'down');
+  return stripCell(span * PIN_CELL_SIZE.w + (span - 1), PIN_CELL_SIZE.h, look);
+}
+
+/** A cell of the strip `width` x `height` cells (the layout's rectangle for it), in one of the plate's looks. */
+export function stripCell(width: number, height: number, look: PlateLook = 'plain'): Bitmap {
+  return plateOf(width, height, roundedRect(width, height), PLATES[look], look === 'down' || look === 'armed');
 }
 
 /**

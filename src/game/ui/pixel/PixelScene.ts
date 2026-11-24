@@ -16,7 +16,7 @@ import { signOnly } from './itemArt';
 import { PALETTE, C } from './palette';
 import { createBitmap, recolor, type Bitmap } from './bitmap';
 import { LiveImage, PixelBar, PixelButton, PixelImage, PixelText, type PixelButtonOptions, type RgbaArt } from './PixelObjects';
-import { BACKPACK, BUBBLE_ALPHA, choicesSausage } from './bubbleArt';
+import { BACKPACK, BUBBLE_ALPHA, choicesSausage, stripBitmap, wornChip } from './bubbleArt';
 import { LiveWaterPlayer } from './liveWater';
 import type { LiveWater } from './paint/live';
 import { TITLE_X, TOP_BAR } from './playBars';
@@ -108,8 +108,6 @@ export interface MenuItem {
 const MENU_DEPTH = 1000;
 /** A cell of the strip, in layout cells (ft_1_20, d282: `src/core/layout/bubble.ts`). */
 const STRIP_CELL_WIDTH = 30;
-/** A worn option that is on, beside More: a small square picture. */
-const CHIP = 15;
 /** Room between the backpack and the gear, so the two are not taken for each other. */
 const BACKPACK_GAP = 2;
 /** A long press opens the bubble after this long (ft_1_20, d282); moving the finger farther than `LONG_PRESS_SLIP` screen pixels cancels it. */
@@ -1069,11 +1067,8 @@ export abstract class PixelScene extends Phaser.Scene {
       this.toolbarButtons = { ...this.toolbarButtons, keys: null, items: [] };
       return;
     }
-    // the strip's ground: one warm board with a dark line along its top
-    const ground = createBitmap(Math.max(5, width), rows);
-    ground.pixels.fill(C.panel);
-    ground.pixels.fill(C.groove, 0, ground.width);
-    this.root.add(new PixelImage(this, 0, top, ground));
+    // the strip's ground: one warm board with a dark line along its top and a darker one along its foot
+    this.root.add(new PixelImage(this, 0, top, stripBitmap(Math.max(5, width))));
     const actions = this.stripActions();
     const keysAction = !this.screenFrame.toolbar && this.toolbarKeys;
     if (keysAction) actions.push({ label: t('settings.keyboard'), icon: ICONS.freePlay, onClick: () => context.keyboardSwitch.toggle() });
@@ -1110,10 +1105,11 @@ export abstract class PixelScene extends Phaser.Scene {
     if (bubble && moreRight > 0) {
       let x = moreRight + 3;
       for (const worn of (this.bubbleOptions(null) ?? []).filter((o): o is ToolbarItem => o !== null && o.worn === true && o.active === true && o.icon !== undefined)) {
-        if (x + CHIP > mainLeft - 2) break;
-        const chip = this.button({ x: x + CHIP / 2, y: top + 1 + 15 / 2, width: CHIP, height: 15, label: worn.label, icon: worn.icon!, iconOnly: true, look: 'bandCell', ...(worn.tooltip ? { tooltip: worn.tooltip } : {}), onClick: worn.onClick });
-        chip.setActive(true);
-        x += CHIP + 1;
+        // a gold chip with the option's picture in ink
+        const picture = wornChip(worn.icon!);
+        if (x + picture.width > mainLeft - 2) break;
+        this.button({ x: x + picture.width / 2, y: top + 1 + picture.height / 2, width: picture.width, height: picture.height, label: worn.label, picture, ...(worn.tooltip ? { tooltip: worn.tooltip } : {}), onClick: worn.onClick });
+        x += picture.width + 1;
       }
       freeLeft = Math.max(freeLeft, x);
     }
@@ -1465,7 +1461,7 @@ export abstract class PixelScene extends Phaser.Scene {
     const menu = item.menu;
     const button: PixelButton = this.button({
       ...at, label, labelWidth: room, look, ...(item.icon ? { icon: item.fineIcon && look === 'bandCell' ? signOnly(item.icon, STRIP_SIGN, STRIP_SIGN) : item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}), ...(tooltip ? { tooltip } : {}),
-      ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}),
+      ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}), ...(item.main ? { main: true } : {}),
       // a band item's menu opens above it, toward the staff, where the pointer goes next
       onClick: menu ? () => this.openMenu(button, menu.items(), { cell: menu.cell, columns: menu.columns, open: 'above' }) : item.onClick,
     });
