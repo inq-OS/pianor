@@ -35,7 +35,7 @@ TypeScript (strict; typechecked by the native TypeScript 7 compiler), Vite, Phas
 
 ## Commands
 
-All scripts (`docs:verify` among them) and the working notes on tests and long jobs: `docs/commands.md`. Daily: `npm run check` (typecheck, lint, the unit tests the branch touches, docs check: before saying done), `npm run check:ci` (before pushing), `npm run test:e2e:affected`, `npm run docs:index` (regenerates `<!-- docs:... -->` blocks; never edit inside them by hand).
+All scripts (`docs:verify` among them) and the working notes on tests and long jobs: `docs/commands.md`. Daily: `npm run check` (typecheck, lint, the unit tests the branch touches, docs check: before saying done), `npm run check:ci` (what CI runs on every push; locally only to reproduce a red CI job), `npm run test:e2e:affected`, `npm run docs:index` (regenerates `<!-- docs:... -->` blocks; never edit inside them by hand).
 
 ## Architecture rules
 

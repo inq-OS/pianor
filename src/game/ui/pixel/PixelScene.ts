@@ -68,6 +68,8 @@ export interface ToolbarItem {
   main?: boolean;
   /** A worn option (note names, fingers): picked in the bubble it switches and leaves the bubble open, and while on it stands lit beside More. */
   worn?: boolean;
+  /** A bubble option's preview (d286): drawn while the pointer rests on it, taken away when it leaves or the bubble closes. */
+  preview?: (on: boolean) => void;
   onClick: () => void;
 }
 
@@ -1432,7 +1434,7 @@ export abstract class PixelScene extends Phaser.Scene {
         // a worn option leaves the bubble open, so several can be set in a row
         if (item.worn) this.time.delayedCall(0, () => this.openBubble(at));
       };
-      ring.push(make(r, item, pick));
+      ring.push(make(r, item, pick, item.preview));
       if (!item.disabled) sectorPick[i] = pick;
     });
     choices.forEach((choice, j) => {
@@ -1445,7 +1447,8 @@ export abstract class PixelScene extends Phaser.Scene {
       if (choice.active) button.setActive(true);
     });
     make(layout.close, { label: t('band.close'), icon: TOOL_ICONS.close, onClick: () => undefined }, () => this.closeMenu(), undefined, 'bubbleClose');
-    this.menu = { container, buttons, focusBefore: this.focusIndex, bubble: true, ring, previews: choices.flatMap((choice) => (choice?.preview ? [choice.preview] : [])) };
+    const optionPreviews = paging.slots.flatMap((slot) => (typeof slot === 'number' && listed[slot]?.preview ? [listed[slot].preview] : []));
+    this.menu = { container, buttons, focusBefore: this.focusIndex, bubble: true, ring, previews: [...optionPreviews, ...choices.flatMap((choice) => (choice?.preview ? [choice.preview] : []))] };
     this.buttons.push(...buttons);
     if (options.keyboard || this.keyboardNavigation) this.focusOn(ring.find((b) => !b.disabled) ?? buttons[0]);
   }

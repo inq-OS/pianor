@@ -39,7 +39,7 @@ A change on the right side goes to the builder or the architect as a tag in the 
 6. **Reference pictures never go into git:** not the reference photographs of Keri, not screenshots of other games. They are studied locally (the gitignored `private/painter/`), each batch with a README.
 7. **No shadow or vignette laid over a picture**, in any scene.
 8. **Look and measure before you show:** `npm run art:render` writes a picture to a PNG without starting the game; `npm run art:check` measures it against the rules that have numbers (colour runs, clouds) and draws the stage-set lines over it; a browser screenshot shows it in the game. Nobody can judge a picture from its code, and the numbers do not say whether it is good.
-9. **Checks:** `npm run check:ci` before a push; the end-to-end areas of the screen (`npm run test:e2e:affected`). A repainted screen changes its screenshot baseline: make the new one (`--update-snapshots` on the visual area, or the "Update screenshot baselines" workflow) and say so in the pull request, where the maintainer looks at it.
+9. **Checks:** `npm run check` before a push (CI runs `check:ci`); the end-to-end areas of the screen (`npm run test:e2e:affected`). A repainted screen changes its screenshot baseline: make the new one (`--update-snapshots` on the visual area, or the "Update screenshot baselines" workflow) and say so in the pull request, where the maintainer looks at it.
 10. **Merge:** only on the maintainer's word. Art is taste; a green check is not a verdict.
 11. **Helpers:** subagents are allowed; choose each one's model by how hard its task is, never the largest by habit.
 12. **Explain app and web matters briefly** (what, why, where). The game is laid out for a modest laptop at 1920 x 1080.
@@ -100,5 +100,6 @@ A URL switch that opens a scene directly is not needed: `npm run art:render` sho
 ## 8. Known open ends handed over
 
 - TODO(painter, R2): the maintainer's verdict on the clean-sheet clouds (d111), if the scenes painted since do not already carry it.
+- TODO(painter, R2): try the MIT library pixelfx (github.com/patch-gg/pixelfx: 244 pixel effects written as code, among them fireflies, rain, fog, snow, ripples, drips, a candle and a campfire, birds, butterflies and a fish school) for the moving life of a place (`keri/roomLife.ts`, `keri/portBoats.ts`): one effect ported to the shared palette (rule 9) and the 640 x 360 grid, held to the art rules, a row in `docs/assets.md` for the credit; keep it only if it beats what the painter draws and adds no light laid over the picture. Its loop (render a contact sheet, look, refine) is ours already.
 - The letters A, B and D on drone photograph 19 and every `KERI-TODO`: in [keri.md](../keri.md) and [keri/map.md](../keri/map.md), asked of the maintainer there.
 - NEEDS-HUMAN: [axioms.md](../axioms.md) AX-2.3 still says minimal original assets, while d084 and `CLAUDE.md` welcome free packs. The axioms are the maintainer's to word.
