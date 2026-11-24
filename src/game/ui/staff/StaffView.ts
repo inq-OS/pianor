@@ -99,6 +99,8 @@ const DURATION_GHOST_ALPHA = 0.28;
 const PLAYED_ALPHA = 0.55;
 const PLAYED_INK = '#d7263d';
 const PLAYED_NAME_GAP = 1.7;
+/** How much of the sheet's copy covers bars drawn very faint (ft_1_32.AC20): a little ink shows through. */
+const VEIL_ALPHA = 0.86;
 
 /**
  * Draws a `StaffLayout`: one staff, or a grand staff with a brace. It reads play state (note states, which notes are
@@ -107,7 +109,9 @@ const PLAYED_NAME_GAP = 1.7;
  */
 export class StaffView {
   /** The sheet of parchment the staff is written on (d119), under everything; it stays while a page turns. */
-  private readonly sheet: { release: () => void };
+  private readonly sheet: { image: Phaser.GameObjects.Image; release: () => void };
+  /** Copies of the sheet laid over the bars drawn very faint (`veil`), one per line, with the line they cover. */
+  private veils: { image: Phaser.GameObjects.Image; system: number }[] = [];
   /** The coloured bars on the sheet (a section being chosen), under the highlight boxes and the staff lines. */
   private readonly paperBg: Phaser.GameObjects.Graphics;
   private readonly paper: Phaser.GameObjects.Graphics;
@@ -155,6 +159,7 @@ export class StaffView {
   /** False until the first play state arrives: a view made mid-piece (after a resize or a hint toggle) jumps to its page without a fade. */
   private synced = false;
   private section: SectionMarks | null = null;
+  private veiled: readonly { from: number; to: number }[] = [];
   /** The A and B of a section, each with the system of its bar. */
   private readonly markTexts: { text: Phaser.GameObjects.Text; system: number }[] = [];
 
@@ -234,6 +239,61 @@ export class StaffView {
     }
     for (const mark of this.markTexts) mark.text.setVisible(this.onPage(mark.system));
     for (const slur of this.slurTexts) slur.text.setVisible(this.onPage(slur.system) && hints.noteNames);
+    for (const v of this.veils) v.image.setVisible(this.onPage(v.system));
+  }
+
+  /** The bars drawn very faint (`veil`), as inclusive ranges (read by the tests). */
+  get faintBars(): readonly { from: number; to: number }[] {
+    return this.veiled;
+  }
+
+  /**
+   * Draw the bars of `ranges` (inclusive) very faint (ft_1_32.AC20): a copy of the sheet, nearly opaque, laid over each run of
+   * them on a line. The bar lines that bound the bars played stay in ink; a line that starts faint is veiled from its clef,
+   * and one that ends faint to its end. Lay it before anything drawn over the staff that must stay clear (the prizes, the markers).
+   */
+  veil(ranges: readonly { from: number; to: number }[]): void {
+    for (const v of this.veils) v.image.destroy();
+    this.veils = [];
+    this.veiled = ranges;
+    const { layout } = this;
+    const S = layout.staffSpace;
+    const faint = (bar: number) => ranges.some((r) => bar >= r.from && bar <= r.to);
+    for (const here of layout.systems) {
+      const bars = layout.bars.filter((b) => b.system === here.index);
+      const lineRight = Math.max(...layout.staffLines.filter((l) => l.system === here.index).map((l) => l.x2)) + 0.3 * S;
+      let k = 0;
+      while (k < bars.length) {
+        if (!faint(bars[k]!.index)) {
+          k++;
+          continue;
+        }
+        let end = k;
+        while (end + 1 < bars.length && faint(bars[end + 1]!.index)) end++;
+        const left = k === 0 ? -0.2 * S : bars[k]!.x + 0.2 * S;
+        const right = end === bars.length - 1 ? lineRight : bars[end]!.x + bars[end]!.width - 0.2 * S;
+        this.veilOver(here.index, left, right);
+        k = end + 1;
+      }
+    }
+  }
+
+  /** One copy of the sheet over line `system` from `left` to `right` (layout x), between the middles of the gaps to its neighbours. */
+  private veilOver(system: number, left: number, right: number): void {
+    const { layout } = this;
+    const sheet = this.sheet.image;
+    const fine = sheet.scaleX;
+    const before = layout.systems[system - 1];
+    const after = layout.systems[system + 1];
+    const here = layout.systems[system]!;
+    const top = before && before.page === here.page ? (before.bottomLineY + here.topLineY) / 2 : 0;
+    const bottom = after && after.page === here.page ? (here.bottomLineY + after.topLineY) / 2 : layout.height;
+    const x0 = this.origin.x + left;
+    const crop = { x: Math.floor((x0 - sheet.x) / fine), y: Math.floor((this.origin.y + top - sheet.y) / fine) };
+    const image = this.scene.add.image(sheet.x, sheet.y, sheet.texture.key).setOrigin(0, 0).setScale(fine).setAlpha(VEIL_ALPHA)
+      .setCrop(crop.x, crop.y, Math.ceil((right - left) / fine) + 1, Math.ceil((bottom - top) / fine) + 1);
+    image.setVisible(this.onPage(system));
+    this.veils.push({ image, system });
   }
 
   /**
@@ -508,6 +568,7 @@ export class StaffView {
   destroy(): void {
     [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
     this.playedName?.destroy();
+    for (const v of this.veils) v.image.destroy();
     this.sheet.release();
   }
 

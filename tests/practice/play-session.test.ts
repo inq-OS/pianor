@@ -30,6 +30,8 @@ class FakeStaff {
   setDurationMarks(marks: { bands: unknown[]; ghosts: unknown[] }) { this.durationMarks.push(marks); }
   handShifts: ReadonlyMap<number, 'up' | 'down'>[] = [];
   setHandShifts(shifts: ReadonlyMap<number, 'up' | 'down'>) { this.handShifts.push(shifts); }
+  veiled: unknown[] = [];
+  veil(ranges: unknown) { this.veiled.push(ranges); }
   destroy() { this.destroyed = true; }
 }
 class FakeBubble {
@@ -123,6 +125,21 @@ describe('PlaySession', () => {
     const view = part.drawStaff(area, prefs) as unknown as FakeStaff;
     expect(part.layout!.staffSpace).toBe(whole.layout!.staffSpace);
     expect((view.numbers as { number: number }[])[0]!.number).toBe(2);
+  });
+
+  it('ft_1_32.AC20 draws the whole piece for a learning step, the other bars faint, and leaves room for the prizes at the right', () => {
+    const { scene } = fakeScene();
+    const step = sliceChart(chart, 0, 0);
+    const callbacks = { onJudged: () => undefined, onCompleted: () => undefined };
+    const plain = new PlaySession(scene, { chart: step, section: { whole: chart, first: 0 }, keyboard: new ScriptedKeyboard([]), callbacks });
+    plain.drawStaff(area, prefs);
+    const learning = new PlaySession(scene, { chart: step, section: { whole: chart, first: 0 }, shown: { chart, faint: [{ from: 1, to: chart.bars.length - 1 }] }, roomRight: 12, keyboard: new ScriptedKeyboard([]), callbacks });
+    const view = learning.drawStaff(area, prefs) as unknown as FakeStaff;
+    expect(view.veiled).toEqual([[{ from: 1, to: chart.bars.length - 1 }]]);
+    expect(learning.layout!.bars).toHaveLength(chart.bars.length);
+    // the judge still plays only the step
+    expect(learning.chart.bars).toHaveLength(1);
+    expect(learning.layout!.width).toBeLessThan(plain.layout!.width);
   });
 
   it('ft_1_12.AC7: a wrong note shows the key played on the staff, no sentence, flashes the awaited notes and clears the flash', () => {
