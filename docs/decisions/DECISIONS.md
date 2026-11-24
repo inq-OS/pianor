@@ -272,4 +272,5 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d288](workflow.md#d288) | No game text uses a font of the computer: the staff's text is JetBrains Mono Bold shipped with the game and every other text the pixel font, so one screenshot baseline per screen serves every machine |  |
 | [d289](workflow.md#d289) | Screenshot tests and baselines make no difference between Windows and Linux: every job runs on Linux, a baseline is made by the baseline workflow or any local run, and the screenshot area always draws in software |  |
 | [d290](game.md#d290) | Code, content, tests and docs use only the current words of `docs/glossary.md`; the battle vision's words and what they named are removed | ft_1_06, ft_1_19, ft_1_21, ft_Y_01, ft_Y_02, ft_Y_03, ft_Y_08, ft_Y_10 |
+| [d291](game.md#d291) | The live tempo of a learning run is off unless the player turns it on in the learning settings, and is drawn small in the top bar | ft_1_32 |
 <!-- /docs:index -->

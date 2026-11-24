@@ -484,3 +484,11 @@ Check: `src/core/layout/preview.test.ts` "ft_1_02d.AC25 note A then the same key
 A current thing still named with an old word is renamed with no change of behaviour (monster and being to character, battle and fight to tug or challenge, battle record to tug record, campaign to a character's learn, practise and show, trail to scene or map). What only the battle vision had is deleted: the monster ladder of four (`content/campaign/ladder.json`) and the campaign state in the save, the beings drawn at random into scenes, the monster art, the battle setting and health, find the key and find the door, and the RPG ideas (spellbook, classes, the RPG shell, the power attack, the confuser, modular monsters). The save gets a version that renames or drops its old keys, so only the migration that reads an older save may name them.
 
 Check: untestable: the word check against the glossary comes with its own CI step
+
+## d291
+
+**The live tempo of a learning run is off unless the player turns it on in the learning settings, and is drawn small in the top bar.** Features: ft_1_32.
+
+A picture choice on the learning settings page turns it on; a setting saved before the choice reads as off. When on, the tempo, spread and wobble so far are two small dim lines in the top bar beside the rewards, never in the stats pane, so they stay out of the student's sight while reading the staff.
+
+Check: `src/core/learn/progress.test.ts` "ft_1_32.AC17 the live tempo is off unless the player turned it on, and a setting saved before it reads as off"

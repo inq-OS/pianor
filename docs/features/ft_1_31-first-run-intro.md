@@ -50,6 +50,6 @@ AX-0: the intro ends with the student having read and played a piece three times
 - NEEDS-HUMAN: look at the intro on the laptop and check its Estonian wording, the lesson bar's label LÕPETA among it.
 - TODO(painter, R2): the final arrow in the kit's style with a gold frame, and the teacher's figure (still a placeholder box).
 - TODO(painter, R2): layout: the teacher's line sits under the skip button, and the button covers the end of the hint bar.
-- TODO(builder, R2): decide whether the intro's learn and practise stages teach bar by bar ([ft_1_32](ft_1_32-learn-a-piece-bar-by-bar.md)), and change `content/intro/intro.json` to match.
+- TODO(builder, R2): the intro's learn stage teaches the lesson's bars bar by bar ([ft_1_32](ft_1_32-learn-a-piece-bar-by-bar.md)) and ends at the learned moment, with no extra whole play after it; then change `content/intro/intro.json` and `afterRoom` to match.
 - AX-3 provisional: the lines, the tour order, the lesson length, what Esc does, where the skip button sits, whether the intro visits a scene, and the replay (today only the URL switch `?intro=1`).
 - TODO(architect, R2): the working copy once ended on a detached HEAD after long end-to-end runs; check whether `npm run test:e2e:affected` checks out a ref and, if it does, say so in [testing.md](../testing.md).
