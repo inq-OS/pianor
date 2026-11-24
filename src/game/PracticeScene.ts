@@ -66,7 +66,7 @@ const RAMP_BAR = 16;
 const BOTTOM_BAR = 32;
 /** The stats pane under the bottom bar, in place of the on-screen keyboard (ft_1_12.AC5), and the registry key of its switch (session only, no save). */
 const STATS_PANE = 40;
-/** The live tempo's two half-size lines in the top bar (ft_1_32.AC17), this many rows apart. */
+/** The live tempo's two half-size lines in the strip at the foot (ft_1_32.AC17), this many rows apart. */
 const LIVE_TEMPO_LINE = 6;
 export const STATS_PANE_KEY = 'statsPane';
 
@@ -1184,9 +1184,8 @@ export class PracticeScene extends PixelScene {
       const x = nextRight - row.width;
       this.drawRewards(x, Math.max(0, Math.floor((strip.rows - REWARD_ROWS) / 2)), room, layer);
       bubbleRight = x - 4;
-      if (learnLiveTempo(contextOf(this).profiles.learnSettings)) bubbleRight = this.drawLiveTempo(bubbleRight, strip.rows) - 4;
     }
-    this.playSession.drawBubble(layer, { x: bubbleLeft, y: BAND_STRIP_DROP + 1, width: Math.max(0, bubbleRight - bubbleLeft) });
+    this.playSession.drawBubble(layer, { x: bubbleLeft, y: BAND_STRIP_DROP + 1, width: bubbleRight - bubbleLeft });
     if (paneRows > 0) this.drawStatsPane(foot, paneRows);
   }
 
@@ -1334,18 +1333,20 @@ export class PracticeScene extends PixelScene {
   }
 
   /**
-   * The learning run's live tempo in the top bar, right-aligned at `right` (ft_1_32.AC17), when the player turned it on: the
-   * pace on the first line, the spread and the wobble on the second, small and dim, out of the student's way. Returns its
-   * left edge.
+   * The learning run's live tempo in the strip at the foot (ft_1_32.AC17), when the player turned it on: the pace on the
+   * first line, the spread and the wobble on the second, small and dim, at the right end of the strip's free stretch, out
+   * of the student's way. Nothing when the stretch is too narrow for it.
    */
-  private drawLiveTempo(right: number, rows: number): number {
-    const top = Math.max(1, Math.floor((rows - 2 * LIVE_TEMPO_LINE) / 2));
-    // at half size, on the fine pixels (d110): as wide as its widest second line, so changing numbers never move the bubble
+  protected override afterFrame(free: { left: number; right: number; top: number; rows: number } | null): void {
+    this.liveLabels = null;
+    if (!free || !this.learn || !learnLiveTempo(contextOf(this).profiles.learnSettings)) return;
+    // at half size, on the fine pixels (d110): as wide as its widest second line, so changing numbers never move it
     const widest = `${t('practice.liveSpread', { value: '100%' })} ${t('practice.liveWobble', { value: '100%' })}`;
-    const left = right - Math.ceil(measure(drawnText(widest)) / 2);
+    const left = free.right - 3 - Math.ceil(measure(drawnText(widest)) / 2);
+    if (left < free.left + 3) return;
+    const top = free.top + Math.max(1, Math.floor((free.rows - 2 * LIVE_TEMPO_LINE) / 2));
     this.liveLabels = [0, 1].map((line) => this.label(left, top + line * LIVE_TEMPO_LINE, '', C.dim).setScale(0.5));
     this.showLiveTempo();
-    return left;
   }
 
   /**

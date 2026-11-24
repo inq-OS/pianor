@@ -187,7 +187,7 @@ test('ft_1_32.AC16 a half-learned piece opened again asks to go on or start over
   expectNoErrors(errors);
 });
 
-test('ft_1_32.AC17 the live tempo is off by default; turned on in the settings, the top bar shows the run measured while it is played', async ({ page }) => {
+test('ft_1_32.AC17 the live tempo is off by default; turned on in the settings, the strip at the foot shows the run measured while it is played', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
   const live = async () => (await sceneTexts(page, 'practice')).filter((text) => /^(Tempo|Spread) /.test(text));
   await learnPiece(page, 'Little Steps');
