@@ -1,4 +1,4 @@
-// Covers ft_1_02d.AC25, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
+// Covers ft_1_02d.AC25, ft_1_02d.AC31, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
 import { readFileSync } from 'node:fs';
 import { encode as encodePng } from 'fast-png';
 import { expect, test, type Page } from '@playwright/test';
@@ -1029,7 +1029,8 @@ test.describe('one item each for the accidentals, ties and slurs, and repeats', 
     await pressArc();
     expect(await arcs()).toEqual({ ties: [0], slurs: 1 });
 
-    // one repeat item: a press asks for the start bar (it is lit), a click in bar 2 is the start, a click in bar 3 the end
+    // one repeat item: a press asks for the start bar (it is lit); the signs snap to the nearest bar line (ft_1_02d.AC31), so a
+    // click near the start of bar 2 starts it there, and a click near the end of bar 3 ends it there
     const repeats = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { history: { present: { repeats?: unknown[] } } }).history.present.repeats ?? []);
     expect(await editorButton(page, '|:')).toBe(-1);
     await clickButton(page, 'editor', await bubbleButton(page, '|: :|'));
@@ -1037,7 +1038,7 @@ test.describe('one item each for the accidentals, ties and slurs, and repeats', 
     await selectNote(page, 1, 0, 'C');
     expect(await status(page)).toContain('Now click the bar the repeat ends on.');
     expect(await repeats()).toEqual([]);
-    await selectNote(page, 2, 480, 'C');
+    await selectNote(page, 2, 1440, 'C');
     expect(await repeats()).toEqual([{ startBar: 1, endBar: 2 }]);
     expect(await status(page)).not.toContain('the repeat ends on');
     // the notes stayed as they were: the clicks only picked bars
