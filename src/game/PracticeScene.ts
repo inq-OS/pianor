@@ -8,6 +8,7 @@ import { CHARACTER_PIECES } from './adventure/scenesData';
 import { dayString } from '../io/teacher/teacherDesk';
 import { PLAY_CHOICES, choiceSettings, followsPlayer, playChoiceOf, type PlayChoice, type PlaySettings } from '../core/judge/playSettings';
 import { barAtPoint } from '../core/layout/barPick';
+import { TAP_SLIP } from '../core/layout/bubble';
 import { DEFAULT_RAMP, RAMP_CHOICES, RAMP_MAX_PERCENT, TEMPO_PERCENT, clampTempoPercent, cleanLap, nextChoice, nextTarget, rampAfterLap, scrollRamp, toggleUnit, type TempoRamp, type Transport, type MetronomePlan, clickBpm, clickPlan, stepClickOffset } from '../core/transport';
 import { emptyFreePlay, recordFreePlayNote, recordFreePlayRound, summarizeFreePlay, type FreePlaySession } from '../core/scoring/freePlay';
 import { t, type StringKey } from '../core/text/strings';
@@ -487,7 +488,23 @@ export class PracticeScene extends PixelScene {
       if (e.kind === 'on' && e.velocity > 0 && this.bubbleIsOpen) this.closeMenu();
     });
     this.input.keyboard?.on('keydown-ESC', () => (this.rampOpen && this.rampShown ? this.toggleRamp() : this.picking ? this.cancelPicking() : this.leave()));
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.onTap(pointer));
+    // a mouse press on a bar starts from it at once; a finger only once it lifts from a short tap, so that holding on (the long
+    // press) or a second finger (the two-finger tap) can open the bubble instead (ft_1_20, d282)
+    // a slow tap is still a tap: a finger held long enough opened the bubble instead, and that lift is the bubble's
+    let fingerDown: { x: number; y: number } | null = null;
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.wasTouch) {
+        // a finger down while a menu is open is the menu's: its lift closes it and starts nothing
+        fingerDown = this.menuOpen ? null : { x: pointer.x, y: pointer.y };
+      } else this.onTap(pointer);
+    });
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      const down = fingerDown;
+      fingerDown = null;
+      if (!down || !pointer.wasTouch || this.menuOpen || this.severalFingers) return;
+      if (Math.hypot(pointer.x - down.x, pointer.y - down.y) > TAP_SLIP) return;
+      this.onTap(pointer);
+    });
     // Hotkeys on the window in the capture phase: the computer-keyboard piano listens there too, and a key taken here must not also play a note
     // the mouse wheel over a ramp value turns it by one (a press still cycles through the presets)
     this.input.on('wheel', (pointer: Phaser.Input.Pointer, _over: unknown, _dx: number, dy: number) => {
