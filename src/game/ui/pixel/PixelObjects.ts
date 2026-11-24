@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { blit, createBitmap, recolor, toRgba, type Bitmap } from './bitmap';
 import { barBitmap, focusRingBitmap, inkBarBitmap, inkStar, labelOverflow, panelBitmap, roundTrayBitmap, tinted, trayBitmap, type BarColors, type PanelKind, type TrayKind } from './frames';
 import { C } from './palette';
-import { drawnText, letterBoxOf, renderText, type TextOptions } from './font';
+import { drawnText, letterBoxOf, LINE_GAP, LINE_HEIGHT, renderText, type TextOptions } from './font';
 import { MASCOT, STAR_EMPTY, STAR_FULL, type MascotFrame } from './sprites';
 import { ART_DETAIL } from '../../../core/layout/frame';
 import { TOOLTIP_DELAY_MS, tooltipBox } from '../../../core/layout/tooltip';
@@ -120,6 +120,8 @@ export class PixelText extends PixelImage {
   letterBox: { left: number; top: number; right: number; bottom: number };
 
   private options: TextOptions;
+  /** The letters as drawn last, kept so `lineBoxes` can find each line's ink. */
+  private drawn: Bitmap;
 
   constructor(scene: Phaser.Scene, x: number, y: number, text: string, options: TextOptions) {
     const { bitmap, letterBox } = PixelText.draw(text, options);
@@ -127,6 +129,29 @@ export class PixelText extends PixelImage {
     this.options = options;
     this.text = text;
     this.letterBox = letterBox;
+    this.drawn = bitmap;
+  }
+
+  /**
+   * Each line of the text as drawn, from its first to its last inked column and over its line's rows, in the scene's art
+   * pixels (scale and position applied); a line with no ink is left out. The menu strikes a title through by these (ft_1_02c.AC8).
+   */
+  lineBoxes(): { x: number; y: number; width: number; height: number }[] {
+    const { width, height, pixels } = this.drawn;
+    const scale = this.displayWidth / Math.max(1, width);
+    const boxes: { x: number; y: number; width: number; height: number }[] = [];
+    for (let top = 0; top < height; top += LINE_HEIGHT) {
+      let left = width, right = -1;
+      for (let y = top; y < Math.min(height, top + LINE_HEIGHT - LINE_GAP); y++) {
+        for (let x = 0; x < width; x++) {
+          if (pixels[y * width + x] === 0) continue;
+          left = Math.min(left, x);
+          right = Math.max(right, x);
+        }
+      }
+      if (right >= left) boxes.push({ x: this.x + left * scale, y: this.y + top * scale, width: (right - left + 1) * scale, height: (LINE_HEIGHT - LINE_GAP) * scale });
+    }
+    return boxes;
   }
 
   setText(text: string): this {
@@ -153,6 +178,7 @@ export class PixelText extends PixelImage {
   private show(text: string, options: TextOptions): this {
     const { bitmap, letterBox } = PixelText.draw(text, options);
     this.letterBox = letterBox;
+    this.drawn = bitmap;
     return this.setBitmap(bitmap);
   }
 
@@ -398,6 +424,11 @@ export class PixelButton {
     this.ring?.destroy();
     this.ring = null;
     this.objects.forEach((o) => o.destroy());
+  }
+
+  /** Each line of the label as drawn, in art pixels (`PixelText.lineBoxes`); none for a button that draws no label. */
+  textLines(): { x: number; y: number; width: number; height: number }[] {
+    return this.options.iconOnly || this.options.picture ? [] : this.label.lineBoxes();
   }
 
   /** The label and sublabel as drawn, with how far their letters reach past the frame (`labelOverflow`); tests read it. */
