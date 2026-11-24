@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "traveller",
+  "template": {
+    "features": {
+      "hair": "short",
+      "hairColour": "ash",
+      "headwear": "brimhat",
+      "beard": "full",
+      "nose": "hook",
+      "top": "longcoat",
+      "topColour": "olive",
+      "bottom": "trousers",
+      "bottomColour": "brown",
+      "feet": "boots",
+      "neckwear": "scarf",
+      "trimColour": "rust",
+      "held": "lantern",
+      "heldColour": "brass",
+      "build": "thin",
+      "height": "tall"
+    }
+  },
+  "size": {
+    "w": 72,
+    "h": 104
+  },
+  "anchor": {
+    "x": 34,
+    "y": 101
+  },
+  "states": {
+    "idle": {
+      "frames": 4,
+      "fps": 3,
+      "loop": true
+    },
+    "talk": {
+      "frames": 4,
+      "fps": 6,
+      "loop": true
+    },
+    "listen": {
+      "frames": 4,
+      "fps": 2,
+      "loop": true
+    },
+    "play": {
+      "frames": 4,
+      "fps": 3,
+      "loop": true
+    },
+    "walk": {
+      "frames": 6,
+      "fps": 8,
+      "loop": true
+    }
+  }
+}
