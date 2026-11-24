@@ -58,6 +58,14 @@ jobs:
       - name: End-to-end tests, every area
         if: inputs.full
         run: npm run test:e2e -- --shard=${{ matrix.shard }}/6
+      # Each failure's whole error and browser console in the job's log too, readable without downloading the artifact.
+      - name: Show the failures
+        if: failure()
+        run: |
+          for f in test-logs/runs/*/failures/*.txt; do
+            [ -f "$f" ] || continue
+            echo "::group::$(basename "$f")"; head -c 30000 "$f"; echo; echo "::endgroup::"
+          done
       - name: Keep the run log (summary per area, failures with the browser console, history line)
         if: always()
         uses: actions/upload-artifact@v7
