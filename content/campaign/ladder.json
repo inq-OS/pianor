@@ -1,16 +1,15 @@
 {
   "schemaVersion": 1,
   "note": "Monster names are church modes (Locria, Doria, Lydia, Phrygia). Each monster fights over its own song: 8, 16, 24 and 32 bars; level 1 is the first half, levels 2 and 3 the whole song.",
-  "findKey": { "crackNotes": 16, "lengthStep": 0.25, "repeatStep": 0.25, "weightCap": 2.5 },
   "monsters": [
     {
       "id": "m1",
       "name": "Locria",
       "piece": "pebble-hop",
       "levels": [
-        { "bars": [1, 4], "accuracy": 0.6, "cracks": 4, "windowFactor": 2.5 },
-        { "bars": [1, 8], "accuracy": 0.8, "cracks": 3, "windowFactor": 1.75 },
-        { "bars": [1, 8], "accuracy": 0.95, "cracks": 2, "windowFactor": 1.25 }
+        { "bars": [1, 4] },
+        { "bars": [1, 8] },
+        { "bars": [1, 8] }
       ]
     },
     {
@@ -18,9 +17,9 @@
       "name": "Doria",
       "piece": "cave-rumble",
       "levels": [
-        { "bars": [1, 8], "accuracy": 0.6, "cracks": 4, "windowFactor": 2.5 },
-        { "bars": [1, 16], "accuracy": 0.8, "cracks": 3, "windowFactor": 1.75 },
-        { "bars": [1, 16], "accuracy": 0.95, "cracks": 2, "windowFactor": 1.25 }
+        { "bars": [1, 8] },
+        { "bars": [1, 16] },
+        { "bars": [1, 16] }
       ]
     },
     {
@@ -28,9 +27,9 @@
       "name": "Lydia",
       "piece": "mist-waltz",
       "levels": [
-        { "bars": [1, 12], "accuracy": 0.6, "cracks": 4, "windowFactor": 2.5 },
-        { "bars": [1, 24], "accuracy": 0.8, "cracks": 3, "windowFactor": 1.75 },
-        { "bars": [1, 24], "accuracy": 0.95, "cracks": 2, "windowFactor": 1.25 }
+        { "bars": [1, 12] },
+        { "bars": [1, 24] },
+        { "bars": [1, 24] }
       ]
     },
     {
@@ -38,9 +37,9 @@
       "name": "Phrygia",
       "piece": "echo-giant",
       "levels": [
-        { "bars": [1, 16], "accuracy": 0.6, "cracks": 4, "windowFactor": 2.5 },
-        { "bars": [1, 32], "accuracy": 0.8, "cracks": 3, "windowFactor": 1.75 },
-        { "bars": [1, 32], "accuracy": 0.95, "cracks": 2, "windowFactor": 1.25 }
+        { "bars": [1, 16] },
+        { "bars": [1, 32] },
+        { "bars": [1, 32] }
       ]
     }
   ]

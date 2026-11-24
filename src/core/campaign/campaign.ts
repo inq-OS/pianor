@@ -6,7 +6,9 @@
  */
 import type { Ladder } from './content';
 import type { DoorState } from './findDoor';
-import type { FindKeyStatus } from './findKey';
+
+/** The result of phase 1 as the save knows it; the find-the-key screen and its rules were removed (d135). */
+type FindKeyStatus = 'in-progress' | 'passed' | 'key-broken' | 'window-expired';
 
 export type CampaignLevel = 1 | 2 | 3;
 export type CampaignPhase = 'find-key' | 'find-door' | 'battle';

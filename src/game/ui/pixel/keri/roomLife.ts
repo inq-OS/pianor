@@ -185,7 +185,7 @@ export function metronomeFrame(frame: number): Bitmap {
   return b;
 }
 
-/** A plant in a clay pot whose two leaves are note heads on their stems, as on the corner vine (ft_1_08.AC1). */
+/** A plant in a clay pot whose two leaves are note heads on their stems, as on the retired corner vine (ft_1_08). */
 export const NOTE_PLANT: Bitmap = fromAscii(
   [
     '.......kkk..',
