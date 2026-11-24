@@ -16,6 +16,7 @@ import type { LevelDefinition } from '../core/chart';
 import { appConfig } from '../appConfig';
 import { createSoundAndInput } from '../compose';
 import { bundledPieceSources } from '../game/content';
+import { SongCatalogue } from '../game/songCatalogue';
 import { PieceCatalogue } from '../game/pieceCatalogue';
 import { CONTEXT_KEY, type GameContext } from '../game/context';
 import { PracticeScene } from '../game/PracticeScene';
@@ -79,9 +80,10 @@ export async function startPreview(): Promise<void> {
   const profiles = await createMemoryProfileService();
   const ownPieces = await OwnPieces.load(new MemoryStore());
   const pieces = new PieceCatalogue({ ...bundledPieceSources(), ownPieces: () => ownPieces.pieces(), showDrafts: true });
+  const songs = new SongCatalogue({ files: [], showDrafts: true, piece: (id) => pieces.find(id), partsOff: () => [] });
   const { actors, editor, learn, demo, staffDemo, sky } = appConfig.flags;
   const context: GameContext = {
-    keyboard: inputs.keyboard, lights: inputs.lights, midi: null, audio, profiles, flags: { actors, editor, learn, demo, staffDemo, sky, devTools: true, autoplay: false, draftsShown: true, pageBase: window.location.href, intro: 'off' as const }, pieces, ownPieces,
+    keyboard: inputs.keyboard, lights: inputs.lights, midi: null, audio, profiles, flags: { actors, editor, learn, demo, staffDemo, sky, devTools: true, autoplay: false, draftsShown: true, pageBase: window.location.href, intro: 'off' as const }, pieces, songs, ownPieces,
     files: browserTextFiles, savesPersist: false, admin: createAdminAccess(new MemoryStore()), teacher: createTeacherDesk(new MemoryStore()), adminSettings: { ...DEFAULT_ADMIN_SETTINGS },
     // the preview page shows no toolbar: a switch that does nothing
     keyboardSwitch: { shown: () => true, toggle: () => {}, enabled: () => true, onChange: () => () => {} },

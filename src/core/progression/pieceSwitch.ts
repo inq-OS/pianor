@@ -8,6 +8,11 @@ import { z } from 'zod';
 export const piecesSettingsSchema = z.object({
   /** Ids of the pieces turned off. Every other piece is on, including pieces added later. Ids of pieces that no longer exist are ignored. */
   hidden: z.array(z.string().min(1)),
+  /**
+   * The parts of each song turned off, by song id: node ids (ft_1_36 rule 5). Absent means every part of every song is on;
+   * optional, so older saves read as they are (d069.3). Ids of songs or nodes that no longer exist are ignored.
+   */
+  songs: z.record(z.string(), z.array(z.string().min(1))).optional(),
 });
 
 export type PiecesSettings = z.infer<typeof piecesSettingsSchema>;
@@ -33,9 +38,9 @@ export function canTurnOff(settings: PiecesSettings, pieceId: string, offered: r
  * Returns new settings; the ones given stay as they were.
  */
 export function setPieceOn(settings: PiecesSettings, pieceId: string, on: boolean, offered: readonly string[]): PiecesSettings {
-  if (on) return { hidden: settings.hidden.filter((id) => id !== pieceId) };
+  if (on) return { ...settings, hidden: settings.hidden.filter((id) => id !== pieceId) };
   if (!canTurnOff(settings, pieceId, offered)) return settings;
-  return isPieceOn(settings, pieceId) ? { hidden: [...settings.hidden, pieceId] } : settings;
+  return isPieceOn(settings, pieceId) ? { ...settings, hidden: [...settings.hidden, pieceId] } : settings;
 }
 
 /** A second press on an armed hide sooner than this after the first is a double click, not a confirmation (ft_1_02c.AC8). */
@@ -52,4 +57,16 @@ export interface ArmedHide { piece: string; at: number }
 export function pressHide(armed: ArmedHide | null, pieceId: string, now: number): { armed: ArmedHide | null; hide: string | null } {
   if (armed?.piece !== pieceId) return { armed: { piece: pieceId, at: now }, hide: null };
   return now - armed.at < HIDE_SECOND_PRESS_MS ? { armed, hide: null } : { armed: null, hide: pieceId };
+}
+
+/** The node ids of a song the player turned off (ft_1_36 rule 5). */
+export function songPartsOff(settings: PiecesSettings, songId: string): readonly string[] {
+  return settings.songs?.[songId] ?? [];
+}
+
+/** The settings with a song's parts that are off replaced by `off`. */
+export function withSongPartsOff(settings: PiecesSettings, songId: string, off: readonly string[]): PiecesSettings {
+  const songs = { ...settings.songs, [songId]: [...off] };
+  if (off.length === 0) delete songs[songId];
+  return { ...settings, songs };
 }

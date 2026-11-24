@@ -374,7 +374,11 @@ export class MenuScene extends PixelScene {
     };
     // every piece there is, hidden ones too, where a piece is put back in the book (ft_1_02c.AC9)
     const all: ToolbarItem = { label: t('menu.allPieces'), icon: TOOL_ICONS.pieces, iconOnly: true, onClick: () => startScene(this, 'pieces', { back: this.forKiur ? { forKiur: this.forKiur } : {} }) };
-    return [order, all];
+    // the song bookmark (ft_1_36 rule 13): at the strip's other end, apart from the filter; never while picking for Kiur
+    const songs: ToolbarItem[] = this.forKiur === null && contextOf(this).songs.list().length > 0
+      ? [{ label: t('menu.songs'), icon: TOOL_ICONS.songs, iconOnly: true, main: true, onClick: () => startScene(this, 'songs') }]
+      : [];
+    return [order, all, ...songs];
   }
 
   /** The order button's choices, each a picture with its name in the tooltip; the one in use lit. */
@@ -475,7 +479,9 @@ export class MenuScene extends PixelScene {
     this.paging = { total: 0, options: {}, first: 0 };
     this.infoClose = null;
     // pieces turned off are hidden; the Make list keeps own pieces that are off, so they can still be edited
-    const offered = contextOf(this).pieces.list();
+    // a song's pieces are not listed on their own: the song is, behind its bookmark (ft_1_36 rule 13)
+    const inSongs = contextOf(this).songs.pieceIds();
+    const offered = contextOf(this).pieces.list().filter((p) => !inSongs.has(p.chart.id));
     // One list (ft_1_12): a card plays its piece, an own piece's pencil opens it in the editor. The piece maker (main
     // menu, no player) lists only own pieces, and a card opens the editor, so nothing is played (and saved) from it.
     const editable = context.flags.editor;
@@ -749,9 +755,9 @@ export class MenuScene extends PixelScene {
     this.infoButtons.set(piece.chart.id, info);
     const stats = small(at(1), t('stats.button'), () => startScene(this, 'results', { chartId: piece.chart.id }));
     this.statsButtons.set(piece.chart.id, stats);
-    // AX-3 provisional: the parts screen is reached by a small button, not by the card, so a tap still plays at once (core_06)
+    // AX-3 provisional: the parts page (the song page with the piece at its root, ft_1_36.AC13) is reached by a small button, not by the card, so a tap still plays at once (core_06)
     if (piece.chart.phrases.length > 0 && !this.maker) {
-      this.partsButtons.set(piece.chart.id, small(at(0), t('parts.button'), () => startScene(this, 'parts', { chartId: piece.chart.id })));
+      this.partsButtons.set(piece.chart.id, small(at(0), t('parts.button'), () => startScene(this, 'song', { chartId: piece.chart.id })));
     }
     // past i: take the piece out of the book, in two presses (ft_1_02c.AC8); never the last piece in it
     if (!this.maker && contextOf(this).profiles.canTurnOff(piece.chart.id)) this.hideButton(piece.chart.id, button, at(3));

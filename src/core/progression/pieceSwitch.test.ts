@@ -1,7 +1,7 @@
 // Covers ft_1_02c.AC3.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PIECES_SETTINGS, canTurnOff, isPieceOn, piecesSettingsSchema, pressHide, HIDE_SECOND_PRESS_MS, setPieceOn, type PiecesSettings } from './pieceSwitch';
+import { DEFAULT_PIECES_SETTINGS, canTurnOff, isPieceOn, piecesSettingsSchema, pressHide, HIDE_SECOND_PRESS_MS, setPieceOn, songPartsOff, withSongPartsOff, type PiecesSettings } from './pieceSwitch';
 
 const hiding = (hidden: string[]): PiecesSettings => ({ hidden });
 const OFFERED = ['a', 'b', 'c'];
@@ -101,5 +101,18 @@ describe('hiding a piece from the book', () => {
     const first = pressHide(null, 'a', 1000);
     expect(pressHide(first.armed, 'a', 1000 + HIDE_SECOND_PRESS_MS - 1)).toEqual({ armed: first.armed, hide: null });
     expect(pressHide(first.armed, 'a', 1000 + HIDE_SECOND_PRESS_MS)).toEqual({ armed: null, hide: 'a' });
+  });
+});
+
+describe('song parts that are off (ft_1_36 rule 5)', () => {
+  it('ft_1_36.AC11 keeps each song\'s parts that are off per player, and an older save without them reads as all on', () => {
+    const old = piecesSettingsSchema.parse({ hidden: ['x'] });
+    expect(songPartsOff(old, 'morning-song')).toEqual([]);
+    const one = withSongPartsOff(old, 'morning-song', ['middle']);
+    expect(piecesSettingsSchema.parse(JSON.parse(JSON.stringify(one)))).toEqual({ hidden: ['x'], songs: { 'morning-song': ['middle'] } });
+    expect(songPartsOff(one, 'morning-song')).toEqual(['middle']);
+    expect(withSongPartsOff(one, 'morning-song', [])).toEqual({ hidden: ['x'], songs: {} });
+    // turning a piece on or off keeps the songs' switches
+    expect(setPieceOn(one, 'x', true, ['x', 'y']).songs).toEqual({ 'morning-song': ['middle'] });
   });
 });
