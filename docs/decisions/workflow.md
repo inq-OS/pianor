@@ -137,7 +137,7 @@ Check: `src/config.test.ts` "is off unless ?autoplay=1, also in a dev build"
 
 **Docs say only what is relevant: the current state, what is planned or partly built, and future or shelved ideas still wanted; anything else is deleted with no trace.** Features: none.
 
-When a feature or idea is no longer part of the game or its plan, its code, content, feature file, design pages, the decisions only about it and every mention of it are deleted in the same round: no stub file, no rejected or retired line, no note that it was removed. Decisions about live things are rewritten to say only what is. Frozen migration steps for old save fields stay (d064), and the banned words of `docs/glossary.md` are the one list that names old words (d290). A ledger rule to keep something wins (the band's toolbar code stays behind its flag, d115).
+When a feature or idea is no longer part of the game or its plan, its code, content, feature file, design pages, the decisions only about it and every mention of it are deleted in the same round: no stub file, no rejected or retired line, no note that it was removed. Decisions about live things are rewritten to say only what is. Frozen migration steps for old save fields stay (d064), and `tools/docs/oldWords.ts` is the one list that names old words (d290). A ledger rule to keep something wins (the band's toolbar code stays behind its flag, d115).
 
 Check: untestable: process rule for agents (what a doc may say)
 

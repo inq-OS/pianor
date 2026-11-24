@@ -6,6 +6,7 @@ import { lintLocalLinks } from './remarkLinks.ts';
 import { lintPrivacy } from './privacy.ts';
 import { lintTags } from './tags.ts';
 import { lintLedgerChecks } from './ledgerChecks.ts';
+import { lintOldWords } from './oldWords.ts';
 import { missingBlocks, expandAll, readItems } from './generate.ts';
 import type { Item } from './items.ts';
 import type { Repo } from './repo.ts';
@@ -189,6 +190,7 @@ export async function lintDocs(repo: Repo): Promise<Issue[]> {
     ...lintGenerated(repo),
     ...lintPrivacy(repo),
     ...lintLedgerChecks(repo),
+    ...lintOldWords(repo),
     ...lintTags(repo),
   ];
 }

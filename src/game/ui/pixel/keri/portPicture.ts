@@ -1065,8 +1065,8 @@ class PortPainter {
         if (y < t0) continue;
         const down = (y - t0) / 32;
         const ripple = Math.sin((x + (y - t0) * 2.5) / 6 + noise2(x / 40, y / 8, 542) * 3) > 0.72;
-        // the light falls in pools on the open sand where visitors stand; toward the sides and the reef the sand is in the water's shade
-        const pool = Math.max(...this.plan.under.map((p) => Math.exp(-(((x - p.x) / 120) ** 2))));
+        // the light falls in pools on the open sand; toward the sides and the reef the sand is in the water's shade
+        const pool = Math.max(...this.plan.sandLight.map((p) => Math.exp(-(((x - p.x) / 120) ** 2))));
         const t = 0.32 + 0.45 * pool - down * 0.3 + 0.08 * (hash2(x >> 1, y, 543) - 0.5);
         this.put(x, y, y === t0 ? (pool > 0.5 ? R.dry[3]! : R.dry[2]!) : ripple ? R.dry[pool > 0.6 ? 1 : 0]! : tone(F.dry, clamp01(t), x, y, 0.2));
       }

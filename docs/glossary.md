@@ -22,10 +22,6 @@ exception is code that reads an old save to migrate it.
 | level | the student's level from total XP, and a tug's level 1 to 3 |
 | hearts | a trainer's lives (note, shape and chord trainers) |
 
-## Banned words
+## Old words
 
-monster, beings, enemy, battle, fight, HP, health bar, damage, loot, campaign, arena, overworld, find the key, find the
-door, spellbook, spell, RPG, equipment, special ability, power attack, counterattack, boss fight, confuser.
-
-TODO(architect, R2): a CI check that fails on a banned word in code, content, tests or docs, with an allow-list for the
-migration that reads an old save (d290).
+The words of the game's old vision are listed in `tools/docs/oldWords.ts`, with the few files that may still hold one (a frozen migration step and the old saves it reads, d064). `npm run docs:check` fails on any of them anywhere else (d290).

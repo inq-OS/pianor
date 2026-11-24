@@ -489,9 +489,9 @@ Check: `src/core/layout/learnPrizes.test.ts` "ft_1_32.AC19 one narrow column at 
 
 **Code, content, tests and docs use only the words of `docs/glossary.md`; a dropped idea leaves no trace.** Features: none.
 
-A current thing named with a word the glossary bans is renamed with no change of behaviour. What belongs to no current feature is deleted with every mention of it: no stub file, no rejected row, no note that it was removed. Only a frozen migration step may read an old save key (d064), and only the glossary's list of banned words names them.
+A current thing named with a word of the old vision is renamed with no change of behaviour. What belongs to no current feature is deleted with every mention of it: no stub file, no rejected row, no note that it was removed. The old words are listed in `tools/docs/oldWords.ts`, and only the files it allows hold one: a frozen migration step that reads an old save key (d064), the old saves it reads, and the rules that keep the words off the screen.
 
-Check: untestable: the word check against the glossary comes with its own CI step
+Check: `tools/docs/oldWords.test.ts` "fails a line in code, content, tests or docs, and skips the allowed files and other kinds of file"
 
 ## d291
 

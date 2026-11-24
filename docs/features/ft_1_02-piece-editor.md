@@ -28,7 +28,7 @@ An "Add piece" screen where anyone writes a piece by clicking on the staff, with
 
 ## Acceptance criteria
 
-Model and hit testing are unit and property tested (any sequence of edits keeps every bar exactly full and every note inside its bar; undo restores the exact previous state; hit testing round-trips with the layout for every staff position and eighth). An end-to-end test writes a two-bar piece with mouse and keys, saves it (licence `NaN`, outside `content/pieces/`), finds it in the menu, plays it with the virtual player and earns XP. An editor-written piece compiles and lints the same as the same piece written in ABC. Turning a piece off hides it from the menu and battles and survives a reload, separately per player. Touch controls are tested with synthetic pointer events. **Human:** write a piece with it on the laptop and on the tablet.
+Model and hit testing are unit and property tested (any sequence of edits keeps every bar exactly full and every note inside its bar; undo restores the exact previous state; hit testing round-trips with the layout for every staff position and eighth). An end-to-end test writes a two-bar piece with mouse and keys, saves it (licence `NaN`, outside `content/pieces/`), finds it in the menu, plays it with the virtual player and earns XP. An editor-written piece compiles and lints the same as the same piece written in ABC. Turning a piece off hides it from the menu and the tugs and survives a reload, separately per player. Touch controls are tested with synthetic pointer events. **Human:** write a piece with it on the laptop and on the tablet.
 
 ## TODO
 
