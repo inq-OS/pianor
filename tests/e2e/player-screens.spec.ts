@@ -252,6 +252,24 @@ test.describe('admin page (ft_1_07.AC6)', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box', async ({ page }) => {
+    const errors = await openGame(page);
+    await openAdmin(page);
+    await clickButton(page, 'admin', 2); // Rename player
+    await waitForScene(page, 'name');
+    const labels = () => page.evaluate(() => (window.__game.scene.getScene('name').buttons as { options: { label: string } }[]).map((b) => b.options.label));
+    expect((await labels()).filter((l) => /^\p{Lu}$/u.test(l))).toEqual([]);
+    await page.keyboard.type('MA1');
+    // a key that is not a name letter is not taken
+    await expect.poll(() => sceneTexts(page, 'name')).toContain('MA');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('ARI');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'admin');
+    expect(await playerName(page)).toBe('MARI');
+    expectNoErrors(errors);
+  });
+
   test('a blank name is refused on the picker and the player keeps the old name', async ({ page }) => {
     const errors = await openGame(page);
     await openAdmin(page);

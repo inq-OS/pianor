@@ -252,3 +252,12 @@ export function pasteSpan(piece: EditorPiece, selection: BarRange | null, fresh:
 export function insertBlankBars(piece: EditorPiece, at: number, count: number): Edit {
   return insertBars(piece, at, { beats: piece.beats, hands: handsOf(piece), bars: count, notes: [], rests: [] });
 }
+
+/**
+ * The notes a paste would write over (ft_1_02d.AC37): a paste over a selection that is not the fresh copy replaces its
+ * bars, so their notes go; an insert moves bars on and loses none. The screen warns before such a paste.
+ */
+export function pasteOverwrites(piece: EditorPiece, selection: BarRange | null, fresh: boolean): number {
+  if (!selection || fresh) return 0;
+  return piece.notes.filter((n) => inRange(n.bar, selection)).length;
+}

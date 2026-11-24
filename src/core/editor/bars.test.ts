@@ -1,7 +1,7 @@
-// Covers ft_1_02d.AC28. Covers the bar editing of the piece editor: copy, cut, paste, drag-repeat, replace, clear and move by step or octave.
+// Covers ft_1_02d.AC28, ft_1_02d.AC37. Covers the bar editing of the piece editor: copy, cut, paste, drag-repeat, replace, clear and move by step or octave.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, isValidRange, moveBars, pasteAt, pasteSpan, replaceBars, type BarRange } from './bars';
+import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, isValidRange, moveBars, pasteAt, pasteOverwrites, pasteSpan, replaceBars, type BarRange } from './bars';
 import { MAX_BARS, emptyPiece, pieceProblem, type Edit, type EditorNote, type EditorPiece } from './model';
 
 const piece = (over: Partial<EditorPiece> = {}): EditorPiece => ({ ...emptyPiece({ title: 'Test', hands: 'RH', beats: 4, bars: 8 }), ...over });
@@ -191,6 +191,20 @@ describe('pasting over bars', () => {
     expect(over.bars).toBe(8);
     expect(over.notes.filter((n) => n.bar === 0)).toEqual([note({ step: 'F' })]);
     expect(over.notes.filter((n) => n.bar === 5)).toEqual([note({ bar: 5, step: 'G' })]);
+  });
+});
+
+describe('a paste that writes over notes (ft_1_02d.AC37)', () => {
+  it('ft_1_02d.AC37 counts the notes a paste over another selection would replace', () => {
+    const p = piece({ notes: [note({ bar: 1 }), note({ bar: 1, start: 480, step: 'D' }), note({ bar: 3 })] });
+    expect(pasteOverwrites(p, range(1, 2), false)).toBe(2);
+  });
+
+  it('ft_1_02d.AC37 an insert (no selection, or right after the fresh copy) and empty bars write over nothing', () => {
+    const p = piece({ notes: [note({ bar: 1 })] });
+    expect(pasteOverwrites(p, null, false)).toBe(0);
+    expect(pasteOverwrites(p, range(1), true)).toBe(0);
+    expect(pasteOverwrites(p, range(4, 5), false)).toBe(0);
   });
 });
 
