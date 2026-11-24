@@ -8,12 +8,12 @@ last table is gone with what it named. The one place an old word may stay is cod
 
 | Current word | What it names | Replaces |
 | --- | --- | --- |
-| character | someone the student meets in a scene of Keri and talks to: Puuvaim, the fisherman (ft_1_22) | monster, being, enemy |
+| character | someone the student meets in a scene of Keri and talks to: Puuvaim, the fisherman (ft_1_22); each has its own `content/characters/` file | monster, being, enemy |
 | challenge | a character asks the student to trade the phrases of a piece (ft_1_21) | battle, fight |
 | tug | the challenge as played: the character plays a phrase, the student answers with the next (ft_1_21) | battle, fight |
 | exchange | one phrase answered in a tug, won or lost | round, attack |
 | standing | where the tug stands, three steps each way; the student wins at +3 | HP, health, damage |
-| learn, practise, show | the three steps of a character's piece; the show is the tug (d135) | find the key, find the door, battle |
+| learn, practise, show | the three steps of a character's piece, the student's route with that character; the show is the tug (d135) | campaign, find the key, find the door, battle |
 | practice gate | the practice evidence that opens the show (ft_1_06.AC15) | find the key, find the door |
 | tug record | one finished tug as the save keeps it: character, piece, won or lost, XP | battle record |
 | prize, prize ladder | the item a won tug gives, by level (ft_1_21.AC18) | loot, reward |
@@ -26,6 +26,10 @@ last table is gone with what it named. The one place an old word may stay is cod
 ## Old words that are gone
 
 These name things of the battle vision that no longer exist, so nothing is renamed to them and nothing new uses them:
-battle screen, health bar, HP, monster sprite, monster ladder (the four church-mode monsters), beings in scenes, battle
+battle screen, health bar, HP, monster sprite, the monster ladder (`content/campaign/ladder.json`: the four church-mode
+monsters, which no screen meets), beings drawn at random into scenes (`?beings=1`), the campaign state in the save, battle
 series and the battle setting, find the key, find the door, the trail and the walk, spellbook, spell, RPG class, RPG
-shell, overworld, equipment, skill, special ability, power attack, defend, counterattack, boss, confuser.
+shell, overworld, equipment, RPG skill, special ability, power attack, defend, counterattack, boss fight, confuser.
+
+TODO(architect, R2): a CI check that fails on an old word of this page in code, content, tests or docs, with an allow-list
+for the migration that reads an old save and for the rejected feature records (d290).
