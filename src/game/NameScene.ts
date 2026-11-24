@@ -175,12 +175,16 @@ export class NameScene extends PixelScene {
     this.fineImage(fine(cover.x), fine(cover.y), paintedOnce(`cover:${fine(cover.w)}x${fine(cover.h)}:${plate.x},${plate.y},${plate.w},${plate.h}`, () => paintCover(fine(cover.w), fine(cover.h), plate)), BOOK_PALETTE);
     this.placeField(left - FIELD_PAD, fieldY - FIELD_PAD, fieldW, FIELD_HEIGHT);
     this.inkWriting = true;
-    if (this.typed) this.label(left, fieldY, this.typed, C.white, { big: true });
+    // the name stands in the middle of the plate, as a name on a book's label does; raised when a reason is written under it
+    const typedW = this.typed ? measure(drawnText(this.typed)) * 2 : 0;
+    const nameX = Math.round(width / 2 - typedW / 2);
+    const nameY = this.refused ? fieldY : fieldY - FIELD_PAD + Math.round((FIELD_HEIGHT + REASON_ROOM - BIG_CAPS) / 2);
+    if (this.typed) this.label(nameX, nameY, this.typed, C.white, { big: true });
     const caret = createBitmap(fine(1), fine(BIG_CAPS));
     caret.pixels.fill(C.redDark);
     // the caret blinks, so the empty plate asks for letters without a word of instruction
     this.blink?.remove();
-    const shown = this.fineImage(fine(left + (this.typed ? measure(drawnText(this.typed)) * 2 + 2 : 0)), fine(fieldY), caret);
+    const shown = this.fineImage(fine(nameX + (this.typed ? typedW + 2 : 0)), fine(nameY), caret);
     this.blink = this.time.addEvent({ delay: CARET_BLINK_MS, loop: true, callback: () => shown.setVisible(!shown.visible) });
 
     const band = this.bandShown;
