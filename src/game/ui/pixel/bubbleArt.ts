@@ -201,7 +201,8 @@ export function openBagPlaces(): { x: number; y: number; w: number; h: number }[
 }
 
 /**
- * The backpack opened (a press on it), `OPEN_BAG` large: the flap thrown back over the top with its buckle hanging, the
+ * The backpack opened (a press on it), `OPEN_BAG` large: the corner's own backpack grown, drawn in its place with its top right
+ * corner where the small one's was, never beside it; the flap thrown back over the top with its buckle hanging, the
  * dark inside where the items lie in 3 x 3 places with no box round them (`openBagPlaces`), the front wall's lip and
  * pocket across the foot, straps down both sides. `more` adds the side strap's arrows: up when rows lie above the ones
  * shown, down when rows lie below (the wheel, a drag or the arrows scroll them).

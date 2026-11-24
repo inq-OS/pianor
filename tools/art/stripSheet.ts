@@ -116,11 +116,10 @@ export function sceneMock(): Mock {
   // a plain dusk ground standing in for a painted picture (180 rows: nothing pinned)
   for (let y = 0; y < H; y++) fill(b, 0, y, W, 1, y < 90 ? C.duskLight : y < 120 ? C.dusk : C.duskDark);
   corners(b, false);
+  // the corner's backpack itself grows and opens (it is not drawn twice): the open bag keeps the small one's top right
+  // corner, beside the gear, and holds nine of its items, more below
   const bag = { x: W - 3 - ICONS.settings.width - 4 - BACKPACK.width, y: 3 };
-  blit(b, BACKPACK, bag.x, bag.y);
-  blit(b, NEW_ITEM_DOT, bag.x + BACKPACK.width - 3, bag.y - 1);
-  // the bag opened under the corner: nine of its items, more below
-  const bx = W - 4 - OPEN_BAG.w, by = 22;
+  const bx = bag.x + BACKPACK.width - OPEN_BAG.w, by = bag.y;
   blit(b, openBackpack({ down: true }), bx, by);
   const kept = [oakLeaf(), acorn(), goldenLeaf(), singingBranch(), seedOfLife(), acorn(), oakLeaf(), goldenLeaf(), seedOfLife()];
   const fine: FineOverlay[] = [];
