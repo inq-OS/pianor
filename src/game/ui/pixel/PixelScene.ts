@@ -96,6 +96,8 @@ export interface MenuItem {
   fineIcon?: boolean;
   /** The key that picks this choice while the menu is open from the keyboard (a digit): drawn on its cell. */
   shortcut?: string;
+  /** Shows (true) and takes away (false) what picking the choice would do, while the pointer rests on it (d286). */
+  preview?: (on: boolean) => void;
   onPick: () => void;
 }
 
@@ -237,7 +239,8 @@ export abstract class PixelScene extends Phaser.Scene {
   /** Counts the scene's visits: a picture that arrives after the visit it was asked for has ended draws nothing. */
   private visit = 0;
   /** The open drop-down menu, if any: its container and its choices (which are also in `buttons` while it is open). */
-  private menu: { container: Phaser.GameObjects.Container; buttons: PixelButton[]; focusBefore: number; bubble?: boolean; ring?: PixelButton[] } | null = null;
+  /** The open menu; `previews` are its choices' previews, taken away when it closes (a closing menu sends no pointer-out). */
+  private menu: { container: Phaser.GameObjects.Container; buttons: PixelButton[]; focusBefore: number; bubble?: boolean; ring?: PixelButton[]; previews?: ((on: boolean) => void)[] } | null = null;
   /** F1 in the piece maker: every band item with a key shows it in its corner. */
   protected shortcutsShown = false;
   /** The band's buttons by their key, as last drawn: a key opens its item's menu from the item. */
@@ -640,6 +643,7 @@ export abstract class PixelScene extends Phaser.Scene {
         ...rectCentre(layout.cells[i]!), label: item.label, iconOnly: item.icon !== undefined,
         ...(item.icon ? { icon: item.icon } : {}), ...(item.fineIcon ? { fineIcon: true } : {}), ...(item.tooltip ? { tooltip: item.tooltip } : {}), ...(item.keepCase ? { keepCase: true } : {}),
         ...(item.disabled ? { disabled: true } : {}), ...(options.paper ? { look: 'ink' as const } : {}),
+        ...(item.preview ? { onHover: item.preview } : {}),
         onClick: () => {
           this.closeMenu();
           item.onPick();
@@ -649,7 +653,7 @@ export abstract class PixelScene extends Phaser.Scene {
       if (item.shortcut) this.keyBadge(container, button, item.shortcut);
       buttons.push(button);
     });
-    this.menu = { container, buttons, focusBefore: this.focusIndex };
+    this.menu = { container, buttons, focusBefore: this.focusIndex, previews: items.flatMap((item) => (item?.preview ? [item.preview] : [])) };
     this.buttons.push(...buttons);
     // the keyboard starts on the choice in use
     if (this.keyboardNavigation) {
@@ -663,6 +667,7 @@ export abstract class PixelScene extends Phaser.Scene {
     const menu = this.menu;
     if (!menu) return;
     this.menu = null;
+    for (const preview of menu.previews ?? []) preview(false);
     this.buttons = this.buttons.filter((b) => !menu.buttons.includes(b));
     menu.buttons.forEach((b) => b.destroy());
     menu.container.destroy(true);
@@ -1282,8 +1287,9 @@ export abstract class PixelScene extends Phaser.Scene {
     const buttons: PixelButton[] = [];
     // the options in slot order, for the arrows
     const ring: PixelButton[] = [];
-    const make = (r: Rect, item: ToolbarItem, onClick: () => void): PixelButton => {
+    const make = (r: Rect, item: ToolbarItem, onClick: () => void, onHover?: (over: boolean) => void): PixelButton => {
       const button = new PixelButton(this, container, {
+        ...(onHover ? { onHover } : {}),
         ...rectCentre(r), label: item.label, labelWidth: r.w - CELL_PAD, look: 'bubble',
         // a music sign on its scrap of parchment is too big for a round option: the sign alone, in the option's colour
         ...(item.icon ? { icon: item.fineIcon ? signOnly(item.icon, BUBBLE_SIGN, BUBBLE_SIGN) : item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}),
@@ -1325,11 +1331,11 @@ export abstract class PixelScene extends Phaser.Scene {
       const button = make(r, { label: choice.label, ...(choice.icon ? { icon: choice.icon } : {}), ...(choice.fineIcon ? { fineIcon: true } : {}), ...(choice.tooltip ? { tooltip: choice.tooltip } : {}), ...(choice.disabled ? { disabled: true } : {}), ...(choice.keepCase ? { keepCase: true } : {}), ...(choice.shortcut ? { shortcut: choice.shortcut } : {}), onClick: () => undefined }, () => {
         this.closeMenu();
         choice.onPick();
-      });
+      }, choice.preview);
       if (choice.active) button.setActive(true);
     });
     make(layout.close, { label: t('band.close'), icon: TOOL_ICONS.close, onClick: () => undefined }, () => this.closeMenu());
-    this.menu = { container, buttons, focusBefore: this.focusIndex, bubble: true, ring };
+    this.menu = { container, buttons, focusBefore: this.focusIndex, bubble: true, ring, previews: choices.flatMap((choice) => (choice?.preview ? [choice.preview] : [])) };
     this.buttons.push(...buttons);
     if (options.keyboard || this.keyboardNavigation) this.focusOn(ring.find((b) => !b.disabled) ?? buttons[0]);
   }

@@ -78,7 +78,7 @@ describe('the key signature in the editor (core_09.AC8)', () => {
     const chart = toChart(piece, { id: 'draft' });
     const layout = layoutStaff(chart, { viewport, allPlayTracks: true });
     const sharp = layout.keySignature[0]!;
-    expect(hitTest(layout, chart, { x: sharp.x, y: sharp.y })).toEqual({ kind: 'key', staff: 0 });
+    expect(hitTest(layout, chart, { x: sharp.x, y: sharp.y })).toEqual({ kind: 'key', staff: 0, system: 0 });
   });
 
   it('a click on the time signature of the first line is a time hit (it opens the time choice)', () => {
@@ -94,7 +94,7 @@ describe('the key signature in the editor (core_09.AC8)', () => {
     const staff = layout.systems[0]!.staves[0]!;
     const x = layout.clefs[0]!.x;
     const y = staff.bottomLineY - (8 * layout.staffSpace) / 2;
-    expect(hitTest(layout, chart, { x, y })).toEqual({ kind: 'key', staff: 0 });
+    expect(hitTest(layout, chart, { x, y })).toEqual({ kind: 'key', staff: 0, system: 0 });
   });
 
   it('a click in a bar is still a place, not a key (the bar line takes its area)', () => {

@@ -55,10 +55,17 @@ Part of ft_1_02 (item 7). An author writes dotted notes, enters notes from the E
 - **ft_1_02d.AC25** No silent pick (d286): while a tie or slur waits for its end note, its first note is ringed; with the pointer on a note it can end on, the tie or slur the click would make is drawn faint where it will go (`addedMarks` in `src/core/layout/preview.ts`), and elsewhere a thin curve runs from the first note to the pointer. Nothing is written until the click.
 - **ft_1_02d.AC26** While a pre-note waits for its pitch, the small head the click would write is drawn faint before its note at the pitch under the pointer.
 - **ft_1_02d.AC27** While the repeat item asks for its bars, the bar under the pointer (and, once the start is picked, every bar from the start to it) is lit, with faint repeat signs at the outer sides where the click would put them.
+- **ft_1_02d.AC28** While the pointer rests on PASTE x1, x2 or x4, the bars those pastes would take are outlined and shaded, with a thick line where they go in (`pasteSpan` in `src/core/editor/bars.ts`); nothing is pasted until the press.
+- **ft_1_02d.AC29** While the pointer rests on ALL in the tie menu, every tie it would make is drawn faint on the staff.
+- **ft_1_02d.AC30** While the pointer rests on AUTO, the finger it would write or change on each note is drawn faint where the staff shows fingers.
+- **ft_1_02d.AC31** The repeat item snaps to bar lines: its start sign goes to the bar line nearest the pointer (the bar that line starts), its end sign to the nearest bar line (the bar that line ends), and the preview and the click use the same bar (`snapBar`).
+- **ft_1_02d.AC32** While the pointer is on a key signature (or the clef, in C), the key's name shows over it in the player's letter naming: C, G, Em (`keyNameSpot`, `keyLabel`).
 
 ## TODO
 
-- TODO(builder, R2): previews for the items that act on the selected note at once (d286): while the pointer is on an item of the tie, accidental, finger, dynamics or paste menus, or on AUTO, ALL or C, the change it would make is drawn faint on the staff (`addedMarks` grows the marks it needs: accidentals, fingers, dynamic words, pasted bars), and the press commits it.
+- TODO(builder, Later): previews for the items that act on the selected note at once (d286): while the pointer is on sharp, flat or natural, a finger 1 to 5, a dynamic, the one-press tie or slur, or C, the change is drawn faint on the note and the press commits it (`addedMarks` grows accidentals and dynamic words).
+- IDEA(builder, Later): a length change by the wheel, Ctrl + wheel, the middle click or Shift + arrows shows the new length as a ghost and is written only after the pointer or key has rested a second or two.
+- Rejected: a preview of what a right click or Delete takes away; shading the bars that + and - bars or Insert would add or take; a preview of the new key or time signature while a key or time is hovered in their panels.
 - TODO(builder, R2): the repeat preview draws its own signs in the scene; once the layout can be asked for a piece's repeat signs without moving its notes, draw them from `addedMarks` like the ties.
 
 Work tags ([todo-tags.md](../automation/todo-tags.md)).

@@ -1,11 +1,13 @@
-// Covers ft_1_02d.AC25, ft_1_02d.AC26 (d286: every pick shows its result before the click).
+// Covers ft_1_02d.AC25, ft_1_02d.AC26, ft_1_02d.AC29, ft_1_02d.AC30 (d286: every pick shows its result before the click).
 import { describe, expect, it } from 'vitest';
 import { arcInto } from '../editor/arcs';
 import { toChart } from '../editor/chart';
+import { autoFingers } from '../editor/fingers';
 import { graceFromPlace } from '../editor/graces';
+import { tieAll } from '../editor/ties';
 import { emptyPiece, type Edit, type EditorNote, type EditorPiece, type NoteRef } from '../editor/model';
 import { editorStaff } from '../editor/staff';
-import { addedMarks, curvePoints, pendingArc, slurPoints, tiePoints } from './preview';
+import { addedMarks, curvePoints, NO_MARKS, pendingArc, slurPoints, tiePoints } from './preview';
 
 const n = (bar: number, start: number, step: EditorNote['step']): EditorNote => ({ hand: 'RH', bar, start, length: 'quarter', step, octave: 4, alter: 0 });
 /** Right hand: C C E G in bar 0. */
@@ -40,8 +42,8 @@ describe('the preview of a pick (d286)', () => {
 
   it('ft_1_02d.AC25 an edit that takes a mark away, or none, shows nothing added', () => {
     const tied = made(arcInto(piece, at(0, 'C'), at(480, 'C')));
-    expect(addedMarks(layoutOf(tied), layoutOf(piece))).toEqual({ ties: [], slurs: [], graces: [] });
-    expect(addedMarks(layoutOf(piece), layoutOf(piece))).toEqual({ ties: [], slurs: [], graces: [] });
+    expect(addedMarks(layoutOf(tied), layoutOf(piece))).toEqual(NO_MARKS);
+    expect(addedMarks(layoutOf(piece), layoutOf(piece))).toEqual(NO_MARKS);
   });
 
   it('ft_1_02d.AC26 a pre-note pick shows the small head before its note at the pointed place', () => {
@@ -69,5 +71,23 @@ describe('the preview of a pick (d286)', () => {
     expect(Math.min(...up.map((p) => p.y))).toBeCloseTo(-4);
     const down = pendingArc({ x: 0, y: 0 }, { x: 10, y: 0 }, false, 8);
     expect(Math.max(...down.map((p) => p.y))).toBeCloseTo(1);
+  });
+
+  it('ft_1_02d.AC29 ALL shows every tie it would make, and only those', () => {
+    const repeats: EditorPiece = { ...piece, notes: [n(0, 0, 'C'), n(0, 480, 'C'), n(0, 960, 'E'), n(0, 1440, 'E')] };
+    const marks = addedMarks(layoutOf(repeats), layoutOf(made(tieAll(repeats))));
+    expect(marks.ties).toHaveLength(2);
+    expect(marks.slurs).toEqual([]);
+  });
+
+  it('ft_1_02d.AC30 AUTO shows the finger it would write on each note that gets one, where the staff draws fingers', () => {
+    const after = autoFingers(piece, { fingerings: {} }).piece;
+    const marks = addedMarks(layoutOf(piece), layoutOf(after));
+    expect(marks.fingers).toHaveLength(after.notes.filter((x) => x.finger !== undefined).length);
+    expect(marks.fingers.length).toBeGreaterThan(0);
+    const drawn = layoutOf(after).notes.find((h) => h.finger !== null)!;
+    expect(marks.fingers).toContainEqual({ system: drawn.system, x: drawn.fingerX, y: drawn.fingerY, finger: drawn.finger });
+    // fingers that stay as they were show nothing
+    expect(addedMarks(layoutOf(after), layoutOf(after)).fingers).toEqual([]);
   });
 });
