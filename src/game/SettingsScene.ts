@@ -31,6 +31,8 @@ const OPTION_GAP = 4;
 const SETTING_WIDTH = SYMBOL_WIDTH + 6;
 const SETTING_HEIGHT = SYMBOL_HEIGHT + 4;
 const NAME_GAP = 6;
+/** The shaded fold down the middle of the open book: no name runs into it. */
+const FOLD_ROOM = 8;
 // AX-3 provisional (d110): a normal-size title and the rows and hint moved up, so the four rows, the hint and the bottom
 // corner vines fit the 320 x 157 main area
 const FIRST_ROW_Y = 39;
@@ -154,7 +156,8 @@ export class SettingsScene extends PixelScene {
       },
     });
     const nameX = x + SETTING_WIDTH + NAME_GAP;
-    const end = column === 0 ? columnX(1, this.px.width) - OPTION_GAP : this.px.width - MARGIN;
+    // a name on the left page wraps short of the book's fold
+    const end = column === 0 ? Math.floor(this.px.width / 2) - FOLD_ROOM : this.px.width - MARGIN;
     const text = this.label(nameX, y, name, C.white, { maxWidth: end - nameX });
     // the name's letters (tails left out) centred on the button
     text.y = Math.round(y - text.letterBox.bottom / 2);
