@@ -365,21 +365,28 @@ class SquarePainter {
    */
   private spit(): void {
     const { hour } = this;
-    // the dune strip: a long low bank right across the distance, knee-high over the water, its own bar and not Keri's
-    const L = 292, RGT = 532;
-    const crest = (x: number): number => 99.5 - 2.6 * Math.sin((Math.PI * (x - L)) / (RGT - L)) ** 0.5 - 1.2 * (noise2(x / 17, 1, 847) - 0.5);
-    const foot = (x: number): number => 103 + 1.6 * Math.sin((Math.PI * (x - L)) / (RGT - L)) + 0.8 * (noise2(x / 23, 2, 847) - 0.5);
-    const xs = Array.from({ length: 31 }, (_, k) => L + (k * (RGT - L)) / 30);
+    // one line of sand and shingle: the hook leaves Keri's shore left of the pier, runs out and sweeps round to the
+    // right, and goes on behind the pier as the long low dune strip, knee-high over the water, right across the distance
+    const SPINE: readonly (readonly [number, number, number])[] = [[300, 132, 18], [326, 123, 12], [350, 116, 8], [380, 110.5, 5.4], [420, 106.5, 4], [466, 103.5, 3.4], [520, 101, 2.8], [570, 99, 2.2], [612, 97.5, 1.6]];
+    const at = (x: number): readonly [number, number] => {
+      const k = Math.max(0, Math.min(SPINE.length - 2, SPINE.findIndex(([px]) => px > x) - 1 < 0 ? (x < SPINE[0]![0] ? 0 : SPINE.length - 2) : SPINE.findIndex(([px]) => px > x) - 1));
+      const [x0, y0, w0] = SPINE[k]!, [x1, y1, w1] = SPINE[k + 1]!, t = clamp01((x - x0) / (x1 - x0)), e = t * t * (3 - 2 * t);
+      return [y0 + (y1 - y0) * e, w0 + (w1 - w0) * e];
+    };
+    const L = SPINE[0]![0], RGT = SPINE[SPINE.length - 1]![0];
+    const crest = (x: number): number => at(x)[0] - at(x)[1] * 0.5 - 1.1 * (noise2(x / 17, 1, 847) - 0.5);
+    const foot = (x: number): number => at(x)[0] + at(x)[1] * 0.5 + 0.8 * (noise2(x / 23, 2, 847) - 0.5);
+    const xs = Array.from({ length: 52 }, (_, k) => L + (k * (RGT - L)) / 51);
     const sand: readonly Pt[] = [...xs.map((x): Pt => [x, crest(x)]), ...xs.slice().reverse().map((x): Pt => [x, foot(x)])];
     const shape = sand.map(([x, y]) => bend(x, y) as Pt);
     // the shoal: the sea a tone or two paler in level dashes round the sand
-    for (let y = this.horizonAt(430) + 2; y < 114; y++) for (let x = L - 26; x < RGT + 24; x++) {
+    for (let y = this.horizonAt(430) + 2; y < 128; y++) for (let x = L; x < this.w; x++) {
       let near = false;
       for (const [dx, dy] of [[0, 3], [-8, 1], [8, 1], [-15, 0], [15, 0], [0, -2]] as const) if (inside(shape, x + dx, y - dy)) { near = true; break; }
       if (near && hash2(x >> 2, y, 845) > 0.3) this.put(x, y, tone(F.sea, 0.82 + 0.18 * hash2(x >> 3, y, 846), x, y));
     }
-    // the swell breaks on its far side and bursts up over the crest in white heaps, each its own size
-    for (const [cx, wide, high, seed] of [[330, 9, 7, 1], [398, 6, 4, 2], [452, 11, 9, 3], [506, 7, 5, 4]] as const) {
+    // the swell breaks on its far side and bursts up over the crest in white heaps, each its own size, smaller far out
+    for (const [cx, wide, high, seed] of [[372, 10, 9, 1], [432, 7, 5, 2], [488, 9, 7, 3], [540, 5, 4, 4], [584, 4, 3, 5]] as const) {
       for (let dx = -wide; dx <= wide; dx++) {
         const top = high * (1 - (dx / wide) ** 2) * (0.6 + 0.4 * hash2(dx, seed, 851));
         for (let i = 0; i < top; i++) if (i < top - 2 || hash2(dx, i + seed * 9, 852) > 0.4) this.put(...bend(cx + dx, crest(cx + dx) - i), R.foam);
@@ -388,35 +395,27 @@ class SquarePainter {
       for (let k = 0; k < 7; k++) this.put(...bend(cx + (hash2(k, seed, 853) - 0.5) * wide * 2.6, crest(cx) - high * (0.7 + 0.6 * hash2(k, seed, 854))), R.foam);
     }
     this.as(() => {
-      // the bank's own height: a pale lit top, the straw-yellow slope under it, and a dark wet foot at the water
+      // its own height: a pale lit top, the straw-yellow slope under it and a dark wet foot at the water; shingle and
+      // stones where it leaves the shore, sand further out
       this.poly(sand, (x, y) => {
         const v = (y - bend(x, crest(x))[1]) / Math.max(1, foot(x) - crest(x));
+        const pebble = hash2(x >> 1, y, 850);
+        if (x < 372 && pebble < 0.16 * (1 - (x - L) / 90)) return tone(F.stone, clamp01(hour.ground - 0.1), x, y);
         if (v < 0.34) return this.worn(F.shingle, hour.ground + 0.34, x, y, 0.03, 28);
-        if (v < 0.72) return this.worn(F.dry, hour.ground + 0.16 + (hash2(x >> 2, y, 844) > 0.8 ? 0.1 : 0), x, y, 0.04, 21);
+        if (v < 0.72) return this.worn(F.dry, hour.ground + 0.16 + (pebble > 0.8 ? 0.1 : 0), x, y, 0.04, 21);
         return this.worn(F.dry, hour.ground - 0.3, x, y, 0.05, 27);
       }, 0.6, 4);
       // marram grass in tufts along the crest
       for (let k = 0; k < 46; k++) {
-        const x = L + 30 + hash2(k, 1, 843) * (RGT - L - 60), tall = 1 + Math.floor(hash2(k, 3, 843) * 3);
+        const x = 360 + hash2(k, 1, 843) * 200, tall = 1 + Math.floor(hash2(k, 3, 843) * 3 * (1 - (x - 360) / 300));
         if (noise2(x / 21, 3, 848) < 0.42) continue;
         for (let i = 0; i < tall; i++) this.put(...bend(x, crest(x) - i), tone(k % 4 ? F.grass : F.dry, clamp01(hour.ground - 0.24 + i * 0.12), 0, 0));
       }
     });
     // surf in short level dashes along its near edge
-    for (let k = 0; k < 150; k++) {
-      const x = L - 8 + hash2(k, 1, 849) * (RGT - L + 16), y = foot(x) + 1 + hash2(k, 2, 849) * 3;
+    for (let k = 0; k < 170; k++) {
+      const x = 330 + hash2(k, 1, 849) * (RGT - 330), y = foot(x) + 1 + hash2(k, 2, 849) * 3;
       for (let d = 0; d < 2 + hash2(k, 3, 849) * 4; d++) this.put(...bend(x + d, y), R.foam);
-    }
-    // the beak: the shore's own shingle running out in a point that curves round to the right
-    this.as(() => {
-      this.poly([[322, 130], [340, 123], [358, 118], [378, 115], [396, 116], [404, 119], [394, 120], [380, 121], [370, 124], [372, 130]], (x, y) => {
-        const pebble = hash2(x >> 1, y, 850);
-        return pebble > 0.84 ? tone(F.shingle, clamp01(hour.ground + 0.3), x, y) : pebble < 0.14 ? tone(F.stone, clamp01(hour.ground - 0.1), x, y) : tone(F.dry, clamp01(hour.ground + 0.24), x, y);
-      }, 0.8, 9);
-    });
-    for (let k = 0; k < 16; k++) {
-      const x = 336 + hash2(k, 1, 842) * 72, y = 113 + hash2(k, 2, 842) * 10;
-      if (this.owner[Math.round(y) * this.w + Math.round(x)] === 0) for (let d = 0; d < 3; d++) this.put(x + d, y, R.foam);
     }
   }
 
