@@ -45,8 +45,8 @@ export default defineConfig({
       args: ['--autoplay-policy=no-user-gesture-required', '--font-render-hinting=none', '--disable-lcd-text', ...GPU_ARGS],
     },
   },
-  // One baseline per screen for every system (d288): no text asks the computer for a font, and every run draws WebGL in
-  // software (SwiftShader), so Windows and Linux make the same pixels; the 2 percent tolerance covers what is left.
+  // One baseline per screen for every system (d288): no text asks the computer for a font, and CI and the baseline workflow draw WebGL in
+  // software (SwiftShader; a local Windows run with its GPU may differ), so Windows and Linux make the same pixels; the 2 percent tolerance covers what is left.
   // PW_EXPECT_TIMEOUT: the baseline workflow's slow Windows runner, where one screenshot of the software-drawn page takes over 20 s
   expect: { timeout: Number(process.env['PW_EXPECT_TIMEOUT']) || 20_000, toHaveScreenshot: { maxDiffPixelRatio: 0.02 } },
   // The baselines were named for the single project `chromium`; keep that name now that every area is a project. No

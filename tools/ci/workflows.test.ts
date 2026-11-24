@@ -52,6 +52,12 @@ describe('one screenshot baseline per screen for every system (d288)', () => {
     expect(readFileSync('playwright.config.ts', 'utf8')).toContain("snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-chromium{ext}'");
     expect(job('update-snapshots.yml', 'update')).toContain('path: tests/e2e/*-snapshots/*-chromium.png');
   });
+
+  it('commits the baselines to the branch it ran on, never to main', () => {
+    const update = job('update-snapshots.yml', 'update');
+    expect(update).toContain("if: github.ref_name != 'main'");
+    expect(update).toContain('git push origin "HEAD:${{ github.ref_name }}"');
+  });
 });
 
 describe('the privacy workflow (d165)', () => {
