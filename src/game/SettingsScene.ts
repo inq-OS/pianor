@@ -1,5 +1,5 @@
 import type { PlaySettings } from '../core/judge/playSettings';
-import type { LearnSettings } from '../core/learn/progress';
+import { learnLiveTempo, type LearnSettings } from '../core/learn/progress';
 import { BAR_NUMBER_MODES, type BarNumberMode } from '../core/layout/barNumbers';
 import type { DurationMark } from '../core/layout/durationHelp';
 import type { StaffSettings } from '../core/layout/staffSettings';
@@ -12,7 +12,7 @@ import type { Bitmap } from './ui/pixel/bitmap';
 import { C } from './ui/pixel/palette';
 import { Mascot } from './ui/pixel/PixelObjects';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
-import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, durationSymbol, fingersSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, scoreSymbol, staffGapSymbol } from './ui/pixel/settingArt';
+import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, durationSymbol, fingersSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, liveTempoSymbol, markersFromSymbol, markersSymbol, namingSymbol, scoreSymbol, staffGapSymbol } from './ui/pixel/settingArt';
 import { freshData, startScene } from './scenes';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 
@@ -254,6 +254,10 @@ export class SettingsScene extends PixelScene {
     const hands = ([[false, t('settings.learnHandsTogether')], [true, t('settings.learnHandsApart')]] as const)
       .map(([value, label]): Choice<boolean> => ({ value, label, symbol: learnHandsSymbol(value) }));
     this.setting(1, 1, t('settings.learnHands'), hands, learn.handsApart ?? false, (value) => profiles.updateLearnSettings({ handsApart: value }));
+    // the run's live tempo in the top bar: a parent's or teacher's tool, off unless turned on (rule 18)
+    const live = ([[false, t('settings.learnLiveTempoOff')], [true, t('settings.learnLiveTempoOn')]] as const)
+      .map(([value, label]): Choice<boolean> => ({ value, label, symbol: liveTempoSymbol(value) }));
+    this.setting(1, 2, t('settings.learnLiveTempo'), live, learnLiveTempo(learn), (value) => profiles.updateLearnSettings({ liveTempo: value }));
     // the letter naming, B or H (ft_0_17.AC4): the note names, the circle of fifths and the key names follow it
     const namings = (['H', 'B'] as const).map((value): Choice<'B' | 'H'> => ({ value, label: t(value === 'H' ? 'settings.namingH' : 'settings.namingB'), symbol: namingSymbol(value) }));
     this.setting(0, 2, t('settings.naming'), namings, profiles.noteNaming, (value) => profiles.updateNoteNaming(value));
