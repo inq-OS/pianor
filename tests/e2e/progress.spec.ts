@@ -151,8 +151,8 @@ test.describe('saves', () => {
     await openAdminPage(page);
     await clickButton(page, 'admin', 2); // Rename player: the name picker, not the browser's box
     await waitForScene(page, 'name');
-    // the picker's letters are buttons 0 to 29 in NAME_LETTERS order: Z is 19, then DONE is 31
-    for (let i = 0; i < 3; i++) await clickButton(page, 'name', 19);
+    // the name is typed on the computer keyboard (ft_1_07.AC6)
+    await page.keyboard.type('ZZZ');
     await clickButton(page, 'name', await nameDone(page)); // Done
     await waitForScene(page, 'admin');
     await expect.poll(() => sceneTexts(page, 'admin')).toContain('Renamed.');
