@@ -30,10 +30,10 @@ describe('the foreground of the warden\'s room (ft_1_18.AC3)', () => {
   it('ft_1_18.AC3 each corner of the picture is framed by a thing that stands near the viewer, not by a painted shadow', () => {
     const corners = { topLeft: { x: 0, y: 0 }, topRight: { x: W - S, y: 0 }, bottomLeft: { x: 0, y: H - S }, bottomRight: { x: W - S, y: H - S } };
     for (const [name, at] of Object.entries(corners)) expect(share({ ...at, w: S, h: S }), name).toBeGreaterThan(0.2);
-    // the middle of the picture is free of it, but for the low stack of music that reaches in along the bottom edge
-    // (the reference outline of the stacks, starts at about 440 of 640)
-    expect(share({ x: W / 4, y: 0, w: W / 2, h: H - 16 })).toBe(0);
-    expect(share({ x: W / 4, y: H - 16, w: W / 2, h: 16 })).toBeLessThan(0.2);
+    // the middle of the picture is free of it in the rows no board covers (the upper 248 fine rows); under them only
+    // the low stack of music reaches in along the foot, from about 440 of 640
+    expect(share({ x: W / 4, y: 0, w: W / 2, h: 248 })).toBe(0);
+    expect(share({ x: W / 4, y: 248, w: W / 2, h: H - 248 })).toBeLessThan(0.2);
   });
 
   it('ft_1_18.AC3 the stacks of music by the door are ragged piles of thin sheaves with loose sheets on top, one of them slumped, no two pieces alike', () => {
@@ -63,8 +63,8 @@ describe('the foreground of the warden\'s room (ft_1_18.AC3)', () => {
   });
 
   it('ft_1_18.AC3 the stacks stand far enough into the room for their sides to be seen, their tops where the reference outline puts them', () => {
-    // the reference outline, in fine pixels: a tall block at the right edge with its top at about 203, a pile
-    // beside it that peaks at about (524, 210), a low one whose top runs from about (440, 238) to (510, 234)
+    // in fine pixels of the tall picture: a tall block at the right edge with its top at about 270, a pile beside
+    // it that peaks at about (519, 276), a low one whose top is at about 304: near the eye, in the lower right corner
     const pieces = musicStacks();
     const top = (n: number): { x: number; y: number } => {
       let best = { x: 0, y: Infinity };
@@ -75,10 +75,10 @@ describe('the foreground of the warden\'s room (ft_1_18.AC3)', () => {
       }
       return best;
     };
-    expect(Math.abs(top(0).y - 203)).toBeLessThan(6);
-    expect(Math.abs(top(1).y - 210)).toBeLessThan(6);
-    expect(Math.abs(top(1).x - 524)).toBeLessThan(30);
-    expect(Math.abs(top(2).y - 234)).toBeLessThan(6);
+    expect(Math.abs(top(0).y - 270)).toBeLessThan(6);
+    expect(Math.abs(top(1).y - 276)).toBeLessThan(6);
+    expect(Math.abs(top(1).x - 519)).toBeLessThan(30);
+    expect(Math.abs(top(2).y - 304)).toBeLessThan(6);
     // the tall pile's front is in the picture for a hand's breadth and more below its top: leaf on leaf is seen
     const tall = pieces.filter((p) => p.stack === 0), high = Math.max(...tall.map((p) => p.y1));
     const front = blockCorners({ ...tall[0]!, y0: high - 0.12, y1: high }).map((c) => projectPoint(plan.camera, c[0], c[1], c[2]));

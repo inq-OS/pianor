@@ -1,6 +1,6 @@
 import { buildingCorners, type World, type WorldPoint } from '../world/world';
 import { ART_DETAIL } from './frame';
-import { ROOM_PICTURE, roomView } from './room';
+import { pictureView } from './room';
 
 /**
  * The crossroads (d113): the concrete path's Y fork west of the lighthouse, where the track from the warden's house
@@ -28,15 +28,15 @@ export const CROSSROADS = {
   /** Fine pixels per radian: a wide view, about 107 degrees, as wide as the photograph's. */
   lens: 300,
   /** The horizon's row, in fine pixels: a little under half the picture is sky. */
-  horizon: 116,
+  horizon: 156,
   /** The near hut is drawn this much larger than to scale so it reads, the houses far off as they are; the lighthouse this tall in fine pixels from its foot. */
   hutScale: 1.5,
   towerTall: 112,
 } as const;
 
 /** The scene's picture has the room's size: a low wide band over the same strip. */
-export const CROSSROADS_PICTURE = ROOM_PICTURE;
-export const crossroadsView = roomView;
+export const CROSSROADS_PICTURE = { w: 320, h: 180 } as const;
+export const crossroadsView = pictureView(CROSSROADS_PICTURE);
 
 const FINE = { w: CROSSROADS_PICTURE.w * ART_DETAIL, h: CROSSROADS_PICTURE.h * ART_DETAIL } as const;
 

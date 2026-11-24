@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import keriJson from '../../../content/world/keri.json';
 import { insideRing, loadWorld } from '../world/world';
-import { ROOM_PICTURE } from './room';
+import { LOW_PICTURE } from './room';
 import { DECK, GRILL, LONG_EYE, REACH, TERRACE, TERRACE_ID, TERRACE_LAND, TERRACE_ROCKS, TORCHES, TORCH_FLAME, TORCH_SPARKS, TOWER, deckOf, fromTerrace, lampHook, onDeck, onReach, onTorch, onTower, reachSides, terraceFloor, terraceGrassy, terraceGroundAt, terracePlace, terracePlan, terraceProject, terraceRise, terraceShore, underReach } from './terrace';
 
 const KERI = loadWorld(keriJson);
@@ -167,7 +167,7 @@ describe('the terrace: the plan of the picture (ft_1_19)', () => {
   });
 
   it('ft_1_19.AC1 a stage set: the horizon a third down, the watchtower on the head\'s seaward corner on the picture\'s left, a storey up with a roof over it and a staff on its peak (a small watchtower of about two floors with a fixed telescope to scan the horizon)', () => {
-    expect(plan.fine).toEqual({ w: ROOM_PICTURE.w * 2, h: ROOM_PICTURE.h * 2 });
+    expect(plan.fine).toEqual({ w: LOW_PICTURE.w * 2, h: LOW_PICTURE.h * 2 });
     expect(plan.horizon).toBe(TERRACE.horizon);
     expect(plan.horizon).toBeGreaterThan(H * 0.3);
     expect(plan.horizon).toBeLessThan(H * 0.45);

@@ -1,17 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import keriJson from '../../../content/world/keri.json';
 import { insideRing, loadWorld, onLand } from '../world/world';
-import { ART_DETAIL } from './frame';
+import { ART_DETAIL, FRAME_MIN } from './frame';
 import { KNOLL, KNOLL_FIRE, KNOLL_PICTURE, KNOLL_PLATEAU, fromKnoll, knollCrest, knollPlace, knollPlan, knollShore, toKnoll } from './knoll';
-import { ROOM_PICTURE } from './room';
 
 const KERI = loadWorld(keriJson);
 const plan = knollPlan();
 
 describe('the grassy knoll: its plan (ft_1_19.AC9)', () => {
-  it('ft_1_19.AC1 ft_1_19.AC9 the picture is the room\'s low wide band, so the same strip stays free under it', () => {
-    expect(KNOLL_PICTURE).toEqual(ROOM_PICTURE);
-    expect(plan.fine).toEqual({ w: ROOM_PICTURE.w * ART_DETAIL, h: ROOM_PICTURE.h * ART_DETAIL });
+  it('ft_1_19.AC1 ft_1_19.AC9 the picture fills every row of the target screen\'s main area', () => {
+    expect(KNOLL_PICTURE).toEqual({ w: FRAME_MIN.width, h: FRAME_MIN.height });
+    expect(plan.fine).toEqual({ w: FRAME_MIN.width * ART_DETAIL, h: FRAME_MIN.height * ART_DETAIL });
   });
 
   it('ft_1_19.AC9 the knoll is the scene of the world model, on the meadow; the viewer\'s metres and the island\'s go into each other', () => {

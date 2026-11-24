@@ -19,9 +19,9 @@ import { scatter } from './kit/shape';
  */
 
 /** The burl's middle and half sizes; below its middle it is shorter (`below`), so it stops over the roses. */
-export const PUUVAIM = { x: 91, y: 74, rx: 9, ry: 12, below: 10 } as const;
+export const PUUVAIM = { x: 91, y: 114, rx: 9, ry: 12, below: 10 } as const;
 /** His actor's frame on the knoll's picture: the burl with its lumps, and the beard under it. */
-export const PUUVAIM_SPRITE = { x: 78, y: 58, w: 26, h: 46 } as const;
+export const PUUVAIM_SPRITE = { x: 78, y: 98, w: 26, h: 46 } as const;
 
 /** What the face shows: `asleep` is his eyes shut, before he wakes; the others are his actor's states. */
 export type PuuvaimFace = 'asleep' | 'awake' | 'blink' | 'talk' | 'listen' | 'play' | 'hum';

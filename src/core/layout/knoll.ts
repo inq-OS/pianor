@@ -1,6 +1,6 @@
 import type { World, WorldPoint } from '../world/world';
 import { ART_DETAIL } from './frame';
-import { ROOM_PICTURE, roomView } from './room';
+import { pictureView } from './room';
 
 /**
  * The grassy knoll with the bonfire place (ft_1_19.AC9, d113): the first scene on Keri, between the warden's house and the
@@ -22,12 +22,12 @@ export const KNOLL = {
   /** Fine pixels per radian: how wide the picture looks (about 80 degrees). */
   lens: 460,
   /** The horizon's row in the picture, in fine pixels: a third sky, the sea under it. */
-  horizon: 84,
+  horizon: 124,
 } as const;
 
-/** The scene's picture has the room's size: a low wide band over the same strip. */
-export const KNOLL_PICTURE = ROOM_PICTURE;
-export const knollView = roomView;
+/** The scene's picture fills the main area of the target screen (d282): every row, with nothing kept free under it. */
+export const KNOLL_PICTURE = { w: 320, h: 180 } as const;
+export const knollView = pictureView(KNOLL_PICTURE);
 
 const FINE = { w: KNOLL_PICTURE.w * ART_DETAIL, h: KNOLL_PICTURE.h * ART_DETAIL } as const;
 
@@ -41,9 +41,9 @@ const FINE = { w: KNOLL_PICTURE.w * ART_DETAIL, h: KNOLL_PICTURE.h * ART_DETAIL 
  * the viewer, `side` rows lower for each pixel right, with the rocky shore below it.
  */
 export const KNOLL_PLATEAU = {
-  top: { x: 300, y: 109 },
-  left: { y: 117 },
-  shoulder: { x: 452, y: 113 },
+  top: { x: 300, y: 149 },
+  left: { y: 157 },
+  shoulder: { x: 452, y: 153 },
   cut: { wide: 12, drop: 24 },
   side: 0.46,
 } as const;
@@ -72,7 +72,7 @@ export function knollCrest(px: number): number {
 export const KNOLL_FIRE = { x: KNOLL_PLATEAU.top.x - 6, y: KNOLL_PLATEAU.top.y + 16, rx: 42, ry: 9 } as const;
 
 /** The moon's place in the night's sky, in fine pixels: its middle and radius. The day's clouds start off it (`cloudCourses`). */
-export const KNOLL_MOON = { x: 392, y: 25, r: 9 } as const;
+export const KNOLL_MOON = { x: 392, y: 52, r: 9 } as const;
 
 /** Round the fire the grass is short, kept down by feet: this oval of the picture (fine pixels). */
 export const KNOLL_CLEARING = { x: KNOLL_FIRE.x, y: KNOLL_FIRE.y + 13, rx: 118, ry: 30 } as const;

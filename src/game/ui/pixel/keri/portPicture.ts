@@ -96,7 +96,7 @@ const LIGHT: Record<SkyPhase, { side: number; glint: number; face: number }> = {
 
 /** The sky's clouds, back to front (d111 point 17); each rolls up into a head the way the wind blows (left). */
 export const PORT_CLOUDS: readonly { at: readonly [number, number]; spec: CurlSpec }[] = [
-  { at: [118, 14], spec: { length: 172, girth: 6, belly: 0.45, neck: 1, taper: 0.6, bend: 3, wave: 1.5, phase: 0.3 } },
+  { at: [130, 14], spec: { length: 150, girth: 6, belly: 0.45, neck: 1, taper: 0.6, bend: 3, wave: 1.5, phase: 0.3 } },
   { at: [404, 92], spec: { length: 66, girth: 5, belly: 0.5, neck: 1, taper: 0.55, bend: 1, wave: 1.1, phase: 0.7 } },
   { at: [30, 88], spec: { length: 58, girth: 7, belly: 0.72, neck: 1, taper: 0.7, bend: 2, wave: 0.85, phase: 0.2, head: { size: 7, turns: 1.1 } } },
   { at: [262, 24], spec: { length: 118, girth: 38, belly: 0.8, neck: 0.9, taper: 1.15, bend: 10, wave: 0.75, phase: 0.4, rise: 9, head: { size: 25, turns: 1.2 } } },

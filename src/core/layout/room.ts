@@ -98,7 +98,7 @@ export const ROOM = {
   bricks: { a0: 0, a1: 1.55, y0: 0, y1: 2.4 } as WallPiece,
   door: { a0: 1.82, a1: 2.66, y0: 0, y1: 1.98 } as WallPiece,
   /** The old wall telephone (ft_1_34): on the bricks of the right wall, beside the stove's pipe, at a child's reach. */
-  phone: { a0: 1.3, a1: 1.5, y0: 1.15, y1: 1.55 } as WallPiece,
+  phone: { a0: 1.3, a1: 1.56, y0: 1.15, y1: 1.55 } as WallPiece,
   piano: PIANO,
   /** The note-name board on its easel, beside the piano and turned a little toward the viewer. */
   easel: EASEL,
@@ -165,12 +165,14 @@ const EYE = { x: 0.22, y: 1.5, z: 5.4, yaw: -0.035 } as const;
 /** Fine pixels per radian: about 68 fine pixels per metre in the middle of the back wall, so a portrait of 66 pixels hangs over the piano. */
 const LENS = 367;
 /**
- * The picture's size in layout cells: the whole width of the target screen and a low band of its height (d110), the same
- * on every screen, as a painted background is. A larger main area shows night round it.
+ * The low wide band a place's picture had over the band of every screen: the size of a place not yet painted tall
+ * (the terrace), which stands in the middle of the rows it gets.
  */
-export const ROOM_PICTURE = { w: 320, h: 124 } as const;
+export const LOW_PICTURE = { w: 320, h: 124 } as const;
+/** The room's picture in layout cells: the whole main area of the target screen (d282), with nothing kept free under it. */
+export const ROOM_PICTURE = { w: 320, h: 180 } as const;
 /** The horizon's row in the picture, in fine pixels. */
-const HORIZON = 71;
+const HORIZON = 95;
 
 /**
  * How far the view is bent, in fine pixels at the picture's corners, as the rooms of the 1991 game are drawn

@@ -1,17 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import keriJson from '../../../content/world/keri.json';
 import { bearing, insideRing, loadWorld } from '../world/world';
-import { ART_DETAIL } from './frame';
+import { ART_DETAIL, FRAME_MIN } from './frame';
 import { CROSSROADS, CROSSROADS_PICTURE, crossroadsEye, crossroadsHouses, crossroadsPaths, crossroadsPlace, crossroadsPlan, crossroadsShore, depthOfRow, onPicture, toCrossroads } from './crossroads';
-import { ROOM_PICTURE } from './room';
 
 const KERI = loadWorld(keriJson);
 const plan = crossroadsPlan();
 
 describe('the crossroads: its plan', () => {
-  it('ft_1_19.AC1 the picture is the room\'s low wide band, so the same strip stays free under it', () => {
-    expect(CROSSROADS_PICTURE).toEqual(ROOM_PICTURE);
-    expect(plan.fine).toEqual({ w: ROOM_PICTURE.w * ART_DETAIL, h: ROOM_PICTURE.h * ART_DETAIL });
+  it('ft_1_19.AC1 the picture fills every row of the target screen\'s main area', () => {
+    expect(CROSSROADS_PICTURE).toEqual({ w: FRAME_MIN.width, h: FRAME_MIN.height });
+    expect(plan.fine).toEqual({ w: FRAME_MIN.width * ART_DETAIL, h: FRAME_MIN.height * ART_DETAIL });
     // the horizon is where the viewer's eye is, never the middle row (art-direction rule 21)
     expect(plan.horizon).not.toBe(plan.fine.h / 2);
     expect(plan.horizon / plan.fine.h).toBeGreaterThan(0.35);

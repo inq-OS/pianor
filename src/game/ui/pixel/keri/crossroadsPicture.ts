@@ -100,26 +100,26 @@ const BOW = 14;
 const SAUNA_BACK = 1.35;
 
 /** The moon's place in the night's sky. */
-const MOON = { x: 538, y: 30, r: 8 } as const;
+const MOON = { x: 522, y: 22, r: 8 } as const;
 
 /**
  * The sky's clouds, back to front (d111): a big fat heap high on the right, as on the photograph, long thin
  * streaks low over the sea, no two alike, their heads leading left with the wind.
  */
 export const CROSSROADS_CLOUDS: readonly { at: readonly [number, number]; spec: CurlSpec }[] = [
-  { at: [18, 88], spec: { length: 70, girth: 5, belly: 0.4, neck: 1, taper: 0.6, bend: 1, wave: 1, phase: 0.5 } },
-  { at: [470, 92], spec: { length: 52, girth: 4, belly: 0.6, neck: 1, taper: 0.6, bend: 1, wave: 1, phase: 1.5 } },
-  { at: [436, 4], spec: { length: 108, girth: 40, belly: 0.62, neck: 0.9, taper: 1.2, bend: 8, wave: 0.7, phase: 0, rise: 6, head: { size: 26, turns: 1.2 }, curls: [{ at: 0.6, size: 21, turns: 1.15 }, { at: 0.3, size: 13, turns: 1.1 }] } },
-  { at: [30, 26], spec: { length: 200, girth: 15, belly: 0.55, neck: 0.85, taper: 0.7, bend: 7, wave: 1.4, phase: 0.6, rise: 2, head: { size: 16, turns: 1.3 }, curls: [{ at: 0.45, size: 10, turns: 1.1 }] } },
-  { at: [250, 54], spec: { length: 100, girth: 12, belly: 0.7, neck: 0.9, taper: 0.9, bend: 5, wave: 1.6, phase: 0.2, head: { size: 11, turns: 1.25 } } },
-  { at: [196, 8], spec: { length: 46, girth: 10, belly: 0.75, neck: 1, taper: 0.8, bend: 3, wave: 0.9, phase: 1.1, head: { size: 9, turns: 1.2 } } },
+  { at: [18, 128], spec: { length: 70, girth: 5, belly: 0.4, neck: 1, taper: 0.6, bend: 1, wave: 1, phase: 0.5 } },
+  { at: [470, 132], spec: { length: 52, girth: 4, belly: 0.6, neck: 1, taper: 0.6, bend: 1, wave: 1, phase: 1.5 } },
+  { at: [436, 46], spec: { length: 108, girth: 40, belly: 0.62, neck: 0.9, taper: 1.2, bend: 8, wave: 0.7, phase: 0, rise: 6, head: { size: 26, turns: 1.2 }, curls: [{ at: 0.6, size: 21, turns: 1.15 }, { at: 0.3, size: 13, turns: 1.1 }] } },
+  { at: [30, 58], spec: { length: 200, girth: 15, belly: 0.55, neck: 0.85, taper: 0.7, bend: 7, wave: 1.4, phase: 0.6, rise: 2, head: { size: 16, turns: 1.3 }, curls: [{ at: 0.45, size: 10, turns: 1.1 }] } },
+  { at: [250, 92], spec: { length: 100, girth: 12, belly: 0.7, neck: 0.9, taper: 0.9, bend: 5, wave: 1.6, phase: 0.2, head: { size: 11, turns: 1.25 } } },
+  { at: [150, 14], spec: { length: 46, girth: 10, belly: 0.75, neck: 1, taper: 0.8, bend: 3, wave: 0.9, phase: 1.1, head: { size: 9, turns: 1.2 } } },
 ];
 
 /**
  * Grey boulders in the grass by the path (fine pixels: foot x, foot y, size), as the island's meadows have (docs/keri.md:
  * shingle and erratic stones). AX-3 provisional: where each lies is the painter's.
  */
-const ROCKS: readonly (readonly [number, number, number])[] = [[182, 222, 15], [350, 204, 8]];
+const ROCKS: readonly (readonly [number, number, number])[] = [[182, 262, 15], [350, 244, 8]];
 
 /**
  * The trodden footpaths through the dog roses (the roses are lush and wild, with few paths going
@@ -882,7 +882,7 @@ class CrossroadsPainter {
     const { w, h } = this;
     const corner = (y: number): number => w - 34 + (h - y) * 0.04 + Math.sin(y / 30) * 1.2;
     /** The eave's edge: from over the corner up and out of the picture, a little wavy as old tin is. */
-    const eave = (x: number): number => 58 - (x - (w - 50)) * 0.75 + Math.sin(x / 7) * 0.7;
+    const eave = (x: number): number => 98 - (x - (w - 50)) * 0.75 + Math.sin(x / 7) * 0.7;
     this.outlined(() => {
       // the wall: upright boards in the house's shade, each a little different, the corner post lit on its edge
       for (let y = 0; y < h; y++) for (let x = Math.floor(corner(y)); x < w; x++) {
@@ -893,8 +893,8 @@ class CrossroadsPainter {
         this.put(x, y, seam ? R.near[0]! : tone(F.boards, clamp01(t), x, y, 0));
       }
       // a rail nailed across the boards
-      for (let x = Math.floor(corner(150)) + 2; x < w; x++) for (const [dy, c] of [[0, R.earth[3]!], [1, R.earth[2]!], [2, R.earth[2]!], [3, R.earth[0]!]] as const) this.put(x, 150 + dy + (x - w) * 0.05, c);
-      this.bucket(corner(118) - 2, 118);
+      for (let x = Math.floor(corner(190)) + 2; x < w; x++) for (const [dy, c] of [[0, R.earth[3]!], [1, R.earth[2]!], [2, R.earth[2]!], [3, R.earth[0]!]] as const) this.put(x, 190 + dy + (x - w) * 0.05, c);
+      this.bucket(corner(158) - 2, 158);
       // the roof's corner over it: the tin's underside in shade, its edge caught by the light, ribs running up the slope
       for (let x = w - 56; x < w; x++) {
         const e = eave(x), thick = 7 + (x - (w - 56)) * 0.12;

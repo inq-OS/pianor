@@ -78,20 +78,20 @@ const WAY = -1;
  */
 export const KNOLL_CLOUDS: readonly { at: readonly [number, number]; spec: CurlSpec }[] = [
   // low over the sea, far off: flat streaks and small curls
-  { at: [14, 73], spec: { length: 64, girth: 5, belly: 0.4, neck: 1, taper: 0.6, bend: 1, wave: 1, phase: 0.5 } },
-  { at: [236, 76], spec: { length: 46, girth: 4, belly: 0.6, neck: 1, taper: 0.6, bend: 1, wave: 1, phase: 1.5 } },
-  { at: [404, 70], spec: { length: 58, girth: 6, belly: 0.75, neck: 1, taper: 0.7, bend: 2, wave: 0.8, phase: 0.2, head: { size: 6, turns: 1.1 } } },
-  { at: [548, 75], spec: { length: 84, girth: 5, belly: 0.5, neck: 1, taper: 0.5, bend: 1, wave: 1.2, phase: 0.9 } },
+  { at: [14, 113], spec: { length: 64, girth: 5, belly: 0.4, neck: 1, taper: 0.6, bend: 1, wave: 1, phase: 0.5 } },
+  { at: [236, 116], spec: { length: 46, girth: 4, belly: 0.6, neck: 1, taper: 0.6, bend: 1, wave: 1, phase: 1.5 } },
+  { at: [404, 110], spec: { length: 58, girth: 6, belly: 0.75, neck: 1, taper: 0.7, bend: 2, wave: 0.8, phase: 0.2, head: { size: 6, turns: 1.1 } } },
+  { at: [548, 115], spec: { length: 84, girth: 5, belly: 0.5, neck: 1, taper: 0.5, bend: 1, wave: 1.2, phase: 0.9 } },
   // the big fat ones
-  { at: [40, 3], spec: { length: 96, girth: 38, belly: 0.78, neck: 0.9, taper: 1.2, bend: 12, wave: 0.7, phase: 0, rise: 12, head: { size: 26, turns: 1.25 }, curls: [{ at: 0.58, size: 23, turns: 1.15 }, { at: 0.24, size: 14, turns: 1.1 }] } },
-  { at: [452, 26], spec: { length: 80, girth: 22, belly: 0.7, neck: 0.8, taper: 1.3, bend: 5, wave: 1, phase: 0.4, head: { size: 17, turns: 1.2 }, curls: [{ at: 0.6, size: 15, turns: 1.1, forward: true }] } },
+  { at: [40, 27], spec: { length: 96, girth: 38, belly: 0.78, neck: 0.9, taper: 1.2, bend: 12, wave: 0.7, phase: 0, rise: 12, head: { size: 26, turns: 1.25 }, curls: [{ at: 0.58, size: 23, turns: 1.15 }, { at: 0.24, size: 14, turns: 1.1 }] } },
+  { at: [452, 50], spec: { length: 80, girth: 22, belly: 0.7, neck: 0.8, taper: 1.3, bend: 5, wave: 1, phase: 0.4, head: { size: 17, turns: 1.2 }, curls: [{ at: 0.6, size: 15, turns: 1.1, forward: true }] } },
   // the long thin ones, in front of them: none sweeps up or down like a comet, and no two are mirror images; a long one that rises and falls once, a short heap with its bulk in the middle, a long one that waves with a curl breaking forward
-  { at: [84, 38], spec: { length: 160, girth: 18, belly: 0.5, neck: 0.9, taper: 0.65, bend: 6, wave: 1.3, phase: 1.4, rise: 2, head: { size: 18, turns: 1.25 }, curls: [{ at: 0.55, size: 12, turns: 1.1 }] } },
-  { at: [214, 2], spec: { length: 64, girth: 36, belly: 0.55, neck: 0.95, taper: 1.2, bend: 3, wave: 0.6, phase: 0.3, rise: 2, head: { size: 21, turns: 1.15 }, curls: [{ at: 0.6, size: 17, turns: 1.1 }, { at: 0.42, size: 12, turns: 1.05 }] } },
-  { at: [430, 6], spec: { length: 128, girth: 20, belly: 0.55, neck: 0.9, taper: 0.9, bend: 5, wave: 2.2, phase: 0.1, rise: 0, head: { size: 21, turns: 1.25 }, curls: [{ at: 0.5, size: 12, turns: 1.1, forward: true }] } },
+  { at: [84, 62], spec: { length: 160, girth: 18, belly: 0.5, neck: 0.9, taper: 0.65, bend: 6, wave: 1.3, phase: 1.4, rise: 2, head: { size: 18, turns: 1.25 }, curls: [{ at: 0.55, size: 12, turns: 1.1 }] } },
+  { at: [214, 26], spec: { length: 64, girth: 36, belly: 0.55, neck: 0.95, taper: 1.2, bend: 3, wave: 0.6, phase: 0.3, rise: 2, head: { size: 21, turns: 1.15 }, curls: [{ at: 0.6, size: 17, turns: 1.1 }, { at: 0.42, size: 12, turns: 1.05 }] } },
+  { at: [430, 30], spec: { length: 128, girth: 20, belly: 0.55, neck: 0.9, taper: 0.9, bend: 5, wave: 2.2, phase: 0.1, rise: 0, head: { size: 21, turns: 1.25 }, curls: [{ at: 0.5, size: 12, turns: 1.1, forward: true }] } },
   // and two small ones on their own
-  { at: [316, 52], spec: { length: 44, girth: 9, belly: 0.8, neck: 1, taper: 0.8, bend: 4, wave: 0.9, phase: 1.1, head: { size: 9, turns: 1.2 } } },
-  { at: [596, 50], spec: { length: 24, girth: 6, belly: 0.8, neck: 1, taper: 0.8, bend: 2, wave: 0.6, phase: 0.3, head: { size: 6, turns: 1.1 } } },
+  { at: [316, 76], spec: { length: 44, girth: 9, belly: 0.8, neck: 1, taper: 0.8, bend: 4, wave: 0.9, phase: 1.1, head: { size: 9, turns: 1.2 } } },
+  { at: [596, 74], spec: { length: 24, girth: 6, belly: 0.8, neck: 1, taper: 0.8, bend: 2, wave: 0.6, phase: 0.3, head: { size: 6, turns: 1.1 } } },
 ];
 
 /** The far meadow's streaks: the pale greens and the golds, without their darkest. */
@@ -108,7 +108,7 @@ const KNOLL_STROKES = 2.2;
  * cover; the wild dog rose grows thick, at least 3 m high): one thicket, taller than the viewer, whose top runs from
  * the picture's left edge (row `from`, over the horizon) down to its lower edge (column `to`), heaped of `lumps` leafy lumps.
  */
-const ROSES = { from: 66, to: 214, lumps: 19 } as const;
+const ROSES = { from: 98, to: 214, lumps: 24 } as const;
 /**
  * The tree that overhangs the knoll from the left (try to fit a tree that looks like
  * the first 1991 game picture, overhanging the knoll from the left side, though it does not actually exist on Keri): a borrowing from
@@ -124,26 +124,26 @@ type Point = readonly [number, number];
 // short of the fire's smoke.
 const LIMBS: readonly { a: Point; b: Point; c: Point; r: number; end: number }[] = [
   // the trunk out of the roses: a stem bending left then right, and a thinner one wound round it
-  { a: [128, 168], b: [114, 114], c: [98, 92], r: 12, end: 0.82 },
-  { a: [98, 92], b: [82, 70], c: [108, 57], r: 9.8, end: 0.8 },
-  { a: [142, 170], b: [140, 120], c: [112, 102], r: 7, end: 0.8 },
-  { a: [112, 102], b: [90, 90], c: [96, 70], r: 5.6, end: 0.75 },
+  { a: [128, 208], b: [114, 154], c: [98, 132], r: 12, end: 0.82 },
+  { a: [98, 132], b: [82, 110], c: [108, 97], r: 9.8, end: 0.8 },
+  { a: [142, 210], b: [140, 160], c: [112, 142], r: 7, end: 0.8 },
+  { a: [112, 142], b: [90, 130], c: [96, 110], r: 5.6, end: 0.75 },
   // back over the roses to the left edge, and up into the crown
-  { a: [102, 60], b: [68, 42], c: [-6, 38], r: 6.5, end: 0.45 },
-  { a: [108, 58], b: [120, 30], c: [160, 22], r: 6, end: 0.4 },
-  { a: [154, 42], b: [172, 22], c: [204, 16], r: 3.5, end: 0.4 },
+  { a: [102, 100], b: [68, 82], c: [-6, 78], r: 6.5, end: 0.45 },
+  { a: [108, 98], b: [120, 70], c: [160, 62], r: 6, end: 0.4 },
+  { a: [154, 82], b: [172, 62], c: [204, 56], r: 3.5, end: 0.4 },
   // the long limb out over the plateau, sagging once at its end
-  { a: [106, 58], b: [174, 34], c: [244, 46], r: 8, end: 0.3 },
-  { a: [242, 46], b: [254, 54], c: [266, 50], r: 2.6, end: 0.4 },
+  { a: [106, 98], b: [174, 74], c: [244, 86], r: 8, end: 0.3 },
+  { a: [242, 86], b: [254, 94], c: [266, 90], r: 2.6, end: 0.4 },
 ];
 const TIERS: readonly { x: number; y: number; half: number; thick: number }[] = [
-  { x: 122, y: 20, half: 80, thick: 36 },
-  { x: 42, y: 26, half: 74, thick: 40 },
-  { x: 208, y: 28, half: 58, thick: 24 },
-  { x: 92, y: 50, half: 48, thick: 16 },
-  { x: 170, y: 48, half: 40, thick: 14 },
-  { x: -12, y: 62, half: 40, thick: 20 },
-  { x: 246, y: 42, half: 30, thick: 12 },
+  { x: 122, y: 60, half: 80, thick: 36 },
+  { x: 42, y: 66, half: 74, thick: 40 },
+  { x: 208, y: 68, half: 58, thick: 24 },
+  { x: 92, y: 90, half: 48, thick: 16 },
+  { x: 170, y: 88, half: 40, thick: 14 },
+  { x: -12, y: 102, half: 40, thick: 20 },
+  { x: 246, y: 82, half: 30, thick: 12 },
 ];
 /** Right of this column the land below the plateau is rocky shore, not meadow (the lower land in the right-back is actually rocky shore); it turns over `wide` pixels. */
 const ROCKY = { from: 360, wide: 60 } as const;
@@ -165,10 +165,10 @@ export interface KnollLog {
   back?: boolean;
 }
 export const KNOLL_LOGS: readonly KnollLog[] = [
-  { a: [372, 119], b: [331, 112], bend: 3.5, r: 4.2, taper: 0.42, stub: 0.55, back: true },
-  { a: [213, 134], b: [254, 149], bend: 4.5, r: 5.2, taper: 0.4, stub: 0.62 },
-  { a: [333, 151], b: [377, 130], bend: 5, r: 5.8, taper: 0.5, stub: 0.3 },
-  { a: [314, 152], b: [281, 157], bend: -2.5, r: 5.4, taper: 0.66 },
+  { a: [372, 159], b: [331, 152], bend: 3.5, r: 4.2, taper: 0.42, stub: 0.55, back: true },
+  { a: [213, 174], b: [254, 189], bend: 4.5, r: 5.2, taper: 0.4, stub: 0.62 },
+  { a: [333, 191], b: [377, 170], bend: 5, r: 5.8, taper: 0.5, stub: 0.3 },
+  { a: [314, 192], b: [281, 197], bend: -2.5, r: 5.4, taper: 0.66 },
 ];
 
 /** The colour of a log's wood: `v` from -1 on its top to 1 underneath, `grain` the streak along it, `worn` how far down its top is worn pale. */
@@ -187,7 +187,7 @@ export function logSpine(log: KnollLog, t: number): { x: number; y: number } {
 }
 
 /** Scuffed patches where feet rest before the logs: middle, half width, half height. */
-const SCUFFS: readonly (readonly [number, number, number, number])[] = [[240, 135, 13, 4], [352, 136, 12, 4], [298, 146, 15, 3.5], [340, 122, 10, 3]];
+const SCUFFS: readonly (readonly [number, number, number, number])[] = [[240, 175, 13, 4], [352, 176, 12, 4], [298, 186, 15, 3.5], [340, 162, 10, 3]];
 
 /** Round the fire the ground is trodden bare: about this oval, in fine pixels from the fire's middle; its edge runs in and out (`clearing`). */
 const TRODDEN = { dy: 3, rx: 66, ry: 15 } as const;
@@ -198,11 +198,11 @@ const bent = (x: number, y: number, look: number): number => lean(x, y, look, KN
 
 /** The dry stems that reach into the upper left corner: the foot's column at the lower edge, the seed head's place and size, its rays. */
 const STEMS: readonly { foot: number; top: readonly [number, number]; size: number; rays: number }[] = [
-  { foot: 46, top: [16, 46], size: 17, rays: 9 },
-  { foot: 55, top: [34, 15], size: 21, rays: 11 },
-  { foot: 109, top: [106, 38], size: 16, rays: 9 },
-  { foot: 116, top: [126, 12], size: 19, rays: 10 },
-  { foot: 128, top: [156, 52], size: 14, rays: 8 },
+  { foot: 46, top: [16, 130], size: 17, rays: 9 },
+  { foot: 55, top: [34, 99], size: 21, rays: 11 },
+  { foot: 109, top: [116, 170], size: 16, rays: 9 },
+  { foot: 122, top: [140, 92], size: 19, rays: 10 },
+  { foot: 128, top: [156, 136], size: 14, rays: 8 },
 ];
 
 /** A cloud of the knoll's sky: its picture in the palette's colours and where it stands when nothing moves. */
@@ -250,7 +250,7 @@ function clearingOf(x: number, y: number): { earth: number; short: number } {
   // the edge is ragged too: tongues of grass in the earth and of earth in the grass
   const ragged = 1 + (fbm(x / 11, y / 4.5, 2, 190) - 0.5) * 0.5;
   let earth = (Math.hypot((x - KNOLL_FIRE.x) / TRODDEN.rx, (y - KNOLL_FIRE.y - TRODDEN.dy) / TRODDEN.ry) / lobes) * ragged;
-  if (x > 110 && x < 420 && y > 110) {
+  if (x > 110 && x < 420 && y > 150) {
     // patchy, so grass grows back in the scuffs: bare only in places (no path: a path is the maintainer's to tell, rule 14)
     const patchy = 0.55 + 1.3 * fbm(x / 9, y / 4, 2, 192);
     for (const [cx, cy, rx, ry] of SCUFFS) earth = Math.min(earth, Math.hypot((x - cx) / rx, (y - cy) / ry) * patchy * 1.1);
@@ -513,7 +513,7 @@ class KnollPainter {
     const { shoulder } = KNOLL_PLATEAU;
     if (x <= shoulder.x) return 0;
     const under = this.crest[Math.max(0, Math.min(this.w - 1, x))]! - y;
-    return smooth(4 + (y - 120) * 0.25, 0, under) * smooth(shoulder.x, shoulder.x + 30, x);
+    return smooth(4 + (y - 160) * 0.25, 0, under) * smooth(shoulder.x, shoulder.x + 30, x);
   }
 
   private paintShore(): void {
