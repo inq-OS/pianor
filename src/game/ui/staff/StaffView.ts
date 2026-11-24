@@ -175,7 +175,9 @@ export class StaffView {
   private readonly markTexts: { text: Phaser.GameObjects.Text; system: number }[] = [];
   /** A song's part names over their first bars and its folds (ft_1_36 rule 7); drawn with the marks, kept apart from a section's. */
   private partMarks: PartMarks | null = null;
-  private readonly partTexts: { text: Phaser.GameObjects.Text; system: number }[] = [];
+  private readonly partTexts: { text: Phaser.GameObjects.Text; system: number; bar?: number }[] = [];
+  /** Hears every page turn (the song map's frame follows the page, ft_1_36 rule 8). */
+  onPageShown: ((page: number) => void) | null = null;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -358,7 +360,7 @@ export class StaffView {
       const numberWidth = number === undefined ? 0 : String(number.number).length * 4 * cell - cell + 0.4 * S;
       const x = this.origin.x + bar.x + 0.25 * S + numberWidth;
       const y = this.origin.y + this.layout.systems[bar.system]!.topLineY - 1.95 * S;
-      this.partTexts.push({ text: this.scene.add.text(x, y, text, name).setOrigin(0, 0.5), system: bar.system });
+      this.partTexts.push({ text: this.scene.add.text(x, y, text, name).setOrigin(0, 0.5), system: bar.system, bar: index });
     }
     for (const at of this.foldsAt()) {
       const y = this.origin.y + this.layout.systems[at.system]!.bottomLineY + 2.2 * S;
@@ -385,6 +387,26 @@ export class StaffView {
       for (let i = 0; i < steps; i++) g.lineBetween(at.x + (i % 2 === 0 ? -0.3 : 0.3) * S, top + i * step, at.x + (i % 2 === 0 ? 0.3 : -0.3) * S, top + (i + 1) * step);
     }
     g.lineStyle(this.lineWidth(), this.theme.ink, 1);
+  }
+
+  /** The page that shows bar `index` (0-based), or null for a bar past the staff. */
+  pageOfBar(index: number): number | null {
+    const bar = this.layout.bars[index];
+    return bar ? this.layout.systems[bar.system]!.page : null;
+  }
+
+  /** The bars (0-based, first and last) on page `page`. */
+  barsOnPage(page: number): { first: number; last: number } | null {
+    const on = this.layout.bars.flatMap((b, i) => (this.layout.systems[b.system]!.page === page ? [i] : []));
+    return on.length === 0 ? null : { first: on[0]!, last: on[on.length - 1]! };
+  }
+
+  /** A part's name over bar `index` flashes twice, so the eye finds where the song map turned to (ft_1_36 rule 8). */
+  flashPart(index: number): void {
+    const texts = this.partTexts.filter((p) => p.bar === index).map((p) => p.text);
+    if (texts.length === 0) return;
+    this.scene.tweens.killTweensOf(texts);
+    this.scene.tweens.add({ targets: texts, alpha: { from: 1, to: 0.15 }, duration: 180, yoyo: true, repeat: 1 });
   }
 
   /** Where each fold stands: at the start of the bar it comes before, or at the end of the last bar. */
@@ -513,6 +535,7 @@ export class StaffView {
     const target = Math.max(0, Math.min(this.layout.pageCount - 1, page));
     if (target === this.page) return;
     this.page = target;
+    this.onPageShown?.(target);
     this.drawStaff();
     this.drawDuration();
     this.setHints(this.hints);
