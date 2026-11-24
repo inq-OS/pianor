@@ -71,6 +71,7 @@ Part of ft_1_02 (item 7). An author writes dotted notes, enters notes from the E
 - TODO(builder, Later): previews for the items that act on the selected note at once (d286): while the pointer is on sharp, flat or natural, a finger 1 to 5, a dynamic, or C, the change is drawn faint on the note and the press commits it (`addedMarks` grows accidentals and dynamic words).
 - IDEA(builder, Later): a length change by the wheel, Ctrl + wheel, the middle click or Shift + arrows shows the new length as a ghost and is written only after the pointer or key has rested a second or two.
 - Rejected: a preview of what a right click or Delete takes away; shading the bars that + and - bars or Insert would add or take; a preview of the new key or time signature while a key or time is hovered in their panels.
+- TODO(builder, R2): the vim paste over selected bars (`visualPaste`) warns before writing over notes like Ctrl+V does (AC37).
 - TODO(builder, R2): a paste that warns it writes over notes takes the confirming paste only after the warning has shown a moment (about 400 ms), so a habitual double Ctrl+V reads it first.
 - TODO(builder, R2): the repeat preview draws its own signs in the scene; once the layout can be asked for a piece's repeat signs without moving its notes, draw them from `addedMarks` like the ties.
 
