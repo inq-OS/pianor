@@ -70,16 +70,24 @@ const FINISHED_HAT: Readonly<Record<Medal | 'none', readonly [number, number, nu
   bronze: [C.orangeLight, C.orange, C.orangeDark],
   none: [C.leafLight, C.leaf, C.leafDark],
 };
-/** Each bookmark's picture (ft_1_12.AC10): the book's whole list, the pencil of an own piece, the teacher's hat, a character's bubble. */
-const BOOKMARK_ICON: Readonly<Record<Bookmark, () => Bitmap>> = { all: () => TOOL_ICONS.bookOpen, own: () => ICONS.maker, curriculum: () => TOOL_ICONS.teacherHat, character: () => BUBBLE };
+/** Each bookmark's picture (ft_1_12.AC10): the book's whole list, the pencil of an own piece, the teacher's hat, a head for the characters'. */
+const BOOKMARK_ICON: Readonly<Record<Bookmark, () => Bitmap>> = { all: () => TOOL_ICONS.bookOpen, own: () => ICONS.maker, curriculum: () => TOOL_ICONS.teacherHat, character: () => TOOL_ICONS.head };
 /** Each bookmark's ribbon: its cloth, and the cloth's dark edge. */
 const BOOKMARK_CLOTH: Readonly<Record<Bookmark, readonly [number, number]>> = {
   all: [C.redDark, C.umberDark], own: [C.leaf, C.leafDark], curriculum: [C.duskLight, C.duskDark], character: [C.teal, C.tealDark],
 };
-/** The bookmarks hang in the left page's outer margin: this much more room is kept there (both pages keep it, the book is symmetric). */
-const TAB_ROOM = 8;
-/** A bookmark's ribbon, in cells: its width (the chosen one reaches this far left of the others), height and the gap between two. */
-const TAB = { w: 21, h: 19, gap: 3, out: 5 } as const;
+/**
+ * The left page's pieces sit this much nearer the spine than the right page's (whose margin stays as it is), so the
+ * bookmarks have the left page's outer margin; the right page's outer margin is free for more bookmarks later.
+ */
+const LEFT_SHIFT = 12;
+/**
+ * A bookmark's ribbon, in cells: a closed one hangs `shut` wide from `out` cells in; the open one is `open` wide from the
+ * screen's edge, lying over the page's margin up to the pieces. Its height and the gap between two.
+ */
+const TAB = { shut: 16, open: 30, h: 19, gap: 3, out: 5 } as const;
+/** A page's turned-up corner (the pager, ft_1_12 rule 1) is this many cells on a side, this far in from the page's outer and bottom edges. */
+const FOLD = { size: 17, inX: 5, inY: 6 } as const;
 /** The bookmarks start this far under the book's top, clear of the door in the screen's top left corner. */
 const TAB_TOP = 22;
 /** Each order's picture in the order button's choices (ft_1_12.AC11). */
@@ -87,6 +95,31 @@ const ORDER_ICON: Readonly<Record<BookOrder, Bitmap>> = {
   book: TOOL_ICONS.orderBook, achieved: TOOL_ICONS.orderAchieved, deadline: TOOL_ICONS.orderDeadline, difficulty: TOOL_ICONS.steps, title: TOOL_ICONS.orderTitle, recent: TOOL_ICONS.orderRecent,
 };
 const ORDER_CELL = { w: 26, h: 20 } as const;
+/** The small ink diamond either side of a page number. */
+const DIAMOND: Bitmap = (() => {
+  const d = createBitmap(5, 5);
+  for (let y = 0; y < 5; y++) for (let x = 0; x < 5; x++) if (Math.abs(x - 2) + Math.abs(y - 2) <= 2) d.pixels[y * 5 + x] = C.umberDark;
+  return d;
+})();
+
+/**
+ * A page's bottom corner turned up (the book's pager): the corner's triangle of the page's back in pale paper, its fold an
+ * umber line, the place it left a darker shade of the page under it. `side` is the page's outer side.
+ */
+function pageFold(size: number, side: 'left' | 'right'): Bitmap {
+  const out = createBitmap(size, size);
+  const n = size - 1, k = Math.floor(n / 2), fold = n + k;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const fx = side === 'right' ? x : n - x;
+      const d = fx + y - fold;
+      // beyond the fold the corner is gone and the page under it shows; the fold itself; the flap lying back over the page
+      const colour = d > 0 ? C.buffDark : d === 0 ? C.umber : fx >= k && y >= k ? (fx === k || y === k ? C.umber : C.buffLight) : 0;
+      out.pixels[y * size + x] = colour;
+    }
+  }
+  return out;
+}
 /** While an order choice is under the pointer, the cards it would move are drawn this faint (d286). */
 const PREVIEW_FADE = 0.12;
 
@@ -99,8 +132,9 @@ function ribbon(mark: Bookmark, width: number, height: number): Bitmap {
     const cut = 3 - Math.min(3, Math.abs(y - notch));
     for (let x = cut; x < width; x++) out.pixels[y * width + x] = y === 0 || y === height - 1 || x === cut ? edge : cloth;
   }
+  // the picture sits at the ribbon's outer end, where every ribbon shows it, open or shut
   const icon = BOOKMARK_ICON[mark]();
-  blit(out, icon, 4 + Math.max(0, Math.floor((width - 6 - icon.width) / 2)), Math.floor((height - icon.height) / 2));
+  blit(out, icon, 4 + Math.max(0, Math.floor((TAB.shut - 6 - icon.width) / 2)), Math.floor((height - icon.height) / 2));
   return out;
 }
 
@@ -363,11 +397,12 @@ export class MenuScene extends PixelScene {
     BOOKMARKS.forEach((mark, i) => {
       const open = mark === this.bookmark;
       const x = open ? 0 : TAB.out;
+      const w = open ? TAB.open : TAB.shut;
       const y = top + i * (TAB.h + TAB.gap);
       // not one of the screen's `buttons`: those are the pieces and the pager, which the tests and the wheel walk
       const button = this.own(new PixelButton(this, this.root, {
-        x: x + (TAB.w - x) / 2, y: y + TAB.h / 2, width: TAB.w - x, height: TAB.h, label: t(`menu.group.${mark}`), tooltip: t(`menu.group.${mark}`), iconOnly: true,
-        picture: ribbon(mark, TAB.w - x, TAB.h),
+        x: x + w / 2, y: y + TAB.h / 2, width: w, height: TAB.h, label: t(`menu.group.${mark}`), tooltip: t(`menu.group.${mark}`), iconOnly: true,
+        picture: ribbon(mark, w, TAB.h),
         onClick: () => {
           if (this.bookmark === mark) return;
           this.bookmark = mark;
@@ -430,13 +465,14 @@ export class MenuScene extends PixelScene {
     // the list is written in an open book on the desk, a column on each page
     this.openBook({ x: BOOK_SIDE, y: top - 2, w: width - 2 * BOOK_SIDE, h: height - top + 1 });
     if (!this.maker) this.bookmarks(top + TAB_TOP);
-    const margin = BOOK_MARGIN + (this.maker ? 0 : TAB_ROOM);
+    const margin = BOOK_MARGIN;
+    const shift = this.maker ? 0 : LEFT_SHIFT;
     if (pieces.length === 0) {
       // the bookmark's own picture on the empty page, then the sentence under it
       const picture = BOOKMARK_ICON[this.bookmark]();
-      this.root.add(new PixelImage(this, margin + 6, top + 10, picture).setName('emptyBookmark'));
+      this.root.add(new PixelImage(this, margin + shift + 6, top + 10, picture).setName('emptyBookmark'));
       this.inkWriting = true;
-      this.label(margin + 6, top + 16 + picture.height, t(this.forKiur === 'tug' ? 'menu.noneLearned' : 'menu.noneHere'), C.umberDark, { maxWidth: width / 2 - margin - BOOK_GUTTER - 6 });
+      this.label(margin + shift + 6, top + 16 + picture.height, t(this.forKiur === 'tug' ? 'menu.noneLearned' : 'menu.noneHere'), C.umberDark, { maxWidth: width / 2 - margin - shift - BOOK_GUTTER / 2 - 6 });
       this.inkWriting = false;
       return;
     }
@@ -449,11 +485,13 @@ export class MenuScene extends PixelScene {
 
     const capacity = slice.paged ? grid.perPage : grid.singlePageMax;
     pieces.slice(slice.first, slice.first + slice.count).forEach((piece, i) => {
-      // read as a book: down the left page, then down the right
-      const cell = grid.pageCell(i, capacity);
+      // read as a book: down the left page, then down the right; the left page's pieces nearer the spine
+      const at = (box: Rect): Rect => (box.x < width / 2 ? { ...box, x: box.x + shift } : box);
+      const cell = at(grid.pageCell(i, capacity));
       const { x, y } = rectCentre(cell);
       // a light rule under a piece that has another under it on the same page
-      if (i + 1 < slice.count && grid.pageCell(i + 1, capacity).x === cell.x) this.rule(cell, CARD_GAP);
+      // on the left page the rule stops short of the spine
+      if (i + 1 < slice.count && at(grid.pageCell(i + 1, capacity)).x === cell.x) this.rule(cell.x < width / 2 ? { ...cell, w: cell.w - shift } : cell, CARD_GAP);
       if (piece === 'new') {
         // an empty staff with a pencil, as wide as a piece card; the label stays for tests and the tooltip
         this.pieceButtons.push(this.button({ x, y: y + 1, width: cardWidth, height: NEW_PIECE_HEIGHT + 4, label: t('menu.newPiece'), icon: newPieceArt(cardWidth - 2 * NEW_PIECE_INSET), iconOnly: true, look: 'ink', onClick: () => startScene(this, 'editor', {}) }));
@@ -465,7 +503,7 @@ export class MenuScene extends PixelScene {
     });
 
     if (slice.paged) {
-      this.pager(slice, (page) => {
+      this.bookPager(slice, { x: BOOK_SIDE, y: top - 2, w: width - 2 * BOOK_SIDE, h: height - top + 1 }, (page) => {
         this.page = page;
         this.armedHide = null;
         this.scene.restart();
@@ -475,6 +513,33 @@ export class MenuScene extends PixelScene {
     this.inkWriting = false;
     const open = this.infoId === null ? undefined : contextOf(this).pieces.find(this.infoId);
     if (open) this.infoClose = this.own(drawPieceInfo({ scene: this, root: this.root, width, height, close: () => this.showInfo(null) }, open));
+  }
+
+  /**
+   * The book's pager (ft_1_12 rule 1): no words. Each page has its number at its foot, written large between two small
+   * ink diamonds (the left page 1, 3, 5 ..., the right 2, 4, 6 ...); the left page's bottom corner is turned up while there
+   * is a page before, the right page's while there is one after, and a press on a turned corner turns the page. A corner
+   * with no page behind lies flat and takes no press.
+   */
+  private bookPager(slice: { page: number; pages: number }, book: Rect, turn: (page: number) => void): void {
+    const bottom = book.y + book.h - FOLD.inY;
+    const corners = [
+      { label: t('menu.previous'), x: book.x + FOLD.inX, side: 'left' as const, can: slice.page > 0, page: slice.page - 1 },
+      { label: t('menu.next'), x: book.x + book.w - FOLD.inX - FOLD.size, side: 'right' as const, can: slice.page < slice.pages - 1, page: slice.page + 1 },
+    ];
+    for (const c of corners) {
+      this.button({
+        x: c.x + FOLD.size / 2, y: bottom - FOLD.size / 2, width: FOLD.size, height: FOLD.size, label: c.label, tooltip: c.label, iconOnly: true,
+        picture: c.can ? pageFold(FOLD.size, c.side) : createBitmap(FOLD.size, FOLD.size), disabled: !c.can, onClick: () => turn(c.page),
+      });
+    }
+    // the page numbers, each at the middle of its page's foot
+    const spine = book.x + book.w / 2;
+    [{ n: 2 * slice.page + 1, centre: (book.x + spine) / 2 }, { n: 2 * slice.page + 2, centre: (spine + book.x + book.w) / 2 }].forEach(({ n, centre }, i) => {
+      const number = this.label(0, bottom - 18, String(n), C.umberDark, { big: true, shadow: false }).setName(`pageNumber:${i}`);
+      number.centerAt(centre);
+      for (const side of [-1, 1]) this.root.add(new PixelImage(this, Math.round(centre + side * (number.displayWidth / 2 + 6)) - 2, bottom - 18 + Math.round(number.displayHeight / 2) - 2, DIAMOND).setName('pageOrnament'));
+    });
   }
 
   /** The light rule in the gap under `cell`: one fine pixel high, a little shorter than the card at each end. */

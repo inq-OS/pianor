@@ -1,4 +1,4 @@
-// Covers ft_0_09.AC1.
+// Covers ft_0_09.AC1, ft_1_12.AC12.
 import { expect, test } from '@playwright/test';
 import {
   LITTLE_STEPS, activeScenes, allMenuTitles, clickButton, clickToolbar, expectNoErrors, isPieceLabel, lastButton, menuButton, menuLabels, openGame, openPiece, playWithKeys, playWithVirtualPiano, results, sceneButton, sceneTexts, showMenuPageWith, toScoreScreen, turnMenuPage, waitForScene, bandAction, sceneWords } from './helpers';
@@ -51,10 +51,13 @@ test.describe('menu', () => {
     expectNoErrors(errors);
   });
 
-  test('a long list is paged: Next and Previous turn the pages, and the page is remembered after playing a piece', async ({ page }) => {
+  test('ft_1_12.AC12 a long list is paged: numbered pages, the turned corners turn them, and the page is remembered after playing a piece', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
-    const texts1 = await sceneTexts(page, 'menu');
-    expect(texts1.some((t) => /^Page 1 of \d+$/.test(t))).toBe(true);
+    const bookPage = () => page.evaluate(() => window.__game.scene.getScene('menu').page as number);
+    // the book's pages are numbered at their feet (1 and 2 on the first spread), with no words
+    const numbers = () => page.evaluate(() => (window.__game.scene.getScene('menu').children.list as unknown as { list?: { name: string; text?: string }[] }[]).flatMap((o) => o.list ?? []).filter((o) => o.name.startsWith('pageNumber')).map((o) => o.text));
+    expect(await numbers()).toEqual(['1', '2']);
+    expect(await bookPage()).toBe(0);
     expect(await menuButton(page, 'Next')).toBeGreaterThanOrEqual(0);
     const first = await allMenuTitles(page);
     expect(first.length).toBeGreaterThan(6);
@@ -63,9 +66,10 @@ test.describe('menu', () => {
 
     // Previous does nothing on the first page; Next goes to the second.
     await clickButton(page, 'menu', await menuButton(page, 'Previous'));
-    expect((await sceneTexts(page, 'menu')).some((t) => /^Page 1 of/.test(t))).toBe(true);
+    expect(await bookPage()).toBe(0);
     await turnMenuPage(page, await menuButton(page, 'Next'));
-    expect((await sceneTexts(page, 'menu')).some((t) => /^Page 2 of/.test(t))).toBe(true);
+    expect(await bookPage()).toBe(1);
+    expect(await numbers()).toEqual(['3', '4']);
 
     // Open a piece from page 2 and come back: still page 2.
     const piece = (await menuLabels(page)).find(isPieceLabel)!;
@@ -73,7 +77,7 @@ test.describe('menu', () => {
     await waitForScene(page, 'practice');
     await page.keyboard.press('Escape');
     await waitForScene(page, 'menu');
-    expect((await sceneTexts(page, 'menu')).some((t) => /^Page 2 of/.test(t))).toBe(true);
+    expect(await page.evaluate(() => window.__game.scene.getScene('menu').page as number)).toBe(1);
     expectNoErrors(errors);
   });
 });

@@ -7,7 +7,7 @@ import { C } from './palette';
  * hints; for the editor's toolbar (d088) a floppy disk for Save and an arrow into or out of a tray for Import and
  * Export; a loop for the ear trainer's repeat and the note trainer's new round, stairs for the note trainer's step, and undo, redo, a bin, play, stop, backspace and a tick for the piece maker and the name box. Original, drawn for this project (the Kenney pack page refused the download, and these are a few pixels each). Each fits inside a 14 pixel bar button with its frame (10 rows at most).
  */
-export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'backpack' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'hide' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen';
+export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'backpack' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'hide' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen' | 'head';
 
 const LEGEND = { k: C.ink, w: C.white, g: C.gold, G: C.goldDark, s: C.skin } as const;
 
@@ -131,6 +131,8 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   orderRecent: art(['..wwwww..', '.w.....w.', 'w...w...w', 'w...w...w', 'w...www.w', 'w.......w', '.w.....w.', '..wwwww..']),
   /** The bookmark of every piece in the book (ft_1_12.AC10): an open book, a line of writing on each page. */
   bookOpen: art(['.ww.....ww.', 'w..ww.ww..w', 'w....w....w', 'w.ww.w.ww.w', 'w....w....w', 'w.ww.w.ww.w', 'w....w....w', 'wwwwwwwwwww']),
+  /** The characters' pieces' bookmark (ft_1_12.AC10): a head, dark hair over a face. */
+  head: fromAscii(['...kkkk...', '.kkkkkkkk.', 'kkkkkkkkkk', 'kksssssskk', 'kssksskssk', 'kssssssssk', 'kssskksssk', '.kssssssk.', '..kkkkkk..'], LEGEND),
   /** The teacher's pieces' bookmark (ft_1_12.AC10): a small white mortarboard with its gold tassel, to fit a ribbon. */
   teacherHat: fromAscii(['.....ww.....', '...wwwwww...', '.wwwwwwwwww.', 'wwwwwwwwwwwg', '..wwwwwww..g', '..wwwwwww..g', '..wwwwwww.gg', '...........g'], LEGEND),
   /** The order button itself: an arrow up beside an arrow down. */

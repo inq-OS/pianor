@@ -471,7 +471,8 @@ export async function pickProfile(page: Page, name: string): Promise<void> {
 /** The index of the menu button with this label on the page shown now, or -1. */
 export async function menuButton(page: Page, label: string): Promise<number> {
   return page.evaluate(
-    (t) => (window.__game.scene.getScene('menu').buttons as { objects: { text?: string }[] }[]).findIndex((b) => b.objects.some((o) => o.text === t)),
+    // a picture button (the book's turned corners) is found by its label
+    (t) => (window.__game.scene.getScene('menu').buttons as { objects: { text?: string }[]; options: { label: string } }[]).findIndex((b) => b.objects.some((o) => o.text === t) || b.options.label === t),
     label,
   );
 }
