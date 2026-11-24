@@ -1,4 +1,4 @@
-// Covers ft_0_07.AC2.
+// Covers ft_0_07.AC2, core_13.AC1.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { FakeContext, FakeTimers } from '../../../tests/helpers/fakeAudio';
@@ -47,6 +47,13 @@ describe('Metronome', () => {
     metronome.start({ bpm: 60, beatsPerBar: 2, startAtMs: 0 });
     run(3100);
     expect(beats.map((b) => [b.index, b.bar, b.beatInBar, b.atMs])).toEqual([[0, 0, 0, 0], [1, 0, 1, 1000], [2, 1, 0, 2000], [3, 1, 1, 3000]]);
+  });
+
+  it('core_13.AC1 reports with each beat the time to the next, for the beat ring', () => {
+    const { metronome, beats, run } = setup();
+    metronome.start({ bpm: 120, beatsPerBar: 4, startAtMs: 0 });
+    run(600);
+    expect(beats.map((b) => b.intervalMs)).toEqual([500, 500]);
   });
 
   // Covers core_09.AC34.

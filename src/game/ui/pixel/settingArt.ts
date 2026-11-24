@@ -276,3 +276,49 @@ export function liveTempoSymbol(on: boolean): Bitmap {
   note(b, 20, 13);
   return b;
 }
+
+/** A small beat ring (core_13 rule 2) round (cx, cy): four dots, the first larger, the one of beat `lit` green with the hand on it; all grey when `dim`. */
+const beatRing = (b: Canvas, cx: number, cy: number, lit: number | null, dim = false) => {
+  const points = [[0, -7], [7, 0], [0, 7], [-7, 0]] as const;
+  points.forEach(([dx, dy], i) => {
+    const colour = dim ? C.lock : i === lit ? C.green : i === 0 ? INK : C.dim;
+    const size = i === 0 || i === lit ? 1 : 0;
+    for (let y = -size; y <= size; y++) for (let x = -size; x <= size; x++) put(b, cx + dx + x, cy + dy + y, colour);
+  });
+  if (lit !== null) {
+    const [dx, dy] = points[lit]!;
+    for (let s = 0; s <= 4; s++) put(b, cx + Math.round((dx * s) / 7), cy + Math.round((dy * s) / 7), dim ? C.lock : INK);
+  }
+  put(b, cx, cy, dim ? C.lock : INK);
+};
+
+/** A red cross over a box from (x0, y0), `size` wide: the thing under it is off. */
+const struck = (b: Canvas, x0: number, y0: number, size: number) => {
+  for (let d = 0; d < size; d++) {
+    put(b, x0 + d, y0 + d, C.red);
+    put(b, x0 + size - 1 - d, y0 + d, C.red);
+  }
+};
+
+/** The beat ring (core_13 rule 2): a scrap of staff with the ring beside it, its second dot lit; off, the ring grey and struck through. */
+export function beatRingSymbol(on: boolean): Bitmap {
+  const b = paper();
+  staff(b, 6, { x1: 14 });
+  note(b, 5, 15);
+  note(b, 11, 12);
+  beatRing(b, 24, 11, 1, !on);
+  if (!on) struck(b, 16, 3, 17);
+  return b;
+}
+
+/** The click at the student's pace in learning (core_13 rule 6): a loudspeaker with sound waves going out; off, struck through with no waves. */
+export function paceClickSymbol(on: boolean): Bitmap {
+  const b = paper();
+  // the loudspeaker: a small box and its cone
+  for (let y = 9; y <= 13; y++) hline(b, 8, 10, y);
+  for (let x = 11; x <= 15; x++) vline(b, x, 11 - (x - 10), 11 + (x - 10));
+  if (on) {
+    for (const r of [3, 6, 9]) for (let y = -r; y <= r; y++) put(b, 17 + r - Math.round(Math.abs(y) / 2), 11 + y, C.blue);
+  } else struck(b, 6, 3, 17);
+  return b;
+}

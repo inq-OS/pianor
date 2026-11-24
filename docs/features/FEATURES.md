@@ -33,7 +33,7 @@ Every feature file carries `completeness: N` (an integer, 0 to 100) in its front
 |---|---|---|---|
 | MVP, iteration 0 | 15 of 19 | 88 | `##################..` |
 | Iteration 1 | 4 of 36 | 65 | `#############.......` |
-| Core behaviour | 0 of 13 | 66 | `#############.......` |
+| Core behaviour | 0 of 13 | 68 | `##############......` |
 | Iteration not defined yet | 0 of 8 | 38 | `########............` |
 | Overall | 19 of 76 | 65 | `#############.......` |
 <!-- /docs:completeness -->
@@ -85,7 +85,7 @@ Every feature file carries `completeness: N` (an integer, 0 to 100) in its front
 | [core_10](core_10-practice-analysis.md) | Practice analysis | A per-bar practice log, the Analyze screen: bar heat gradient, progress graph, the 3 weakest sections with a start tempo and ramp | large | 85 |  | built: log (v16), recorder, pure analysis, recording and the Analyze screen; numbers provisional |
 | [core_11](core_11-save-documents.md) | The saved player as documents, each with its own version | Split the saved player into documents (the profile core, the practice log, the world, the curriculum), each with its own schemaVersion, migration chain and golden fixtures, read and written through the KeyValueStore seam; one document can change without migrating the others | medium | 90 |  | built: the four documents, the one-time move and the golden tests; not yet tried in a real install |
 | [core_12](core_12-evaluation-and-curriculum.md) | Evaluation of plays and the curriculum model | Pure core: the play score and its parts per hand, the level of a piece (median of the last plays), the consistency rule, standard deviation and histogram data, Theil-Sen extrapolation to a deadline with a band, expected level from base and priority, urgency, colours and medals; the curriculum per player (pieces, deadlines, priorities, rules) as a versioned document | large | 75 |  | in progress: the model as pure functions, statuses, the curriculum document and the practice log's share per hand with onset deviation are built; a wrong key's onset is not counted yet |
-| [core_13](core_13-seeing-the-beat.md) | Seeing the beat | Helpers that show the beat beside the click, each switched on or off per player and brought in or hidden by the autotrainer: a swinging pendulum, the playhead drawn as a line on the staff, a row of beat dots under the bar, and a short flash on the first beat; key lights stay a note help (ft_Y_06), never a beat help | medium | 0 | 1 | designed, held until the maintainer starts it |
+| [core_13](core_13-seeing-the-beat.md) | Seeing the beat | Helpers that show the beat beside the click, each switched on or off per player and brought in or hidden by the autotrainer: a beat ring (a circular metronome that lights each click, and in a learning run marks each key against the student's own pace, with a click at that pace as a setting), the playhead drawn as a line on the staff, a row of beat dots under the bar, and a short flash on the first beat; key lights stay a note help (ft_Y_06), never a beat help | medium | 40 | 1 | slice 1 built: the beat ring with the click and in learning runs, its two settings; the line, the dots and the flash held until the maintainer starts them |
 <!-- /docs:index -->
 
 ## Iteration 1

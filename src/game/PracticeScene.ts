@@ -1,7 +1,12 @@
 import { firstPrintedBar, isSection, sectionHasNotes, sliceChart, writtenNotes, type Chart } from '../core/chart';
 import { pieceTitle } from '../core/text/pieceTitle';
 import { MissedBars, type Hints, type JudgeEvent, type NoteJudged, type PieceResult, type PlayState, type WrongNoteJudged } from '../core/judge';
-import { learnLiveTempo, type LearnProgress, type LearnRewards } from '../core/learn/progress';
+import { learnBeatRing, learnLiveTempo, learnPaceClick, type LearnProgress, type LearnRewards } from '../core/learn/progress';
+import { paceClick } from '../core/learn/paceRing';
+import { clickRing, pressRing, RING_ROOM, type BeatRing } from '../core/layout/beat';
+import { ART_DETAIL } from '../core/layout/frame';
+import type { BeatInfo } from '../io/audio';
+import { BEAT_RING_SIZE, paintBeatRing } from './ui/pixel/beatRingArt';
 import { learnsOnOpen } from '../core/learn/route';
 import { baselinePercent } from '../core/learn/tempo';
 import { CHARACTER_PIECES } from './adventure/scenesData';
@@ -28,9 +33,9 @@ import { CountInGrace } from './practice/countInGrace';
 import { stripBpmLabel } from './practice/clickSpeed';
 import { drawnText, fitLine, measure } from './ui/pixel/font';
 import { panelBitmap } from './ui/pixel/frames';
-import { C } from './ui/pixel/palette';
+import { C, PALETTE } from './ui/pixel/palette';
 import { ICONS } from './ui/pixel/iconArt';
-import { Mascot, PixelImage, PixelText, type PixelButton, type PixelButtonOptions } from './ui/pixel/PixelObjects';
+import { LiveImage, Mascot, PixelImage, PixelText, type PixelButton, type PixelButtonOptions } from './ui/pixel/PixelObjects';
 import { MASCOT_SIZE } from './ui/pixel/sprites';
 import { BAR_BUTTON_HEIGHT, BAR_EDGE, BAR_GAP, BUBBLE_X, TITLE_X, TOP_BAR } from './ui/pixel/playBars';
 import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
@@ -267,6 +272,14 @@ export class PracticeScene extends PixelScene {
   protected paneData: StatsPane | null = null;
   /** The live tempo lines of a learning run in the stats pane (ft_1_32.AC17), while it is shown. */
   private liveLabels: PixelText[] | null = null;
+  /** The beat ring on the sheet (core_13 rule 2): its image, its pixels, what it shows now, and the latest click heard. */
+  private ringImage: LiveImage | null = null;
+  private ringPixels = new Uint8Array(BEAT_RING_SIZE * BEAT_RING_SIZE);
+  private ringSize = BEAT_RING_SIZE;
+  private ringShows = '';
+  private lastClick: BeatInfo | null = null;
+  /** The time of the latest key the learning click was started from (core_13.AC6). */
+  private paceClickFrom: number | null = null;
   /** Turns the judge's events into the practice log's bar plays; null for a draft preview. */
   private barRecorder: BarRecorder | null = null;
   private session: FreePlaySession = emptyFreePlay();
@@ -551,7 +564,11 @@ export class PracticeScene extends PixelScene {
       else this.turnPage(dy > 0 ? 1 : -1);
     });
     this.onWindowKey((e) => this.onHotkey(e));
+    this.lastClick = null;
+    this.paceClickFrom = null;
+    const offBeat = contextOf(this).audio.metronome.onBeat((beat) => { this.lastClick = beat; });
     this.events.once('shutdown', () => {
+      offBeat();
       this.game.events.off(MIDI_CHANGED, midiChanged);
       offBubbleKey();
       this.chordTimer?.remove();
@@ -803,6 +820,7 @@ export class PracticeScene extends PixelScene {
 
   /** Every frame in Tempo mode: let the judge's clock run, start the metronome with the count-in, move the playhead. */
   override update(): void {
+    this.showBeatRing(contextOf(this).audio.clock.nowMs());
     if (this.listening) {
       const lit = this.listenAlong?.changed();
       if (lit !== undefined) this.playSession.staffView?.setCursor(writtenNotes(this.playSession.play, lit)); // Kuula plays the play chart
@@ -864,6 +882,7 @@ export class PracticeScene extends PixelScene {
     this.showLiveTempo();
     if (verdict.state === 'stopped') this.stopLearnRun(verdict.wrong);
     else if (verdict.state === 'rushed') this.stopRushedRun();
+    else this.followPaceClick();
   }
 
   /**
@@ -1162,9 +1181,11 @@ export class PracticeScene extends PixelScene {
     // A section is drawn at the size of the whole piece, and marking one keeps the player's own view, page by page: the
     // clef and the notes never change size when a section is chosen.
     this.staffOrigin = staffTop;
+    this.playSession.setRoomRight(this.staffRoom());
     const staffView = this.playSession.drawStaff({ top: staffTop, width: this.scale.width, height: staffHeight }, contextOf(this).profiles);
     staffView.setMarkers(this.markers);
     this.drawPrizes();
+    this.placeBeatRing();
     const layout = this.playSession.layout!;
     if (this.picking !== null) staffView.showPage(this.pickPage, false);
     if (this.listening) {
@@ -1229,9 +1250,11 @@ export class PracticeScene extends PixelScene {
     const foot = rows - paneRows;
     const strip = this.cornerStrip;
     this.staffOrigin = this.mainTop + strip.rows * scale;
+    this.playSession.setRoomRight(this.staffRoom());
     const staffView = this.playSession.drawStaff({ top: this.staffOrigin, width: this.scale.width, height: Math.max(1, (foot - strip.rows) * scale) }, contextOf(this).profiles);
     staffView.setMarkers(this.markers);
     this.drawPrizes();
+    this.placeBeatRing();
     const layout = this.playSession.layout!;
     if (this.picking !== null) staffView.showPage(this.pickPage, false);
     if (this.listening) {
@@ -1426,6 +1449,83 @@ export class PracticeScene extends PixelScene {
     const top = free.top + Math.max(1, Math.floor((free.rows - 2 * LIVE_TEMPO_LINE) / 2));
     this.liveLabels = [0, 1].map((line) => this.label(left, top + line * LIVE_TEMPO_LINE, '', C.dim).setScale(0.5));
     this.showLiveTempo();
+  }
+
+  /**
+   * The room the staff leaves at its right: the prize column of a learning run (ft_1_32.AC19), and the beat ring's
+   * (core_13 rule 2) while it has something to show, a learning run or the click.
+   */
+  private staffRoom(): number {
+    const prizes = this.learn ? this.learn.prizeRoom : 0;
+    return this.beatRingShown() ? Math.max(prizes, RING_ROOM) : prizes;
+  }
+
+  /** Whether the beat ring stands on the sheet: the player keeps it on, and a learning run or the click gives it beats. */
+  private beatRingShown(): boolean {
+    return !this.preview && !this.listening && learnBeatRing(contextOf(this).profiles.learnSettings) && (this.learn !== null || this.clickOn);
+  }
+
+  /**
+   * The beat ring on the parchment, in the room the staff left at its right, at the sheet's foot (core_13.AC7), as large as
+   * the notes are; on the fine pixels (d110). Hidden until a click or a key gives it something to show (`showBeatRing`).
+   * AX-3 provisional: under the prize column of a learning run, where no note is.
+   */
+  private placeBeatRing(): void {
+    this.ringImage?.destroy();
+    this.ringImage = null;
+    this.ringShows = '';
+    const box = this.beatRingShown() ? this.playSession.ringBox() : null;
+    if (!box) return;
+    const fine = this.px.scale / ART_DETAIL; // screen pixels a fine pixel
+    const size = Math.max(BEAT_RING_SIZE, Math.round(box.size / fine));
+    this.ringSize = size;
+    this.ringPixels = new Uint8Array(size * size);
+    this.ringImage = new LiveImage(this, box.x, box.y, size, size, PALETTE).setScale(box.size / size).setDepth(2).setVisible(false);
+    this.showBeatRing(contextOf(this).audio.clock.nowMs());
+  }
+
+  /**
+   * The beat ring's state now: in a learning run each key against the student's own pace (core_13.AC5), else each click of the
+   * metronome while it runs (AC1); null when it has nothing to show.
+   */
+  private beatRingNow(nowMs: number): BeatRing | null {
+    if (this.listening) return null;
+    if (this.learn) {
+      const pace = this.learn.pace;
+      return pace ? pressRing(pace.press, pace.beats, pace.beatMs, nowMs) : null;
+    }
+    if (!this.metronomeOn || !this.lastClick) return null;
+    return clickRing(this.lastClick, clickPlan(this.chart, this.percent, this.clickOffset).beatsPerBar, nowMs);
+  }
+
+  /** Paint the beat ring afresh when what it shows has changed (about 15 steps a beat of glow and hand). */
+  private showBeatRing(nowMs: number): void {
+    const image = this.ringImage;
+    if (!image) return;
+    const ring = this.beatRingNow(nowMs);
+    const shows = ring ? JSON.stringify({ ...ring, glow: Math.round(ring.glow * 8), hand: ring.hand === null ? null : Math.round(ring.hand * 24) }) : '';
+    if (shows === this.ringShows) return;
+    this.ringShows = shows;
+    image.setVisible(ring !== null);
+    if (!ring) return;
+    paintBeatRing(ring, this.ringPixels, this.ringSize);
+    image.show(this.ringPixels);
+  }
+
+  /**
+   * The click at the student's own pace in a learning run, when the player turned it on (core_13.AC6): started afresh from
+   * each new key, on the next beat of its bar, once the pace is known.
+   */
+  private followPaceClick(): void {
+    const learn = this.learn;
+    if (!learn || !learnPaceClick(contextOf(this).profiles.learnSettings)) return;
+    const pace = learn.pace;
+    if (!pace?.press || pace.press.atMs === this.paceClickFrom) return;
+    const plan = paceClick(pace);
+    if (!plan) return;
+    this.paceClickFrom = pace.press.atMs;
+    contextOf(this).audio.metronome.start(plan);
+    this.metronomeOn = true;
   }
 
   /**

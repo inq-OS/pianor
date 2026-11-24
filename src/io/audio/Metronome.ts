@@ -124,6 +124,7 @@ export class Metronome implements MetronomeSound {
         bar: Math.floor(this.index / this.beatsPerBar),
         beatInBar: this.index % this.beatsPerBar,
         atMs: this.nextBeatMs,
+        intervalMs: beatIntervalMs(this.bpm),
       };
       // a silent beat still counts and is still reported: only its click is left out
       if (!this.silentAtMs.some((ms) => Math.abs(ms - beat.atMs) < SILENT_MATCH_MS)) this.click(beat);

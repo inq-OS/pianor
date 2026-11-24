@@ -134,11 +134,31 @@ export const learnSettingsSchema = z.object({
    * teacher's tool, off unless turned on. Absent or false: off. An optional field, no version bump (d069.3).
    */
   liveTempo: z.boolean().optional(),
+  /**
+   * The beat ring on the parchment (core_13 rule 2): each click of the practice screen, and in a learning run
+   * each key against the student's own pace. Absent or true: on. An optional field, no version bump (d069.3).
+   */
+  beatRing: z.boolean().optional(),
+  /**
+   * A click at the student's own pace in a learning run (core_13 rule 6), started afresh at every key. Absent or false: off,
+   * so the pace measured is the student's own (ft_1_32 rule 8). An optional field, no version bump (d069.3).
+   */
+  paceClick: z.boolean().optional(),
 });
 
 /** Whether a learning run shows its live tempo in the top bar: only when the player turned it on (rule 18). */
 export function learnLiveTempo(settings: LearnSettings): boolean {
   return settings.liveTempo === true;
+}
+
+/** Whether the beat ring is shown: unless the player turned it off (core_13.AC2). */
+export function learnBeatRing(settings: LearnSettings): boolean {
+  return settings.beatRing !== false;
+}
+
+/** Whether a learning run clicks at the student's own pace: only when the player turned it on (core_13.AC6). */
+export function learnPaceClick(settings: LearnSettings): boolean {
+  return settings.paceClick === true;
 }
 
 export type LearnSettings = z.infer<typeof learnSettingsSchema>;

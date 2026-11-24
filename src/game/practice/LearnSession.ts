@@ -10,6 +10,7 @@ import {
 import { LearnRunJudge, type LearnRunVerdict } from '../../core/learn/run';
 import { prizeFocus, shownWithPiece, type PrizeFocus } from '../../core/learn/view';
 import { baselineBpm, runTempo, TEMPO_RULES, type RunTempo } from '../../core/learn/tempo';
+import { learnPace, type LearnPace } from '../../core/learn/paceRing';
 import type { BarPlay } from '../../core/progression/practiceLog';
 import { t, type StringKey } from '../../core/text/strings';
 
@@ -174,6 +175,14 @@ export class LearnSession {
    */
   get liveTempo(): RunTempo | null {
     return this.played ? runTempo(this.played, this.events) : null;
+  }
+
+  /**
+   * The beat ring's pace (core_13.AC5): the latest key against the student's own pace so far, or the piece's baseline before
+   * the run has one; null before the run's first events.
+   */
+  get pace(): LearnPace | null {
+    return this.played ? learnPace(this.played, this.events, this.baseline) : null;
   }
 
   get verdict(): LearnRunVerdict {

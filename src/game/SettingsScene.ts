@@ -1,5 +1,5 @@
 import type { PlaySettings } from '../core/judge/playSettings';
-import { learnLiveTempo, type LearnSettings } from '../core/learn/progress';
+import { learnBeatRing, learnLiveTempo, learnPaceClick, type LearnSettings } from '../core/learn/progress';
 import { BAR_NUMBER_MODES, type BarNumberMode } from '../core/layout/barNumbers';
 import type { DurationMark } from '../core/layout/durationHelp';
 import type { StaffSettings } from '../core/layout/staffSettings';
@@ -12,7 +12,7 @@ import type { Bitmap } from './ui/pixel/bitmap';
 import { C } from './ui/pixel/palette';
 import { Mascot } from './ui/pixel/PixelObjects';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
-import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, durationSymbol, fingersSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, liveTempoSymbol, markersFromSymbol, markersSymbol, namingSymbol, scoreSymbol, staffGapSymbol } from './ui/pixel/settingArt';
+import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, beatRingSymbol, durationSymbol, fingersSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, liveTempoSymbol, markersFromSymbol, markersSymbol, namingSymbol, paceClickSymbol, scoreSymbol, staffGapSymbol } from './ui/pixel/settingArt';
 import { freshData, startScene } from './scenes';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 
@@ -259,6 +259,14 @@ export class SettingsScene extends PixelScene {
     // the letter naming, B or H (ft_0_17.AC4): the note names, the circle of fifths and the key names follow it
     const namings = (['H', 'B'] as const).map((value): Choice<'B' | 'H'> => ({ value, label: t(value === 'H' ? 'settings.namingH' : 'settings.namingB'), symbol: namingSymbol(value) }));
     this.setting(0, 2, t('settings.naming'), namings, profiles.noteNaming, (value) => profiles.updateNoteNaming(value));
+    // the beat ring on the sheet (core_13 rule 2), on unless turned off, and the click at the student's own pace while learning
+    // (rule 6), off unless turned on, so the pace measured stays the student's own (ft_1_32 rule 8)
+    const ring = ([[true, t('settings.beatRingOn')], [false, t('settings.beatRingOff')]] as const)
+      .map(([value, label]): Choice<boolean> => ({ value, label, symbol: beatRingSymbol(value) }));
+    this.setting(0, 3, t('settings.beatRing'), ring, learnBeatRing(learn), (value) => profiles.updateLearnSettings({ beatRing: value }));
+    const click = ([[false, t('settings.paceClickOff')], [true, t('settings.paceClickOn')]] as const)
+      .map(([value, label]): Choice<boolean> => ({ value, label, symbol: paceClickSymbol(value) }));
+    this.setting(1, 3, t('settings.paceClick'), click, learnPaceClick(learn), (value) => profiles.updateLearnSettings({ paceClick: value }));
   }
 
 }

@@ -1,10 +1,10 @@
-// Covers ft_1_32.AC2, ft_1_32.AC4.
+// Covers ft_1_32.AC2, ft_1_32.AC4, core_13.AC2.
 import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
 import type { BarPlay } from '../progression/practiceLog';
 import { learnPlan } from './plan';
 import {
-  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnHandsApart, learnLiveTempo, learnStepBars, measuredOutcome, medalOf, playsOn, sitDown, START_PROGRESS, withTest,
+  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnBeatRing, learnHandsApart, learnLiveTempo, learnPaceClick, learnStepBars, measuredOutcome, medalOf, playsOn, sitDown, START_PROGRESS, withTest,
   type LearnProgress, type RunOutcome,
 } from './progress';
 
@@ -293,6 +293,16 @@ describe('live tempo in learning', () => {
     expect(learnLiveTempo(DEFAULT_LEARN_SETTINGS)).toBe(false);
     expect(learnLiveTempo(learnSettingsSchema.parse({ stepBars: 1, markers: true, markersFrom: 2 }))).toBe(false);
     expect(learnLiveTempo(learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, liveTempo: true }))).toBe(true);
+  });
+});
+
+describe('the beat ring and the click at the student\'s pace', () => {
+  it('core_13.AC2 the beat ring is on and the click at the student\'s pace off until the player changes them, and a setting saved before them reads so', () => {
+    const old = learnSettingsSchema.parse({ stepBars: 1, markers: true, markersFrom: 2 });
+    expect([learnBeatRing(DEFAULT_LEARN_SETTINGS), learnBeatRing(old)]).toEqual([true, true]);
+    expect([learnPaceClick(DEFAULT_LEARN_SETTINGS), learnPaceClick(old)]).toEqual([false, false]);
+    const changed = learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatRing: false, paceClick: true });
+    expect([learnBeatRing(changed), learnPaceClick(changed)]).toEqual([false, true]);
   });
 });
 

@@ -140,3 +140,11 @@ Check: untestable: a rule about what agents may claim; real hardware needs a hum
 `TEMPO_RULES` in `src/core/learn/tempo.ts`: a gap is even within 50% of the run's own pace, a stop is a gap three times as long as written at that pace or longer, a run is even with no stop and at least 60% of its gaps even, and an uneven measured run is asked again at most once before the next run with every note right counts. Kiur's line for an uneven run asks for an even pace, not a slower one.
 
 Check: `src/core/learn/tempo.test.ts` "ft_1_32.AC7 counts a slightly uneven run of a beginner as even: gaps a third off its pace, one pause of twice the gap"; `src/core/learn/progress.test.ts` "ft_1_32.AC7 asks an uneven run again once at most: the student is never held at a step for the pace"
+
+## d299
+
+**A circular beat ring shows the beat: each click on the practice screen, and in a learning run each key against the student's own pace; a click at that pace is a setting, off by default.** Features: core_13, ft_1_32.
+
+The ring stands on the parchment right of the staff, at the sheet's foot and as large as the notes (the staff leaves it a room while it shows), one dot a beat, lit blue by each click. Learning has no given tempo (ft_1_32 rule 8), so there the ring follows the run's own pace (the baseline before three keys) and colours each key green within 20% of the gap that pace asks, orange beyond, red beyond 50%, so the student sees a deviation as it happens. The ring is on unless turned off and the learning click off unless turned on (`learn.beatRing`, `learn.paceClick`, optional fields, no save bump), each a picture on the settings' learning page.
+
+Check: `src/core/layout/beat.test.ts` "core_13.AC5 lights the dot of the key just played and keeps its mark where the hand was at the press"; `tests/e2e/beat-ring.spec.ts` "core_13.AC2 turned off in the settings, the ring is not drawn"

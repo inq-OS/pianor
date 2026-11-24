@@ -1,3 +1,4 @@
+import { ringBox } from '../../core/layout/beat';
 import levelsJson from '../../../content/curriculum/levels.json';
 import { levelsFileSchema } from '../../core/chart';
 import { handShiftMap } from '../../core/fingering/shifts';
@@ -137,6 +138,10 @@ export class PlaySession {
   private wrongTimer: Phaser.Time.TimerEvent | null = null;
   private messageTimer: Phaser.Time.TimerEvent | null = null;
 
+  /** The room `setRoomRight` asked for, and the area the staff was drawn in last with the room it left. */
+  private roomRight: number | null = null;
+  private areaNow: { top: number; width: number; height: number; room: number } | null = null;
+
   constructor(private readonly scene: Phaser.Scene, private readonly options: PlaySessionOptions) {
     this.written = options.chart;
     this.play = unrollRepeats(options.chart);
@@ -225,6 +230,18 @@ export class PlaySession {
     this.controllerNow.setHints(hints);
   }
 
+  /** The room the next `drawStaff` leaves at the staff's right, in staff spaces, in place of the one it was made with. */
+  setRoomRight(room: number): void {
+    this.roomRight = room;
+  }
+
+  /** Where the beat ring stands (core_13.AC7): in the room right of the staff drawn last, at the sheet's foot; null with none. */
+  ringBox(): { x: number; y: number; size: number } | null {
+    const area = this.areaNow;
+    const layout = this.layoutNow;
+    return area && layout ? ringBox(area, layout.staffSpace, area.room) : null;
+  }
+
   /** Stop listening to the keyboard (the piece or the tug is over); what is on screen stays. */
   stop(): void {
     this.controllerNow.dispose();
@@ -244,7 +261,8 @@ export class PlaySession {
     const drawn = this.drawn;
     this.areaWidth = area.width;
     let whole = layoutForSettings(section?.whole ?? this.written, options, settings);
-    const room = this.options.roomRight ?? 0;
+    const room = this.roomRight ?? this.options.roomRight ?? 0;
+    this.areaNow = { ...area, room };
     if (room > 0) {
       // the room is in staff spaces of the staff that is left: laid out once to know its size, then again narrower
       options.viewport = { ...options.viewport, width: Math.max(1, area.width - Math.ceil(room * whole.staffSpace)) };
