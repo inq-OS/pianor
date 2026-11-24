@@ -14,7 +14,7 @@ import { fbm, hash2, noise2 } from './noise';
 
 const COVER_TONES = [0x080a24, 0x141a4a, 0x1f2a72, 0x2c3c94, 0x4054b0] as const;
 const BRASS_TONES = [0x3a2408, 0x7a5014, 0xb8862a, 0xe8b848, 0xfff0a8] as const;
-const PAGE_TONES = [0x3a2414, 0x6a4424, 0x9a6c38, 0xc29454, 0xd8b06c, 0xe8c888, 0xf2dca4, 0xf8ecc4] as const;
+const PAGE_TONES = [0x381a0a, 0x683212, 0x985220, 0xbc7434, 0xd4924c, 0xe4ac64, 0xeec484, 0xf6daa8] as const;
 const RIBBON_TONES = [0x30060a, 0x5a0c12, 0x8a1a1e, 0xb8302a, 0xd85a40, 0xf09070] as const;
 /** The bookmarks' silk (ft_1_12 rule 10), dark to light: the red of All is the book's own ribbon, then own, the teacher's, the characters'. */
 const SILK_TONES = [
@@ -71,7 +71,7 @@ const GRAIN = 0.1;
 
 /** The page's light in flat bands, as paint lays it: the fold dark, a shaded band beside it, the page, a band at its edge. */
 function pageLight(x: number, y: number, down: number, fromGutter: number, fromSide: number, up = 99): number {
-  let value = 0.86 + (fbm(x / 60, y / 50, 3, 51) - 0.5) * 0.16;
+  let value = 0.84 + (fbm(x / 70, y / 55, 3, 51) - 0.5) * 0.24;
   // the paper browns towards its edges, as old paper does (the 1991 and 1997 papers burn darker and warmer at the rim): two bands
   const rim = Math.min(fromSide, down, up) + Math.round(noise2(x / 16, y / 16, 53) * 4);
   if (rim < 7) value -= 0.12;
@@ -82,7 +82,6 @@ function pageLight(x: number, y: number, down: number, fromGutter: number, fromS
   else if (fromGutter < 24 + Math.round(noise2(1, y / 14, 52) * 4)) value = Math.min(value, 0.76);
   if (fromSide < 6) value = Math.min(value, 0.6);
   if (down < 2) value -= 0.12;
-  if (fromSide < 10 && fromSide % 2 === 1 && down > 2) value -= 0.12; // the leaves' edges at the side, a fine line each
   return value;
 }
 
@@ -105,8 +104,8 @@ function pageFoot(x: number, width: number, height: number): number {
  * page's, and the left page's mirrored. The page's turned-up corner (`paintPageTurn`) is laid with its corner there.
  */
 export function pageCorners(width: number, height: number): { left: { x: number; y: number }; right: { x: number; y: number } } {
-  const right = width - 1 - BOOK_COVER;
-  return { left: { x: BOOK_COVER, y: pageFoot(BOOK_COVER, width, height) }, right: { x: right, y: pageFoot(right, width, height) } };
+  const right = width - 1 - BOOK_COVER - BOOK_FORE_EDGE;
+  return { left: { x: BOOK_COVER + BOOK_FORE_EDGE, y: pageFoot(BOOK_COVER, width, height) }, right: { x: right, y: pageFoot(right, width, height) } };
 }
 
 /**
@@ -123,6 +122,58 @@ function foxed(x: number, y: number, fromEdge: number): boolean {
   if (fromEdge > 40) return false;
   const spot = noise2(x / 3.5, y / 3.5, 71);
   return spot > 0.8 + fromEdge / 200 && fbm(x / 30, y / 30, 2, 72) > 0.5;
+}
+
+/** How deep the leaves under the top page show at each outer side (the fore-edge), in fine pixels. */
+export const BOOK_FORE_EDGE = 16;
+
+/**
+ * One column of the open book's pages, from the page's top to the cover's inner edge: the top page in warm, mottled old
+ * paper, its edges torn and curled up into a lit lip over a dark rim; under it the thick block of leaves showing at the
+ * foot and at the outer side, fine curved lines that round the corner between them (the maintainer's open-book picture).
+ */
+function paintPageColumn(put: Put, x: number, width: number, height: number, top: number, bottom: number): void {
+  const mid = width / 2, left = BOOK_COVER, right = width - 1 - BOOK_COVER;
+  const fromGutter = Math.abs(x - mid), fromCover = Math.min(x - left, right - x);
+  const out = Math.max(0, BOOK_FORE_EDGE - fromCover); // how far out past the top page's side this column is
+  const fromSide = fromCover - BOOK_FORE_EDGE;
+  const foot = pageFoot(x, width, height);
+  const outerSeed = x < mid ? 113 : 114;
+  const chip = Math.max(0, 7 - fromSide);
+  const pageTop = top + rag(111, x) + chip, pageEnd = foot - rag(112, x);
+  for (let y = top; y <= bottom; y++) {
+    const below = Math.max(0, y - foot);
+    // the block of leaves: lines round the top page's foot and side, a curved fan of edges in tans and browns
+    if (out > 0 || below > 0) {
+      if (out > 0 && y < top + 3 + Math.round(out * 0.6)) continue; // the leaves stand a little lower than the top page
+      const depth = Math.hypot(out, below) + (noise2(x / 18, y / 18, 125) - 0.5) * 2.4;
+      const k = Math.floor(depth / 2.2);
+      const line = depth - k * 2.2 < 0.8;
+      let value = line ? 0.36 : 0.64 + (noise2(k * 3.1, (out > 0 ? y : x) / 40, 126) - 0.5) * 0.14;
+      value -= Math.min(0.2, Math.hypot(out, below) / 90); // the block browns outwards
+      if (depth < 2.5) value = Math.min(value, 0.42); // the top page's shade on the leaves under it
+      if (out > 0 && out >= BOOK_FORE_EDGE - 1) value = 0.3;
+      put(x, y, tone(PAGE, FIRST.page, value, x, y));
+      continue;
+    }
+    const side = fromGutter < 20 ? 0 : rag(outerSeed, y);
+    const edge = Math.min(y - pageTop, pageEnd - y, fromGutter < 20 ? 99 : fromSide - side);
+    if (edge < 0) {
+      // past the tear: the leaf under it, its own edge a line, browned
+      put(x, y, tone(PAGE, FIRST.page, (x + y) % 3 === 0 ? 0.4 : 0.58, x, y));
+      continue;
+    }
+    const fromEdge = Math.min(fromSide, y - top, foot - y);
+    let value = pageLight(x, y, y - top, fromGutter, fromSide, foot - y) - (fromGutter > 14 && foxed(x, y, fromEdge) ? 0.1 : 0);
+    // the paper darkens softly towards its outer edges and the foot, warm and deep, as an old page does
+    value -= Math.max(0, 1 - Math.min(fromSide, foot - y, (y - top) * 1.5) / 70) * 0.18;
+    // the edge curls up: a dark rim, a lit lip, then the shade under the lip
+    if (edge < 1) value = 0.22;
+    else if (edge < 3) value = 0.9;
+    else if (edge < 5 + Math.round(noise2(x / 11, y / 11, 123) * 3)) value = Math.min(value, 0.5);
+    else if (edge < 10 + Math.round(noise2(x / 13, y / 13, 124) * 6)) value -= 0.08;
+    put(x, y, Math.abs(x - mid) < 0.6 ? FIRST.page : tone(PAGE, FIRST.page, value, x, y));
+  }
 }
 
 /** The open book's brass corners: the closed book's heavy scalloped plates, one on each corner. */
@@ -154,41 +205,7 @@ export function paintBook(width: number, height: number): Bitmap {
   // the pages: from the cover's inner edge, dipping to the gutter, curling up a little at their outer edges
   const left = BOOK_COVER, right = width - 1 - BOOK_COVER, bottom = height - 1 - BOOK_COVER;
   const topOf = (x: number) => BOOK_COVER + 4 - Math.round(bowAt(x, width) * 10);
-  for (let x = left; x <= right; x++) {
-    const top = topOf(x), foot = pageFoot(x, width, height);
-    const fromGutter = Math.abs(x - mid), fromSide = Math.min(x - left, right - x);
-    const outerSeed = x < mid ? 113 : 114;
-    // the page's edges are parchment, as the old maps are: torn unevenly at its top, foot and outer side (never at the
-    // gutter), with a rim browned and burnt darker, and the leaves under it showing past the tear
-    // each page's outer top corner is chipped off
-    const chip = Math.max(0, 9 - fromSide);
-    const pageTop = top + rag(111, x) + chip, pageEnd = foot - rag(112, x);
-    // the stack of leaves under the page: fine light and dark lines, the lower ones in the shade of the page over them
-    // the leaves bow up towards the fore-edge, unevenly spaced, a few standing proud, in tans and browns
-    const lift = Math.round((1 - bowAt(x, width)) * 3);
-    for (let y = foot + 1; y <= bottom; y++) {
-      const k = y - foot + lift + Math.round(noise2(x / 30, y / 3, 120) * 1.4);
-      const line = k % 3 === 0 || (k % 5 === 0 && hash2(x >> 4, k, 121) > 0.5);
-      put(x, y, tone(PAGE, FIRST.page, line ? 0.42 + (y - foot < 3 ? -0.08 : 0) : 0.7 - (y - foot < 3 ? 0.1 : 0) + (hash2(x >> 3, k, 122) > 0.9 ? 0.15 : 0), x, y));
-    }
-    for (let y = top; y <= foot; y++) {
-      const side = fromGutter < 20 ? 0 : rag(outerSeed, y);
-      const edge = Math.min(y - pageTop, pageEnd - y, fromGutter < 20 ? 99 : fromSide - side);
-      if (edge < 0) {
-        // past the tear: the next leaves, their own edges a line each, browned
-        put(x, y, tone(PAGE, FIRST.page, (x + y) % 3 === 0 ? 0.42 : 0.6, x, y));
-        continue;
-      }
-      const fromEdge = Math.min(fromSide, y - top, foot - y);
-      let value = pageLight(x, y, y - top, fromGutter, fromSide, foot - y) - (fromGutter > 14 && foxed(x, y, fromEdge) ? 0.1 : 0);
-      if (edge < 1) value = 0.25;
-      else if (edge < 3) value = Math.min(value, 0.48);
-      else if (edge < 7 + Math.round(noise2(x / 11, y / 11, 123) * 5)) value -= 0.1;
-      else if (edge < 14 + Math.round(noise2(x / 13, y / 13, 124) * 8)) value -= 0.05;
-      put(x, y, tone(PAGE, FIRST.page, value, x, y));
-    }
-    if (Math.abs(x - mid) < 0.6) for (let y = top; y <= foot; y++) put(x, y, FIRST.page);
-  }
+  for (let x = left; x <= right; x++) paintPageColumn(put, x, width, height, topOf(x), bottom);
   // the headbands at the spine's top and foot: a little roll of red and gold silk where the leaves are sewn
   for (const [y0, dir] of [[topOf(mid) - 3, 1], [pageFoot(mid, width, height) + 1, -1]] as const) {
     for (let k = 0; k < 3; k++) for (let x = Math.round(mid) - 5; x <= Math.round(mid) + 5; x++) {
