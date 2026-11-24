@@ -4,7 +4,7 @@ import { chartWith } from '../../../tests/helpers/charts';
 import type { BarPlay } from '../progression/practiceLog';
 import { learnPlan } from './plan';
 import {
-  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnHandsApart, learnStepBars, measuredOutcome, medalOf, sitDown, START_PROGRESS, withTest,
+  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnHandsApart, learnLiveTempo, learnStepBars, measuredOutcome, medalOf, sitDown, START_PROGRESS, withTest,
   type LearnProgress, type RunOutcome,
 } from './progress';
 
@@ -267,6 +267,14 @@ describe('the step size a piece is learned in', () => {
     expect(learnStepBars({ ...started, stepBars: 1 }, { ...DEFAULT_LEARN_SETTINGS, stepBars: 2 })).toBe(1);
     expect(learnStepBars(started, { ...DEFAULT_LEARN_SETTINGS, stepBars: 2 })).toBe(1); // kept before the field: step 1, the only size offered then
     expect(learnProgressSchema.parse({ ...started, stepBars: 2 }).stepBars).toBe(2);
+  });
+});
+
+describe('live tempo in learning', () => {
+  it('ft_1_32.AC17 the live tempo is off unless the player turned it on, and a setting saved before it reads as off', () => {
+    expect(learnLiveTempo(DEFAULT_LEARN_SETTINGS)).toBe(false);
+    expect(learnLiveTempo(learnSettingsSchema.parse({ stepBars: 1, markers: true, markersFrom: 2 }))).toBe(false);
+    expect(learnLiveTempo(learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, liveTempo: true }))).toBe(true);
   });
 });
 

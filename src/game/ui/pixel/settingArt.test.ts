@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Bitmap } from './bitmap';
 import { C } from './palette';
 import { BAR_NUMBER_MODES } from '../../../core/layout/barNumbers';
-import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, durationSymbol, fingersSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, resumeSymbol, scoreSymbol, staffGapSymbol } from './settingArt';
+import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, durationSymbol, fingersSymbol, liveTempoSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, resumeSymbol, scoreSymbol, staffGapSymbol } from './settingArt';
 
 const same = (a: Bitmap, b: Bitmap) => a.pixels.every((p, i) => p === b.pixels[i]);
 const count = (b: Bitmap, colour: number) => b.pixels.filter((p) => p === colour).length;
@@ -22,6 +22,7 @@ const SETTINGS: Record<string, Bitmap[]> = {
   resume: (['continue', 'over'] as const).map(resumeSymbol),
   fingers: (['off', 'top', 'all'] as const).map(fingersSymbol),
   barNumbers: BAR_NUMBER_MODES.map(barNumbersSymbol),
+  liveTempo: [false, true].map(liveTempoSymbol),
 };
 
 describe('settings button pictures', () => {
