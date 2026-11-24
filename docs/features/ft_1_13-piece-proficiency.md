@@ -1,7 +1,7 @@
 ---
 id: "ft_1_13"
 title: "Piece proficiency"
-scope: "Practice earns each piece its own XP and level per player instead of player XP; player XP and levels come only from the challenges with characters (ft_1_21); pieces are no longer locked by player level"
+scope: "Practice earns each piece its own XP and level per player instead of player XP; player XP and levels come only from the challenges with characters (ft_1_21); pieces are not locked by player level"
 effort: "medium"
 status: "built (piece XP and level, no player XP from practice, no piece locks); the try-out with the student is open"
 completeness: 90

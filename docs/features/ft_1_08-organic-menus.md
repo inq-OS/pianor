@@ -3,14 +3,14 @@ id: "ft_1_08"
 title: "Organic menus: staff-line vine, icon buttons, a real room"
 scope: "Softer, more musical menus in three slices: a vine whose stalks are staff lines in the screen corners of the menu screens; icon buttons with a delayed tooltip; the player room as a real room whose objects are the buttons"
 effort: "done"
-status: "built: slices 1 to 5 (vine art, since retired, icon buttons, the room as objects, the room lives, the stand panel); the maintainer's look on the laptop (AC8) open"
+status: "built: slices 1 to 5 (icon buttons, the room as objects, the room lives, the stand panel); the maintainer's look on the laptop (AC8) open"
 completeness: 100
 depends_on: ["ft_0_13", "ft_1_07", "ft_0_18"]
 ---
 
 # ft_1_08: Organic menus: staff-line vine, icon buttons, a real room
 
-Softer, more musical menus: icon buttons with a delayed tooltip, and a player room whose objects are the buttons (preview B chosen). The staff-line vine was retired and deleted (d151). Index: [FEATURES.md](FEATURES.md).
+Softer, more musical menus: icon buttons with a delayed tooltip, and a player room whose objects are the buttons (preview B chosen). Index: [FEATURES.md](FEATURES.md).
 
 ## Rules
 
@@ -24,7 +24,6 @@ Softer, more musical menus: icon buttons with a delayed tooltip, and a player ro
 
 ## Acceptance criteria
 
-- Retired (AC1 to AC3, d151): the corner vine, a five-line staff of leaves and blossoms in the menus' screen corners. The main menu became the lantern over Keri (d126) and credits and settings a parchment card and an open book (d130), so no screen drew it; its art and tests were deleted.
 - **ft_1_08.AC4** `PixelButton` takes an optional icon (a kit bitmap): icon and short text where the text fits, the icon alone only where it does not. Icons: piece maker, free play, new player, credits, admin, settings, quit; from the Kenney 1-Bit Pack (CC0) mapped to the palette with the ink outline (d084), each in `docs/assets.md`. (`iconArt.ts`, `PixelButton` `icon` and `iconOnly`; tests `iconArt.test.ts`, `icon-buttons.spec.ts`, `button-fit.spec.ts`.)
 - **ft_1_08.AC5** A tooltip with the button's full text (a string key) appears after the pointer rests about 0.6 s and goes when it leaves; never the only way to know what a button does (tablets have no hover), except the room's objects (AC7). Settings and Quit in the room are icon-only (gear, door with an arrow). (`PixelButton` `tooltip`, `core/layout/tooltip.ts`, `icon-buttons.spec.ts`.)
 - **ft_1_08.AC6** The player room (`ProfileDashboardScene`) is the warden's living room on Keri ([ft_1_18](ft_1_18-keri-island.md).AC3): piano between two sea windows, lighthouse window on the left wall, fireplace and door on the right wall, the bed with Kiur for the sofa; the chest under the lighthouse window keeps a quiet spyglass and a rolled chart. Its buttons are the piano, the door and the stand; the ear trainer (ft_1_10) is reached only through the stand (AC11). (`core/layout/room.ts`, `room.spec.ts`.)

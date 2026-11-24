@@ -104,7 +104,7 @@ Open work is a doc tag (d116). Count a release's work with the grep in [todo-tag
 | – | Admin settings page behind a parent gate; overrides content defaults | medium |
 | – | Four original character songs of 8, 16, 24 and 32 bars, taught in levels by ft_1_32 slice 4; the maintainer approves them | simple + human |
 | if the spike says yes | `SoundOutput` interface; gameplay sounds and drums from the EZ-220 | medium |
-| ft_1_13 | Per-piece XP and level from practice; pieces no longer locked by level, levels gate characters (AX-0.3); derived from history, no save bump | medium |
+| ft_1_13 | Per-piece XP and level from practice; pieces not locked by level, levels gate characters (AX-0.3); derived from history, no save bump | medium |
 | ft_Y_04 | MusicXML import in the browser, any length, parts proposed; long-piece budget on a modest laptop; after core_09 | large |
 
 **Gate in:** `openOverlay` from d070 built with its first user.
