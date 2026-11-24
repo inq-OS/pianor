@@ -276,6 +276,7 @@ export abstract class PixelScene extends Phaser.Scene {
    * Called after the frame is drawn, with the strip's free stretch (between its left group and its main action, in art
    * pixels from the main area's top), so a screen can show a small reading there; nothing by default.
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected afterFrame(_free: { left: number; right: number; top: number; rows: number } | null): void {}
 
   /**
