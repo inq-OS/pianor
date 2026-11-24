@@ -31,7 +31,6 @@ export const wandererRulesSchema = z.strictObject({
 });
 
 export type WandererRules = z.infer<typeof wandererRulesSchema>;
-export type WandererDef = WandererRules['wanderers'][number];
 
 export function parseWandererRules(raw: unknown): WandererRules {
   return wandererRulesSchema.parse(raw);
@@ -82,13 +81,15 @@ export function wanderersToday(curriculum: Curriculum, day: DayString, openScene
 }
 
 /**
- * The piece a wanderer sent for today asks for (ft_1_37.AC6): the one the teacher named, else one of the student's learned
+ * The piece a wanderer sent for today asks for (ft_1_37.AC6): the one the teacher named when sending it, else its piece in
+ * the cast, else one of the student's learned
  * pieces drawn for the day (the same whatever their order); none when it was not sent or nothing is learned.
  */
 export function wandererPiece(curriculum: Curriculum, wanderer: string, day: DayString, learned: readonly PieceId[]): PieceId | undefined {
   const sent = sentToday(curriculum, wanderer, day);
   if (sent === undefined) return undefined;
-  if (sent.piece !== undefined) return sent.piece;
+  const named = sent.piece ?? curriculum.cast?.characters?.[wanderer]?.piece;
+  if (named !== undefined) return named;
   if (learned.length === 0) return undefined;
   return Random.derive('wanderer-piece', wanderer, dayNumber(day)).pick([...new Set(learned)].sort());
 }

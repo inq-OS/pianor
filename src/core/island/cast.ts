@@ -75,7 +75,7 @@ export function setCast(curriculum: Curriculum, character: CharacterId, patch: {
   }
   const characters: Record<CharacterId, CastSetting> = { ...(curriculum.cast?.characters ?? {}) };
   if (Object.keys(merged).length === 0) delete characters[character];
-  else characters[character] = merged as CastSetting;
+  else characters[character] = merged;
   return { ...curriculum, cast: { ...(curriculum.cast ?? {}), characters } };
 }
 

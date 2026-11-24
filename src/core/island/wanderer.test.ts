@@ -47,6 +47,8 @@ describe('a wanderer the teacher sends (ft_1_37)', () => {
     const id = rules.wanderers[0]!.id;
     const named = sendWanderer(plain, id, '1998-11-18', 'twinkle');
     expect(wandererPiece(named, id, '1998-11-18', ['a', 'b'])).toBe('twinkle');
+    const set = sendWanderer(setCast(plain, id, { piece: 'lullaby' }), id, '1998-11-18');
+    expect(wandererPiece(set, id, '1998-11-18', ['a', 'b'])).toBe('lullaby');
     const drawn = sendWanderer(plain, id, '1998-11-18');
     const piece = wandererPiece(drawn, id, '1998-11-18', ['b', 'a', 'c']);
     expect(['a', 'b', 'c']).toContain(piece);
