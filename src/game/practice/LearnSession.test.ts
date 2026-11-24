@@ -235,9 +235,8 @@ describe('LearnSession', () => {
   });
 });
 
-
 describe('Kiur\'s lines while learning', () => {
-  // the child reads them between runs: a few words each, the staff and the prize column show the rest
+  // the student reads them between runs: a few words each, the staff and the prize column show the rest
   const said = (Object.keys(strings) as (keyof typeof strings)[]).filter((key) => key.startsWith('learn.') && !key.startsWith('learn.resume.'));
   const words = (line: string) => line.split(/\s+/).filter((w) => /\p{L}/u.test(w)).length;
 
