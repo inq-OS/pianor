@@ -1067,7 +1067,8 @@ export class PracticeScene extends PixelScene {
     this.atDoor = true;
     this.guarded.setMuted(true);
     this.stopMetronome();
-    this.playSession.say('');
+    // a pass's score or Kiur's line after a learning run stays for the rest of its wait after Back
+    if (!this.leaving) this.playSession.say('');
     // the keys judged before the bash could be told from playing leave no mark on the staff
     this.playSession.staffView?.setPlayed(null);
     void openOverlay(this, 'kiurDoor').then((choice) => this.fromDoor(choice));

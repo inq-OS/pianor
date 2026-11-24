@@ -96,7 +96,8 @@ export class EarTrainerScene extends PixelScene {
     });
     // any other computer key (Space, Enter, ...) can only continue; a note key also arrives above, and is ignored there
     this.onWindowKey((e) => {
-      if (!e.repeat && !MODIFIER_KEYS.has(e.key)) this.onKey(null);
+      // a key on an overlay over the trainer (Kiur at the door) is the overlay's
+      if (!e.repeat && !MODIFIER_KEYS.has(e.key) && this.scene.isActive()) this.onKey(null);
     });
     // a click or touch on the screen (not on a button) goes on too, for a mouse or a tablet without the on-screen keys
     this.input.on('pointerdown', (_pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
