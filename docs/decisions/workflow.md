@@ -103,9 +103,9 @@ Check: `tools/e2e/areas.test.ts` "puts every spec file in exactly one area"; `to
 
 ## d062
 
-**Screenshot baselines are Windows only, checked by a Windows CI job and made by a Windows workflow.** Features: none.
+**Screenshot baselines are Windows only, checked by a Windows CI job and made by a Windows workflow.** Features: none. Changed by d288.
 
-Only `-win32.png` baselines exist (hint letters use a `monospace` font that differs per OS); Linux CI and cloud sessions skip screenshot tests. The `visual (Windows)` job runs the visual area on `windows-latest` (software WebGL, one test at a time, 4-minute limit) on pull requests touching the visual area, on `main` pushes and weekly; the workflow "Update screenshot baselines (Windows)" (`update-snapshots.yml`) makes new ones, which the maintainer looks at before merge. Changes d042.
+Still holds: baselines are made on Windows and the Windows job checks them. The `visual (Windows)` job runs the visual area on `windows-latest` (software WebGL, one test at a time, 4-minute limit) on pull requests touching the visual area, on `main` pushes and weekly; the workflow "Update screenshot baselines (Windows)" (`update-snapshots.yml`) makes new ones, which the maintainer looks at before merge. Changes d042.
 
 Check: `tools/ci/workflows.test.ts` "are checked by a Windows job and made by a Windows workflow run by hand"
 
@@ -524,3 +524,11 @@ Check: untestable: a merge rule for threads and a repository setting
 Changes d153 and d199. The top of `docs/architect/roadmap.md` lists each area of the game with its level (the mean `completeness` of its features, lowest first) and what holds it back; the maintainer may rank an area lower by how it feels in play. When the maintainer turns to another area the work follows it, and queued items are not pushed as the current focus. The weekly architect run is retired.
 
 Check: untestable: how work is chosen
+
+## d288
+
+**No game text uses a font of the computer: the staff's text is JetBrains Mono Bold shipped with the game and every other text the pixel font, so one screenshot baseline per screen serves Windows and Linux.** Features: none.
+
+Changes d062. The staff's letters (note names, fingers, dynamics in the italic, section letters, the played key, the piece maker's ghost letter) use `STAFF_FONT` (`src/game/ui/staff/staffFont.ts`; SIL OFL, `public/assets/jetbrains-mono/`, upright and italic, Latin and Latin Extended for š and ž), loaded before the game starts. Baselines are named without the platform (`<name>-chromium.png`), made by the Windows workflow, which commits them to the branch it ran on (never to main) so a cloud session can fetch them, and compared on Windows, Linux CI and cloud sessions with the 2 percent tolerance; every run starts Chrome with `--font-render-hinting=none` and `--disable-lcd-text` and draws WebGL in software.
+
+Check: `src/game/ui/staff/staffFont.test.ts` "every text of the game in a screen font uses the shipped staff font, never one of the computer"; `tools/ci/workflows.test.ts` "names a baseline without the platform, and the Windows workflow hands back those names"; `tools/ci/workflows.test.ts` "commits the baselines to the branch it ran on, never to main"; `tests/e2e/visual.spec.ts` "the shipped staff font is loaded before the game draws, upright and italic (d288)"

@@ -40,14 +40,18 @@ export default defineConfig({
     trace: 'retain-on-failure',
     launchOptions: {
       ...(CHROMIUM_PATH ? { executablePath: CHROMIUM_PATH } : {}),
-      args: ['--autoplay-policy=no-user-gesture-required', ...GPU_ARGS],
+      // No hinting and no LCD (coloured) smoothing of letters (d288): the staff font's edges then come out the same on
+      // Windows and Linux, so one baseline serves both.
+      args: ['--autoplay-policy=no-user-gesture-required', '--font-render-hinting=none', '--disable-lcd-text', ...GPU_ARGS],
     },
   },
-  // Screenshots differ a little per OS (fonts, anti-aliasing), so baselines are stored per platform.
+  // One baseline per screen for every system (d288): no text asks the computer for a font, and CI and the baseline workflow draw WebGL in
+  // software (SwiftShader; a local Windows run with its GPU may differ), so Windows and Linux make the same pixels; the 2 percent tolerance covers what is left.
   // PW_EXPECT_TIMEOUT: the baseline workflow's slow Windows runner, where one screenshot of the software-drawn page takes over 20 s
   expect: { timeout: Number(process.env['PW_EXPECT_TIMEOUT']) || 20_000, toHaveScreenshot: { maxDiffPixelRatio: 0.02 } },
-  // The baselines were named for the single project `chromium`; keep that name now that every area is a project.
-  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-chromium{-snapshotSuffix}{ext}',
+  // The baselines were named for the single project `chromium`; keep that name now that every area is a project. No
+  // platform in the name (d288): the same file is checked on Windows and on Linux.
+  snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-chromium{ext}',
   // One project per area (tools/e2e/areas.ts): `--project=editor` runs one area, `npm run test:e2e:affected` the changed ones.
   projects: E2E_AREAS.map((area) => ({
     name: area.name,

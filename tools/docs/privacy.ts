@@ -72,7 +72,11 @@ export const BINARY_ALLOWED: readonly RegExp[] = [
   /^public\/audio\/[\w-]+\/[\w#-]+\.mp3$/,
   /^tests\/e2e\/[\w.-]+-snapshots\/[\w-]+\.png$/,
   /^(?:public|src|content)\/(?:[\w-]+\/)*[\w.-]+\.(?:png|webp)$/,
+  /^public\/assets\/[\w-]+\/[\w.-]+\.woff2$/,
 ];
+
+/** A third-party pack's own licence (`public/assets/<pack>/LICENSE`, d084): its version date is the licence's, not ours. */
+const PACK_LICENCE = /^public\/assets\/[\w-]+\/LICENSE$/;
 
 /** The private list of words and patterns that must never be committed, kept only in the gitignored private folder. */
 export const PERSONAL_WORDS = 'private/personal-words.txt';
@@ -264,6 +268,7 @@ export function checkText(file: string, text: string, words: string[], generic =
   if (named && /(?:19|20)\d\d-[01]\d/.test(file)) push(0, 'a date in a committed file name: name it by what it holds (d165)');
   for (const block of generic ? blocksOf(file, text) : []) {
     for (const { re, message, gated } of RULES) {
+      if (re === DAY && PACK_LICENCE.test(file)) continue;
       if (((code && (re === DAY || re === TIME_OF_DAY)) || gated) && !ABOUT_SOMEONE.test(block.text)) continue;
       if (re === HISTORY_REF && !named) continue;
       for (const m of block.text.matchAll(new RegExp(re.source, `${re.flags}g`))) push(lineAt(block, m.index), message);

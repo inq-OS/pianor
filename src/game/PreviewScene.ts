@@ -7,6 +7,7 @@ import { ChartPlayer } from './preview/ChartPlayer';
 import { hexCss } from './ui/pixel/palette';
 import { DEFAULT_THEME, StaffView, type SectionMarks } from './ui/staff/StaffView';
 import { startScene } from './scenes';
+import { STAFF_FONT } from './ui/staff/staffFont';
 
 /** Dev-only preview of a piece (`?demo=preview`, `npm run piece:preview`). The page around it talks to this scene by game events. */
 export const PREVIEW_SHOW = 'preview:show';
@@ -174,7 +175,7 @@ export class PreviewScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const say = (text: string) => {
       this.note = this.add
-        .text(width / 2, height / 2, text, { fontFamily: 'monospace', fontSize: '18px', color: hexCss(DEFAULT_THEME.ink), align: 'center', wordWrap: { width: width * 0.8 } })
+        .text(width / 2, height / 2, text, { fontFamily: STAFF_FONT, fontSize: '18px', color: hexCss(DEFAULT_THEME.ink), align: 'center', wordWrap: { width: width * 0.8 } })
         .setOrigin(0.5);
     };
     if (!show.chart) {

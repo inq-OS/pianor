@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-/* The CI rules of the workflow ledger, held against the workflow files themselves (d042, d062, d090, d165). Read as text. */
+/* The CI rules of the workflow ledger, held against the workflow files themselves (d042, d062, d090, d165, d288). Read as text. */
 const file = (name: string): string => readFileSync(`.github/workflows/${name}`, 'utf8');
 /** The block under a key at the given indent, up to the next key at that indent. */
 const block = (text: string, key: string, indent: number): string => {
@@ -44,6 +44,19 @@ describe('the screenshot baselines (d062)', () => {
     expect(job('browser-tests.yml', 'visual-windows')).toContain('runs-on: windows-latest');
     expect(triggers('update-snapshots.yml').trim()).toMatch(/^on:\s+workflow_dispatch:/);
     expect(job('update-snapshots.yml', 'update')).toContain('runs-on: windows-latest');
+  });
+});
+
+describe('one screenshot baseline per screen for every system (d288)', () => {
+  it('names a baseline without the platform, and the Windows workflow hands back those names', () => {
+    expect(readFileSync('playwright.config.ts', 'utf8')).toContain("snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-chromium{ext}'");
+    expect(job('update-snapshots.yml', 'update')).toContain('path: tests/e2e/*-snapshots/*-chromium.png');
+  });
+
+  it('commits the baselines to the branch it ran on, never to main', () => {
+    const update = job('update-snapshots.yml', 'update');
+    expect(update).toContain("if: github.ref_name != 'main'");
+    expect(update).toContain('git push origin "HEAD:${{ github.ref_name }}"');
   });
 });
 

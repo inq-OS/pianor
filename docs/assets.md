@@ -5,6 +5,7 @@ Every third-party asset is listed here with its source and licence. Original art
 | Asset | Where | Source | Licence | Credit shown |
 |---|---|---|---|---|
 | Piano samples (21 MP3, C2 to C7 every minor third, about 1.4 MB) | `public/audio/salamander/` | Salamander Grand Piano (Yamaha C5) by Alexander Holm, via the Tone.js audio repository (`github.com/Tonejs/audio`, folder `salamander`) | CC BY 3.0 | README credits, credits screen in the game (menu, Credits) |
+| JetBrains Mono Bold and Bold Italic, the staff's font (note names, fingers, dynamics, section letters; four WOFF2 files, Latin and Latin Extended, about 60 KB; d288) | `public/assets/jetbrains-mono/` | JetBrains Mono by The JetBrains Mono Project Authors (`github.com/JetBrains/JetBrainsMono`), the files of the Fontsource package `@fontsource/jetbrains-mono` 5.3.0 | SIL OFL 1.1 (`LICENSE` beside the files) | none needed (OFL) |
 | Rank shields (20, 24 x 24) | `src/game/ui/pixel/rankArt.ts` | Original pixel art; the tier progression (chevrons, stars, wreath, crest; bronze, silver, gold) follows the idea of the Kenney Ranks pack (kenney.nl, used as an idea only, no file copied) | Same as the code (MIT); the pack is CC0 | none needed |
 | Staff, clef, rest and digit shapes | `src/game/ui/staff/glyphs.ts` | Original, drawn from curves and bitmaps for this project | Same as the code (MIT) | none needed |
 | Metronome click | generated in code (`src/io/audio/Metronome.ts`) | Original, synthesized | Same as the code (MIT) | none needed |
