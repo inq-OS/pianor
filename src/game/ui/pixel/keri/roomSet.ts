@@ -1216,7 +1216,7 @@ function towards(x: number, y: number, z: number): V3 {
 const FILL = 0.3;
 /** How much of it reaches the near things' faces from behind the viewer, and by night the moon's cool light there instead. */
 const NEAR_FILL = 0.35;
-const NEAR_MOON = [0.42, 0.52, 0.95] as const;
+const NEAR_MOON = [0.75, 0.9, 1.6] as const;
 
 const HOURS: Record<SkyPhase, Hour> = {
   day: { ambient: [0.34, 0.3, 0.38], toSun: towards(-0.22, 0.72, -1), sun: [1.2, 1.1, 0.9], windows: 0.9, tint: [1.12, 1.02, 0.84], lamps: 0, fire: false, pages: 0.22 },

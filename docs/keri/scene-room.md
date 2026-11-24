@@ -42,10 +42,10 @@ The gramophone under the lighthouse window was the fourth object until pass 8, w
 
 How it is made (`roomSet.ts`, `roomPicture.ts`): the set is built again with the objects awake (`ALL_AWAKE`) and painted once more, and each object keeps of that painting the pixels inside its own outline, at rest and awake together and `AWAKE_REACH` pixels round it, that differ from the room at rest. Cut wider, a second look would carry the soft light's small shifts all over the room (10,000 to 28,000 pixels). The door must hinge at the stove's side: hinged at the other, the leaf hides the doorway from the viewer at every angle. By night a thing that must be seen beside a lamp (the notes) shines a little by itself. A second look costs one more painting of the room an hour (about 2 s when the game is built) and about a quarter more of the packed picture. The left sea window had a second look in the sketches (its casement open, the curtain blown); it is not built, as the window is no button since the walk went (d117).
 
+The frame of the picture: the top corners are calm under the door, the backpack and the gear: over each foreground brace the roof's near boards are one plain dark field (`foreground` in `roomSet.ts`). The near things (the sea chest, its basket and books, the bed's foot) take a low light from behind the viewer, the moon's cool one by night (`NEAR_FILL`, `NEAR_MOON`), and the chest's front is broad level boards with a lock plate, so the lower left is drawn and never one dark slab.
+
 ## TODO
 
-- The top corners are calm under the door, the backpack and the gear: over each foreground brace the roof's near boards are one plain dark field (`foreground` in `roomSet.ts`).
-- The near things (the sea chest, its basket and books, the bed's foot) take a low light from behind the viewer, the moon's cool one by night (`NEAR_FILL`, `NEAR_MOON`), and the chest's front is broad level boards with a lock plate, so the lower left is drawn and never one dark slab.
 - TODO(painter, R2): by night the leaf of the open door is dim: give it a little light of its own, as the board's notes have. Seen on the night picture. (The piano has its two candles now.)
 - TODO(painter, R2): the objects' second looks on the screenshot baseline of the room: the rest picture changed (lid down, board beside the piano, strap hinges, the horn turned), so its baseline is made again.
 - TODO(painter, R2): the repaint changes every screenshot baseline that shows the room: they are made again in its pull request.
@@ -182,7 +182,6 @@ Pass 8 took the gramophone out, since nothing replaces it as a thing in the room
 | The stand opens a panel of pictures | a board over the room, the room not darkened, one framed picture per trainer from `STAND_CHOICES` (`src/game/room/standChoices.ts`), drawn 64 x 48 fine pixels in the manner of the 1997 game's inventory (`standArt.ts`): a listening ear for the ear trainer, a note in a brass sight's cross hairs for the note names; a frame lights under the pointer, the name shows only in the delayed bubble |
 
 Art review 7 (on the first render) found the ear a bean with a hole, the sight a clock's face (a white dial in a gold ring, the stem a hand at twelve, two staff lines) and the spyglass and chart one thin stick; all answered in the same pass: the ear has a rolled rim with a dark fold, the rim's root, the bowl, the flap before the hole and a lobe; the sight has five staff lines, a flag on the note and a leather barrel running off to the lower right; the spyglass and the chart are half again as thick and lie apart. Left for later: the portrait is still a flat sprite with a black line hanging plumb, each candle's flame is one pale pixel with no halo, and the stand gives no hint at rest that it opens anything.
-
 
 ## The reference rooms
 
