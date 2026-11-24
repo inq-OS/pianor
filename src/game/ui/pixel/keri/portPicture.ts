@@ -96,6 +96,7 @@ const LIGHT: Record<SkyPhase, { side: number; glint: number; face: number }> = {
 
 /** The sky's clouds, back to front (d111 point 17); each rolls up into a head the way the wind blows (left). */
 export const PORT_CLOUDS: readonly { at: readonly [number, number]; spec: CurlSpec }[] = [
+  { at: [118, 14], spec: { length: 172, girth: 6, belly: 0.45, neck: 1, taper: 0.6, bend: 3, wave: 1.5, phase: 0.3 } },
   { at: [404, 92], spec: { length: 66, girth: 5, belly: 0.5, neck: 1, taper: 0.55, bend: 1, wave: 1.1, phase: 0.7 } },
   { at: [30, 88], spec: { length: 58, girth: 7, belly: 0.72, neck: 1, taper: 0.7, bend: 2, wave: 0.85, phase: 0.2, head: { size: 7, turns: 1.1 } } },
   { at: [262, 24], spec: { length: 118, girth: 38, belly: 0.8, neck: 0.9, taper: 1.15, bend: 10, wave: 0.75, phase: 0.4, rise: 9, head: { size: 25, turns: 1.2 } } },
@@ -162,10 +163,10 @@ export interface PortSwimmers {
 
 /** The bright fish (their runs and size) and the rows of the tall picture they keep to, as they were painted. */
 const PORT_FISH: readonly { body: 'sponge' | 'coral' | 'violet' | 'red'; stripe: 'sponge' | 'coral' | 'violet' | 'hull'; size: number; y: number }[] = [
-  { body: 'sponge', stripe: 'violet', size: 1.3, y: PORT.water + 104 },
-  { body: 'coral', stripe: 'hull', size: 1.1, y: PORT.water + 90 },
-  { body: 'violet', stripe: 'sponge', size: 1, y: PORT.water + 136 },
-  { body: 'sponge', stripe: 'coral', size: 0.8, y: PORT.water + 140 },
+  { body: 'sponge', stripe: 'violet', size: 1.3, y: PORT.water + 150 },
+  { body: 'coral', stripe: 'hull', size: 1.1, y: PORT.water + 96 },
+  { body: 'violet', stripe: 'sponge', size: 1, y: PORT.water + 214 },
+  { body: 'sponge', stripe: 'coral', size: 0.8, y: PORT.water + 236 },
   { body: 'red', stripe: 'hull', size: 0.8, y: PORT.water + 70 },
 ];
 /** The two jellyfish, where they hang in the tall picture. */
@@ -934,7 +935,7 @@ class PortPainter {
         const band = Math.abs(y - (top + 14)) < 2 || Math.abs(y - (top + 50)) < 2;
         const wet = y > bottom - 16;
         // near and against the light it is dark, as the 1991 game's foreground things are
-        const t = (near ? 0.02 : 0.08) + (near ? 0.2 : 0.34) * clamp01((u * this.hour.side + 1) / 2) + (Math.abs(u) > 0.85 ? -0.08 : 0) + (Math.abs(((x + y * 0.2) % 7) - 3) < 0.6 ? -0.06 : 0);
+        const t = (near ? 0 : 0.08) + (near ? 0.12 : 0.34) * clamp01((u * this.hour.side + 1) / 2) + (Math.abs(u) > 0.85 ? -0.08 : 0) + (Math.abs(((x + y * 0.2) % 7) - 3) < 0.6 ? -0.06 : 0);
         this.put(x, y, band ? (dx % 3 === 0 ? R.sponge[2]! : R.stone[1]!) : wet ? tone([R.bush[0]!, R.stone[1]!, R.bush[1]!], t, x, y) : tone(F.wood, clamp01(t), x, y, 0.15));
       }
     }
@@ -980,7 +981,7 @@ class PortPainter {
       for (let y = PORT.bed - hgt; y < PORT.bed + 8; y++) this.put(x, y, R.sea[1]!);
     }
     for (let k = 0; k < 9; k++) {
-      const fx = 40 + ((k * 71) % 580) + Math.round(swing(look, PORT_DEEP_FRAMES, k / 9) * 3), fy = PORT.water + 60 + ((k * 37) % 90);
+      const fx = 40 + ((k * 71) % 580) + Math.round(swing(look, PORT_DEEP_FRAMES, k / 9) * 3), fy = PORT.water + 60 + ((k * 37) % 210);
       for (let d = 0; d < 6; d++) this.put(fx + d, fy, R.sea[1]!);
       this.put(fx + 6, fy - 1, R.sea[1]!); this.put(fx + 6, fy + 1, R.sea[1]!); this.put(fx + 1, fy - 1, R.sea[1]!);
     }
@@ -1367,9 +1368,10 @@ class PortPainter {
     const left = this.mound(-8, 116, 34, F.violet, 581);
     const middle = this.mound(206, 428, 30, F.coral, 583);
     const right = this.mound(528, 650, 40, F.violet, 585);
-    this.kelp(18, PORT.bed + 6, 164);
-    this.kelp(286, middle(286) + 2, 150);
-    this.kelp(598, right(598) + 2, 158);
+    this.kelp(18, PORT.bed + 6, 252);
+    this.kelp(286, middle(286) + 2, 226);
+    this.kelp(598, right(598) + 2, 240);
+    this.kelp(458, PORT.bed + 8, 176);
     this.moving(() => this.fan(66, left(66) + 2, 62, F.coral, look));
     this.tubes(104, left(106) + 4, 2, F.sponge);
     this.brain(26, left(26) + 4, 13, F.dry);
@@ -1386,7 +1388,7 @@ class PortPainter {
     this.moving(() => this.seaGrass(186, PORT.bed + 10, look));
     this.moving(() => this.seaGrass(436, PORT.bed + 9, look));
     this.starfish(178, PORT.bed + 22);
-    this.moving(() => this.seahorse(326, PORT.water + 96, look));
+    this.moving(() => this.seahorse(326, PORT.water + 170, look));
   }
 
   // ---- the pictures
