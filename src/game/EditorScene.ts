@@ -66,6 +66,7 @@ import { PhotoOverlay, barsToFill, photoServer, sendPhoto, type PhotoReply } fro
 import { PhotoTool } from './editor/photoTool';
 import { CANCELLED, openOverlay, startScene } from './scenes';
 import { circleItem } from './CircleOfFifthsScene';
+import { STAFF_FONT } from './ui/staff/staffFont';
 
 /**
  * Heights in art pixels of the options rows and the bottom bar. No top bar: the staff needs every row it can get, as a
@@ -2478,7 +2479,7 @@ export class EditorScene extends PixelScene {
     this.ghost = this.add.graphics().setDepth(10).setX(this.staffLeft);
     this.shadows = this.add.graphics().setDepth(9).setX(this.staffLeft);
     this.target = this.add.graphics().setDepth(8).setX(this.staffLeft);
-    this.ghostLabel = this.add.text(0, 0, '', { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.round(5 * scale)}px`, color: hexCss(DEFAULT_THEME.cursor) }).setOrigin(0.5).setDepth(10).setVisible(false);
+    this.ghostLabel = this.add.text(0, 0, '', { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(5 * scale)}px`, color: hexCss(DEFAULT_THEME.cursor) }).setOrigin(0.5).setDepth(10).setVisible(false);
 
     const layer = this.overStaff();
     const make = (options: PixelButtonOptions) => this.buttonOn(layer, options);
@@ -2784,7 +2785,7 @@ export class EditorScene extends PixelScene {
     this.ghost = this.add.graphics().setDepth(10).setX(this.staffLeft);
     this.shadows = this.add.graphics().setDepth(9).setX(this.staffLeft);
     this.target = this.add.graphics().setDepth(8).setX(this.staffLeft);
-    this.ghostLabel = this.add.text(0, 0, '', { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.round(5 * scale)}px`, color: hexCss(DEFAULT_THEME.cursor) }).setOrigin(0.5).setDepth(10).setVisible(false);
+    this.ghostLabel = this.add.text(0, 0, '', { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(5 * scale)}px`, color: hexCss(DEFAULT_THEME.cursor) }).setOrigin(0.5).setDepth(10).setVisible(false);
 
     // bottom bar: lengths, delete, undo, redo, and under them what the checker says
     const barY = rows - BOTTOM;

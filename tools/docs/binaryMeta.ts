@@ -4,6 +4,8 @@
  *   - PNG: only the chunks that describe pixels and colour, ending at IEND with nothing after it
  *   - WebP: a RIFF file without EXIF or XMP chunks
  *   - MP3: ID3v2.3 or v2.4 at the start with only the encoder's own frames, no extended header, no tag at the end
+ *   - WOFF2: a font with no extended metadata and no private data block, its length the file's; the font's own name table
+ *     (its authors and licence, upstream text like the licence file beside it) is compressed and not read
  * Returns what was found, or null when the file is clean.
  */
 const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -63,9 +65,18 @@ function mp3(bytes: Uint8Array): string | null {
   return null;
 }
 
+function woff2(bytes: Uint8Array): string | null {
+  if (ascii(bytes, 0, 4) !== 'wOF2' || bytes.length < 48) return 'not a WOFF2 file';
+  if (u32(bytes, 8) !== bytes.length) return 'a WOFF2 whose length is not the file\'s';
+  if (u32(bytes, 32) !== 0) return 'WOFF2 extended metadata';
+  if (u32(bytes, 44) !== 0) return 'a WOFF2 private data block';
+  return null;
+}
+
 export function binaryMetadata(file: string, bytes: Uint8Array): string | null {
   if (/\.png$/i.test(file)) return png(bytes);
   if (/\.webp$/i.test(file)) return webp(bytes);
   if (/\.mp3$/i.test(file)) return mp3(bytes);
+  if (/\.woff2$/i.test(file)) return woff2(bytes);
   return `a ${file.split('.').pop() ?? ''} file, which the check cannot read`;
 }

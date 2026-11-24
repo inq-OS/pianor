@@ -19,8 +19,8 @@ permissions:
   contents: read
 
 jobs:
-  # The browser tests (Playwright, Chromium). Screenshot baselines are made on Windows only (d062), so the screenshot tests
-  # skip here and the visual (Windows) job below checks the pixels; here they prove the flow.
+  # The browser tests (Playwright, Chromium). The screenshot baselines are made on Windows (d062) and compared here too
+  # (d288): no text uses a font of the computer and WebGL is drawn in software on both, so the pixels match.
   # A pull request with the `ci:e2e` label runs the areas its changes touch plus the smoke tests (on adding the label and
   # on each later push); the weekly and manual runs run every area (docs/testing.md section 10).
   e2e:
@@ -69,8 +69,8 @@ jobs:
             test-results/
           retention-days: 7
 
-  # The screenshot tests against the Windows baselines, the source of truth (the game is played on Windows; d062).
-  # Linux CI and cloud sessions skip them. Runs on GitHub's hosted Windows runner, with the `ci:visual` label, in the
+  # The screenshot tests on Windows, the system the game is played on (d062); Linux compares the same baselines (d288).
+  # Runs on GitHub's hosted Windows runner, with the `ci:visual` label, in the
   # weekly run and by hand. Software WebGL (E2E_GPU=0), like the update-snapshots workflow that makes the baselines on
   # the same kind of runner. On a failure the report holds the expected,
   # actual and diff images.

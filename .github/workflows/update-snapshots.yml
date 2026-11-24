@@ -1,6 +1,7 @@
 name: Update screenshot baselines (Windows)
 
-# Windows baselines are the source of truth (the game is played on Windows; d062). Run this by hand on a branch whose change
+# The baselines are made on Windows, the source of truth (the game is played on Windows; d062), and checked on Windows and
+# Linux alike (one file per screen, d288). Run this by hand on a branch whose change
 # moves pixels on purpose: Actions tab, or `gh workflow run update-snapshots.yml --ref <branch>`. It makes the baselines on
 # the same kind of hosted Windows runner the "visual (Windows)" job of CI checks against, and hands them back as a download: unzip it into
 # tests/e2e/ and commit the images in the pull request, where the maintainer looks at them before it merges. It never commits
@@ -33,6 +34,6 @@ jobs:
         if: always() # the baselines that were made, even when a test failed
         with:
           name: windows-snapshots
-          path: tests/e2e/*-snapshots/*-win32.png
+          path: tests/e2e/*-snapshots/*-chromium.png
           if-no-files-found: error
           retention-days: 14
