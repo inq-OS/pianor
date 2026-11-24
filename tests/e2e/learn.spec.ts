@@ -89,6 +89,9 @@ test('a new piece is learned bar by bar: one bar shown, a wrong key repeats it, 
   await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toMatch(/in bar 1\. Again from the start$/);
   expect(await shown(page)).toMatchObject({ bars: 1, first: 0 });
   expect(await progress(page)).toMatchObject({ step: 0, misses: 1 });
+  // the wrong key stays on the staff of the run started again, until its first key (ft_1_32.AC6)
+  const playedShown = () => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { staffView: { played: unknown } } }).playSession.staffView.played !== null);
+  expect(await playedShown()).toBe(true);
 
   // the same mistake again: the note it was for gets a mistake marker (ft_1_32.AC5, at the 2nd miss by default)
   await playWithKeys(page, [wrong]);
@@ -96,7 +99,9 @@ test('a new piece is learned bar by bar: one bar shown, a wrong key repeats it, 
   await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { staffView: { markersShown: number } } }).playSession.staffView.markersShown), { timeout: 10_000 }).toBeGreaterThanOrEqual(1);
 
   // every note right: the next step shows bars 1 and 2, and the first bar's note is earned
-  await playWithKeys(page, first.midis);
+  await playWithKeys(page, first.midis.slice(0, 1));
+  expect(await playedShown()).toBe(false); // the first right key takes the wrong one away
+  await playWithKeys(page, first.midis.slice(1));
   await expect.poll(async () => (await shown(page)).bars, { timeout: 10_000 }).toBe(2);
   expect(await progress(page)).toMatchObject({ step: 1, misses: 0 });
   expect(await kiurSays(page)).toBe('Every note right! Now bars 1 to 2');
