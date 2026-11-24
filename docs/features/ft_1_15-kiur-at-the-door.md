@@ -34,7 +34,9 @@ student back to reading (AX-0).
    pass again, as its clock cannot pause (AX-3 provisional).
 5. **The door.** Out to the player's room, after the pass being saved is saved. A draft preview goes back where it came
    from. Nothing earned is taken away and nothing is shown as a fail.
-6. **Only on the practice screen**, and not while the game plays the piece (Kuula) or a pass is ending.
+6. **Only on the practice screen**, and not while the game plays the piece (Kuula) or a pass is ending. In learning bar by bar the
+   bash's first key often stops the run as a wrong key; a bash in the moment before the same step starts again still
+   brings Kiur, Back starts that step again and the door goes out as from a run.
 
 7. Not now: detecting random notes far from the awaited ones (needs a fair, tested threshold; could hit beginners).
 
@@ -45,4 +47,5 @@ student back to reading (AX-0).
 - **ft_1_15.AC3** The overlay goes through `openOverlay` (d070): the caller is paused, and resumed with the typed choice or `cancelled`.
 - **ft_1_15.AC4** Eleven keys at once pause the piece and show Kiur at the door; Back goes on where the cursor was.
 - **ft_1_15.AC5** The door leads to the room; Esc is back to the piece.
+- **ft_1_15.AC7** In learning bar by bar a bash brings Kiur to the door although its first key stopped the run; Back starts the same step again.
 - **ft_1_15.AC6** [human] The maintainer checks the look of Kiur's pose and how a bash on the real EZ-220 feels (key timing of palms is unverified).
