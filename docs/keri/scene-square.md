@@ -36,6 +36,7 @@ The world model's buildings (`content/world/keri.json`), which agree with the pu
 ## What is open
 
 - TODO(builder, R2): pressing the pier walks to the port (`squarePlan().pier` is its box in fine pixels); the scene has no exit yet.
+- The plaza's paving follows the town streets of the 1991 game (Phatt Island's town, atlas `mi2-bg-2-027`): a pale ground of worn stone with no drawn joints, cobbles showing here and there as warm rounded blotches that grow toward the viewer, grey ones in the cast shade; the light and the shade carry the plane.
 - The picture is 180 rows tall, a scene's whole main area once the band is gone (ft_1_20); the other scenes are still 124. What is pressed lies in its upper 124 rows, and the near foreground (the lighthouse's foot, boulders, a crate and barrels by the shed, in the near shade) runs down to the screen's foot. While the band is still drawn it covers the lower 56 rows.
 - TODO(painter, R2): the near foreground of the taller picture is a first pass: the big near slabs, the crate and the boulders want the finish the rest has.
 - TODO(painter, R3): what stands still (`sceneLiving.ts`): the far sea, the pennants on the string, the grass on the brow.

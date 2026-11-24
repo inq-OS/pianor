@@ -784,22 +784,36 @@ class SquarePainter {
   private plaza(): void {
     const { hour } = this;
     this.as(() => {
+      // cobbles after the 1991 game's town streets: a pale ground of worn stone with no drawn joints; here and there
+      // a cobble shows as a warm rounded blotch, bigger toward the viewer, and the light and the cast shade carry the plane
       this.poly([[124, 194], [244, 170], [344, 158], [392, 178], [600, 186], [612, 372], [-10, 372], [-10, 290]], (x, y) => {
         const f = this.flag(x, y);
         const sh = this.shade(x, y);
         const light = hour.ground + 0.06 - sh * 0.74;
         if (!f) return this.worn(F.earth, light + 0.1, x, y, 0.1);
-        if (f.seam) {
-          // grass and moss in the joints, more of it toward the plaza's edge
-          const green = hash2(x >> 1, y >> 1, 931) < 0.12 + f.ring * 0.05;
-          return green ? tone(F.grass, clamp01(light - 0.2 + hash2(x, y, 932) * 0.3), x, y) : tone(F.stone, clamp01(light * 0.3 - 0.1), x, y);
+        // bare earth in a few soft patches where the stones are gone, and moss in a speck here and there
+        if (fbm(x / 44, y / 15, 2, 934) > 0.84) return this.worn(F.earth, light + 0.3, x, y, 0.1);
+        if (hash2(x >> 1, y >> 1, 931) < 0.003 + f.ring * 0.0015) return tone(F.grass, clamp01(light - 0.2 + hash2(x, y, 932) * 0.3), x, y);
+        // the cobbles' courses: low and small far off, tall and broad at the viewer's feet, each course shifted on the last
+        const depth = Math.sqrt(Math.max(0, y - 150)) * 1.9, course = Math.floor(depth), v = depth - course;
+        const tall = (2 * Math.sqrt(Math.max(1, y - 150))) / 1.9, wide = tall * 2.5;
+        const along = (x - SQUARE.lamp.x) / wide + hash2(course, 1, 941) * 7, stone = Math.floor(along), u = along - stone;
+        // which cobbles show: in drifts, so some stretches are all pale ground and others busy with stones
+        const shows = hash2(stone, course, 935) < 0.26 + 0.6 * fbm(x / 80, y / 30, 2, 937);
+        const wobble = 0.36 * (noise2(x / 4 + stone * 3.1, y / 2.4 + course * 1.7, 938) - 0.5);
+        const round = ((u - 0.5) / 0.5) ** 2 + ((v - 0.5) / 0.5) ** 2 + wobble;
+        const size = 0.46 + 0.42 * hash2(stone, course, 939);
+        if (shows && round < size) {
+          const own = (hash2(stone, course, 933) - 0.5) * 0.22, kind = hash2(stone, course, 936);
+          // lit on its far side, darker along its near edge: a low dome
+          const dome = v < 0.4 ? 0.1 : v > 0.7 ? -0.14 : 0;
+          // in the sun warm tan and rust, in the shade cool grey with a rusty one among them
+          if (sh > 0.5) return this.worn(kind > 0.88 ? F.earth : F.stone, light + (kind > 0.88 ? 0.42 : 0.3) + own + dome, x, y, 0.05, course);
+          return this.worn(kind > 0.88 ? F.earth : kind > 0.36 ? F.dry : F.shingle, light + (kind > 0.88 ? 0.5 : kind > 0.36 ? 0 : -0.1) + own + dome, x, y, 0.05, course);
         }
-        const own = (hash2(f.stone, f.ring, 933) - 0.5) * 0.3;
-        // a broken or missing stone here and there shows the earth
-        if (hash2(f.stone, f.ring, 934) > 0.93) return this.worn(F.earth, light + 0.04, x, y, 0.12);
-        // each stone mottled in two or three flat patches of its own, worn pale in its middle
-        const mottle = Math.round((fbm(x / 9 + f.stone * 7.3, y / 5 + f.ring * 3.1, 2, 936) - 0.5) * 5) / 5;
-        return this.worn(hash2(f.stone, f.ring, 935) > (f.ring > 5 ? 0.84 : 0.62) ? F.shingle : F.plaster, light + own + mottle * 0.3 + (f.top ? 0.1 : 0), x, y, 0.08, f.ring);
+        // the pale ground between: mottled in broad soft patches, a tone darker close round a cobble
+        const mottle = Math.round((fbm(x / 26, y / 9, 2, 936) - 0.5) * 6) / 6;
+        return this.worn(fbm(x / 33, y / 12, 2, 940) > 0.62 ? F.shingle : F.plaster, light + 0.22 + mottle * 0.3 - (shows && round < size + 0.3 ? 0.1 : 0), x, y, 0.06, 3);
       }, 2.2);
     });
     this.tufts();
