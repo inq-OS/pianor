@@ -1,4 +1,4 @@
-// Covers ft_1_02d.AC25, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
+// Covers ft_1_02d.AC25, ft_1_02d.AC31, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
 import { readFileSync } from 'node:fs';
 import { encode as encodePng } from 'fast-png';
 import { expect, test, type Page } from '@playwright/test';
@@ -70,8 +70,8 @@ async function openEditor(page: Page): Promise<void> {
   await expect.poll(() => page.evaluate(() => !!(window.__game.scene.getScene('editor') as unknown as { staffView: unknown }).staffView)).toBe(true);
 }
 
-/** Presses (with the real mouse) the clef or the time signature at the start of the first line. */
-async function pressSignature(page: Page, kind: 'key' | 'time'): Promise<void> {
+/** Presses (with the real mouse) the clef or the time signature at the start of the first line, or only moves onto it. */
+async function pressSignature(page: Page, kind: 'key' | 'time', only: 'press' | 'hover' = 'press'): Promise<void> {
   const point = await page.evaluate((k) => {
     type Layout = { staffSpace: number; systems: { left: number; staves: { topLineY: number; bottomLineY: number }[] }[]; timeSignatures: { system: number; x: number }[] };
     const scene = window.__game.scene.getScene('editor') as unknown as { layout: Layout; staffLeft: number; staffTop: number };
@@ -85,7 +85,8 @@ async function pressSignature(page: Page, kind: 'key' | 'time'): Promise<void> {
     const rect = canvas.getBoundingClientRect();
     return { x: rect.left + ((scene.staffLeft + x) / canvas.width) * rect.width, y: rect.top + ((scene.staffTop + (staff.topLineY + staff.bottomLineY) / 2) / canvas.height) * rect.height };
   }, kind);
-  await page.mouse.click(point.x, point.y);
+  if (only === 'hover') await page.mouse.move(point.x, point.y);
+  else await page.mouse.click(point.x, point.y);
 }
 
 /** Which panel is open over the staff's foot: the time panel or none. */
@@ -199,6 +200,10 @@ test.describe('piece editor (preliminary)', () => {
     for (const there of ['Save', 'Import', 'Export', 'Circle of fifths']) expect(await sceneButton(page, 'editor', there)).toBeGreaterThanOrEqual(0);
     await closeBubble(page, 'editor'); // the circle is an option of the bubble
     expect(await page.locator('#editor-title').inputValue()).toBe('');
+    // (ft_1_02d.AC32) the pointer on the clef names the key over it, before anything is pressed
+    await pressSignature(page, 'key', 'hover');
+    const label = () => page.evaluate(() => { const l = (window.__game.scene.getScene('editor') as unknown as { ghostLabel: { visible: boolean; text: string } }).ghostLabel; return l.visible ? l.text : ''; });
+    await expect.poll(label).toBe('C');
     // the clef opens the circle, which sets the key (ft_1_28.AC7)
     await pressSignature(page, 'key');
     await waitForScene(page, 'circle');
@@ -1024,7 +1029,8 @@ test.describe('one item each for the accidentals, ties and slurs, and repeats', 
     await pressArc();
     expect(await arcs()).toEqual({ ties: [0], slurs: 1 });
 
-    // one repeat item: a press asks for the start bar (it is lit), a click in bar 2 is the start, a click in bar 3 the end
+    // one repeat item: a press asks for the start bar (it is lit); the signs snap to the nearest bar line (ft_1_02d.AC31), so a
+    // click near the start of bar 2 starts it there, and a click near the end of bar 3 ends it there
     const repeats = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { history: { present: { repeats?: unknown[] } } }).history.present.repeats ?? []);
     expect(await editorButton(page, '|:')).toBe(-1);
     await clickButton(page, 'editor', await bubbleButton(page, '|: :|'));
@@ -1032,7 +1038,7 @@ test.describe('one item each for the accidentals, ties and slurs, and repeats', 
     await selectNote(page, 1, 0, 'C');
     expect(await status(page)).toContain('Now click the bar the repeat ends on.');
     expect(await repeats()).toEqual([]);
-    await selectNote(page, 2, 480, 'C');
+    await selectNote(page, 2, 1440, 'C');
     expect(await repeats()).toEqual([{ startBar: 1, endBar: 2 }]);
     expect(await status(page)).not.toContain('the repeat ends on');
     // the notes stayed as they were: the clicks only picked bars
@@ -1137,6 +1143,29 @@ test.describe('fingers (ft_1_02d.AC4)', () => {
     await page.keyboard.press('Digit0');
     expect(await fingerOf()).toBeNull();
     expect(await drawn()).toEqual([]);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC33 each note of a two-note chord gets its own finger, and the piece maker draws both', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    // C and E at the same start: one chord
+    await clickNote(page, 0, 0, 'C');
+    await clickNote(page, 0, 0, 'E');
+    const fingers = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { history: { present: { notes: { step: string; finger?: number }[] } } }).history.present.notes.map((n) => `${n.step}${n.finger ?? '-'}`).sort());
+    const drawn = () => page.evaluate(() => {
+      const view = (window.__game.scene.getScene('editor') as unknown as { staffView: { fingerTexts: { text: string; visible: boolean }[] } }).staffView;
+      return view.fingerTexts.filter((t) => t.visible && t.text !== '').map((t) => t.text).sort();
+    });
+    await selectNote(page, 0, 0, 'C');
+    await page.keyboard.press('KeyF');
+    await page.keyboard.press('Digit1');
+    await selectNote(page, 0, 0, 'E');
+    await page.keyboard.press('KeyF');
+    await page.keyboard.press('Digit3');
+    expect(await fingers()).toEqual(['C1', 'E3']);
+    // shown on both heads, whatever the practice screen's TOP or ALL setting
+    await expect.poll(drawn).toEqual(['1', '3']);
     expectNoErrors(errors);
   });
 });
