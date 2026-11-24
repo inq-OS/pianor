@@ -27,8 +27,6 @@ export interface BoardPiece {
   id: string;
   title: string;
   level: number;
-  /** The player level that opens it in the piece book (`unlockLevel`, else `level`). */
-  opens: number;
   hands: string[];
   bpm: number;
   source: string;
@@ -130,7 +128,6 @@ export function boardPieces(piecesDir: string, levels: readonly LevelDefinition[
       id: pieceMeta.id,
       title: pieceMeta.title,
       level: pieceMeta.level,
-      opens: pieceMeta.unlockLevel ?? pieceMeta.level,
       hands: [...pieceMeta.hands],
       bpm,
       source: pieceMeta.source,
@@ -344,7 +341,7 @@ function card(piece) {
   const more = el('details', {}, el('summary', { textContent: 'Source and ABC' }), el('div', { textContent: piece.source }), el('pre', { textContent: piece.abc }));
   const node = el('article', { id: 'p-' + piece.id },
     el('h2', { textContent: piece.title }), el('div', { className: 'facts', textContent: piece.id + ' \u00b7 ' + facts }),
-    el('div', { className: 'goes' }, el('b', { textContent: 'Goes to' }), ...piece.uses.map((u) => el('div', { textContent: u })), el('div', { textContent: 'The piece book (Choose a piece), open from player level ' + piece.opens + '; the teacher can put it in the curriculum' })),
+    el('div', { className: 'goes' }, el('b', { textContent: 'Goes to' }), ...piece.uses.map((u) => el('div', { textContent: u })), el('div', { textContent: 'The piece book (Choose a piece), listed among the level ' + piece.level + ' pieces; the teacher can put it in the curriculum' })),
     sheet, warn, el('div', { className: 'row' }, playBtn, speed),
     parts.note, el('div', { className: 'row' }, parts.approve, parts.wait, parts.state), more);
   views[piece.id] = parts;
@@ -356,7 +353,7 @@ function draw() {
   const sheets = [];
   const groups = [
     ['Used on Keri', 'A character, the intro, a scene or a song plays these, and they also go in the piece book.', BOARD.pieces.filter((p) => p.uses.length)],
-    ['Piece book only', 'Extra pieces to read and play: the student picks them from Choose a piece once their level is high enough, or the teacher puts them in the curriculum.', BOARD.pieces.filter((p) => !p.uses.length)],
+    ['Piece book only', 'Extra pieces to read and play: the student can pick any of them from Choose a piece (sorted easiest first), and the teacher can put them in the curriculum.', BOARD.pieces.filter((p) => !p.uses.length)],
   ];
   for (const [name, lead, pieces] of groups) {
     if (!pieces.length) continue;

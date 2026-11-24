@@ -89,9 +89,9 @@ describe('pieceUses', () => {
   it('knows nothing of a content folder that is not there, and the board then names only the piece book', () => {
     expect(pieceUses(join(dir, 'nowhere')).size).toBe(0);
     const little = boardPieces(dir, levels, new Map([['little-steps', ['Played in the scene \u201cboat\u201d']]])).pieces;
-    expect(little.map((p) => [p.id, p.uses, p.opens])).toEqual([
-      ['hands-together', [], 5],
-      ['little-steps', ['Played in the scene \u201cboat\u201d'], 1],
+    expect(little.map((p) => [p.id, p.uses])).toEqual([
+      ['hands-together', []],
+      ['little-steps', ['Played in the scene \u201cboat\u201d']],
     ]);
   });
 });
