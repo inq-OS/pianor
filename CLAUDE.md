@@ -43,7 +43,7 @@ Keep this list accurate (`docs:check` fails if a script is missing here).
 - `npm run build`: typecheck and production build
 - `npm run start:local`: build (approved pieces only), serve on `http://127.0.0.1:4173` offline and open it as its own full-screen window (Edge or Chrome in app mode, own browser profile); how a student plays on their own computer (ft_0_14, d068, d105)
 - `npm test`: Vitest unit tests. `npm run test:coverage`: plus the 90% coverage gate on `src/core`, `src/io` and `tools/` (CI), without the art rules' test and the painters' picture tests. `npm run test:art`: those alone (`tools/art/pictureRules.test.ts` paints every picture at every hour, a minute or more, and keeps them until the painters' code changes; its own CI job)
-- `npm run test:e2e`: Playwright end-to-end and screenshot tests (own dev server on port 5180; on a new machine `npx playwright install chromium`; cloud sessions use the pre-installed Chromium or `PW_CHROMIUM_PATH`, and screenshot tests without a Linux baseline skip). `-- --project=<area>` runs one area
+- `npm run test:e2e`: Playwright end-to-end and screenshot tests (own dev server on port 5180; on a new machine `npx playwright install chromium`; cloud sessions use the pre-installed Chromium or `PW_CHROMIUM_PATH`, and screenshot tests without a baseline skip). `-- --project=<area>` runs one area
 - `npm run test:e2e:affected`: the areas the branch touches (against `origin/main`, uncommitted files included) plus `@smoke`; use it while working and before a commit that touches the game. Areas and the run log in `test-logs/`: `docs/testing.md` section 10
 - `npm run test:e2e:smoke`: the seven `@smoke` tests (about two minutes)
 - `npm run typecheck`, `npm run lint`
@@ -113,7 +113,7 @@ Keep this list accurate (`docs:check` fails if a script is missing here).
 - In a Windows shell, write multi-line scripts to a file (a Python script in the scratchpad) instead of an inline heredoc with quotes; `git` CRLF warnings are harmless.
 - Send long test output to a log file (`npm run test:e2e > <scratchpad>/e2e.log 2>&1`) and read only the summary and failing names (`grep -n -E "FAIL|passed|failed" <log>`); an end-to-end run also writes `test-logs/runs/<newest>/summary.md` and `failures/`.
 - A full end-to-end run takes about 8 minutes with a GPU, 20 to 30 without (SwiftShader, `E2E_GPU=0`, CI). Use `npm run test:e2e:affected`.
-- Screenshot baselines are made on Windows, tolerance 2 percent (a small control can slip through: look at the picture when a screen changes). Linux CI and cloud sessions skip them; the `visual (Windows)` CI job checks them and the "Update screenshot baselines (Windows)" workflow makes new ones (`docs/decisions/workflow.md#d062`).
+- Screenshot baselines are made on Windows by the "Update screenshot baselines (Windows)" workflow, one file per screen that Windows and Linux both compare, tolerance 2 percent (a small control can slip through: look at the picture when a screen changes). No game text uses a font of the computer: the staff's font ships with the game (`docs/decisions/workflow.md#d288`).
 - Playwright uses port 5180 (`PW_PORT=<n>` changes it) and never reuses a server already there, so a stale server fails the run: find the holder (`lsof -i :5180` or `netstat -ano | findstr :5180`) and stop it or change `PW_PORT`. `PW_REUSE_SERVER=1` reuses a server you started on purpose.
 
 ## Definition of done (any task)

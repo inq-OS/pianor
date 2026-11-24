@@ -4,16 +4,14 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { E2E_FIXED_TIME, LITTLE_STEPS, expectE2EPlayer, expectNoErrors, openGame, openPiece, playWithKeys, toScoreScreen, useOneLine, waitForScene, type PageErrors } from './helpers';
 
 /**
- * Screenshot checks of the screens. Baselines exist for Windows only (d062): the "visual (Windows)" CI job checks them, and
- * on Linux CI, in cloud sessions (CLAUDE_CODE_REMOTE) and on a local Linux or macOS machine a test without a
- * baseline for the platform skips instead of writing an unreviewed one and failing. A local run with
- * `--update-snapshots` still writes them. Make new Windows ones with the "Update screenshot baselines (Windows)" workflow and
- * commit them for the maintainer to review.
+ * Screenshot checks of the screens. One baseline per screen serves every system (d288): it is made on Windows by the
+ * "Update screenshot baselines (Windows)" workflow, and Windows and Linux (CI, cloud sessions, a local machine) compare
+ * against the same file. A test without a baseline skips instead of writing an unreviewed one; a local run with
+ * `--update-snapshots` still writes them. Commit new ones for the maintainer to review.
  */
 function skipWithoutBaselineOnCi(testInfo: TestInfo, name: string): void {
   const writing = testInfo.config.updateSnapshots === 'all' || testInfo.config.updateSnapshots === 'changed';
-  const unattended = !!process.env.CI || !!process.env.CLAUDE_CODE_REMOTE || (process.platform !== 'win32' && !writing);
-  test.skip(unattended && !existsSync(testInfo.snapshotPath(name)), 'no screenshot baseline for this platform yet');
+  test.skip(!writing && !existsSync(testInfo.snapshotPath(name)), 'no screenshot baseline yet');
 }
 
 /**
@@ -40,6 +38,13 @@ test.describe('grand staff', () => {
 });
 
 test.describe('staff', () => {
+  test('the shipped staff font is loaded before the game draws, upright and italic (d288)', async ({ page }) => {
+    const errors = await openForPicture(page);
+    const faces = await page.evaluate(() => [...document.fonts].filter((f) => f.family.replaceAll('"', '') === 'Pianor Mono').map((f) => `${f.style} ${f.weight} ${f.status}`));
+    expect(faces.sort()).toEqual(['italic 700 loaded', 'italic 700 loaded', 'normal 700 loaded', 'normal 700 loaded']);
+    expectNoErrors(errors);
+  });
+
   test('practice screen with the staff, clef, time signature and the lit first note', async ({ page }, testInfo) => {
     skipWithoutBaselineOnCi(testInfo, 'practice.png');
     const errors = await openForPicture(page);

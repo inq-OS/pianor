@@ -4,6 +4,7 @@ import { layoutStaff } from '../core/layout/staff';
 import { t } from '../core/text/strings';
 import { contextOf, type StaffDemoView } from './context';
 import { DEFAULT_THEME, StaffView } from './ui/staff/StaffView';
+import { STAFF_FONT } from './ui/staff/staffFont';
 
 /** Dev-only scene (`?demo=staff`): look at the staff renderer, switch pieces, hints and sizes, step the cursor. */
 export class StaffDemoScene extends Phaser.Scene {
@@ -74,6 +75,6 @@ export class StaffDemoScene extends Phaser.Scene {
     this.view = new StaffView(this, layout, undefined, this.hints);
     this.view.setCursor(this.cursor);
     this.help = this.add
-      .text(12, 8, `${chart.title}${layout.fits ? '' : '  (does not fit)'}  |  ${t('demo.help')}`, { fontFamily: 'monospace', fontSize: '14px', color: '#555555' });
+      .text(12, 8, `${chart.title}${layout.fits ? '' : '  (does not fit)'}  |  ${t('demo.help')}`, { fontFamily: STAFF_FONT, fontSize: '14px', color: '#555555' });
   }
 }

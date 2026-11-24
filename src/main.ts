@@ -53,6 +53,7 @@ import { frameFits } from './core/layout/frame';
 import { displayText, setLanguage } from './core/text/language';
 import { t } from './core/text/strings';
 import { C, css } from './game/ui/pixel/palette';
+import { loadStaffFont } from './game/ui/staff/staffFont';
 
 async function startGame(): Promise<void> {
   const keyboardHost = document.getElementById('keyboard')!;
@@ -95,6 +96,8 @@ async function startGame(): Promise<void> {
     },
   };
 
+  // the staff's font is in before the first text is drawn (d288)
+  await loadStaffFont();
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game',
