@@ -97,9 +97,9 @@ Check: `src/core/judge/tempo.hold.test.ts` "core_01.AC6: the press score is mult
 
 **The tug is played from memory with no staff, harder at each level.** Features: ft_1_21, core_01.
 
-The tug never draws the staff; the piece was met on the staff earlier. Level 1 is Wait mode with `moveOnWrong` (`src/core/judge/wait.ts`: a wrong key is judged wrong with its reason, unpressed notes of the step are missed, the cursor moves on; no click, no count-in); level 2 is Tempo at 100 per cent with the click through count-in and piece; level 3 is Tempo at 100 per cent with only the count-in bar heard (`Transport.metronome({ countInOnly: true })`, `beats`). Each level's mode is in `content/challenge/rules.json`; a wrong key costs the exchange (d129).
+The tug never draws the staff; the piece was met on the staff earlier. Level 1 is Wait mode (`tugWaitMode` in `src/core/exchange/tugPlay.ts`): a wrong key is judged wrong with its reason and the phrase waits for the right one, so a stray key costs that note only and never shifts the rest; the exchange counts the notes right first try; no click, no count-in; level 2 is Tempo at 100 per cent with the click through count-in and piece; level 3 is Tempo at 100 per cent with only the count-in bar heard (`Transport.metronome({ countInOnly: true })`, `beats`). Each level's mode is in `content/challenge/rules.json`; a wrong key costs the exchange (d129).
 
-Check: `src/core/judge/wait.test.ts` "a wrong key is judged wrong with its reason, the note is missed and the cursor moves on"; `src/core/judge/wait.test.ts` "a wrong key in a chord ends the chord: keys already pressed stay right, the rest are missed"; `src/core/transport/transport.test.ts` "the plan stops after the count-in beats"
+Check: `src/core/exchange/tugPlay.test.ts` "ft_1_21.AC6 a stray key before a phrase played from memory costs that one note, never the whole phrase"; `src/core/transport/transport.test.ts` "the plan stops after the count-in beats"
 
 ## d168
 

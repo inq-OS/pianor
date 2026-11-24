@@ -1,7 +1,7 @@
 import type Phaser from 'phaser';
 import { playbackLengthMs, playbackNotes, sliceChart, type Chart } from '../../core/chart';
 import { advanceTug, leaveTug, startTug, type TugRules, type TugSetup, type TugState } from '../../core/exchange/tug';
-import { studentShare, tugFact, tugSetupOf, turnChartBars } from '../../core/exchange/tugPlay';
+import { studentShare, tugFact, tugSetupOf, tugWaitMode, turnChartBars } from '../../core/exchange/tugPlay';
 import { TempoMode, WaitMode, type NoteJudged, type PieceResult } from '../../core/judge';
 import { clickPlan } from '../../core/transport/practiceSpeed';
 import { Transport } from '../../core/transport/transport';
@@ -221,7 +221,7 @@ export class TugView {
       this.player.start(playbackNotes(phrase), playbackLengthMs(phrase), () => this.afterCharacter());
       return;
     }
-    this.listen(phrase, new WaitMode(phrase, { moveOnWrong: true }));
+    this.listen(phrase, tugWaitMode(phrase));
   }
 
   /** The chart of turn `index`'s phrase. */

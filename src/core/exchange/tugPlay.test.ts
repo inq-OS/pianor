@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
 import type { WorldState } from '../island/worldState';
 import { DEFAULT_TUG_RULES, advanceTug, startTug, type TugState } from './tug';
-import { onTimeShare, studentShare, trainerLevel, trainerRules, tugAfter, tugFact, tugRecord, tugLevelFor, tugSetupOf, turnChartBars } from './tugPlay';
+import { onTimeShare, studentShare, trainerLevel, trainerRules, tugAfter, tugFact, tugRecord, tugLevelFor, tugSetupOf, tugWaitMode, turnChartBars } from './tugPlay';
+import type { JudgeEvent, PieceResult } from '../judge';
 
 const rules = DEFAULT_TUG_RULES;
 /** Four whole bars of quarter notes (C D E F in each). */
@@ -66,6 +67,18 @@ describe('after each exchange (ft_1_21.AC7)', () => {
 
 describe('the levels in the scene (ft_1_21.AC6)', () => {
   const all = () => true;
+  it('ft_1_21.AC6 a stray key before a phrase played from memory costs that one note, never the whole phrase', () => {
+    const phrase = chartWith([60, 62, 64, 65, 67, 65, 64].map((midi, i) => ({ tick: i * 480, dur: 480, midi })));
+    const mode = tugWaitMode(phrase);
+    let result: PieceResult | null = null;
+    [59, 60, 62, 64, 65, 67, 65, 64].forEach((midi, i) => {
+      const events: JudgeEvent[] = mode.handle({ kind: 'on', midi, velocity: 80, timeMs: i * 400, source: 'test' });
+      for (const e of events) if (e.type === 'PieceCompleted') result = e.result;
+    });
+    expect(result).not.toBeNull();
+    expect(tugFact(result!, [])).toEqual({ right: 6, total: 7 });
+  });
+
   it('ft_1_21.AC6 the next tug is one level above the best won, never above 3 nor below the level the talk asks for', () => {
     expect(tugLevelFor(1, 0, all)).toBe(1);
     expect(tugLevelFor(1, 1, all)).toBe(2);

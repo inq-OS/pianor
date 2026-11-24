@@ -19,7 +19,6 @@ const tugs = (page: Page) => page.evaluate(() => (window.__game.registry.get('co
 
 /** Puuvaim's first phrase, its first two bars: what the student plays back at level 1. */
 const PHRASE = [64, 64, 65, 64, 62, 62, 60];
-const WRONG = [61, 61, 61, 61, 61, 61, 61];
 
 /** Puuvaim's level 2 piece: its bars' notes, and the student's phrase in it (bars 3 and 4). */
 const LEVEL_2 = { piece: 'puuvaim-2', bars: [4, 4, 3, 3] };
@@ -225,10 +224,19 @@ async function pressKiur(page: Page, title = 'Runo Song'): Promise<void> {
 }
 
 /** A round of the practice tug in the room: Kiur's phrase cut short, then the student's `notes`; the tug after the fact. */
-async function roomRound(page: Page, notes: number[]): Promise<TugView> {
+async function roomRound(page: Page, notes: number[] | 'missEach' | 'strayFirst'): Promise<TugView> {
   await expect.poll(async () => (await roomTug(page))?.who).toBe('character');
   await page.evaluate(() => (window.__game.scene.getScene('profile') as unknown as { endTugPhrase(): void }).endTugPhrase());
   await expect.poll(async () => (await roomTug(page))?.who).toBe('student');
+  if (typeof notes === 'string') {
+    // the notes of the phrase the student plays now, each missed first (a key a semitone off), or one stray key before them
+    const phrase = await page.evaluate(() => {
+      const tug = (window.__game.scene.getScene('profile') as unknown as { tug: { listeningTo: { notes: { tick: number; midi: number }[] } } }).tug;
+      return [...tug.listeningTo.notes].sort((a, b) => a.tick - b.tick).map((n) => n.midi);
+    });
+    const off = (m: number) => (phrase.includes(m + 1) ? m - 1 : m + 1);
+    notes = notes === 'missEach' ? phrase.flatMap((m) => [off(m), m]) : [off(phrase[0]!), ...phrase];
+  }
   await playWithVirtualPiano(page, notes);
   await expect.poll(async () => (await roomTug(page))?.saying ?? null).not.toBeNull();
   return (await roomTug(page))!;
@@ -249,8 +257,14 @@ test.describe('Kiur the trainer in the room (ft_1_21.AC14)', () => {
     // no character met: he trains all the same
     await pressKiur(page);
     expect(await roomTug(page)).toMatchObject({ who: 'character', standing: 0, level: 1 });
-    expect(await roomRound(page, WRONG)).toMatchObject({ standing: -1, saying: '0 of 7 notes right' });
-    await roomRound(page, WRONG);
+    // a stray key before the phrase costs that note only: the rest is still right first try (ft_1_21.AC6)
+    expect(await roomRound(page, 'strayFirst')).toMatchObject({ standing: 1, saying: '6 of 7 notes right' });
+    await page.keyboard.press('Escape');
+    await expect.poll(() => roomTug(page)).toBeNull();
+    await pressKiur(page);
+    // every note first missed, then found: Wait mode waits for the right key, and none was right first try
+    expect(await roomRound(page, 'missEach')).toMatchObject({ standing: -1, saying: '0 of 7 notes right' });
+    await roomRound(page, 'missEach');
     await expect.poll(async () => (await roomTug(page))?.outcome).toBe('lost');
     await expect.poll(async () => (await roomTug(page))?.saying).toContain('Practice the piece more');
     await page.keyboard.press('Space');

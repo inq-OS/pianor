@@ -4,7 +4,7 @@
  * tug record with its XP in the profile (AC9). Pure.
  */
 import type { Chart } from '../chart';
-import type { PlayStats } from '../judge';
+import { WaitMode, type PlayStats } from '../judge';
 import { pickupTicks } from '../chart/time';
 import type { CharacterId, ItemId } from '../contracts';
 import { applyTalkEffects } from '../dialogue/talkWorld';
@@ -122,4 +122,12 @@ export function tugRecord(state: TugState, character: CharacterId, rules: TugRul
     exchanges: Math.max(1, state.results.length),
     xp: tugPrize({ kind: state.setup.kind, outcome: result.outcome, best: state.best }, potentialXp, rules),
   };
+}
+
+/**
+ * The judge of a student's phrase at level 1 (ft_1_21.AC6, d100): Wait mode with no staff, played from memory. A wrong key
+ * waits for the right one, so a stray key costs that note only and never shifts the rest of the phrase (d100).
+ */
+export function tugWaitMode(phrase: Chart): WaitMode {
+  return new WaitMode(phrase);
 }
