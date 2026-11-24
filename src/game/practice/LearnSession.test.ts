@@ -5,6 +5,8 @@ import { chartWith } from '../../../tests/helpers/charts';
 import { WaitMode } from '../../core/judge/wait';
 import { DEFAULT_LEARN_SETTINGS, START_PROGRESS, type LearnProgress } from '../../core/learn/progress';
 import type { BarPlay } from '../../core/progression/practiceLog';
+import { strings } from '../../core/text/strings';
+import { stringsEt } from '../../core/text/strings.et';
 import { LearnSession, markersFor, type LearnProfile } from './LearnSession';
 
 const miss = { tick: 480, track: 'rh', midi: 62 };
@@ -90,7 +92,7 @@ describe('LearnSession', () => {
     expect(played).toEqual({ outcome: 'perfect', bpm: 75 });
     await last.finish(played.outcome, played.bpm);
     expect(last.learned).toBe(true);
-    expect(last.endLine(played.outcome, played.bpm)).toBe('Learned: every note right, at an even 75');
+    expect(last.endLine(played.outcome, played.bpm)).toBe('Learned! Tempo 75');
   });
 
   it('ft_1_32.AC19 the prizes stay on the staff at the moment the piece is learned, the clef earned and nothing more aimed at', async () => {
@@ -113,7 +115,7 @@ describe('LearnSession', () => {
       const played = playRun(now, [0, 1000, 2000, 3000]);
       await now.finish(played.outcome, played.bpm);
     }
-    expect(lines).toEqual(['Bar 1 once more, at an even pace (play 1 of 3)', 'Bar 1 once more, at an even pace (play 2 of 3)', 'Bar 1 once more, at an even pace (play 3 of 3)']);
+    expect(lines).toEqual(['Bar 1 again, evenly (1/3)', 'Bar 1 again, evenly (2/3)', 'Bar 1 again, evenly (3/3)']);
   });
 
   it('ft_1_32.AC12 with hands apart, the step after each hand alone says both hands', async () => {
@@ -132,7 +134,7 @@ describe('LearnSession', () => {
       await now.finish('perfect');
       if (run === 1) lines.push(now.nextLine());
     }
-    expect(lines).toEqual(['Bar 1, right hand alone: every note right', 'Bar 1, left hand alone: every note right', 'Bar 1, both hands: every note right', 'Bar 1, both hands: every note right']);
+    expect(lines).toEqual(['Bar 1, right hand', 'Bar 1, left hand', 'Bar 1, both hands', 'Bar 1, both hands']);
   });
 
   it('counts nothing with note names shown', () => {
@@ -184,7 +186,7 @@ describe('LearnSession', () => {
       const mode = new WaitMode(run.chart);
       fast.forEach((timeMs, i) => run.push(mode.handle({ kind: 'on', midi: midis[i]!, velocity: 80, timeMs, source: 'test' }), run.chart));
       expect(run.verdict).toEqual({ state: 'rushed' });
-      expect(run.rushLine()).toBe('Too fast: keep the speed you started with. Once more');
+      expect(run.rushLine()).toBe('Too fast! Again');
       await run.finish('unsteady');
       expect(kept.progress).toMatchObject({ step: 0, unsteady: ask }); // nothing lost, nothing counted
     }
@@ -226,10 +228,21 @@ describe('LearnSession', () => {
     expect(session.chart.tracks.filter((t) => t.role === 'play').map((t) => t.hand)).toEqual(['RH']);
     // ft_1_32.AC18 the left hand rests: its staff is drawn grey and not awaited
     expect(session.restingTracks).toEqual(both.tracks.filter((t) => t.hand === 'LH').map((t) => t.id));
-    expect(session.startLine()).toBe('Bar 1, right hand alone: every note right');
+    expect(session.startLine()).toBe('Bar 1, right hand');
     await session.finish('perfect');
     expect(kept.progress.handsApart).toBe(true);
-    expect(LearnSession.open(profileOf, both, '1998-11-22')!.startLine()).toBe('Bar 1, left hand alone: every note right');
+    expect(LearnSession.open(profileOf, both, '1998-11-22')!.startLine()).toBe('Bar 1, left hand');
   });
 });
 
+
+describe('Kiur\'s lines while learning', () => {
+  // the child reads them between runs: a few words each, the staff and the prize column show the rest
+  const said = (Object.keys(strings) as (keyof typeof strings)[]).filter((key) => key.startsWith('learn.') && !key.startsWith('learn.resume.'));
+  const words = (line: string) => line.split(/\s+/).filter((w) => /\p{L}/u.test(w)).length;
+
+  it('keeps every line to four words or fewer, in English and Estonian', () => {
+    const long = said.flatMap((key) => [strings[key], stringsEt[key]]).filter((line) => words(line) > 4);
+    expect(long).toEqual([]);
+  });
+});
