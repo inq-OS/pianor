@@ -6,7 +6,7 @@ import type { BarLayout } from './staffTypes';
 
 /**
  * The beat lane (core_13 rule 2): a row of faint dots along each line of the staff, above it or between its two staves,
- * where a wave runs at the tempo. A ghost dot stands every sixteenth, a beat dot a little bigger on every click, the first of
+ * where a wave runs at the tempo. A ghost dot stands every thirty-second (a dotted line), a beat dot a little bigger on every click, the first of
  * the bar bigger still, and a note dot under every chord; when the wave passes a dot it nudges it up. Pure: the view only
  * paints it, and it decides nothing.
  */
@@ -26,8 +26,8 @@ export interface LaneDot {
   note: boolean;
 }
 
-/** Dots a quarter: a ghost every sixteenth. */
-const GHOSTS_PER_BEAT = 4;
+/** Dots a quarter: a ghost every thirty-second, close enough to read as a dotted line. */
+const GHOSTS_PER_BEAT = 8;
 
 /**
  * `AX-3 provisional:` the lane above a staff sits this many staff spaces over its top line, and at least `ABOVE_INK` over
@@ -124,18 +124,18 @@ export function laneDots(layout: StaffLayout, chart: Chart, place: LanePlace): L
   }
   // a note dot that landed on a ghost's place takes it
   return dots
-    .filter((d) => d.note || !dots.some((o) => o !== d && o.note && o.system === d.system && Math.abs(o.x - d.x) < 0.5 * S))
+    .filter((d) => d.note || !dots.some((o) => o !== d && o.note && o.system === d.system && Math.abs(o.tick - d.tick) < step && Math.abs(o.x - d.x) < 0.5 * S))
     .sort((a, b) => a.system - b.system || a.x - b.x);
 }
 
-/** How far the wave reaches either side of its crest, in quarters. */
-export const WAVE_REACH = 0.5;
+/** How far the wave reaches either side of its crest, in quarters: a narrow bump, `AX-3 provisional:`. */
+export const WAVE_REACH = 0.25;
 
-/** How much the wave at `waveTick` lifts a dot at `dotTick`, 0 to 1: fully at the crest, smoothly to none `WAVE_REACH` away. */
+/** How much the wave at `waveTick` lifts a dot at `dotTick`, 0 to 1: fully at the crest, falling off as a parabola to none `WAVE_REACH` away. */
 export function laneLift(dotTick: number, waveTick: number | null, ppq: number): number {
   if (waveTick === null) return 0;
   const d = Math.abs(dotTick - waveTick) / (WAVE_REACH * ppq);
-  return d >= 1 ? 0 : Math.cos((d * Math.PI) / 2) ** 2;
+  return d >= 1 ? 0 : 1 - d * d;
 }
 
 /**

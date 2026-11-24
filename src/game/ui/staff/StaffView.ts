@@ -570,7 +570,7 @@ export class StaffView {
       if (!this.onPage(dot.system)) continue;
       const lift = this.liftOf(dot);
       const mark = dot.note ? this.laneMarks.get(dot.tick) : undefined;
-      const size = dot.kind === 'downbeat' ? 0.3 : dot.kind === 'beat' || dot.note ? 0.22 : 0.11;
+      const size = dot.kind === 'downbeat' ? 0.3 : dot.kind === 'beat' || dot.note ? 0.22 : 0.09;
       const rise = dot.kind === 'ghost' && !dot.note ? 0.45 : 0.8;
       const alpha = mark ? 1 : dot.kind === 'downbeat' ? 0.55 : dot.kind === 'beat' || dot.note ? 0.4 : 0.22;
       g.fillStyle(mark ? paceColour(mark) : this.theme.ink, Math.min(1, alpha + lift * 0.4));

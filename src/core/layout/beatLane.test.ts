@@ -16,10 +16,10 @@ const hands = chartWith([
 const grand = layoutStaff(hands, { viewport: { width: 1366, height: 700 } });
 
 describe('laneDots', () => {
-  it('core_13.AC1 puts a ghost dot every sixteenth, a beat dot on every quarter and a bigger one on each bar\'s first', () => {
+  it('core_13.AC1 puts a ghost dot every thirty-second (a dotted line), a beat dot on every quarter and a bigger one on each bar\'s first', () => {
     const dots = laneDots(single, chart, 'above');
     const bar = dots.filter((d) => d.tick >= 0 && d.tick < 1920);
-    expect(bar).toHaveLength(16);
+    expect(bar).toHaveLength(32);
     expect(bar.filter((d) => d.kind === 'downbeat').map((d) => d.tick)).toEqual([0]);
     expect(bar.filter((d) => d.kind === 'beat').map((d) => d.tick)).toEqual([480, 960, 1440]);
     // left to right within a line, evenly in time
@@ -67,16 +67,16 @@ describe('laneDots', () => {
     const pickup = chartSchema.parse({ ...hands, bars: [{ index: 0, startTick: 0, endTick: 480 }, { index: 1, startTick: 480, endTick: 2400 }], notes: hands.notes.filter((n) => n.track === 'rh').map((n, i) => ({ ...n, tick: i * 480, bar: i === 0 ? 0 : 1 })) });
     const layout = layoutStaff(pickup, { viewport: { width: 1366, height: 600 } });
     const dots = laneDots(layout, pickup, 'above');
-    expect(dots.filter((d) => d.tick < 480).map((d) => d.kind)).toEqual(['beat', 'ghost', 'ghost', 'ghost']);
+    expect(dots.filter((d) => d.tick < 480).map((d) => d.kind)).toEqual(['beat', ...Array<string>(7).fill('ghost')]);
     expect(dots.find((d) => d.tick === 480)!.kind).toBe('downbeat');
   });
 });
 
 describe('laneLift', () => {
-  it('core_13.AC1 lifts a dot fully at the crest and smoothly less away from it, none half a beat off', () => {
+  it('core_13.AC1 lifts a dot fully at the crest and less away from it as a parabola, none a quarter of a beat off', () => {
     expect(laneLift(960, 960, 480)).toBe(1);
-    expect(laneLift(960, 960 + 120, 480)).toBeCloseTo(0.5);
-    expect(laneLift(960, 960 - 120, 480)).toBeCloseTo(0.5);
+    expect(laneLift(960, 960 + 60, 480)).toBeCloseTo(0.75);
+    expect(laneLift(960, 960 - 60, 480)).toBeCloseTo(0.75);
     expect(laneLift(960, 960 + WAVE_REACH * 480, 480)).toBe(0);
     expect(laneLift(960, null, 480)).toBe(0);
   });
