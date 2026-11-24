@@ -109,10 +109,10 @@ export function optionPlate(look: PlateLook = 'plain', size: number = OPTION_PLA
 }
 
 /** The keyboard's focus on an option: a gold ring two cells wide just outside the plate, `OPTION_PLATE + 4` across. */
-export function optionFocus(): Bitmap {
-  const size = OPTION_PLATE + 4;
+export function optionFocus(plate: number = OPTION_PLATE): Bitmap {
+  const size = plate + 4;
   const outer = disc(size);
-  const inner = (x: number, y: number) => (x + 0.5 - size / 2) ** 2 + (y + 0.5 - size / 2) ** 2 <= (OPTION_PLATE / 2) ** 2;
+  const inner = (x: number, y: number) => (x + 0.5 - size / 2) ** 2 + (y + 0.5 - size / 2) ** 2 <= (plate / 2) ** 2;
   const b = createBitmap(size, size);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (outer(x, y) && !inner(x, y)) b.pixels[y * size + x] = C.goldLight;
   return b;
@@ -122,10 +122,10 @@ export function optionFocus(): Bitmap {
 const CROSS = fromAscii(['kk...kk', 'kwk.kwk', '.kwkwk.', '..kwk..', '.kwkwk.', 'kwk.kwk', 'kk...kk'], { k: C.groove, w: C.dim });
 
 /** The Close target in the ring's centre: a sunk round plate with a cross, so it reads as the way out and not as an option. */
-export function closePlate(look: 'plain' | 'hover' = 'plain', size: number = OPTION_PLATE): Bitmap {
+export function closePlate(look: 'plain' | 'hover' = 'plain', size: number = OPTION_PLATE, cross = true): Bitmap {
   const sunk = look === 'hover' ? PLATES.hover : PLATES.plain;
   const b = barePlate(size, size, disc(size), { ...sunk, light: sunk.shade, shade: sunk.light });
-  blit(b, CROSS, (size - CROSS.width) >> 1, (size - CROSS.height) >> 1);
+  if (cross) blit(b, CROSS, (size - CROSS.width) >> 1, (size - CROSS.height) >> 1);
   return b;
 }
 
@@ -165,8 +165,13 @@ export function choicesSausage(centre: { x: number; y: number }, choices: readon
   };
   const picture = barePlate(w, h, inside, PLATES.plain, spine);
   const lit = choices[active];
-  if (lit) blit(picture, barePlate(CHOICE_SIZE, CHOICE_SIZE, disc(CHOICE_SIZE), PLATES.on), lit.x - x0, lit.y - y0);
+  if (lit) blit(picture, choicePatch('on'), lit.x - x0, lit.y - y0);
   return { picture, x: x0, y: y0 };
+}
+
+/** A round patch under one choice in the sausage, `CHOICE_SIZE` across: lighter under the pointer, gold-rimmed for the one in use. */
+export function choicePatch(look: PlateLook): Bitmap {
+  return barePlate(CHOICE_SIZE, CHOICE_SIZE, disc(CHOICE_SIZE), PLATES[look]);
 }
 
 /**
