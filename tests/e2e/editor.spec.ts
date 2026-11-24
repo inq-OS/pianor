@@ -1,4 +1,4 @@
-// Covers ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_02e.AC8, ft_1_02d.AC25, ft_1_02d.AC34, ft_1_02d.AC35, ft_1_02d.AC36, ft_1_02d.AC37, ft_1_02d.AC31, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
+// Covers ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_02e.AC8, ft_1_02d.AC25, ft_1_02d.AC34, ft_1_02d.AC35, ft_1_02d.AC36, ft_1_02d.AC37, ft_1_02d.AC38, ft_1_02d.AC39, ft_1_02d.AC31, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
 import { readFileSync } from 'node:fs';
 import { encode as encodePng } from 'fast-png';
 import { expect, test, type Page } from '@playwright/test';
@@ -71,7 +71,7 @@ async function openEditor(page: Page): Promise<void> {
 }
 
 /** Presses (with the real mouse) the clef or the time signature at the start of the first line, or only moves onto it. */
-async function pressSignature(page: Page, kind: 'key' | 'time', only: 'press' | 'hover' = 'press'): Promise<void> {
+async function pressSignature(page: Page, kind: 'key' | 'time', only: 'press' | 'hover' | 'right' = 'press'): Promise<void> {
   const point = await page.evaluate((k) => {
     type Layout = { staffSpace: number; systems: { left: number; staves: { topLineY: number; bottomLineY: number }[] }[]; timeSignatures: { system: number; x: number }[] };
     const scene = window.__game.scene.getScene('editor') as unknown as { layout: Layout; staffLeft: number; staffTop: number };
@@ -86,7 +86,7 @@ async function pressSignature(page: Page, kind: 'key' | 'time', only: 'press' | 
     return { x: rect.left + ((scene.staffLeft + x) / canvas.width) * rect.width, y: rect.top + ((scene.staffTop + (staff.topLineY + staff.bottomLineY) / 2) / canvas.height) * rect.height };
   }, kind);
   if (only === 'hover') await page.mouse.move(point.x, point.y);
-  else await page.mouse.click(point.x, point.y);
+  else await page.mouse.click(point.x, point.y, only === 'right' ? { button: 'right' } : {});
 }
 
 /** Which panel is open over the staff's foot: the time panel or none. */
@@ -1027,11 +1027,13 @@ test.describe('one item each for the accidentals, ties and slurs, and repeats', 
     await pressArc();
     expect(await arcs()).toEqual({ ties: [0], slurs: 1 });
 
-    // one repeat item: a press asks for the start bar (it is lit); the signs snap to the nearest bar line (ft_1_02d.AC31), so a
-    // click near the start of bar 2 starts it there, and a click near the end of bar 3 ends it there
+    // one repeat item: K asks for the start bar (it is lit); the signs snap to the nearest bar line (ft_1_02d.AC31), so a
+    // click near the start of bar 2 starts it there, and a click near the end of bar 3 ends it there (from the bubble of a
+    // bar the repeat starts on that bar: ft_1_02d.AC38)
     const repeats = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { history: { present: { repeats?: unknown[] } } }).history.present.repeats ?? []);
     expect(await editorButton(page, '|:')).toBe(-1);
-    await clickButton(page, 'editor', await bubbleButton(page, '|: :|'));
+    await closeBubble(page, 'editor');
+    await page.keyboard.press('KeyK');
     expect(await status(page)).toContain('Click the bar the repeat starts on.');
     await selectNote(page, 1, 0, 'C');
     expect(await status(page)).toContain('Now click the bar the repeat ends on.');
@@ -1462,9 +1464,9 @@ test.describe('pre-notes (grace notes, core_09.AC35, core_09.AC36, d121)', () =>
     d.layout.forEach((l, i) => expect(d.origin.x + l.x).toBeLessThan(heads[i]!));
     if (process.env.GRACE_EDITOR_SHOT) await page.screenshot({ path: process.env.GRACE_EDITOR_SHOT });
 
-    // the item on a note with a pre-note takes it away; undo brings it back
+    // the item on a note with a pre-note is REMOVE GRACE NOTE and takes it away (ft_1_02d.AC39); undo brings it back
     await clickNote(page, 0, 0, 'E');
-    await clickButton(page, 'editor', await graceButton(page));
+    await clickButton(page, 'editor', await bubbleButton(page, 'REMOVE GRACE NOTE'));
     await expect.poll(() => graces(page)).toEqual(['E:-', 'G:B40/']);
     await page.keyboard.press('Control+KeyZ');
     await expect.poll(() => graces(page)).toEqual(['E:D40/', 'G:B40/']);
@@ -1985,6 +1987,14 @@ test.describe('piece maker: vim keys (ft_1_02e)', () => {
 
 test.describe('piece maker: the cursor follows the pointer, the bubble offers what applies (ft_1_02d)', () => {
   /** The words of the open bubble after a right click at this place of the right hand's staff. */
+  const buttonDisabled = (page: Page, index: number) => page.evaluate((i) => (window.__game.scene.getScene('editor').buttons as { disabled: boolean }[])[i]!.disabled, index);
+  /** Changes the piece as an edit would (one undo step), to set up a state the test is not about. */
+  const changePiece = (page: Page, change: string) => page.evaluate((c) => {
+    const scene = window.__game.scene.getScene('editor') as unknown as { history: { present: Record<string, unknown> & { notes: Record<string, unknown>[] } }; change(next: unknown): void };
+    const p = scene.history.present;
+    scene.change(c === 'grace' ? { ...p, notes: p.notes.map((n, i) => (i === 0 ? { ...n, grace: { step: 'D', octave: 4, alter: 0, slash: true } } : n)) } : { ...p, repeats: [{ startBar: 0, endBar: 1 }] });
+  }, change);
+
   async function bubbleAt(page: Page, place: { bar: number; start: number; step: Step; octave?: number }): Promise<string[]> {
     await closeBubble(page, 'editor');
     const at = await canvasPoint(page, place);
@@ -2004,10 +2014,19 @@ test.describe('piece maker: the cursor follows the pointer, the bubble offers wh
     expect(await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { barSel: unknown }).barSel)).toEqual({ from: 0, to: 1 });
   }
 
-  test('ft_1_02d.AC34 the keyboard cursor follows the pointer: onto a note it selects it, onto a free place it goes there, and the arrows still move it', async ({ page }) => {
+  test('ft_1_02d.AC34 with its switch on, the keyboard cursor follows the pointer: onto a note it selects it, onto a free place it goes there, and the arrows still move it', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
     await eAndGQuarters(page);
+    // off at first: the pointer on E leaves the selection alone
+    const e0 = await canvasPoint(page, { bar: 0, start: 0, step: 'E' });
+    await page.mouse.move(e0.x, e0.y, { steps: 3 });
+    expect((await keyState(page)).selected).toBeNull();
+    // the switch is in the bubble on an empty place, as two pictures
+    await clickButton(page, 'editor', await bubbleButton(page, 'Cursor stays put', 2));
+    await clickButton(page, 'editor', await lastButton(page, 'editor', 'Cursor follows the mouse'));
+    expect(await page.evaluate(() => JSON.parse(window.localStorage.getItem('pianor-editor/entry-prefs') ?? '{}').followPointer)).toBe(true);
+    await page.mouse.move(e0.x + 40, e0.y + 40, { steps: 2 });
     // the pointer is still where G was written: it moves off and back onto it
     const e = await canvasPoint(page, { bar: 0, start: 0, step: 'E' });
     await page.mouse.move(e.x, e.y, { steps: 3 });
@@ -2026,7 +2045,7 @@ test.describe('piece maker: the cursor follows the pointer, the bubble offers wh
     expectNoErrors(errors);
   });
 
-  test('ft_1_02d.AC35 the bubble on a note offers no repeat signs, and paste only once something is copied', async ({ page }) => {
+  test('ft_1_02d.AC35 the bubble on a note offers no repeat signs, and paste stands greyed until something is copied', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
     await eAndGQuarters(page);
@@ -2036,11 +2055,12 @@ test.describe('piece maker: the cursor follows the pointer, the bubble offers wh
     expect(onNote).not.toContain('Paste');
     const onPlace = await bubbleAt(page, { bar: 2, start: 0, step: 'A', octave: 5 });
     expect(onPlace).toContain('|: :|');
-    expect(onPlace).not.toContain('Paste');
+    expect(await buttonDisabled(page, await lastButton(page, 'editor', 'Paste'))).toBe(true);
     await closeBubble(page, 'editor');
     await selectNote(page, 0, 0, 'E');
     await page.keyboard.press('Control+KeyC');
-    expect(await bubbleAt(page, { bar: 2, start: 0, step: 'A', octave: 5 })).toContain('Paste');
+    await bubbleAt(page, { bar: 2, start: 0, step: 'A', octave: 5 });
+    expect(await buttonDisabled(page, await lastButton(page, 'editor', 'Paste'))).toBe(false);
     expectNoErrors(errors);
   });
 
@@ -2082,6 +2102,89 @@ test.describe('piece maker: the cursor follows the pointer, the bubble offers wh
     expect(await status(page)).toContain('Notes this paste writes over (red): 1.');
     await page.keyboard.press('Control+KeyV');
     expect(await notes(page)).toEqual(['0:0:E:quarter', '1:0:E:quarter']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC38 the repeat picked in the bubble of a right click on a bar starts on that bar and asks only for its end', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await eAndGQuarters(page);
+    await bubbleAt(page, { bar: 1, start: 480, step: 'A', octave: 5 });
+    await clickButton(page, 'editor', await lastButton(page, 'editor', '|: :|'));
+    const pick = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { repeatPick: { startBar: number | null } | null }).repeatPick);
+    expect(await pick()).toEqual({ startBar: 1 });
+    expect(await status(page)).toContain('Now click the bar the repeat ends on.');
+    // the end: a click in bar 2
+    const end = await canvasPoint(page, { bar: 2, start: 1440, step: 'A', octave: 5 });
+    await page.mouse.click(end.x, end.y);
+    expect(await page.evaluate(() => window.__game.scene.getScene('editor').history.present.repeats)).toEqual([{ startBar: 1, endBar: 2 }]);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC39 an option waiting for an earlier step is greyed, one that cannot apply there is gone', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    const strip = async () => {
+      const out: Record<string, boolean> = {};
+      for (const label of ['Listen', 'Try it', 'Undo', 'Redo']) out[label] = await buttonDisabled(page, await editorButton(page, label));
+      return out;
+    };
+    // an empty piece: nothing to hear, try, undo or redo
+    expect(await strip()).toEqual({ Listen: true, 'Try it': true, Undo: true, Redo: true });
+    await eAndGQuarters(page);
+    expect(await strip()).toEqual({ Listen: false, 'Try it': false, Undo: false, Redo: true });
+    await clickButton(page, 'editor', await editorButton(page, 'Undo'));
+    expect((await strip()).Redo).toBe(false);
+    await clickButton(page, 'editor', await editorButton(page, 'Redo'));
+    // a length that does not fit the selected note there (E before G) is greyed in the length menu
+    await selectNote(page, 0, 0, 'E');
+    const lengths = await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { lengthItems(kind: string): { label: string; disabled: boolean }[] }).lengthItems('note').filter((i) => i.disabled).map((i) => i.label));
+    expect(lengths).toEqual(expect.arrayContaining(['1', '1/2']));
+    expect(lengths).not.toContain('1/4');
+    // AUTO only while it would write a finger
+    await bubbleAt(page, { bar: 0, start: 0, step: 'E' });
+    await clickButton(page, 'editor', await lastButton(page, 'editor', 'Fingers'));
+    await clickButton(page, 'editor', await lastButton(page, 'editor', 'AUTO'));
+    await bubbleAt(page, { bar: 0, start: 0, step: 'E' });
+    await clickButton(page, 'editor', await lastButton(page, 'editor', 'Fingers'));
+    expect(await lastButton(page, 'editor', 'AUTO')).toBe(-1);
+    // a note with a grace note offers to remove it
+    await closeBubble(page, 'editor');
+    await changePiece(page, 'grace');
+    expect(await bubbleAt(page, { bar: 0, start: 0, step: 'E' })).toContain('REMOVE GRACE NOTE');
+    // resting on it draws the grace note going in red first (d286)
+    const ghostDrawn = () => page.evaluate(() => ((window.__game.scene.getScene('editor') as unknown as { itemGhost: { commandBuffer: unknown[] } | null }).itemGhost?.commandBuffer.length ?? 0));
+    const graceAt = await buttonPoint(page, 'editor', await lastButton(page, 'editor', 'REMOVE GRACE NOTE'));
+    await page.mouse.move(graceAt.x, graceAt.y, { steps: 3 });
+    await expect.poll(ghostDrawn).toBeGreaterThan(0);
+    // the key's circle is the bubble of the clef and key signature, not of a place
+    expect(await bubbleAt(page, { bar: 2, start: 0, step: 'A', octave: 5 })).not.toContain('Circle of fifths');
+    await closeBubble(page, 'editor');
+    await pressSignature(page, 'key', 'right');
+    await expect.poll(() => bubbleOpen(page, 'editor')).toBe(true);
+    expect(await sceneWords(page, 'editor')).toContain('Circle of fifths');
+    // a bar inside a repeat offers to remove it, its bars shaded red first (d286)
+    await closeBubble(page, 'editor');
+    await changePiece(page, 'repeat');
+    await bubbleAt(page, { bar: 1, start: 960, step: 'A', octave: 5 });
+    const remove = await lastButton(page, 'editor', 'Remove this repeat');
+    expect(remove).toBeGreaterThanOrEqual(0);
+    // the grace note's red went with its bubble
+    expect(await ghostDrawn()).toBe(0);
+    const hover = await buttonPoint(page, 'editor', remove);
+    await page.mouse.move(hover.x, hover.y, { steps: 3 });
+    await expect.poll(ghostDrawn).toBeGreaterThan(0);
+    await clickButton(page, 'editor', remove);
+    expect(await page.evaluate(() => window.__game.scene.getScene('editor').history.present.repeats)).toBeUndefined();
+    // the short tap is for a piano: with none connected and no on-screen keyboard it is gone
+    expect(await bubbleAt(page, { bar: 2, start: 0, step: 'A', octave: 5 })).toContain('A short tap writes an eighth note (on) or a quarter note (off)');
+    await closeBubble(page, 'editor');
+    await page.evaluate(() => {
+      const context = window.__game.registry.get('context') as { midi: unknown; keyboardSwitch: { shown(): boolean } };
+      context.midi = null;
+      context.keyboardSwitch.shown = () => false;
+    });
+    expect(await bubbleAt(page, { bar: 2, start: 0, step: 'A', octave: 5 })).not.toContain('A short tap writes an eighth note (on) or a quarter note (off)');
     expectNoErrors(errors);
   });
 });

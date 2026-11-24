@@ -7,7 +7,7 @@ import { C } from './palette';
  * hints; for the editor's toolbar (d088) a floppy disk for Save and an arrow into or out of a tray for Import and
  * Export; a loop for the ear trainer's repeat and the note trainer's new round, stairs for the note trainer's step, and undo, redo, a bin, play, stop, backspace and a tick for the piece maker and the name box. Original, drawn for this project (the Kenney pack page refused the download, and these are a few pixels each). Each fits inside a 14 pixel bar button with its frame (10 rows at most).
  */
-export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'backpack' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'hide';
+export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'backpack' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'hide' | 'pointerFollow' | 'pointerStill';
 
 const LEGEND = { k: C.ink, w: C.white, g: C.gold, G: C.goldDark, s: C.skin } as const;
 
@@ -80,6 +80,10 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   staff: art(['wwwwwwwwww', '..........', 'wwwwwwwwww', '..........', 'wwwwwwwwww', '..........', 'wwwwwwwwww', '..........', 'wwwwwwwwww']),
   /** The short tap: an eighth note, what a short tap can write. */
   shortTap: art(['...w...', '...ww..', '...w.w.', '...w..w', '...w...', '.www...', 'wwww...', '.ww....']),
+  /** The cursor follows the pointer (ft_1_02d.AC34): the mouse's arrow with the cursor's ring trailing it. */
+  pointerFollow: art(['w.........', 'ww........', 'w.w.......', 'w..w......', 'w...w.....', 'w..ww..ww.', 'ww..w.w..w', '.....w...w', '.......ww.']),
+  /** The cursor stays where a click or a key put it: the mouse's arrow alone. */
+  pointerStill: art(['w.....', 'ww....', 'w.w...', 'w..w..', 'w...w.', 'w..ww.', 'ww..w.']),
   /** The time panel: a 4 over a 4. */
   timePanel: art(['w..w', 'w..w', 'wwww', '...w', '....', 'w..w', 'w..w', 'wwww', '...w']),
   close: art(['w.....w', '.w...w.', '..w.w..', '...w...', '..w.w..', '.w...w.', 'w.....w']),

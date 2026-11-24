@@ -503,19 +503,19 @@ Check: `src/core/learn/progress.test.ts` "ft_1_32.AC17 the live tempo is off unl
 
 ## d294
 
-**In the piece maker the keyboard cursor follows the pointer, the bubble offers only what applies, lassoed bars are slurred or tied from the bubble, and a paste that writes over notes warns first.** Features: ft_1_02d, ft_1_20.
+**In the piece maker the cursor follows the pointer only when that switch is on, the bubble hides what cannot apply there and greys what waits for an earlier step, lassoed bars are slurred or tied from the bubble, and a paste that writes over notes warns first.** Features: ft_1_02d, ft_1_20.
 
-A move of the pointer over the staff takes the cursor and the selection to the note or place under it; the arrow keys still move it. The bubble and its menus hide an option that would do nothing there (no repeat on a note, no paste with nothing copied) and keep every other option in its slot. With bars selected the tie and slur menu slurs each hand over them or ties every repeat in them, previewed faint first. A paste over notes turns their bars red and says how many go; the same paste again does it.
+The follow switch is in the bubble of an empty place, off by default and kept per device (`entryPrefs.followPointer`). An option that can never apply in a spot is hidden and its slot left empty (no repeat on a note, no grace note where one cannot go, AUTO when it changes no finger, the staff for played notes on a one-hand piece, the short tap and that staff with no piano to play (no MIDI keyboard connected and no on-screen keyboard), the key's circle off the clef and key signature); one waiting for an earlier step is greyed (Paste before a copy; Listen and Try it on an empty piece; Undo and Redo with nothing to undo or redo; a length the selected note cannot take there). The repeat picked from a right click on a bar starts on that bar and asks only for its end; a bar inside a repeat offers to remove it, its bars shaded red first, and "remove grace note" draws the grace note red first. A paste over notes turns their bars red and says how many go; the same paste again does it.
 
-Check: `src/core/editor/rangeArcs.test.ts` "ft_1_02d.AC36 slurs each hand from its first note in the selected bars to its last, with no note picked first"; `src/core/editor/bars.test.ts` "ft_1_02d.AC37 counts the notes a paste over another selection would replace"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC34 the keyboard cursor follows the pointer: onto a note it selects it, onto a free place it goes there, and the arrows still move it"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC35 the bubble on a note offers no repeat signs, and paste only once something is copied"
+Check: `src/core/editor/entryPrefs.test.ts` "ft_1_02d.AC34 the cursor following the pointer is off unless turned on, and a record from before reads as off"; `src/core/editor/repeats.test.ts` "ft_1_02d.AC39 finds the repeat a bar lies in and takes only that one away"; `src/core/editor/rangeArcs.test.ts` "ft_1_02d.AC36 slurs each hand from its first note in the selected bars to its last, with no note picked first"; `src/core/editor/bars.test.ts` "ft_1_02d.AC37 counts the notes a paste over another selection would replace"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC35 the bubble on a note offers no repeat signs, and paste stands greyed until something is copied"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC38 the repeat picked in the bubble of a right click on a bar starts on that bar and asks only for its end"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC39 an option waiting for an earlier step is greyed, one that cannot apply there is gone"
 
 ## d295
 
 **A name is typed on the computer keyboard into the game's name box; the box has no letter buttons.** Features: ft_1_07.
 
-The box is big, with a red caret where the next letter goes, and takes only the Estonian name letters, up to 12; Backspace deletes and Enter is Done, and Delete and Done stay as picture buttons. A tablet with no keyboard gets the system's on-screen keyboard later.
+The box is big, with a red caret where the next letter goes, and takes only the Estonian name letters, up to 12; Backspace deletes and Enter is Done, and Delete and Done stay as picture buttons. A see-through text field lies over the box and is focused, so a tablet's own keyboard comes up on a tap and types into it; the game draws the name and keeps only the name letters.
 
-Check: `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box"
+Check: `src/core/text/nameEntry.test.ts` "ft_1_07.AC6 keeps the name letters in capitals, drops anything else and stops at the longest name"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box"
 
 ## d296
 
