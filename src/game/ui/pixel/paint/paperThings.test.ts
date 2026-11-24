@@ -55,7 +55,7 @@ describe('the desk, the paper and the book (the screens overhaul)', () => {
     expect(same(paintPageCorner(56, 50), paintPageCorner(56, 50, true))).toBe(false);
   });
 
-  it('paints the song book\'s page numbers, bookmarks, turning corner and closed cover in the book\'s colours (ft_1_12 rule 10, ft_1_07)', () => {
+  it('paints the song book\'s page numbers, bookmarks, turning corner and closed cover in the book\'s colours (ft_1_12.AC12, ft_1_07)', () => {
     // a number is wider for each numeral, and two numbers differ
     expect(paintFolio(12).width).toBeGreaterThan(paintFolio(1).width);
     expect(same(paintFolio(3), paintFolio(4))).toBe(false);
@@ -81,4 +81,3 @@ describe('the desk, the paper and the book (the screens overhaul)', () => {
     expect(BOOK_PALETTE[page]! >> 16).toBeGreaterThan(0xd0);
   });
 });
-
