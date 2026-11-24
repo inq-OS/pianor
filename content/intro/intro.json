@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "note": "The first-run intro (ft_1_31). AX-3 provisional: what is said and shown, and the lesson (the first phrase of Twinkle, one pass to learn, two more to practise, as the tug's gate asks three plays). The tour goes out to the map and back before the teacher knocks. Lines are string keys (src/core/text/strings.ts); a Kiur step's spot is what the spotlight shows (null: the whole screen dimmed). Change the learn stage here when how a piece is learned changes.",
+  "note": "The first-run intro (ft_1_31). AX-3 provisional: what is said and shown, and the lesson (the first phrase of Twinkle, learned bar by bar to the learned moment, then two plays to practise). The tour goes out to the map and back before the teacher knocks. Lines are string keys (src/core/text/strings.ts); a Kiur step's spot is what the spotlight shows (null: the whole screen dimmed).",
   "piece": "twinkle-twinkle",
   "bars": [
     1,

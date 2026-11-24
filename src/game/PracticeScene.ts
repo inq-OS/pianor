@@ -1,7 +1,7 @@
 import { firstPrintedBar, isSection, sectionHasNotes, sliceChart, writtenNotes, type Chart } from '../core/chart';
 import { pieceTitle } from '../core/text/pieceTitle';
 import { MissedBars, type Hints, type JudgeEvent, type NoteJudged, type PieceResult, type PlayState, type WrongNoteJudged } from '../core/judge';
-import { learnLiveTempo, type LearnRewards } from '../core/learn/progress';
+import { learnLiveTempo, type LearnProgress, type LearnRewards } from '../core/learn/progress';
 import { learnsOnOpen } from '../core/learn/route';
 import { baselinePercent } from '../core/learn/tempo';
 import { CHARACTER_PIECES } from './adventure/scenesData';
@@ -38,6 +38,7 @@ import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { openOverlay, startScene, type OverlayOutcome } from './scenes';
 import type { KeriScreen } from './visit/islandVisit';
 import type { ClefFlight } from './MenuScene';
+import { introLearnProfile } from './practice/introLearning';
 import { afterPlay, type PlayStage, type PracticeSpot } from '../core/intro/intro';
 import { INTRO } from './intro/introContent';
 import type { Rect } from '../core/layout/rect';
@@ -141,7 +142,7 @@ export interface PracticeData {
    * Start over; Kiur's spotlight shows the screen before the first lap (`shown` once it was); after `passes` laps back to
    * the room's next stage, and Back returns to the room's stage that opened it.
    */
-  intro?: { stage: PlayStage; passes: number; shown?: boolean };
+  intro?: { stage: PlayStage; passes: number; shown?: boolean; learning?: LearnProgress };
   /** Reopening a half-learned piece asked already whether to go on or start over (ft_1_32.AC16): not asked again on a restart. */
   resumeAsked?: boolean;
   /**
@@ -273,6 +274,8 @@ export class PracticeScene extends PixelScene {
   private learnedGoOn: (() => void) | null = null;
   /** The learned piece's clef on its way to the book (ft_1_32.AC22): set at the learned moment, flown when the screen goes on. */
   private clefFlight: Omit<ClefFlight, 'then'> | null = null;
+  /** Where the intro's lesson is in learning its bars, handed to the next run (ft_1_31.AC8). */
+  private introLearning: LearnProgress | null = null;
   /** This start follows a learning run, whose line Kiur says: no other words over it. */
   private afterLearnRun = false;
   /** The wrong key carried from the run before (`learnWrong`), shown again on this run's staff. */
@@ -310,6 +313,7 @@ export class PracticeScene extends PixelScene {
     this.startData = data;
     this.learnedGoOn = null;
     this.clefFlight = null;
+    this.introLearning = null;
     this.preview = data.preview === true;
     this.returnTo = data.returnTo ?? 'preview';
     this.readLesson(data);
@@ -401,6 +405,11 @@ export class PracticeScene extends PixelScene {
    */
   private openLearning(data: PracticeData): LearnSession | null {
     const context = contextOf(this);
+    // the intro's learn stage learns the lesson's bars bar by bar, kept only for the intro (ft_1_31.AC8)
+    if (this.intro?.stage === 'learn' && data.section && context.flags.learn) {
+      const lesson = introLearnProfile(context.profiles, this.intro.learning, (progress) => { this.introLearning = progress; });
+      return LearnSession.open(lesson, sliceChart(this.fullChart, data.section.first, data.section.last), dayString(new Date()), undefined, true);
+    }
     if (this.preview || this.checkup || data.section || !context.flags.learn) return null;
     const asked = data.learn === true;
     if (!learnsOnOpen({ route: asked ? 'kiur' : 'piano', mustLearn: CHARACTER_PIECES.has(this.fullChart.id) })) return null;
@@ -428,8 +437,10 @@ export class PracticeScene extends PixelScene {
   }
 
   /** What every restart passes on: the click, and the session with its passes. */
-  private carry(): Pick<PracticeData, 'click' | 'clickOffset' | 'session' | 'passes' | 'lastResult'> {
-    return { ...carryOver({ clickOn: this.clickOn, clickOffset: this.clickOffset, session: this.session, passes: this.passes }), ...(this.lastResult ? { lastResult: this.lastResult } : {}) };
+  private carry(): Pick<PracticeData, 'click' | 'clickOffset' | 'session' | 'passes' | 'lastResult' | 'intro'> {
+    // the intro's lesson keeps where its learning is from one run to the next (ft_1_31.AC8)
+    const intro = this.intro && this.introLearning ? { intro: { ...this.intro, learning: this.introLearning } } : {};
+    return { ...carryOver({ clickOn: this.clickOn, clickOffset: this.clickOffset, session: this.session, passes: this.passes }), ...(this.lastResult ? { lastResult: this.lastResult } : {}), ...intro };
   }
 
   override create(): void {
@@ -896,7 +907,7 @@ export class PracticeScene extends PixelScene {
     const { outcome, bpm } = learn.outcomeOf(this.playSession.chart, result.hints.noteNames > 0);
     this.stopMetronome();
     // a pass of the piece only when the run counts: one asked again is not a play of a piece the game calls unlearned
-    if (learn.wholePiece && outcome === 'perfect') {
+    if (learn.wholePiece && outcome === 'perfect' && !this.intro) {
       this.session = recordFreePlayRound(this.session, result);
       this.pendingPass = contextOf(this).profiles.completePiece(result, { mode: 'wait', tempoPercent: this.percent })
         .catch((error: unknown) => { console.error('completePiece failed', error); return undefined; });
@@ -908,7 +919,7 @@ export class PracticeScene extends PixelScene {
     const clefBefore = this.playSession.prizesShown.find((p) => p.role === 'piece')?.medal ?? null;
     this.redraw(); // the new note shows at once
     // learned: the clef lifts off the column and grows, on its way to the book (ft_1_32.AC22)
-    if (learn.learned) {
+    if (learn.learned && !this.intro) {
       const from = this.playSession.liftClef();
       const after = this.playSession.prizesShown.find((p) => p.role === 'piece')?.medal ?? null;
       this.clefFlight = from && after ? { chartId: this.fullChart.id, before: clefBefore, after, from } : null;
@@ -939,6 +950,11 @@ export class PracticeScene extends PixelScene {
    * (a piece learned at the piano opens for practice).
    */
   private afterLearned(line: string): void {
+    // the intro's lesson is learned: on to the room's next stage, practise (ft_1_31.AC8)
+    if (this.intro) {
+      startScene(this, 'profile', { intro: afterPlay('learn', true) });
+      return;
+    }
     const teacher = this.startData.teacher;
     // the book opens and the clef drops onto the piece's card (ft_1_32.AC22); then on to the character or the room
     const then = teacher ? teacher.scene : this.startData.learn === true ? 'profile' as const : null;

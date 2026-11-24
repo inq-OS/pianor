@@ -35,21 +35,20 @@ AX-0: the intro ends with the student having read and played a piece three times
 - **ft_1_31.AC1** A new player's first visit to the room starts the intro; a player who finished or skipped it, and one from before it who has played, do not get it; one who left it half way gets it again from the start; `?intro=0` and `?intro=1` turn it off and on.
 - **ft_1_31.AC2** Kiur's tour of the room shows each object (piano, shield, stand, door, Kiur) under the spotlight: the rest of the screen darkened, the thing framed, an arrow pointing at it, Kiur and his line beside it and not over it.
 - **ft_1_31.AC3** On the practice screen Kiur shows the staff, the next note, Listen and the way back before the first lap; the lesson plays in Wait mode with only Listen and Start over.
-- **ft_1_31.AC4** The teacher walks the student through learn (one lap), practise (two more) and the tug on Twinkle's first four bars, in that order, each from the room; Back from a play says its stage again.
+- **ft_1_31.AC4** The teacher walks the student through learn (bar by bar, AC8), practise (two plays) and the tug on Twinkle's first four bars, in that order, each from the room; Back from a play says its stage again.
 - **ft_1_31.AC5** Esc skips the intro in the room and keeps it as done; a skip button on screen through the whole intro (every spotlight, the teacher's talk, the tug, the lesson's play) ends it from anywhere, kept as done.
 - **ft_1_31.AC6** Between the room's tour and the teacher's knock Kiur shows the map of Keri: a place the student can visit and the house, the way back.
 - **ft_1_31.AC7** [human] The maintainer checks the look (darkness, frame, arrow, where Kiur stands), the wording in Estonian, and that a young student follows it on the laptop.
+- **ft_1_31.AC8** The learn stage learns the lesson's bars bar by bar as any piece is learned ([ft_1_32](ft_1_32-learn-a-piece-bar-by-bar.md)), kept only for the intro (the piece itself is not counted as learned or played), and ends at the learned moment: a key goes on to the room's practise stage, with no extra whole play ([d297](../decisions/game.md#d297)).
 
 ## TODO
 
 - TODO(painter, R2): the arrow (own art in `src/game/IntroScene.ts`) and the frame round the light in the kit's look; the teacher is still the placeholder box of ft_1_27.
-- TODO(builder, R2): when the redesign of how a piece is learned lands ([ft_1_32](ft_1_32-learn-a-piece-bar-by-bar.md): bar by bar, its learning view on the practice screen), change the learn and practise stages in `content/intro/intro.json` (and `afterRoom` if a stage is added) so the intro teaches the new way.
 - TODO(architect): AX-3 provisional choices above; whether the intro should also visit a scene and its talk, and whether a player can watch it again (today only `?intro=1`).
 - IDEA(builder): should the piece maker's keys tour get its own "Close tour" button?
 - TODO(builder, R2): a test that the piece maker's keys tour has no skip button.
 - NEEDS-HUMAN: look at the intro on the laptop and check its Estonian wording, the lesson bar's label LÕPETA among it.
 - TODO(painter, R2): the final arrow in the kit's style with a gold frame, and the teacher's figure (still a placeholder box).
 - TODO(painter, R2): layout: the teacher's line sits under the skip button, and the button covers the end of the hint bar.
-- TODO(builder, R2): the intro's learn stage teaches the lesson's bars bar by bar ([ft_1_32](ft_1_32-learn-a-piece-bar-by-bar.md)) and ends at the learned moment, with no extra whole play after it; then change `content/intro/intro.json` and `afterRoom` to match.
 - AX-3 provisional: the lines, the tour order, the lesson length, what Esc does, where the skip button sits, whether the intro visits a scene, and the replay (today only the URL switch `?intro=1`).
 - TODO(architect, R2): the working copy once ended on a detached HEAD after long end-to-end runs; check whether `npm run test:e2e:affected` checks out a ref and, if it does, say so in [testing.md](../testing.md).

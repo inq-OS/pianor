@@ -130,7 +130,7 @@ export const learnSettingsSchema = z.object({
    */
   handsApart: z.boolean().optional(),
   /**
-   * The run's live tempo, spread and wobble in the top bar while a piece is learned (ft_1_32 rule 18): a parent's or
+   * The run's live tempo, spread and wobble in the slim strip at the foot while a piece is learned (ft_1_32 rule 18): a parent's or
    * teacher's tool, off unless turned on. Absent or false: off. An optional field, no version bump (d069.3).
    */
   liveTempo: z.boolean().optional(),
