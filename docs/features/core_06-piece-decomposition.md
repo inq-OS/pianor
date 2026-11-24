@@ -15,7 +15,7 @@ R2. Index: [FEATURES.md](FEATURES.md).
 A piece is made of logical parts the student can practise and level up one by one. A part is a named bar range: the chart's `phrases[]`.
 
 1. The meta file gets named parts (`phrases`: a name and 1-based bars). Parts may **nest** (a tricky 4 bars inside "A") but never **cross**, so every bar has one innermost part. The generators and the editor (ft_1_02) can fill them in later.
-2. In the piece list (`MenuScene`; the song list of the room's book until [ft_1_12](ft_1_12-training-piano.md) merged the two), a piece with parts has a small parts button that opens its part cards (`PartsScene`), the whole piece first; choosing a part starts section practice on its bars (core_03). A tap on the card itself plays the whole piece.
+2. In the piece list (`MenuScene`; the song list of the room's book until [ft_1_12](ft_1_12-training-piano.md) merged the two), a piece with parts has a small parts button that opens the song page with the piece at its root (`SongScene`, [ft_1_36](ft_1_36-songs.md)), the whole piece first and its parts as rows; a part's play button starts section practice on its bars (core_03). A tap on the card itself plays the whole piece.
 3. Part stars and progress are in slice B (AC7, AC8). Part plays earn no XP.
 4. Planned: the part cards become rows of the song screen ([ft_1_36](ft_1_36-songs.md)), one tree for a piece's parts and a song's pieces; the phrases stay in the meta file.
 

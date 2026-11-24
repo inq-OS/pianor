@@ -16,3 +16,9 @@ export function bundledPieceSources(): Pick<PieceCatalogueSources, 'files' | 'om
   const devCharts = Object.entries(devModules).sort(([a], [b]) => a.localeCompare(b)).map(([, raw]) => raw);
   return { files: pieceFiles, omittedIds, devCharts };
 }
+
+/** The song files of this build (`content/songs/<id>/song.json`, ft_1_36), unparsed; `SongCatalogue` reads them. */
+export function bundledSongFiles(): unknown[] {
+  const modules: Record<string, unknown> = import.meta.glob('../../content/songs/*/song.json', { eager: true, import: 'default' });
+  return Object.entries(modules).sort(([a], [b]) => a.localeCompare(b)).map(([, raw]) => raw);
+}

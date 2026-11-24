@@ -1,7 +1,7 @@
 import type Phaser from 'phaser';
 import type { EditorData } from './EditorScene';
 import type { NameData } from './NameScene';
-import type { PartsData } from './PartsScene';
+import type { SongData } from './SongScene';
 import type { PracticeData } from './PracticeScene';
 import type { PreviewData } from './PreviewScene';
 import type { ResultsData } from './ResultsScene';
@@ -44,7 +44,8 @@ export interface SceneData {
   'teacherTests': TeacherTestsData;
   'teacherPassword': undefined;
   'name': NameData;
-  'parts': PartsData;
+  'song': SongData;
+  'songs': undefined;
   'credits': undefined;
   'settings': SettingsData | undefined;
   'pieces': PiecesData | undefined;

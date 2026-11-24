@@ -304,6 +304,10 @@ export class MenuScene extends PixelScene {
     if (this.maker) return [];
     // every piece there is, hidden ones too, where a piece is put back in the book (ft_1_02c.AC9)
     const all: ToolbarItem = { label: t('menu.allPieces'), icon: TOOL_ICONS.pieces, iconOnly: true, onClick: () => startScene(this, 'pieces', { back: this.forKiur ? { forKiur: this.forKiur } : {} }) };
+    // the song bookmark (ft_1_36 rule 13): at the strip's other end, apart from the filter; never while picking for Kiur
+    const songs: ToolbarItem[] = this.forKiur === null && contextOf(this).songs.list().length > 0
+      ? [{ label: t('menu.songs'), icon: TOOL_ICONS.songs, iconOnly: true, main: true, onClick: () => startScene(this, 'songs') }]
+      : [];
     return [...PIECE_GROUPS.map((group): ToolbarItem => ({
       label: t(`menu.group.${group}`), icon: this.hiddenGroups.has(group) ? struckThrough(GROUP_ICON[group]()) : GROUP_ICON[group](), iconOnly: true, active: !this.hiddenGroups.has(group),
       onClick: () => {
@@ -313,7 +317,7 @@ export class MenuScene extends PixelScene {
         this.armedHide = null;
         this.redraw();
       },
-    })), all];
+    })), all, ...songs];
   }
 
   protected draw(): void {
@@ -332,7 +336,9 @@ export class MenuScene extends PixelScene {
     this.paging = { total: 0, options: {}, first: 0 };
     this.infoClose = null;
     // pieces turned off are hidden; the Make list keeps own pieces that are off, so they can still be edited
-    const offered = contextOf(this).pieces.list();
+    // a song's pieces are not listed on their own: the song is, behind its bookmark (ft_1_36 rule 13)
+    const inSongs = context.songs.pieceIds();
+    const offered = context.pieces.list().filter((p) => !inSongs.has(p.chart.id));
     // One list (ft_1_12): a card plays its piece, an own piece's pencil opens it in the editor. The piece maker (main
     // menu, no player) lists only own pieces, and a card opens the editor, so nothing is played (and saved) from it.
     const editable = context.flags.editor;
@@ -642,9 +648,9 @@ export class MenuScene extends PixelScene {
       slot += 1;
       return made;
     };
-    // AX-3 provisional: the parts screen is reached by a small button, not by the card, so a tap still plays at once
+    // AX-3 provisional: the parts page (the song page with the piece at its root, ft_1_36.AC13) is reached by a small button, not by the card, so a tap still plays at once
     if (piece.chart.phrases.length > 0 && !this.maker) {
-      this.partsButtons.set(piece.chart.id, small(t('parts.button'), () => startScene(this, 'parts', { chartId: piece.chart.id })));
+      this.partsButtons.set(piece.chart.id, small(t('parts.button'), () => startScene(this, 'song', { chartId: piece.chart.id })));
     }
     // right of i, away from the others: take the piece out of the book, in two presses (ft_1_02c.AC8); never the last piece in it
     if (!this.maker && contextOf(this).profiles.canTurnOff(piece.chart.id)) this.hideButton(piece.chart.id, button, { x: rightEdge - 34 + STATS_OFFSET, y: top + 23 });
