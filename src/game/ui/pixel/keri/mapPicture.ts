@@ -1015,6 +1015,8 @@ class MapPainter {
     port: () => undefined,
     // the terrace is on the map already, a landmark before the house (`terrace`): nothing more is laid over it
     terrace: () => undefined,
+    // the square is the ground between the houses the map already draws at the lighthouse: nothing more is laid over it
+    square: () => undefined,
   };
 
   /**

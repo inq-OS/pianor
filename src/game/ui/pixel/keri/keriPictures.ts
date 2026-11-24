@@ -7,6 +7,7 @@ import { unpackLantern } from './lanternPack';
 import { unpackMap } from './mapPack';
 import { unpackPort } from './portPack';
 import { unpackRoom } from './roomPack';
+import { unpackSquare } from './squarePack';
 import { unpackTerrace } from './terracePack';
 
 /**
@@ -23,4 +24,5 @@ export const PAINTED = {
   lantern: loadedOnce(pictures.lantern, unpackLantern),
   port: loadedOnce(pictures.port, unpackPort),
   terrace: loadedOnce(pictures.terrace, unpackTerrace),
+  square: loadedOnce(pictures.square, unpackSquare),
 };

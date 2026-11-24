@@ -7,6 +7,7 @@ import type { Plugin } from 'vite';
 import { PAINT_SOURCES } from './art/paintSources.ts';
 import { keriMapPlan } from '../src/core/layout/keriMap.ts';
 import { crossroadsPlan } from '../src/core/layout/crossroads.ts';
+import { squarePlan } from '../src/core/layout/square.ts';
 import { docksPlan } from '../src/core/layout/docks.ts';
 import { lanternPlan } from '../src/core/layout/lantern.ts';
 import { knollPlan } from '../src/core/layout/knoll.ts';
@@ -18,6 +19,8 @@ import { loadWorld, type World } from '../src/core/world/world.ts';
 import { privatePortrait } from '../src/game/room/privatePortrait.ts';
 import { packCrossroads } from '../src/game/ui/pixel/keri/crossroadsPack.ts';
 import { paintCrossroads } from '../src/game/ui/pixel/keri/crossroadsPicture.ts';
+import { packSquare } from '../src/game/ui/pixel/keri/squarePack.ts';
+import { paintSquare } from '../src/game/ui/pixel/keri/squarePicture.ts';
 import { packDocks } from '../src/game/ui/pixel/keri/docksPack.ts';
 import { paintDocks } from '../src/game/ui/pixel/keri/docksPicture.ts';
 import { packLantern } from '../src/game/ui/pixel/keri/lanternPack.ts';
@@ -115,6 +118,11 @@ const PAINTERS = {
   terrace: ({ world }: Sources) => {
     const plan = terracePlan();
     return (phase: SkyPhase) => packTerrace(paintTerrace(world, plan, phase));
+  },
+  // the village square between the houses at the lighthouse, looking to the southern pier (ft_1_19)
+  square: () => {
+    const plan = squarePlan();
+    return (phase: SkyPhase) => packSquare(paintSquare(plan, phase));
   },
 } as const;
 export const KERI_PICTURES = Object.keys(PAINTERS);

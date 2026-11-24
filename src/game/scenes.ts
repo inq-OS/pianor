@@ -69,6 +69,7 @@ export interface SceneData {
   'docks': VisitData | undefined;
   'port': VisitData | undefined;
   'terrace': VisitData | undefined;
+  'square': VisitData | undefined;
 }
 
 export type SceneKey = keyof SceneData;

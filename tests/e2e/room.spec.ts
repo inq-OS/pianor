@@ -117,6 +117,22 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_1_19.AC2 ft_1_19.AC5 the village square is locked for a new player; opened, its clouds move, and Back returns to the map', async ({ page }) => {
+    const errors = await toRoom(page);
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
+    await waitForScene(page, 'keriMap');
+    // level 2 opens the square: a new player at level 1 has no button for it
+    expect(await sceneButton(page, 'keriMap', 'The village square')).toBe(-1);
+    await page.evaluate(() => { const g = window.__game; g.scene.stop('keriMap'); g.scene.start('square'); });
+    await waitForScene(page, 'square');
+    // the drifting clouds and what stands before them move
+    const moving = await page.evaluate(() => (window.__game.scene.getScene('square') as unknown as { animators: unknown[] }).animators.length);
+    expect(moving).toBeGreaterThan(1);
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'keriMap');
+    expectNoErrors(errors);
+  });
+
   test('ft_1_19.AC10 the harbour: a press on the water pans down to the reef under the quay, Back rises again, and Back once more returns to the map', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));

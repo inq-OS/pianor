@@ -35,6 +35,7 @@ export const strings = {
   'map.scene.docks': 'The jetty',
   'map.scene.port': 'The harbor',
   'map.scene.terrace': 'The terrace',
+  'map.scene.square': 'The village square',
   // the harbour's two views (ft_1_19): a press on the water dives under it, a press near the top rises again
   'scene.dive': 'Dive in',
   'scene.rise': 'Back up',

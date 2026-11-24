@@ -6,6 +6,7 @@ import { crossroadsPlan } from '../../src/core/layout/crossroads.ts';
 import { knollPlan } from '../../src/core/layout/knoll.ts';
 import { PORT_MOORED, portPlan } from '../../src/core/layout/port.ts';
 import { roomPlan } from '../../src/core/layout/room.ts';
+import { squarePlan } from '../../src/core/layout/square.ts';
 import { terracePlan } from '../../src/core/layout/terrace.ts';
 import type { SkyPhase } from '../../src/core/sky/skyPhase.ts';
 import { loadWorld, type World } from '../../src/core/world/world.ts';
@@ -21,6 +22,7 @@ import { mapRuns, paintMap } from '../../src/game/ui/pixel/keri/mapPicture.ts';
 import { BEAM_HALF_TURN_MS, drawBeam } from '../../src/game/ui/pixel/keri/beam.ts';
 import { paintPort, portPalette, portRuns, portStill } from '../../src/game/ui/pixel/keri/portPicture.ts';
 import { roomArt } from '../../src/game/ui/pixel/keri/roomLife.ts';
+import { paintSquare, squarePalette, squareRuns } from '../../src/game/ui/pixel/keri/squarePicture.ts';
 import { paintTerrace, TERRACE_SMOKE_RISE, terracePalette, terraceRuns } from '../../src/game/ui/pixel/keri/terracePicture.ts';
 import type { Overlay } from '../../src/game/ui/pixel/pack.ts';
 import type { LiveWater } from '../../src/game/ui/pixel/paint/live.ts';
@@ -216,6 +218,24 @@ export const PICTURES: Record<string, (phase: SkyPhase) => ToolPicture> = {
       apart: APART,
       shared: true,
       moving: [...picture.frames.slice(1), ...picture.fore.frames, ...picture.lamp.frames, ...picture.front.frames, ...picture.deep, ...picture.deepThings.frames, ...Object.values(picture.boats).flatMap((b) => b.frames)],
+    };
+  },
+  square(phase) {
+    const plan = squarePlan();
+    const picture = paintSquare(plan, phase);
+    // the clouds drift in the game; here they stand where they are painted, and the lamps show their middle look
+    const at = (o: Overlay, frame: number) => ({ bitmap: o.frames[frame]!, x: o.x, y: o.y });
+    return {
+      bitmap: laid(picture.frames[0]!, ...picture.clouds, at(picture.fore, 0), at(picture.lamp, 1)),
+      palette: picture.palette,
+      day: squarePalette('day'),
+      horizon: plan.horizon,
+      clouds: picture.clouds.map((c) => c.bitmap),
+      runs: squareRuns(),
+      kinds: SHARED_KINDS,
+      apart: APART,
+      shared: true,
+      moving: [...picture.fore.frames, ...picture.lamp.frames],
     };
   },
 };

@@ -18,7 +18,7 @@ Pianor looks like the painted adventure games of the early 1990s: **Monkey Islan
 - "Monkey Island 2", "MI2" and "the MI2 style" always mean **the game as first released in 1991**: pixel art at 320 x 200 in 256 colours. **Never the Special Edition of 2010**, whose backgrounds were painted again in high resolution. A picture of the remake is not a reference, and nothing is to look like it.
 - The Curse of Monkey Island ("MI3", 1997) lends single ideas, **the clouds most of all** (rule 13). It is not the manner of the whole picture: its smooth high-resolution cartoon painting is not what a place in Pianor looks like.
 
-Six pictures are painted so far: the warden's room, the map of Keri, the grassy knoll, the docks, the crossroads (its notes: [keri/scene-crossroads.md](keri/scene-crossroads.md)) and the lantern over Keri, the main menu's picture (its notes: [keri/scene-lantern.md](keri/scene-lantern.md)). Every other screen is still in the older flat pixel style; repainting them is the next work ([docs/architect/painter-project.md](architect/painter-project.md)).
+Among the pictures painted so far are the warden's room, the map of Keri, the grassy knoll, the docks, the crossroads (its notes: [keri/scene-crossroads.md](keri/scene-crossroads.md)), the village square (its notes: [keri/scene-square.md](keri/scene-square.md)) and the lantern over Keri, the main menu's picture (its notes: [keri/scene-lantern.md](keri/scene-lantern.md)). Every other screen is still in the older flat pixel style; repainting them is the next work ([docs/architect/painter-project.md](architect/painter-project.md)).
 
 ## 2. Rules (each with where it comes from)
 
