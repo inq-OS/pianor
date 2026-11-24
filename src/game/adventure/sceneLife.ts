@@ -315,7 +315,6 @@ const SQUARE_LIFE: SceneLife<NonNullable<ReturnType<typeof PAINTED.square.ready>
   layers: (picture) => [{ overlay: picture.lamp, ms: 0, level: (time) => glowAt(time, picture.lamp.frames.length, 7) }],
   motes: (_picture, look, _air, seed) => (lampLitAt(look.phase) ? [{ source: (time) => mothsAt(time, SQUARE_LANTERN, 3, seed), most: 3 }] : []),
   gulls: { n: 3, span: 3, box: { x: 160, y: 14, w: 420, h: 60 } },
-  spots: square.spots,
 };
 
 /** Each painted place's life by its picture id (`SceneData.picture`). */

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import squareScene from '../../../content/scenes/square.json';
 import keriJson from '../../../content/world/keri.json';
 import { insideRing, loadWorld } from '../world/world';
 import { ART_DETAIL } from './frame';
 import { ROOM_PICTURE } from './room';
-import { bend, SQUARE, SQUARE_ID, SQUARE_PICTURE, SQUARE_SPOTS, SQUARE_VIEW, squarePlan, squareView } from './square';
+import { bend, SQUARE, SQUARE_ID, SQUARE_PICTURE, SQUARE_VIEW, squarePlan, squareView } from './square';
 
 const KERI = loadWorld(keriJson);
 const plan = squarePlan();
@@ -19,7 +20,7 @@ describe('the village square: its plan', () => {
   it('ft_1_20 the picture lies from the top where it does not fit, and what is pressed keeps to its upper 124 rows', () => {
     expect(squareView({ w: 320, h: 124 }, 0).picture).toEqual({ x: 0, y: 0, w: 320, h: 180 });
     expect(squareView({ w: 320, h: 180 }, 0).picture).toEqual({ x: 0, y: 0, w: 320, h: 180 });
-    for (const spot of plan.spots) expect(spot.button.y + spot.button.h).toBeLessThanOrEqual(ROOM_PICTURE.h);
+    for (const place of squareScene.places) expect(place.y / ART_DETAIL).toBeLessThanOrEqual(ROOM_PICTURE.h);
     expect((plan.pier.y + plan.pier.h) / ART_DETAIL).toBeLessThanOrEqual(ROOM_PICTURE.h);
   });
 
@@ -52,15 +53,13 @@ describe('the village square: its plan', () => {
     expect(pier.y + pier.h).toBeLessThan(plan.fine.h * 0.7);
   });
 
-  it('ft_1_19.AC2 the beings\' places stand on the flagstones inside the picture, apart from each other and off the pier', () => {
-    expect(plan.spots).toHaveLength(SQUARE_SPOTS.length);
-    for (const [i, spot] of plan.spots.entries()) {
-      expect(spot.feet.y).toBeGreaterThan(180);
-      expect(spot.feet.y).toBeLessThanOrEqual(plan.fine.h);
-      expect(spot.button.x).toBeGreaterThanOrEqual(0);
-      expect(spot.button.x + spot.button.w).toBeLessThanOrEqual(SQUARE_PICTURE.w);
-      expect(spot.button.y).toBeGreaterThanOrEqual(0);
-      for (const other of plan.spots.slice(i + 1)) expect(Math.hypot(other.feet.x - spot.feet.x, other.feet.y - spot.feet.y)).toBeGreaterThan(40);
+  it('ft_1_19.AC2 the scene\'s standing places are on the flagstones inside the picture, apart from each other and off the pier', () => {
+    expect(squareScene.places.length).toBeGreaterThan(2);
+    for (const [i, place] of squareScene.places.entries()) {
+      expect(place.y).toBeGreaterThan(180);
+      expect(place.x).toBeGreaterThan(160);
+      expect(place.x).toBeLessThan(560);
+      for (const other of squareScene.places.slice(i + 1)) expect(Math.hypot(other.x - place.x, other.y - place.y)).toBeGreaterThan(40);
     }
   });
 });

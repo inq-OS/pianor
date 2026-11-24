@@ -22,8 +22,8 @@ The world model's buildings (`content/world/keri.json`), which agree with the pu
 - The square looks a little like a town plaza: flagstones in rings, benches, barrels. Its middle is a flower bed with a rose bush; no lamp stands in the plaza.
 - No tractors or other machines.
 - The plaza lies on a fat-bellied hill: past its brow the ground drops away to the dark tops of the wild rose thickets, and the shore and the pier are small and far below, as the lawn rolls off before the governor's mansion on Phatt Island in the 1991 game. This departs from the real island, which is low and flat.
-- The pier runs from the far shore up to the right toward the horizon and is the port scene's own ([scene-port.md](scene-port.md)): a grey stone quay, bollards, the red and white beacon at its head, the low landing with the rowing boat, the red houseboat.
-- Keri's shore has a short beak of shingle that reaches out and curves a little. The dune strip is its own low bar far out in the sea, not joined to the island.
+- The pier runs from the far shore up to the right toward the horizon and is the port scene's own ([scene-port.md](scene-port.md)): a grey stone quay that stands up from the water with its shaded face toward the viewer, bollards, the red and white beacon at its head, the low landing with the rowing boat, the red houseboat.
+- Keri's shore has a short beak of shingle that reaches out and curves a little. The dune strip is its own low bank far out in the sea, not joined to the island: it spans right across the distance, about knee-high over the water, and the swell breaks on it in white bursts (in a storm they look like explosions).
 - One path leads past the cinema's doors into the gap behind the side building and on round the lighthouse; another leads over the brow to the pier.
 
 ## How the picture is made
