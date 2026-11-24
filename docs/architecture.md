@@ -19,7 +19,6 @@ The EZ-220 facts that matter:
 
 - Player: designed for beginner students, children and adults alike; the reference keyboard is the Yamaha EZ-220.
 - **Staff notation is core to the MVP.** The game's job is to teach reading, so the staff is the main view.
-- **Falling notes (Guitar Hero style) are out of the MVP.** They are a Phase 4+ optional mode at most, because they let a student play without reading.
 - Consequence: the notation renderer is the most important piece of the MVP, so it is designed first (section 4).
 
 ## 2. Prior art (what exists, what to borrow)

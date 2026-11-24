@@ -7,9 +7,9 @@ Chart model, ABC, the staff, notation features, pieces and their tools. One entr
 
 ## d002
 
-**Staff notation is core and there are no falling notes in the MVP.** Features: ft_0_05.
+**Staff notation is core: the student reads every note from the staff.** Features: ft_0_05.
 
-The goal is learning to read music, and falling notes let a student play without reading. The own-built staff renderer is the most important MVP piece.
+The goal is learning to read music. The own-built staff renderer is the most important MVP piece.
 
 
 Check: untestable: product rule judged against AX-0 by the maintainer; no test can tell reading from not reading

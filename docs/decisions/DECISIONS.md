@@ -21,7 +21,7 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 |---|---|---|
 | [d000](workflow.md#d000) | Four axioms (AX-0 to AX-3) rank above every decision, and AX-0 (learning music) decides every conflict |  |
 | [d001](stack.md#d001) | The game is a browser app on Web MIDI, Chrome or Edge only | ft_0_00, ft_0_01 |
-| [d002](notation.md#d002) | Staff notation is core and there are no falling notes in the MVP | ft_0_05 |
+| [d002](notation.md#d002) | Staff notation is core: the student reads every note from the staff | ft_0_05 |
 | [d003](workflow.md#d003) | Build a thin practice slice first and playtest it before the ABC compiler and linter | ft_0_09 |
 | [d004](game.md#d004) | `docs/authoring/au03-chart-format.md` is the one chart format; level 1 and 2 pieces use steps and repeats only | ft_0_02, ft_0_04 |
 | [d005](workflow.md#d005) | Everything must be testable without the EZ-220 | ft_0_06 |
