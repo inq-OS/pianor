@@ -268,6 +268,7 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d284](game.md#d284) | A two-hand piece is learned with both hands together by default; hands apart is a learning setting the player chooses | ft_1_32 |
 | [d285](art.md#d285) | Every choice the player picks from shows a picture, never a word; its words are in the tooltip | ft_1_32, ft_0_16 |
 | [d286](game.md#d286) | No silent tool action: every tool shows the result it would make before it commits, on the screen where it acts | ft_1_02d, ft_1_20 |
+| [d287](game.md#d287) | The prizes of learning a piece stand in one narrow column at the top right of the staff's sheet, and the staff shows the whole piece with every bar outside the run very faint | ft_1_32 |
 | [d288](workflow.md#d288) | No game text uses a font of the computer: the staff's text is JetBrains Mono Bold shipped with the game and every other text the pixel font, so one screenshot baseline per screen serves every machine |  |
 | [d289](workflow.md#d289) | Screenshot tests and baselines make no difference between Windows and Linux: every job runs on Linux, a baseline is made by the baseline workflow or any local run, and the screenshot area always draws in software |  |
 | [d290](game.md#d290) | Code, content, tests and docs use only the words of `docs/glossary.md`; a dropped idea leaves no trace |  |
