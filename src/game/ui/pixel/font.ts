@@ -121,6 +121,8 @@ const GLYPHS: Readonly<Record<string, readonly string[]>> = {
   '#': g('.#.#.', '#####', '.#.#.', '.#.#.', '#####', '.#.#.', '.....'),
   // the flat sign, for key names (ft_1_28): the same shape as the flat on the staff, so "B♭" never reads as two letters
   '♭': g('#....', '#....', '#....', '###..', '#..#.', '#.#..', '##...'),
+  // a quarter note, for a tempo (ft_1_36 rule 3: "♩ 80")
+  '♩': g('...#.', '...#.', '...#.', '...#.', '.###.', '####.', '.##..'),
   '&': g('.##..', '#..#.', '#.#..', '.#...', '#.#.#', '#..#.', '.##.#'),
   _: g('.....', '.....', '.....', '.....', '.....', '.....', '.....', '#####'),
   // Estonian letters (ft_0_18, d086): a small capital with its mark in the two rows above it, inside the capital height.

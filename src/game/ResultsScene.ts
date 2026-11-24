@@ -15,6 +15,7 @@ import type { CompletionOutcome } from './profile/ProfileService';
 import { C } from './ui/pixel/palette';
 import { Mascot, PixelImage, pixelStars } from './ui/pixel/PixelObjects';
 import { OutcomeScene } from './results/OutcomeScene';
+import type { SongReturn } from './songReturn';
 import { SPARKLE, STAR_FULL } from './ui/pixel/sprites';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { startScene } from './scenes';
@@ -40,6 +41,8 @@ function dateLabel(at: string): string {
 
 export interface ResultsData {
   chartId: string;
+  /** A song's play (ft_1_36): Back and the pieces button lead to the songs list or song page it started from. */
+  fromSong?: SongReturn | undefined;
   /** The session's keys and passes (ft_1_12); none for a single result. */
   summary?: FreePlaySummary;
   /** The last pass finished, if any. */
@@ -71,6 +74,7 @@ export class ResultsScene extends OutcomeScene {
     this.summary = data.summary ?? null;
     this.result = data.result ?? null;
     this.outcome = data.outcome ?? null;
+    this.fromSong = data.fromSong;
   }
 
   protected draw(): void {
@@ -100,8 +104,8 @@ export class ResultsScene extends OutcomeScene {
     pixelStars(this, this.root, Math.round(left.x + (left.w - STARS_WIDTH) / 2), STARS_Y, stars, { gap: STARS_GAP, zoom: 2, ink: true });
     // a piece learned bar by bar: a third button opens what its measured runs showed (ft_1_32.AC9)
     const measured = !session && (profiles.learnProgressOf(this.chartId).tests ?? []).length > 0;
-    this.againAndBack(again, back, t(session ? 'results.again' : 'results.play'), () => startScene(this, 'practice', { chartId: this.chartId }), measured ? {
-      at: more, label: t('stats.toLearning'), icon: TOOL_ICONS.tempo, onClick: () => startScene(this, 'learn-stats', { chartId: this.chartId }),
+    this.againAndBack(again, back, t(session ? 'results.again' : 'results.play'), () => startScene(this, 'practice', { chartId: this.chartId, ...(this.fromSong ? { fromSong: this.fromSong } : {}) }), measured ? {
+      at: more, label: t('stats.toLearning'), icon: TOOL_ICONS.tempo, onClick: () => startScene(this, 'learn-stats', { chartId: this.chartId, ...(this.fromSong ? { fromSong: this.fromSong } : {}) }),
     } : undefined);
     this.playsColumn(numbers, session, mascotX);
   }

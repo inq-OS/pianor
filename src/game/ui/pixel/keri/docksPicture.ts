@@ -58,7 +58,7 @@ export const DOCKS_WAY: WindWay = 1;
 export const LAMP_LOOKS = 3;
 
 /** The moon's place in the night's sky. */
-const MOON = { x: 452, y: 20, r: 8 } as const;
+const MOON = { x: 452, y: 46, r: 8 } as const;
 
 /**
  * Where the light is in this view (north-north-east) at each hour: the side it comes from (-1 left, 1 right), the column
@@ -79,15 +79,15 @@ const LIGHT: Record<SkyPhase, { side: number; glint: number; warm: number }> = {
  */
 export const DOCKS_CLOUDS: readonly { at: readonly [number, number]; spec: CurlSpec }[] = [
   // low over the sea, far off: flat streaks and a small curl
-  { at: [36, 74], spec: { length: 70, girth: 5, belly: 0.45, neck: 1, taper: 0.55, bend: 1, wave: 1.1, phase: 0.3 } },
-  { at: [300, 77], spec: { length: 48, girth: 4, belly: 0.55, neck: 1, taper: 0.6, bend: 1, wave: 0.9, phase: 1.3 } },
-  { at: [470, 70], spec: { length: 62, girth: 7, belly: 0.75, neck: 1, taper: 0.7, bend: 2, wave: 0.8, phase: 0.6, head: { size: 7, turns: 1.1 } } },
+  { at: [36, 114], spec: { length: 70, girth: 5, belly: 0.45, neck: 1, taper: 0.55, bend: 1, wave: 1.1, phase: 0.3 } },
+  { at: [300, 117], spec: { length: 48, girth: 4, belly: 0.55, neck: 1, taper: 0.6, bend: 1, wave: 0.9, phase: 1.3 } },
+  { at: [470, 110], spec: { length: 62, girth: 7, belly: 0.75, neck: 1, taper: 0.7, bend: 2, wave: 0.8, phase: 0.6, head: { size: 7, turns: 1.1 } } },
   // the big fat one behind, over the jetty's end, and a smaller one on the right; one head each (rule 13)
-  { at: [190, 6], spec: { length: 112, girth: 40, belly: 0.82, neck: 0.9, taper: 1.15, bend: 11, wave: 0.7, phase: 0.1, rise: 10, head: { size: 27, turns: 1.2 } } },
-  { at: [512, 30], spec: { length: 74, girth: 20, belly: 0.7, neck: 0.85, taper: 1.2, bend: 4, wave: 1, phase: 0.8, head: { size: 15, turns: 1.15 } } },
+  { at: [190, 30], spec: { length: 112, girth: 40, belly: 0.82, neck: 0.9, taper: 1.15, bend: 11, wave: 0.7, phase: 0.1, rise: 10, head: { size: 27, turns: 1.2 } } },
+  { at: [500, 62], spec: { length: 74, girth: 20, belly: 0.7, neck: 0.85, taper: 1.2, bend: 4, wave: 1, phase: 0.8, head: { size: 15, turns: 1.15 } } },
   // the long thin ones, in front of them
-  { at: [8, 16], spec: { length: 138, girth: 13, belly: 0.62, neck: 0.85, taper: 0.75, bend: 8, wave: 1.4, phase: 1.0, head: { size: 19, turns: 1.3 } } },
-  { at: [356, 46], spec: { length: 160, girth: 11, belly: 0.75, neck: 0.95, taper: 0.9, bend: 6, wave: 1.2, phase: 0.45, head: { size: 12, turns: 1.25, down: true } } },
+  { at: [40, 16], spec: { length: 138, girth: 13, belly: 0.62, neck: 0.85, taper: 0.75, bend: 8, wave: 1.4, phase: 1.0, head: { size: 19, turns: 1.3 } } },
+  { at: [356, 80], spec: { length: 160, girth: 11, belly: 0.75, neck: 0.95, taper: 0.9, bend: 6, wave: 1.2, phase: 0.45, head: { size: 12, turns: 1.25, down: true } } },
 ];
 
 export interface DocksCloud {
@@ -838,11 +838,11 @@ class DocksPainter {
 
   /** The heap of boulders that closes the lower left corner, at the water's edge. */
   private cornerRocks(look: number): void {
-    this.as(() => this.boulder(118, 252, 34, 30, 301, look, false, 0.3));
-    this.as(() => this.boulder(-10, 252, 70, 92, 302, look, false, 0.36));
-    this.as(() => this.boulder(54, 262, 48, 44, 303, look, false, 0.42));
+    this.as(() => this.boulder(118, 364, 34, 30, 301, look, false, 0.3));
+    this.as(() => this.boulder(-10, 364, 70, 92, 302, look, false, 0.36));
+    this.as(() => this.boulder(54, 374, 48, 44, 303, look, false, 0.42));
     // and a low dark heap under the mooring post on the right, so both wings are dark (MI2 frames its lit middle so)
-    this.as(() => this.boulder(630, 254, 46, 62, 304, look, false, 0.42));
+    this.as(() => this.boulder(630, 366, 46, 62, 304, look, false, 0.42));
   }
 
   /**
@@ -851,7 +851,7 @@ class DocksPainter {
    * and from an arm near its top a crooked board on two ropes with a fish painted on it (the painter's quirk).
    */
   private mooringPost(look: number): void {
-    const foot = { x: 612, y: 262 }, top = { x: 566, y: 30 };
+    const foot = { x: 606, y: 374 }, top = { x: 566, y: 70 };
     for (let y = top.y; y <= foot.y; y++) {
       const t = (y - top.y) / (foot.y - top.y);
       const cx = top.x + (foot.x - top.x) * t + Math.sin(t * Math.PI * 1.3) * 5;
@@ -867,7 +867,7 @@ class DocksPainter {
     }
     // the rope wound round it, and running off down to the left
     for (let k = 0; k < 4; k++) {
-      const y = 96 + k * 5;
+      const y = 136 + k * 5;
       const t = (y - top.y) / (foot.y - top.y), cx = top.x + (foot.x - top.x) * t + Math.sin(t * Math.PI * 1.3) * 5, half = 9 + 5 * t;
       for (let x = Math.floor(cx - half); x <= Math.ceil(cx + half); x++) {
         const u = (x - cx) / half;
@@ -881,9 +881,9 @@ class DocksPainter {
 
   /** The arm out to the left of the mooring post, and the board hanging crooked from it on two ropes, a fish painted on it. */
   private hangingBoard(look: number): void {
-    const arm = { x0: 568, y: 58, x1: 512 };
+    const arm = { x0: 568, y: 98, x1: 512 };
     for (let x = arm.x1; x <= arm.x0; x++) for (let k = 0; k < 4; k++) this.put(x, arm.y + k + Math.round((arm.x0 - x) * 0.06), k === 0 ? R.wood[2]! : k === 3 ? R.wood[0]! : R.wood[1]!);
-    const tilt = 0.14 + 0.02 * swing(look, DOCKS_FRAMES, 0.2), board = { x: 534, y: 92, w: 22, h: 14 };
+    const tilt = 0.14 + 0.02 * swing(look, DOCKS_FRAMES, 0.2), board = { x: 534, y: 132, w: 22, h: 14 };
     const hang = [[board.x - 15, arm.y + 4], [board.x + 15, arm.y + 2]] as const;
     for (const [hx, hy] of hang) {
       const by = board.y - board.h + (hx - board.x) * tilt;

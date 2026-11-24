@@ -317,9 +317,9 @@ interface Stack { x: number; z: number; turn: number; w: number; d: number; top:
  * into the room for their sides to be seen: a pile of paper is known by its side, leaf on leaf (the map maker's pile).
  */
 const STACKS: readonly Stack[] = [
-  { x: 2.13, z: 3.41, turn: -49, w: 0.5, d: 0.36, top: 0.42, sheets: 3 },
-  { x: 1.756, z: 3.2, turn: -32.7, w: 0.4, d: 0.34, top: 0.44, low: 0.2, sheets: 3 },
-  { x: 1.28, z: 2.945, turn: -20, w: 0.5, d: 0.34, top: 0.23, sheets: 2 },
+  { x: 1.633, z: 3.927, turn: -49, w: 0.5, d: 0.36, top: 0.42, sheets: 3 },
+  { x: 1.357, z: 3.772, turn: -32.7, w: 0.4, d: 0.34, top: 0.44, low: 0.2, sheets: 3 },
+  { x: 1.004, z: 3.583, turn: -20, w: 0.5, d: 0.34, top: 0.23, sheets: 2 },
 ];
 
 /** Below this height a stack is one plain pile: the picture's lower edge cuts it there or little above. */

@@ -82,7 +82,7 @@ describe('the docks: the plan of the picture (ft_1_19)', () => {
     expect(tower.x / W).toBeGreaterThan(0.38);
     expect(tower.x / W).toBeLessThan(0.6);
     expect(tower.y).toBeGreaterThan(0);
-    expect(tower.y).toBeLessThan(plan.horizon * 0.5);
+    expect(tower.y).toBeLessThan(plan.horizon * 0.6);
     expect(plan.lamp.x).toBeGreaterThan(0);
     expect(plan.lamp.x).toBeLessThan(W);
     expect(plan.lamp.y).toBeGreaterThan(0);

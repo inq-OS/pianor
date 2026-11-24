@@ -82,7 +82,7 @@ export const LAMP_LOOKS = 3;
 /** The fire pan on the beacon post: half its width at the rim and how deep it is (fine pixels). */
 const FIRE_PAN = { half: 30, deep: 12 } as const;
 
-const MOON = { x: 596, y: 40, r: 8 } as const;
+const MOON = { x: 596, y: 88, r: 8 } as const;
 
 /**
  * Where the light is at each hour, looking east: the side it comes from (-1 left, 1 right) and the column where it lies
@@ -98,11 +98,12 @@ const LIGHT: Record<SkyPhase, { side: number; glint: number; face: number }> = {
 
 /** The sky's clouds, back to front (d111 point 17); each rolls up into a head the way the wind blows (left). */
 export const PORT_CLOUDS: readonly { at: readonly [number, number]; spec: CurlSpec }[] = [
-  { at: [404, 54], spec: { length: 66, girth: 5, belly: 0.5, neck: 1, taper: 0.55, bend: 1, wave: 1.1, phase: 0.7 } },
-  { at: [30, 50], spec: { length: 58, girth: 7, belly: 0.72, neck: 1, taper: 0.7, bend: 2, wave: 0.85, phase: 0.2, head: { size: 7, turns: 1.1 } } },
-  { at: [300, 4], spec: { length: 118, girth: 38, belly: 0.8, neck: 0.9, taper: 1.15, bend: 10, wave: 0.75, phase: 0.4, rise: 9, head: { size: 25, turns: 1.2 } } },
-  { at: [96, 18], spec: { length: 80, girth: 19, belly: 0.7, neck: 0.85, taper: 1.2, bend: 4, wave: 1, phase: 1.1, head: { size: 14, turns: 1.15 } } },
-  { at: [470, 26], spec: { length: 160, girth: 8, belly: 0.66, neck: 0.85, taper: 0.8, bend: 5, wave: 1.3, phase: 0.9, head: { size: 11, turns: 1.3 } } },
+  { at: [130, 14], spec: { length: 150, girth: 6, belly: 0.45, neck: 1, taper: 0.6, bend: 3, wave: 1.5, phase: 0.3 } },
+  { at: [404, 92], spec: { length: 66, girth: 5, belly: 0.5, neck: 1, taper: 0.55, bend: 1, wave: 1.1, phase: 0.7 } },
+  { at: [30, 88], spec: { length: 58, girth: 7, belly: 0.72, neck: 1, taper: 0.7, bend: 2, wave: 0.85, phase: 0.2, head: { size: 7, turns: 1.1 } } },
+  { at: [262, 24], spec: { length: 118, girth: 38, belly: 0.8, neck: 0.9, taper: 1.15, bend: 10, wave: 0.75, phase: 0.4, rise: 9, head: { size: 25, turns: 1.2 } } },
+  { at: [96, 58], spec: { length: 80, girth: 19, belly: 0.7, neck: 0.85, taper: 1.2, bend: 4, wave: 1, phase: 1.1, head: { size: 14, turns: 1.15 } } },
+  { at: [452, 40], spec: { length: 160, girth: 8, belly: 0.66, neck: 0.85, taper: 0.8, bend: 5, wave: 1.3, phase: 0.9, head: { size: 11, turns: 1.3 } } },
 ];
 
 export interface PortCloud {
@@ -164,10 +165,10 @@ export interface PortSwimmers {
 
 /** The bright fish (their runs and size) and the rows of the tall picture they keep to, as they were painted. */
 const PORT_FISH: readonly { body: 'sponge' | 'coral' | 'violet' | 'red'; stripe: 'sponge' | 'coral' | 'violet' | 'hull'; size: number; y: number }[] = [
-  { body: 'sponge', stripe: 'violet', size: 1.3, y: PORT.water + 104 },
-  { body: 'coral', stripe: 'hull', size: 1.1, y: PORT.water + 90 },
-  { body: 'violet', stripe: 'sponge', size: 1, y: PORT.water + 136 },
-  { body: 'sponge', stripe: 'coral', size: 0.8, y: PORT.water + 140 },
+  { body: 'sponge', stripe: 'violet', size: 1.3, y: PORT.water + 150 },
+  { body: 'coral', stripe: 'hull', size: 1.1, y: PORT.water + 96 },
+  { body: 'violet', stripe: 'sponge', size: 1, y: PORT.water + 214 },
+  { body: 'sponge', stripe: 'coral', size: 0.8, y: PORT.water + 236 },
   { body: 'red', stripe: 'hull', size: 0.8, y: PORT.water + 70 },
 ];
 /** The two jellyfish, where they hang in the tall picture. */
@@ -243,9 +244,18 @@ function blockAt(courses: readonly Course[], x: number, y: number): { row: numbe
  * The mooring piles, dark things before the quay as the 1991 game closes a corner: a fat one in the near water on the
  * left with a rope to the quay, a thinner one off the head on the right. Each its foot's column, its top's row and its half width.
  */
-const PILES: readonly { x: number; top: number; half: number; rope: boolean }[] = [
-  { x: 20, top: 112, half: 14, rope: true },
-  { x: 618, top: 146, half: 10, rope: false },
+const PILES: readonly { x: number; top: number; half: number; rope: boolean; near?: boolean }[] = [
+  { x: 20, top: 152, half: 14, rope: true },
+  { x: 618, top: 186, half: 10, rope: false },
+];
+/**
+ * Two more piles in the near water, close to the eye: big and dark, their feet below the picture's foot, closing its
+ * lower left corner under the rows a conversation's board covers. They stand before the cut, so the view under the
+ * water has none of them.
+ */
+const NEAR_PILES: readonly (typeof PILES)[number][] = [
+  { x: 62, top: 286, half: 24, rope: false, near: true },
+  { x: 122, top: 318, half: 17, rope: false, near: true },
 ];
 /** The ladder's column: on the pier between the first two arches. */
 const LADDER = 176;
@@ -639,6 +649,7 @@ class PortPainter {
     // the mooring pile stands before the quay and the boats behind it, so it is laid again over them too
     for (const p of PILES) this.as(() => this.pile(look, false, p));
     this.building = false;
+    for (const p of NEAR_PILES) this.as(() => this.pile(look, false, p));
   }
 
   /**
@@ -952,8 +963,8 @@ class PortPainter {
    * The mooring pile: a fat old log leaning a little, its cut top pale, an iron band and a rope round it, weed and
    * barnacles at the water; above the water on top, and under the water, in the sea's blues, down to the bed (`under`).
    */
-  private pile(look: number, under: boolean, { x: foot, top, half, rope }: (typeof PILES)[number]): void {
-    const lean = 0.06, bottom = under ? PORT.bed + 8 : PORT.water + 2;
+  private pile(look: number, under: boolean, { x: foot, top, half, rope, near }: (typeof PILES)[number]): void {
+    const lean = 0.06, bottom = under ? PORT.bed + 8 : near ? this.plan.fine.h + 4 : PORT.water + 2;
     const [a, b] = this.rows(under ? PORT.water + 1 : top - 4, bottom);
     for (let y = a; y < b; y++) {
       const cx = foot + (under ? 0 : Math.round((bottom - y) * lean));
@@ -970,9 +981,9 @@ class PortPainter {
         if (y < top - 1 || (y < top + 1 && Math.abs(u) > 0.8)) continue;
         if (cap) { this.put(x, y, Math.abs(u) < 0.5 && y > top - 1 ? R.wood[R.wood.length - 1]! : R.wood[3]!); continue; }
         const band = Math.abs(y - (top + 14)) < 2 || Math.abs(y - (top + 50)) < 2;
-        const wet = y > PORT.water - 14;
+        const wet = y > bottom - 16;
         // near and against the light it is dark, as the 1991 game's foreground things are
-        const t = 0.08 + 0.34 * clamp01((u * this.hour.side + 1) / 2) + (Math.abs(u) > 0.85 ? -0.08 : 0) + (Math.abs(((x + y * 0.2) % 7) - 3) < 0.6 ? -0.06 : 0);
+        const t = (near ? 0 : 0.08) + (near ? 0.12 : 0.34) * clamp01((u * this.hour.side + 1) / 2) + (Math.abs(u) > 0.85 ? -0.08 : 0) + (Math.abs(((x + y * 0.2) % 7) - 3) < 0.6 ? -0.06 : 0);
         this.put(x, y, band ? (dx % 3 === 0 ? R.sponge[2]! : R.stone[1]!) : wet ? tone([R.bush[0]!, R.stone[1]!, R.bush[1]!], t, x, y) : tone(F.wood, clamp01(t), x, y, 0.15));
       }
     }
@@ -1018,7 +1029,7 @@ class PortPainter {
       for (let y = PORT.bed - hgt; y < PORT.bed + 8; y++) this.put(x, y, R.sea[1]!);
     }
     for (let k = 0; k < 9; k++) {
-      const fx = 40 + ((k * 71) % 580) + Math.round(swing(look, PORT_DEEP_FRAMES, k / 9) * 3), fy = PORT.water + 60 + ((k * 37) % 90);
+      const fx = 40 + ((k * 71) % 580) + Math.round(swing(look, PORT_DEEP_FRAMES, k / 9) * 3), fy = PORT.water + 60 + ((k * 37) % 210);
       for (let d = 0; d < 6; d++) this.put(fx + d, fy, R.sea[1]!);
       this.put(fx + 6, fy - 1, R.sea[1]!); this.put(fx + 6, fy + 1, R.sea[1]!); this.put(fx + 1, fy - 1, R.sea[1]!);
     }
@@ -1121,7 +1132,7 @@ class PortPainter {
     });
     const b = this.brush(look, PORT_DEEP_FRAMES);
     const shift = (y: number) => y - this.top;
-    for (const [x, y, r, seed] of [[150, 398, 4, 1], [226, 402, 3, 2], [366, 394, 5, 3], [492, 400, 4, 4], [612, 396, 3, 5], [30, 404, 3, 6]] as const) {
+    for (const [x, y, r, seed] of [[150, PORT.bed + 22, 4, 1], [226, PORT.bed + 26, 3, 2], [366, PORT.bed + 18, 5, 3], [492, PORT.bed + 24, 4, 4], [612, PORT.bed + 20, 3, 5], [30, PORT.bed + 28, 3, 6]] as const) {
       this.as(() => pebble.paint(b, x, shift(y), optionsOf(pebble, 'grey', { r }), seed));
     }
     // two big cobbles half sunk in the sand (`stones/pebble`, its cobble: the boulder of the kit wants the shore's runs)
@@ -1405,9 +1416,10 @@ class PortPainter {
     const left = this.mound(-8, 116, 34, F.violet, 581);
     const middle = this.mound(206, 428, 30, F.coral, 583);
     const right = this.mound(528, 650, 40, F.violet, 585);
-    this.kelp(18, PORT.bed + 6, 164);
-    this.kelp(286, middle(286) + 2, 150);
-    this.kelp(598, right(598) + 2, 158);
+    this.kelp(18, PORT.bed + 6, 252);
+    this.kelp(286, middle(286) + 2, 226);
+    this.kelp(598, right(598) + 2, 240);
+    this.kelp(458, PORT.bed + 8, 176);
     this.moving(() => this.fan(66, left(66) + 2, 62, F.coral, look));
     this.tubes(104, left(106) + 4, 2, F.sponge);
     this.brain(26, left(26) + 4, 13, F.dry);
@@ -1424,7 +1436,7 @@ class PortPainter {
     this.moving(() => this.seaGrass(186, PORT.bed + 10, look));
     this.moving(() => this.seaGrass(436, PORT.bed + 9, look));
     this.starfish(178, PORT.bed + 22);
-    this.moving(() => this.seahorse(326, PORT.water + 96, look));
+    this.moving(() => this.seahorse(326, PORT.water + 170, look));
   }
 
   // ---- the pictures

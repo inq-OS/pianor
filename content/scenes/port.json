@@ -7,44 +7,44 @@
     {
       "id": "quay-west",
       "x": 210,
-      "y": 138,
+      "y": 178,
       "facing": "right"
     },
     {
       "id": "sea-far",
       "x": 600,
-      "y": 92,
+      "y": 132,
       "facing": "left",
       "scale": 0.3
     },
     {
       "id": "berth-east",
       "x": 380,
-      "y": 125,
+      "y": 165,
       "facing": "left"
     },
     {
       "id": "gangway",
       "x": 430,
-      "y": 138,
+      "y": 178,
       "facing": "left"
     },
     {
       "id": "to-island",
       "x": 8,
-      "y": 138,
+      "y": 178,
       "facing": "left"
     },
     {
       "id": "quay-east",
       "x": 400,
-      "y": 138,
+      "y": 178,
       "facing": "left"
     },
     {
       "id": "landing",
       "x": 572,
-      "y": 190,
+      "y": 230,
       "facing": "left"
     }
   ],

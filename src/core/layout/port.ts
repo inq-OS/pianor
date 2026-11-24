@@ -1,7 +1,7 @@
 import type { World, WorldPoint } from '../world/world';
 import { ART_DETAIL } from './frame';
 import type { Rect } from './rect';
-import { ROOM_PICTURE, roomView } from './room';
+import { pictureView } from './room';
 
 /**
  * The southern port (ft_1_19, AX-3 provisional): where most visitors land on Keri, at the slipway south of the
@@ -21,9 +21,9 @@ import { ROOM_PICTURE, roomView } from './room';
 /** The scene's id in the world model (`scenes` in content/world/keri.json). */
 export const PORT_ID = 'port';
 
-/** The scene's picture has the room's size: a low wide band over the same strip. */
-export const PORT_PICTURE = ROOM_PICTURE;
-export const portView = roomView;
+/** The scene's picture fills the main area of the target screen (d282): every row, with nothing kept free under it. */
+export const PORT_PICTURE = { w: 320, h: 180 } as const;
+export const portView = pictureView(PORT_PICTURE);
 
 const FINE = { w: PORT_PICTURE.w * ART_DETAIL, h: PORT_PICTURE.h * ART_DETAIL } as const;
 
@@ -35,12 +35,12 @@ const FINE = { w: PORT_PICTURE.w * ART_DETAIL, h: PORT_PICTURE.h * ART_DETAIL } 
  * `lens` fine pixels per radian, for what lies on the water.
  */
 export const PORT = {
-  horizon: 68,
-  far: 124,
-  deck: 136,
-  water: 194,
-  dive: 160,
-  bed: 376,
+  horizon: 108,
+  far: 164,
+  deck: 176,
+  water: 234,
+  dive: 200,
+  bed: 528,
   head: 548,
   eye: 3.0,
   lens: 470,
@@ -59,8 +59,8 @@ export type BoatKind = (typeof BOAT_KINDS)[number];
  * hides its waterline, so it lies behind the quay and does not stand on it.
  */
 export const PORT_BERTHS: readonly { x: number; water: number; room: number }[] = [
-  { x: 20, water: 125, room: 252 },
-  { x: 286, water: 125, room: 236 },
+  { x: 20, water: 165, room: 252 },
+  { x: 286, water: 165, room: 236 },
 ];
 
 /**
@@ -83,13 +83,12 @@ export const PORT_LANDING_BERTH = { x: 395, water: PORT.water + 30 } as const;
  */
 export const PORT_AT_LANDING: BoatKind | null = 'row';
 
-/** Where the beacon's lantern hangs at the quay's head (fine pixels): its light glows round it at dusk and night. */
 /**
  * The beacon at the quay's head (fine pixels): a raised stone platform at the very end, its top about as high as a
  * standing person's head, and on it a fire pan big enough for a bonfire, burning at dusk and night. `l`, `r` and `top`
  * are the platform's; `x`, `y` the middle of the pan's rim.
  */
-export const PORT_BEACON = { l: PORT.head - 32, r: PORT.head + 9, top: 66, x: PORT.head - 12, y: 50 } as const;
+export const PORT_BEACON = { l: PORT.head - 32, r: PORT.head + 9, top: 106, x: PORT.head - 12, y: 90 } as const;
 const LAMP = { x: PORT_BEACON.x, y: PORT_BEACON.y } as const;
 
 /** Where the light falls in pools on the sand of the bed (centres, fine pixels of the tall picture). */
