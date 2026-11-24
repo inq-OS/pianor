@@ -588,9 +588,9 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
     const hats = () => page.evaluate((label) => {
       const scene = window.__game.scene.getScene('menu') as unknown as { root: { list: { name: string; x: number; y: number }[] }; buttons: { options: { label: string }; rect: { x: number; y: number; width: number; height: number } }[] };
       const card = scene.buttons.find((b) => b.options.label === label)!.rect;
-      return scene.root.list.filter((o) => o.name === 'curriculumHat').map((o) => o.x >= card.x + card.width && o.y >= card.y && o.y < card.y + card.height);
+      return scene.root.list.filter((o) => o.name === 'curriculumHat').map((o) => (o.x >= card.x + card.width || o.x < card.x) && o.y >= card.y && o.y < card.y + card.height);
     }, title);
-    // one hat, on the curriculum piece's title line right of its title, with the days left to its deadline beside it (nothing played yet)
+    // one hat, on the curriculum piece's title line just past its title (away from the spine), with the days left to its deadline beside it (nothing played yet)
     await expect.poll(hats).toEqual([true]);
     const days = await page.evaluate(() => (window.__game.scene.getScene('menu') as unknown as { root: { list: { name: string; text?: string }[] } }).root.list.filter((o) => o.name === 'curriculumDays').length);
     expect(days).toBe(1);

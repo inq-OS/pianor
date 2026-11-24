@@ -724,13 +724,16 @@ export class MenuScene extends PixelScene {
     this.redraw();
   }
 
-  /** The piece's own level (ft_1_13): on the second line from `from` when it fits before `limit`, else not written. */
-  private pieceLevel(button: PixelButton, record: PieceRecord, card: { top: number; flip: (x: number, w?: number) => number }, from: number, limit: number): void {
-    const { top, flip } = card;
+  /**
+   * The piece's own level (ft_1_13) in the first of `places` it fits in (from `x` up to `limit`, at `y`), else not written;
+   * never over a button.
+   */
+  private pieceLevel(button: PixelButton, record: PieceRecord, flip: (x: number, w?: number) => number, places: { x: number; y: number; limit: number }[]): void {
     const text = t('menu.pieceLevel', { level: record.level.level });
     const width = measure(drawnText(text));
-    if (from + width > limit) return;
-    const level = new PixelText(this, flip(from, width), top + 20, text, { color: C.umberDark }).setName('pieceLevel');
+    const place = places.find((p) => p.x + width <= p.limit);
+    if (!place) return;
+    const level = new PixelText(this, flip(place.x, width), place.y, text, { color: C.umberDark }).setName('pieceLevel');
     this.root.add(level);
     button.attach(level);
   }
@@ -788,8 +791,8 @@ export class MenuScene extends PixelScene {
     ];
     const signRoom = signs.reduce((a, b) => a + b + SIGN_GAP, 0);
     // a title too long for the room before the signs and the block is cut on one line
-    const room = lineEnd - 4 - (left + 6) - signRoom;
-    const title = clipToWidth(pieceTitle(piece.chart), room, (text) => measure(drawnText(text)));
+    const room = lineEnd - 2 - (left + 6) - signRoom;
+    const title = signs.length === 0 ? pieceTitle(piece.chart) : clipToWidth(pieceTitle(piece.chart), room, (text) => measure(drawnText(text)));
     const titleEnd = left + 6 + measure(drawnText(title));
     const buttonWidth = (signs.length === 0 ? lineEnd : titleEnd + 2) - left;
     const button = this.button({
@@ -828,7 +831,8 @@ export class MenuScene extends PixelScene {
       if (this.flight?.chartId === piece.chart.id) this.flightSign = image;
     });
     const { info, stats } = this.cardButtons(piece, button, at);
-    if (record) this.pieceLevel(button, record, { top, flip }, firstButton + 3 * STATS_OFFSET + INFO_SIZE / 2 + 6, lineEnd);
+    // past the small buttons, else past the title and its signs
+    if (record) this.pieceLevel(button, record, flip, [{ x: firstButton + 3 * STATS_OFFSET + INFO_SIZE / 2 + 4, y: top + 20, limit: left + width - 1 }, { x: cursor + 5, y: top + 4, limit: lineEnd }]);
     // the five-star grade of the best play, stacked like interlocking rings: three over two, the two set in between (ft_1_12 rule 7)
     const grade = record?.bestGrade ?? 0;
     const starsAt = flip(left + 6, GRADE_WIDTH);

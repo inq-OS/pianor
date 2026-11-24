@@ -40,16 +40,20 @@ async function walkFocusTo(page: Page, scene: string, label: string): Promise<bo
     const from = centre(list[at]!), to = centre(target);
     return { done: list[at] === target, at, dx: to.x - from.x, dy: to.y - from.y };
   }, [scene, label] as const);
+  // a button already passed through is a loop (up from one card's button lands on the same button of the card above,
+  // down comes back): then the other direction is taken
+  const seen = new Set<number>();
   for (let step = 0; step < 40; step++) {
     const now = await where();
     if (now === null) return false;
     if (now.done) return true;
+    seen.add(now.at);
     const vertical = now.dy > 0 ? 'ArrowDown' : 'ArrowUp';
     const horizontal = now.dx > 0 ? 'ArrowRight' : 'ArrowLeft';
     const [first, second] = Math.abs(now.dy) >= Math.abs(now.dx) ? [vertical, horizontal] : [horizontal, vertical];
     await page.keyboard.press(Math.abs(first === vertical ? now.dy : now.dx) > 2 ? first : second);
     const after = await where();
-    if (after !== null && after.at === now.at) await page.keyboard.press(second);
+    if (after !== null && (after.at === now.at || seen.has(after.at))) await page.keyboard.press(second);
   }
   return false;
 }
