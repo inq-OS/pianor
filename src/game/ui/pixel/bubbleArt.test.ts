@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bubbleLayout, cellSpan, PIN_ROWS } from '../../../core/layout/bubble';
 import { inkCount, type Bitmap } from './bitmap';
-import { BACKPACK, backpackPage, choicePlate, choicesBack, closePlate, NEW_ITEM_DOT, OPTION_SIZE, optionFocus, optionPlate, PIN_CELL_SIZE, pinCell, pressRing, STRIP_ROWS, stripBitmap, wornChip, type PlateLook } from './bubbleArt';
+import { BACKPACK, openBackpack, openBagPlaces, OPEN_BAG, choicePlate, choicesBack, closePlate, NEW_ITEM_DOT, OPTION_SIZE, optionFocus, optionPlate, PIN_CELL_SIZE, pinCell, pressRing, STRIP_ROWS, stripBitmap, wornChip, type PlateLook } from './bubbleArt';
 import { ICONS } from './iconArt';
 import { C } from './palette';
 import { TOOL_ICONS } from './toolArt';
@@ -80,14 +80,26 @@ describe('the bubble, the strip and the backpack (ft_1_20, d282): their look fit
     expect(chip.pixels.some((p) => p === C.gold)).toBe(true);
   });
 
-  it('ft_1_20.AC23 the backpack is no larger than the gear beside it, wears a dot when an item is new, and opens a leather page', () => {
+  it('ft_1_20.AC23 the backpack is no larger than the gear beside it, wears a dot when an item is new, and opens into a bag of 3 x 3 items', () => {
     expect(BACKPACK.width).toBeLessThanOrEqual(ICONS.settings.width);
     expect(BACKPACK.height).toBeLessThanOrEqual(ICONS.settings.height + 1);
     expect(inkCount(BACKPACK)).toBeGreaterThan(100);
     expect(NEW_ITEM_DOT.pixels.some((p) => p === C.red)).toBe(true);
-    const page = backpackPage(80, 40);
-    expect(page.width).toBe(80);
-    expect(at(page, 40, 20)).toBe(C.brown);
+    // opened, the bag holds 3 x 3 items, each place inside the bag and large enough for a 56 x 40 fine picture
+    const bag = openBackpack();
+    expect(bag.width).toBe(OPEN_BAG.w);
+    const places = openBagPlaces();
+    expect(places).toHaveLength(9);
+    for (const p of places) {
+      expect(p.w * 2).toBeGreaterThanOrEqual(56);
+      expect(p.h * 2).toBeGreaterThanOrEqual(40);
+      expect(p.x + p.w).toBeLessThanOrEqual(OPEN_BAG.w);
+      expect(p.y + p.h).toBeLessThanOrEqual(OPEN_BAG.h);
+      // the inside is dark where an item lies, no box round it
+      expect([C.panelDark, C.night]).toContain(at(bag, p.x + (p.w >> 1), p.y + (p.h >> 1)));
+    }
+    // the arrows show only when rows lie above or below
+    expect(same(openBackpack({ down: true }), bag)).toBe(false);
     expect(optionFocus().width).toBe(OPTION_SIZE + 4);
   });
 });

@@ -1,10 +1,10 @@
 import { bubbleLayout, cellSpan, pinFlow, PIN_ROWS } from '../../src/core/layout/bubble.ts';
 import { blit, createBitmap, type Bitmap } from '../../src/game/ui/pixel/bitmap.ts';
-import { BACKPACK, backpackPage, choicePlate, choicesBack, closePlate, NEW_ITEM_DOT, optionFocus, optionPlate, pinCell, pressRing, stripBitmap, wornChip, type PlateLook } from '../../src/game/ui/pixel/bubbleArt.ts';
+import { BACKPACK, openBackpack, openBagPlaces, OPEN_BAG, choicePlate, choicesBack, closePlate, NEW_ITEM_DOT, optionFocus, optionPlate, pinCell, pressRing, stripBitmap, wornChip, type PlateLook } from '../../src/game/ui/pixel/bubbleArt.ts';
 import { tinted } from '../../src/game/ui/pixel/frames.ts';
 import { measure, renderText } from '../../src/game/ui/pixel/font.ts';
 import { ICONS } from '../../src/game/ui/pixel/iconArt.ts';
-import { acorn, oakLeaf } from '../../src/game/ui/pixel/prizeArt.ts';
+import { acorn, goldenLeaf, oakLeaf, seedOfLife, singingBranch } from '../../src/game/ui/pixel/prizeArt.ts';
 import { C, PALETTE } from '../../src/game/ui/pixel/palette.ts';
 import { TOOL_ICONS } from '../../src/game/ui/pixel/toolArt.ts';
 
@@ -119,16 +119,14 @@ export function sceneMock(): Mock {
   const bag = { x: W - 3 - ICONS.settings.width - 4 - BACKPACK.width, y: 3 };
   blit(b, BACKPACK, bag.x, bag.y);
   blit(b, NEW_ITEM_DOT, bag.x + BACKPACK.width - 3, bag.y - 1);
-  // the page of items under the corner: two items kept, no empty slots
-  const page = { w: 80, h: 40 };
-  const px = W - 6 - page.w, py = 22;
-  blit(b, backpackPage(page.w, page.h), px, py);
-  const kept = [oakLeaf(), acorn()];
+  // the bag opened under the corner: nine of its items, more below
+  const bx = W - 4 - OPEN_BAG.w, by = 22;
+  blit(b, openBackpack({ down: true }), bx, by);
+  const kept = [oakLeaf(), acorn(), goldenLeaf(), singingBranch(), seedOfLife(), acorn(), oakLeaf(), goldenLeaf(), seedOfLife()];
   const fine: FineOverlay[] = [];
-  kept.forEach((pic, i) => {
-    // the items lie on the leather as they are, no box round them
-    const slot = { x: px + 8 + i * 32, y: py + 8, w: 30, h: 23 };
-    fine.push({ pic, x: slot.x * 2 + ((slot.w * 2 - pic.width) >> 1), y: slot.y * 2 + (((slot.h - 1) * 2 - pic.height) >> 1) });
+  openBagPlaces().forEach((place, i) => {
+    const pic = kept[i]!;
+    fine.push({ pic, x: (bx + place.x) * 2 + ((place.w * 2 - pic.width) >> 1), y: (by + place.y) * 2 + ((place.h * 2 - pic.height) >> 1) });
   });
   return { cells: b, fine };
 }
@@ -155,7 +153,6 @@ export function kitMock(): Mock {
   blit(b, choicesBack(3), 110, 88);
   blit(b, BACKPACK, 190, 90);
   blit(b, NEW_ITEM_DOT, 190 + BACKPACK.width - 3, 89);
-  blit(b, backpackPage(60, 30), 214, 88);
   // every picture of the strip in a cell
   const pics = (['more', 'analyse', 'speed', 'scale', 'triad', 'handLeft', 'handRight', 'bug', 'learn', 'sectionShort', 'wait', 'tempo', 'click', 'circle', 'statsPane'] as const).map((id) => TOOL_ICONS[id]);
   fill(b, 0, 130, W, PIN_ROWS, C.panel);
