@@ -137,3 +137,86 @@ test.describe('tempo mode (slice c)', () => {
     expectNoErrors(errors);
   });
 });
+
+/** What the practice screen's Tempo clock and judge say now. */
+const tempoState = (page: Page) => page.evaluate(() => {
+  const scene = window.__game.scene.getScene('practice');
+  const state = scene.playSession.controller.getState();
+  return {
+    tempo: scene.transport !== null, started: scene.transport?.started === true, countInBars: scene.transport?.countInBars as number | undefined,
+    songStartMs: scene.transport?.songStartMs as number | null | undefined, stepIndex: state.stepIndex as number,
+    firstVerdict: state.timings?.[0]?.verdict as string | undefined, watching: scene.missedBars !== null,
+    nowMs: window.__game.registry.get('context').audio.clock.nowMs() as number,
+  };
+});
+
+test.describe('tempo mode: the clock that follows the player (core_01 slice h)', () => {
+  test('core_01.AC12 core_01.AC13: the mode button gives the following clock; a note played long after its time is still that note, and there is no click', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await pickChoice(page, 'practice', 'Wait', 'Tempo that follows you');
+    await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'tempo', tempoStart: 'firstNote', tempoClock: 'follow' });
+    await expect.poll(() => tempoState(page).then((s) => s.countInBars)).toBe(0);
+    expect(await sceneButton(page, 'practice', 'Tempo that follows you')).toBeGreaterThanOrEqual(0);
+    const look = () => page.evaluate(() => {
+      const scene = window.__game.scene.getScene('practice');
+      const state = scene.playSession.controller.getState();
+      return { clickOn: scene.clickOn as boolean, progress: state.noteProgress.slice(0, 3) as string[], verdicts: (state.timings as ({ verdict: string } | null)[]).slice(0, 3).map((x) => x?.verdict) };
+    });
+    expect((await look()).clickOn).toBe(false);
+
+    // Little Steps: C D E ... in quarters at 70 bpm, so the second note's window is over 430 ms after its time
+    await page.evaluate(() => {
+      window.__virtualDevice!.press(60);
+      window.__virtualDevice!.release(60);
+    });
+    expect((await tempoState(page)).started).toBe(true);
+    await page.waitForTimeout(2500);
+    expect((await look()).progress).toEqual(['correct', 'pending', 'pending']); // waited for, not missed
+    await page.evaluate(() => {
+      window.__virtualDevice!.press(62);
+      window.__virtualDevice!.release(62);
+    });
+    await expect.poll(() => look()).toMatchObject({ progress: ['correct', 'correct', 'pending'], verdicts: ['on-time', 'late', undefined] });
+
+    // the click's button says why it stays off
+    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Click'));
+    expect((await look()).clickOn).toBe(false);
+    expect(await sceneTexts(page, 'practice')).toContain('No click while the tempo follows you.');
+    expectNoErrors(errors);
+  });
+});
+
+test.describe('tempo mode: the start on the first note and the auto reset (core_01 slice g)', () => {
+  test('core_01.AC10: the mode button cycles to Tempo from the first note; a wrong key waits, the first note starts it with no count-in', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await pickChoice(page, 'practice', 'Wait', 'Tempo that follows you');
+    await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'tempo', tempoClock: 'follow' });
+    await pickChoice(page, 'practice', 'Tempo that follows you', 'Tempo');
+    await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'tempo', tempoStart: 'anyKey' });
+    await expect.poll(() => tempoState(page).then((s) => s.tempo)).toBe(true);
+    await pickChoice(page, 'practice', 'Tempo', 'Tempo from the first note');
+    await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'tempo', tempoStart: 'firstNote' });
+    await expect.poll(() => tempoState(page).then((s) => s.countInBars)).toBe(0);
+    expect(await sceneTexts(page, 'practice')).not.toContain('Press any key to start. One bar is counted in.');
+    expect(await sceneButton(page, 'practice', 'Tempo from the first note')).toBeGreaterThanOrEqual(0);
+
+    await page.evaluate(() => {
+      window.__virtualDevice!.press(61);
+      window.__virtualDevice!.release(61);
+    });
+    expect((await tempoState(page)).started).toBe(false);
+    await page.evaluate(() => window.__virtualDevice!.press(60));
+    expect((await tempoState(page)).started).toBe(true);
+    expect((await tempoState(page)).stepIndex).toBe(1);
+    expect((await tempoState(page)).firstVerdict).toBe('on-time');
+    await page.evaluate(() => window.__virtualDevice!.release(60));
+
+    // and back to Wait
+    await pickChoice(page, 'practice', 'Tempo from the first note', 'Wait');
+    await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'wait' });
+    expectNoErrors(errors);
+  });
+
+});

@@ -1,6 +1,6 @@
 // Covers ft_0_15.AC1, ft_0_15.AC2, ft_0_15.AC5.
 import { expect, test } from '@playwright/test';
-import { expectNoErrors, openGame, openPiece, playStepsWithKeys, playStepsWithVirtualPiano, results, sceneTexts, toScoreScreen, useOneLine } from './helpers';
+import { expectNoErrors, openGame, openPiece, playStepsWithKeys, playStepsWithVirtualPiano, results, sceneTexts, showMenuPageWith, toScoreScreen, useOneLine } from './helpers';
 import { TARGET_VIEW } from './targetView';
 
 /** Level-4 and level-5 pieces are open to every player: levels lock no piece (ft_1_13.AC3). */
@@ -122,6 +122,14 @@ test.describe('two hands on a grand staff', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_1_13.AC3: the two-hand pieces are open at level 1: levels lock no piece', async ({ page }) => {
+    const errors = await openGame(page);
+    for (const title of ['Take Turns', 'Both Hands']) {
+      const index = await showMenuPageWith(page, title);
+      expect(await page.evaluate((i) => window.__game.scene.getScene('menu').buttons[i].disabled, index), `${title} is open`).toBe(false);
+    }
+    expectNoErrors(errors);
+  });
 });
 
 // the 1920x1080 full screen at Windows 125% scaling (d105)

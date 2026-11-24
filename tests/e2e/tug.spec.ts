@@ -20,6 +20,9 @@ const tugs = (page: Page) => page.evaluate(() => (window.__game.registry.get('co
 const PHRASE = [64, 64, 65, 64, 62, 62, 60];
 const WRONG = [61, 61, 61, 61, 61, 61, 61];
 
+/** Puuvaim's level 2 piece: its bars' notes, and the student's phrase in it (bars 3 and 4). */
+const LEVEL_2 = { piece: 'puuvaim-2', bars: [4, 4, 3, 3] };
+
 /**
  * `times` whole plays of a piece in the room (by default Puuvaim's first, four bars of 4, 3, 4 and 3 notes), each with
  * every bar right first try (`clean`), in `mode` (Tempo mode on time).
@@ -68,6 +71,32 @@ async function pickTug(page: Page): Promise<void> {
   await page.keyboard.press('2'); // "Let's take turns playing!"
   for (let i = 0; i < 6 && (await talk(page)) !== null; i++) await page.keyboard.press('Space');
   expect(await talk(page)).toBeNull();
+}
+
+/**
+ * Tempo mode: once the student's phrase is on the tug's clock, its keys are pressed at their times (`phrase`, or none to
+ * miss them all); the tug after the fact on it.
+ */
+async function roundInTime(page: Page, notes: 'phrase' | 'none'): Promise<TugView> {
+  const before = (await tug(page))!.turn;
+  await expect.poll(() => page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { tugTransport: unknown }).tugTransport !== null, knoll)).toBe(true);
+  if (notes === 'phrase') {
+    await page.evaluate((k) => {
+      const scene = window.__game.scene.getScene(k) as unknown as { tugTransport: { timeOfTick(t: number): number }; tugPhrase: { notes: { tick: number; midi: number }[] } };
+      const clock = window.__game.registry.get('context').audio.clock as { nowMs(): number };
+      const transport = scene.tugTransport;
+      for (const note of scene.tugPhrase.notes) {
+        const due = transport.timeOfTick(note.tick) - clock.nowMs();
+        // the key carries its own time stamp (as a real MIDI message does), sent a little early: a timer that fires late
+        // on a busy machine does not make the note late
+        const stamp = performance.now() + due;
+        setTimeout(() => { window.__virtualDevice!.press(note.midi, 80, stamp); setTimeout(() => window.__virtualDevice!.release(note.midi), 400); }, Math.max(0, due - 40));
+      }
+    }, knoll);
+  }
+  // the fact after the student's phrase
+  await expect.poll(async () => { const v = await tug(page); return v !== null && v.turn > before && v.saying !== null; }, { timeout: 30_000 }).toBe(true);
+  return (await tug(page))!;
 }
 
 /** Plays one round: Puuvaim's phrase (ended at once), then the student's notes; the standing after it. */
@@ -130,6 +159,38 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     expect(await activeScenes(page)).toContain(knoll);
     expect((await world(page)).met['puuvaim']!.tugs).toMatchObject({ won: 0, lost: 0 });
     expect(await tugs(page)).toEqual([]);
+    expectNoErrors(errors);
+  });
+  test('ft_1_21.AC19 the tug waits for practice: under three plays in the room Puuvaim says how many more, and nothing is played', async ({ page }) => {
+    const errors = await openTug(page, 1);
+    await expect.poll(async () => (await tug(page))?.saying).toBe('Practice my tune in your room first: 2 more plays.');
+    expect((await tug(page))!.who).toBeNull();
+    await page.keyboard.press('Space');
+    await expect.poll(() => tug(page)).toBeNull();
+    expect(await tugs(page)).toEqual([]);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_21.AC6 a won level opens level 2 in Tempo mode: his phrase, then the student\'s on the beat after it, judged on time', async ({ page }) => {
+    test.slow(); // three Wait rounds, then two rounds at the piece's tempo
+    const errors = await openTug(page);
+    for (let i = 0; i < 3; i++) await round(page, PHRASE);
+    await expect.poll(async () => (await tug(page))?.closing).toBe(true);
+    await page.keyboard.press('Space');
+    await expect.poll(() => tug(page)).toBeNull();
+    await expect.poll(async () => (await world(page)).met['puuvaim']?.tugs.won).toBe(1);
+    // level 2 waits for practice of its own piece in Tempo mode (ft_1_21.AC19)
+    await practise(page, 3, true, LEVEL_2, 'tempo');
+    await pickTug(page);
+    await expect.poll(async () => (await tug(page))?.who).toBe('character');
+    expect(await tug(page)).toMatchObject({ level: 2, mode: 'tempo', standing: 0 });
+    const won = await roundInTime(page, 'phrase');
+    expect(won).toMatchObject({ standing: 1, saying: '6 of 6 notes on time' });
+    // the next pass swaps the turns: the student plays first, the first two bars, after the count-in
+    const missed = await roundInTime(page, 'none');
+    expect(missed).toMatchObject({ standing: 0, saying: '0 of 8 notes on time' });
+    await page.keyboard.press('Escape');
+    await expect.poll(() => tug(page)).toBeNull();
     expectNoErrors(errors);
   });
 });

@@ -137,4 +137,18 @@ test.describe('pitch trainer by ear (ft_1_10)', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_1_10.AC3: a wrong octave says only "right letter, wrong octave"; any other miss only dims a star, never a direction', async ({ page }) => {
+    const errors = await openEar(page);
+    const target = (await ear(page)).notes[0]!;
+    await playWithVirtualPiano(page, [target + 12 <= 96 ? target + 12 : target - 12]);
+    let texts = await sceneTexts(page, 'earTrainer');
+    expect(texts).toContain('Right letter, wrong octave');
+    expect((await ear(page)).stars).toEqual([4, 5]);
+    await playWithVirtualPiano(page, [missKey(target)]);
+    texts = await sceneTexts(page, 'earTrainer');
+    expect(texts).toEqual(ONLY_TEXTS);
+    expect(texts.some((text) => /almost|higher|lower|below|above/i.test(text))).toBe(false);
+    expect((await ear(page)).stars).toEqual([3, 5]);
+    expectNoErrors(errors);
+  });
 });
