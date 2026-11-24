@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bubbleLayout, cellSpan, PIN_ROWS } from '../../../core/layout/bubble';
 import { inkCount, type Bitmap } from './bitmap';
-import { BACKPACK, BUBBLE_ALPHA, choicesSausage, CHOICE_SIZE, closePlate, NEW_ITEM_DOT, openBackpack, openBagPlaces, OPEN_BAG, OPTION_PLATE, OPTION_SIZE, optionFocus, optionPlate, PIN_CELL_SIZE, pinCell, pressRing, STRIP_ROWS, stripBitmap, wornChip, type PlateLook } from './bubbleArt';
+import { BACKPACK, BUBBLE_ALPHA, choicesSausage, closePlate, NEW_ITEM_DOT, openBackpack, openBagPlaces, OPEN_BAG, OPTION_PLATE, OPTION_SIZE, optionFocus, optionPlate, PIN_CELL_SIZE, pinCell, pressRing, STRIP_ROWS, stripBitmap, wornChip, type PlateLook } from './bubbleArt';
 import { ICONS } from './iconArt';
 import { C } from './palette';
 import { TOOL_ICONS } from './toolArt';
@@ -36,20 +36,24 @@ describe('the bubble, the strip and the backpack (ft_1_20, d282): their look fit
     }
   });
 
-  it('ft_1_20.AC20 an option\'s choices lie in one sausage round the layout\'s choices, the one in use lit', () => {
-    const layout = bubbleLayout({ at: { x: 100, y: 90 }, options: 8, screen: { w: 320, h: 180 }, open: { option: 2, choices: 3 } });
-    const sausage = choicesSausage(3);
-    const first = layout.choices[0]!, last = layout.choices[2]!;
-    expect(sausage.width).toBe(last.x + last.w - first.x + 6);
-    expect(sausage.height).toBe(CHOICE_SIZE + 6);
-    expect(first.h).toBe(CHOICE_SIZE);
-    // one long plate with round ends and no dark line; the active choice on a gold-rimmed patch
-    expect(at(sausage, 0, 0)).toBe(0);
-    expect(sausage.pixels.some((p) => p === C.groove)).toBe(false);
-    expect(sausage.pixels.some((p) => p === C.gold || p === C.goldLight)).toBe(false);
-    const lit = choicesSausage(3, 1);
-    expect(same(lit, sausage)).toBe(false);
-    expect(same(lit, choicesSausage(3, 0))).toBe(false);
+  it('ft_1_20.AC20 an option\'s choices lie in one sausage curved along the outer ring, round every choice, the one in use lit', () => {
+    const layout = bubbleLayout({ at: { x: 160, y: 90 }, options: 8, screen: { w: 320, h: 180 }, open: { option: 0, choices: 5 } });
+    const { picture, x, y } = choicesSausage(layout.centre, layout.choices);
+    // every choice's middle lies on the sausage, and so does the room between neighbours: it is one piece
+    for (const r of layout.choices) expect(at(picture, r.x + (r.w >> 1) - x, r.y + (r.h >> 1) - y)).not.toBe(0);
+    for (let i = 1; i < layout.choices.length; i++) {
+      const [a, b] = [layout.choices[i - 1]!, layout.choices[i]!];
+      expect(at(picture, ((a.x + b.x + a.w) >> 1) - x, ((a.y + b.y + a.h) >> 1) - y)).not.toBe(0);
+    }
+    // curved, not straight: over the top option it bows up, so the middle of its box's foot, toward the bubble, is clear
+    expect(at(picture, picture.width >> 1, picture.height - 1)).toBe(0);
+    // no dark line, no gold until a choice is in use
+    expect(picture.pixels.some((p) => p === C.groove)).toBe(false);
+    expect(picture.pixels.some((p) => p === C.gold || p === C.goldLight)).toBe(false);
+    const lit = choicesSausage(layout.centre, layout.choices, 1).picture;
+    expect(same(lit, picture)).toBe(false);
+    expect(same(lit, choicesSausage(layout.centre, layout.choices, 0).picture)).toBe(false);
+    expect(choicesSausage(layout.centre, []).picture.width).toBe(1);
   });
 
   it('ft_1_20.AC21 the strip is as high as the layout\'s strip and a cell spans as the layout spans it', () => {

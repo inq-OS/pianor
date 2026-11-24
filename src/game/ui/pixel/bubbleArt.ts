@@ -1,10 +1,13 @@
+import type { Rect } from '../../../core/layout/rect';
 import { blit, createBitmap, fromAscii, type Bitmap } from './bitmap';
 import { C } from './palette';
 
 /**
  * The look of the bubble, the pinned strip and the backpack (ft_1_20, d282), in the band's manner (d118): one warm board,
  * a plate only cut into it, a dark line all round with a lighter line beside it; pictures pale, gold for what is on.
- * Everything here is in layout cells and sized to `src/core/layout/bubble.ts`: an option 20 x 20 on a ring of radius 28, a choice 18 x 18, a strip cell 30 x 15, the strip 17 rows. The builder places them; this file only paints.
+ * The bubble's plates have no dark line and are drawn 85% solid over the staff.
+ * Everything here is in layout cells and sized to `src/core/layout/bubble.ts`: an option 20 x 20 on a ring of radius 28, a choice 18 x 18 on
+ * the outer ring, a strip cell 30 x 15, the strip 17 rows. The builder places them; this file only paints.
  *
  * Original, drawn for this project. The backpack follows the shape of the Kenney 1-Bit Pack's backpack (CC0,
  * kenney.nl/assets/1-bit-pack), redrawn in colour with the kit's ink outline (d084, `docs/assets.md`).
@@ -74,7 +77,7 @@ function plateOf(width: number, height: number, inside: Inside, colours: PlateCo
  * A plate with no dark line round it, for the bubble: its rim is the light line on the upper left and the shade on the
  * lower right, so it lies over the staff as a soft shape.
  */
-function barePlate(width: number, height: number, inside: Inside, colours: PlateColours, centreX: (x: number) => number = () => width / 2): Bitmap {
+function barePlate(width: number, height: number, inside: Inside, colours: PlateColours, spine: (x: number, y: number) => readonly [number, number] = () => [width / 2, height / 2]): Bitmap {
   const b = createBitmap(width, height);
   const isIn = (x: number, y: number) => x >= 0 && y >= 0 && x < width && y < height && inside(x, y);
   for (let y = 0; y < height; y++) {
@@ -82,7 +85,8 @@ function barePlate(width: number, height: number, inside: Inside, colours: Plate
       if (!isIn(x, y)) continue;
       const rim = !isIn(x - 1, y) || !isIn(x + 1, y) || !isIn(x, y - 1) || !isIn(x, y + 1);
       // the rim faces the light when it lies up and to the left of the nearest point of the plate's spine
-      const upperLeft = x + 0.5 - centreX(x + 0.5) + (y + 0.5 - height / 2) < 0;
+      const [sx, sy] = spine(x + 0.5, y + 0.5);
+      const upperLeft = x + 0.5 - sx + (y + 0.5 - sy) < 0;
       b.pixels[y * width + x] = rim ? (upperLeft ? colours.light : colours.shade) : colours.fill;
     }
   }
@@ -128,23 +132,41 @@ export function closePlate(look: 'plain' | 'hover' = 'plain', size: number = OPT
 /** How far the sausage reaches round its choices, in cells. */
 const SAUSAGE_PAD = 3;
 
+const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+
 /**
- * The choices of an option, all in one sausage beside the ring (not a plate each): a long round-ended plate with no dark
- * line, as solid as the bubble, `n` choices of `bubble.ts` in a row inside it and the one in use (`active`) on a lighter
- * patch with a gold rim. Drawn at the first choice's x and y less `SAUSAGE_PAD`; the pictures are drawn on it by the scene.
+ * The choices of an option, all in one sausage curved along the outer ring round the bubble (`bubble.ts`), not a plate
+ * each: a long round-ended plate `SAUSAGE_PAD` cells round its choices, with no dark line and as solid as the bubble, the
+ * one in use (`active`, an index into `choices`) on a lighter patch with a gold rim. Give it the bubble's centre and the
+ * layout's choices; it comes with where to draw it. The pictures are drawn on it by the scene.
  */
-export function choicesSausage(n: number, active = -1): Bitmap {
-  const inner = n * CHOICE_SIZE + (n - 1) * 2;
-  const w = inner + 2 * SAUSAGE_PAD, h = CHOICE_SIZE + 2 * SAUSAGE_PAD;
-  const r = h / 2;
-  const spine = (x: number) => Math.min(Math.max(x, r), w - r);
-  const stadium: Inside = (x, y) => (x + 0.5 - spine(x + 0.5)) ** 2 + (y + 0.5 - r) ** 2 <= r * r - 0.5;
-  const b = barePlate(w, h, stadium, PLATES.plain, spine);
-  if (active >= 0 && active < n) {
-    const patch = barePlate(CHOICE_SIZE, CHOICE_SIZE, disc(CHOICE_SIZE), PLATES.on);
-    blit(b, patch, SAUSAGE_PAD + active * (CHOICE_SIZE + 2), SAUSAGE_PAD);
-  }
-  return b;
+export function choicesSausage(centre: { x: number; y: number }, choices: readonly Rect[], active = -1): { picture: Bitmap; x: number; y: number } {
+  if (choices.length === 0) return { picture: createBitmap(1, 1), x: centre.x, y: centre.y };
+  const mid = (r: Rect) => [r.x + r.w / 2 - centre.x, r.y + r.h / 2 - centre.y] as const;
+  const radius = choices.reduce((sum, r) => sum + Math.hypot(...mid(r)), 0) / choices.length;
+  const angleOf = (r: Rect) => Math.atan2(mid(r)[1], mid(r)[0]);
+  // the arc may reach round more than half the ring: measure it from its middle, where no turn is more than half a ring
+  const [a, b] = [choices[(choices.length - 1) >> 1]!, choices[choices.length >> 1]!];
+  const middle = angleOf(a) + wrap(angleOf(b) - angleOf(a)) / 2;
+  const half = Math.max(...choices.map((r) => Math.abs(wrap(angleOf(r) - middle))));
+  const reach = CHOICE_SIZE / 2 + SAUSAGE_PAD;
+  const x0 = Math.min(...choices.map((r) => r.x)) - SAUSAGE_PAD, y0 = Math.min(...choices.map((r) => r.y)) - SAUSAGE_PAD;
+  const w = Math.max(...choices.map((r) => r.x + r.w)) + SAUSAGE_PAD - x0, h = Math.max(...choices.map((r) => r.y + r.h)) + SAUSAGE_PAD - y0;
+  // the nearest point of the arc through the choices' middles, in the picture's cells
+  const spine = (x: number, y: number): readonly [number, number] => {
+    const px = x + x0 - centre.x, py = y + y0 - centre.y;
+    const d = wrap(Math.atan2(py, px) - middle);
+    const angle = Math.abs(d) <= half ? middle + d : middle + Math.sign(d) * half;
+    return [centre.x + radius * Math.cos(angle) - x0, centre.y + radius * Math.sin(angle) - y0];
+  };
+  const inside: Inside = (x, y) => {
+    const [sx, sy] = spine(x + 0.5, y + 0.5);
+    return (x + 0.5 - sx) ** 2 + (y + 0.5 - sy) ** 2 <= reach * reach - 0.5;
+  };
+  const picture = barePlate(w, h, inside, PLATES.plain, spine);
+  const lit = choices[active];
+  if (lit) blit(picture, barePlate(CHOICE_SIZE, CHOICE_SIZE, disc(CHOICE_SIZE), PLATES.on), lit.x - x0, lit.y - y0);
+  return { picture, x: x0, y: y0 };
 }
 
 /**

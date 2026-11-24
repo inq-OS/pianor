@@ -107,8 +107,8 @@ export function practiceMock(): Mock {
   blit(glass, optionFocus(), f.x - off(f) - 2, f.y - off(f) - 2);
   blit(glass, closePlate(), layout.close.x - off(layout.close), layout.close.y - off(layout.close));
   // the Click option's choices in one sausage, the one in use lit
-  const first = layout.choices[0]!;
-  blit(glass, choicesSausage(choices.length, 1), first.x - 3, first.y - 3);
+  const sausage = choicesSausage(layout.centre, layout.choices, 1);
+  blit(glass, sausage.picture, sausage.x, sausage.y);
   layout.choices.forEach((r, i) => centred(glass, pale(choices[i]!), r.x, r.y, r.w, r.h));
   // a finger's long press, two thirds of the way, far right
   blit(b, pressRing(0.66), 262, 60);
@@ -157,8 +157,8 @@ export function noteMock(): Mock {
     else sign(slot.sign, r, 26);
   });
   blit(glass, closePlate(), layout.close.x - off(layout.close), layout.close.y - off(layout.close));
-  const first = layout.choices[0]!;
-  blit(glass, choicesSausage(lengths.length, lengths.indexOf('quarter')), first.x - 3, first.y - 3);
+  const sausage = choicesSausage(layout.centre, layout.choices, lengths.indexOf('quarter'));
+  blit(glass, sausage.picture, sausage.x, sausage.y);
   layout.choices.forEach((r, i) => sign(`note.${lengths[i]!}`, r, 28));
   return { cells: b, glass: [{ pic: glass, x: 0, y: 0 }], fine };
 }
@@ -201,9 +201,11 @@ export function kitMock(): Mock {
   blit(b, closePlate('hover'), 32, 60);
   blit(b, optionFocus(), 60, 58);
   [0, 0.25, 0.5, 0.75, 1].forEach((f, i) => blit(b, pressRing(f), 110 + i * 27, 60));
-  const sausage = choicesSausage(4, 2);
-  blit(b, sausage, 4, 92);
-  [TOOL_ICONS.stop, TOOL_ICONS.click, TOOL_ICONS.tick, TOOL_ICONS.tempo].forEach((pic, i) => centred(b, pale(pic), 7 + i * 20, 95, 18, 18));
+  // an option's choices on the outer ring: the bubble's centre is to the left, only the arc is drawn
+  const arc = bubbleLayout({ at: { x: 250, y: 88 }, options: 8, screen: { w: W, h: 125 }, open: { option: 2, choices: 3 } });
+  const sausage = choicesSausage(arc.centre, arc.choices, 1);
+  blit(b, sausage.picture, sausage.x, sausage.y);
+  [TOOL_ICONS.stop, TOOL_ICONS.click, TOOL_ICONS.tick].forEach((pic, i) => centred(b, pale(pic), arc.choices[i]!.x, arc.choices[i]!.y, 18, 18));
   blit(b, BACKPACK, 190, 90);
   blit(b, NEW_ITEM_DOT, 190 + BACKPACK.width - 3, 89);
   // every picture of the strip in a cell
