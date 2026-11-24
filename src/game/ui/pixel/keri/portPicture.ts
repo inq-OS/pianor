@@ -1584,22 +1584,60 @@ export function paintPort(plan: PortPlan, phase: SkyPhase): PortPicture {
  * flame over it, white-yellow at the heart, orange, red at their tips, a little taller and leaning a different way in
  * each look, and a few sparks flying up. Its own light: no hour changes it.
  */
+/**
+ * The tongues of the beacon's fire, painted as the clouds are (`curlCloud`): each a stroke of a full brush that rises
+ * from the logs, fattens and rolls up into a curl at its top. Where it stands over the pan's middle (`dx`), how tall
+ * its stroke is, how fat, the size of its curl and the way it rolls (`left`).
+ */
+const TONGUES: readonly { dx: number; length: number; girth: number; head: number; left: boolean }[] = [
+  { dx: -20, length: 4, girth: 8, head: 8, left: true },
+  { dx: 20, length: 5, girth: 8, head: 8, left: false },
+  { dx: -9, length: 10, girth: 9, head: 10, left: true },
+  { dx: 10, length: 12, girth: 9, head: 10, left: false },
+  { dx: 0, length: 16, girth: 10, head: 11, left: true },
+];
+
+/** A fire tongue's tones (`CLOUD_TONES`, pale to the curl's line) as embers: hottest where a cloud is palest. */
+const FLAME_EMBERS = [5, 4, 4, 3] as const;
+
 function fire(put: (x: number, y: number, c: number) => void, pan: { x: number; y: number }, look: number): void {
   const cx = pan.x, half = FIRE_PAN.half - 3;
   for (let k = -half; k <= half; k++) for (const dy of [0, 1]) put(cx + k, pan.y + dy, hash2(k, look + dy, 481) > 0.45 ? R.ember[4]! : R.ember[3]!);
-  // tongues of flame: tallest in the middle, each column its own height, leaning and licking a different way in each look
-  for (let k = -half; k <= half; k++) {
-    const u = k / half, sway = Math.sin(look * 2.1 + k / 4) * 2.2;
-    const tall = Math.round((34 - 24 * u * u) * (0.65 + 0.5 * hash2(k >> 1, look, 482)));
-    for (let up = 1; up <= tall; up++) {
-      const f = up / tall, x = Math.round(cx + k + sway * f * f);
-      if (f > 0.7 && hash2(k, up + look * 7, 483) > 0.55) continue; // ragged tips
-      put(x, pan.y - up, f < 0.35 && Math.abs(u) < 0.6 ? R.ember[5]! : f < 0.6 ? R.ember[4]! : f < 0.82 ? R.ember[3]! : R.ember[2]!);
-    }
+  // a low bed of flame over the logs, the tongues rising out of it
+  for (let k = -half + 2; k <= half - 2; k++) {
+    const u = k / half, tall = Math.round(5 + 4 * (1 - u * u) + 2 * hash2(k >> 2, look, 486));
+    for (let up = 1; up <= tall; up++) put(cx + k, pan.y - up, up < tall - 2 && Math.abs(u) < 0.7 ? R.ember[5]! : R.ember[4]!);
   }
+  // the tongues: each a cloud's stroke stood on its tail, swaying and rolling a little differently in each look
+  TONGUES.forEach((t, i) => {
+    const spec: CurlSpec = {
+      length: t.length + Math.round(3 * hash2(i, look, 487)), girth: t.girth, belly: 0.45, neck: 0.85, taper: 1,
+      bend: 2, wave: 1, phase: (look * 0.7 + i * 0.5) % 2, head: { size: t.head + (look + i) % 2, turns: 2 },
+    };
+    const b = tintedCloud(spec, false, FLAME_EMBERS.map((e) => R.ember[e]!));
+    // turned upright: the stroke's tail at the bottom, its head rolling to the left (or, mirrored, to the right)
+    const w = b.height, h = b.width;
+    const upright = (x: number, y: number): number => {
+      if (x < 0 || y < 0 || x >= w || y >= h) return 0;
+      return b.pixels[(t.left ? x : w - 1 - x) * b.width + h - 1 - y]!;
+    };
+    // the tail's column, to stand it over its place in the pan
+    let tailSum = 0, tailN = 0;
+    for (let x = 0; x < w; x++) for (let y = h - 3; y < h; y++) {
+      if (upright(x, y)) { tailSum += x; tailN++; }
+    }
+    const left = cx + t.dx - Math.round(tailN ? tailSum / tailN : w / 2), top = pan.y - 4 - h;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const c = upright(x, y);
+      if (!c) continue;
+      // each tongue keeps a rim of deeper flame, so the one in front parts from the one behind
+      const rim = !upright(x - 1, y) || !upright(x + 1, y) || !upright(x, y - 1) || !upright(x, y + 1);
+      put(left + x, top + y, rim ? R.ember[2]! : c);
+    }
+  });
   // sparks flying up over it
   for (let k = 0; k < 7; k++) {
-    const x = cx + Math.round((hash2(k, look, 484) - 0.5) * 40), y = pan.y - 36 - Math.round(hash2(k, look, 485) * 20);
+    const x = cx + Math.round((hash2(k, look, 484) - 0.5) * 40), y = pan.y - 44 - Math.round(hash2(k, look, 485) * 18);
     put(x, y, k % 2 ? R.ember[4]! : R.ember[3]!);
   }
 }
