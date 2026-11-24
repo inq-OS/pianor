@@ -5,7 +5,7 @@ import type { PrizeFocus } from '../learn/view';
  * Where the prizes of learning a piece stand on the staff's sheet (ft_1_32.AC19, d287): one narrow column at the top right,
  * the piece's treble clef at its top; under it the bars of the chunk being learned as quarter notes on one stem, stacked a
  * step apart and staggered like the heads of a chord of seconds; under them one whole note per chunk, stacked the same way.
- * A finished chunk shows no quarters: they have become its whole note. Pure: the view only draws it. Sizes in staff spaces.
+ * A chunk whose bars are all secured shows no quarters: they have become its whole note, which its confirmation play paints. Pure: the view only draws it. Sizes in staff spaces.
  */
 export const PRIZE = {
   /** The width the column takes at the right of the staff. */
@@ -65,10 +65,10 @@ export function prizeColumn(staffSpace: number, right: number, rewards: LearnRew
   // heads stacked a step apart from the lowest up, every second one on the other side of the stem, as in a chord of seconds
   const headBox = (x: number, hy: number, rx: number) => ({ x: x - rx - 0.25 * S, y: hy - PRIZE.headRy * S - 0.25 * S, w: 2 * rx + 0.5 * S, h: 2 * PRIZE.headRy * S + 0.5 * S });
   const stack = (count: number, rx: number, from: number) => Array.from({ length: count }, (_, i) => ({ x: cx + (i % 2 === 0 ? -rx : rx), y: from - i * PRIZE.step * S }));
-  // the quarters of the chunk being learned, on one stem; none once the chunk is finished (they became its whole note)
+  // the quarters of the chunk being learned, on one stem; none once all its bars are secured: they became its whole note
   const chunk = rewards.chunks[focus.chunk] ?? rewards.chunks[0]!;
   let stem: PrizeColumn['stem'] = null;
-  if (!chunk.merged) {
+  if (!chunk.merged && chunk.quarters.length < chunk.units) {
     const rx = PRIZE.quarterRx * S;
     const lowest = y + (PRIZE.stem + (chunk.units - 1) * PRIZE.step) * S;
     stack(chunk.units, rx, lowest).forEach((head, i) => {

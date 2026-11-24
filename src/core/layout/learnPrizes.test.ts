@@ -33,6 +33,14 @@ describe('prizeColumn', () => {
     expect(Math.min(...chunks.map((c) => c.y))).toBeGreaterThan(quarters[0]!.y);
   });
 
+  it('ft_1_32.AC19 a chunk whose bars are all secured shows no quarters: they became its whole note, which its confirmation play aims at', () => {
+    const secured: LearnRewards = { ...fresh, chunks: [{ quarters: ['gold', 'gold', 'gold', 'silver'], units: 4, merged: null }, ...fresh.chunks.slice(1)] };
+    const { glyphs, stem } = column(secured, focus({ bars: [], chunks: [0] }));
+    expect(glyphs.filter((g) => g.role === 'bar')).toEqual([]);
+    expect(stem).toBeNull();
+    expect(glyphs.find((g) => g.role === 'chunk')).toMatchObject({ kind: 'whole', medal: null, lit: true });
+  });
+
   it('a finished chunk shows no quarters: they became its whole note', () => {
     const done: LearnRewards = { ...fresh, chunks: [{ quarters: ['gold', 'gold', 'gold', 'silver'], units: 4, merged: { note: 'whole', medal: 'silver' } }, ...fresh.chunks.slice(1)] };
     const { glyphs, stem } = column(done, focus({ bars: [], chunks: [0] }));
