@@ -479,11 +479,11 @@ Check: `src/core/layout/preview.test.ts` "ft_1_02d.AC25 note A then the same key
 
 ## d287
 
-**The prizes of learning a piece stand in one narrow column at the top right of the staff's sheet, and the bars of the chunk not yet in the step show very faint.** Features: ft_1_32. Changes ft_1_32 rule 5, which had them in a row in the top bar.
+**The prizes of learning a piece stand in one narrow column at the top right of the staff's sheet, and the staff shows the whole piece with every bar outside the run very faint.** Features: ft_1_32. Changes ft_1_32 rule 5, which had them in a row in the top bar.
 
-The piece's treble clef is at the top of the column; under it the bars of the chunk being learned are quarter notes on one stem, stacked a step apart and staggered like a chord of seconds; under them is one whole note per chunk, stacked the same way. When a chunk is finished its quarters go and its whole note is painted. A prize not earned yet is a faint placeholder, an earned one is in its medal's colours, and the prize the run is for has a soft box behind it. The piece book shows each piece's earned clef in its medal, or an empty placeholder.
+The piece's treble clef is at the top of the column; under it the bars of the chunk being learned are quarter notes on one stem, stacked a step apart and staggered like a chord of seconds; under them is one whole note per chunk, stacked the same way. When a chunk is finished its quarters go and its whole note is painted. A prize not earned yet is a faint placeholder, an earned one is in its medal's colours, and the prize the run is for has a soft box behind it. The staff keeps its place from step to step; the judge waits only for the run's notes. The piece book shows each piece's earned clef in its medal, or an empty placeholder.
 
-Check: `src/core/layout/learnPrizes.test.ts` "ft_1_32.AC19 one narrow column at the top right: the clef on top, the chunk's quarters on one stem, a whole note per chunk under them"; `src/core/learn/view.test.ts` "ft_1_32.AC20 the rest of the chunk is drawn after the bars of the step, its notes after those of the step"
+Check: `src/core/layout/learnPrizes.test.ts` "ft_1_32.AC19 one narrow column at the top right: the clef on top, the quarters of the chunk on one stem, a whole note per chunk under them"; `src/core/learn/view.test.ts` "ft_1_32.AC20 the whole piece stays on the staff, the bars outside the run faint, the notes of the run first"
 
 ## d290
 

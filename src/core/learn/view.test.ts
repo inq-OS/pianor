@@ -4,7 +4,7 @@ import { chartWith } from '../../../tests/helpers/charts';
 import { sliceChart } from '../chart/section';
 import { learnPlan, type LearnStep } from './plan';
 import type { LearnRewards } from './progress';
-import { prizeFocus, shownWithChunk } from './view';
+import { prizeFocus, shownWithPiece } from './view';
 
 /** 12 bars of 4/4, a right-hand quarter at the start of each bar and a whole left-hand note under bar 1. */
 const piece = chartWith([
@@ -14,27 +14,26 @@ const piece = chartWith([
 
 const stepOf = (kind: LearnStep['kind'], firstUnit: number, lastUnit: number): LearnStep => ({ kind, firstUnit, lastUnit, firstBar: firstUnit, lastBar: lastUnit, runs: 1 });
 
-describe('shownWithChunk', () => {
-  it('ft_1_32.AC20 the rest of the chunk is drawn after the bars of the step, its notes after those of the step', () => {
-    const step = stepOf('grow', 0, 0);
-    const played = sliceChart(piece, 0, 0);
-    const shown = shownWithChunk(piece, step);
-    expect(shown.chart.bars).toHaveLength(4);
-    expect(shown.faintFrom).toBe(1);
+describe('shownWithPiece', () => {
+  it('ft_1_32.AC20 the whole piece stays on the staff, the bars outside the run faint, the notes of the run first', () => {
+    const step = stepOf('grow', 4, 5);
+    const played = sliceChart(piece, 4, 5);
+    const shown = shownWithPiece(piece, step);
+    expect(shown.chart.bars).toHaveLength(12);
+    expect(shown.faint).toEqual([{ from: 0, to: 3 }, { from: 6, to: 11 }]);
     // the judge's notes are the first notes of what is drawn, in the same order, so their indexes are the same
-    expect(shown.chart.notes.slice(0, played.notes.length).map((n) => [n.tick, n.midi])).toEqual(played.notes.map((n) => [n.tick, n.midi]));
-    expect(shown.chart.notes.slice(played.notes.length).every((n) => n.bar >= 1)).toBe(true);
+    expect(shown.chart.notes.slice(0, played.notes.length).map((n) => [n.tick - piece.bars[4]!.startTick, n.midi])).toEqual(played.notes.map((n) => [n.tick, n.midi]));
+    expect(shown.chart.notes.slice(played.notes.length).every((n) => n.bar < 4 || n.bar > 5)).toBe(true);
+    expect(shown.chart.notes).toHaveLength(piece.notes.length);
   });
 
-  it('draws nothing more when the step ends its chunk, or in the second chunk past its own end', () => {
-    expect(shownWithChunk(piece, stepOf('confirm', 0, 3)).faintFrom).toBeNull();
-    const second = shownWithChunk(piece, stepOf('grow', 4, 5));
-    expect(second.chart.bars).toHaveLength(4);
-    expect(second.faintFrom).toBe(2);
+  it('a run from the first bar to the last has nothing faint, and one from the first bar only the bars after it', () => {
+    expect(shownWithPiece(piece, stepOf('whole', 0, 11)).faint).toEqual([]);
+    expect(shownWithPiece(piece, stepOf('grow', 0, 0)).faint).toEqual([{ from: 1, to: 11 }]);
   });
 
-  it('keeps a hand step\'s resting hand off the judge in the bars after it too', () => {
-    const shown = shownWithChunk(piece, { ...stepOf('grow', 0, 0), hand: 'RH' });
+  it('keeps a hand step\'s resting hand off the judge in the other bars too', () => {
+    const shown = shownWithPiece(piece, { ...stepOf('grow', 0, 0), hand: 'RH' });
     expect(shown.chart.tracks.find((t) => t.id === 'lh')?.role).not.toBe('play');
   });
 });

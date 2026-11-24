@@ -11,7 +11,7 @@ const fresh: LearnRewards = { chunks: [0, 1, 2].map(() => ({ quarters: [], units
 const column = (rewards: LearnRewards, f: PrizeFocus) => prizeColumn(S, RIGHT, rewards, f);
 
 describe('prizeColumn', () => {
-  it('ft_1_32.AC19 one narrow column at the top right: the clef on top, the chunk\'s quarters on one stem, a whole note per chunk under them', () => {
+  it('ft_1_32.AC19 one narrow column at the top right: the clef on top, the quarters of the chunk on one stem, a whole note per chunk under them', () => {
     const { glyphs, stem } = column(fresh, focus());
     expect(glyphs.map((g) => g.kind)).toEqual(['clef', 'quarter', 'quarter', 'quarter', 'quarter', 'whole', 'whole', 'whole']);
     // inside the room the staff leaves at the right

@@ -67,10 +67,10 @@ export interface PlaySessionOptions {
   /** Tracks drawn grey on their own staves and not played: the resting hand of a hand step in learning (ft_1_32.AC18). */
   restingTracks?: readonly string[];
   /**
-   * What the staff draws instead of `chart` (learning, ft_1_32.AC20): `chart` with bars after it, drawn very faint from bar
-   * `faintFrom`; its first notes are `chart`'s, in the same order, so the judge's note indexes are its own.
+   * What the staff draws instead of `chart` (learning, ft_1_32.AC20): the whole piece, the bars of `faint` (inclusive ranges)
+   * very faint; its first notes are `chart`'s, in the same order, so the judge's note indexes are its own.
    */
-  shown?: { chart: Chart; faintFrom: number | null };
+  shown?: { chart: Chart; faint: readonly { from: number; to: number }[] };
   /** Staff spaces left free right of the staff (the column of the prizes of learning, ft_1_32.AC19). */
   roomRight?: number;
   /** A wrong key on the staff from the start, as the run before ended on it (ft_1_32.AC6); gone at the first right key. */
@@ -248,13 +248,14 @@ export class PlaySession {
     const layout = section ? layoutSection(drawn, whole, options, settings) : whole;
     this.layoutNow = layout;
     // numbered as printed: a piece's pick-up is bar 0 (core_09.AC25)
-    const numbers = barNumbersToShow(prefs.barNumberSettings.mode, drawn.bars.length, section?.first ?? 0, firstPrintedBar(section?.whole ?? this.written));
+    // a learning run draws the whole piece, numbered from its first bar
+    const numbers = barNumbersToShow(prefs.barNumberSettings.mode, drawn.bars.length, this.options.shown ? 0 : section?.first ?? 0, firstPrintedBar(section?.whole ?? this.written));
     // the parchment runs the whole width of the area, also past a staff that leaves room at its right
     this.view = new StaffView(this.scene, layout, undefined, { ...this.hints, chordFingers: this.options.chordFingers === true }, { x: 0, y: area.top }, numbers, room > 0 ? { x: 0, width: area.width } : undefined);
     this.view.setDurationMarks(durationMarks(layout, drawn, prefs.durationHelp));
     // where the hand moves, shown with the finger numbers (ft_1_30.AC10)
     this.view.setHandShifts(handShiftMap(drawn, LEVELS.find((l) => l.level === drawn.level)));
-    this.view.veil(this.options.shown?.faintFrom ?? null);
+    this.view.veil(this.options.shown?.faint ?? []);
     if (this.transport) this.view.followPlayhead(true);
     this.applyState(this.controllerNow.getState());
     if (this.lastWrong) this.showWrongKey(this.lastWrong);

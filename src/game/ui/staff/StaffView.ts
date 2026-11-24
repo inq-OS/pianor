@@ -159,7 +159,7 @@ export class StaffView {
   /** False until the first play state arrives: a view made mid-piece (after a resize or a hint toggle) jumps to its page without a fade. */
   private synced = false;
   private section: SectionMarks | null = null;
-  private veiledFrom: number | null = null;
+  private veiled: readonly { from: number; to: number }[] = [];
   /** The A and B of a section, each with the system of its bar. */
   private readonly markTexts: { text: Phaser.GameObjects.Text; system: number }[] = [];
 
@@ -242,43 +242,58 @@ export class StaffView {
     for (const v of this.veils) v.image.setVisible(this.onPage(v.system));
   }
 
-  /**
-   * Draw the bars from `fromBar` on very faint (ft_1_32.AC20; null: none): a copy of the sheet, nearly opaque, laid over them
-   * from just after their first bar line to the end of their lines, so they read as a promise of what comes and the bar line
-   * before them stays in ink. Lay it before anything drawn over the staff that must stay clear (the prizes, the markers).
-   */
-  /** The first bar drawn very faint (`veil`), null for none (read by the tests). */
-  get faintFrom(): number | null {
-    return this.veiledFrom;
+  /** The bars drawn very faint (`veil`), as inclusive ranges (read by the tests). */
+  get faintBars(): readonly { from: number; to: number }[] {
+    return this.veiled;
   }
 
-  veil(fromBar: number | null): void {
+  /**
+   * Draw the bars of `ranges` (inclusive) very faint (ft_1_32.AC20): a copy of the sheet, nearly opaque, laid over each run of
+   * them on a line. The bar lines that bound the bars played stay in ink; a line that starts faint is veiled from its clef,
+   * and one that ends faint to its end. Lay it before anything drawn over the staff that must stay clear (the prizes, the markers).
+   */
+  veil(ranges: readonly { from: number; to: number }[]): void {
     for (const v of this.veils) v.image.destroy();
     this.veils = [];
-    this.veiledFrom = fromBar;
-    if (fromBar === null) return;
+    this.veiled = ranges;
     const { layout } = this;
     const S = layout.staffSpace;
+    const faint = (bar: number) => ranges.some((r) => bar >= r.from && bar <= r.to);
+    for (const here of layout.systems) {
+      const bars = layout.bars.filter((b) => b.system === here.index);
+      const lineRight = Math.max(...layout.staffLines.filter((l) => l.system === here.index).map((l) => l.x2)) + 0.3 * S;
+      let k = 0;
+      while (k < bars.length) {
+        if (!faint(bars[k]!.index)) {
+          k++;
+          continue;
+        }
+        let end = k;
+        while (end + 1 < bars.length && faint(bars[end + 1]!.index)) end++;
+        const left = k === 0 ? -0.2 * S : bars[k]!.x + 0.2 * S;
+        const right = end === bars.length - 1 ? lineRight : bars[end]!.x + bars[end]!.width - 0.2 * S;
+        this.veilOver(here.index, left, right);
+        k = end + 1;
+      }
+    }
+  }
+
+  /** One copy of the sheet over line `system` from `left` to `right` (layout x), between the middles of the gaps to its neighbours. */
+  private veilOver(system: number, left: number, right: number): void {
+    const { layout } = this;
     const sheet = this.sheet.image;
     const fine = sheet.scaleX;
-    const firstX = new Map<number, number>();
-    // a line that starts faint is veiled from its clef on, so its clef and key read as part of what comes
-    for (const bar of layout.bars) if (bar.index >= fromBar && !firstX.has(bar.system)) firstX.set(bar.system, layout.systems[bar.system]!.firstBar === bar.index ? -0.2 * S : bar.x);
-    for (const [system, x] of firstX) {
-      const lines = layout.staffLines.filter((l) => l.system === system);
-      const right = Math.max(...lines.map((l) => l.x2)) + 0.3 * S;
-      const before = layout.systems[system - 1];
-      const after = layout.systems[system + 1];
-      const here = layout.systems[system]!;
-      const top = before ? (before.bottomLineY + here.topLineY) / 2 : 0;
-      const bottom = after ? (here.bottomLineY + after.topLineY) / 2 : layout.height;
-      const left = this.origin.x + x + 0.2 * S;
-      const crop = { x: Math.floor((left - sheet.x) / fine), y: Math.floor((this.origin.y + top - sheet.y) / fine) };
-      const image = this.scene.add.image(sheet.x, sheet.y, sheet.texture.key).setOrigin(0, 0).setScale(fine).setAlpha(VEIL_ALPHA)
-        .setCrop(crop.x, crop.y, Math.ceil((this.origin.x + right - left) / fine) + 1, Math.ceil((bottom - top) / fine) + 1);
-      image.setVisible(this.onPage(system));
-      this.veils.push({ image, system });
-    }
+    const before = layout.systems[system - 1];
+    const after = layout.systems[system + 1];
+    const here = layout.systems[system]!;
+    const top = before && before.page === here.page ? (before.bottomLineY + here.topLineY) / 2 : 0;
+    const bottom = after && after.page === here.page ? (here.bottomLineY + after.topLineY) / 2 : layout.height;
+    const x0 = this.origin.x + left;
+    const crop = { x: Math.floor((x0 - sheet.x) / fine), y: Math.floor((this.origin.y + top - sheet.y) / fine) };
+    const image = this.scene.add.image(sheet.x, sheet.y, sheet.texture.key).setOrigin(0, 0).setScale(fine).setAlpha(VEIL_ALPHA)
+      .setCrop(crop.x, crop.y, Math.ceil((right - left) / fine) + 1, Math.ceil((bottom - top) / fine) + 1);
+    image.setVisible(this.onPage(system));
+    this.veils.push({ image, system });
   }
 
   /**

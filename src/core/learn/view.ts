@@ -1,23 +1,22 @@
 import type { Chart } from '../chart';
-import { sliceChart } from '../chart/section';
-import { handChart, LEARN_RULES, learnUnits, type LearnStep } from './plan';
+import { handChart, LEARN_RULES, type LearnStep } from './plan';
 import type { LearnRewards } from './progress';
 
 /**
- * What the staff draws for a learning run (ft_1_32.AC20): the run's bars, then the rest of the chunk its last bar is in, which
- * the view draws very faint (`faintFrom`, the first of them as a bar of `chart`; null when the run ends its chunk). The run's
- * notes come first, in the order the judge's chart has them, so a note's index is the same in both and the judge never
- * waits for a faint one.
+ * What the staff draws for a learning run (ft_1_32.AC20): the whole piece, so the staff stays where it is from step to step,
+ * with the bars outside the run very faint (`faint`, ranges of bars, inclusive). The run's notes come first, in the order the
+ * judge's chart has them, so a note's index is the same in both and the judge never waits for a faint one.
  */
-export function shownWithChunk(piece: Chart, step: LearnStep): { chart: Chart; faintFrom: number | null } {
-  const units = learnUnits(piece);
-  const chunkEnd = Math.min(units.length - 1, (Math.floor(step.lastUnit / LEARN_RULES.chunkUnits) + 1) * LEARN_RULES.chunkUnits - 1);
-  const lastBar = Math.max(step.lastBar, units[chunkEnd]!.last);
-  const chart = handChart(sliceChart(piece, step.firstBar, lastBar), step.hand);
-  if (lastBar === step.lastBar) return { chart, faintFrom: null };
-  const faintFrom = step.lastBar - step.firstBar + 1;
-  const notes = [...chart.notes.filter((n) => n.bar < faintFrom), ...chart.notes.filter((n) => n.bar >= faintFrom)];
-  return { chart: { ...chart, notes }, faintFrom };
+export function shownWithPiece(piece: Chart, step: LearnStep): { chart: Chart; faint: { from: number; to: number }[] } {
+  const chart = handChart(piece, step.hand);
+  const inRun = (bar: number) => bar >= step.firstBar && bar <= step.lastBar;
+  const notes = [...chart.notes.filter((n) => inRun(n.bar)), ...chart.notes.filter((n) => !inRun(n.bar))];
+  const last = piece.bars.length - 1;
+  const faint = [
+    ...(step.firstBar > 0 ? [{ from: 0, to: step.firstBar - 1 }] : []),
+    ...(step.lastBar < last ? [{ from: step.lastBar + 1, to: last }] : []),
+  ];
+  return { chart: { ...chart, notes }, faint };
 }
 
 /**

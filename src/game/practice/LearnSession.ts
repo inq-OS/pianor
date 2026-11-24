@@ -8,7 +8,7 @@ import {
   afterRun, currentRun, goldenBars, halfLearned, isLearned, isMeasured, learnHandsApart, learnRewards, learnStepBars, measuredOutcome, sitDown, startOver, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
 } from '../../core/learn/progress';
 import { LearnRunJudge, type LearnRunVerdict } from '../../core/learn/run';
-import { prizeFocus, shownWithChunk, type PrizeFocus } from '../../core/learn/view';
+import { prizeFocus, shownWithPiece, type PrizeFocus } from '../../core/learn/view';
 import { baselineBpm, runTempo, TEMPO_RULES, type RunTempo } from '../../core/learn/tempo';
 import type { BarPlay } from '../../core/progression/practiceLog';
 import { t, type StringKey } from '../../core/text/strings';
@@ -84,11 +84,11 @@ export class LearnSession {
   }
 
   /**
-   * What the staff draws (ft_1_32.AC20): the run's bars, then the rest of their chunk, very faint from `faintFrom`; the run's
-   * notes come first, so the judge's note indexes are the staff's.
+   * What the staff draws (ft_1_32.AC20): the whole piece, the bars outside the run very faint; the run's notes come first, so
+   * the judge's note indexes are the staff's.
    */
-  get shown(): { chart: Chart; faintFrom: number | null } {
-    return shownWithChunk(this.piece, this.run.step);
+  get shown(): { chart: Chart; faint: { from: number; to: number }[] } {
+    return shownWithPiece(this.piece, this.run.step);
   }
 
   /** Which prizes the run on the staff is for (ft_1_32.AC19). */

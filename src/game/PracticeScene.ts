@@ -1319,13 +1319,13 @@ export class PracticeScene extends PixelScene {
     delete this.startData.learnWrong;
   }
 
-  /** What a learning run adds to the play session: the resting hand's staff (AC18), the wrong key that ended the run before (AC6), the rest of the chunk faint and room for the prizes (AC19, AC20). */
+  /** What a learning run adds to the play session: the resting hand's staff (AC18), the wrong key that ended the run before (AC6), the whole piece with the other bars faint and room for the prizes (AC19, AC20). */
   private learnViewOptions(): Pick<PlaySessionOptions, 'restingTracks' | 'shown' | 'roomRight' | 'wrongKey'> {
     const resting = this.learn?.restingTracks ?? [];
     // only on the same bars: the indices of the awaited notes are of the run that ended
     const wrong = this.carriedWrong;
     const same = wrong && this.learn && this.learn.run.firstBar === wrong.firstBar && this.learn.run.lastBar === wrong.lastBar;
-    // the rest of the run's chunk very faint after it, and room at the right for the prizes (ft_1_32.AC19, AC20)
+    // the whole piece with the bars outside the run very faint, and room at the right for the prizes (ft_1_32.AC19, AC20)
     const learnView = this.learn ? { shown: this.learn.shown, roomRight: this.learn.prizeRoom } : {};
     return { ...(resting.length > 0 ? { restingTracks: resting } : {}), ...(same ? { wrongKey: wrong.key } : {}), ...learnView };
   }
