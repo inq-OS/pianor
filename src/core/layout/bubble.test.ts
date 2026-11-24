@@ -1,6 +1,6 @@
 // Covers ft_1_20 (actions in a bubble, a pinned strip and a backpack, d282).
 import { describe, expect, it } from 'vitest';
-import { BUBBLE_SLOTS, PIN_COLUMNS, PIN_ROWS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, wheelChoice } from './bubble';
+import { BUBBLE_SLOTS, PIN_COLUMNS, PINCH_SLIDE, PIN_ROWS, TAP_SLIP, TWO_FINGER_TOGETHER_MS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, twoFingerTap, twoFingersSlid, wheelChoice } from './bubble';
 import { rectBottom, rectRight, type Rect } from './rect';
 
 const SCREEN = { w: 320, h: 180 };
@@ -129,5 +129,24 @@ describe('the wheel over a strip cell with choices (ft_1_20.AC16)', () => {
     // no choice lit: the first one that can be picked, either way
     expect(wheelChoice([null, { disabled: true }, {}, {}], 1)).toBe(2);
     expect(wheelChoice([], 1)).toBeNull();
+  });
+});
+
+describe('the two-finger tap on a touch screen (ft_1_20.AC25)', () => {
+  it('ft_1_20.AC25 two fingers down together open the bubble midway between them', () => {
+    const first = { x: 100, y: 200, t: 1000 };
+    expect(twoFingerTap({ ...first, now: { x: 103, y: 198 } }, { x: 300, y: 260, t: 1080 })).toEqual({ x: 200, y: 230 });
+  });
+
+  it('ft_1_20.AC25 a second finger that comes late, or a first that has already slid, is no two-finger tap', () => {
+    const first = { x: 100, y: 200, t: 1000 };
+    expect(twoFingerTap({ ...first, now: first }, { x: 300, y: 260, t: 1000 + TWO_FINGER_TOGETHER_MS + 1 })).toBeNull();
+    expect(twoFingerTap({ ...first, now: { x: 100, y: 200 + TAP_SLIP + 1 } }, { x: 300, y: 260, t: 1050 })).toBeNull();
+  });
+
+  it('ft_1_20.AC25 two fingers that slide apart after it opened are a pinch, not a tap', () => {
+    const start = [{ x: 100, y: 200 }, { x: 300, y: 260 }];
+    expect(twoFingersSlid(start, [{ x: 104, y: 200 }, { x: 300, y: 255 }])).toBe(false);
+    expect(twoFingersSlid(start, [{ x: 100 - PINCH_SLIDE - 1, y: 200 }, { x: 300, y: 260 }])).toBe(true);
   });
 });

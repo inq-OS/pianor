@@ -5,11 +5,21 @@
  */
 import type { GraceGlyph, SlurGlyph, StaffLayout, TieGlyph } from './staffTypes';
 
+/** A finger number an edit would write or change, where the staff draws it. */
+export interface AddedFinger {
+  system: number;
+  x: number;
+  y: number;
+  finger: number;
+}
+
 /** The marks of `after` that `before` lacks, by where they are drawn. */
 export interface AddedMarks {
   ties: TieGlyph[];
   slurs: SlurGlyph[];
   graces: GraceGlyph[];
+  /** Finger numbers that are new or changed on a note that stays where it was (AUTO, a finger item). */
+  fingers: AddedFinger[];
 }
 
 const r = (v: number) => Math.round(v * 10) / 10;
@@ -24,7 +34,22 @@ function added<T>(before: readonly T[], after: readonly T[], key: (g: T) => stri
 
 /** The ties, slurs and pre-notes drawn in `after` and not in `before` (an edit that takes a mark away adds none). */
 export function addedMarks(before: StaffLayout, after: StaffLayout): AddedMarks {
-  return { ties: added(before.ties, after.ties, tieKey), slurs: added(before.slurs, after.slurs, slurKey), graces: added(before.graces, after.graces, graceKey) };
+  return { ties: added(before.ties, after.ties, tieKey), slurs: added(before.slurs, after.slurs, slurKey), graces: added(before.graces, after.graces, graceKey), fingers: addedFingers(before, after) };
+}
+
+/** No marks: what a refused edit adds. */
+export const NO_MARKS: AddedMarks = { ties: [], slurs: [], graces: [], fingers: [] };
+
+/** The heads whose own finger the edit sets or changes, every head of a chord (ft_1_02d.AC33), matched by their place on the staff (a head that moved shows none). */
+function addedFingers(before: StaffLayout, after: StaffLayout): AddedFinger[] {
+  const was = new Map(before.notes.map((n) => [[n.system, r(n.x), r(n.y)].join(':'), n.headFinger]));
+  const fingers: AddedFinger[] = [];
+  for (const n of after.notes) {
+    const key = [n.system, r(n.x), r(n.y)].join(':');
+    if (n.headFinger === null || !was.has(key) || was.get(key) === n.headFinger) continue;
+    fingers.push({ system: n.system, x: n.fingerX, y: n.fingerY, finger: n.headFinger });
+  }
+  return fingers;
 }
 
 /** Points along a quadratic curve from (x1, y1) through the control point to (x2, y2), `steps` + 1 of them. */
