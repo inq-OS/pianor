@@ -154,6 +154,16 @@ describe('the painted harbour (ft_1_19.AC10)', () => {
     expect(PORT_CLOUDS.length).toBeGreaterThanOrEqual(4);
   });
 
+  it('ft_1_19.AC5 the beacon is a fire pan: at night a fire burns in it, its flames hottest at the heart and changing between its looks; by day it is cold', () => {
+    const ember = portPalette('night').indexOf(0xfff2a8);
+    for (const hour of ['night'] as const) {
+      const looks = pictures[hour].lamp.frames;
+      for (const f of looks) expect(f.pixels.filter((c) => c === ember).length, hour).toBeGreaterThan(8);
+      expect([...looks[0]!.pixels]).not.toEqual([...looks[1]!.pixels]);
+    }
+    for (const hour of ['day'] as const) expect(pictures[hour].lamp.frames.every((f) => f.pixels.filter((c) => c !== 0).length <= 1)).toBe(true);
+  });
+
   it('ft_1_19.AC10 the stair ends on a low landing by the water, on round the quay\'s head: stone a little over the waterline, sea beside it', () => {
     const { l, r, top, face } = PORT_LANDING;
     expect(l).toBeLessThan(PORT.head);

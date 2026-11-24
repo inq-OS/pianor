@@ -84,7 +84,8 @@ export const PORT_LANDING_BERTH = { x: 395, water: PORT.water + 30 } as const;
 export const PORT_AT_LANDING: BoatKind | null = 'row';
 
 /** Where the beacon's lantern hangs at the quay's head (fine pixels): its light glows round it at dusk and night. */
-const LAMP = { x: PORT.head - 18, y: 82 } as const;
+/** Where the fire pan on the beacon post at the quay's head sits (fine pixels): the middle of its rim. It burns at dusk and night. */
+const LAMP = { x: PORT.head - 2, y: 76 } as const;
 
 /** Where people stand: on the quay's top, and on the sand of the bed after a dive (feet, fine pixels of the tall picture). */
 const STAND_ON_QUAY = [{ x: 210, y: PORT.deck + 2 }, { x: 400, y: PORT.deck + 2 }] as const;

@@ -12,7 +12,7 @@ import { fbm, hash2, noise2 } from '../paint/noise';
 import { tintedCloud, type CurlSpec } from './curlCloud';
 import { KERI_HOURS, scenePalette, tone, type Hour } from './keriPalette';
 import { optionsOf, type KitBrush } from './kit/kit';
-import { lamp, lampLit, lantern } from './kit/lights';
+import { lamp, lampLit } from './kit/lights';
 import { pebble } from './kit/stones';
 import { rings, sea, type SeaGround, type SeaStand } from './kit/water';
 import { KIT_WOOD } from './kit/wood';
@@ -79,6 +79,8 @@ export const PORT_DEEP_FRAMES = 4;
 /** Looking east, the wind of Keri (mostly from the west and south-west) blows away and to the left. */
 export const PORT_WAY: WindWay = -1;
 export const LAMP_LOOKS = 3;
+/** The fire pan on the beacon post: half its width at the rim and how deep it is (fine pixels). */
+const FIRE_PAN = { half: 14, deep: 6 } as const;
 
 const MOON = { x: 596, y: 40, r: 8 } as const;
 
@@ -577,8 +579,8 @@ class PortPainter {
   /**
    * The quay: a lumpy top of big slabs (the eye stands a little over it), a heavy coping, a face of big blocks in flat
    * bands with a dark seam round each, green slime and barnacles over the water line; the bollards, rings, a rusty
-   * ladder, old tyres hung as fenders; at the head a stair down to a low landing by the water and a leaning lamp post
-   * with its lantern.
+   * ladder, old tyres hung as fenders; at the head a stair down to a low landing by the water and a leaning beacon post
+   * with its fire pan.
    */
   private quayAbove(look: number): void {
     this.building = true;
@@ -886,22 +888,48 @@ class PortPainter {
     for (let i = 0; i < 16; i++) { this.put(x + 13 + i, cy + 1 + Math.round(Math.sin(i / 3)), R.dry[1]!); this.put(x + 13 + i, cy + Math.round(Math.sin(i / 3)), R.dry[2]!); }
   }
 
-  /** The beacon at the quay's head: a stout post leaning a little, an arm and the lantern hung from it (`lights/lantern`). */
+  /**
+   * The beacon at the quay's head: a stout post leaning a little, banded red, and on its top a wide iron fire pan on
+   * three short struts, rusty, a heap of split logs in it. By day it is cold (charred ends, grey ash); at dusk and night
+   * it burns, and its flames are the beacon's light (`fireLooks`).
+   */
   private lampPost(): void {
-    const { lamp: hook } = this.plan;
-    const foot = PORT.deck + sag(hook.x) + 1, px = hook.x + 16;
-    for (let y = hook.y - 8; y < foot; y++) {
+    const { lamp: pan } = this.plan;
+    const foot = PORT.deck + sag(pan.x) + 1, px = pan.x, top = pan.y + FIRE_PAN.deep + 2;
+    for (let y = top; y < foot; y++) {
       const lean = Math.round((foot - y) * 0.04);
       const half = y > foot - 8 ? 6 : 4;
       for (let k = -half; k <= half; k++) {
         const band = Math.floor((foot - y) / 12) % 2 === 0;
         const u = k / half;
-        this.put(px + k - lean, y, y > foot - 8 ? tone(F.stone, clamp01(0.5 + u * this.hour.side * 0.3), px + k, y) : band && y > hook.y + 6 ? tone(F.red, clamp01(0.55 + u * this.hour.side * 0.3), px + k, y) : tone(F.hull, clamp01(0.62 + u * this.hour.side * 0.3), px + k, y));
+        this.put(px + k - lean, y, y > foot - 8 ? tone(F.stone, clamp01(0.5 + u * this.hour.side * 0.3), px + k, y) : band && y > top + 6 ? tone(F.red, clamp01(0.55 + u * this.hour.side * 0.3), px + k, y) : tone(F.hull, clamp01(0.62 + u * this.hour.side * 0.3), px + k, y));
       }
     }
-    for (let x = hook.x - 1; x <= px - 3; x++) { this.put(x, hook.y - 6, R.wood[1]!); this.put(x, hook.y - 5, R.wood[3]!); }
-    // the lantern with a bar across too, four panes (one upright bar alone read as a pause sign, art review 2)
-    lantern.paint(this.brush(0, PORT_FRAMES), hook.x, hook.y - 1 - this.top, optionsOf(lantern), 1);
+    const cx = panMiddle(pan);
+    // three short iron struts from the post's top out to the pan's belly
+    for (let k = 0; k <= 3; k++) for (const dx of [-1, 0, 1]) this.put(cx + dx * (2 + k * 2), top - k + 1, R.stone[0]!);
+    // the pan: a wide shallow bowl of black iron, its rim lit on top and on the light's side, rust down its belly
+    const { half, deep } = FIRE_PAN;
+    for (let y = pan.y; y <= pan.y + deep; y++) {
+      const d = (y - pan.y) / deep, w = Math.round(half - d * d * (half - 4));
+      for (let k = -w; k <= w; k++) {
+        const u = k / w, edge = Math.abs(k) === w || y === pan.y + deep;
+        const rust = !edge && hash2(k >> 1, y, 471) > 0.72;
+        this.put(cx + k, y, edge ? R.ink : y === pan.y ? (u * this.hour.side > 0.2 ? R.stone[3]! : R.stone[2]!) : rust ? R.sponge[1]! : tone(F.stone.slice(0, 3), clamp01(0.4 + u * this.hour.side * 0.4 - d * 0.2), cx + k, y));
+      }
+    }
+    // the logs heaped in it, split ends up, charred dark at their tips; grey ash between them
+    const logs: readonly (readonly [number, number, number])[] = [[-9, -2, -3], [-4, -6, 1], [1, -7, 5], [5, -4, 9], [-1, -3, 3]];
+    for (const [x0, rise, x1] of logs) {
+      const n = Math.max(1, Math.abs(x1 - x0));
+      for (let i = 0; i <= n; i++) {
+        const x = cx + x0 + ((x1 - x0) * i) / n, y = pan.y - 1 + Math.round((rise * Math.sin((Math.PI * i) / n)) / 2) - (i === 0 || i === n ? 0 : 1);
+        const tip = i === 0 || i === n;
+        this.put(x, y, tip ? R.wood[0]! : R.wood[2]!);
+        this.put(x, y + 1, tip ? R.ink : R.wood[1]!);
+      }
+    }
+    for (let k = -half + 2; k <= half - 2; k++) if (hash2(k, 2, 472) > 0.55) this.put(cx + k, pan.y, R.stone[3]!);
   }
 
   /**
@@ -1489,7 +1517,7 @@ class PortPainter {
     });
   }
 
-  /** The beacon's light: a soft ring of its glow round the lantern at dusk and night, flickering; nothing by day. */
+  /** The beacon's light: its fire in the pan and the glow round it at dusk and night, flickering; nothing by day. */
   lamp(base: Bitmap): Overlay {
     const { w, h, plan } = this;
     return cropTogether(Array.from({ length: LAMP_LOOKS }, (_, look) => {
@@ -1504,7 +1532,7 @@ class PortPainter {
           const px = Math.round(x), py = Math.round(y);
           if (px < 0 || py < 0 || px >= w || py >= h) return undefined;
           const c = base.pixels[py * w + px]!;
-          // the far sea behind the beacon takes its halo as the sky does: the lantern hangs before it, not over it
+          // the far sea behind the beacon takes its halo as the sky does: the fire burns before it, not over it
           if (py < PORT.deck && F.sea.includes(c)) return { colour: F.sky[0]!, thing: false };
           return { colour: c, thing: !F.sky.includes(c) && !F.sea.includes(c) };
         },
@@ -1513,7 +1541,9 @@ class PortPainter {
         bitmap.pixels[0] = R.ink;
         return bitmap;
       }
-      lamp.paint(brush, plan.lamp.x, plan.lamp.y, optionsOf(lamp, undefined, { reach: 58 + look * 3, water: PORT.water + 2 - plan.lamp.y, lantern: false }), look);
+      const flameY = plan.lamp.y - 10;
+      lamp.paint(brush, panMiddle(plan.lamp), flameY, optionsOf(lamp, undefined, { reach: 34 + look * 2, water: PORT.water + 2 - flameY, lantern: false }), look);
+      fire(brush.put, plan.lamp, look);
       return bitmap;
     }));
   }
@@ -1531,6 +1561,36 @@ export function paintPort(plan: PortPlan, phase: SkyPhase): PortPicture {
   const clouds = PORT_CLOUDS.map(({ at, spec }) => ({ x: at[0], y: at[1], bitmap: p.cloud(spec) }));
   const { frames, fore, front } = p.frames(Math.max(...clouds.map((c) => c.y + c.bitmap.height)));
   return { palette: p.palette, frames, fore, clouds, front, lamp: p.lamp(frames[0]!), water: p.liveWater!, ...p.deep(frames[0]!), kelp: p.kelps(frames[0]!), swimmers: p.swimmers(), boats: boatsOf(p), gull: p.gullTone(), leap: p.leapTones() };
+}
+
+/** The column the fire pan's middle stands on: the post's top, which leans a little toward the sea. */
+function panMiddle(pan: { x: number; y: number }): number {
+  const foot = PORT.deck + sag(pan.x) + 1, top = pan.y + FIRE_PAN.deep + 2;
+  return pan.x - Math.round((foot - top) * 0.04);
+}
+
+/**
+ * The fire burning in the beacon's pan, one of its flickering looks: a bed of glowing coals along the rim and tongues of
+ * flame over it, white-yellow at the heart, orange, red at their tips, a little taller and leaning a different way in
+ * each look, and a few sparks flying up. Its own light: no hour changes it.
+ */
+function fire(put: (x: number, y: number, c: number) => void, pan: { x: number; y: number }, look: number): void {
+  const cx = panMiddle(pan);
+  const half = FIRE_PAN.half - 2;
+  for (let k = -half; k <= half; k++) put(cx + k, pan.y, hash2(k, look, 481) > 0.4 ? R.ember[4]! : R.ember[3]!);
+  for (let k = -half; k <= half; k++) {
+    const u = k / half, sway = Math.sin(look * 2.1 + k / 3) * 1.2;
+    const tall = Math.round((15 - 10 * u * u) * (0.7 + 0.45 * hash2(k >> 1, look, 482)));
+    for (let up = 1; up <= tall; up++) {
+      const f = up / tall, x = Math.round(cx + k + sway * f * f);
+      if (f > 0.75 && hash2(k, up + look * 7, 483) > 0.6) continue; // ragged tips
+      put(x, pan.y - up, f < 0.3 && Math.abs(u) < 0.5 ? R.ember[5]! : f < 0.55 ? R.ember[4]! : f < 0.8 ? R.ember[3]! : R.ember[2]!);
+    }
+  }
+  for (let k = 0; k < 4; k++) {
+    const x = cx + Math.round((hash2(k, look, 484) - 0.5) * 18), y = pan.y - 18 - Math.round(hash2(k, look, 485) * 12);
+    put(x, y, k % 2 ? R.ember[4]! : R.ember[3]!);
+  }
 }
 
 /** The visitors' boats as `paintPort` paints them for the hour, without painting the port round them. */
