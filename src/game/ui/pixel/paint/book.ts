@@ -410,6 +410,32 @@ export const TOME = { spine: 44, foreEdge: 26, bevel: 4 } as const;
  * under the name plate. `label` (fine pixels from the top left) is the blank brass name plate, a slip of pale paper in it.
  */
 export function paintCover(width: number, height: number, label: Box): Bitmap {
+  // the book lies on the table and is seen from a little above and to its right, not straight down: its far end narrows
+  // and its rows crowd together there. The cover is painted flat and laid in that view, the plate painted a little larger
+  // so that in the view it still holds `label`, where the name is written
+  const at = (x: number, y: number) => {
+    const v = Math.max(0, y) / height;
+    const sv = v / (1 - COVER_TILT.keystone + COVER_TILT.keystone * v);
+    const scale = 1 - COVER_TILT.keystone * (1 - sv);
+    const cx = width * COVER_TILT.centre;
+    return { x: cx + (x - cx) / scale, y: sv * height };
+  };
+  const top = at(label.x, label.y), foot = at(label.x + label.w, label.y + label.h);
+  const flat = paintFlatCover(width, height, { x: Math.floor(top.x), y: Math.floor(top.y), w: Math.ceil(foot.x - top.x), h: Math.ceil(foot.y - top.y) });
+  const out = createBitmap(width, height);
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+    const from = at(x, y);
+    const sx = Math.round(from.x), sy = Math.min(height - 1, Math.round(from.y));
+    if (sx >= 0 && sx < width) out.pixels[y * width + x] = flat.pixels[sy * width + sx]!;
+  }
+  return out;
+}
+
+/** How the closed book is seen: its far end `keystone` narrower than its near end, the eye over `centre` of its width. */
+export const COVER_TILT = { keystone: 0.14, centre: 0.66 } as const;
+
+/** The closed book's cover seen straight down, its name plate at `label`. */
+function paintFlatCover(width: number, height: number, label: Box): Bitmap {
   const out = createBitmap(width, height);
   const put: Put = (x, y, place) => { if (x >= 0 && y >= 0 && x < width && y < height) out.pixels[y * width + x] = place; };
   const board = { x: TOME.spine, y: 0, w: width - TOME.spine - TOME.foreEdge, h: height + 60 };
