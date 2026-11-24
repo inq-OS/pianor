@@ -218,13 +218,18 @@ export function stripCell(width: number, height: number, look: PlateLook = 'plai
   return plateOf(width, height, roundedRect(width, height), PLATES[look], look === 'down' || look === 'armed');
 }
 
+/** The gold plate of a worn option that is on, `width` x `height` cells, with no picture. */
+export function goldChip(width: number, height: number): Bitmap {
+  return plateOf(width, height, roundedRect(width, height), { fill: C.gold, light: C.goldLight, shade: C.goldDark, outline: C.groove });
+}
+
 /**
  * A worn option that is on, shown right of More (a press turns it off): a small gold plate with the option's picture
  * in the groove's ink, at least 15 square and as wide as the picture needs.
  */
 export function wornChip(picture: Bitmap): Bitmap {
   const w = Math.max(PIN_CELL_SIZE.h, picture.width + 4), h = PIN_CELL_SIZE.h;
-  const b = plateOf(w, h, roundedRect(w, h), { fill: C.gold, light: C.goldLight, shade: C.goldDark, outline: C.groove });
+  const b = goldChip(w, h);
   const ink = createBitmap(picture.width, picture.height);
   picture.pixels.forEach((p, i) => {
     if (p !== 0 && p !== C.ink) ink.pixels[i] = C.groove;

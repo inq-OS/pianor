@@ -1105,11 +1105,11 @@ export abstract class PixelScene extends Phaser.Scene {
     if (bubble && moreRight > 0) {
       let x = moreRight + 3;
       for (const worn of (this.bubbleOptions(null) ?? []).filter((o): o is ToolbarItem => o !== null && o.worn === true && o.active === true && o.icon !== undefined)) {
-        // a gold chip with the option's picture in ink
-        const picture = wornChip(worn.icon!);
-        if (x + picture.width > mainLeft - 2) break;
-        this.button({ x: x + picture.width / 2, y: top + 1 + picture.height / 2, width: picture.width, height: picture.height, label: worn.label, picture, ...(worn.tooltip ? { tooltip: worn.tooltip } : {}), onClick: worn.onClick });
-        x += picture.width + 1;
+        // a gold chip with the option's picture in ink, as wide as the picture needs
+        const chip = wornChip(worn.icon!);
+        if (x + chip.width > mainLeft - 2) break;
+        this.button({ x: x + chip.width / 2, y: top + 1 + chip.height / 2, width: chip.width, height: chip.height, label: worn.label, icon: worn.icon!, iconOnly: true, look: 'bandCell', worn: true, ...(worn.tooltip ? { tooltip: worn.tooltip } : {}), onClick: worn.onClick });
+        x += chip.width + 1;
       }
       freeLeft = Math.max(freeLeft, x);
     }
