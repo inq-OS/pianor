@@ -1,9 +1,9 @@
 import type { Chart } from '../../core/chart';
 import { sliceChart } from '../../core/chart/section';
-import type { JudgeEvent, WrongNoteJudged, WrongReason } from '../../core/judge';
+import type { JudgeEvent } from '../../core/judge';
 import { markersByNote, mistakeMarkers } from '../../core/learn/markers';
 import { PRIZE } from '../../core/layout/learnPrizes';
-import { handChart, learnPlan, learnUnits, type LearnStep } from '../../core/learn/plan';
+import { handChart, learnPlan, type LearnStep } from '../../core/learn/plan';
 import {
   afterRun, currentRun, goldenBars, halfLearned, isLearned, isMeasured, learnHandsApart, learnRewards, learnStepBars, measuredOutcome, playsOn, sitDown, startOver, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
 } from '../../core/learn/progress';
@@ -11,7 +11,6 @@ import { LearnRunJudge, type LearnRunVerdict } from '../../core/learn/run';
 import { prizeFocus, shownWithPiece, type PrizeFocus } from '../../core/learn/view';
 import { baselineBpm, runTempo, TEMPO_RULES, type RunTempo } from '../../core/learn/tempo';
 import type { BarPlay } from '../../core/progression/practiceLog';
-import { t, type StringKey } from '../../core/text/strings';
 
 /** What the practice screen needs of the player's profile to learn a piece. */
 export interface LearnProfile {
@@ -27,10 +26,6 @@ export interface LearnProfile {
  * learned, so a student who already plays it is not sent back to bar 1.
  */
 export const KNOWN_COMPLETIONS = 3;
-
-const REASON_KEY: Record<WrongReason, StringKey> = {
-  'wrong-octave': 'learn.reason.wrongOctave', 'neighbour-key': 'learn.reason.neighbourKey', 'wrong-letter': 'learn.reason.wrongLetter',
-};
 
 /**
  * Learning one piece bar by bar on the practice screen (ft_1_32 slice 2): the plan, where the player is in it and the run
@@ -132,20 +127,6 @@ export class LearnSession {
     return baselineBpm(this.progress.bpm ?? []);
   }
 
-  /** What Kiur says about a run played to its end, before the next run's line. */
-  endLine(outcome: RunOutcome, bpm: number | undefined): string {
-    if (outcome === 'hinted') return '';
-    if (outcome === 'unsteady') return t('learn.unsteady');
-    if (outcome === 'flawed') {
-      const verdict = this.verdict;
-      return t('learn.flawed', { n: verdict.state === 'flawed' ? verdict.mistakes : 1 });
-    }
-    // the pace of the run that learned it, the number the student just played
-    const pace = bpm ?? this.baseline;
-    if (this.learned && pace !== null) return t('learn.learned', { bpm: pace });
-    return bpm === undefined ? t('learn.clean') : t('learn.pace', { bpm });
-  }
-
   /**
    * Read the judge's events (`played` is the chart the judge plays); the verdict of the run so far. A step run is stopped
    * when it speeds up beyond the piece's baseline tempo (the rushing stop, ft_1_32.AC11) while the step may still be asked
@@ -218,58 +199,6 @@ export class LearnSession {
       console.error('saveLearnProgress failed', error);
       return false;
     });
-  }
-
-  /** The printed number (from 1) of chart bar `bar`: a pick-up counts with the first full bar. */
-  printedBar(bar: number): number {
-    return learnUnits(this.piece).findIndex((u) => u.first <= bar && bar <= u.last) + 1;
-  }
-
-  /** What Kiur says as the run starts. */
-  startLine(): string {
-    const run = this.run;
-    const from = run.step.firstUnit + 1;
-    const to = run.step.lastUnit + 1;
-    if (run.kind === 'recall') return from === to ? t('learn.recallOne', { n: from }) : t('learn.recall', { from, to });
-    if (this.namesHidden) return t('learn.hidden');
-    // a step played more than once in a row says which play this is, so the same line never comes back word for word
-    const round = run.step.runs > 1 ? ` ${t('learn.round', { n: this.progress.wholeStreak + 1, runs: run.step.runs })}` : '';
-    if (run.step.kind === 'whole') return t('learn.whole') + round;
-    if (run.step.kind === 'join') return t('learn.join', { from, to }) + round;
-    if (run.step.kind === 'confirm') return (from === to ? t('learn.confirmOne', { n: from }) : t('learn.confirm', { from, to })) + round;
-    if (run.step.hand) {
-      const hand = t(run.step.hand === 'RH' ? 'learn.handRH' : 'learn.handLH');
-      return from === to ? t('learn.handStepOne', { n: from, hand }) : t('learn.handStep', { from, to, hand });
-    }
-    // the step after its hands alone names both hands, so the change is heard as well as seen
-    if (this.afterHandsAlone) return from === to ? t('learn.bothStepOne', { n: from }) : t('learn.bothStep', { from, to });
-    return from === to ? t('learn.stepOne', { n: from }) : t('learn.step', { from, to });
-  }
-
-  /** The run is the both-hands step of a bar or bars just played by each hand alone (ft_1_32 rule 13). */
-  private get afterHandsAlone(): boolean {
-    const step = this.run.step;
-    const before = this.plan[this.progress.step - 1];
-    return step.kind === 'grow' && step.hand === undefined && before?.hand !== undefined && before.firstUnit === step.firstUnit && before.lastUnit === step.lastUnit;
-  }
-
-  /** What Kiur says after a perfect run, about the run that comes next: its bars, or the start line of a whole run or recall. */
-  nextLine(): string {
-    const run = this.run;
-    if (run.kind === 'recall' || run.step.kind !== 'grow' || run.step.hand || this.afterHandsAlone || this.namesHidden) return this.startLine();
-    const from = run.step.firstUnit + 1;
-    const to = run.step.lastUnit + 1;
-    return from === to ? t('learn.nextOne', { n: from }) : t('learn.next', { from, to });
-  }
-
-  /** What Kiur says when the run is stopped for speeding up (ft_1_32.AC11). */
-  rushLine(): string {
-    return t('learn.rushed');
-  }
-
-  /** What Kiur says when a wrong key ends the run: the mistake and its bar (`bar` is the piece's bar of the wrong key). */
-  stopLine(wrong: WrongNoteJudged, bar: number): string {
-    return t('learn.stopped', { reason: t(REASON_KEY[wrong.reason]), bar: this.printedBar(bar) });
   }
 
   /** The notes earned so far, each in its medal (ft_1_32.AC4). */

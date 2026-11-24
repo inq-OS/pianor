@@ -1,4 +1,4 @@
-// Covers ft_1_32.AC4, ft_1_32.AC5, ft_1_32.AC6, ft_1_32.AC11, ft_1_32.AC12, ft_1_32.AC13, ft_1_32.AC14, ft_1_32.AC16, ft_1_32.AC17, ft_1_32.AC18.
+// Covers ft_1_32.AC4, ft_1_32.AC5, ft_1_32.AC6, ft_1_32.AC11, ft_1_32.AC12, ft_1_32.AC13, ft_1_32.AC14, ft_1_32.AC16, ft_1_32.AC17, ft_1_32.AC18, ft_1_32.AC23.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { activeScenes, clickButton, clickToolbar, expectNoErrors, sceneTexts, isPieceLabel, menuLabels, letGameRun, openGame, openPiece, playWithKeys, sceneButton, showMenuPageWith, waitForScene } from './helpers';
@@ -17,6 +17,11 @@ async function shown(page: Page): Promise<{ bars: number; first: number; midis: 
 }
 
 const progress = (page: Page) => page.evaluate(() => window.__game.registry.get('context').profiles.learnProgressOf('little-steps') as { step: number; misses: number; unsteady?: number; wholeStreak: number });
+/** The next learning run has started (the scene restarted after a run that ended), with nothing said between them. */
+const nextRunStarted = (page: Page) => page.evaluate(() => {
+  const scene = window.__game.scene.getScene('practice') as unknown as { afterLearnRun: boolean; leaving: boolean };
+  return scene.afterLearnRun && !scene.leaving;
+});
 const kiurSays = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { startMessage: string }).startMessage);
 
 /** From the piece book to the room: Kiur on the bed pressed, and his question open. */
@@ -77,19 +82,20 @@ test('ft_1_32.AC14 Kiur\'s Tug lists only the learned pieces, and his tug opens 
   expectNoErrors(errors);
 });
 
-test('a new piece is learned bar by bar: one bar shown, a wrong key repeats it, a perfect run adds the next bar', async ({ page }) => {
+test('ft_1_32.AC23 a new piece is learned bar by bar with nothing said: one bar shown, a wrong key repeats it, a perfect run adds the next bar', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
   await learnPiece(page, 'Little Steps');
   const first = await shown(page);
   expect(first).toMatchObject({ bars: 1, first: 0 });
-  expect(await kiurSays(page)).toBe('Bar 1: every note right');
+  expect(await kiurSays(page)).toBe(''); // Kiur says nothing while learning: the staff shows the bar
 
-  // a wrong key ends the run at once: Kiur names it, the same bar starts again, and progress keeps its miss
+  // a wrong key ends the run at once: it stays on the staff, the same bar starts again, and progress keeps its miss
   const wrong = first.midis[0]! + 1;
   await playWithKeys(page, [wrong]);
-  await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toMatch(/in bar 1\. Again from the start$/);
   expect(await shown(page)).toMatchObject({ bars: 1, first: 0 });
+  await expect.poll(() => nextRunStarted(page), { timeout: 10_000 }).toBe(true);
   expect(await progress(page)).toMatchObject({ step: 0, misses: 1 });
+  expect(await kiurSays(page)).toBe(''); // the wrong key on the staff says what went wrong
   // the wrong key stays on the staff of the run started again, until its first key (ft_1_32.AC6)
   const playedShown = () => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { staffView: { played: unknown } } }).playSession.staffView.played !== null);
   expect(await playedShown()).toBe(true);
@@ -105,7 +111,7 @@ test('a new piece is learned bar by bar: one bar shown, a wrong key repeats it, 
   await playWithKeys(page, first.midis.slice(1));
   await expect.poll(async () => (await shown(page)).bars, { timeout: 10_000 }).toBe(2);
   expect(await progress(page)).toMatchObject({ step: 1, misses: 0 });
-  expect(await kiurSays(page)).toBe('Every note right! Now bars 1 to 2');
+  expect(await kiurSays(page)).toBe(''); // the new prize note says it, with no words
   const rewards = await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { rewardsData: { chunks: { quarters: string[] }[] } }).rewardsData);
   expect(rewards.chunks[0]!.quarters).toEqual(['silver']); // two runs that did not count
   await letGameRun(page, 5);
@@ -135,7 +141,8 @@ test('ft_1_32.AC11 a run that speeds up beyond the baseline tempo is stopped and
   await learnPiece(page, 'Little Steps');
   // the keys pressed one right after the other: far faster than 40 BPM
   await playWithKeys(page, (await shown(page)).midis);
-  await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toBe('Too fast: keep the speed you started with. Once more');
+  await expect.poll(() => progress(page), { timeout: 10_000 }).toMatchObject({ unsteady: 1 });
+  expect(await kiurSays(page)).toBe('');
   expect(await shown(page)).toMatchObject({ bars: 1, first: 0 });
   expect(await progress(page)).toMatchObject({ step: 0, misses: 0, unsteady: 1 }); // nothing lost, asked again
   expectNoErrors(errors);
@@ -147,7 +154,7 @@ const playStaves = (page: Page) => page.evaluate(() => (window.__game.scene.getS
 test('ft_1_32.AC12 a two-hand piece is learned with both hands together by default', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
   await learnPiece(page, 'Both Hands');
-  expect(await kiurSays(page)).toBe('Bar 1: every note right');
+  expect(await kiurSays(page)).toBe(''); // Kiur says nothing while learning: the staff shows the bar
   expect((await playStaves(page)).sort()).toEqual(['LH', 'RH']);
   expectNoErrors(errors);
 });
@@ -156,14 +163,15 @@ test('ft_1_32.AC12 ft_1_32.AC18 with hands apart chosen, the right hand is learn
   const errors = await openGame(page, '?device=virtual&learn=1');
   await page.evaluate(() => window.__game.registry.get('context').profiles.updateLearnSettings({ handsApart: true }));
   await learnPiece(page, 'Both Hands');
-  expect(await kiurSays(page)).toBe('Bar 1, right hand alone: every note right');
+  expect(await kiurSays(page)).toBe('');
   expect(await playStaves(page)).toEqual(['RH']);
   // both staves are drawn, the resting left hand's marked so the view greys it
   const staves = await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { layout: { systems: { staves: { clef: string; resting?: boolean }[] }[] } } })
     .playSession.layout.systems[0]!.staves.map((st) => [st.clef, st.resting === true]));
   expect(staves).toEqual([['treble', false], ['bass', true]]);
   await playWithKeys(page, (await shown(page)).midis);
-  await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toBe('Every note right! Bar 1, left hand alone: every note right');
+  await expect.poll(() => playStaves(page), { timeout: 10_000 }).toEqual(['LH']);
+  expect(await kiurSays(page)).toBe('');
   expectNoErrors(errors);
 });
 
@@ -231,7 +239,7 @@ test('ft_1_32.AC17 the live tempo is off by default; turned on in the settings, 
   expectNoErrors(errors);
 });
 
-test('ft_1_32.AC15 ft_1_32.AC22 a piece learned keeps its reward and the learned line until a key, its clef grown to twice its size, then the book opens and the clef drops onto the card of the piece', async ({ page }) => {
+test('ft_1_32.AC15 ft_1_32.AC22 a piece learned keeps its reward until a key, its clef grown to twice its size, then the book opens and the clef drops onto the card of the piece', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
   await learnPiece(page, 'Little Steps');
   const [steps, runs] = await page.evaluate(() => {
@@ -264,10 +272,10 @@ test('ft_1_32.AC15 ft_1_32.AC22 a piece learned keeps its reward and the learned
     await page.evaluate((m) => { window.__virtualDevice!.press(m, 80); window.__virtualDevice!.release(m); }, n.midi);
   }
   await expect.poll(() => progress(page), { timeout: 10_000 }).toMatchObject({ step: steps });
-  // the learned moment stays: still the practice screen with Kiur's learned line, well after the next run would have started
+  // the learned moment stays: still the practice screen, well after the next run would have started
   await page.waitForTimeout(3000);
   expect(await activeScenes(page)).toContain('practice');
-  expect(await sceneTexts(page, 'practice')).toEqual(expect.arrayContaining([expect.stringMatching(/^Learned: .*Play any key to go on$/)]));
+  expect(await kiurSays(page)).toBe(''); // the grown clef is the message
   // the clef has lifted off the prize column and grown to twice its size where it stood
   expect(await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { clef: { scale: number } | null } }).playSession.clef?.scale)).toBe(2);
   // a key goes on: the book opens at the piece, and the clef drops from where it was onto the piece's card
@@ -311,23 +319,19 @@ test('ft_1_32.AC2 the whole piece three times: the first plays go on past a wron
   // the first play: a wrong key in the middle, Wait mode waits for the right one, and the play counts
   await seed(0);
   await open();
-  expect(await kiurSays(page)).toMatch(/\(play 1 of 3\)$/);
   const { midis } = await shown(page);
   await playWithKeys(page, midis.slice(0, 2));
   await playWithKeys(page, [midis[2]! + 1]);
   await playWithKeys(page, midis.slice(2));
   await expect.poll(() => progress(page), { timeout: 10_000 }).toMatchObject({ step: steps - 1, wholeStreak: 1, misses: 1 });
-  await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toMatch(/^To the end, with 1 wrong keys .*\(play 2 of 3\)$/);
   await page.keyboard.press('Escape');
   await waitForScene(page, 'menu');
 
   // the third play: a wrong key stops it, and it starts again from the first bar, still the third play
   await seed(2);
   await open();
-  expect(await kiurSays(page)).toMatch(/\(play 3 of 3\)$/);
   await playWithKeys(page, [midis[0]! + 1]);
-  await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toMatch(/\(play 3 of 3\)$/);
-  expect(await progress(page)).toMatchObject({ step: steps - 1, wholeStreak: 2, misses: 1 });
+  await expect.poll(() => progress(page), { timeout: 10_000 }).toMatchObject({ step: steps - 1, wholeStreak: 2, misses: 1 });
   expect(await shown(page)).toMatchObject({ first: 0 });
   expectNoErrors(errors);
 });
