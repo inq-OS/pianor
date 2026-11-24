@@ -13,7 +13,7 @@ exception is code that reads an old save to migrate it.
 | exchange | one phrase answered in a tug, won or lost |
 | standing | where the tug stands, three steps each way; the student wins at +3 |
 | learn, practise, show | the three steps of a character's piece, the student's route with that character; the show is the tug (d135) |
-| practice gate | the practice evidence that opens the show (ft_1_06.AC15) |
+| practice gate | the practice evidence that opens the show (ft_1_21.AC19) |
 | tug record | one finished tug as the save keeps it: character, piece, won or lost, XP |
 | prize, prize ladder | the item a won tug gives, by level (ft_1_21.AC18) |
 | item, backpack | what the student carries, shown in the backpack (d282) |

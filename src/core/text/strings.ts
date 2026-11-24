@@ -55,7 +55,7 @@ export const strings = {
   'card.pieces': 'Pieces played',
   'card.passes': 'Times played through',
   'card.fiveStars': 'Pieces with five stars',
-  'card.campaign': 'Monster levels beaten',
+  'card.tugsWon': 'Wins against characters',
   'card.noteTrainer': 'XP from theory',
   'card.earPoints': 'Points by ear',
   'room.door': 'Door',
@@ -541,9 +541,6 @@ export const strings = {
   'editor.import.cannotSave': 'Could not add that piece: {problem}',
   'editor.nothingToUndo': 'Nothing to undo.',
   'editor.nothingToRedo': 'Nothing to redo.',
-  // A monster in a scene of Keri (ft_1_19) with nothing to play now. Gentle, never "failed".
-
-  // Monster campaign, find the key (ft_1_06). Gentle: a broken key is never "failed".
   'settings.pageLearn': 'Learning',
   'settings.learnStep': 'New bars in learning',
   'settings.learnStepOne': 'One bar at a time',

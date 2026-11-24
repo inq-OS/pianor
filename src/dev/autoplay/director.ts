@@ -270,7 +270,7 @@ export function startAutoplay(options: AutoplayOptions): AutoplayHandle {
     if (scenario.activity === 'script') return playScript();
     if (scenario.activity === 'teacher') await putOnCurriculum(scenario.piece!);
     if (scenario.activity === 'week') await setUpWeek(scenario.piece!);
-    // a challenge practises the character's phrase in the room first, so its gate opens (ft_1_06.AC15)
+    // a challenge practises the character's phrase in the room first, so its gate opens (ft_1_21.AC19)
     const order = offeredIds();
     let pieceId: string | undefined = scenario.piece;
     for (let run = 1; run <= scenario.maxRuns; run++) {

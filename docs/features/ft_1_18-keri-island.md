@@ -5,7 +5,7 @@ scope: "Pianor takes place on Keri island off Estonia's north coast. MVP: the co
 effort: "large"
 status: "MVP built on the 640x360 canvas (d110): world model, painted warden's living room, painted map of Keri behind the room's door; the maintainer's look on the laptop is open (AC5)"
 completeness: 85
-depends_on: ["ft_1_06", "ft_1_07", "ft_1_08", "ft_1_14", "ft_1_17"]
+depends_on: ["ft_1_07", "ft_1_08", "ft_1_14", "ft_1_17"]
 ---
 # ft_1_18: Keri island: the game's world
 

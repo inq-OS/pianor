@@ -9,7 +9,7 @@ The game is a barrel: it holds only as much as its shortest stave (d283). Each a
 | Pieces to play | content, core_08, core_09, ft_Y_04 | low | 6 of 39 pieces approved; Puuvaim's phrases are drafts, so a release build has no tug |
 | Getting it to a player | ft_0_14, [release.md](../release.md) | low | the Windows zip never run on a real PC; no credits file for CC BY assets |
 | Learning a new piece | ft_1_32 | 55 | slices 1 to 3 built; characters teaching by it (slice 4) and the review schedule (slice 6) open |
-| Characters and challenges | ft_1_21, ft_1_22, ft_1_06 | 50 | one character plays end to end; the phrase book, the border guard |
+| Characters and challenges | ft_1_21, ft_1_22 | 50 | one character plays end to end; the phrase book, the border guard |
 | The teacher and the curriculum | ft_1_26, ft_1_27 | 55 | statistics, calendar, requests held |
 | The EZ-220 | ft_0_01, ft_Y_06, core_01 | 60 | key lights wait on the silent-light test; latency calibration |
 | Theory and ear | ft_0_17, ft_1_10, ft_1_28, ft_1_29 | 65 | scales and chords not started |
@@ -22,7 +22,7 @@ The architect's working tool (roadmap questions are the architect's to decide). 
 
 A release's work is the open issues in its milestone plus every doc tag carrying its release, `TODO(<project>, R2)` and the like (d116, [todo-tags.md](../automation/todo-tags.md#finding-work)); the release is the roadmap tag on a tag. Each release lists its content (feature ids), its gate in, its exit and what only the maintainer can do (the real EZ-220, playtests, approvals). **One release = at most one profile save bump** (d069). No dates: order and gates matter, the calendar does not. Order: R1, R2, R3, R4, R5; the Later pool takes items any time after their gate. Three tracks feed the releases: hardware (EZ-220 spike, key lights, EZ-220 sounds), art (sprite toolkit, monsters, tiles) and groundwork (refactors that keep the code from fighting the next release).
 
-**R0 (done):** MVP features ft_0_00 to ft_0_16 except ft_0_01's measurements and ft_0_17, plus the piece editor (ft_1_02a, c), Tempo mode a to c (core_01), core_02 to core_05, sharps and flats (all slices), keyboard menus ft_Y_13, demo director ft_Y_09, the campaign's rules and save (ft_1_06 K1 to K3, K5), the shared play session and the scene and core groundwork. Much was built ahead of the student having the MVP, which is why R1 is small and first.
+**R0 (done):** MVP features ft_0_00 to ft_0_16 except ft_0_01's measurements and ft_0_17, plus the piece editor (ft_1_02a, c), Tempo mode a to c (core_01), core_02 to core_05, sharps and flats (all slices), keyboard menus ft_Y_13, demo director ft_Y_09, the shared play session and the scene and core groundwork. Much was built ahead of the student having the MVP, which is why R1 is small and first.
 
 ## Status
 
@@ -99,7 +99,7 @@ Open work is a doc tag (d116). Count a release's work with the grep in [todo-tag
 
 | Content | What | Size |
 |---|---|---|
-| ft_1_06 | The piece pick of AC9 and the ladder defaults the maintainer confirms; the practice gate in front of the tug is built | medium |
+| ft_1_21 | The piece pick of AC20 | medium |
 | ft_1_21, ft_1_22 slice A (d129, d132) | The tug of reputation with two or three visitors and a voice with no body (the knoll's bonfire), met by practising, a conversation first, an item for a win, a practice tug with Kiur; challenges with characters: the pure core (slice A), the challenge drawn over its scene (B), the painter's look (D, after the maintainer says what the characters are) | large |
 | – | Admin settings page behind a parent gate; overrides content defaults | medium |
 | – | Four original character songs of 8, 16, 24 and 32 bars, taught in levels by ft_1_32 slice 4; the maintainer approves them | simple + human |
@@ -111,7 +111,7 @@ Open work is a doc tag (d116). Count a release's work with the grep in [todo-tag
 
 **Save bump:** the admin settings are stored per device, outside the student's profile, with its own `schemaVersion`. Anything else in the profile is v16, one bump.
 
-**Done when:** ft_1_06 AC1 to AC7 and ft_1_21 AC1 to AC10 pass; a character's learn, practise, show plays end to end in the scenes of ft_1_19 with the virtual player (`npm run demo` gets a challenge scenario); AC8 (the student understands learn, practise and show) is a playtest.
+**Done when:** ft_1_21 AC1 to AC10 and AC19 to AC21 pass; a character's learn, practise, show plays end to end in the scenes of ft_1_19 with the virtual player (`npm run demo` gets a challenge scenario); ft_1_21.AC22 (the student understands learn, practise and show) is a playtest.
 
 **The maintainer by hand:** confirm the challenge defaults; say what the characters are on Keri (ft_1_21); approve the four character songs; playtest, tuning on the admin page.
 

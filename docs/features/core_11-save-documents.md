@@ -27,7 +27,7 @@ One profile object used to carry everything, so every new block (world, curricul
 All AX-3 provisional until built and tried; numbers are content, not code.
 
 - **core_11.AC1** A player is stored as named documents under one player key prefix; each document has its own `schemaVersion` and its own frozen migration steps with golden fixtures (`save-format-bump` skill).
-- **core_11.AC2** The current profile (one object) migrates once into the documents; a profile of any earlier version still loads, keeps every attempt, practice entry and campaign step, and is checked by a golden test.
+- **core_11.AC2** The current profile (one object) migrates once into the documents; a profile of any earlier version still loads, keeps every attempt, practice entry and finished challenge, and is checked by a golden test.
 - **core_11.AC3** Export and import of a player (admin page) carry all its documents and refuse a newer version of any one of them with a plain message.
 - **core_11.AC4** A new document (for example the world) is added without bumping the others; a test proves the others are byte-identical after the addition.
 - **core_11.AC5** The v18 save round (rhythm practice, helper marks, wheel, text settings) lands either before the split or inside the profile-core document, never in both.

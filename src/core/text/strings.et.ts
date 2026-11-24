@@ -54,7 +54,7 @@ export const stringsEt: Record<StringKey, string> = {
   'card.pieces': 'Mängitud lood',
   'card.passes': 'Läbimängimisi',
   'card.fiveStars': 'Viie tähega lood',
-  'card.campaign': 'Võidetud koletiste tasemed',
+  'card.tugsWon': 'Võidud tegelaste üle',
   'card.noteTrainer': 'XP teooriast',
   'card.earPoints': 'Punktid kuulmise järgi',
   'room.door': 'Uks',

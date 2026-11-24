@@ -165,7 +165,7 @@ const v12ToV13: ProfileMigration = (raw) => {
 };
 
 /**
- * Version 14 (ft_1_06, K5) adds the monster campaign, started as a new player started it then: only the first monster
+ * Version 14 adds the monster campaign, started as a new player started it then: only the first monster
  * unlocked, nothing beaten, no door open, every monster in phase 1 (find the key). Written out here, not built by `startCampaign`. The number of monsters is fixed here (the ladder had four), not read from the content: a
  * migration must give the same answer forever. A longer ladder needs its own migration.
  */
@@ -201,6 +201,26 @@ const v16ToV17: ProfileMigration = (raw) => {
   return { ...raw, schemaVersion: EAR_TRAINER_SINCE, earPoints: 0, settings: { ...settings, earTrainer: { seconds: 1, repeat: true } } };
 };
 
+/**
+ * The profile after the last record version (17), in the shape the game holds now (d290, core_11.AC5: a change after the
+ * split is a step of the profile document, `profileDocument` version 2, and this is that step): each battle record becomes a
+ * tug record with its number, time, piece, outcome, potential XP and XP kept, the monster or character as `characterId` and
+ * its rounds as `exchanges`; the HP numbers go. The old campaign and `settings.battle` are dropped: they held no XP. Written
+ * out here, frozen (d064). The input is not changed.
+ */
+export function profileAfterRecord17(raw: Raw): Raw {
+  const rest: Raw = { ...raw };
+  delete rest.battles;
+  delete rest.campaign;
+  const settings: Raw = { ...(raw.settings as Raw) };
+  delete settings.battle;
+  // a profile already in today's shape keeps its tugs, so the step can run twice
+  const tugs = Array.isArray(raw.battles)
+    ? (raw.battles as Raw[]).map((b) => ({ n: b.n, at: b.at, characterId: b.monsterId, pieceId: b.pieceId, won: b.won, potentialXp: b.potentialXp, exchanges: b.rounds, xp: b.xp }))
+    : Array.isArray(raw.tugs) ? raw.tugs : [];
+  return { ...rest, settings, tugs };
+}
+
 export const profileMigrations: Record<number, ProfileMigration> = { 0: v0ToV1, 1: v1ToV2, 2: v2ToV3, 3: v3ToV4, 4: v4ToV5, 5: v5ToV6, 6: v6ToV7, 7: v7ToV8, 8: v8ToV9, 9: v9ToV10, 10: v10ToV11, 11: v11ToV12, 12: v12ToV13, 13: v13ToV14, 14: v14ToV15, 15: v15ToV16, 16: v16ToV17 };
 
 /** Bring a saved profile of any known version up to the current one. Throws `ProfileMigrationError` for unknown versions. */
@@ -222,15 +242,23 @@ export function migrateProfile(
 
 export type ParsedProfile = { ok: true; profile: ProfileData } | { ok: false; errors: string[] };
 
-/** Migrate and validate. Never throws on bad data: returns readable errors. */
+/**
+ * Migrate an old profile record (the single save of before the split, an old export) to version 17, bring it to today's
+ * shape (`profileAfterRecord17`) and validate. Never throws on bad data: returns readable errors.
+ */
 export function parseProfile(raw: unknown, config: ProgressionConfig): ParsedProfile {
   let migrated: Raw;
   try {
-    migrated = migrateProfile(raw, config);
+    migrated = profileAfterRecord17(migrateProfile(raw, config));
   } catch (e) {
     return { ok: false, errors: [e instanceof ProfileMigrationError ? e.message : `could not migrate: ${String(e)}`] };
   }
-  const result = profileSchema.safeParse(migrated);
+  return validateProfile(migrated);
+}
+
+/** Validate a profile already in today's shape (the profile document's value). Never throws: returns readable errors. */
+export function validateProfile(value: unknown): ParsedProfile {
+  const result = profileSchema.safeParse(value);
   if (result.success) return { ok: true, profile: result.data };
   return { ok: false, errors: formatIssues(result.error) };
 }

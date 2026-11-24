@@ -77,7 +77,7 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d067](notation.md#d067) | The chart key is a structured signature `{ tick, fifths, mode }`; chart schema version 2 | core_09 |
 | [d068](stack.md#d068) | Pianor is never hosted: it runs locally, every third-party part is FOSS-licensed, laptops are the target | ft_0_14 |
 | [d069](saves.md#d069) | One shared save-format bump per round: the first pull request to land owns the version | core_04 |
-| [d070](stack.md#d070) | Scene flow: screens are modules, start switches, overlays push and return a typed result, input goes through intents | ft_Y_13, ft_1_06 |
+| [d070](stack.md#d070) | Scene flow: screens are modules, start switches, overlays push and return a typed result, input goes through intents | ft_Y_13 |
 | [d073](notation.md#d073) | Editor pieces carry a key and a per-note alter, stored as own-piece record 2 and piece file 2 | core_09 |
 | [d077](stack.md#d077) | The pure piece compiler and linter live in src/core/piece; tools/piece keeps the CLIs and file access | ft_0_03, ft_0_04, core_08, ft_1_02b |
 | [d078](notation.md#d078) | The editor writes notes in order on shadow notes, with bars as wide as their notes and a staff that never resizes | ft_1_02a, ft_1_02d |
@@ -92,8 +92,8 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d090](workflow.md#d090) | CI runs on GitHub's hosted runners: `check` and `art rules` on every pull request push, the browser jobs on a label or weekly |  |
 | [d092](saves.md#d092) | Profile v16 adds the practice log, one list of per-bar plays | core_10 |
 | [d093](play.md#d093) | Tempo mode grades how long each note is held | core_01 |
-| [d095](game.md#d095) | The tug plays the student's piece; a character sets only the level | ft_1_06, ft_1_21 |
-| [d097](art.md#d097) | The sky follows the sun over Keri, computed offline; looks are layers | ft_1_14, ft_Y_14, ft_1_06 |
+| [d095](game.md#d095) | The tug plays the student's piece; a character sets only the level | ft_1_21 |
+| [d097](art.md#d097) | The sky follows the sun over Keri, computed offline; looks are layers | ft_1_14, ft_Y_14 |
 | [d098](game.md#d098) | Practice earns the piece XP and a piece level, not the player; levels lock no piece | ft_1_13, ft_0_10, ft_1_12, core_04 |
 | [d099](game.md#d099) | The on-screen keyboard is hidden at first and its switch is on the settings screen only | ft_Y_12, ft_0_16 |
 | [d100](play.md#d100) | The tug is played from memory with no staff, harder at each level | ft_1_21, core_01 |
@@ -122,10 +122,10 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d126](game.md#d126) | The main menu is the lantern over Keri filling the screen, with the players down a parchment sheet, and paints every row itself | ft_1_07, ft_1_20 |
 | [d127](stack.md#d127) | The scenery moves whatever the operating system says; only the game's own switch stands it still | ft_1_08, ft_1_17, ft_1_19 |
 | [d128](art.md#d128) | The room stays a lit set but is drawn as the 1991 rooms are: a bent view, leaning things, light in pools, flat island in the windows | ft_1_18, ft_1_20, ft_1_08 |
-| [d129](game.md#d129) | A character challenges the student in a scene, and the two trade the phrases of the student's piece | ft_1_21, ft_1_06, ft_1_19 |
+| [d129](game.md#d129) | A character challenges the student in a scene, and the two trade the phrases of the student's piece | ft_1_21, ft_1_19 |
 | [d130](art.md#d130) | Screens that are not painted places lie on the warden's walnut desk, with parchment card, open book, card catalogue, scroll and door in place of the felt and vine | ft_1_08, ft_1_02c, ft_1_07, ft_1_15, ft_1_10, core_06 |
-| [d132](game.md#d132) | Characters are met by practising, talked to first, teach phrases for a phrase book, and give an item for a won tug; every character ties to music | ft_1_21, ft_1_22, ft_1_23, ft_1_19, ft_1_20, ft_1_06, ft_1_07 |
-| [d135](game.md#d135) | A character's piece goes learn, practise, show | ft_1_06, ft_1_21, ft_1_22 |
+| [d132](game.md#d132) | Characters are met by practising, talked to first, teach phrases for a phrase book, and give an item for a won tug; every character ties to music | ft_1_21, ft_1_22, ft_1_23, ft_1_19, ft_1_20, ft_1_07 |
+| [d135](game.md#d135) | A character's piece goes learn, practise, show | ft_1_21, ft_1_22 |
 | [d136](saves.md#d136) | A player's save is four documents (profile, practiceLog, world, curriculum), each with its own version and migrations | core_11 |
 | [d137](stack.md#d137) | Scenes are `SceneData` files run by one `AdventureScene` on a world base scene, with actors, scripts and map walkers | ft_1_24, ft_1_19 |
 | [d138](game.md#d138) | One difficulty scale 1 to 10 for phrases and pieces, proposed by the estimator and confirmed by a person | ft_1_22, core_08 |

@@ -43,7 +43,7 @@ export function classify(path: string): { kind: Kind; fileId: string } | null {
  *
  *     ## d095
  *
- *     **The piece is the player's.** Features: ft_1_06, core_12. Supersedes d057.
+ *     **The piece is the player's.** Features: ft_1_21, core_12. Supersedes d057.
  *
  *     The rule, in a few sentences.
  *

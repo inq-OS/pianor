@@ -43,7 +43,7 @@ scene context are `contextOf(scene)`; `ProfileService`'s five settings updaters 
 `updateSetting`, `persist` and `commit`; the level-up events of a piece and a battle share `levelEvents`; the EZ-220 key
 range, the own-piece licence, the two-hands window and the schema-error formatter (`src/core/issues.ts`) each exist once.
 
-Docs: feature statuses that said "idea, 0%" while code and saves existed (ft_1_06, core_07, ft_Y_06), and ft_Y_13
+Docs: feature statuses that said "idea, 0%" while code and saves existed (core_07, ft_Y_06), and ft_Y_13
 status lines, the MVP range (now ft_0_00 to ft_0_17, where the table already had it), the iteration 1 range, the
 architecture tree and the per-version save lists (they now point at the comment on `PROFILE_SCHEMA_VERSION`, the one
 source), "Phaser 3" and the open ABC-parser question in `docs/architecture.md`, d007 marked as superseding d001, the retry

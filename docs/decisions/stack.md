@@ -47,7 +47,7 @@ Check: untestable: licence and hosting policy (nothing deployed, FOSS-only parts
 
 ## d070
 
-**Scene flow: screens are modules, start switches, overlays push and return a typed result, input goes through intents.** Features: ft_Y_13, ft_1_06.
+**Scene flow: screens are modules, start switches, overlays push and return a typed result, input goes through intents.** Features: ft_Y_13.
 
 A screen is one scene class plus its `src/game/<area>/` folder; screens meet only through `src/game/scenes.ts` and `GameContext`. `startScene` switches mode; an overlay (dialog, pause, confirmation) is pushed with `openOverlay(key, data)`, which pauses the caller and resolves with a typed `SceneResult` or `cancelled` (Esc and Back). Screens react to intents (`up`, `down`, `left`, `right`, `confirm`, `back`), so piano keys can drive them later; rules stay in `src/core`.
 

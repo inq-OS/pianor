@@ -197,14 +197,6 @@ test.describe('settings', () => {
     expectNoErrors(errors);
   });
 
-  // Monsters in a fight was stale (fights start only from the campaign, which ignores it), so it left the screen
-  test('there is no Monsters in a fight setting any more, and the saved choice is kept', async ({ page }) => {
-    await openGame(page);
-    await openSettings(page);
-    expect(await sceneTexts(page, 'settings')).not.toContain('Monsters in a fight');
-    expect(await page.evaluate(() => window.__game.registry.get('context').profiles.profile.settings.battle)).toEqual({ fights: 'one' });
-  });
-
   test('the finger numbers switch goes off, top note, every note and back, each a picture, and the choice survives a reload', async ({ page }) => {
     test.slow(); // the game loads twice
     const mode = () => page.evaluate(() => (window.__game.registry.get('context').profiles.fingerNumbers as string));

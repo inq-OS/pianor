@@ -4,6 +4,7 @@ import progressionJson from '../../content/curriculum/progression.json';
 import curriculumV1 from '../fixtures/saves/documents/curriculum.v1.json';
 import practiceLogV1 from '../fixtures/saves/documents/practiceLog.v1.json';
 import profileV1 from '../fixtures/saves/documents/profile.v1.json';
+import profileV2 from '../fixtures/saves/documents/profile.v2.json';
 import record from '../fixtures/saves/documents/record.v17.json';
 import worldV1 from '../fixtures/saves/documents/world.v1.json';
 import {
@@ -41,15 +42,25 @@ const curriculum: Curriculum = {
 };
 
 describe('core_11.AC1: a player is four documents, each with its own version', () => {
-  it('names the four documents and each starts at version 1 with no steps yet', () => {
+  it('names the four documents, the profile at version 2 with one step and the others at version 1 with none', () => {
     expect(SAVE_DOCUMENT_NAMES).toEqual(['profile', 'practiceLog', 'world', 'curriculum']);
-    for (const doc of [profileDocument(config), practiceLogDocument, worldDocument, curriculumDocument]) {
+    expect([profileDocument().schemaVersion, profileDocument().migrations.map((m) => m.from)]).toEqual([2, [1]]);
+    for (const doc of [practiceLogDocument, worldDocument, curriculumDocument]) {
       expect([doc.schemaVersion, doc.migrations]).toEqual([1, []]);
     }
   });
 
-  it('golden: each version-1 fixture reads and writes back byte for byte', () => {
-    const cases = [[profileDocument(config), profileV1], [practiceLogDocument, practiceLogV1], [worldDocument, worldV1], [curriculumDocument, curriculumV1]] as const;
+  it('ft_1_21.AC9 golden: the profile step 1 to 2 turns the battle records into tug records, drops the campaign and the battle setting, and leaves its input unchanged', () => {
+    const input = structuredClone(profileV1);
+    expect(profileDocument().migrations[0]!.migrate(input)).toEqual(profileV2);
+    expect(input).toEqual(profileV1);
+    const read = profileDocument().parse(JSON.stringify(profileV1));
+    expect(read.tugs.map((t) => [t.n, t.characterId, t.won, t.exchanges, t.xp])).toEqual(profileV1.battles.map((b) => [b.n, b.monsterId, b.won, b.rounds, b.xp]));
+    expect(pretty(profileDocument().serialize(read))).toBe(fileText(profileV2));
+  });
+
+  it('golden: each current fixture reads and writes back byte for byte', () => {
+    const cases = [[profileDocument(), profileV2], [practiceLogDocument, practiceLogV1], [worldDocument, worldV1], [curriculumDocument, curriculumV1]] as const;
     for (const [doc, fixture] of cases) {
       const value = (doc as typeof worldDocument).parse(JSON.stringify(fixture));
       expect(pretty((doc as typeof worldDocument).serialize(value)), doc.name).toBe(fileText(fixture));
@@ -77,7 +88,7 @@ describe('core_11.AC1: a player is four documents, each with its own version', (
     expect(readDocument(worldDocument, JSON.stringify({ ...worldV1, schemaVersion: 2 }))).toMatchObject({ ok: false, errors: [expect.stringContaining('newer')] });
     expect(readDocument(worldDocument, '{ nope')).toMatchObject({ ok: false, errors: [expect.stringContaining('not valid JSON')] });
     expect(readDocument(curriculumDocument, JSON.stringify({ ...curriculumV1, base: 'x' }))).toMatchObject({ ok: false });
-    expect(readDocument(profileDocument(config), JSON.stringify({ schemaVersion: 1, id: 'x' }))).toMatchObject({ ok: false });
+    expect(readDocument(profileDocument(), JSON.stringify({ schemaVersion: 1, id: 'x' }))).toMatchObject({ ok: false });
     expect(readDocument(practiceLogDocument, JSON.stringify({ bars: [] }))).toMatchObject({ ok: false, errors: [expect.stringContaining('no schemaVersion')] });
   });
 
@@ -99,7 +110,7 @@ describe('core_11.AC2: the one-time move from the single profile record', () => 
     await store.set('pianor/v1/profile/p-fixture-move', text);
     const loaded = await repository.load('p-fixture-move');
     expect(loaded.ok).toBe(true);
-    expect(pretty(await store.get(key('p-fixture-move', 'profile')))).toBe(fileText(profileV1));
+    expect(pretty(await store.get(key('p-fixture-move', 'profile')))).toBe(fileText(profileV2));
     expect(pretty(await store.get(key('p-fixture-move', 'practiceLog')))).toBe(fileText(practiceLogV1));
     expect(pretty(await store.get(key('p-fixture-move', 'world')))).toBe(fileText(worldV1));
     expect(pretty(await store.get(key('p-fixture-move', 'curriculum')))).toBe(fileText(curriculumV1));
@@ -116,7 +127,7 @@ describe('core_11.AC2: the one-time move from the single profile record', () => 
     expect(again.ok && again.profile.name).toBe('Fixture Player');
   });
 
-  it('a record of every earlier version moves with every attempt, battle, practice entry and campaign step kept', async () => {
+  it('a record of every earlier version moves with every attempt, tug record and practice entry kept', async () => {
     expect(Object.keys(fixtures).length).toBe(PROFILE_SCHEMA_VERSION + 1);
     for (const [path, raw] of Object.entries(fixtures)) {
       const { store, repository } = setup();

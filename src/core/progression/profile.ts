@@ -1,12 +1,10 @@
 import { z } from 'zod';
-import { DEFAULT_BATTLE_SETTINGS, battleSettingsSchema } from './battleSettings';
 import { DEFAULT_BAR_NUMBER_SETTINGS, barNumberSettingsSchema } from '../layout/barNumbers';
 import { DEFAULT_EAR_TRAINER_SETTINGS, earTrainerSettingsSchema } from '../trainer/earSettings';
 import { DEFAULT_KEYBOARD_SETTINGS, keyboardSettingsSchema } from '../layout/keyboardSettings';
 import { DEFAULT_PLAY_SETTINGS, playSettingsSchema } from '../judge/playSettings';
 import { HELP_IDS, type HelpId } from './modifiers';
 import { EMPTY_PRACTICE_LOG, practiceLogSchema } from './practiceLog';
-import { startCampaign, type CampaignPhase } from '../campaign/campaign';
 import type { PieceResult } from '../judge/types';
 import { durationHelpSchema } from '../layout/durationHelp';
 import { DEFAULT_STAFF_SETTINGS, staffSettingsSchema } from '../layout/staffSettings';
@@ -23,10 +21,13 @@ import { computeXp, levelForXp, type LevelInfo, type XpBreakdown } from './xp';
  * 9 (ft_Y_12) added `settings.keyboard`: whether the on-screen piano is shown on the practice screen; 10 added
  * `settings.barNumbers`: which bars of the staff carry a number; 11 (ft_0_17, ft_Y_06, ft_0_16) added `settings.noteNaming`,
  * `settings.staffGap` and `settings.keyLights` (d058); 12 (core_01e) added `noteTimings` to every attempt (d059); 13 (core_07, WP-G3)
- * added `helps` to every attempt: the help ids in force, not their factor (d060); 14 (ft_1_06, K5) added `campaign`: the monster
+ * added `helps` to every attempt: the help ids in force, not their factor (d060); 14 added `campaign`: the monster
  * campaign's state, per profile; 15 (ft_0_17, AC3) added `trainerXp`: the XP of right names in the note-name trainer (d083);
  * 16 (core_10, d092) added `practice`: one entry per bar of every play;
  * 17 (ft_1_10, slice B) added `earPoints`, the pitch trainer by ear's points (never XP), and `settings.earTrainer`.
+ * Version 17 is the last record version: since the split into save documents (core_11, d136) a change to the profile is a
+ * step of the profile document (`src/core/save/documents.ts`), and `profileSchema` is the shape after those steps (its
+ * version 2 keeps `tugs` in place of the old battle records and drops the old campaign and its battle setting, d290).
  */
 export const PROFILE_SCHEMA_VERSION = 17;
 
@@ -107,37 +108,32 @@ export const attemptSchema = z.object({
   xp: xpBreakdownSchema,
 });
 
-/** One finished battle (version 3 on): the monster, the piece it was fought with, how it ended, the player's health left and the XP it paid then. */
-export const battleRecordSchema = z
-  .object({
-    /** 1, 2, 3 ... in order. */
-    n: z.int().positive(),
-    at: z.string().min(1),
-    monsterId: z.string().min(1),
-    pieceId: z.string().min(1),
-    won: z.boolean(),
-    hpTaken: count,
-    maxHp: z.int().positive(),
-    potentialXp: count,
-    rounds: z.int().positive(),
-    /** The player's health at the end and its maximum then (version 7 on; version 3 to 6 kept `heartsLeft` of 5 hearts). */
-    playerHpLeft: count,
-    playerMaxHp: z.int().positive(),
-    xp: count,
-  })
-  .refine((b) => b.hpTaken <= b.maxHp, { message: 'a battle cannot take more HP than the monster had', path: ['hpTaken'] })
-  .refine((b) => b.playerHpLeft <= b.playerMaxHp, { message: 'the player cannot end with more health than the maximum', path: ['playerHpLeft'] });
+/**
+ * One finished tug with a character (ft_1_21; profile document version 2 on): the character, the piece, whether the student won, the XP the
+ * level offered, the student's phrases played (the exchanges) and the XP it paid then. Records from before version 2 were
+ * the old battles and may name characters that are gone; their XP still counts.
+ */
+export const tugRecordSchema = z.object({
+  /** 1, 2, 3 ... in order. */
+  n: z.int().positive(),
+  at: z.string().min(1),
+  characterId: z.string().min(1),
+  pieceId: z.string().min(1),
+  won: z.boolean(),
+  potentialXp: count,
+  exchanges: z.int().positive(),
+  xp: count,
+});
 
 /**
  * The player's preferences: the staff (version 2 on), how to play (version 4 on), which pieces are turned off (version 6 on),
- * how many monsters a fight has (version 8 on) and whether the on-screen keyboard is shown (version 9 on)
+ * whether the on-screen keyboard is shown (version 9 on),
  * which bars carry a number (version 10 on), the letter names, the staff spacing and the key lights (version 11 on).
  */
 export const profileSettingsSchema = z.object({
   staff: staffSettingsSchema,
   play: playSettingsSchema,
   pieces: piecesSettingsSchema,
-  battle: battleSettingsSchema,
   keyboard: keyboardSettingsSchema,
   barNumbers: barNumberSettingsSchema,
   /** Letter names: B (English, B) or H (German, B is B flat) (ft_0_17). */
@@ -161,56 +157,6 @@ export const profileSettingsSchema = z.object({
   learn: learnSettingsSchema.optional(),
 });
 
-/**
- * The monster campaign (ft_1_06; version 14). The state indexes monsters in ladder order, so it has no ids to check here: the
- * arrays must agree in length, and the rules of `core/campaign` are mirrored: monster 1 is always unlocked and a monster is
- * unlocked only after level 3 of the one before; a level needs the level before it beaten; a locked monster carries no progress;
- * the door is open exactly in the battle phase. The game checks the length against its ladder when it loads.
- */
-const campaignPhaseSchema = z.enum(['find-key', 'find-door', 'battle']) satisfies z.ZodType<CampaignPhase>;
-export const campaignStateSchema = z
-  .object({
-    unlocked: z.array(z.boolean()).min(1),
-    beaten: z.array(z.array(z.boolean()).length(3)),
-    doorOpen: z.array(z.boolean()),
-    phase: z.array(campaignPhaseSchema),
-  })
-  .superRefine((c, ctx) => {
-    const n = c.unlocked.length;
-    if (c.beaten.length !== n) ctx.addIssue({ code: 'custom', message: `beaten must list ${n} monsters`, path: ['beaten'] });
-    if (c.doorOpen.length !== n) ctx.addIssue({ code: 'custom', message: `doorOpen must list ${n} monsters`, path: ['doorOpen'] });
-    if (c.phase.length !== n) ctx.addIssue({ code: 'custom', message: `phase must list ${n} monsters`, path: ['phase'] });
-    if (c.unlocked[0] !== true) ctx.addIssue({ code: 'custom', message: 'the first monster is always unlocked', path: ['unlocked', 0] });
-    for (let i = 0; i < n; i++) {
-      const levels = c.beaten[i] ?? [false, false, false];
-      const locked = c.unlocked[i] !== true;
-      if (i > 0 && c.unlocked[i] && !(c.beaten[i - 1]?.[2] === true)) {
-        ctx.addIssue({ code: 'custom', message: 'a monster is unlocked only after level 3 of the one before', path: ['unlocked', i] });
-      }
-      if (i > 0 && c.unlocked[i] && !c.unlocked[i - 1]) ctx.addIssue({ code: 'custom', message: 'unlocked monsters are a run from the first', path: ['unlocked', i] });
-      levels.forEach((beaten, l) => {
-        if (beaten && l > 0 && levels[l - 1] !== true) ctx.addIssue({ code: 'custom', message: `level ${l + 1} is beaten before level ${l}`, path: ['beaten', i, l] });
-        if (beaten && locked) ctx.addIssue({ code: 'custom', message: 'a level is beaten on a locked monster', path: ['beaten', i, l] });
-      });
-      if (locked && (c.doorOpen[i] === true || c.phase[i] !== 'find-key')) {
-        ctx.addIssue({ code: 'custom', message: 'a locked monster has no progress', path: ['phase', i] });
-      }
-      if (c.doorOpen[i] !== (c.phase[i] === 'battle')) {
-        ctx.addIssue({ code: 'custom', message: 'the door is open exactly in the battle phase', path: ['doorOpen', i] });
-      }
-    }
-    for (let i = 0; i < n - 1; i++) {
-      if (c.beaten[i]?.[2] === true && c.unlocked[i + 1] !== true) {
-        ctx.addIssue({ code: 'custom', message: 'beating level 3 unlocks the next monster', path: ['unlocked', i + 1] });
-      }
-    }
-  });
-/** @public Part of the save model. */
-export type CampaignSave = z.infer<typeof campaignStateSchema>;
-
-/** The monsters a new save's campaign is started with: the ladder's four (content/campaign/ladder.json). */
-export const CAMPAIGN_MONSTERS = 4;
-
 export const profileSchema = z
   .object({
     schemaVersion: z.literal(PROFILE_SCHEMA_VERSION),
@@ -219,10 +165,9 @@ export const profileSchema = z
     createdAt: z.string().min(1),
     settings: profileSettingsSchema,
     attempts: z.array(attemptSchema),
-    battles: z.array(battleRecordSchema),
-    /** The monster campaign (version 14 on): progress per profile; free play writes nothing here (ft_1_06.AC6). */
-    campaign: campaignStateSchema,
-    /** The note-name trainer's XP (version 15 on): whole XP that only grows; it counts towards the level like a battle's (d083). */
+    /** The finished tugs (profile document version 2 on; the battle records before it). */
+    tugs: z.array(tugRecordSchema),
+    /** The note-name trainer's XP (version 15 on): whole XP that only grows; it counts towards the level like a tug's (d083). */
     trainerXp: count,
     /** The practice log (version 16 on): one entry per bar of every play (core_10, d092). */
     practice: practiceLogSchema,
@@ -235,8 +180,8 @@ export const profileSchema = z
     learning: z.record(z.string().min(1), learnProgressSchema).optional(),
   })
   .superRefine((profile, ctx) => {
-    profile.battles.forEach((b, i) => {
-      if (b.n !== i + 1) ctx.addIssue({ code: 'custom', message: `battle numbers must be 1, 2, 3 ... (found ${b.n} at position ${i + 1})`, path: ['battles', i, 'n'] });
+    profile.tugs.forEach((b, i) => {
+      if (b.n !== i + 1) ctx.addIssue({ code: 'custom', message: `tug numbers must be 1, 2, 3 ... (found ${b.n} at position ${i + 1})`, path: ['tugs', i, 'n'] });
     });
     profile.attempts.forEach((a, i) => {
       if (a.n !== i + 1) {
@@ -251,10 +196,10 @@ export const profileSchema = z
 export type ProfileData = z.infer<typeof profileSchema>;
 export type ProfileSettings = z.infer<typeof profileSettingsSchema>;
 export type Attempt = z.infer<typeof attemptSchema>;
-export type BattleRecord = z.infer<typeof battleRecordSchema>;
+export type TugRecord = z.infer<typeof tugRecordSchema>;
 
 export const DEFAULT_PROFILE_SETTINGS: ProfileSettings = {
-  staff: DEFAULT_STAFF_SETTINGS, play: DEFAULT_PLAY_SETTINGS, pieces: DEFAULT_PIECES_SETTINGS, battle: DEFAULT_BATTLE_SETTINGS, keyboard: DEFAULT_KEYBOARD_SETTINGS,
+  staff: DEFAULT_STAFF_SETTINGS, play: DEFAULT_PLAY_SETTINGS, pieces: DEFAULT_PIECES_SETTINGS, keyboard: DEFAULT_KEYBOARD_SETTINGS,
   barNumbers: DEFAULT_BAR_NUMBER_SETTINGS,
   noteNaming: 'B' satisfies NoteNaming, staffGap: 'short', keyLights: { enabled: false, afterWrong: 2 },
   earTrainer: { ...DEFAULT_EAR_TRAINER_SETTINGS },
@@ -282,7 +227,7 @@ export interface ProgressSummary {
 }
 
 export function emptyProfile(id: string, name: string, createdAt: string): ProfileData {
-  return { schemaVersion: PROFILE_SCHEMA_VERSION, id, name, createdAt, settings: structuredClone(DEFAULT_PROFILE_SETTINGS), attempts: [], battles: [], campaign: startCampaign({ monsters: new Array(CAMPAIGN_MONSTERS).fill(null) }), trainerXp: 0, practice: structuredClone(EMPTY_PRACTICE_LOG), earPoints: 0 };
+  return { schemaVersion: PROFILE_SCHEMA_VERSION, id, name, createdAt, settings: structuredClone(DEFAULT_PROFILE_SETTINGS), attempts: [], tugs: [], trainerXp: 0, practice: structuredClone(EMPTY_PRACTICE_LOG), earPoints: 0 };
 }
 
 /** Totals, level and per-piece records, folded from the attempt log. */
@@ -307,14 +252,14 @@ export function deriveProgress(profile: ProfileData, config: ProgressionConfig):
         }
       : { completions: 1, xp, level, bestStars: a.stars, bestAccuracy: a.result.accuracy, bestGrade: passStarsFor(a.result.accuracy), firstCompletedAt: a.at, lastPlayedAt: a.at };
   }
-  for (const b of profile.battles) totalXp += b.xp; // battles add XP; they do not change a piece's stars or completions
+  for (const b of profile.tugs) totalXp += b.xp; // tugs add XP; they do not change a piece's stars or completions
   totalXp += profile.trainerXp; // the note-name trainer's right names (ft_0_17.AC3)
   return { totalXp, level: levelForXp(totalXp, config.levels), pieces };
 }
 
 /**
  * Add the XP of right names in the note-name trainer (ft_0_17.AC3). Whole XP, never negative, so the total only grows; the
- * trainer's rules decided the amount (`core/trainer`). Level-ups are reported like a battle's.
+ * trainer's rules decided the amount (`core/trainer`). Level-ups are reported like a tug's.
  */
 export function addTrainerXp(profile: ProfileData, xp: number, config: ProgressionConfig): { profile: ProfileData; before: ProgressSummary; after: ProgressSummary } {
   const before = deriveProgress(profile, config);
@@ -353,17 +298,17 @@ export interface LevelUp {
   from: number;
   to: number;
 }
-export interface BattleFinished {
-  type: 'BattleFinished';
+export interface TugFinished {
+  type: 'TugFinished';
   v: typeof EVENT_VERSION;
-  monsterId: string;
+  characterId: string;
   pieceId: string;
   won: boolean;
   xp: number;
   totalXp: number;
 }
-/** Progression's own domain events: the results screen, a dashboard or the battle game can listen to them. */
-export type ProgressEvent = XpAwarded | LevelUp | BattleFinished;
+/** Progression's own domain events: the results screen, a dashboard or the tug can listen to them. */
+export type ProgressEvent = XpAwarded | LevelUp | TugFinished;
 
 export interface AttemptOutcome {
   profile: ProfileData;
@@ -422,29 +367,28 @@ function levelEvents(before: ProgressSummary, after: ProgressSummary): ProgressE
   return [{ type: 'LevelUp', v: EVENT_VERSION, from: before.level.level, to: after.level.level }];
 }
 
-export type BattleInput = Omit<BattleRecord, 'n' | 'at'>;
+export type TugInput = Omit<TugRecord, 'n' | 'at'>;
 
-export interface BattleOutcomeRecord {
+export interface TugOutcome {
   profile: ProfileData;
-  battle: BattleRecord;
+  tug: TugRecord;
   before: ProgressSummary;
   after: ProgressSummary;
   events: ProgressEvent[];
 }
 
 /**
- * Add a finished battle to the profile: its XP counts towards levels like a piece's (the contest's rules decided the XP;
- * the tug of ft_1_21 records here until the next shared save round, AC9). Never changes earlier records and never lowers XP. Level-ups are reported.
+ * Add a finished tug to the profile (ft_1_21.AC9): its XP counts towards levels like a piece's (the tug's rules decided the
+ * XP). Never changes earlier records and never lowers XP. Level-ups are reported.
  */
-export function recordBattle(profile: ProfileData, input: BattleInput, config: ProgressionConfig, now: Date): BattleOutcomeRecord {
+export function addTugRecord(profile: ProfileData, input: TugInput, config: ProgressionConfig, now: Date): TugOutcome {
   const before = deriveProgress(profile, config);
-  const battle: BattleRecord = { n: profile.battles.length + 1, at: now.toISOString(), ...input, xp: Math.max(0, Math.round(input.xp)) };
-  const next: ProfileData = { ...profile, battles: [...profile.battles, battle] };
+  const tug: TugRecord = { n: profile.tugs.length + 1, at: now.toISOString(), ...input, xp: Math.max(0, Math.round(input.xp)) };
+  const next: ProfileData = { ...profile, tugs: [...profile.tugs, tug] };
   const after = deriveProgress(next, config);
   const events: ProgressEvent[] = [
-    { type: 'BattleFinished', v: EVENT_VERSION, monsterId: battle.monsterId, pieceId: battle.pieceId, won: battle.won, xp: battle.xp, totalXp: after.totalXp },
+    { type: 'TugFinished', v: EVENT_VERSION, characterId: tug.characterId, pieceId: tug.pieceId, won: tug.won, xp: tug.xp, totalXp: after.totalXp },
   ];
   events.push(...levelEvents(before, after));
-  return { profile: next, battle, before, after, events };
+  return { profile: next, tug, before, after, events };
 }
-
