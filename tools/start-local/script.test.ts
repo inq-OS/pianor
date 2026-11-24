@@ -8,6 +8,6 @@ describe('npm run start:local', () => {
     const cli = readFileSync('tools/start-local/cli.ts', 'utf8');
     expect(cli).toContain("const HOST = '127.0.0.1';");
     expect(cli).toContain('strictPort: true');
-    expect(readFileSync('CLAUDE.md', 'utf8')).toContain('`npm run start:local`');
+    expect(readFileSync('docs/commands.md', 'utf8')).toContain('`npm run start:local`');
   });
 });
