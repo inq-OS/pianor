@@ -2,7 +2,6 @@ import { createBitmap, type Bitmap } from '../bitmap';
 import { clamp01 } from './ease';
 import { fineRun } from './lab';
 import { fbm, hash2, noise2 } from './noise';
-import { TREBLE_CLEF_STROKE } from '../../staff/glyphs';
 
 /**
  * The open book the song list is written in (it should resemble a book, as the open book in the second or third game of the series), after the big open book of the 1997 game: a blue cloth cover with brass corners
@@ -28,28 +27,33 @@ const COVER = fineRun(COVER_TONES, 4);
 const BRASS = fineRun(BRASS_TONES, 4);
 const PAGE = fineRun(PAGE_TONES, 3);
 const SILK = SILK_TONES.map((run) => fineRun(run, 5));
+/** The cover's leather where it is rubbed and worn: the blue gone grey and pale. */
+const WORN = fineRun([0x141830, 0x262c4c, 0x3c4468, 0x585f84, 0x7a80a0] as const, 5);
 const RIBBON = SILK[0]!;
 
 /**
  * The book's colours: place 0 is never painted, then the cover, the brass, the pages, and the silk of each bookmark (the
  * first is the book's red ribbon).
  */
-export const BOOK_PALETTE: readonly number[] = [0x000000, ...COVER, ...BRASS, ...PAGE, ...SILK.flat()];
+export const BOOK_PALETTE: readonly number[] = [0x000000, ...COVER, ...BRASS, ...PAGE, ...SILK.flat(), ...WORN];
 
 /**
  * The teacher's register (WP-14, d145): the same book bound in bottle-green cloth, as an old school register is. Its
  * places are the song book's, so one painted book takes either palette.
  */
+/** The register's worn leather, green gone grey, as many tones as the song book's so the places match. */
+const REGISTER_WORN_RUN = fineRun([0x101a12, 0x22301f, 0x3a4a36, 0x56664f, 0x76866c] as const, 5);
+const REGISTER_WORN = WORN.map((_, i) => REGISTER_WORN_RUN[Math.round((i * (REGISTER_WORN_RUN.length - 1)) / Math.max(1, WORN.length - 1))]!);
 const REGISTER_COVER_TONES = [0x061208, 0x0e2814, 0x1a4222, 0x2a5c30, 0x3e7842] as const;
-export const REGISTER_PALETTE: readonly number[] = [0x000000, ...fineRun(REGISTER_COVER_TONES, 4), ...BRASS, ...PAGE, ...SILK.flat()];
+export const REGISTER_PALETTE: readonly number[] = [0x000000, ...fineRun(REGISTER_COVER_TONES, 4), ...BRASS, ...PAGE, ...SILK.flat(), ...REGISTER_WORN];
 const SILK_FIRST = SILK.map((_, i) => 1 + COVER.length + BRASS.length + PAGE.length + SILK.slice(0, i).reduce((n, run) => n + run.length, 0));
-const FIRST = { cover: 1, brass: 1 + COVER.length, page: 1 + COVER.length + BRASS.length, ribbon: SILK_FIRST[0]! } as const;
+const FIRST = { cover: 1, brass: 1 + COVER.length, page: 1 + COVER.length + BRASS.length, ribbon: SILK_FIRST[0]!, worn: 1 + COVER.length + BRASS.length + PAGE.length + SILK.flat().length } as const;
 /** The book's ink (its darkest page tone) and the ink's softer edge, for what is painted on its pages. */
 const INK = FIRST.page, INK_SOFT = FIRST.page + 2;
 
 /** How far the cover reaches past the pages, and how deep the stack of leaves shows under them, in fine pixels. */
-export const BOOK_COVER = 8;
-export const BOOK_STACK = 7;
+export const BOOK_COVER = 14;
+export const BOOK_STACK = 11;
 
 /**
  * The place in `run` for `value` (0 to 1): the nearest tone laid flat, as paint lays it, with a grain of lone specks a tone
@@ -75,9 +79,9 @@ function pageLight(x: number, y: number, down: number, fromGutter: number, fromS
   if (fromGutter < 2) value = 0.2;
   else if (fromGutter < 5) value = 0.48;
   else if (fromGutter < 12 + Math.round(noise2(0, y / 14, 52) * 3)) value = 0.7;
-  if (fromSide < 4) value = Math.min(value, 0.6);
+  if (fromSide < 6) value = Math.min(value, 0.6);
   if (down < 2) value -= 0.12;
-  if (fromSide < 6 && fromSide % 2 === 1 && down > 2) value -= 0.12; // the leaves' edges at the side, a fine line each
+  if (fromSide < 10 && fromSide % 2 === 1 && down > 2) value -= 0.12; // the leaves' edges at the side, a fine line each
   return value;
 }
 
@@ -111,24 +115,10 @@ function foxed(x: number, y: number, fromEdge: number): boolean {
   return spot > 0.8 + fromEdge / 200 && fbm(x / 30, y / 30, 2, 72) > 0.5;
 }
 
-/** A gilt line stamped in the cloth: a tone of brass, lit on its upper left edge. */
-function gilt(x: number, y: number, lit: boolean): number {
-  return tone(BRASS, FIRST.brass, lit ? 0.8 : 0.55, x, y);
-}
-
-/** The open book's brass corners: a triangle on each, lit from the upper left, a rivet in each. */
-function brassCorners(put: (x: number, y: number, place: number) => void, width: number, height: number): void {
-  const corner = Math.max(14, Math.round(Math.min(width, height) * 0.08));
-  for (const [cx, cy, sx, sy] of [[0, 0, 1, 1], [width - 1, 0, -1, 1], [0, height - 1, 1, -1], [width - 1, height - 1, -1, -1]] as const) {
-    for (let j = 0; j < corner; j++) for (let i = 0; i < corner - j; i++) {
-      const x = cx + sx * i, y = cy + sy * j;
-      const edge = i + j >= corner - 2;
-      const bevel = i + j === corner - 3;
-      put(x, y, edge ? FIRST.brass : tone(BRASS, FIRST.brass, (bevel ? 0.95 : 0.75) - (i + j) / (corner * 3) - (sx < 0 || sy < 0 ? 0.15 : 0), x, y));
-    }
-    const rx = cx + sx * Math.round(corner * 0.28), ry = cy + sy * Math.round(corner * 0.28);
-    for (const [dx, dy, v] of [[0, 0, 0.2], [1, 0, 0.35], [0, 1, 0.35], [-1, 0, 0.9], [0, -1, 0.9]] as const) put(rx + dx, ry + dy, tone(BRASS, FIRST.brass, v, rx + dx, ry + dy));
-  }
+/** The open book's brass corners: the closed book's heavy scalloped plates, one on each corner. */
+function brassCorners(put: Put, width: number, height: number): void {
+  const size = Math.max(22, Math.round(Math.min(width, height) * 0.1));
+  for (const [cx, cy, sx, sy] of [[0, 0, 1, 1], [width - 1, 0, -1, 1], [0, height - 1, 1, -1], [width - 1, height - 1, -1, -1]] as const) heavyCorner(put, cx, cy, sx, sy, size);
 }
 
 /** The open book, `width` by `height` fine pixels, the cover's outer edge on the picture's edge. Every pixel inside the cover is painted. */
@@ -136,15 +126,20 @@ export function paintBook(width: number, height: number): Bitmap {
   const out = createBitmap(width, height);
   const put = (x: number, y: number, place: number) => { if (x >= 0 && y >= 0 && x < width && y < height) out.pixels[y * width + x] = place; };
   const mid = width / 2;
-  // the cover: blue cloth, grained, a darker rim, and a gilt line stamped round it where the pages leave it showing
-  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
-    const rim = Math.min(x, y, width - 1 - x, height - 1 - y);
-    let value = 0.55 + (fbm(x / 40, y / 40, 2, 31) - 0.5) * 0.3;
-    if (rim < 2) value -= 0.35;
-    else if (y >= height - 6) value -= 0.25;
-    else if (rim === 2 && (x === 2 || y === 2)) value += 0.25;
-    put(x, y, rim === 4 ? gilt(x, y, x === 4 || y === 4) : tone(COVER, FIRST.cover, value, x, y));
+  // the cover: heavy worn leather, its edge bevelled, a gilt fillet and a vine of small leaves tooled round the rim
+  tomeLeather(put, { x: 0, y: 0, w: width, h: height });
+  const gilt = new Gilt();
+  for (const inset of [3, BOOK_COVER - 3]) {
+    gilt.line(inset, inset, width - 1 - inset, inset);
+    gilt.line(inset, inset, inset, height - 1 - inset);
+    gilt.line(width - 1 - inset, inset, width - 1 - inset, height - 1 - inset);
+    gilt.line(inset, height - 1 - inset, width - 1 - inset, height - 1 - inset);
   }
+  const vineAt = BOOK_COVER / 2;
+  gilt.vine((t) => ({ x: vineAt + Math.sin(t * 50) * 1.2, y: 20 + t * (height - 40) }), height - 40, 12, 31, 0.6);
+  gilt.vine((t) => ({ x: width - 1 - vineAt + Math.sin(t * 50) * 1.2, y: 20 + t * (height - 40) }), height - 40, 12, 32, 0.6);
+  gilt.vine((t) => ({ x: 20 + t * (width - 40), y: height - 1 - vineAt + Math.sin(t * 90) * 1.2 }), width - 40, 12, 33, 0.6);
+  gilt.lay(put);
   brassCorners(put, width, height);
   // the pages: from the cover's inner edge, dipping to the gutter, curling up a little at their outer edges
   const left = BOOK_COVER, right = width - 1 - BOOK_COVER, bottom = height - 1 - BOOK_COVER;
@@ -348,192 +343,276 @@ export function paintBookmark(mark: number, width: number, height: number, open:
 }
 
 type Put = (x: number, y: number, place: number) => void;
+type Box = { x: number; y: number; w: number; h: number };
 
-/** How far the closed book's leaves show under its cover at the fore-edge and the foot, and how far its ribbons hang below it, in fine pixels. */
-export const COVER_EDGE = 5;
-export const COVER_TAILS = 22;
+/** The closed book's measures, in fine pixels: its rounded spine, the fore-edge's depth (the leaves and both boards seen from the side), the board's bevel. */
+export const TOME = { spine: 44, foreEdge: 26, bevel: 4 } as const;
 
 /**
- * The song book closed (ft_1_07: a new player's name is written on its cover), `width` by `height` fine pixels: the same
- * blue cloth and brass corners as the open book, a rounded spine with raised bands down its left side, a gilt frame
- * stamped round the board with a small flower at each corner, the leaves showing under the board at the fore-edge and the
- * foot, and the four bookmarks hanging out at the foot. `label` (fine pixels from the top left) is a blank name plate: a
- * brass frame round a slip of the book's palest paper, which the name is written on.
+ * The song book closed (ft_1_07: a new player's name is written on its cover), `width` by `height` fine pixels, too big
+ * for the picture: its foot runs off the picture's bottom. A massive old book: thick boards in heavy blue leather, grained,
+ * creased and rubbed pale at its edges and corners; a rounded spine with raised bands; the deep block of its leaves at
+ * the fore-edge; heavy brass corners and two brass clasps; and a cover tooled in gilt, partly rubbed away, with growing
+ * things: a vine with leaves round a double frame, a leafy fan in each corner, and a cartouche of curling stems over and
+ * under the name plate. `label` (fine pixels from the top left) is the blank brass name plate, a slip of pale paper in it.
  */
-export function paintCover(width: number, height: number, label: { x: number; y: number; w: number; h: number }): Bitmap {
+export function paintCover(width: number, height: number, label: Box): Bitmap {
   const out = createBitmap(width, height);
-  const put = (x: number, y: number, place: number) => { if (x >= 0 && y >= 0 && x < width && y < height) out.pixels[y * width + x] = place; };
-  const boardW = width - COVER_EDGE, boardH = height - COVER_TAILS - COVER_EDGE;
-  const spine = Math.max(16, Math.round(width * 0.07));
-  coverLeaves(put, width, boardW, boardH);
-  coverBoard(put, boardW, boardH, spine);
-  coverFrame(put, boardW, boardH, spine);
-  coverClef(put, label, Math.max(22, label.y - 14 - 7 * 11));
-  coverKeys(put, label, Math.round((label.y + label.h + boardH) / 2) + 12);
-  coverClasp(put, width, boardW, boardH);
-  namePlate(put, label);
+  const put: Put = (x, y, place) => { if (x >= 0 && y >= 0 && x < width && y < height) out.pixels[y * width + x] = place; };
+  const board = { x: TOME.spine, y: 0, w: width - TOME.spine - TOME.foreEdge, h: height + 60 };
+  tomeForeEdge(put, width, height, board);
+  tomeLeather(put, board);
+  tomeSpine(put, height);
+  const gilt = new Gilt();
+  tomeTooling(gilt, board, label);
+  gilt.lay(put);
+  heavyCorner(put, board.x + board.w - 1, board.y, -1, 1, 58);
+  for (const at of [0.26, 0.74]) tomeClasp(put, width, board, Math.round(height * at));
+  tomePlate(put, label);
   return out;
 }
 
-/** The closed book's leaves under the board, the back board under them, and the four ribbons hanging out of the foot. */
-function coverLeaves(put: Put, width: number, boardW: number, boardH: number): void {
-  // the leaves under the board, and the back board under them
-  for (let y = 6; y < boardH + COVER_EDGE; y++) for (let x = 6; x < width; x++) {
-    const back = x >= width - 2 || y >= boardH + COVER_EDGE - 2;
-    put(x, y, back ? tone(COVER, FIRST.cover, 0.2, x, y) : (x + y) % 2 === 0 && (x > boardW ? x % 2 === 0 : y % 2 === 0) ? FIRST.page + 3 : FIRST.page + PAGE.length - 3);
+/** The leaves seen from the fore-edge: many fine uneven lines, browned, the back board under them and the front board's thickness over them. */
+function tomeForeEdge(put: Put, width: number, height: number, board: Box): void {
+  const x0 = board.x + board.w;
+  for (let y = 0; y < height; y++) for (let x = x0; x < width; x++) {
+    const d = x - x0;
+    // the front board's thickness, lit on top; the leaves; the back board
+    if (d < TOME.bevel + 2) { put(x, y, tone(COVER, FIRST.cover, d < 2 ? 0.45 : 0.25, x, y)); continue; }
+    if (d >= TOME.foreEdge - 5) { put(x, y, tone(COVER, FIRST.cover, d === TOME.foreEdge - 5 ? 0.1 : 0.22, x, y)); continue; }
+    // the leaves are rounded out a little (a book's fore-edge is concave) and browned at the edges, a few stand proud
+    const leaf = (d + Math.round(noise2(d, y / 30, 91) * 1.5)) % 2 === 0;
+    const browned = fbm(x / 6, y / 40, 2, 92) > 0.62 || y < 6 || d < TOME.bevel + 5;
+    put(x, y, tone(PAGE, FIRST.page, leaf ? (browned ? 0.45 : 0.62) : browned ? 0.62 : 0.8, x, y));
   }
-  // the four ribbons hang out of the foot, between the leaves
-  const tails = [0.58, 0.64, 0.7, 0.76];
-  tails.forEach((at, m) => {
-    const rx = Math.round(width * at), rw = 7, run = SILK[m]!, first = SILK_FIRST[m]!;
-    const end = boardH + COVER_EDGE + COVER_TAILS - 4 - (m % 2) * 5;
-    for (let y = boardH - 2; y < end; y++) for (let x = rx; x < rx + rw; x++) {
-      const tail = y - (end - 6);
-      if (tail > 0 && Math.abs(x - rx - (rw - 1) / 2) < tail * 0.8) continue;
-      const across = (x - rx) / rw;
-      put(x, y, tone(run, first, 0.6 + (across > 0.15 && across < 0.4 ? 0.2 : 0) - (across > 0.8 ? 0.25 : 0), x, y));
-    }
-  });
 }
 
-/** The closed book's board: blue cloth with a darker rim, the rounded spine with its raised bands, brass on the outer corners. */
-function coverBoard(put: Put, boardW: number, boardH: number, spine: number): void {
-  // the board: blue cloth with a darker rim, lit along its top
-  for (let y = 0; y < boardH; y++) for (let x = 0; x < boardW; x++) {
-    const rim = Math.min(x, y, boardW - 1 - x, boardH - 1 - y);
-    let value = 0.55 + (fbm(x / 40, y / 40, 2, 33) - 0.5) * 0.3;
-    if (rim < 2) value -= 0.35;
-    else if (y < 4) value += 0.12;
-    // the spine: a rounded back, dark at its outer edge, a lit band, then into the hinge's groove
-    if (x < spine) value = x < 3 ? 0.18 : x < spine * 0.45 ? 0.72 - (x / spine) * 0.2 : 0.5 - ((x - spine * 0.45) / spine) * 0.3;
-    else if (x < spine + 3) value = x === spine + 1 ? 0.1 : 0.28;
+/** The front board: heavy leather, grained and pored, a bevel round it, creases here and there, rubbed pale near its edges and corners. */
+function tomeLeather(put: Put, board: Box): void {
+  const { x: bx, y: by, w, h } = board;
+  for (let y = by; y < by + h; y++) for (let x = bx; x < bx + w; x++) {
+    const rim = Math.min(x - bx, y - by, bx + w - 1 - x);
+    const corner = Math.hypot(Math.min(x - bx, bx + w - 1 - x), y - by);
+    const rub = (rim < 16 ? (16 - rim) / 16 : 0) * 0.6 + (corner < 50 ? (50 - corner) / 50 : 0) + (fbm(x / 22, y / 22, 3, 93) - 0.5) * 1.2;
+    const value = 0.3 + (fbm(x / 70, y / 70, 3, 94) - 0.5) * 0.55 + (fbm(x / 5, y / 5, 2, 95) - 0.5) * 0.12 - (hash2(x, y, 96) > 0.93 ? 0.12 : 0);
+    let place = rub > 0.6 ? tone(WORN, FIRST.worn, 0.35 + value * 0.6, x, y) : tone(COVER, FIRST.cover, value, x, y);
+    // the bevel: the board's edge rounded over, lit above and to the left
+    if (rim < 2) place = tone(COVER, FIRST.cover, 0.08, x, y);
+    else if (rim < TOME.bevel) place = y - by === rim || x - bx === rim ? tone(WORN, FIRST.worn, 0.85, x, y) : tone(COVER, FIRST.cover, 0.2, x, y);
+    put(x, y, place);
+  }
+  // creases: short crooked lines pressed into the leather, each dark with a lit lip beside it
+  for (let k = 0; k < Math.round((w * Math.min(h, 400)) / 2600); k++) {
+    let x = bx + Math.round(hash2(k, 1, 97) * w), y = by + Math.round(hash2(k, 2, 97) * Math.min(h, 400));
+    const len = 6 + Math.round(hash2(k, 3, 97) * 18), dir = hash2(k, 4, 97) * Math.PI;
+    for (let i = 0; i < len; i++) {
+      x += Math.round(Math.cos(dir + noise2(k, i / 4, 98) - 0.5));
+      y += Math.round(Math.sin(dir + noise2(k, i / 4, 98) - 0.5));
+      put(x, y, tone(COVER, FIRST.cover, 0.12, x, y));
+      put(x, y - 1, tone(COVER, FIRST.cover, 0.7, x, y - 1));
+    }
+  }
+}
+
+/** The rounded spine: dark at its outer edge, a lit band along its round, raised bands across it each lit on top and tooled in gilt, the leather wrinkled into the hinge. */
+function tomeSpine(put: Put, height: number): void {
+  const s = TOME.spine;
+  for (let y = 0; y < height; y++) for (let x = 0; x < s; x++) {
+    const round = x / s;
+    let value = round < 0.08 ? 0.12 : round < 0.4 ? 0.62 - Math.abs(round - 0.25) * 0.8 : 0.48 - (round - 0.4) * 0.55;
+    value += (fbm(x / 5, y / 5, 2, 99) - 0.5) * 0.12;
+    // the hinge: a deep groove with the leather wrinkled across it
+    if (x >= s - 6) value = x >= s - 3 ? 0.06 + (Math.sin(y / 3 + noise2(0, y / 9, 100) * 3) > 0.6 ? 0.25 : 0) : 0.3;
     put(x, y, tone(COVER, FIRST.cover, value, x, y));
   }
-  // the spine's raised bands, each lit on top with a gilt line on it
-  for (let k = 1; k <= 5; k++) {
-    const by = Math.round((boardH * k) / 6);
-    for (let x = 3; x < spine; x++) {
-      put(x, by - 2, tone(COVER, FIRST.cover, 0.85, x, by - 2));
-      put(x, by - 1, gilt(x, by - 1, true));
-      put(x, by, tone(COVER, FIRST.cover, 0.6, x, by));
-      put(x, by + 1, tone(COVER, FIRST.cover, 0.15, x, by + 1));
+  for (let k = 0; k < 6; k++) {
+    const by = 40 + k * 70;
+    for (let x = 4; x < s - 6; x++) for (let d = -4; d <= 4; d++) {
+      const v = d < -2 ? 0.85 : d < 0 ? 0.65 : d < 3 ? 0.4 : 0.15;
+      put(x, by + d, tone(COVER, FIRST.cover, v - Math.abs(x - s * 0.3) / s * 0.3, x, by + d));
+    }
+    for (let x = 6; x < s - 8; x++) for (const d of [-7, 7]) if (fbm(x / 3, by + d, 1, 101) < 0.72) put(x, by + d, tone(BRASS, FIRST.brass, d < 0 ? 0.8 : 0.6, x, by + d));
+  }
+}
+
+/**
+ * Gilt tooling, laid in two passes: every point is gathered first, then each is pressed into the leather (a dark line
+ * under and to the right of it where no gilt is) and then gilded, except where the gold has rubbed off and only the
+ * pressed line is left.
+ */
+class Gilt {
+  private readonly points = new Map<number, boolean>();
+
+  /** A point of gilt; `lit` where it catches the light from the upper left. */
+  dot(x: number, y: number, lit = false): void {
+    const key = Math.round(y) * 4096 + Math.round(x);
+    this.points.set(key, (this.points.get(key) ?? false) || lit);
+  }
+
+  /** A line of gilt `thick` pixels wide from (x0, y0) to (x1, y1). */
+  line(x0: number, y0: number, x1: number, y1: number, thick = 1): void {
+    const steps = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 1.5));
+    for (let i = 0; i <= steps; i++) {
+      const x = x0 + ((x1 - x0) * i) / steps, y = y0 + ((y1 - y0) * i) / steps;
+      for (let t = 0; t < thick; t++) this.dot(x + t, y, t === 0);
     }
   }
-  // the brass corners on the board's outer corners (the spine side has none)
-  const corner = Math.max(14, Math.round(Math.min(boardW, boardH) * 0.09));
-  for (const [cx, cy, sx, sy] of [[boardW - 1, 0, -1, 1], [boardW - 1, boardH - 1, -1, -1]] as const) {
-    for (let j = 0; j < corner; j++) for (let i = 0; i < corner - j; i++) {
-      const x = cx + sx * i, y = cy + sy * j;
-      const edge = i + j >= corner - 2;
-      put(x, y, edge ? FIRST.brass : tone(BRASS, FIRST.brass, (i + j === corner - 3 ? 0.95 : 0.75) - (i + j) / (corner * 3) - (sy < 0 ? 0.15 : 0), x, y));
+
+  /** A leaf from (x, y) pointing along `angle`: an almond `len` long and `wide` across, a vein down it left ungilded. */
+  leaf(x: number, y: number, angle: number, len: number, wide: number): void {
+    const ux = Math.cos(angle), uy = Math.sin(angle);
+    for (let t = 0; t <= len; t += 0.5) {
+      const half = Math.sin((t / len) * Math.PI) ** 0.8 * wide / 2;
+      for (let u = -half; u <= half; u += 0.5) {
+        if (Math.abs(u) < 0.5 && t > 1 && t < len - 1.5) continue;
+        this.dot(x + ux * t - uy * u, y + uy * t + ux * u, u < 0);
+      }
+    }
+  }
+
+  /** A curl: a spiral of `turns` from radius `r` inwards, turning `dir` (1 or -1). */
+  curl(x: number, y: number, r: number, start: number, dir: number, turns = 1.4): void {
+    for (let a = 0; a < turns * Math.PI * 2; a += 0.08) {
+      const rr = r * (1 - a / (turns * Math.PI * 2 + 1));
+      this.dot(x + Math.cos(start + dir * a) * rr, y + Math.sin(start + dir * a) * rr, a < 1.5);
+    }
+  }
+
+  /**
+   * A vine along the path `at(t)` (t from 0 to 1, `length` pixels long): a stem two pixels thick, a leaf every `every`
+   * pixels on alternate sides, and now and then a tendril curling off. `seed` keeps one vine from being another's copy.
+   */
+  vine(at: (t: number) => { x: number; y: number }, length: number, every: number, seed: number, size = 1): void {
+    const steps = Math.ceil(length * 1.5);
+    let side = 1;
+    for (let i = 0; i <= steps; i++) {
+      const p = at(i / steps), q = at(Math.min(1, (i + 1) / steps));
+      this.dot(p.x, p.y, true);
+      if (size >= 1) this.dot(p.x + 1, p.y + 1);
+      const run = (i / steps) * length;
+      if (Math.floor(run / every) !== Math.floor(((i - 1) / steps) * length / every) && i > 0 && i < steps) {
+        const dir = Math.atan2(q.y - p.y, q.x - p.x);
+        const twist = (hash2(i, seed, 102) - 0.5) * 0.4;
+        this.leaf(p.x, p.y, dir + side * (0.9 + twist), Math.round((7 + hash2(i, seed, 103) * 3) * size), Math.max(2, Math.round(4 * size)));
+        if (hash2(i, seed, 104) > 0.6 && size >= 1) this.curl(p.x - side * Math.sin(dir) * 5, p.y + side * Math.cos(dir) * 5, 3.5, dir, -side, 1.1);
+        side = -side;
+      }
+    }
+  }
+
+  /** Press and gild every point. */
+  lay(put: Put): void {
+    for (const key of this.points.keys()) {
+      const x = key % 4096, y = Math.floor(key / 4096);
+      if (!this.points.has(key + 4097)) put(x + 1, y + 1, FIRST.cover);
+    }
+    for (const [key, lit] of this.points) {
+      const x = key % 4096, y = Math.floor(key / 4096);
+      // the gold rubbed off in patches, the pressed line left
+      if (fbm(x / 14, y / 14, 2, 105) > 0.76) { put(x, y, tone(COVER, FIRST.cover, 0.15, x, y)); continue; }
+      put(x, y, tone(BRASS, FIRST.brass, lit ? 0.85 : 0.6, x, y));
     }
   }
 }
 
-/** The gilt frame stamped on the board: two fillets, a small flower in each of the inner frame's corners. */
-function coverFrame(put: Put, boardW: number, boardH: number, spine: number): void {
-  // the gilt frame: two fillets round the board, a small flower in each of the inner frame's corners
-  const frame = (inset: number, lit: boolean) => {
-    const x0 = spine + 3 + inset, y0 = inset, x1 = boardW - 1 - inset, y1 = boardH - 1 - inset;
-    for (let x = x0; x <= x1; x++) { put(x, y0, gilt(x, y0, lit)); put(x, y1, gilt(x, y1, false)); }
-    for (let y = y0; y <= y1; y++) { put(x0, y, gilt(x0, y, lit)); put(x1, y, gilt(x1, y, false)); }
-    return { x0, y0, x1, y1 };
-  };
-  frame(8, true);
-  const inner = frame(12, true);
-  for (const [cx, cy] of [[inner.x0, inner.y0], [inner.x1, inner.y0], [inner.x0, inner.y1], [inner.x1, inner.y1]] as const) {
-    const sx = cx === inner.x0 ? 1 : -1, sy = cy === inner.y0 ? 1 : -1;
-    // a flower of four petals round a dot just inside the corner, and from it a scroll along each fillet ending in a curl
-    const fx = cx + sx * 8, fy = cy + sy * 8;
-    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
-      const petal = (Math.abs(dx) <= 1 && Math.abs(dy) <= 4) || (Math.abs(dy) <= 1 && Math.abs(dx) <= 4);
-      if (petal && Math.abs(dx) + Math.abs(dy) <= 5) put(fx + dx, fy + dy, gilt(fx + dx, fy + dy, dx + dy < 0));
-    }
-    for (const along of ['x', 'y'] as const) {
-      for (let k = 6; k < 34; k++) {
-        const wave = Math.round(Math.sin((k - 6) / 4.5) * 2.5);
-        const x = along === 'x' ? fx + sx * k : fx + sx * wave, y = along === 'x' ? fy + sy * wave : fy + sy * k;
-        put(x, y, gilt(x, y, true));
-      }
-      // the curl at the scroll's end
-      const ex = along === 'x' ? fx + sx * 36 : fx, ey = along === 'x' ? fy : fy + sy * 36;
-      for (let a = 0; a < 11; a++) {
-        const r = 3.4 - a * 0.22, th = a * 0.75;
-        const x = Math.round(ex + Math.cos(th) * r), y = Math.round(ey + Math.sin(th) * r * sy);
-        put(x, y, gilt(x, y, true));
-      }
-    }
+/** The cover's tooling: a double frame with a vine between its fillets, a leafy fan in each corner, a cartouche of curling stems over and under the plate. */
+function tomeTooling(gilt: Gilt, board: Box, label: Box): void {
+  const x0 = board.x + 16, x1 = board.x + board.w - 17, y0 = 16, y1 = board.h - 17;
+  for (const inset of [0, 3, 26, 29]) {
+    gilt.line(x0 + inset, y0 + inset, x1 - inset, y0 + inset);
+    gilt.line(x0 + inset, y0 + inset, x0 + inset, y1 - inset);
+    gilt.line(x1 - inset, y0 + inset, x1 - inset, y1 - inset);
+  }
+  // the vine between the two frames, along the top and down both sides
+  const mid = 14.5;
+  gilt.vine((t) => ({ x: x0 + mid + 12 + t * (x1 - x0 - 2 * mid - 24), y: y0 + mid + Math.sin(t * 40) * 2.5 }), x1 - x0, 16, 1);
+  for (const [x, seed] of [[x0 + mid, 2], [x1 - mid, 3]] as const) gilt.vine((t) => ({ x: x + Math.sin(t * 30) * 2.5, y: y0 + mid + 12 + t * (y1 - y0 - mid) }), y1 - y0, 16, seed);
+  // a rosette in each top corner of the vine
+  for (const x of [x0 + mid, x1 - mid]) {
+    for (let k = 0; k < 6; k++) gilt.leaf(x, y0 + mid, (k * Math.PI) / 3, 7, 4);
+  }
+  // a leafy fan inside each top corner of the inner frame
+  for (const [cx, sx] of [[x0 + 32, 1], [x1 - 32, -1]] as const) {
+    const cy = y0 + 32;
+    for (let k = 0; k < 5; k++) gilt.leaf(cx, cy, Math.atan2(1, sx) - sx * (k - 2) * 0.36, 16 + (k === 2 ? 8 : k % 2 === 0 ? 0 : 4), 5);
+    gilt.curl(cx + sx * 30, cy + 6, 6, sx > 0 ? Math.PI : 0, sx, 1.3);
+    gilt.curl(cx + sx * 6, cy + 30, 6, -Math.PI / 2, -sx, 1.3);
+  }
+  // the cartouche: over the plate two stems rise from its middle, part and curl, with leaves; a bud stands between them
+  const cx = label.x + label.w / 2, top = label.y - 10;
+  for (const sx of [-1, 1]) {
+    gilt.vine((t) => ({ x: cx + sx * (4 + t * 120), y: top - Math.sin(t * Math.PI) * 26 - t * 4 }), 130, 14, 10 + sx);
+    gilt.curl(cx + sx * 128, top - 10, 7, sx > 0 ? Math.PI / 2 : Math.PI / 2, -sx, 1.5);
+    gilt.vine((t) => ({ x: cx + sx * (4 + t * 100), y: label.y + label.h + 12 + Math.sin(t * Math.PI) * 18 }), 110, 14, 20 + sx);
+    gilt.curl(cx + sx * 106, label.y + label.h + 18, 6, -Math.PI / 2, sx, 1.5);
+  }
+  for (let k = -2; k <= 2; k++) gilt.leaf(cx, top - 6, -Math.PI / 2 + k * 0.35, k === 0 ? 22 : 14, 7);
+  for (let k = -1; k <= 1; k++) gilt.leaf(cx, label.y + label.h + 10, Math.PI / 2 + k * 0.45, k === 0 ? 16 : 11, 6);
+}
+
+/**
+ * A heavy brass corner at (cx, cy), reaching `size` along both edges towards (sx, sy): a plate with a scalloped edge, a
+ * raised boss and rivets, its brass dulled where it is worn.
+ */
+function heavyCorner(put: Put, cx: number, cy: number, sx: number, sy: number, size: number): void {
+  const k = size / 58;
+  for (let j = 0; j < size; j++) for (let i = 0; i < size; i++) {
+    const d = i + j;
+    const edge = size - 4 * k + Math.round(Math.sin(Math.atan2(j, i) * 6) * 4 * k);
+    if (d > edge) continue;
+    const x = cx + sx * i, y = cy + sy * j;
+    const rim = d > edge - 2;
+    const bx = i - 16 * k, by = j - 16 * k, boss = Math.hypot(bx, by);
+    // lit from the upper left: the boss's lit side is the one towards the light, whichever corner this is
+    const towardLight = bx * sx + by * sy < 0;
+    let value = 0.72 - d / (size * 3) - (sx < 0 || sy < 0 ? 0.1 : 0) + (fbm(x / 6, y / 6, 2, 106) - 0.5) * 0.25;
+    if (boss < 7 * k + 1) value = boss < 3 * k ? 0.98 : towardLight ? 0.92 : 0.4;
+    put(x, y, rim ? FIRST.brass : tone(BRASS, FIRST.brass, value, x, y));
+  }
+  for (const [i, j] of [[40, 6], [6, 40], [30, 30]] as const) rivet(put, cx + sx * Math.round(i * k), cy + sy * Math.round(j * k));
+}
+
+/** A brass rivet: a dome lit on its upper left. */
+function rivet(put: Put, x: number, y: number): void {
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+    if (dx * dx + dy * dy > 5) continue;
+    put(x + dx, y + dy, tone(BRASS, FIRST.brass, dx + dy < -1 ? 0.98 : dx + dy > 1 ? 0.2 : 0.6, x + dx, y + dy));
   }
 }
 
-/** The blank name plate: a brass frame, lit on its top and left, round a slip of pale paper ruled in ink inside its edge. */
-function namePlate(put: Put, label: { x: number; y: number; w: number; h: number }): void {
-  // the name plate: a brass frame, lit on its top and left, round a slip of pale paper with a ruled ink line inside its edge
+/** A clasp at `y`: a strap of dark leather from the back board over the fore-edge onto the cover, ending in a pointed brass catch with two rivets. */
+function tomeClasp(put: Put, width: number, board: Box, y: number): void {
+  const h = 26, catchW = 54, x1 = board.x + board.w - catchW;
+  for (let yy = y - h / 2; yy < y + h / 2; yy++) for (let x = board.x + board.w - 8; x < width; x++) {
+    const d = yy - (y - h / 2);
+    put(x, yy, tone(COVER, FIRST.cover, d < 2 ? 0.4 : d > h - 3 ? 0.08 : 0.22 + (fbm(x / 4, yy / 4, 2, 107) - 0.5) * 0.15, x, yy));
+  }
+  for (let yy = y - h / 2 - 2; yy < y + h / 2 + 2; yy++) for (let x = x1; x < board.x + board.w + 6; x++) {
+    const across = Math.abs(yy - y) / (h / 2 + 2);
+    // the catch's end points onto the cover, its sides curved like a leaf
+    if (x - x1 < across * across * 22) continue;
+    const edge = x - x1 < across * across * 22 + 1.5 || Math.abs(yy - y) >= h / 2 + 1;
+    const value = edge ? 0.1 : yy < y - 3 ? 0.85 : yy > y + 4 ? 0.42 : 0.66;
+    put(x, yy, tone(BRASS, FIRST.brass, value + (fbm(x / 5, yy / 5, 2, 108) - 0.5) * 0.2, x, yy));
+  }
+  rivet(put, x1 + 20, y);
+  rivet(put, x1 + 40, y);
+}
+
+/** The blank name plate: a heavy brass frame bevelled and lit on its top and left, a rivet in each corner, round a slip of pale paper ruled in ink inside its edge. */
+function tomePlate(put: Put, label: Box): void {
   const { x: lx, y: ly, w: lw, h: lh } = label;
-  const rimW = 4;
+  const rimW = 7;
   for (let y = ly - rimW; y < ly + lh + rimW; y++) for (let x = lx - rimW; x < lx + lw + rimW; x++) {
-    const inside = x >= lx && x < lx + lw && y >= ly && y < ly + lh;
-    if (inside) {
-      const ruled = (x === lx + 3 || x === lx + lw - 4) && y >= ly + 3 && y <= ly + lh - 4 || (y === ly + 3 || y === ly + lh - 4) && x >= lx + 3 && x <= lx + lw - 4;
-      const shade = y < ly + 2 || x < lx + 2 ? 0.8 : 0.95;
-      put(x, y, ruled ? INK_SOFT : tone(PAGE, FIRST.page, shade, x, y));
+    if (x >= lx && x < lx + lw && y >= ly && y < ly + lh) {
+      const ruled = ((x === lx + 3 || x === lx + lw - 4) && y >= ly + 3 && y <= ly + lh - 4) || ((y === ly + 3 || y === ly + lh - 4) && x >= lx + 3 && x <= lx + lw - 4);
+      put(x, y, ruled ? INK_SOFT : tone(PAGE, FIRST.page, y < ly + 3 || x < lx + 3 ? 0.78 : 0.95, x, y));
       continue;
     }
     const out = Math.min(x - (lx - rimW), y - (ly - rimW), lx + lw + rimW - 1 - x, ly + lh + rimW - 1 - y);
-    const topLeft = y < ly && x < lx + lw + rimW - 1 - (y - (ly - rimW)) || x < lx && y < ly + lh + rimW - 1 - (x - (lx - rimW));
-    const value = out === 0 ? 0.1 : out === rimW - 1 ? (topLeft ? 0.35 : 0.95) : topLeft ? 0.85 : 0.45;
-    put(x, y, tone(BRASS, FIRST.brass, value, x, y));
+    const upperLeft = (y < ly && x - (lx - rimW) <= lx + lw + rimW - 1 - x + (ly - y)) || (x < lx && y - (ly - rimW) <= ly + lh + rimW - 1 - y + (lx - x));
+    const value = out === 0 ? 0.08 : out === rimW - 1 ? (upperLeft ? 0.3 : 0.95) : out < 3 ? (upperLeft ? 0.95 : 0.35) : 0.68;
+    put(x, y, tone(BRASS, FIRST.brass, value + (fbm(x / 6, y / 6, 2, 109) - 0.5) * 0.18, x, y));
   }
-  // a rivet at each end of the plate
-  for (const rx of [lx - rimW - 4, lx + lw + rimW + 3]) {
-    const ry = ly + Math.round(lh / 2);
-    for (const [dx, dy, v] of [[0, 0, 0.6], [-1, 0, 0.9], [0, -1, 0.9], [1, 0, 0.3], [0, 1, 0.3]] as const) put(rx + dx, ry + dy, tone(BRASS, FIRST.brass, v, rx + dx, ry + dy));
-  }
+  for (const [x, y] of [[lx - 4, ly - 4], [lx + lw + 3, ly - 4], [lx - 4, ly + lh + 3], [lx + lw + 3, ly + lh + 3]] as const) rivet(put, x, y);
 }
-
-/** A treble clef stamped in gilt on the cover, over the name plate, two pixels thick and lit on its upper left. */
-function coverClef(put: Put, label: { x: number; w: number }, top: number): void {
-  const scale = 11, cx = label.x + label.w / 2 - 1.35 * scale;
-  // the stroke walked in steps under a pixel, so it is unbroken
-  TREBLE_CLEF_STROKE.forEach((p, i) => {
-    const q = TREBLE_CLEF_STROKE[i + 1] ?? p;
-    const steps = Math.max(1, Math.ceil(Math.hypot(q.x - p.x, q.y - p.y) * scale * 2));
-    for (let k = 0; k < steps; k++) {
-      const x = Math.round(cx + (p.x + ((q.x - p.x) * k) / steps) * scale), y = Math.round(top + (p.y + ((q.y - p.y) * k) / steps) * scale);
-      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]] as const) put(x + dx, y + dy, gilt(x + dx, y + dy, dx + dy === 0));
-    }
-  });
-  // the ball at its foot
-  const bx = Math.round(cx + 0.95 * scale), by = Math.round(top + 6.45 * scale);
-  for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (dx * dx + dy * dy <= 9) put(bx + dx, by + dy, gilt(bx + dx, by + dy, dx + dy < -1));
-}
-
-/** Two octaves of a keyboard stamped in gilt on the cover under the name plate: the keys' outlines, the black keys filled. */
-function coverKeys(put: Put, label: { x: number; w: number }, foot: number): void {
-  const key = 9, keys = 14, h = 30, w = key * keys;
-  const x0 = Math.round(label.x + label.w / 2 - w / 2), y0 = foot - h;
-  for (let x = x0; x <= x0 + w; x++) { put(x, y0, gilt(x, y0, true)); put(x, y0 + h, gilt(x, y0 + h, false)); }
-  for (let k = 0; k <= keys; k++) for (let y = y0; y <= y0 + h; y++) put(x0 + k * key, y, gilt(x0 + k * key, y, k === 0));
-  // the black keys after C, D, F, G and A in each octave
-  for (let k = 0; k < keys - 1; k++) {
-    if (k % 7 === 2 || k % 7 === 6) continue;
-    const bx = x0 + (k + 1) * key - 3;
-    for (let y = y0; y < y0 + Math.round(h * 0.6); y++) for (let x = bx; x < bx + 7; x++) put(x, y, gilt(x, y, x === bx));
-  }
-}
-
-/** A brass clasp over the fore-edge, halfway down: a plate reaching onto the board, its tongue over the leaves, a rivet. */
-function coverClasp(put: Put, width: number, boardW: number, boardH: number): void {
-  const h = 22, y0 = Math.round(boardH / 2 - h / 2), x0 = boardW - 26;
-  for (let y = y0; y < y0 + h; y++) for (let x = x0; x < width; x++) {
-    const fromTop = y - y0, fromFoot = y0 + h - 1 - y;
-    // the plate's left end is pointed, as a clasp's is
-    if (x - x0 < Math.abs(fromTop - h / 2) * 0.8) continue;
-    const edge = fromTop === 0 || fromFoot === 0 || x === width - 1;
-    const value = edge ? 0.1 : fromTop < 3 ? 0.95 : fromFoot < 3 ? 0.4 : 0.72;
-    put(x, y, tone(BRASS, FIRST.brass, value, x, y));
-  }
-  const rx = x0 + 12, ry = y0 + Math.round(h / 2);
-  for (const [dx, dy, v] of [[0, 0, 0.5], [-1, 0, 0.95], [0, -1, 0.95], [1, 0, 0.25], [0, 1, 0.25], [-1, -1, 0.9], [1, 1, 0.2]] as const) put(rx + dx, ry + dy, tone(BRASS, FIRST.brass, v, rx + dx, ry + dy));
-}
-

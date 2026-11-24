@@ -5,7 +5,7 @@ import { t } from '../core/text/strings';
 import { createBitmap } from './ui/pixel/bitmap';
 import { drawnText, measure } from './ui/pixel/font';
 import { C } from './ui/pixel/palette';
-import { BOOK_PALETTE, COVER_EDGE, paintCover } from './ui/pixel/paint/book';
+import { BOOK_PALETTE, paintCover } from './ui/pixel/paint/book';
 import { paintedOnce } from './ui/pixel/paintedOnce';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
@@ -24,9 +24,8 @@ const BOTTOM_HEIGHT = 16;
 /** The bottom row's centre sits this far above the main area's foot (d110: 320 x 157 on the target screen). */
 const BOTTOM_FROM_FOOT = BOTTOM_HEIGHT / 2 + 13;
 const ACTION_WIDTH = 40;
-/** The closed book round the name plate (ft_1_07): its cloth beside the plate, and its spine on the left, in cells. */
-const COVER_SIDE = 22;
-const COVER_SPINE = 10;
+/** The closed book's left edge (its spine) from the screen's side, in cells; it is as far in on the right. */
+const COVER_X = 6;
 /** Room on the plate under the name for why a name was refused, in cells. */
 const REASON_ROOM = 10;
 
@@ -170,9 +169,8 @@ export class NameScene extends PixelScene {
     const left = Math.round((width - fieldW) / 2) + FIELD_PAD;
     const fieldY = Math.round((height - FIELD_HEIGHT) / 2) - FIELD_PAD;
     const fine = (v: number) => v * ART_DETAIL;
-    const foot = this.bandShown ? height - 1 : bottomY - BOTTOM_HEIGHT;
-    const coverW = Math.min(width - 2 * SHEET.x, fieldW + 2 * COVER_SIDE + COVER_SPINE + Math.ceil(COVER_EDGE / ART_DETAIL));
-    const cover = { x: Math.round(left - FIELD_PAD - COVER_SIDE - COVER_SPINE), y: SHEET.y, w: coverW, h: foot - SHEET.y };
+    // a massive book, too big for the desk: its foot runs off the bottom of the screen
+    const cover = { x: COVER_X, y: SHEET.y, w: width - 2 * COVER_X, h: height - SHEET.y };
     const plate = { x: fine(left - FIELD_PAD - cover.x), y: fine(fieldY - FIELD_PAD - cover.y), w: fine(fieldW), h: fine(FIELD_HEIGHT + REASON_ROOM) };
     this.fineImage(fine(cover.x), fine(cover.y), paintedOnce(`cover:${fine(cover.w)}x${fine(cover.h)}:${plate.x},${plate.y},${plate.w},${plate.h}`, () => paintCover(fine(cover.w), fine(cover.h), plate)), BOOK_PALETTE);
     this.placeField(left - FIELD_PAD, fieldY - FIELD_PAD, fieldW, FIELD_HEIGHT);
