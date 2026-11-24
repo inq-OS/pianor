@@ -9,7 +9,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { loadLevelsFile } from '../piece/levels';
-import { applyPicks, boardPieces, parsePicks, renderBoard } from './board';
+import { applyPicks, boardPieces, parsePicks, pieceUses, renderBoard } from './board';
 
 const PIECES = 'content/pieces';
 const LEVELS = 'content/curriculum/levels.json';
@@ -44,7 +44,7 @@ if (args.includes('--help')) {
     for (const d of diagnostics) console.error(d.message);
     process.exitCode = 1;
   } else {
-    const content = boardPieces(PIECES, levels);
+    const content = boardPieces(PIECES, levels, pieceUses('content'));
     mkdirSync(dirname(out), { recursive: true });
     writeFileSync(out, renderBoard(content, new Date().toISOString().slice(0, 10)));
     console.log(`${out}: ${content.pieces.length} draft(s) on the board, ${content.refused.length} left out with errors.`);

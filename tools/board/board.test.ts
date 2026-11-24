@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { loadLevelsFile } from '../piece/levels';
-import { ABCJS_SRI, ABCJS_URL, applyPicks, boardPieces, parsePicks, pieceHash, renderBoard, scriptJson } from './board';
+import { ABCJS_SRI, ABCJS_URL, applyPicks, boardPieces, parsePicks, pieceHash, pieceUses, renderBoard, scriptJson } from './board';
 
 const root = join(__dirname, '../..');
 const LEVELS = join(root, 'content/curriculum/levels.json');
@@ -58,6 +58,41 @@ describe('boardPieces', () => {
     expect(pieces.map((p) => p.id)).toEqual(['hands-together']);
     expect(refused.map((r) => r.id)).toEqual(['little-steps', 'lonely']);
     expect(refused[1]!.reason).toContain('piece.meta.json');
+  });
+});
+
+describe('pieceUses', () => {
+  const write = (path: string, value: unknown) => {
+    mkdirSync(join(dir, 'content', path, '..'), { recursive: true });
+    writeFileSync(join(dir, 'content', path), JSON.stringify(value));
+  };
+
+  it('ft_0_11.AC3 says where the game uses a piece: a character\u2019s tug, the intro, a scene, a song part', () => {
+    write('characters/puuvaim.json', { id: 'puuvaim', name: { name: 'character.puuvaim.name' }, phrases: { 1: ['p-1'], 3: ['p-3'] } });
+    write('characters/nobody.json', { id: 'nobody', name: { name: 'no.such.key' }, phrases: { 2: ['n-2'] } });
+    write('intro/intro.json', { piece: 'first' });
+    write('scripts/boat.json', { id: 'boat', commands: [{ wait: 1 }, { piece: 'tune' }] });
+    write('songs/morning/song.json', { title: 'Morning', nodes: [{ piece: 'a', name: 'Intro' }, { kind: 'group', nodes: [{ piece: 'b' }] }] });
+    writeFileSync(join(dir, 'content', 'characters', 'broken.json'), '{');
+    const uses = pieceUses(join(dir, 'content'));
+    expect(Object.fromEntries(uses)).toEqual({
+      'p-1': ['Oak spirit: the tug of phrases on Keri, level 1'],
+      'p-3': ['Oak spirit: the tug of phrases on Keri, level 3'],
+      'n-2': ['nobody: the tug of phrases on Keri, level 2'],
+      first: ['The first-run intro: the student\u2019s first lesson'],
+      tune: ['Played in the scene \u201cboat\u201d'],
+      a: ['Part \u201cIntro\u201d of the song \u201cMorning\u201d'],
+      b: ['Part \u201c?\u201d of the song \u201cMorning\u201d'],
+    });
+  });
+
+  it('knows nothing of a content folder that is not there, and the board then names only the piece book', () => {
+    expect(pieceUses(join(dir, 'nowhere')).size).toBe(0);
+    const little = boardPieces(dir, levels, new Map([['little-steps', ['Played in the scene \u201cboat\u201d']]])).pieces;
+    expect(little.map((p) => [p.id, p.uses])).toEqual([
+      ['hands-together', []],
+      ['little-steps', ['Played in the scene \u201cboat\u201d']],
+    ]);
   });
 });
 
