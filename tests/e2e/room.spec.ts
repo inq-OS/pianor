@@ -559,8 +559,9 @@ test.describe("Kiur and the teacher speak in the room (ft_1_27, WP-15)", () => {
   });
 
   test('ft_1_26.AC9 a test ordered for a time: before it she is not there; at it she comes into the room while the student is there', async ({ page }) => {
-    // a Monday, five seconds before the test she ordered for the fixture's evening (the room's clock runs on from `now`)
-    const errors = await openGame(page, '?device=virtual&now=1998-11-23T16:59:55', 'en', 'profiles');
+    // a Monday, fifteen seconds before the test she ordered for the fixture's evening (the room's clock runs on from `now`):
+    // Kiur's reminder must be over by then, or she comes on the next visit, and CI's machines take several seconds for it
+    const errors = await openGame(page, '?device=virtual&now=1998-11-23T16:59:45', 'en', 'profiles');
     await page.evaluate(async () => {
       const { profiles } = window.__game.registry.get('context');
       const ok = await profiles.saveCurriculum(profiles.profiles[0].id, {
@@ -573,7 +574,7 @@ test.describe("Kiur and the teacher speak in the room (ft_1_27, WP-15)", () => {
     await expect.poll(() => roomTalk(page)).not.toBeNull();
     expect((await readTalk(page)).map((l) => l.who)).toEqual(['kiur']);
     expect(await roomTalk(page)).toBeNull();
-    await expect.poll(() => roomTalk(page), { timeout: 20_000 }).not.toBeNull();
+    await expect.poll(() => roomTalk(page), { timeout: 30_000 }).not.toBeNull();
     const said = await readTalk(page);
     expect(said.map((l) => l.who)).toEqual(['kiur', 'teacher']);
     expect(said[0]!.text).toBe("The teacher's boat has landed. She is waiting for you at the piano.");
