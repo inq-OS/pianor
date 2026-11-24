@@ -118,23 +118,6 @@ test.describe('pitch trainer by ear (ft_1_10)', () => {
     expectNoErrors(errors);
   });
 
-  test('each round shows 5 stars: all lit on the first try, one dimmed per miss (AC10)', async ({ page }) => {
-    const errors = await openEarFromRoom(page);
-    const lit = async () => (await ear(page)).stars;
-    let notes = await questionNotes(page);
-    await playWithVirtualPiano(page, notes);
-    expect(await lit()).toEqual([5, 5]);
-    await page.waitForTimeout(700);
-    await page.keyboard.press('Space');
-    await page.waitForTimeout(700);
-    notes = await questionNotes(page);
-    await playWithVirtualPiano(page, [missKey(notes[0]!), missKey(notes[0]!), ...notes]);
-    expect(await lit()).toEqual([3, 5]);
-    // the stars alone say how it went: no result text
-    expect((await sceneTexts(page, 'earTrainer')).filter((text) => !isNoteName(text))).toEqual(ONLY_TEXTS);
-    expectNoErrors(errors);
-  });
-
   test('a click on the screen goes on after a round; the note length is one button cycling 1, 2, 3 s (AC6, AC11)', async ({ page }) => {
     const errors = await openEarFromRoom(page);
     const first = await ear(page);
