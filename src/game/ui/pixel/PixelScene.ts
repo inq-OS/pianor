@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { pagerBoxes } from '../../../core/layout/cardGrid';
 import type { PageSlice } from '../../../core/layout/paging';
 import { ART_DETAIL, FRAME_ROWS, VINE_ROWS, frameCorners, frameView, toolbarLayout, type FrameView } from '../../../core/layout/frame';
-import { BUBBLE_SLOTS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, wheelChoice } from '../../../core/layout/bubble';
+import { BUBBLE_SLOTS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, twoFingerTap, twoFingersSlid, wheelChoice } from '../../../core/layout/bubble';
 import type { PixelView } from '../../../core/layout/pixelView';
 import { rectCentre, type Rect } from '../../../core/layout/rect';
 import { dropMenuLayout } from '../../../core/layout/dropMenu';
@@ -222,6 +222,14 @@ export abstract class PixelScene extends Phaser.Scene {
   private longPress: { x: number; y: number; timer: Phaser.Time.TimerEvent; ring: Phaser.GameObjects.Graphics } | null = null;
   /** The bubble was just opened by a long press: the lift of that finger must not close it or pick anything. */
   private bubbleFreshTouch = false;
+  /** The fingers on a touch screen now, where and when each landed, for the two-finger tap (ft_1_20.AC25). */
+  private touches = new Map<number, { x: number; y: number; t: number; palm: boolean }>();
+  /** The two fingers that opened the bubble, where they landed: sliding apart is a pinch, which closes it again. */
+  private twoFinger: { ids: number[]; start: { x: number; y: number }[] } | null = null;
+  /** Lifts of the fingers that opened the bubble still to come: they pick nothing. */
+  private bubbleTouchLifts = 0;
+  /** Whether the fingers now on the screen, or the last ones, came down two or more at once (a gesture, never a tap). */
+  private manyFingers = false;
   /** The door and the gear over the top corners with the band and no toolbar: faded until the pointer or the focus is on them. */
   private corners: PixelButton[] = [];
   /** Everything of the scene goes in here, positions in art pixels. */
@@ -562,6 +570,7 @@ export abstract class PixelScene extends Phaser.Scene {
       if (this.longPress && Math.hypot(p.x - this.longPress.x, p.y - this.longPress.y) > LONG_PRESS_SLIP) this.cancelLongPress();
     });
     this.input.on('pointerup', () => this.cancelLongPress());
+    this.listenForTwoFingers();
     this.onWindowKey((e) => this.bubbleKey(e));
     // the keyboard switch on the toolbar lights while the on-screen keyboard is shown, whoever changed it
     const keys = contextOf(this).keyboardSwitch;
@@ -1175,6 +1184,87 @@ export abstract class PixelScene extends Phaser.Scene {
     this.longPress = { x: p.x, y: p.y, timer, ring };
   }
 
+  /**
+   * The two-finger tap (ft_1_20.AC25), read from the canvas's own touch events (the game follows one finger): the second of
+   * two fingers that land together opens the bubble at once midway between them, and the first finger's lift picks
+   * nothing; two fingers that then slide apart are a pinch, which closes it again.
+   */
+  /** Whether the touch now ending was part of two or more fingers at once: its lift is no tap. */
+  protected get severalFingers(): boolean {
+    return this.manyFingers;
+  }
+
+  private listenForTwoFingers(): void {
+    const canvas = this.game.canvas;
+    // fingers are followed in CSS pixels of the page, the same distance under the finger on any screen
+    const at = (touch: Touch) => ({ x: touch.clientX, y: touch.clientY });
+    const onCanvas = (p: { x: number; y: number }) => {
+      const rect = canvas.getBoundingClientRect();
+      return { x: ((p.x - rect.left) / rect.width) * canvas.width, y: ((p.y - rect.top) / rect.height) * canvas.height };
+    };
+    // a resting palm or the side of a hand is no finger
+    const PALM = 40;
+    const start = (e: TouchEvent) => {
+      const now = this.time.now;
+      // a finger alone on the screen starts a new gesture: what the last one left behind is gone
+      if (e.touches.length === 1) {
+        this.manyFingers = false;
+        this.bubbleTouchLifts = 0;
+      } else if (e.touches.length > 1) this.manyFingers = true;
+      for (const touch of Array.from(e.changedTouches)) this.touches.set(touch.identifier, { ...at(touch), t: now, palm: Math.max(touch.radiusX, touch.radiusY) > PALM });
+      if (e.touches.length !== 2 || this.touches.size !== 2 || this.sys.isPaused() || !this.screenFrame?.band || this.menuOpen) return;
+      const [one, two] = Array.from(e.touches);
+      const first = this.touches.get(one!.identifier), second = this.touches.get(two!.identifier);
+      if (!first || !second || first.palm || second.palm) return;
+      const [early, late, earlyNow] = first.t <= second.t ? [first, second, at(one!)] : [second, first, at(two!)];
+      const middle = twoFingerTap({ ...early, now: earlyNow }, late);
+      if (!middle) return;
+      const art = this.artPoint(onCanvas(middle));
+      if (!this.hasBubbleAt(art) && this.stripOverflow.length === 0) return;
+      this.cancelLongPress();
+      this.twoFinger = { ids: [one!.identifier, two!.identifier], start: [first, second].map((f) => ({ x: f.x, y: f.y })) };
+      // both lifts pick nothing, whichever frames they come on (the count is cleared once every finger is up)
+      this.bubbleTouchLifts = 2;
+      this.openBubble(art);
+    };
+    const move = (e: TouchEvent) => {
+      const two = this.twoFinger;
+      if (!two || !this.bubbleIsOpen) return;
+      const now = two.ids.map((id) => Array.from(e.touches).find((t) => t.identifier === id));
+      if (now.every((t): t is Touch => t !== undefined) && twoFingersSlid(two.start, now.map(at))) {
+        this.twoFinger = null;
+        this.closeMenu();
+      }
+    };
+    const end = (e: TouchEvent) => {
+      for (const touch of Array.from(e.changedTouches)) this.touches.delete(touch.identifier);
+      // the lifts still to be swallowed stay counted until the next finger or mouse press starts afresh, whichever order
+      // the game and this listener see the last lift in
+      if (e.touches.length === 0) {
+        this.touches.clear();
+        this.twoFinger = null;
+      }
+    };
+    const options = { passive: true };
+    canvas.addEventListener('touchstart', start, options);
+    canvas.addEventListener('touchmove', move, options);
+    canvas.addEventListener('touchend', end, options);
+    canvas.addEventListener('touchcancel', end, options);
+    this.touches.clear();
+    this.twoFinger = null;
+    this.bubbleTouchLifts = 0;
+    this.manyFingers = false;
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      if (!p.wasTouch) this.bubbleTouchLifts = 0;
+    });
+    this.events.once('shutdown', () => {
+      canvas.removeEventListener('touchstart', start);
+      canvas.removeEventListener('touchmove', move);
+      canvas.removeEventListener('touchend', end);
+      canvas.removeEventListener('touchcancel', end);
+    });
+  }
+
   /** Whether a press is the right button's, which opens the bubble: a screen's own press on its staff leaves it alone (ft_1_20, d282). */
   protected isBubblePress(p: Phaser.Input.Pointer): boolean {
     return p.rightButtonDown() || (p.event as MouseEvent | undefined)?.button === 2;
@@ -1269,6 +1359,11 @@ export abstract class PixelScene extends Phaser.Scene {
         this.bubbleFreshTouch = false;
         return;
       }
+      // the lifts of the two fingers that opened the bubble
+      if (this.bubbleTouchLifts > 0) {
+        this.bubbleTouchLifts -= 1;
+        return;
+      }
       const a = this.artPoint(p);
       const dx = a.x - layout.centre.x, dy = a.y - layout.centre.y;
       const d = Math.hypot(dx, dy);
@@ -1293,7 +1388,15 @@ export abstract class PixelScene extends Phaser.Scene {
         ...rectCentre(r), label: item.label, labelWidth: r.w - CELL_PAD, look: 'bubble',
         // a music sign on its scrap of parchment is too big for a round option: the sign alone, in the option's colour
         ...(item.icon ? { icon: item.fineIcon ? signOnly(item.icon, BUBBLE_SIGN, BUBBLE_SIGN) : item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}),
-        tooltip: item.tooltip ?? item.label, ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}), onClick,
+        tooltip: item.tooltip ?? item.label, ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}),
+        // the lift of a finger that opened the bubble by a two-finger tap picks nothing, even over an option
+        onClick: () => {
+          if (this.bubbleTouchLifts > 0) {
+            this.bubbleTouchLifts -= 1;
+            return;
+          }
+          onClick();
+        },
       });
       if (item.active) button.setActive(true);
       if (item.armed) button.setArmed(true);
