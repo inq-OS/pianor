@@ -7,7 +7,7 @@ import { C } from './palette';
  * hints; for the editor's toolbar (d088) a floppy disk for Save and an arrow into or out of a tray for Import and
  * Export; a loop for the ear trainer's repeat and the note trainer's new round, stairs for the note trainer's step, and undo, redo, a bin, play, stop, backspace and a tick for the piece maker and the name box. Original, drawn for this project (the Kenney pack page refused the download, and these are a few pixels each). Each fits inside a 14 pixel bar button with its frame (10 rows at most).
  */
-export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'backpack' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'hide' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen' | 'head';
+export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'backpack' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'speed' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort' | 'hide' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen' | 'head';
 
 const LEGEND = { k: C.ink, w: C.white, g: C.gold, G: C.goldDark, s: C.skin } as const;
 
@@ -57,6 +57,14 @@ function section(): Bitmap {
   return b;
 }
 
+function sectionShort(): Bitmap {
+  const b = createBitmap(13, 5);
+  blit(b, art(LETTERS.A!), 0, 0);
+  blit(b, art(['....w.', 'wwwwww', '....w.']), 4, 1);
+  blit(b, art(LETTERS.B!), 10, 0);
+  return b;
+}
+
 function noteWithName(): Bitmap {
   const b = createBitmap(10, 10);
   blit(b, art(NOTE), 0, 0);
@@ -99,8 +107,6 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   close: art(['w.....w', '.w...w.', '..w.w..', '...w...', '..w.w..', '.w...w.', 'w.....w']),
   /** The backpack the student's kept items are in (ft_1_20, d282): a bag with a flap and a buckle. */
   backpack: fromAscii(['...kkkk...', '..k....k..', '.kkkkkkkk.', 'kggggggggk', 'kgGGGGGGgk', 'kgGGkkGGgk', 'kggggggggk', 'kggggggggk', 'kGGGGGGGGk', '.kkkkkkkk.'], LEGEND),
-  /** Analyse the piece (core_10): a magnifying glass. */
-  analyse: art(['.www.....', 'w...w....', 'w...w....', 'w...w....', '.www.....', '....ww...', '.....ww..', '......ww.', '.......w.']),
   // a fermata: the sign that says hold, wait
   wait: art(['..wwwwwww..', '.w.......w.', 'w.........w', 'w...www...w', '....www....']),
   // a note running forward
@@ -167,6 +173,23 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   grace: art(['.........w', '...w.....w', '..ww.....w', '..w......w', '.ww......w', 'w.w......w', 'www......w', '.w....wwww', '.....wwwww', '......www.']),
   /** The circle of fifths (ft_1_28): a ship's helm, as the wheel on the overlay (the painter): a thick brass-bound rim, four spokes, four wooden handles and four small brass ones between, and a brass boss. Original, a few pixels. */
   circle: art(['....ww....', '.G..gg..G.', '..gggggg..', '.gg.ww.gg.', 'wggwGGwggw', 'wggwGGwggw', '.gg.ww.gg.', '..gggggg..', '.G..gg..G.', '....ww....']),
+  /** Analyse (ft_1_12): a magnifying glass over a played line. */
+  analyse: art(['..wwww....', '.w....w...', 'w......w..', 'w.w..w.w..', 'w..ww..w..', 'w......w..', '.w....w...', '..wwwwww..', '.......ww.', '........ww']),
+  /** The tempo's percent: a gauge with its needle, beside the number (BPM in the tooltip). */
+  speed: art(['..www..', '.w...w.', 'w...w.w', 'w..w..w', 'wwwwwww']),
+  /** The shape trainer's scale: five note heads climbing. */
+  scale: art(['............ww', '............ww', '.........ww...', '.........ww...', '......ww......', '...ww.ww......', '...ww.........', 'ww............', 'ww............']),
+  /** The shape trainer's triad: three heads stacked on one stem. */
+  triad: art(['....w', '....w', '.wwww', 'www.w', '....w', '.wwww', 'www.w', '....w', '.wwww', 'www..']),
+  /** A section from A to B, short enough for a plate of the bubble (18 across): the letters and an arrow, no bar lines. */
+  sectionShort: sectionShort(),
+  /** The shape trainer's hands, seen from above, palm down: the right hand's thumb on the left. */
+  handRight: art(['...w.w.w..', '...w.w.w.w', '...w.w.w.w', '.w.w.w.w.w', '.w.wwwwwww', '.wwwwwwwww', '..wwwwwwww', '...wwwwwww', '...wwwwww.', '...wwwwww.']),
+  handLeft: art(mirror(['...w.w.w..', '...w.w.w.w', '...w.w.w.w', '.w.w.w.w.w', '.w.wwwwwww', '.wwwwwwwww', '..wwwwwwww', '...wwwwwww', '...wwwwww.', '...wwwwww.'])),
+  /** Report a bug: a beetle (after the Kenney 1-Bit Pack's beetle, CC0). */
+  bug: art(['.w......w.', 'w........w', 'ww......ww', 'www.ww.www', '.ww.ww.ww.', '...wwww...', '..w.ww.w..', '.w..ww..w.', '...w..w...', '...w..w...']),
+  /** The settings' Learning page: a book (after the Kenney 1-Bit Pack's book, CC0). */
+  learn: art(['wwwwwwwwww', '.wwwwwwwww', 'w.w.....ww', '.ww.www.ww', '.ww.....ww', '.wwwwwwwww', '.wwwwwwwww', '..wwwwwwww', 'w.wwwwwwww', '.wwwwwwwww']),
   // four bars rising, the last one gold: the stats pane of the latest plays (ft_1_12)
   statsPane: art(['.........gg', '.........gg', '......ww.gg', '......ww.gg', '...ww.ww.gg', '...ww.ww.gg', 'ww.ww.ww.gg', 'ww.ww.ww.gg', 'wwwwwwwwwww']),
 };

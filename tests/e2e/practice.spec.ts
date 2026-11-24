@@ -1,5 +1,5 @@
 // Covers ft_0_09.AC1, ft_1_12.AC12.
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import {
   LITTLE_STEPS, activeScenes, allMenuTitles, clickButton, clickToolbar, expectNoErrors, isPieceLabel, lastButton, menuButton, menuLabels, openGame, openPiece, playWithKeys, playWithVirtualPiano, results, sceneButton, sceneTexts, showMenuPageWith, toScoreScreen, turnMenuPage, waitForScene, bandAction, sceneWords } from './helpers';
 

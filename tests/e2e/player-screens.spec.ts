@@ -2,7 +2,8 @@
 // The main menu (who is playing, and free play), the player's room (the profile screen, with Settings and Quit), the book
 // (song list) and the admin page with its name picker. progress.spec.ts covers the first checks; these tests add the
 // buttons and the paths it did not reach.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene } from './helpers';
 
 /** The main menu: from the piece list, the room's Quit goes there (`goToMainMenu`). */

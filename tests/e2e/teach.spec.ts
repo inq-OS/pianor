@@ -1,6 +1,7 @@
 // Covers ft_1_22.AC3 (Puuvaim teaches his phrase in the knoll: on the staff, three tries, heard or not yet; with learning off)
 // and ft_1_32.AC15 (with learning on, his teaching is learning bar by bar, and back to the knoll).
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { activeScenes, expectNoErrors, letGameRun, openGame, playWithVirtualPiano, waitForScene, type PageErrors } from './helpers';
 
 interface TalkState { showing: 'line' | 'student' | 'choices'; node: string }

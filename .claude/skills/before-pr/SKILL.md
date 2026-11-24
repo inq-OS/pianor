@@ -8,7 +8,7 @@ description: Use before you push and open or update a pull request in pianor, or
 Definition of done: CLAUDE.md. Details: [docs/testing.md](../../../docs/testing.md) sections 9 and 10, [labels.md](../../../docs/architect/labels.md).
 
 1. **Up to date:** `git fetch origin main` and merge or rebase your own branch onto it.
-2. **Fast checks:** `npm run check:ci` (about 2 minutes). Long output to a log, read only the summary.
+2. **Fast checks:** `npm run check`. Do not run `npm run check:ci` first: CI runs it on the push in about 4 minutes and the merge waits for it anyway (d217); on a red CI job, run only that job's command locally while fixing it.
 3. **End-to-end**, if the game changed: `npm run test:e2e:affected` as one background task (never at the same time as unit tests). Rerun a failing test alone before blaming the code.
 4. **Tests that must exist:**
    - every acceptance criterion you built has a test naming it (`ft_0_08.AC1`); `npm run docs:criteria` lists gaps;

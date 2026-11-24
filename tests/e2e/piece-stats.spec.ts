@@ -1,5 +1,6 @@
 // Covers core_04.AC5.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { LITTLE_STEPS, clickButton, expectNoErrors, openGame, openPiece, playWithKeys, playWithVirtualPiano, sceneTexts, showMenuPageWith, toScoreScreen, waitForScene, bandAction } from './helpers';
 
 /** Click a card's "S" button with the real mouse, at its on-screen position. */

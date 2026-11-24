@@ -1,6 +1,7 @@
 // Covers ft_Y_12.AC1 to AC4: the on-screen piano is a developer's tool (d099): hidden at first with or without a piano (the
 // computer keys still play), and the switch on the settings screen shows or hides it for this visit only.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { LITTLE_STEPS, clickToolbar, expectNoErrors, openGame, openPiece, openSettings, playWithVirtualPiano, results, toScoreScreen, waitForScene } from './helpers';
 import { TARGET_VIEW } from './targetView';
 

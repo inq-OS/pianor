@@ -1,5 +1,5 @@
 // Covers ft_0_15.AC1, ft_0_15.AC2, ft_0_15.AC5.
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { expectNoErrors, openGame, openPiece, playStepsWithKeys, playStepsWithVirtualPiano, results, sceneTexts, showMenuPageWith, toScoreScreen, useOneLine } from './helpers';
 import { TARGET_VIEW } from './targetView';
 

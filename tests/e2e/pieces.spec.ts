@@ -1,5 +1,6 @@
 // Covers ft_1_02c.AC1, ft_1_02c.AC5, ft_1_02c.AC7, ft_1_02c.AC8, ft_1_02c.AC9, core_06.AC4.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { allMenuTitles, addPlayer, bandAction, clickButton, expectNoErrors, goToMainMenu, menuButton, openGame, pickProfile, sceneButton, sceneTexts, showMenuPageWith, waitForScene, playerName } from './helpers';
 
 const TWINKLE = 'Twinkle Twinkle Little Star';
