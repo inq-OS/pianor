@@ -53,7 +53,7 @@ const INK = FIRST.page, INK_SOFT = FIRST.page + 2;
 
 /** How far the cover reaches past the pages, and how deep the stack of leaves shows under them, in fine pixels. */
 export const BOOK_COVER = 14;
-export const BOOK_STACK = 11;
+export const BOOK_STACK = 18;
 
 /**
  * The place in `run` for `value` (0 to 1): the nearest tone laid flat, as paint lays it, with a grain of lone specks a tone
@@ -78,7 +78,8 @@ function pageLight(x: number, y: number, down: number, fromGutter: number, fromS
   else if (rim < 16) value -= 0.06;
   if (fromGutter < 2) value = 0.2;
   else if (fromGutter < 5) value = 0.48;
-  else if (fromGutter < 12 + Math.round(noise2(0, y / 14, 52) * 3)) value = 0.7;
+  else if (fromGutter < 12 + Math.round(noise2(0, y / 14, 52) * 3)) value = 0.66;
+  else if (fromGutter < 24 + Math.round(noise2(1, y / 14, 52) * 4)) value = Math.min(value, 0.76);
   if (fromSide < 6) value = Math.min(value, 0.6);
   if (down < 2) value -= 0.12;
   if (fromSide < 10 && fromSide % 2 === 1 && down > 2) value -= 0.12; // the leaves' edges at the side, a fine line each
@@ -106,6 +107,15 @@ function pageFoot(x: number, width: number, height: number): number {
 export function pageCorners(width: number, height: number): { left: { x: number; y: number }; right: { x: number; y: number } } {
   const right = width - 1 - BOOK_COVER;
   return { left: { x: BOOK_COVER, y: pageFoot(BOOK_COVER, width, height) }, right: { x: right, y: pageFoot(right, width, height) } };
+}
+
+/**
+ * How far a torn parchment edge is torn in at `s` along it (fine pixels, 0 to about 6): an uneven tear with now and then
+ * a deeper nick, as the old maps' edges are. `seed` gives each edge its own.
+ */
+function rag(seed: number, s: number): number {
+  const nick = hash2(Math.floor(s / 4), 0, seed) > 0.93 ? 2 + Math.round(hash2(Math.floor(s / 4), 1, seed) * 2) : 0;
+  return Math.max(0, Math.round(1.5 + (noise2(s / 7, 0, seed) - 0.5) * 4 + (noise2(s / 2, 1, seed) - 0.5) * 1.5)) + nick;
 }
 
 /** The age of the paper: a few soft brown specks (foxing), more of them towards the page's edges. */
@@ -136,32 +146,48 @@ export function paintBook(width: number, height: number): Bitmap {
     gilt.line(inset, height - 1 - inset, width - 1 - inset, height - 1 - inset);
   }
   const vineAt = BOOK_COVER / 2;
-  gilt.vine((t) => ({ x: vineAt + Math.sin(t * 50) * 1.2, y: 20 + t * (height - 40) }), height - 40, 12, 31, 0.6);
-  gilt.vine((t) => ({ x: width - 1 - vineAt + Math.sin(t * 50) * 1.2, y: 20 + t * (height - 40) }), height - 40, 12, 32, 0.6);
-  gilt.vine((t) => ({ x: 20 + t * (width - 40), y: height - 1 - vineAt + Math.sin(t * 90) * 1.2 }), width - 40, 12, 33, 0.6);
+  gilt.vine((t) => ({ x: vineAt, y: 24 + t * (height - 48) }), height - 48, 20, 31, 0.6);
+  gilt.vine((t) => ({ x: width - 1 - vineAt, y: 24 + t * (height - 48) }), height - 48, 20, 32, 0.6);
+  gilt.vine((t) => ({ x: 24 + t * (width - 48), y: height - 1 - vineAt }), width - 48, 20, 33, 0.6);
   gilt.lay(put);
   brassCorners(put, width, height);
   // the pages: from the cover's inner edge, dipping to the gutter, curling up a little at their outer edges
   const left = BOOK_COVER, right = width - 1 - BOOK_COVER, bottom = height - 1 - BOOK_COVER;
   const topOf = (x: number) => BOOK_COVER + 4 - Math.round(bowAt(x, width) * 10);
-  const curl = Math.max(10, Math.round(width * 0.03));
   for (let x = left; x <= right; x++) {
     const top = topOf(x), foot = pageFoot(x, width, height);
     const fromGutter = Math.abs(x - mid), fromSide = Math.min(x - left, right - x);
+    const outerSeed = x < mid ? 113 : 114;
+    // the page's edges are parchment, as the old maps are: torn unevenly at its top, foot and outer side (never at the
+    // gutter), with a rim browned and burnt darker, and the leaves under it showing past the tear
+    // each page's outer top corner is chipped off
+    const chip = Math.max(0, 9 - fromSide);
+    const pageTop = top + rag(111, x) + chip, pageEnd = foot - rag(112, x);
     // the stack of leaves under the page: fine light and dark lines, the lower ones in the shade of the page over them
-    for (let y = foot + 1; y <= bottom; y++) put(x, y, (y - foot) % 2 === 0 ? FIRST.page + 2 : FIRST.page + PAGE.length - (y - foot < 3 ? 4 : 3));
+    // the leaves bow up towards the fore-edge, unevenly spaced, a few standing proud, in tans and browns
+    const lift = Math.round((1 - bowAt(x, width)) * 3);
+    for (let y = foot + 1; y <= bottom; y++) {
+      const k = y - foot + lift + Math.round(noise2(x / 30, y / 3, 120) * 1.4);
+      const line = k % 3 === 0 || (k % 5 === 0 && hash2(x >> 4, k, 121) > 0.5);
+      put(x, y, tone(PAGE, FIRST.page, line ? 0.42 + (y - foot < 3 ? -0.08 : 0) : 0.7 - (y - foot < 3 ? 0.1 : 0) + (hash2(x >> 3, k, 122) > 0.9 ? 0.15 : 0), x, y));
+    }
     for (let y = top; y <= foot; y++) {
+      const side = fromGutter < 20 ? 0 : rag(outerSeed, y);
+      const edge = Math.min(y - pageTop, pageEnd - y, fromGutter < 20 ? 99 : fromSide - side);
+      if (edge < 0) {
+        // past the tear: the next leaves, their own edges a line each, browned
+        put(x, y, tone(PAGE, FIRST.page, (x + y) % 3 === 0 ? 0.42 : 0.6, x, y));
+        continue;
+      }
       const fromEdge = Math.min(fromSide, y - top, foot - y);
-      const value = pageLight(x, y, y - top, fromGutter, fromSide, foot - y) - (fromGutter > 14 && foxed(x, y, fromEdge) ? 0.1 : 0);
+      let value = pageLight(x, y, y - top, fromGutter, fromSide, foot - y) - (fromGutter > 14 && foxed(x, y, fromEdge) ? 0.1 : 0);
+      if (edge < 1) value = 0.25;
+      else if (edge < 3) value = Math.min(value, 0.48);
+      else if (edge < 7 + Math.round(noise2(x / 11, y / 11, 123) * 5)) value -= 0.1;
+      else if (edge < 14 + Math.round(noise2(x / 13, y / 13, 124) * 8)) value -= 0.05;
       put(x, y, tone(PAGE, FIRST.page, value, x, y));
     }
-    put(x, top, FIRST.page + 2);
     if (Math.abs(x - mid) < 0.6) for (let y = top; y <= foot; y++) put(x, y, FIRST.page);
-    // the outer top corners curl over: a small triangle of the page's paler back with a dark crease
-    if (fromSide < curl) for (let k = 0; k < curl - fromSide; k++) {
-      const y = top + k;
-      put(x, y, k === curl - fromSide - 1 ? FIRST.page + 1 : tone(PAGE, FIRST.page, 0.95, x, y));
-    }
   }
   // the headbands at the spine's top and foot: a little roll of red and gold silk where the leaves are sewn
   for (const [y0, dir] of [[topOf(mid) - 3, 1], [pageFoot(mid, width, height) + 1, -1]] as const) {
@@ -181,11 +207,13 @@ export function paintBook(width: number, height: number): Bitmap {
  */
 function paintBookRibbon(put: (x: number, y: number, place: number) => void, width: number, height: number): void {
   const mid = width / 2, rw = 7;
+  // from under the headband it lies down the gutter, and only near the foot leaves it
+  const head = BOOK_COVER + 4;
   const from = pageFoot(Math.round(mid) + 3, width, height) - 26;
   const end = height + 2;
   const twist = from + Math.round((end - from) * 0.45);
-  for (let y = from; y < end; y++) {
-    const t = (y - from) / (end - from);
+  for (let y = head; y < end; y++) {
+    const t = Math.max(0, (y - from) / (end - from));
     // it leaves the gutter and drifts outwards as it falls, more and more
     const cx = mid + 3 + rw / 2 + t * t * width * 0.07;
     // through the twist it narrows to an edge and shows its duller back
@@ -221,33 +249,41 @@ export function paintPageTurn(size: number, lifted: boolean, rest = PAGE_TURN.re
   // the rolled flap: the cut-off corner turned over the fold. Rolling, not creased, it reaches less far over the page than
   // the corner it was (`roll`), and its tip is rounded off
   const roll = lifted ? 0.62 : 0.85;
+  // the fold is a soft crease, not a ruled line, and the flap's edges are the page's torn parchment edge turned over
+  const crease = (u: number, v: number) => Math.round((noise2((u - v) / 9, 0, 115) - 0.5) * 3);
   const onFlap = (u: number, v: number) => {
-    const d = u + v - fold;
+    const d = u + v - fold + crease(u, v);
     if (d < 0) return false;
     const back = ((1 + 1 / roll) * d) / 2;
     const gu = u - back, gv = v - back;
-    return gu >= 0 && gv >= 0 && !(lifted && gu + gv < 1.5 && d > 4);
+    return gu >= rag(116, gv) * 0.6 && gv >= rag(117, gu) * 0.6 && !(lifted && gu + gv < 1.5 && d > 4);
   };
+  const flapEdge = (u: number, v: number) => Math.min(...[1, 2, 3].map((k) => (onFlap(u + k, v) && onFlap(u, v + k) && onFlap(u - k, v) && onFlap(u, v - k) ? 99 : k)));
   // the soft shade the flap lays on the page beside its edges
   for (let v = 0; v < size; v++) for (let u = 0; u < size; u++) {
-    if (onFlap(u, v) || u + v < fold) continue;
+    if (onFlap(u, v) || u + v + crease(u, v) < fold) continue;
     const near = [1, 2].some((k) => onFlap(u - k, v - k) || onFlap(u - k, v) || onFlap(u, v - k));
     if (near && lifted) { const p = at(u, v); put(p.x, p.y, tone(PAGE, FIRST.page, 0.66, p.x, p.y)); }
   }
   // where the corner was: the next leaf, in the shade of the one lifting off it, with the leaves' edges at its side and foot
-  for (let v = 0; v < size; v++) for (let u = 0; u + v < fold; u++) {
+  for (let v = 0; v < size; v++) for (let u = 0; u + v + crease(u, v) < fold; u++) {
     const p = at(u, v);
-    const value = u + v >= fold - 2 ? 0.42 : (u < 3 && u % 2 === 1) || (v < 3 && v % 2 === 1) ? 0.5 : 0.64;
+    // the next leaf: its own torn edge at the page's side and foot, browned, and the shade under the lifted corner
+    const torn = u < rag(118, v) || v < rag(119, u);
+    const value = u + v + crease(u, v) >= fold - 2 ? 0.5 : torn ? ((u + v) % 3 === 0 ? 0.4 : 0.55) : 0.64;
     put(p.x, p.y, tone(PAGE, FIRST.page, value, p.x, p.y));
   }
   for (let v = 0; v < size; v++) for (let u = 0; u < size; u++) {
     if (!onFlap(u, v)) continue;
     const p = at(u, v);
-    const edge = !onFlap(u + 1, v) || !onFlap(u, v + 1);
-    const fromFold = u + v - fold;
-    // the roll: a shade where the paper turns, a lit band on the roll, then the back of the page, fading to the tip
-    const value = fromFold < 2 ? 0.6 : fromFold < (lifted ? 6 : 4) ? 1 : 0.93 - (fromFold / (fold * 2)) * 0.2;
-    put(p.x, p.y, edge ? INK_SOFT : tone(PAGE, FIRST.page, value, p.x, p.y));
+    const fromFold = u + v - fold + crease(u, v);
+    const rim = fromFold < 2 ? 99 : flapEdge(u, v);
+    // the roll: a shade where the paper turns, a lit band on the roll, then the back of the page, fading to the tip, its
+    // torn rim browned and burnt dark at the very edge as the front's is
+    let value = fromFold < 2 ? 0.6 : fromFold < (lifted ? 6 : 4) ? 1 : 0.93 - (fromFold / fold) * 0.3;
+    if (rim <= 1) value = 0.22;
+    else if (rim <= 3) value = Math.min(value, 0.58);
+    put(p.x, p.y, tone(PAGE, FIRST.page, value, p.x, p.y));
   }
   return out;
 }
@@ -282,21 +318,21 @@ export function paintFolio(n: number): Bitmap {
   [...digits].forEach((d, i) => FOLIO_DIGITS[d]!.forEach((row, y) => [...row].forEach((c, x) => {
     if (c !== '.') put(swash + gap + i * (FOLIO_W + FOLIO_GAP) + x, y, c === '#' ? INK : INK_SOFT);
   })));
-  // each swash: a wave from a curl at its outer end to a diamond by the number, a hairline swelling to two pixels in its middle
+  // each swash: one pen stroke, a hairline at its ends swelling to three pixels in its middle, an S that ends in a curl at
+  // its outer end and turns down in a smaller curl by the number
   const mid = Math.round(height / 2);
   for (const side of [-1, 1] as const) {
     const at = (s: number) => (side < 0 ? s : width - 1 - s);
-    for (let s = 5; s < swash - 4; s++) {
-      const t = (s - 5) / (swash - 9);
-      const y = mid + Math.round(Math.sin(t * Math.PI * 1.5 + Math.PI) * 1.6);
-      put(at(s), y, INK);
-      if (t > 0.3 && t < 0.8) put(at(s), y + 1, INK_SOFT);
+    for (let s = 6; s <= swash - 3; s++) {
+      const t = (s - 6) / (swash - 9);
+      const y = mid + Math.sin(t * Math.PI * 2) * 2.2;
+      const thick = Math.sin(t * Math.PI) * 2.6;
+      for (let k = -thick / 2; k <= thick / 2; k += 0.5) put(at(s), Math.round(y + k), Math.abs(k) > thick / 2 - 0.6 && thick > 1 ? INK_SOFT : INK);
     }
-    // the curl at the outer end: a little ring opening towards the wave
-    for (const [dx, dy] of [[2, -2], [1, -2], [0, -1], [0, 0], [0, 1], [1, 2], [2, 2], [3, 1], [3, 0], [4, 1]] as const) put(at(dx + 1), mid + 1 + dy - 2, INK);
-    // the diamond by the number
-    const dx = swash - 2;
-    for (const [ox, oy] of [[0, -2], [-1, -1], [0, -1], [1, -1], [-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0], [-1, 1], [0, 1], [1, 1], [0, 2]] as const) put(at(dx + ox), mid + oy, Math.abs(ox) + Math.abs(oy) === 2 ? INK_SOFT : INK);
+    // the curl at the outer end, rolling up from the stroke's start
+    for (let a = 0; a < Math.PI * 1.7; a += 0.2) put(at(Math.round(4 + Math.cos(a + Math.PI / 2) * 2.6)), Math.round(mid - 2.6 + Math.sin(a + Math.PI / 2) * 2.6), INK);
+    // the small curl by the number, turning down
+    for (let a = 0; a < Math.PI * 1.4; a += 0.25) put(at(Math.round(swash - 1 + Math.cos(a - Math.PI / 2) * 1.6)), Math.round(mid + 1.6 + Math.sin(a - Math.PI / 2) * 1.6), INK);
   }
   return out;
 }
@@ -381,9 +417,10 @@ function tomeForeEdge(put: Put, width: number, height: number, board: Box): void
     if (d < TOME.bevel + 2) { put(x, y, tone(COVER, FIRST.cover, d < 2 ? 0.45 : 0.25, x, y)); continue; }
     if (d >= TOME.foreEdge - 5) { put(x, y, tone(COVER, FIRST.cover, d === TOME.foreEdge - 5 ? 0.1 : 0.22, x, y)); continue; }
     // the leaves are rounded out a little (a book's fore-edge is concave) and browned at the edges, a few stand proud
-    const leaf = (d + Math.round(noise2(d, y / 30, 91) * 1.5)) % 2 === 0;
-    const browned = fbm(x / 6, y / 40, 2, 92) > 0.62 || y < 6 || d < TOME.bevel + 5;
-    put(x, y, tone(PAGE, FIRST.page, leaf ? (browned ? 0.45 : 0.62) : browned ? 0.62 : 0.8, x, y));
+    const wave = Math.round(Math.sin(y / 40 + d * 0.3) * 1.2 + (noise2(d / 3, y / 60, 91) - 0.5) * 2);
+    const leaf = (d + wave) % 2 === 0;
+    const shade = d < TOME.bevel + 5 ? 0.14 : 0;
+    put(x, y, tone(PAGE, FIRST.page, (leaf ? 0.6 : 0.78) - shade, x, y));
   }
 }
 
@@ -395,21 +432,21 @@ function tomeLeather(put: Put, board: Box): void {
     const corner = Math.hypot(Math.min(x - bx, bx + w - 1 - x), y - by);
     const rub = (rim < 16 ? (16 - rim) / 16 : 0) * 0.6 + (corner < 50 ? (50 - corner) / 50 : 0) + (fbm(x / 22, y / 22, 3, 93) - 0.5) * 1.2;
     const value = 0.3 + (fbm(x / 70, y / 70, 3, 94) - 0.5) * 0.55 + (fbm(x / 5, y / 5, 2, 95) - 0.5) * 0.12 - (hash2(x, y, 96) > 0.93 ? 0.12 : 0);
-    let place = rub > 0.6 ? tone(WORN, FIRST.worn, 0.35 + value * 0.6, x, y) : tone(COVER, FIRST.cover, value, x, y);
+    let place = rub > 0.6 ? tone(WORN, FIRST.worn, 0.22 + value * 0.45, x, y) : tone(COVER, FIRST.cover, value, x, y);
     // the bevel: the board's edge rounded over, lit above and to the left
     if (rim < 2) place = tone(COVER, FIRST.cover, 0.08, x, y);
     else if (rim < TOME.bevel) place = y - by === rim || x - bx === rim ? tone(WORN, FIRST.worn, 0.85, x, y) : tone(COVER, FIRST.cover, 0.2, x, y);
     put(x, y, place);
   }
-  // creases: short crooked lines pressed into the leather, each dark with a lit lip beside it
-  for (let k = 0; k < Math.round((w * Math.min(h, 400)) / 2600); k++) {
-    let x = bx + Math.round(hash2(k, 1, 97) * w), y = by + Math.round(hash2(k, 2, 97) * Math.min(h, 400));
-    const len = 6 + Math.round(hash2(k, 3, 97) * 18), dir = hash2(k, 4, 97) * Math.PI;
+  // creases: long soft bends in the leather following the board, each a slightly darker band with a paler lip
+  for (let k = 0; k < Math.round(w / 90); k++) {
+    const x0 = bx + Math.round(hash2(k, 1, 97) * w), y0 = by + Math.round(hash2(k, 2, 97) * Math.min(h, 400));
+    const len = 30 + Math.round(hash2(k, 3, 97) * 60), across = hash2(k, 4, 97) > 0.5;
     for (let i = 0; i < len; i++) {
-      x += Math.round(Math.cos(dir + noise2(k, i / 4, 98) - 0.5));
-      y += Math.round(Math.sin(dir + noise2(k, i / 4, 98) - 0.5));
-      put(x, y, tone(COVER, FIRST.cover, 0.12, x, y));
-      put(x, y - 1, tone(COVER, FIRST.cover, 0.7, x, y - 1));
+      const bend = Math.round(Math.sin(i / len * Math.PI) * 4 + (noise2(k, i / 12, 98) - 0.5) * 3);
+      const x = across ? x0 + i : x0 + bend, y = across ? y0 + bend : y0 + i;
+      put(x, y, tone(COVER, FIRST.cover, 0.2, x, y));
+      put(across ? x : x - 1, across ? y - 1 : y, tone(COVER, FIRST.cover, 0.55, x, y));
     }
   }
 }
