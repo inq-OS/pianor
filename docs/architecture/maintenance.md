@@ -90,9 +90,6 @@ These are judgement calls or questions for the maintainer rather than defects; l
 - **XP bank bite.** `baseBite` in `src/core/scoring/xpBank.ts` returns at least 1 even when the configured `bitePercent`
   is 0, which the content schema allows, so the bite cannot be switched off from content. Either the schema says
   `min(1)` or the code returns 0. The maintainer's call.
-- **Phase 1 of the campaign is stricter than Wait mode.** In `src/core/campaign/findKey.ts` pressing an already accepted
-  chord key again counts as wrong (tested on purpose); Wait and Tempo treat it as a harmless repeat. Is that wanted for a
-  young student?
 - **Sections are recognised by their id** (`isSection` looks for `#bars-` in the chart id), and that decides whether XP is
   paid. A field on the chart, or `sliceChart` returning `{ chart, section }`, would be sturdier; it touches the chart
   schema, so it is an architect question.
