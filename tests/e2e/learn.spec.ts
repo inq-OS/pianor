@@ -191,7 +191,7 @@ test('ft_1_32.AC17 the live tempo is off by default; turned on in the settings, 
   const errors = await openGame(page, '?device=virtual&learn=1');
   const live = async () => (await sceneTexts(page, 'practice')).filter((text) => /^(Tempo|Spread) /.test(text));
   await learnPiece(page, 'Little Steps');
-  expect(await live()).toEqual([]); // off unless turned on: nothing over the child's staff
+  expect(await live()).toEqual([]); // off unless turned on: nothing over the student's staff
   // turned on (the Learning page of the settings saves the same): the screen draws it from then on
   await page.evaluate(async () => {
     await window.__game.registry.get('context').profiles.updateLearnSettings({ liveTempo: true });

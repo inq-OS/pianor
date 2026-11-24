@@ -66,7 +66,6 @@ const RAMP_BAR = 16;
 const BOTTOM_BAR = 32;
 /** The stats pane under the bottom bar, in place of the on-screen keyboard (ft_1_12.AC5), and the registry key of its switch (session only, no save). */
 const STATS_PANE = 40;
-/** Room at the stats pane's left edge for a learning run's live tempo lines, the longer Estonian ones included. */
 /** The live tempo's two half-size lines in the top bar (ft_1_32.AC17), this many rows apart. */
 const LIVE_TEMPO_LINE = 6;
 export const STATS_PANE_KEY = 'statsPane';
@@ -1187,7 +1186,7 @@ export class PracticeScene extends PixelScene {
       bubbleRight = x - 4;
       if (learnLiveTempo(contextOf(this).profiles.learnSettings)) bubbleRight = this.drawLiveTempo(bubbleRight, strip.rows) - 4;
     }
-    this.playSession.drawBubble(layer, { x: bubbleLeft, y: BAND_STRIP_DROP + 1, width: bubbleRight - bubbleLeft });
+    this.playSession.drawBubble(layer, { x: bubbleLeft, y: BAND_STRIP_DROP + 1, width: Math.max(0, bubbleRight - bubbleLeft) });
     if (paneRows > 0) this.drawStatsPane(foot, paneRows);
   }
 
