@@ -32,8 +32,12 @@ const PLATES: Readonly<Record<PlateLook, PlateColours>> = {
   main: { fill: C.panelLit, light: C.honey, shade: C.honeyDark, outline: C.groove },
 };
 
-/** The size of an option (`bubble.ts`): a round plate, opaque, with room round its picture. */
+/** The size of an option's box in `bubble.ts`, where a press counts: the boxes never touch. */
 export const OPTION_SIZE = 20;
+/** The round plate drawn for an option, centred on its box: larger than the box, so neighbours may overlap a little and the picture has room round it. */
+export const OPTION_PLATE = 24;
+/** How solid the bubble is drawn (its plates and its choices): the staff shows faintly through it. AX-3 provisional. */
+export const BUBBLE_ALPHA = 0.85;
 /** The size of a choice in the row beside the ring (`bubble.ts`). */
 export const CHOICE_SIZE = 18;
 /** A cell of the strip and the strip's height (`bubble.ts`: `PIN_CELL`, `PIN_ROWS`). */
@@ -66,22 +70,45 @@ function plateOf(width: number, height: number, inside: Inside, colours: PlateCo
   return b;
 }
 
+/**
+ * A plate with no dark line round it, for the bubble: its rim is the light line on the upper left and the shade on the
+ * lower right, so it lies over the staff as a soft shape.
+ */
+function barePlate(width: number, height: number, inside: Inside, colours: PlateColours, centreX: (x: number) => number = () => width / 2): Bitmap {
+  const b = createBitmap(width, height);
+  const isIn = (x: number, y: number) => x >= 0 && y >= 0 && x < width && y < height && inside(x, y);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (!isIn(x, y)) continue;
+      const rim = !isIn(x - 1, y) || !isIn(x + 1, y) || !isIn(x, y - 1) || !isIn(x, y + 1);
+      // the rim faces the light when it lies up and to the left of the nearest point of the plate's spine
+      const upperLeft = x + 0.5 - centreX(x + 0.5) + (y + 0.5 - height / 2) < 0;
+      b.pixels[y * width + x] = rim ? (upperLeft ? colours.light : colours.shade) : colours.fill;
+    }
+  }
+  return b;
+}
+
 const disc = (size: number): Inside => {
   const r = size / 2;
   return (x, y) => (x + 0.5 - r) ** 2 + (y + 0.5 - r) ** 2 <= r * r - 0.5;
 };
 const roundedRect = (width: number, height: number): Inside => (x, y) => !((x === 0 || x === width - 1) && (y === 0 || y === height - 1));
 
-/** An option of the bubble: a round plate 20 across, opaque, with nothing behind the ring (the staff shows between the plates). Its picture is drawn on it by the scene, centred. */
-export function optionPlate(look: PlateLook = 'plain'): Bitmap {
-  return plateOf(OPTION_SIZE, OPTION_SIZE, disc(OPTION_SIZE), PLATES[look]);
+/**
+ * An option of the bubble: a round plate `OPTION_PLATE` across with no dark line round it, drawn centred on the option's
+ * box at `BUBBLE_ALPHA`, with nothing behind the ring (the staff shows between and faintly through the plates). Its picture
+ * is drawn on it by the scene, centred.
+ */
+export function optionPlate(look: PlateLook = 'plain', size: number = OPTION_PLATE): Bitmap {
+  return barePlate(size, size, disc(size), PLATES[look]);
 }
 
-/** The keyboard's focus on an option: a gold ring two cells wide just outside the plate, 24 across. */
+/** The keyboard's focus on an option: a gold ring two cells wide just outside the plate, `OPTION_PLATE + 4` across. */
 export function optionFocus(): Bitmap {
-  const size = OPTION_SIZE + 4;
+  const size = OPTION_PLATE + 4;
   const outer = disc(size);
-  const inner = (x: number, y: number) => (x + 0.5 - size / 2) ** 2 + (y + 0.5 - size / 2) ** 2 <= (OPTION_SIZE / 2) ** 2;
+  const inner = (x: number, y: number) => (x + 0.5 - size / 2) ** 2 + (y + 0.5 - size / 2) ** 2 <= (OPTION_PLATE / 2) ** 2;
   const b = createBitmap(size, size);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) if (outer(x, y) && !inner(x, y)) b.pixels[y * size + x] = C.goldLight;
   return b;
@@ -91,21 +118,33 @@ export function optionFocus(): Bitmap {
 const CROSS = fromAscii(['kk...kk', 'kwk.kwk', '.kwkwk.', '..kwk..', '.kwkwk.', 'kwk.kwk', 'kk...kk'], { k: C.groove, w: C.dim });
 
 /** The Close target in the ring's centre: a sunk round plate with a cross, so it reads as the way out and not as an option. */
-export function closePlate(look: 'plain' | 'hover' = 'plain'): Bitmap {
-  const b = plateOf(OPTION_SIZE, OPTION_SIZE, disc(OPTION_SIZE), look === 'hover' ? PLATES.hover : PLATES.plain, true);
-  blit(b, CROSS, (OPTION_SIZE - CROSS.width) >> 1, (OPTION_SIZE - CROSS.height) >> 1);
+export function closePlate(look: 'plain' | 'hover' = 'plain', size: number = OPTION_PLATE): Bitmap {
+  const sunk = look === 'hover' ? PLATES.hover : PLATES.plain;
+  const b = barePlate(size, size, disc(size), { ...sunk, light: sunk.shade, shade: sunk.light });
+  blit(b, CROSS, (size - CROSS.width) >> 1, (size - CROSS.height) >> 1);
   return b;
 }
 
-/** A choice in the row beside the ring: a square plate 18 x 18 with its corners cut. */
-export function choicePlate(look: PlateLook = 'plain'): Bitmap {
-  return plateOf(CHOICE_SIZE, CHOICE_SIZE, roundedRect(CHOICE_SIZE, CHOICE_SIZE), PLATES[look], look === 'down');
-}
+/** How far the sausage reaches round its choices, in cells. */
+const SAUSAGE_PAD = 3;
 
-/** The board under the row of `n` choices, 2 cells round them: drawn at the first choice's x - 2, y - 2. */
-export function choicesBack(n: number): Bitmap {
-  const w = n * CHOICE_SIZE + (n - 1) * 2 + 4, h = CHOICE_SIZE + 4;
-  return plateOf(w, h, roundedRect(w, h), { fill: C.panelDark, light: C.panel, shade: C.groove, outline: C.groove });
+/**
+ * The choices of an option, all in one sausage beside the ring (not a plate each): a long round-ended plate with no dark
+ * line, as solid as the bubble, `n` choices of `bubble.ts` in a row inside it and the one in use (`active`) on a lighter
+ * patch with a gold rim. Drawn at the first choice's x and y less `SAUSAGE_PAD`; the pictures are drawn on it by the scene.
+ */
+export function choicesSausage(n: number, active = -1): Bitmap {
+  const inner = n * CHOICE_SIZE + (n - 1) * 2;
+  const w = inner + 2 * SAUSAGE_PAD, h = CHOICE_SIZE + 2 * SAUSAGE_PAD;
+  const r = h / 2;
+  const spine = (x: number) => Math.min(Math.max(x, r), w - r);
+  const stadium: Inside = (x, y) => (x + 0.5 - spine(x + 0.5)) ** 2 + (y + 0.5 - r) ** 2 <= r * r - 0.5;
+  const b = barePlate(w, h, stadium, PLATES.plain, spine);
+  if (active >= 0 && active < n) {
+    const patch = barePlate(CHOICE_SIZE, CHOICE_SIZE, disc(CHOICE_SIZE), PLATES.on);
+    blit(b, patch, SAUSAGE_PAD + active * (CHOICE_SIZE + 2), SAUSAGE_PAD);
+  }
+  return b;
 }
 
 /**

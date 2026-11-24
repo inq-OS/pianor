@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bubbleLayout, cellSpan, PIN_ROWS } from '../../../core/layout/bubble';
 import { inkCount, type Bitmap } from './bitmap';
-import { BACKPACK, openBackpack, openBagPlaces, OPEN_BAG, choicePlate, choicesBack, closePlate, NEW_ITEM_DOT, OPTION_SIZE, optionFocus, optionPlate, PIN_CELL_SIZE, pinCell, pressRing, STRIP_ROWS, stripBitmap, wornChip, type PlateLook } from './bubbleArt';
+import { BACKPACK, BUBBLE_ALPHA, choicesSausage, CHOICE_SIZE, closePlate, NEW_ITEM_DOT, openBackpack, openBagPlaces, OPEN_BAG, OPTION_PLATE, OPTION_SIZE, optionFocus, optionPlate, PIN_CELL_SIZE, pinCell, pressRing, STRIP_ROWS, stripBitmap, wornChip, type PlateLook } from './bubbleArt';
 import { ICONS } from './iconArt';
 import { C } from './palette';
 import { TOOL_ICONS } from './toolArt';
@@ -11,36 +11,45 @@ const same = (a: Bitmap, b: Bitmap) => a.width === b.width && a.height === b.hei
 const LOOKS: PlateLook[] = ['plain', 'hover', 'down', 'on', 'off', 'main'];
 
 describe('the bubble, the strip and the backpack (ft_1_20, d282): their look fits the layout', () => {
-  it('ft_1_20.AC19 an option is an opaque round plate as large as the layout\'s option, with room between neighbours', () => {
+  it('ft_1_20.AC19 an option is a round plate a little larger than its box, centred on it, with no dark line round it', () => {
     const layout = bubbleLayout({ at: { x: 160, y: 90 }, options: 8, screen: { w: 320, h: 180 } });
-    expect(optionPlate().width).toBe(layout.options[0]!.w);
-    expect(optionPlate().height).toBe(layout.options[0]!.h);
-    expect(closePlate().width).toBe(layout.close.w);
-    // round: the corners are clear, the middle of each side is the outline
+    expect(layout.options[0]!.w).toBe(OPTION_SIZE);
+    expect(OPTION_PLATE).toBeGreaterThan(OPTION_SIZE);
+    expect((OPTION_PLATE - OPTION_SIZE) % 2).toBe(0);
+    expect(closePlate().width).toBe(OPTION_PLATE);
     const plate = optionPlate();
+    expect(plate.width).toBe(OPTION_PLATE);
+    // round: the corners are clear; no dark outline, the rim is the plate's light and shade
     expect(at(plate, 0, 0)).toBe(0);
-    expect(at(plate, OPTION_SIZE - 1, OPTION_SIZE - 1)).toBe(0);
-    expect(at(plate, OPTION_SIZE >> 1, 0)).toBe(C.groove);
-    // opaque: every pixel inside the outline is painted
-    expect(at(plate, OPTION_SIZE >> 1, OPTION_SIZE >> 1)).toBe(C.panel);
-    // neighbouring plates do not touch
-    const [a, b] = layout.options;
-    expect(Math.hypot(a!.x - b!.x, a!.y - b!.y)).toBeGreaterThan(OPTION_SIZE);
+    expect(at(plate, OPTION_PLATE - 1, OPTION_PLATE - 1)).toBe(0);
+    expect(plate.pixels.some((p) => p === C.groove)).toBe(false);
+    expect(at(plate, OPTION_PLATE >> 1, OPTION_PLATE >> 1)).toBe(C.panel);
+    // the bubble is mostly solid, the staff showing faintly through it
+    expect(BUBBLE_ALPHA).toBeGreaterThan(0.5);
+    expect(BUBBLE_ALPHA).toBeLessThan(1);
   });
 
   it('every look of a plate is told apart from the others', () => {
-    for (const make of [optionPlate, choicePlate, (l: PlateLook) => pinCell(1, l)]) {
+    for (const make of [optionPlate, (l: PlateLook) => pinCell(1, l)]) {
       const all = LOOKS.map(make);
       for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) expect(same(all[i]!, all[j]!)).toBe(false);
     }
   });
 
-  it('ft_1_20.AC20 a choice and the board under a row of them fit the layout\'s choices with two cells round them', () => {
+  it('ft_1_20.AC20 an option\'s choices lie in one sausage round the layout\'s choices, the one in use lit', () => {
     const layout = bubbleLayout({ at: { x: 100, y: 90 }, options: 8, screen: { w: 320, h: 180 }, open: { option: 2, choices: 3 } });
-    expect(choicePlate().width).toBe(layout.choices[0]!.w);
-    const back = choicesBack(3);
-    expect(back.width).toBe(layout.choices[2]!.x + layout.choices[2]!.w - layout.choices[0]!.x + 4);
-    expect(back.height).toBe(layout.choices[0]!.h + 4);
+    const sausage = choicesSausage(3);
+    const first = layout.choices[0]!, last = layout.choices[2]!;
+    expect(sausage.width).toBe(last.x + last.w - first.x + 6);
+    expect(sausage.height).toBe(CHOICE_SIZE + 6);
+    expect(first.h).toBe(CHOICE_SIZE);
+    // one long plate with round ends and no dark line; the active choice on a gold-rimmed patch
+    expect(at(sausage, 0, 0)).toBe(0);
+    expect(sausage.pixels.some((p) => p === C.groove)).toBe(false);
+    expect(sausage.pixels.some((p) => p === C.gold || p === C.goldLight)).toBe(false);
+    const lit = choicesSausage(3, 1);
+    expect(same(lit, sausage)).toBe(false);
+    expect(same(lit, choicesSausage(3, 0))).toBe(false);
   });
 
   it('ft_1_20.AC21 the strip is as high as the layout\'s strip and a cell spans as the layout spans it', () => {
@@ -100,6 +109,6 @@ describe('the bubble, the strip and the backpack (ft_1_20, d282): their look fit
     }
     // the arrows show only when rows lie above or below
     expect(same(openBackpack({ down: true }), bag)).toBe(false);
-    expect(optionFocus().width).toBe(OPTION_SIZE + 4);
+    expect(optionFocus().width).toBe(OPTION_PLATE + 4);
   });
 });

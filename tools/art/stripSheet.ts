@@ -1,6 +1,6 @@
 import { bubbleLayout, cellSpan, pinFlow, PIN_ROWS } from '../../src/core/layout/bubble.ts';
 import { blit, createBitmap, type Bitmap } from '../../src/game/ui/pixel/bitmap.ts';
-import { BACKPACK, openBackpack, openBagPlaces, OPEN_BAG, choicePlate, choicesBack, closePlate, NEW_ITEM_DOT, optionFocus, optionPlate, pinCell, pressRing, stripBitmap, wornChip, type PlateLook } from '../../src/game/ui/pixel/bubbleArt.ts';
+import { BACKPACK, BUBBLE_ALPHA, choicesSausage, openBackpack, openBagPlaces, OPEN_BAG, OPTION_PLATE, closePlate, NEW_ITEM_DOT, optionFocus, optionPlate, pinCell, pressRing, stripBitmap, wornChip, type PlateLook } from '../../src/game/ui/pixel/bubbleArt.ts';
 import { tinted } from '../../src/game/ui/pixel/frames.ts';
 import { measure, renderText } from '../../src/game/ui/pixel/font.ts';
 import { ICONS } from '../../src/game/ui/pixel/iconArt.ts';
@@ -20,7 +20,9 @@ const W = 320, H = 180;
 type Canvas = { width: number; height: number; pixels: Uint8Array };
 /** A picture drawn on the fine grid (d110) over the sheet, in fine pixels. */
 type FineOverlay = { pic: Bitmap; x: number; y: number };
-type Mock = { cells: Canvas; fine?: FineOverlay[] };
+/** A picture laid over the sheet at `BUBBLE_ALPHA`, in cells, as the game draws the bubble over the staff. */
+type Glass = { pic: Bitmap; x: number; y: number };
+type Mock = { cells: Canvas; glass?: Glass[]; fine?: FineOverlay[] };
 
 const fill = (b: Canvas, x0: number, y0: number, w: number, h: number, colour: number) => {
   for (let y = Math.max(0, y0); y < Math.min(b.height, y0 + h); y++) for (let x = Math.max(0, x0); x < Math.min(b.width, x0 + w); x++) b.pixels[y * b.width + x] = colour;
@@ -90,24 +92,25 @@ export function practiceMock(): Mock {
   const options = [TOOL_ICONS.sectionShort, TOOL_ICONS.tempo, TOOL_ICONS.click, TOOL_ICONS.circle, TOOL_ICONS.statsPane, TOOL_ICONS.analyse, TOOL_ICONS.noteNamesOn, TOOL_ICONS.fingers];
   const choices = [TOOL_ICONS.stop, TOOL_ICONS.click, TOOL_ICONS.tick];
   const layout = bubbleLayout({ at: { x: 130, y: 82 }, options: options.length, screen: { w: W, h: main }, open: { option: 2, choices: choices.length } });
+  // the bubble is drawn on a layer of its own, laid over the staff at BUBBLE_ALPHA; a plate is OPTION_PLATE across, centred on its box
+  const glass = createBitmap(W, H);
+  const off = (r: { w: number }) => (OPTION_PLATE - r.w) >> 1;
   layout.options.forEach((r, i) => {
     const look: PlateLook = i === 2 ? 'down' : i === 6 || i === 7 ? 'on' : i === 1 ? 'off' : i === 4 ? 'hover' : 'plain';
-    blit(b, optionPlate(look), r.x, r.y);
-    centred(b, pale(options[i]!, look === 'off' ? C.lock : C.cream), r.x, r.y, r.w, r.h);
+    blit(glass, optionPlate(look), r.x - off(r), r.y - off(r));
+    centred(glass, pale(options[i]!, look === 'off' ? C.lock : C.cream), r.x, r.y, r.w, r.h);
   });
   // the keyboard's focus on slot 5
   const f = layout.options[5]!;
-  blit(b, optionFocus(), f.x - 2, f.y - 2);
-  blit(b, closePlate(), layout.close.x, layout.close.y);
+  blit(glass, optionFocus(), f.x - off(f) - 2, f.y - off(f) - 2);
+  blit(glass, closePlate(), layout.close.x - off(layout.close), layout.close.y - off(layout.close));
+  // the Click option's choices in one sausage, the one in use lit
   const first = layout.choices[0]!;
-  blit(b, choicesBack(choices.length), first.x - 2, first.y - 2);
-  layout.choices.forEach((r, i) => {
-    blit(b, choicePlate(i === 1 ? 'on' : 'plain'), r.x, r.y);
-    centred(b, pale(choices[i]!), r.x, r.y, r.w, r.h);
-  });
+  blit(glass, choicesSausage(choices.length, 1), first.x - 3, first.y - 3);
+  layout.choices.forEach((r, i) => centred(glass, pale(choices[i]!), r.x, r.y, r.w, r.h));
   // a finger's long press, two thirds of the way, far right
   blit(b, pressRing(0.66), 262, 60);
-  return { cells: b };
+  return { cells: b, glass: [{ pic: glass, x: 0, y: 0 }] };
 }
 
 /** A scene with the backpack in the top right corner and its page open. */
@@ -138,18 +141,19 @@ export function kitMock(): Mock {
   const looks: PlateLook[] = ['plain', 'hover', 'down', 'on', 'off', 'main'];
   looks.forEach((look, i) => {
     const x = 4 + i * 52;
-    blit(b, optionPlate(look), x, 4);
-    centred(b, pale(TOOL_ICONS.click, look === 'off' ? C.lock : C.cream), x, 4, 20, 20);
-    blit(b, choicePlate(look), x + 24, 5);
+    blit(b, optionPlate(look), x, 2);
+    centred(b, pale(TOOL_ICONS.click, look === 'off' ? C.lock : C.cream), x, 2, OPTION_PLATE, OPTION_PLATE);
     blit(b, pinCell(1, look), x, 26);
     centred(b, pale(TOOL_ICONS.repeat, look === 'off' ? C.lock : C.cream), x, 26, 30, 15);
     blit(b, text(look.toUpperCase(), C.dim), x, 44);
   });
   blit(b, closePlate(), 4, 60);
-  blit(b, closePlate('hover'), 84, 60);
-  blit(b, optionFocus(), 84, 82);
+  blit(b, closePlate('hover'), 32, 60);
+  blit(b, optionFocus(), 60, 58);
   [0, 0.25, 0.5, 0.75, 1].forEach((f, i) => blit(b, pressRing(f), 110 + i * 27, 60));
-  blit(b, choicesBack(3), 110, 88);
+  const sausage = choicesSausage(4, 2);
+  blit(b, sausage, 4, 92);
+  [TOOL_ICONS.stop, TOOL_ICONS.click, TOOL_ICONS.tick, TOOL_ICONS.tempo].forEach((pic, i) => centred(b, pale(pic), 7 + i * 20, 95, 18, 18));
   blit(b, BACKPACK, 190, 90);
   blit(b, NEW_ITEM_DOT, 190 + BACKPACK.width - 3, 89);
   // every picture of the strip in a cell
@@ -174,9 +178,37 @@ export type UiSheet = keyof typeof UI_SHEETS;
 
 /** One sheet on the fine grid (640 x 360, d110) with the game's palette, ready for `pngBytes`. */
 export function uiSheet(name: UiSheet): { width: number; height: number; pixels: Uint8Array; palette: readonly number[] } {
-  const { cells, fine = [] } = UI_SHEETS[name]();
+  const { cells, glass = [], fine = [] } = UI_SHEETS[name]();
+  const palette = [...PALETTE];
+  for (const layer of glass) seeThrough(cells, layer, palette);
   const out = createBitmap(cells.width * 2, cells.height * 2);
   for (let y = 0; y < out.height; y++) for (let x = 0; x < out.width; x++) out.pixels[y * out.width + x] = cells.pixels[(y >> 1) * cells.width + (x >> 1)]!;
   for (const { pic, x, y } of fine) blit(out, pic, x, y);
-  return { ...out, palette: PALETTE };
+  return { ...out, palette };
+}
+
+/** Lays `layer` over `b` at `BUBBLE_ALPHA`, adding each mixed colour to `palette` once. */
+function seeThrough(b: Canvas, layer: Glass, palette: number[]) {
+  const mixed = new Map<number, number>();
+  const mix = (top: number, under: number) => {
+    const key = top * 256 + under;
+    let index = mixed.get(key);
+    if (index === undefined) {
+      const a = palette[top]!, u = palette[under]!;
+      const channel = (s: number) => Math.round(((a >> s) & 255) * BUBBLE_ALPHA + ((u >> s) & 255) * (1 - BUBBLE_ALPHA));
+      palette.push((channel(16) << 16) | (channel(8) << 8) | channel(0));
+      index = palette.length - 1;
+      if (index > 255) throw new Error('the sheet has more colours than an indexed picture holds');
+      mixed.set(key, index);
+    }
+    return index;
+  };
+  for (let y = 0; y < layer.pic.height; y++) {
+    for (let x = 0; x < layer.pic.width; x++) {
+      const top = layer.pic.pixels[y * layer.pic.width + x]!;
+      const bx = layer.x + x, by = layer.y + y;
+      if (top === 0 || bx < 0 || by < 0 || bx >= b.width || by >= b.height) continue;
+      b.pixels[by * b.width + bx] = mix(top, b.pixels[by * b.width + bx]!);
+    }
+  }
 }
