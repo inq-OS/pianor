@@ -1325,7 +1325,7 @@ export class PracticeScene extends PixelScene {
     // only on the same bars: the indices of the awaited notes are of the run that ended
     const wrong = this.carriedWrong;
     const same = wrong && this.learn && this.learn.run.firstBar === wrong.firstBar && this.learn.run.lastBar === wrong.lastBar;
-    // the rest of the run's chunk very faint after it, and room past the last bar line for the prizes (ft_1_32.AC19, AC20)
+    // the rest of the run's chunk very faint after it, and room at the right for the prizes (ft_1_32.AC19, AC20)
     const learnView = this.learn ? { shown: this.learn.shown, roomRight: this.learn.prizeRoom } : {};
     return { ...(resting.length > 0 ? { restingTracks: resting } : {}), ...(same ? { wrongKey: wrong.key } : {}), ...learnView };
   }
@@ -1424,7 +1424,7 @@ export class PracticeScene extends PixelScene {
     add(unit(ramp.targetUnit), t('practice.unitHint'), () => set(toggleUnit(ramp, 'target', base)));
   }
 
-  /** The prizes earned in learning the piece, on the staff past its last bar line (ft_1_32.AC4, AC19, d287). */
+  /** The prizes earned in learning the piece, in a column at the top right of the staff's sheet (ft_1_32.AC4, AC19, d287). */
   private drawPrizes(): void {
     if (!this.learn) return;
     const rewards = this.learn.rewards();

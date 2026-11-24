@@ -71,7 +71,7 @@ export interface PlaySessionOptions {
    * `faintFrom`; its first notes are `chart`'s, in the same order, so the judge's note indexes are its own.
    */
   shown?: { chart: Chart; faintFrom: number | null };
-  /** Staff spaces left free right of the staff (the prizes of learning past the last bar line, ft_1_32.AC19). */
+  /** Staff spaces left free right of the staff (the column of the prizes of learning, ft_1_32.AC19). */
   roomRight?: number;
   /** A wrong key on the staff from the start, as the run before ended on it (ft_1_32.AC6); gone at the first right key. */
   wrongKey?: WrongKey;
@@ -117,7 +117,9 @@ export class PlaySession {
   private layoutNow: StaffLayout | null = null;
   /** The score of the pass just finished, drawn past the last bar (ft_1_12); empty when none is shown. */
   private passScore: Phaser.GameObjects.GameObject[] = [];
-  /** The prizes of learning drawn past the last bar line (ft_1_32.AC19), and what they show (read by the tests). */
+  /** The width of the area the staff was last drawn in: the sheet's, which the prizes' column keeps inside. */
+  private areaWidth = 0;
+  /** The prizes of learning drawn at the sheet's top right (ft_1_32.AC19), and what they show (read by the tests). */
   private prizes: Phaser.GameObjects.Graphics | null = null;
   prizesShown: readonly PrizeGlyph[] = [];
   private bubble: SpeechBubble | null = null;
@@ -235,6 +237,7 @@ export class PlaySession {
     this.naming = prefs.noteNaming;
     const section = this.options.section;
     const drawn = this.drawn;
+    this.areaWidth = area.width;
     let whole = layoutForSettings(section?.whole ?? this.written, options, settings);
     const room = this.options.roomRight ?? 0;
     if (room > 0) {
@@ -261,7 +264,6 @@ export class PlaySession {
   private applyState(state: PlayState): void {
     const shown = this.toWritten(state);
     this.view?.applyProgress(shown.noteProgress, shown.awaiting);
-    this.showPrizesOnPage();
     if (this.transport) this.view?.applyTimings(shown.noteProgress, shown.timings, this.scoreView);
   }
 
@@ -375,21 +377,16 @@ export class PlaySession {
     this.passScore = [g];
   }
 
-  /** The prizes of learning a piece past the staff's last bar line (ft_1_32.AC19); they stay until the staff is drawn again. */
+  /** The prizes of learning a piece in a column at the sheet's top right (ft_1_32.AC19); they stay until the staff is drawn again. */
   showPrizes(rewards: LearnRewards, focus: PrizeFocus): void {
     this.prizes?.destroy();
     const layout = this.layoutNow;
     const view = this.view;
     if (!layout || !view) return;
-    this.prizesShown = prizeColumn(layout, rewards, focus).glyphs;
-    this.prizes = drawPrizes(this.scene, this.prizesShown, view.origin, layout.staffSpace);
-    this.showPrizesOnPage();
-  }
-
-  /** The prizes stand on the line of the last bar line: shown while its page is (one line at a time turns with the cursor). */
-  private showPrizesOnPage(): void {
-    const system = this.prizesShown[0]?.system;
-    if (system !== undefined) this.prizes?.setVisible(this.layoutNow?.systems[system]?.page === this.view?.currentPage);
+    // the column's right edge a little in from the sheet's, in the room the staff left there
+    const column = prizeColumn(layout.staffSpace, this.areaWidth - view.origin.x - 1.2 * layout.staffSpace, rewards, focus);
+    this.prizesShown = column.glyphs;
+    this.prizes = drawPrizes(this.scene, column, view.origin, layout.staffSpace);
   }
 
   private clearPassScore(): void {

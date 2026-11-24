@@ -2,32 +2,43 @@
 import { describe, expect, it } from 'vitest';
 import type { LearnRewards } from '../learn/progress';
 import type { PrizeFocus } from '../learn/view';
-import { PRIZE, prizeColumn, prizeRoom } from './learnPrizes';
+import { PRIZE, prizeColumn } from './learnPrizes';
 
 const S = 10;
-/** One system whose top line is at y 100, the piece's final bar line at x 400. */
-const layout = {
-  staffSpace: S,
-  systems: [{ topLineY: 100 }],
-  barlines: [{ system: 0, x: 20, y1: 100, y2: 140, kind: 'start' as const }, { system: 0, x: 400, y1: 100, y2: 140, kind: 'final' as const }],
-};
+const RIGHT = 1000;
 const focus = (over: Partial<PrizeFocus> = {}): PrizeFocus => ({ chunk: 0, bars: [0], chunks: [], clef: false, ...over });
 const fresh: LearnRewards = { chunks: [0, 1, 2].map(() => ({ quarters: [], units: 4, merged: null })), piece: null };
+const column = (rewards: LearnRewards, f: PrizeFocus) => prizeColumn(S, RIGHT, rewards, f);
 
 describe('prizeColumn', () => {
-  it('ft_1_32.AC19 a quarter per bar of the chunk, a note per chunk after them and the clef above, past the last bar line', () => {
-    const column = prizeColumn(layout, fresh, focus());
-    expect(column.glyphs.map((g) => g.kind)).toEqual(['quarter', 'quarter', 'quarter', 'quarter', 'whole', 'whole', 'whole', 'clef']);
-    const notes = column.glyphs.filter((g) => g.kind !== 'clef');
-    expect(Math.min(...notes.map((g) => g.box.x))).toBeGreaterThan(400);
-    // left to right, every head on the middle line
-    expect(notes.map((g) => g.x)).toEqual([...notes.map((g) => g.x)].sort((a, b) => a - b));
-    expect(new Set(notes.map((g) => g.y))).toEqual(new Set([100 + 2 * S]));
-    // the clef stands above the top line, over the column
-    const clef = column.glyphs.at(-1)!;
-    expect(clef.box.y + clef.box.h).toBeLessThan(100);
-    expect(clef.x).toBeGreaterThan(notes[0]!.x);
-    expect(clef.x).toBeLessThan(notes.at(-1)!.x);
+  it('ft_1_32.AC19 one narrow column at the top right: the clef on top, the chunk\'s quarters on one stem, a whole note per chunk under them', () => {
+    const { glyphs, stem } = column(fresh, focus());
+    expect(glyphs.map((g) => g.kind)).toEqual(['clef', 'quarter', 'quarter', 'quarter', 'quarter', 'whole', 'whole', 'whole']);
+    // inside the room the staff leaves at the right
+    for (const g of glyphs) {
+      expect(g.box.x).toBeGreaterThanOrEqual(RIGHT - PRIZE.room * S - 1);
+      expect(g.box.x + g.box.w).toBeLessThanOrEqual(RIGHT + 1);
+    }
+    const [clef, ...notes] = glyphs;
+    expect(clef!.y).toBeLessThan(Math.min(...notes.map((n) => n.y)));
+    // the quarters a step apart from the lowest up, staggered either side of their one stem like a chord of seconds
+    const quarters = notes.filter((n) => n.role === 'bar');
+    expect(quarters.map((q) => q.y)).toEqual([...quarters.map((q) => q.y)].sort((a, b) => b - a));
+    expect(quarters[0]!.y - quarters[1]!.y).toBe(PRIZE.step * S);
+    expect(quarters[0]!.x).toBeLessThan(stem!.x);
+    expect(quarters[1]!.x).toBeGreaterThan(stem!.x);
+    expect(stem!.y2).toBeLessThan(quarters.at(-1)!.y);
+    // the chunks' notes under the quarters
+    const chunks = notes.filter((n) => n.role === 'chunk');
+    expect(Math.min(...chunks.map((c) => c.y))).toBeGreaterThan(quarters[0]!.y);
+  });
+
+  it('a finished chunk shows no quarters: they became its whole note', () => {
+    const done: LearnRewards = { ...fresh, chunks: [{ quarters: ['gold', 'gold', 'gold', 'silver'], units: 4, merged: { note: 'whole', medal: 'silver' } }, ...fresh.chunks.slice(1)] };
+    const { glyphs, stem } = column(done, focus({ bars: [], chunks: [0] }));
+    expect(glyphs.filter((g) => g.role === 'bar')).toEqual([]);
+    expect(stem).toBeNull();
+    expect(glyphs.find((g) => g.role === 'chunk')).toMatchObject({ medal: 'silver', lit: true });
   });
 
   it('is faint until earned, takes its medal when earned, and lights the prize the run is for', () => {
@@ -35,42 +46,19 @@ describe('prizeColumn', () => {
       chunks: [{ quarters: ['gold', 'gold', 'gold', 'silver'], units: 4, merged: { note: 'whole', medal: 'silver' } }, { quarters: ['bronze'], units: 4, merged: null }, { quarters: [], units: 4, merged: null }],
       piece: null,
     };
-    const column = prizeColumn(layout, some, focus({ chunk: 1, bars: [1] }));
-    expect(column.glyphs.map((g) => g.medal)).toEqual(['bronze', null, null, null, 'silver', null, null, null]);
-    expect(column.glyphs.map((g) => g.lit)).toEqual([false, true, false, false, false, false, false, false]);
-    expect(prizeColumn(layout, some, focus({ chunk: 1, bars: [], chunks: [1] })).glyphs[5]!.lit).toBe(true);
-    expect(prizeColumn(layout, { ...some, piece: 'gold' }, focus({ clef: true })).glyphs.at(-1)).toMatchObject({ medal: 'gold', lit: true });
+    const { glyphs, stem } = column(some, focus({ chunk: 1, bars: [1] }));
+    expect(glyphs.map((g) => g.medal)).toEqual([null, 'bronze', null, null, null, 'silver', null, null]);
+    expect(glyphs.map((g) => g.lit)).toEqual([false, false, true, false, false, false, false, false]);
+    expect(stem!.earned).toBe(true);
+    expect(column({ ...some, piece: 'gold' }, focus({ clef: true })).glyphs[0]).toMatchObject({ kind: 'clef', medal: 'gold', lit: true });
   });
 
-  it('draws a short chunk as its own note value, and keeps four quarter places', () => {
+  it('draws a short chunk with its own count of quarters and its own note value', () => {
     const six: LearnRewards = { chunks: [{ quarters: [], units: 4, merged: null }, { quarters: [], units: 2, merged: null }], piece: null };
-    const kinds = (f: PrizeFocus) => prizeColumn(layout, six, f).glyphs.map((g) => g.kind);
-    expect(kinds(focus({ chunk: 1 }))).toEqual(['quarter', 'quarter', 'whole', 'half', 'clef']);
-    const second = prizeColumn(layout, six, focus({ chunk: 1 })).glyphs;
-    const first = prizeColumn(layout, six, focus()).glyphs;
-    // the chunk notes stay where they are whichever chunk's quarters are shown
-    expect(second.find((g) => g.role === 'chunk')!.x).toBe(first.find((g) => g.role === 'chunk')!.x);
+    expect(column(six, focus({ chunk: 1 })).glyphs.map((g) => g.kind)).toEqual(['clef', 'quarter', 'quarter', 'whole', 'half']);
   });
 
-  it('wraps more than four chunk notes to a row under the first', () => {
-    const long: LearnRewards = { chunks: Array.from({ length: 6 }, () => ({ quarters: [], units: 4, merged: null })), piece: null };
-    const chunkNotes = prizeColumn(layout, long, focus()).glyphs.filter((g) => g.role === 'chunk');
-    expect(chunkNotes).toHaveLength(6);
-    expect(chunkNotes[4]!.y).toBeGreaterThan(chunkNotes[0]!.y);
-    expect(chunkNotes[4]!.x).toBe(chunkNotes[0]!.x);
-  });
-
-  it('reserves room for the whole column, which stays inside it', () => {
-    const column = prizeColumn(layout, fresh, focus());
-    const right = Math.max(...column.glyphs.map((g) => g.box.x + g.box.w));
-    expect(right - 400).toBeLessThanOrEqual(prizeRoom(3) * S);
-    expect(prizeRoom(1)).toBeLessThan(prizeRoom(4));
-    expect(prizeRoom(9)).toBe(prizeRoom(4));
-    expect(PRIZE.clefScale).toBeGreaterThan(0);
-  });
-
-  it('draws nothing for a piece with nothing to learn or a layout with no bar line', () => {
-    expect(prizeColumn(layout, { chunks: [], piece: null }, focus()).glyphs).toEqual([]);
-    expect(prizeColumn({ ...layout, barlines: [] }, fresh, focus()).glyphs).toEqual([]);
+  it('draws nothing for a piece with nothing to learn', () => {
+    expect(column({ chunks: [], piece: null }, focus())).toEqual({ glyphs: [], stem: null });
   });
 });

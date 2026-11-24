@@ -2,8 +2,8 @@ import type { Chart } from '../../core/chart';
 import { sliceChart } from '../../core/chart/section';
 import type { JudgeEvent, WrongNoteJudged, WrongReason } from '../../core/judge';
 import { markersByNote, mistakeMarkers } from '../../core/learn/markers';
-import { prizeRoom } from '../../core/layout/learnPrizes';
-import { handChart, LEARN_RULES, learnPlan, learnUnits, type LearnStep } from '../../core/learn/plan';
+import { PRIZE } from '../../core/layout/learnPrizes';
+import { handChart, learnPlan, learnUnits, type LearnStep } from '../../core/learn/plan';
 import {
   afterRun, currentRun, goldenBars, halfLearned, isLearned, isMeasured, learnHandsApart, learnRewards, learnStepBars, measuredOutcome, sitDown, startOver, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
 } from '../../core/learn/progress';
@@ -98,9 +98,9 @@ export class LearnSession {
     return prizeFocus(this.run.step, this.plan, rewards);
   }
 
-  /** The staff spaces the prizes take past the staff's last bar line (ft_1_32.AC19). */
+  /** The staff spaces the column of the prizes takes at the staff's right (ft_1_32.AC19). */
   get prizeRoom(): number {
-    return prizeRoom(Math.ceil(learnUnits(this.piece).length / LEARN_RULES.chunkUnits));
+    return PRIZE.room;
   }
 
   /**

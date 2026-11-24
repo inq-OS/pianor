@@ -1,28 +1,27 @@
 import { chunkNoteOf, type ChunkNote, type LearnRewards, type Medal } from '../learn/progress';
 import type { PrizeFocus } from '../learn/view';
-import type { StaffLayout } from './staffTypes';
 
 /**
- * Where the prizes of learning a piece stand on the staff (ft_1_32.AC19, d287): past the last bar line, level with the
- * (first) staff of its line, a quarter note for each bar of the chunk being learned, then one note per chunk; the piece's
- * treble clef above the lines over them. Pure: the view only draws it. Sizes in staff spaces.
- * AX-3 provisional: more than `PRIZE.row` chunk notes wrap to a row under the first.
+ * Where the prizes of learning a piece stand on the staff's sheet (ft_1_32.AC19, d287): one narrow column at the top right,
+ * the piece's treble clef at its top; under it the bars of the chunk being learned as quarter notes on one stem, stacked a
+ * step apart and staggered like the heads of a chord of seconds; under them one whole note per chunk, stacked the same way.
+ * A finished chunk shows no quarters: they have become its whole note. Pure: the view only draws it. Sizes in staff spaces.
  */
 export const PRIZE = {
-  /** From the final bar line to the first quarter's place. */
-  gap: 1.4,
-  /** The width of a quarter's place and of a chunk note's place. */
-  quarter: 1.9,
-  chunk: 2.6,
-  /** Room between the quarters and the chunk notes. */
-  between: 0.8,
-  /** Chunk notes in a row, and how far a second row is under the first. */
-  row: 4,
-  rowDrop: 6,
-  /** The clef is drawn at this share of the staff's own clef, its foot this far above the top line. */
+  /** The width the column takes at the right of the staff. */
+  room: 5,
+  /** From the top of the sheet to the clef, and between the parts of the column. */
+  top: 0.6,
+  gap: 1.2,
+  /** A step between two stacked heads (a second), and the stem above the top head. */
+  step: 0.5,
+  stem: 3.2,
+  /** Head radii: a quarter's and a whole note's. */
+  quarterRx: 0.62,
+  wholeRx: 0.78,
+  headRy: 0.47,
+  /** The clef is drawn at this share of the staff's own clef (`TREBLE_CLEF_STROKE`, a 2.6 by 7 box). */
   clefScale: 0.55,
-  clefRise: 1.9,
-  /** The treble clef's box in its own staff spaces (`TREBLE_CLEF_STROKE`). */
   clefBox: { w: 2.6, h: 7 },
 } as const;
 
@@ -38,48 +37,52 @@ export interface PrizeGlyph {
   /** A note's head centre; the clef's top-left corner (drawn at `PRIZE.clefScale`). */
   x: number;
   y: number;
-  system: number;
   /** The place of the glyph, for its box. */
   box: { x: number; y: number; w: number; h: number };
 }
 
-/** The staff spaces the column takes past the final bar line, for a piece of `chunks` chunks: what the staff leaves free. */
-export function prizeRoom(chunks: number): number {
-  const notes = Math.min(Math.max(1, chunks), PRIZE.row);
-  return PRIZE.gap + 4 * PRIZE.quarter + PRIZE.between + notes * PRIZE.chunk + 0.5;
+export interface PrizeColumn {
+  glyphs: PrizeGlyph[];
+  /** The quarters' one stem (x, from the lowest head up past the top one), and whether any quarter is earned; null with no quarters. */
+  stem: { x: number; y1: number; y2: number; earned: boolean } | null;
 }
 
-export function prizeColumn(layout: Pick<StaffLayout, 'staffSpace' | 'barlines'> & { systems: readonly { topLineY: number }[] }, rewards: LearnRewards, focus: PrizeFocus): { glyphs: PrizeGlyph[] } {
-  const end = layout.barlines.find((b) => b.kind === 'final') ?? layout.barlines.at(-1);
-  if (!end || rewards.chunks.length === 0) return { glyphs: [] };
-  const S = layout.staffSpace;
-  const top = layout.systems[end.system]?.topLineY ?? end.y1;
-  const middle = top + 2 * S;
-  const system = end.system;
+/**
+ * The column whose right edge is at `right` (layout pixels; the staff leaves `PRIZE.room` staff spaces free left of it), from
+ * the top of the sheet (y 0) down, for a staff of `staffSpace`.
+ */
+export function prizeColumn(staffSpace: number, right: number, rewards: LearnRewards, focus: PrizeFocus): PrizeColumn {
+  if (rewards.chunks.length === 0) return { glyphs: [], stem: null };
+  const S = staffSpace;
+  const cx = right - (PRIZE.room * S) / 2;
   const glyphs: PrizeGlyph[] = [];
-  const noteBox = (left: number, width: number, y: number) => ({ x: left, y: y - 3.2 * S, w: width, h: 6.4 * S });
-  // the quarters of the chunk shown, in four fixed places so the chunk notes never move
-  const left = end.x + PRIZE.gap * S;
-  const shown = rewards.chunks[focus.chunk] ?? rewards.chunks[0]!;
-  for (let i = 0; i < shown.units; i++) {
-    const x0 = left + i * PRIZE.quarter * S;
-    glyphs.push({ kind: 'quarter', role: 'bar', index: i, medal: shown.quarters[i] ?? null, lit: focus.bars.includes(i), x: x0 + (PRIZE.quarter * S) / 2, y: middle, system, box: noteBox(x0, PRIZE.quarter * S, middle) });
-  }
-  const chunksLeft = left + (4 * PRIZE.quarter + PRIZE.between) * S;
-  rewards.chunks.forEach((chunk, c) => {
-    const x0 = chunksLeft + (c % PRIZE.row) * PRIZE.chunk * S;
-    const y = middle + Math.floor(c / PRIZE.row) * PRIZE.rowDrop * S;
-    glyphs.push({
-      kind: chunk.merged?.note ?? chunkNoteOf(chunk.units), role: 'chunk', index: c, medal: chunk.merged?.medal ?? null, lit: focus.chunks.includes(c),
-      x: x0 + (PRIZE.chunk * S) / 2, y, system, box: noteBox(x0, PRIZE.chunk * S, y),
-    });
-  });
-  // the clef over the middle of the first row
-  const right = chunksLeft + Math.min(rewards.chunks.length, PRIZE.row) * PRIZE.chunk * S;
+  // the clef at the top
   const w = PRIZE.clefBox.w * PRIZE.clefScale * S;
   const h = PRIZE.clefBox.h * PRIZE.clefScale * S;
-  const cx = (left + right) / 2;
-  const y = top - PRIZE.clefRise * S - h;
-  glyphs.push({ kind: 'clef', role: 'piece', index: 0, medal: rewards.piece, lit: focus.clef, x: cx - w / 2, y, system, box: { x: cx - w / 2 - 0.6 * S, y: y - 0.4 * S, w: w + 1.2 * S, h: h + 0.8 * S } });
-  return { glyphs };
+  const clefTop = PRIZE.top * S;
+  glyphs.push({ kind: 'clef', role: 'piece', index: 0, medal: rewards.piece, lit: focus.clef, x: cx - w / 2, y: clefTop, box: { x: cx - w / 2 - 0.6 * S, y: clefTop - 0.4 * S, w: w + 1.2 * S, h: h + 0.8 * S } });
+  let y = clefTop + h + PRIZE.gap * S;
+  // heads stacked a step apart from the lowest up, every second one on the other side of the stem, as in a chord of seconds
+  const headBox = (x: number, hy: number, rx: number) => ({ x: x - rx - 0.25 * S, y: hy - PRIZE.headRy * S - 0.25 * S, w: 2 * rx + 0.5 * S, h: 2 * PRIZE.headRy * S + 0.5 * S });
+  const stack = (count: number, rx: number, from: number) => Array.from({ length: count }, (_, i) => ({ x: cx + (i % 2 === 0 ? -rx : rx), y: from - i * PRIZE.step * S }));
+  // the quarters of the chunk being learned, on one stem; none once the chunk is finished (they became its whole note)
+  const chunk = rewards.chunks[focus.chunk] ?? rewards.chunks[0]!;
+  let stem: PrizeColumn['stem'] = null;
+  if (!chunk.merged) {
+    const rx = PRIZE.quarterRx * S;
+    const lowest = y + (PRIZE.stem + (chunk.units - 1) * PRIZE.step) * S;
+    stack(chunk.units, rx, lowest).forEach((head, i) => {
+      glyphs.push({ kind: 'quarter', role: 'bar', index: i, medal: chunk.quarters[i] ?? null, lit: focus.bars.includes(i), ...head, box: headBox(head.x, head.y, rx) });
+    });
+    stem = { x: cx, y1: lowest, y2: y, earned: chunk.quarters.length > 0 };
+    y = lowest + PRIZE.headRy * S + PRIZE.gap * S;
+  }
+  // one whole note (or the shorter chunk's own value) per chunk
+  const rx = PRIZE.wholeRx * S;
+  const lowest = y + PRIZE.headRy * S + (rewards.chunks.length - 1) * PRIZE.step * S;
+  stack(rewards.chunks.length, rx, lowest).forEach((head, c) => {
+    const merged = rewards.chunks[c]!.merged;
+    glyphs.push({ kind: merged?.note ?? chunkNoteOf(rewards.chunks[c]!.units), role: 'chunk', index: c, medal: merged?.medal ?? null, lit: focus.chunks.includes(c), ...head, box: headBox(head.x, head.y, rx) });
+  });
+  return { glyphs, stem };
 }

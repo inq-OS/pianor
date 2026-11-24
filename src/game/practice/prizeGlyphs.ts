@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import type { PrizeGlyph } from '../../core/layout/learnPrizes';
+import type { PrizeColumn, PrizeGlyph } from '../../core/layout/learnPrizes';
 import { PRIZE } from '../../core/layout/learnPrizes';
 import { STAFF_INK } from '../../core/layout/scoreColour';
 import type { Medal } from '../../core/learn/progress';
@@ -24,8 +24,9 @@ const LIT_ALPHA = 0.38;
 /** The soft box behind the lit prize: the staff cursor's box colour. */
 const LIT_FILL = 0xeceff1;
 
-export function drawPrizes(scene: Phaser.Scene, glyphs: readonly PrizeGlyph[], origin: { x: number; y: number }, staffSpace: number): Phaser.GameObjects.Graphics {
+export function drawPrizes(scene: Phaser.Scene, column: PrizeColumn, origin: { x: number; y: number }, staffSpace: number): Phaser.GameObjects.Graphics {
   const S = staffSpace;
+  const { glyphs, stem } = column;
   const g = scene.add.graphics().setPosition(origin.x, origin.y);
   for (const p of glyphs) {
     if (p.lit) g.fillStyle(LIT_FILL, 1).fillRoundedRect(p.box.x, p.box.y, p.box.w, p.box.h, S * 0.4);
@@ -50,9 +51,11 @@ export function drawPrizes(scene: Phaser.Scene, glyphs: readonly PrizeGlyph[], o
       g.fillStyle(fill, alpha).fillEllipse(p.x, p.y, rx * 2, ry * 2);
       if (ink) g.lineStyle(S * 0.1, edge, 1).strokeEllipse(p.x, p.y, rx * 2, ry * 2);
     }
-    if (!whole) g.lineStyle(S * 0.14, edge, alpha).lineBetween(p.x + rx - S * 0.07, p.y, p.x + rx - S * 0.07, p.y - 3.4 * S);
+    // the quarters share one stem (below); a half note of a short chunk has its own
+    if (p.kind === 'half' || p.kind === 'dotted-half') g.lineStyle(S * 0.14, edge, alpha).lineBetween(p.x + rx - S * 0.07, p.y, p.x + rx - S * 0.07, p.y - 3.2 * S);
     if (p.kind === 'dotted-half') g.fillStyle(edge, alpha).fillCircle(p.x + rx + S * 0.45, p.y - S * 0.1, S * 0.16);
   }
+  if (stem) g.lineStyle(S * 0.14, STAFF_INK, stem.earned ? 1 : PLACEHOLDER_ALPHA).lineBetween(stem.x, stem.y1, stem.x, stem.y2);
   return g;
 }
 
