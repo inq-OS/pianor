@@ -185,7 +185,7 @@ Places on the photo map are given by cells of the painter's grid: cells of 25 m,
 | The tripod mark | at the Kaleva memorial, which has a flagpole of its own | at the memorial |
 | The guide pole | the signpost above is the guide pole of the photographs | the same pole |
 | The weather station | on top of the lattice mast | on top of the mast between the house and the power station |
-| The lighthouse's side building (`building-2`, O9/P9) | beside the lighthouse | currently unoccupied and in need of renovation; probably the lighthouse's supplementary building |
+| The lighthouse's side building (`building-2`, O9/P9) | beside the lighthouse | right at the lighthouse's foot; boarded up, unoccupied and in need of renovation in reality too; probably the lighthouse's supplementary building |
 | The new wooden shed (`red-shed`, O10) | south-west of the lighthouse, red roof | a recently built wooden shed with sleeping areas, a kitchen and a party area |
 | The old boat shed (`wood-shed`, O11) | south of the lighthouse | an old boat shed |
 | The mummy of a sea gull (`shore-shed`, Q11) | the small shed by the south pier; one of the landmarks of section 7 | a "mummy of a sea gull" and nothing else |
