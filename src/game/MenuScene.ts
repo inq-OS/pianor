@@ -724,36 +724,34 @@ export class MenuScene extends PixelScene {
     this.redraw();
   }
 
-  /** The piece's own level (ft_1_13): on the second line beside its stars when it fits before `limit`, else not written. */
-  private pieceLevel(button: PixelButton, record: PieceRecord, card: { left: number; top: number; flip: (x: number, w?: number) => number }, limit: number): void {
-    const { left, top, flip } = card;
+  /** The piece's own level (ft_1_13): on the second line from `from` when it fits before `limit`, else not written. */
+  private pieceLevel(button: PixelButton, record: PieceRecord, card: { top: number; flip: (x: number, w?: number) => number }, from: number, limit: number): void {
+    const { top, flip } = card;
     const text = t('menu.pieceLevel', { level: record.level.level });
     const width = measure(drawnText(text));
-    const besideStars = left + 6 + GRADE_WIDTH + 6;
-    if (besideStars + width > limit - 3) return;
-    const level = new PixelText(this, flip(besideStars, width), top + 20, text, { color: C.umberDark }).setName('pieceLevel');
+    if (from + width > limit) return;
+    const level = new PixelText(this, flip(from, width), top + 20, text, { color: C.umberDark }).setName('pieceLevel');
     this.root.add(level);
     button.attach(level);
   }
 
   /**
-   * A card's small buttons as a block of three by two at its outer side (`CARD_GRID`): parts, S and i on the title's line,
-   * the hide button under i; the block's other places are kept free. The middle of the card, between the stars and the
-   * block, is kept for other things.
+   * A card's small buttons in a row on its second line, each in its own place whether or not it is there: parts, S, i and
+   * the hide button, outward from the stars.
    */
-  private cardButtons(piece: Piece, button: PixelButton, at: (column: number, row: number) => { x: number; y: number }): { info: PixelButton; stats: PixelButton } {
+  private cardButtons(piece: Piece, button: PixelButton, at: (place: number) => { x: number; y: number }): { info: PixelButton; stats: PixelButton } {
     const small = (place: { x: number; y: number }, label: string, onClick: () => void): PixelButton =>
       this.own(new PixelButton(this, this.root, { ...place, width: INFO_SIZE, height: INFO_SIZE, label, look: 'ink', inkBox: true, onClick }));
-    const info = small(at(2, 0), t('info.button'), () => this.showInfo(piece.chart.id));
+    const info = small(at(2), t('info.button'), () => this.showInfo(piece.chart.id));
     this.infoButtons.set(piece.chart.id, info);
-    const stats = small(at(1, 0), t('stats.button'), () => startScene(this, 'results', { chartId: piece.chart.id }));
+    const stats = small(at(1), t('stats.button'), () => startScene(this, 'results', { chartId: piece.chart.id }));
     this.statsButtons.set(piece.chart.id, stats);
     // AX-3 provisional: the parts screen is reached by a small button, not by the card, so a tap still plays at once (core_06)
     if (piece.chart.phrases.length > 0 && !this.maker) {
-      this.partsButtons.set(piece.chart.id, small(at(0, 0), t('parts.button'), () => startScene(this, 'parts', { chartId: piece.chart.id })));
+      this.partsButtons.set(piece.chart.id, small(at(0), t('parts.button'), () => startScene(this, 'parts', { chartId: piece.chart.id })));
     }
-    // under i, apart from the others: take the piece out of the book, in two presses (ft_1_02c.AC8); never the last piece in it
-    if (!this.maker && contextOf(this).profiles.canTurnOff(piece.chart.id)) this.hideButton(piece.chart.id, button, at(2, 1));
+    // past i: take the piece out of the book, in two presses (ft_1_02c.AC8); never the last piece in it
+    if (!this.maker && contextOf(this).profiles.canTurnOff(piece.chart.id)) this.hideButton(piece.chart.id, button, at(3));
     return { info, stats };
   }
 
@@ -770,10 +768,10 @@ export class MenuScene extends PixelScene {
     const left = cardLeft;
     const top = y - this.cardRow / 4 - CARD_HEIGHT / 4;
     const line = CARD_HEIGHT / 2;
-    // the small buttons' block at the outer side; `at` is a place's centre
-    const outerColumn = left + width - 5 - 20;
-    const at = (column: number, row: number) => ({ x: flip(outerColumn - (2 - column) * STATS_OFFSET), y: row === 0 ? top + line / 2 : top + 23 });
-    const gridLeft = outerColumn - 2 * STATS_OFFSET - INFO_SIZE / 2;
+    // the small buttons in a row on the second line, one button's width past the stars; `at` is a place's centre
+    const firstButton = left + 6 + GRADE_WIDTH + INFO_SIZE + INFO_SIZE / 2;
+    const at = (place: number) => ({ x: flip(firstButton + place * STATS_OFFSET), y: top + 23 });
+    const lineEnd = left + width - 5;
     // written in the book: the title on the first line with its signs just past it, the line under it the stars and the
     // piece's level; the title is what plays the piece
     const mark = this.maker ? undefined : this.curriculumMarks.get(piece.chart.id);
@@ -790,10 +788,10 @@ export class MenuScene extends PixelScene {
     ];
     const signRoom = signs.reduce((a, b) => a + b + SIGN_GAP, 0);
     // a title too long for the room before the signs and the block is cut on one line
-    const room = gridLeft - 4 - (left + 6) - signRoom;
+    const room = lineEnd - 4 - (left + 6) - signRoom;
     const title = clipToWidth(pieceTitle(piece.chart), room, (text) => measure(drawnText(text)));
     const titleEnd = left + 6 + measure(drawnText(title));
-    const buttonWidth = (signs.length === 0 ? gridLeft - 3 : titleEnd + 2) - left;
+    const buttonWidth = (signs.length === 0 ? lineEnd : titleEnd + 2) - left;
     const button = this.button({
       x: flip(left + buttonWidth / 2), y: top + CARD_HEIGHT / 4, width: buttonWidth, height: CARD_HEIGHT / 2, label: title, look: 'ink', align: mirrored ? 'right' : 'left', labelWidth: room,
       onClick: () => {
@@ -830,7 +828,7 @@ export class MenuScene extends PixelScene {
       if (this.flight?.chartId === piece.chart.id) this.flightSign = image;
     });
     const { info, stats } = this.cardButtons(piece, button, at);
-    if (record) this.pieceLevel(button, record, { left, top, flip }, outerColumn - INFO_SIZE / 2);
+    if (record) this.pieceLevel(button, record, { top, flip }, firstButton + 3 * STATS_OFFSET + INFO_SIZE / 2 + 6, lineEnd);
     // the five-star grade of the best play, stacked like interlocking rings: three over two, the two set in between (ft_1_12 rule 7)
     const grade = record?.bestGrade ?? 0;
     const starsAt = flip(left + 6, GRADE_WIDTH);
