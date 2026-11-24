@@ -1,7 +1,7 @@
 import { featureGroup, rate, summarize } from './completeness.ts';
 import type { AuthoringMeta, DecisionMeta, FeatureMeta, PlaytestMeta } from './schemas.ts';
 
-const cell = (text: string): string => text.replace(/\|/g, '\\|');
+const cell = (text: string): string => text.replace(/[\\|]/g, '\\$&');
 const row = (cells: string[]): string => `| ${cells.map(cell).join(' | ')} |`;
 const table = (head: string[], rows: string[][]): string => [row(head), `|${head.map(() => '---').join('|')}|`, ...rows.map(row)].join('\n');
 
