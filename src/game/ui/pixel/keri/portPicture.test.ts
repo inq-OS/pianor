@@ -1,5 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { BOAT_KINDS, PORT, PORT_MOORED, portPlan } from '../../../../core/layout/port';
+import portScene from '../../../../../content/scenes/port.json';
+import { BOAT_KINDS, PORT, PORT_AT_LANDING, PORT_LANDING_BERTH, PORT_MOORED, portPlan } from '../../../../core/layout/port';
 import { SKY_PHASES } from '../../../../core/sky/skyPhase';
 import { PALETTE } from '../palette';
 import { packPort, unpackPort } from './portPack';
@@ -114,6 +115,34 @@ describe('the painted harbour (ft_1_19.AC10)', () => {
     for (const m of portMoorings(plan, PORT_MOORED)) expect(covered(m.x + 20, m.y)).toBe(true);
   });
 
+  it('ft_1_19.AC10 the fisherman\'s rowing boat lies before the quay at the low landing, whole over the quay\'s face, tied to two rings, clear of where he stands on the landing', () => {
+    expect(PORT_AT_LANDING).toBe('row');
+    const { front } = pictures.day;
+    const boat = pictures.day.boats.row, frame = boat.frames[0]!;
+    const still = portStill(pictures.day, plan, PORT_MOORED);
+    const bare = portStill(pictures.day, plan, PORT_MOORED, null);
+    const left = boat.x + PORT_LANDING_BERTH.x, top = boat.y + PORT_LANDING_BERTH.water;
+    // the boat shows where the quay's face is painted: it lies before it, not behind
+    let over = 0;
+    for (let y = 0; y < frame.height; y++) for (let x = 0; x < frame.width; x++) {
+      const gx = left + x, gy = top + y;
+      const f = front.frames[0]!, fx = gx - front.x, fy = gy - front.y;
+      const face = fx >= 0 && fy >= 0 && fx < f.width && fy < f.height && f.pixels[fy * f.width + fx] !== 0;
+      if (frame.pixels[y * frame.width + x] && face && still.pixels[gy * still.width + gx] !== bare.pixels[gy * bare.width + gx]) over++;
+    }
+    expect(over).toBeGreaterThan(500);
+    // its picture holds both lines, back to the ring in the face and on to the ring over the landing
+    expect(left).toBeLessThanOrEqual(312);
+    expect(left + frame.width).toBeGreaterThanOrEqual(PORT_LANDING.l + 24);
+    // nothing of it but its bow line stands where he stands on the landing
+    const landing = portScene.places.find((p) => p.id === 'landing')!;
+    expect(landing.x).toBeGreaterThan(PORT_LANDING.l);
+    expect(landing.x).toBeLessThan(PORT_LANDING.r);
+    let under = 0;
+    for (let y = 0; y < frame.height; y++) for (let x = 0; x < frame.width; x++) if (frame.pixels[y * frame.width + x] && Math.abs(left + x - landing.x) < 12 && top + y < landing.y) under++;
+    expect(under).toBe(0);
+  });
+
   it('ft_1_19.AC10 the boats painted alone, for a script\'s figures, are the boats the port paints, by day and lit at night', () => {
     for (const phase of ['day', 'night'] as const) expect(portBoats(plan, phase)).toEqual(pictures[phase].boats);
   });
@@ -123,6 +152,16 @@ describe('the painted harbour (ft_1_19.AC10)', () => {
     expect(lit(pictures.night)).toBe(true);
     expect(lit(pictures.day)).toBe(false);
     expect(PORT_CLOUDS.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('ft_1_19.AC5 the beacon is a fire pan: at night a fire burns in it, its flames hottest at the heart and changing between its looks; by day it is cold', () => {
+    const ember = portPalette('night').indexOf(0xfff2a8);
+    for (const hour of ['night'] as const) {
+      const looks = pictures[hour].lamp.frames;
+      for (const f of looks) expect(f.pixels.filter((c) => c === ember).length, hour).toBeGreaterThan(8);
+      expect([...looks[0]!.pixels]).not.toEqual([...looks[1]!.pixels]);
+    }
+    for (const hour of ['day'] as const) expect(pictures[hour].lamp.frames.every((f) => f.pixels.filter((c) => c !== 0).length <= 1)).toBe(true);
   });
 
   it('ft_1_19.AC10 the stair ends on a low landing by the water, on round the quay\'s head: stone a little over the waterline, sea beside it', () => {

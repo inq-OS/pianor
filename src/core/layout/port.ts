@@ -70,8 +70,26 @@ export const PORT_BERTHS: readonly { x: number; water: number; room: number }[] 
  */
 export const PORT_MOORED: readonly BoatKind[] = ['houseboat'];
 
-/** Where the beacon's lantern hangs at the quay's head (fine pixels): its light glows round it at dusk and night. */
-const LAMP = { x: PORT.head - 18, y: 122 } as const;
+/**
+ * The berth in the near water at the low landing on the quay's end, for a small boat: its waterline in the near water,
+ * so it lies before the quay and shows whole, its bow at the landing's foot, where its skipper steps up onto the landing.
+ */
+export const PORT_LANDING_BERTH = { x: 395, water: PORT.water + 30 } as const;
+
+/**
+ * Which boat lies at the landing: the Prangli fisherman's tarred rowing boat; he stands on the landing beside it (the
+ * scene's place `landing`). AX-3 provisional: it lies there every day, as the houseboat does, until the visitors'
+ * presence (ft_1_25) moors it only on his days (`docs/keri/scene-port.md`, Open).
+ */
+export const PORT_AT_LANDING: BoatKind | null = 'row';
+
+/**
+ * The beacon at the quay's head (fine pixels): a raised stone platform at the very end, its top about as high as a
+ * standing person's head, and on it a fire pan big enough for a bonfire, burning at dusk and night. `l`, `r` and `top`
+ * are the platform's; `x`, `y` the middle of the pan's rim.
+ */
+export const PORT_BEACON = { l: PORT.head - 32, r: PORT.head + 9, top: 106, x: PORT.head - 12, y: 90 } as const;
+const LAMP = { x: PORT_BEACON.x, y: PORT_BEACON.y } as const;
 
 /** Where the light falls in pools on the sand of the bed (centres, fine pixels of the tall picture). */
 const SAND_LIGHT = [{ x: 150, y: PORT.bed + 14 }, { x: 470, y: PORT.bed + 16 }] as const;

@@ -16,6 +16,8 @@
       "bottomColour": "navy",
       "feet": "boots",
       "feetColour": "black",
+      "held": "rod",
+      "heldColour": "oak",
       "build": "stout",
       "height": "short",
       "belly": "belly"

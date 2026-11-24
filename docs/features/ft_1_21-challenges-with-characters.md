@@ -69,9 +69,9 @@ All AX-3 provisional (d129) until it has been playtested.
 
 - TODO(builder, R3): AC20's piece pick: the student picks any piece of their list for a character's level (d095) instead of the piece it taught; today the tug plays `CharacterDef.phrases` of its level.
 - TODO(painter, R2): the tree spirit's prize ladder (AC18) in `prizeArt.ts`: the oak leaf, acorn, golden leaf, singing branch and seed of life are the builder's simple first pictures; paint each rung a step finer than the last, the seed of life as the top prize.
-- TODO(painter, R2): the fisherman's five prizes (net float, net needle, gull feather, holed stone, ship's bell) have no pictures; `tests/content/characters.test.ts` lists them as its known gaps until they are drawn.
 - TODO(builder, R2): the fisherman's tunes wait for the maintainer's pick. He teaches levels 1 and 2 for now: `fisherman-3` (the sea shanty verse, a draft) estimates two steps above tug level 3 (d138), so it is not his level 3 and carries no `difficulty` until a tune that fits is picked.
 - TODO(painter, R3): the five rungs of each ft_1_22 character's prize ladder (AC18, [cast-and-phrases.md](../architect/cast-and-phrases.md) section 1) in `prizeArt.ts`, when each character is built.
+- TODO(painter, R2): the prizes in `prizeArt.ts` are painted at the piece maker's item size (56 x 40 fine pixels) for today's band slot; the band leaves the scenes and a student's kept items go into the backpack in the top right corner (ft_1_20): fit every prize to the backpack's slot with its outline whole, the tree spirit's and the fisherman's alike, once the backpack is drawn.
 - TODO(painter, R3): in the tug, Kiur's note on his token dims at night as his sleep letters do.
 - TODO(painter, R3): Kiur the trainer's tug shows a note on his token, not his face; give him a small face of his own in `CHARACTER_FACES` (`tugArt.ts`) when the tug is playtested.
 

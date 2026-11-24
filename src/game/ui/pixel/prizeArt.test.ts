@@ -4,7 +4,7 @@ import itemsJson from '../../../../content/items/items.json';
 import { parseItems } from '../../../core/item/item';
 import { inkBounds, inkCount } from './bitmap';
 import { ITEM_SIZE } from './itemArt';
-import { acorn, ACORN_INK, goldenLeaf, LEAF_INK, leafReach, OAK_LEAF_INK, oakLeaf, PRIZE_PICTURES, prizePicture, SEED_INK, seedOfLife } from './prizeArt';
+import { acorn, ACORN_INK, BELL_INK, FEATHER_INK, FLOAT_INK, goldenLeaf, gullFeather, holedStone, NEEDLE_INK, netFloat, netNeedle, shipsBell, STONE_INK, LEAF_INK, leafReach, OAK_LEAF_INK, oakLeaf, PRIZE_PICTURES, prizePicture, SEED_INK, seedOfLife } from './prizeArt';
 
 describe('the prizes\' pictures in the band (ft_1_21.AC15, WP-13)', () => {
   it('ft_1_21.AC15 every picture key in the items file is drawn, at the size of a band item', () => {
@@ -50,5 +50,28 @@ describe('the prizes\' pictures in the band (ft_1_21.AC15, WP-13)', () => {
     const reach = Array.from({ length: 40 }, (_, i) => leafReach((i + 0.5) / 40, 1));
     const turns = reach.slice(1, -1).filter((r, i) => (r - reach[i]!) * (reach[i + 2]! - r) < 0).length;
     expect(turns).toBeGreaterThanOrEqual(3);
+  });
+
+  it('ft_1_21.AC18 the fisherman\'s rungs climb: a plain cork float and net needle, a gull\'s feather, a holed stone with a glint, a brass bell with points of light round it', () => {
+    const inks = (picture: ReturnType<typeof netFloat>) => new Set(picture.pixels);
+    const float = inks(netFloat());
+    for (const c of [...FLOAT_INK.cork, FLOAT_INK.line, FLOAT_INK.twine.light]) expect(float.has(c)).toBe(true);
+    const needle = inks(netNeedle());
+    for (const c of [...NEEDLE_INK.wood, NEEDLE_INK.line, NEEDLE_INK.twine.light, NEEDLE_INK.twine.dark]) expect(needle.has(c)).toBe(true);
+    const feather = inks(gullFeather());
+    for (const c of [...FEATHER_INK.vane, FEATHER_INK.line, FEATHER_INK.tip[1], FEATHER_INK.spot]) expect(feather.has(c)).toBe(true);
+    const stone = inks(holedStone());
+    for (const c of [...STONE_INK.stone, STONE_INK.line, STONE_INK.glint]) expect(stone.has(c)).toBe(true);
+    const bell = inks(shipsBell());
+    for (const c of [...BELL_INK.brass, BELL_INK.line, ...BELL_INK.light]) expect(bell.has(c)).toBe(true);
+    // the plain rungs have no glint, the treasure does
+    for (const plain of [float, needle]) expect(plain.has(BELL_INK.light[1])).toBe(false);
+    for (const picture of [netFloat(), netNeedle(), gullFeather(), holedStone(), shipsBell()]) expect(inkCount(picture)).toBeGreaterThan(300);
+  });
+
+  it('the holed stone has its hole: the slot shows through the middle of the stone', () => {
+    const stone = holedStone();
+    expect(stone.pixels[20 * stone.width + 33]).toBe(0);
+    expect(stone.pixels[20 * stone.width + 20]).not.toBe(0);
   });
 });

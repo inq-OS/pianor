@@ -70,7 +70,7 @@ export interface Look {
   bottom: 'trousers' | 'skirt' | 'longskirt';
   feet: 'boots' | 'shoes';
   neckwear: 'none' | 'scarf';
-  held: 'none' | 'folder' | 'sax' | 'lantern';
+  held: 'none' | 'folder' | 'sax' | 'lantern' | 'rod';
   /** girth: 0.85 thin to 1.3 stout */
   build?: number;
   /** height: 0.9 short to 1.08 tall (legs and torso) */
@@ -443,6 +443,9 @@ function armShapes(r: Rig): P {
     farHandZ = 8.5;
   } else if (k.held === 'lantern' && !pose.near?.at) {
     near = ik(shN, [sh + 5, hipY + 3], ua, fa, -1);
+  } else if (k.held === 'rod' && !pose.near?.at) {
+    // the rod gripped before the belly, its butt down by the hip
+    near = ik(shN, [sh + 6, hipY + 6], ua, fa, -1);
   }
   const arm = (S: P, a: { e: P; w: P }, z: number, zf: number, shift: number) => {
     add({ kind: 'cap', z, mat: topMat === 'accent' ? 'accent' : 'top', shift, a: S, b: a.e, r1: B.arm * b, r2: B.arm * 0.88 });
@@ -486,6 +489,17 @@ function heldShapes(r: Rig, handN: P): void {
     add({ kind: 'poly', z: 9.6, mat: 'held', band: 4, pts: [[top[0] - 2.4, top[1] - 1], [top[0] + 2.4, top[1] - 1], [top[0] + 2.4, top[1] - 8], [top[0] - 2.4, top[1] - 8]] });
     add({ kind: 'cap', z: 9.65, mat: 'feet', a: [top[0], top[1] - 1], b: [top[0], top[1] - 8], r1: 0.4, r2: 0.4 });
     add({ kind: 'poly', z: 9.7, mat: 'feet', pts: [[top[0] - 3, top[1] - 8], [top[0] + 3, top[1] - 8], [top[0] + 3, top[1] - 9.6], [top[0] - 3, top[1] - 9.6]] });
+  }
+  if (k.held === 'rod') {
+    // a long fishing rod in the near hand, its butt by the hip, its tip high and out before him; the line hangs from the
+    // tip with a red float on it. The tip keeps inside the frame's margin (`W`, `H`)
+    const butt: P = [handN[0] - 2.5, handN[1] - 9];
+    const tip: P = [r.w * r.g - r.ox - 3, r.oy - 5];
+    add({ kind: 'cap', z: 9.4, mat: 'held', a: butt, b: handN, r1: 1.2, r2: 1.0 });
+    add({ kind: 'cap', z: 9.4, mat: 'held', gloss: true, a: handN, b: tip, r1: 1.3, r2: 1.05 });
+    const float: P = [tip[0], tip[1] - 16];
+    add({ kind: 'cap', z: 9.3, mat: 'held', band: 4, a: tip, b: float, r1: 0.9, r2: 0.9 });
+    add({ kind: 'ell', z: 9.35, mat: 'trim', c: float, rx: 1.6, ry: 2.0 });
   }
   if (k.held === 'sax') {
     if (playing) {

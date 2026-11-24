@@ -24,7 +24,7 @@ export const FEATURE_SET = {
   feetColour: ['leather', 'oak', 'soot', 'rust', 'black'],
   neckwear: ['none', 'scarf'],
   trimColour: Object.keys(COLOURS) as ColourName[],
-  held: ['none', 'folder', 'sax', 'lantern'],
+  held: ['none', 'folder', 'sax', 'lantern', 'rod'],
   heldColour: ['brass', 'gold', 'oak', 'tan'],
   pocket: ['none', 'metronome'],
   build: ['thin', 'normal', 'stout'],

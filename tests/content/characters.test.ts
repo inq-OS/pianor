@@ -47,10 +47,7 @@ describe('every character keeps the character rules (content/characters)', () =>
   });
 
   /** What a character still being made lacks (each a tag in its doc); a gap closed must come off this list. */
-  const GAPS: Record<string, readonly string[]> = {
-    // TODO(painter, R2) in ft_1_21: the fisherman's five prize pictures
-    fisherman: ['net-float', 'net-needle', 'gull-feather', 'holed-stone', 'ships-bell'].map((id) => `fisherman: prize ${id} has no drawn picture`),
-  };
+  const GAPS: Record<string, readonly string[]> = {};
 
   for (const def of characters) {
     it(`ft_1_21.AC18 ${def.id}: levels of 4 to 16 bars of a real public-domain song with its background told, a lesson on its specialty, its name ??? until known, a better prize for every level, Estonian sentence-case words with no label word, its art drawn`, () => {
