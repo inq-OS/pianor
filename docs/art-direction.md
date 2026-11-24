@@ -102,7 +102,7 @@ A row of numbers cannot be judged by reading it. Paint, look, fix, and only then
 
 A gauge score is never a reason to add something the eye did not ask for (d266).
 
-Done for a picture means: its acceptance criteria in the feature file pass; all four hours looked at; `art:check` has no finding left unexplained; the picture is in `tools/art/pictures.ts` with its runs, so `pictureRules.test.ts` holds it; tests for what must hold (sizes, what a button's box covers, no laid-on shadow, the hours' palettes); `docs/assets.md` has its row with its sources; the scene's file under `docs/keri/` says how it is made and what was noticed; `npm run check:ci` and the affected end-to-end tests pass; the Windows screenshot baselines are named as "to be made again"; the maintainer has seen it.
+Done for a picture means: its acceptance criteria in the feature file pass; all four hours looked at; `art:check` has no finding left unexplained; the picture is in `tools/art/pictures.ts` with its runs, so `pictureRules.test.ts` holds it; tests for what must hold (sizes, what a button's box covers, no laid-on shadow, the hours' palettes); `docs/assets.md` has its row with its sources; the scene's file under `docs/keri/` says how it is made and what was noticed; `npm run check:ci` and the affected end-to-end tests pass; the screenshot baselines are named as "to be made again"; the maintainer has seen it.
 
 ## 6. Finding and studying examples
 

@@ -87,7 +87,7 @@ Work tags ([todo-tags.md](../automation/todo-tags.md)).
 - TODO(builder, R2): a per-player strength for helper marks on the staff (finger numbers, bar numbers, the grey of played notes), in a few fixed steps such as 100, 60, 30 % and off, so they fade as the student learns to read; layout stays pure and the strength is a view style; possibly on the admin page; joins the next shared save bump.
 - IDEA(builder, Later): an opt-in vim-style mode for the piece maker: normal, insert and visual modes, counts and motions, a pure key-sequence parser over the editor's pure moves; off by default, so the student never meets modes. Needs a spec with the maintainer after keyboard navigation and the bar selection.
 - IDEA(builder): a faint shadow per beat for where the next note would go; deferred until the pick-up setting has been tried.
-- NEEDS-HUMAN: the Windows screenshot baselines for the piece maker and the circle of fifths ([ft_1_28](ft_1_28-circle-of-fifths.md)) need regenerating (the "Update screenshot baselines (Windows)" workflow, `docs/decisions/workflow.md#d062`).
+- NEEDS-HUMAN: the screenshot baselines for the piece maker and the circle of fifths ([ft_1_28](ft_1_28-circle-of-fifths.md)) need regenerating (the "Update screenshot baselines" workflow, `docs/decisions/workflow.md#d289`).
 - TODO(builder, R2): the key ticks of the piece maker's circle have only end-to-end tests; add a unit test.
 - TODO(builder, R2): a piece titled exactly with the default name is treated as unnamed (minor).
 - TODO(builder, R2): rename the shortcut code name `piece` to `time` in `src/game/editor/shortcuts.ts`, so it matches the time panel.

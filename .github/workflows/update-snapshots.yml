@@ -1,12 +1,10 @@
-name: Update screenshot baselines (Windows)
+name: Update screenshot baselines
 
-# The baselines are made on Windows, the source of truth (the game is played on Windows; d062), and checked on Windows and
-# Linux alike (one file per screen, d288). Run this by hand on a branch whose change
-# moves pixels on purpose: Actions tab, or `gh workflow run update-snapshots.yml --ref <branch>`. It makes the baselines on
-# the same kind of hosted Windows runner the "visual (Windows)" job of CI checks against, commits them to the branch it ran on
-# (never to main) and hands them back as a download too. They reach main only through the pull request, where the maintainer
-# looks at them before it merges. A cloud session (Linux) cannot make a Windows baseline nor download an artifact: it fetches
-# the branch.
+# Makes the screenshot baselines, one file per screen that every run compares (d289). Run it by hand on a branch whose
+# change moves pixels on purpose: Actions tab, or `gh workflow run update-snapshots.yml --ref <branch>`. It commits them to
+# the branch it ran on (never to main) and hands them back as a download too; they reach main only through the pull
+# request, where the maintainer looks at them before it merges. A local run of the visual area with `--update-snapshots`
+# makes the same files.
 on:
   workflow_dispatch:
 
@@ -15,7 +13,7 @@ permissions:
 
 jobs:
   update:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v7
@@ -23,18 +21,17 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: npx playwright install chromium
+      - run: npx playwright install --with-deps chromium
       - name: Make the baselines (CI is cleared so a missing baseline is written, not skipped; software WebGL as in CI)
         # only the spec with screenshots: the other specs of the visual area check behaviour and make no baselines
         run: npx playwright test tests/e2e/visual.spec.ts --project=visual --update-snapshots=all --workers=1 --timeout=600000
         env:
           CI: ''
-          E2E_GPU: '0'
           PW_EXPECT_TIMEOUT: '120000'
       - uses: actions/upload-artifact@v7
         if: always() # the baselines that were made, even when a test failed
         with:
-          name: windows-snapshots
+          name: screenshot-baselines
           path: tests/e2e/*-snapshots/*-chromium.png
           if-no-files-found: error
           retention-days: 14
@@ -46,5 +43,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add tests/e2e/*-snapshots/*-chromium.png
           if git diff --cached --quiet; then echo "no baseline changed"; exit 0; fi
-          git commit -m "Screenshot baselines made on Windows"
+          git commit -m "Screenshot baselines"
           git push origin "HEAD:${{ github.ref_name }}"

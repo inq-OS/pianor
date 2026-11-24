@@ -4,9 +4,9 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { E2E_FIXED_TIME, LITTLE_STEPS, expectE2EPlayer, expectNoErrors, openGame, openPiece, playWithKeys, toScoreScreen, useOneLine, waitForScene, type PageErrors } from './helpers';
 
 /**
- * Screenshot checks of the screens. One baseline per screen serves every system (d288): it is made on Windows by the
- * "Update screenshot baselines (Windows)" workflow, and Windows and Linux (CI, cloud sessions, a local machine) compare
- * against the same file. A test without a baseline skips instead of writing an unreviewed one; a local run with
+ * Screenshot checks of the screens. One baseline per screen serves every machine (d288, d289): it is made by the
+ * "Update screenshot baselines" workflow or a local `--update-snapshots` run, and CI, cloud sessions and a local machine
+ * compare against the same file. A test without a baseline skips instead of writing an unreviewed one; a local run with
  * `--update-snapshots` still writes them. Commit new ones for the maintainer to review.
  */
 function skipWithoutBaselineOnCi(testInfo: TestInfo, name: string): void {
