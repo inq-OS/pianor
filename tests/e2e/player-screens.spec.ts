@@ -613,8 +613,8 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
     expect(sides.some((s) => s.left)).toBe(true);
     expect(sides.some((s) => !s.left)).toBe(true);
     for (const s of sides) {
-      if (s.left) expect(s.gapRight).toBeLessThan(s.gapLeft);
-      else expect(s.gapLeft).toBeLessThan(s.gapRight);
+      // the title starts at the button's edge by the spine
+      expect(s.left ? s.gapRight : s.gapLeft).toBeLessThanOrEqual(7);
     }
     expectNoErrors(errors);
   });

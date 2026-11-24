@@ -78,8 +78,7 @@ const MARGIN = 6;
 const BOOK_SIDE = 3;
 const BOOK_MARGIN = 14;
 const BOOK_GUTTER = 18;
-/** The group signs on a title's line keep this far in from the card's right end, clear of the page's turned corner, and this far apart. */
-const SIGN_INSET = 6;
+/** The group signs just past a title keep this far apart. */
 const SIGN_GAP = 3;
 /** The bar under a curriculum piece's days left: how near its level is to the expected one. */
 const NEAR_BAR = { w: 14, h: 5 } as const;
@@ -725,84 +724,78 @@ export class MenuScene extends PixelScene {
     this.redraw();
   }
 
-  /**
-   * The piece's own level (ft_1_13): beside its stars when it fits before the small buttons, else after the title when it
-   * fits before the signs, else not written; never drawn over a button.
-   */
-  private pieceLevel(button: PixelButton, record: PieceRecord, title: string, card: { left: number; top: number; flip: (x: number, w?: number) => number }, buttonsLeft: number, signsLeft: number): void {
+  /** The piece's own level (ft_1_13): on the second line beside its stars when it fits before `limit`, else not written. */
+  private pieceLevel(button: PixelButton, record: PieceRecord, card: { left: number; top: number; flip: (x: number, w?: number) => number }, limit: number): void {
     const { left, top, flip } = card;
     const text = t('menu.pieceLevel', { level: record.level.level });
     const width = measure(drawnText(text));
     const besideStars = left + 6 + GRADE_WIDTH + 6;
-    const afterTitle = left + 6 + measure(drawnText(title)) + 8;
-    const place = besideStars + width <= buttonsLeft - 3 ? { x: besideStars, y: top + 20 } : afterTitle + width <= signsLeft - 3 ? { x: afterTitle, y: top + 4 } : null;
-    if (!place) return;
-    const level = new PixelText(this, flip(place.x, width), place.y, text, { color: C.umberDark }).setName('pieceLevel');
+    if (besideStars + width > limit - 3) return;
+    const level = new PixelText(this, flip(besideStars, width), top + 20, text, { color: C.umberDark }).setName('pieceLevel');
     this.root.add(level);
     button.attach(level);
   }
 
-  /** A card's small buttons on its second line: i, S, the parts left of S, and the hide button right of i. */
-  private cardButtons(piece: Piece, button: PixelButton, rightEdge: number, top: number, flip: (at: number, w?: number) => number): { info: PixelButton; stats: PixelButton; slot: number } {
-    const info = new PixelButton(this, this.root, {
-      x: flip(rightEdge - 34), y: top + 23, width: INFO_SIZE, height: INFO_SIZE, label: t('info.button'), look: 'ink', inkBox: true, onClick: () => this.showInfo(piece.chart.id),
-    });
-    this.own(info);
+  /**
+   * A card's small buttons as a block of three by two at its outer side (`CARD_GRID`): parts, S and i on the title's line,
+   * the hide button under i; the block's other places are kept free. The middle of the card, between the stars and the
+   * block, is kept for other things.
+   */
+  private cardButtons(piece: Piece, button: PixelButton, at: (column: number, row: number) => { x: number; y: number }): { info: PixelButton; stats: PixelButton } {
+    const small = (place: { x: number; y: number }, label: string, onClick: () => void): PixelButton =>
+      this.own(new PixelButton(this, this.root, { ...place, width: INFO_SIZE, height: INFO_SIZE, label, look: 'ink', inkBox: true, onClick }));
+    const info = small(at(2, 0), t('info.button'), () => this.showInfo(piece.chart.id));
     this.infoButtons.set(piece.chart.id, info);
-    const stats = new PixelButton(this, this.root, {
-      x: flip(rightEdge - 34 - STATS_OFFSET), y: top + 23, width: INFO_SIZE, height: INFO_SIZE, label: t('stats.button'), look: 'ink', inkBox: true, onClick: () => startScene(this, 'results', { chartId: piece.chart.id }),
-    });
-    this.own(stats);
+    const stats = small(at(1, 0), t('stats.button'), () => startScene(this, 'results', { chartId: piece.chart.id }));
     this.statsButtons.set(piece.chart.id, stats);
-    // left of S: the parts of a piece that has them (core_06)
-    let slot = 2;
-    const small = (label: string, onClick: () => void, icon?: Bitmap): PixelButton => {
-      const made = this.own(new PixelButton(this, this.root, {
-        x: flip(rightEdge - 34 - slot * STATS_OFFSET), y: top + 23, width: INFO_SIZE, height: INFO_SIZE, label, look: 'ink', inkBox: true, ...(icon ? { icon, iconOnly: true } : {}), onClick,
-      }));
-      slot += 1;
-      return made;
-    };
-    // AX-3 provisional: the parts screen is reached by a small button, not by the card, so a tap still plays at once
+    // AX-3 provisional: the parts screen is reached by a small button, not by the card, so a tap still plays at once (core_06)
     if (piece.chart.phrases.length > 0 && !this.maker) {
-      this.partsButtons.set(piece.chart.id, small(t('parts.button'), () => startScene(this, 'parts', { chartId: piece.chart.id })));
+      this.partsButtons.set(piece.chart.id, small(at(0, 0), t('parts.button'), () => startScene(this, 'parts', { chartId: piece.chart.id })));
     }
-    // beyond i, away from the others (mirrored on the left page): take the piece out of the book, in two presses (ft_1_02c.AC8); never the last piece in it
-    if (!this.maker && contextOf(this).profiles.canTurnOff(piece.chart.id)) this.hideButton(piece.chart.id, button, { x: flip(rightEdge - 34 + STATS_OFFSET), y: top + 23 });
-    return { info, stats, slot };
+    // under i, apart from the others: take the piece out of the book, in two presses (ft_1_02c.AC8); never the last piece in it
+    if (!this.maker && contextOf(this).profiles.canTurnOff(piece.chart.id)) this.hideButton(piece.chart.id, button, at(2, 1));
+    return { info, stats };
   }
 
   /**
-   * One piece: its title and, once played, its own level (ft_1_13) under it, with its stars and small buttons. At the right
-   * of the title its groups' signs: an own piece's pencil (which opens it in the piece maker), a
-   * character's speech bubble in its colour, and the teacher's academic hat on a curriculum piece with the days left and a
-   * bar of how near it is, or, finished, the hat in its medal's colours (ft_1_26.AC8). No piece is locked (ft_1_13.AC3).
+   * One piece: its title and, once played, its own level (ft_1_13) under it, with its stars and small buttons. Just past
+   * the title its groups' signs: an own piece's pencil (which opens it in the piece maker), a character's speech bubble in
+   * its colour, and the teacher's academic hat on a curriculum piece with the days left and a bar of how near it is, or,
+   * finished, the hat in its medal's colours (ft_1_26.AC8), then its clef prizes. No piece is locked (ft_1_13.AC3).
    */
   private card(piece: Piece, x: number, y: number, width: number, record: PieceRecord | null, mirrored = false): PixelButton {
     // laid out as on the right page, then mirrored about the card's middle on the left page: a thing at x, w wide
     const cardLeft = x - width / 2;
     const flip = (at: number, w = 0): number => (mirrored ? 2 * cardLeft + width - at - w : at);
-    // written in the book: the title alone on the first line, the line under it the stars, the
-    // piece's level and its small buttons; the title's line is what plays the piece
+    const left = cardLeft;
+    const top = y - this.cardRow / 4 - CARD_HEIGHT / 4;
+    const line = CARD_HEIGHT / 2;
+    // the small buttons' block at the outer side; `at` is a place's centre
+    const outerColumn = left + width - 5 - 20;
+    const at = (column: number, row: number) => ({ x: flip(outerColumn - (2 - column) * STATS_OFFSET), y: row === 0 ? top + line / 2 : top + 23 });
+    const gridLeft = outerColumn - 2 * STATS_OFFSET - INFO_SIZE / 2;
+    // written in the book: the title on the first line with its signs just past it, the line under it the stars and the
+    // piece's level; the title is what plays the piece
     const mark = this.maker ? undefined : this.curriculumMarks.get(piece.chart.id);
     const teacher = CHARACTER_PIECES.get(piece.chart.id);
     const editable = piece.own === true && !this.maker && contextOf(this).flags.editor;
-    // the signs, right to left: the hat (with the days and the bar left of it), the bubble, the pencil
     const days = mark && !mark.finished ? String(mark.daysLeft) : null;
     const daysWidth = days === null ? 0 : Math.max(measure(drawnText(days)), NEAR_BAR.w);
     const prizes = this.clefSigns(piece);
     const signs = [
-      ...prizes.map((p) => p.bitmap.width),
-      ...(mark ? [HAT.w + (days === null ? 0 : daysWidth + SIGN_GAP)] : []),
-      ...(teacher !== undefined ? [BUBBLE.width] : []),
       ...(piece.own === true ? [editable ? INFO_SIZE : PENCIL.width] : []),
+      ...(teacher !== undefined ? [BUBBLE.width] : []),
+      ...(mark ? [HAT.w + (days === null ? 0 : daysWidth + SIGN_GAP)] : []),
+      ...prizes.map((p) => p.bitmap.width),
     ];
-    const signRoom = signs.length === 0 ? 0 : signs.reduce((a, b) => a + b + SIGN_GAP, SIGN_INSET - SIGN_GAP);
-    // the title's line stops short of the signs, so the pencil is its own button; a title too long beside them is cut on one line
-    const room = width - signRoom - 10;
-    const title = signRoom === 0 ? pieceTitle(piece.chart) : clipToWidth(pieceTitle(piece.chart), room, (text) => measure(drawnText(text)));
+    const signRoom = signs.reduce((a, b) => a + b + SIGN_GAP, 0);
+    // a title too long for the room before the signs and the block is cut on one line
+    const room = gridLeft - 4 - (left + 6) - signRoom;
+    const title = clipToWidth(pieceTitle(piece.chart), room, (text) => measure(drawnText(text)));
+    const titleEnd = left + 6 + measure(drawnText(title));
+    const buttonWidth = (signs.length === 0 ? gridLeft - 3 : titleEnd + 2) - left;
     const button = this.button({
-      x: flip(x - signRoom / 2), y: y - this.cardRow / 4, width: width - signRoom, height: CARD_HEIGHT / 2, label: title, look: 'ink', align: mirrored ? 'right' : 'left', labelWidth: room,
+      x: flip(left + buttonWidth / 2), y: top + CARD_HEIGHT / 4, width: buttonWidth, height: CARD_HEIGHT / 2, label: title, look: 'ink', align: mirrored ? 'right' : 'left', labelWidth: room,
       onClick: () => {
         if (this.maker) startScene(this, 'editor', { id: piece.chart.id });
         else if (this.forKiur === 'tug') startScene(this, 'profile', { kiurTug: piece.chart.id });
@@ -810,48 +803,34 @@ export class MenuScene extends PixelScene {
         else startScene(this, 'practice', { chartId: piece.chart.id });
       },
     });
-    const left = cardLeft;
-    const top = button.rect.y;
-    const rightEdge = left + width - 5;
-    const line = CARD_HEIGHT / 2;
-    let cursor = rightEdge - SIGN_INSET;
+    // the signs, left to right from just past the title: the pencil, the bubble, the days and bar with the hat, the prizes
+    let cursor = titleEnd + SIGN_GAP + 1;
     const signImages: PixelImage[] = [];
     const sign = (bitmap: Bitmap, name: string): PixelImage => {
-      cursor -= bitmap.width;
       const image = new PixelImage(this, flip(cursor, bitmap.width), top + Math.floor((line - bitmap.height) / 2), bitmap).setName(name);
       this.root.add(image);
       signImages.push(image);
-      cursor -= SIGN_GAP;
+      cursor += bitmap.width + SIGN_GAP;
       return image;
     };
-    prizes.forEach((p) => {
-      const image = sign(p.bitmap, p.name);
-      if (this.flight?.chartId === piece.chart.id) this.flightSign = image;
-    });
-    if (mark) {
-      sign(hatFor(mark), mark.finished ? `curriculumHat:${mark.medal ?? 'green'}` : 'curriculumHat');
-      if (days !== null) {
-        cursor -= daysWidth;
-        const daysAt = cursor + daysWidth - measure(drawnText(days));
-        const label = this.label(flip(daysAt, measure(drawnText(days))), top, days, C.featherStreak);
-        label.setName('curriculumDays');
-        const bar = new PixelBar(this, flip(cursor, NEAR_BAR.w), top + 10, NEAR_BAR.w, NEAR_BAR.h, mark.closeness, 'ink');
-        this.root.add(bar);
-        signImages.push(label, bar);
-        cursor -= SIGN_GAP;
-      }
-    }
-    if (teacher !== undefined) sign(recolor(BUBBLE, { [C.white]: CHARACTER_INK[teacher] ?? C.teal }), 'characterBubble');
     if (piece.own === true && editable) {
-      cursor -= INFO_SIZE;
       const pencil = this.own(new PixelButton(this, this.root, {
         x: flip(cursor + INFO_SIZE / 2), y: top + line / 2, width: INFO_SIZE, height: INFO_SIZE, label: t('menu.edit'), look: 'ink', icon: PENCIL, iconOnly: true,
         onClick: () => startScene(this, 'editor', { id: piece.chart.id }),
       }));
       this.editButtons.set(piece.chart.id, pencil);
+      cursor += INFO_SIZE + SIGN_GAP;
     } else if (piece.own === true) sign(PENCIL, 'ownPencil');
-    const { info, stats, slot } = this.cardButtons(piece, button, rightEdge, top, flip);
-    if (record) this.pieceLevel(button, record, title, { left, top, flip }, rightEdge - 34 - (slot - 1) * STATS_OFFSET - INFO_SIZE / 2, cursor);
+    if (teacher !== undefined) sign(recolor(BUBBLE, { [C.white]: CHARACTER_INK[teacher] ?? C.teal }), 'characterBubble');
+    if (mark) this.daysSign(mark, days, daysWidth, { top, cursor, flip }, signImages);
+    if (mark) cursor += daysWidth === 0 ? 0 : daysWidth + SIGN_GAP;
+    if (mark) sign(hatFor(mark), mark.finished ? `curriculumHat:${mark.medal ?? 'green'}` : 'curriculumHat');
+    prizes.forEach((p) => {
+      const image = sign(p.bitmap, p.name);
+      if (this.flight?.chartId === piece.chart.id) this.flightSign = image;
+    });
+    const { info, stats } = this.cardButtons(piece, button, at);
+    if (record) this.pieceLevel(button, record, { left, top, flip }, outerColumn - INFO_SIZE / 2);
     // the five-star grade of the best play, stacked like interlocking rings: three over two, the two set in between (ft_1_12 rule 7)
     const grade = record?.bestGrade ?? 0;
     const starsAt = flip(left + 6, GRADE_WIDTH);
@@ -862,5 +841,16 @@ export class MenuScene extends PixelScene {
     button.attach(...earned, ...signImages);
     this.fadeIfArmed(piece.chart.id, button, info, stats);
     return button;
+  }
+
+  /** A curriculum piece's days left, over a bar of how near the deadline is, at `cursor` on the title's line, before its hat. */
+  private daysSign(mark: CurriculumMark, days: string | null, daysWidth: number, card: { top: number; cursor: number; flip: (x: number, w?: number) => number }, into: PixelImage[]): void {
+    if (days === null) return;
+    const { top, cursor, flip } = card;
+    const label = this.label(flip(cursor, measure(drawnText(days))), top, days, C.featherStreak);
+    label.setName('curriculumDays');
+    const bar = new PixelBar(this, flip(cursor, NEAR_BAR.w), top + 10, NEAR_BAR.w, NEAR_BAR.h, mark.closeness, 'ink');
+    this.root.add(bar);
+    into.push(label, bar);
   }
 }
