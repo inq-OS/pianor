@@ -98,7 +98,7 @@ describe('resolved song', () => {
         fc.record({ bpm, nodes: fc.array(tie('node'), { maxLength: 3 }) }).map((r) => ({ kind: 'group', name: 'G', ...r })),
       ),
       nodes: fc.array(tie('node'), { minLength: 1, maxLength: 4 }),
-    })).nodes as fc.Arbitrary<unknown[]>;
+    })).nodes;
     const withIds = (nodes: unknown[], depth = 0): unknown[] => nodes.map((n) => {
       const node: Record<string, unknown> = { ...(n as Record<string, unknown>), id: `n${next++}` };
       if (node.bpm === undefined) delete node.bpm;
@@ -202,11 +202,15 @@ describe('songChart', () => {
     expect(group.chart).toMatchObject({ id: 'song:test-song/g', title: 'Middle' });
     expect(group.songBars).toEqual([7, 8, 9, 10]);
     expect(songChart(s, lookup(charts), new Set(), 'a')).toBeNull();
+    expect(songChart(s, lookup(charts), new Set(['g']), 'g')).toBeNull();
+    const nested = song([{ kind: 'group', id: 'outer', name: 'O', nodes: [{ kind: 'group', id: 'inner', name: 'I', nodes: [{ kind: 'piece', id: 'a', piece: 'p3' }] }] }]);
+    expect(songChart(nested, lookup(charts), new Set(['outer']), 'inner')).toBeNull();
+    expect(songChart(nested, lookup(charts), new Set(), 'inner')!.chart.bars).toHaveLength(1);
     expect(songChart(s, lookup(charts), new Set(['a', 'g', 'l']))).toBeNull();
   });
 
   it('folds a group with nothing written as one blank, and a missing piece as missing', () => {
-    const t = song([{ kind: 'group', id: 'g', name: 'Empty', nodes: [{ kind: 'blank', id: 'b', name: 'B', bars: 3 }] }, { kind: 'piece', id: 'z', piece: 'gone' }, { kind: 'piece', id: 'a', piece: 'p3' }]);
+    const t = song([{ kind: 'group', id: 'none', name: 'Nothing yet', nodes: [] }, { kind: 'group', id: 'g', name: 'Empty', nodes: [{ kind: 'blank', id: 'b', name: 'B', bars: 3 }] }, { kind: 'piece', id: 'z', piece: 'gone' }, { kind: 'piece', id: 'a', piece: 'p3' }]);
     const joined = songChart(t, lookup(charts))!;
     expect(joined.folds.map((f) => [f.node, f.reason, f.startBar, f.endBar])).toEqual([['g', 'blank', 1, 3], ['z', 'missing', 4, 3]]);
     expect(joined.songBars).toEqual([4]);

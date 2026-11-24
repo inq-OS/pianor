@@ -39,11 +39,12 @@ function pieceNodes(nodes: readonly SongNode[], into = new Map<string, string>()
   return into;
 }
 
-function findGroup(nodes: readonly SongNode[], id: string): SongNode | undefined {
+/** The node `id` and the ids of the groups above it, or undefined when the song has no such node. */
+function findNode(nodes: readonly SongNode[], id: string, above: string[] = []): { node: SongNode; above: string[] } | undefined {
   for (const node of nodes) {
-    if (node.id === id) return node;
+    if (node.id === id) return { node, above };
     if (node.kind === 'group') {
-      const found = findGroup(node.nodes, id);
+      const found = findNode(node.nodes, id, [...above, node.id]);
       if (found) return found;
     }
   }
@@ -65,8 +66,11 @@ function plannedBars(node: SongNode, chartOf: (pieceId: string) => Chart | undef
  */
 export function songChart(song: Song, chartOf: (pieceId: string) => Chart | undefined, off: ReadonlySet<string> = new Set(), groupId?: string): SongChart | null {
   const pieceOf = pieceNodes(song.nodes);
-  const root = groupId === undefined ? undefined : findGroup(song.nodes, groupId);
+  const found = groupId === undefined ? undefined : findNode(song.nodes, groupId);
+  const root = found?.node;
   if (groupId !== undefined && root?.kind !== 'group') return null;
+  // A group that is off, or inside a group that is off, is not in the song, so it does not play (rule 5).
+  if (found && [...found.above, found.node.id].some((id) => off.has(id))) return null;
 
   const out = {
     tempoMap: [] as Chart['tempoMap'], meterMap: [] as Chart['meterMap'], keyMap: [] as Chart['keyMap'],
@@ -117,6 +121,7 @@ export function songChart(song: Song, chartOf: (pieceId: string) => Chart | unde
 
   const fold = (node: SongNode, name: string, reason: SongFold['reason']) => {
     const bars = plannedBars(node, chartOf, pieceOf);
+    if (bars === 0 && reason !== 'missing') return;
     folds.push({ node: node.id, name, startBar: songBar, endBar: songBar + bars - 1, reason, beforeBar: out.bars.length });
     songBar += bars;
   };
