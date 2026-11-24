@@ -1,4 +1,4 @@
-// Covers ft_1_02d.AC25, ft_1_02d.AC32, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
+// Covers ft_1_02d.AC25, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
 import { readFileSync } from 'node:fs';
 import { encode as encodePng } from 'fast-png';
 import { expect, test, type Page } from '@playwright/test';
@@ -1142,6 +1142,29 @@ test.describe('fingers (ft_1_02d.AC4)', () => {
     await page.keyboard.press('Digit0');
     expect(await fingerOf()).toBeNull();
     expect(await drawn()).toEqual([]);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC33 each note of a two-note chord gets its own finger, and the piece maker draws both', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    // C and E at the same start: one chord
+    await clickNote(page, 0, 0, 'C');
+    await clickNote(page, 0, 0, 'E');
+    const fingers = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { history: { present: { notes: { step: string; finger?: number }[] } } }).history.present.notes.map((n) => `${n.step}${n.finger ?? '-'}`).sort());
+    const drawn = () => page.evaluate(() => {
+      const view = (window.__game.scene.getScene('editor') as unknown as { staffView: { fingerTexts: { text: string; visible: boolean }[] } }).staffView;
+      return view.fingerTexts.filter((t) => t.visible && t.text !== '').map((t) => t.text).sort();
+    });
+    await selectNote(page, 0, 0, 'C');
+    await page.keyboard.press('KeyF');
+    await page.keyboard.press('Digit1');
+    await selectNote(page, 0, 0, 'E');
+    await page.keyboard.press('KeyF');
+    await page.keyboard.press('Digit3');
+    expect(await fingers()).toEqual(['C1', 'E3']);
+    // shown on both heads, whatever the practice screen's TOP or ALL setting
+    await expect.poll(drawn).toEqual(['1', '3']);
     expectNoErrors(errors);
   });
 });

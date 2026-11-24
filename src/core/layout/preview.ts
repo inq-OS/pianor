@@ -40,14 +40,14 @@ export function addedMarks(before: StaffLayout, after: StaffLayout): AddedMarks 
 /** No marks: what a refused edit adds. */
 export const NO_MARKS: AddedMarks = { ties: [], slurs: [], graces: [], fingers: [] };
 
-/** The heads whose finger the edit sets or changes, matched by their place on the staff (a head that moved shows none). */
+/** The heads whose own finger the edit sets or changes, every head of a chord (ft_1_02d.AC33), matched by their place on the staff (a head that moved shows none). */
 function addedFingers(before: StaffLayout, after: StaffLayout): AddedFinger[] {
-  const was = new Map(before.notes.map((n) => [[n.system, r(n.x), r(n.y)].join(':'), n.finger]));
+  const was = new Map(before.notes.map((n) => [[n.system, r(n.x), r(n.y)].join(':'), n.headFinger]));
   const fingers: AddedFinger[] = [];
   for (const n of after.notes) {
     const key = [n.system, r(n.x), r(n.y)].join(':');
-    if (n.finger === null || !was.has(key) || was.get(key) === n.finger) continue;
-    fingers.push({ system: n.system, x: n.fingerX, y: n.fingerY, finger: n.finger });
+    if (n.headFinger === null || !was.has(key) || was.get(key) === n.headFinger) continue;
+    fingers.push({ system: n.system, x: n.fingerX, y: n.fingerY, finger: n.headFinger });
   }
   return fingers;
 }

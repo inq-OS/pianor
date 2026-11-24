@@ -1,4 +1,4 @@
-// Covers ft_1_02d.AC25, ft_1_02d.AC26, ft_1_02d.AC29, ft_1_02d.AC30 (d286: every pick shows its result before the click).
+// Covers ft_1_02d.AC25, ft_1_02d.AC26, ft_1_02d.AC29, ft_1_02d.AC30, ft_1_02d.AC33 (d286: every pick shows its result before the click).
 import { describe, expect, it } from 'vitest';
 import { arcInto } from '../editor/arcs';
 import { toChart } from '../editor/chart';
@@ -85,9 +85,16 @@ describe('the preview of a pick (d286)', () => {
     const marks = addedMarks(layoutOf(piece), layoutOf(after));
     expect(marks.fingers).toHaveLength(after.notes.filter((x) => x.finger !== undefined).length);
     expect(marks.fingers.length).toBeGreaterThan(0);
-    const drawn = layoutOf(after).notes.find((h) => h.finger !== null)!;
-    expect(marks.fingers).toContainEqual({ system: drawn.system, x: drawn.fingerX, y: drawn.fingerY, finger: drawn.finger });
+    const drawn = layoutOf(after).notes.find((h) => h.headFinger !== null)!;
+    expect(marks.fingers).toContainEqual({ system: drawn.system, x: drawn.fingerX, y: drawn.fingerY, finger: drawn.headFinger });
     // fingers that stay as they were show nothing
     expect(addedMarks(layoutOf(after), layoutOf(after)).fingers).toEqual([]);
+  });
+
+  it('ft_1_02d.AC33 the finger preview shows every note of a chord, not only the top one', () => {
+    const dyad: EditorPiece = { ...piece, notes: [n(0, 0, 'C'), n(0, 0, 'E')] };
+    const after = autoFingers(dyad, { fingerings: {} }).piece;
+    expect(after.notes.every((x) => x.finger !== undefined)).toBe(true);
+    expect(addedMarks(layoutOf(dyad), layoutOf(after)).fingers).toHaveLength(2);
   });
 });

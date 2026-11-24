@@ -2331,7 +2331,8 @@ export class EditorScene extends PixelScene {
       const grip = repeatHandleBox(this.layout, this.barSel, this.page);
       if (grip) this.band.fillStyle(DEFAULT_THEME.cursor, 0.9).fillRect(grip.x1, this.staffTop + grip.y1, grip.x2 - grip.x1, grip.y2 - grip.y1);
     }
-    this.staffView = new StaffView(this, drawn, undefined, { noteNames: true, fingers: true, chordFingers: contextOf(this).profiles.chordFingers }, { x: this.staffLeft, y: this.staffTop }, numbers, { x: 0, width: this.scale.width });
+    // the author writes a finger for every note of a chord, so the piece maker shows them all (ft_1_02d.AC33)
+    this.staffView = new StaffView(this, drawn, undefined, { noteNames: true, fingers: true, chordFingers: true }, { x: this.staffLeft, y: this.staffTop }, numbers, { x: 0, width: this.scale.width });
     this.staffView.setHandShifts(handShiftMap(this.chart, LEVEL_TABLE.find((l) => l.level === contextOf(this).profiles.progress.level.level)));
     this.staffView.showPage(this.page, false);
     const index = this.selected ? this.indexOf(this.selected) : -1;
