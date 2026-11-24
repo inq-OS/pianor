@@ -536,3 +536,11 @@ Check: `src/game/ui/staff/staffFont.test.ts` "every text of the game in a screen
 Supersedes d062. The `visual` job (label `ci:visual`, weekly and by hand) and the workflow "Update screenshot baselines" (`update-snapshots.yml`, by hand, commits to the branch it ran on, never to main) run on `ubuntu-latest`; a cloud session may make baselines with `--update-snapshots` too. The Playwright project `visual` starts Chrome without GPU flags, so a local GPU run elsewhere makes the same pixels; the maintainer looks at new baselines in the pull request before it merges.
 
 Check: `tools/ci/workflows.test.ts` "runs every screenshot job on Linux, the baselines committed to the branch, never to main"; `tools/ci/workflows.test.ts` "draws the screenshot area without a GPU on every machine"
+
+## d293
+
+**Every change to how the game is controlled or used (input, keys, buttons, menus, where an action sits) gets an ergonomics review and analysis before it merges; art and look do not.** Features: none.
+
+A fresh reviewer agent, bounded in words, weighs how often each action is used against how far the hand travels, consistency with the keys and places already there, and discoverability for the student and the author; its findings are folded in or written as tags, and the pull request says what changed because of it.
+
+Check: untestable: a review step of the work
