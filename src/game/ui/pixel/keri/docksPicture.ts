@@ -32,7 +32,7 @@ const WOOD = KIT_WOOD;
 
 /** Keri's shared palette and the docks' own wood. */
 
-const SHARED = scenePalette({ wood: WOOD }, ['grass', 'dry', 'far', 'shingle', 'stone', 'earth', 'bush', 'near', 'rose']);
+const SHARED = scenePalette({ wood: WOOD }, ['grass', 'dry', 'far', 'shingle', 'stone', 'earth', 'bush', 'near', 'rose'], { sky: 3 });
 const R = SHARED.run;
 const F = SHARED.fine;
 
@@ -40,8 +40,11 @@ const F = SHARED.fine;
 const part = (whole: readonly number[], from: number, to: number): readonly number[] => whole.slice(whole.indexOf(from), whole.indexOf(to) + 1);
 
 const PEBBLE = part(F.shingle, R.shingle[0]!, R.shingle[3]!);
-/** The runs the grain of scanned paint goes over: all but the embers' (a light keeps its own colours) and the clouds'. */
-const GRAIN_RUNS = Object.entries(F).filter(([name]) => name !== 'ember' && name !== 'cloud').map(([name, run]) => (name === 'sea' || name === 'sky' ? { run, dash: 3 } : run));
+/**
+ * The runs the grain of scanned paint goes over: all but the embers' (a light keeps its own colours), the clouds' and
+ * the sky's (a sky is smooth, as on the harbour: a long run of small steps, one tone to a row, art-direction rule 12).
+ */
+const GRAIN_RUNS = Object.entries(F).filter(([name]) => !['ember', 'cloud', 'sky'].includes(name)).map(([name, run]) => (name === 'sea' ? { run, dash: 3 } : run));
 
 export function docksPalette(phase: SkyPhase): readonly number[] {
   return SHARED.at(phase);
@@ -227,7 +230,7 @@ class DocksPainter {
     for (let x = 0; x < w; x++) for (let y = 0, end = Math.round(docksHorizon(x)); y <= end; y++) {
       let t = Math.min(1, Math.pow(y / hz, 0.85));
       if (hour.warm !== 0) t += 0.3 * clamp01(hour.warm > 0 ? (x - w * 0.3) / (w * 0.7) : (w * 0.7 - x) / (w * 0.7)) * (y / hz) ** 2 - 0.12;
-      this.put(x, y, tone(F.sky, clamp01(t), x, y, 0.25));
+      this.put(x, y, tone(F.sky, clamp01(t), x, y));
     }
     if (hour.night) this.stars();
     this.sky.sky = false;
@@ -266,12 +269,13 @@ class DocksPainter {
       if (inland < 0.9) this.put(x, y, hash2(x, y, 205) > 0.5 ? R.shingle[0]! : R.stone[1]!);
       else if (inland > 1.3 && inland < 2.0 + 0.5 * noise2(g.x / 2, 1, 206) && fbm(g.x * 1.6, g.z * 3, 2, 207) > 0.56 && hash2(x, y, 211) > 0.35) {
         // the wrack line: dried seaweed the sea left along the shingle
-        this.put(x, y, hash2(x >> 1, y, 208) > 0.6 ? R.earth[0]! : hash2(x, y, 209) > 0.5 ? R.earth[1]! : R.bush[0]!);
+        this.put(x, y, hash2((x + (y & 3)) >> 2, y, 208) > 0.6 ? R.earth[0]! : hash2((x + (y & 1)) >> 1, y, 209) > 0.5 ? R.earth[1]! : R.bush[0]!);
       } else {
         const band = fbm(g.x / 5, g.z / 1.2, 2, 210);
         // the near shingle lies in the shade of the viewer's side: a dark foreground band, as MI2's rooms have
+        // the dark between its stones lies in small pockets, never a speckle of lone dots (stones.md point 9: no static)
         const shade = this.foreground(x, y);
-        this.put(x, y, shade > 0.5 ? (hash2(x >> 1, y, 212) > 0.7 ? R.near[1]! : tone(F.stone, 0.05 + 0.2 * band, x, y, 0)) : tone(PEBBLE, 0.12 + 0.55 * smooth(0.18, 0.82, band), x, y, 0.25));
+        this.put(x, y, shade > 0.5 ? (fbm(x / 2.5, y / 1.4, 2, 212) > 0.6 ? R.near[1]! : tone(F.stone, 0.05 + 0.2 * band, x, y, 0)) : tone(PEBBLE, 0.12 + 0.55 * smooth(0.18, 0.82, band), x, y, 0));
       }
     }
     // the sea, its far band, body and shallows and its wave strokes (`water/sea` of the kit, after the Phatt dock)

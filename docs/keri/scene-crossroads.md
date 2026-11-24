@@ -73,8 +73,8 @@ Pass 4 (pass 3 was an improvement; go on):
   - a wooden bucket hanging on the well house's corner.
 
 Pass 5 follows the first art review (the art-review skill, verdict: needs a pass):
-- The sky has short level dashes between its bands instead of checkerboards. The moon's halo is a solid ring with dashes.
-- Single grain pixels, one step up or down the run, lie in the sky and the field, like scanned paint.
+- The sky is smooth, as on the harbour (art-direction rule 12): a long run of small steps (`smooth.sky` 4.5, as much as the palette's room allows), one tone to a row, with no dashes, dither or grain. The moon's halo is a solid ring with dashes.
+- Single grain pixels, one step up or down the run, lie in the field, like scanned paint.
 - The field is level dashes, staggered row by row. Tufts stand mostly along the path's edges, and flowers are fewer.
 - A value plan: the near field and the left side are darker, so the lit middle distance leads.
 - The bushes are no two alike (two to five lumps; leaning, flat-topped or ragged). Bushes and boulders lose their outline: only big shapes keep one.

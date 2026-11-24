@@ -1020,21 +1020,30 @@ class KnollPainter {
    */
   embers(): Overlay {
     const { w, h, hour } = this;
-    // a warm pool round the fire, over the trodden ground, the ring and the logs (an art review found that at night the fire lit nothing)
-    const box = { x: KNOLL_FIRE.x, y: KNOLL_FIRE.y, rx: KNOLL_FIRE.rx + 70, ry: KNOLL_FIRE.ry + 30 };
+    // a warm pool that glows from the fire's middle and falls off fast (an art review found that at night the fire
+    // lit nothing, a later one that orange splashed over every stone read as lava): light-and-heat.md
+    const box = { x: KNOLL_FIRE.x, y: KNOLL_FIRE.y, rx: KNOLL_FIRE.rx + 34, ry: KNOLL_FIRE.ry + 14 };
     const still = this.px;
     // where each colour sits in its own run (0 dark to 1 light), so the warm light keeps the grain of what it falls on;
     // by day, dawn and dusk only the earth and the ash take it, or the ring's stones turn to gold lumps
     const place = new Map<number, number>();
     for (const run of hour.night ? [F.stone, F.shingle, F.dry, F.earth, F.ash] : [F.earth, F.ash]) run.forEach((c, k) => place.set(c, k / (run.length - 1)));
     const strength = hour.night ? 1 : hour.glow * 1.4;
+    // a ring stone takes the light only on the side that faces the fire: 0 on its far side, 1 on the face toward it
+    const stones = this.ringStones().map((s) => ({ ...s, y: s.y - s.ry * 0.7 }));
+    const facing = (x: number, y: number): number => {
+      const s = stones.find((q) => ((x - q.x) / (q.rx * 1.2)) ** 2 + ((y - q.y) / (q.ry * 1.2)) ** 2 <= 1);
+      if (!s) return 1;
+      const ux = (box.x - s.x) / s.rx, uy = (box.y - 3 - s.y) / s.ry, len = Math.hypot(ux, uy) || 1;
+      return smooth(-0.05, 0.5, (((x - s.x) / s.rx) * ux + ((y - s.y) / s.ry) * uy) / len);
+    };
     return cropTogether(EMBER_LOOKS.map((gain) => {
       const bitmap = createBitmap(w, h);
       const set = (x: number, y: number, c: number): void => {
         if (x >= 0 && y >= 0 && x < w && y < h && !this.front[y * w + x]) bitmap.pixels[y * w + x] = c;
       };
-      // the light as the docks' lantern lays it (after Woodtick, mi2-bg-0-007 and 0-014): it lands on what is lit
-      // already and falls off fast, while seams, shade and the ink keep the hour's colour; no dither
+      // the light as the docks' lantern lays it (after Woodtick, mi2-bg-0-007 and 0-014, and the bonfire, mi2-bg-0-005):
+      // flat rings of warm tone that land on what is lit already, while seams, shade and the ink keep the hour's colour; no dither
       for (let dy = -box.ry - 8; dy <= box.ry + 2; dy++) for (let dx = -box.rx; dx <= box.rx; dx++) {
         const x = box.x + dx, y = box.y + dy;
         if (x < 0 || y < 0 || x >= w || y >= h) continue;
@@ -1043,9 +1052,11 @@ class KnollPainter {
         const ragged = 0.06 * hash2(Math.round(Math.atan2(dy, dx) * 6), gain, 207);
         const far = Math.hypot(dx / box.rx, (dy + 3) / (box.ry + 5)) + ragged;
         if (far >= 1) continue;
-        // the lit faces take it, the shaded sides of a stone barely: lightness counts twice
-        const k = Math.round(lightness ** 2 * (1 - far) ** 1.2 * 7 * strength * (0.85 + 0.15 * gain));
-        if (k >= 2) set(x, y, R.ember[Math.min(4, k - 1)]!);
+        const face = facing(x, y);
+        if (face <= 0) continue;
+        // the lit faces take it more than the shaded ones, and the heat is in the middle
+        const k = Math.round(lightness ** 1.5 * (1 - far) ** 1.6 * 10 * strength * face * (0.85 + 0.15 * gain));
+        if (k >= 2) set(x, y, R.ember[Math.min(face < 1 ? 3 : 4, k - 1)]!);
       }
       for (const e of this.emberDabs()) set(e.x, e.y, emberAt(e.heat, gain + 1));
       return bitmap;
