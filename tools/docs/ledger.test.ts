@@ -8,7 +8,7 @@ title: Saves
 
 ## d095
 
-**The piece is the player's.** Features: ft_1_06, core_12. Supersedes d057, d061.
+**The piece is the player's.** Features: ft_1_21, core_12. Supersedes d057, d061.
 
 A monster sets only the difficulty.
 
@@ -37,7 +37,7 @@ describe('decision ledgers (d152)', () => {
     expect(items.map((i) => i.fileId)).toEqual(['d095', 'd096', 'd097']);
     const [first, second] = items;
     expect(first?.file).toBe('saves.md#d095');
-    expect(first?.meta).toMatchObject({ id: 'd095', title: "The piece is the player's", features: ['ft_1_06', 'core_12'], supersedes: ['d057', 'd061'] });
+    expect(first?.meta).toMatchObject({ id: 'd095', title: "The piece is the player's", features: ['ft_1_21', 'core_12'], supersedes: ['d057', 'd061'] });
     expect(first?.body.startsWith('# d095: ')).toBe(true);
     expect(first?.body).toContain('A monster sets only the difficulty.');
     expect(first?.body).not.toContain('d096');

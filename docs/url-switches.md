@@ -36,7 +36,7 @@ false there.
 | `demo=analyse` | Score MusicXML files (`.musicxml`, `.xml`, `.mxl`) for difficulty, easiest first, with what the reader simplified and the difficulty panel per file; learned models from `private/models/` show as columns (ft_Y_04 slice 1, core_08) | yes | `src/main.ts` |
 | `demo=staff` | The staff renderer on its own, piece by piece (switches below) | yes | `src/game/BootScene.ts` |
 | `sky=dawn\|day\|dusk\|night` | Forces the hour of the sky (ft_1_14, d097) instead of the real sun over Keri: for the painted room, map of Keri and scenes, which each have one picture for every hour (d111) | yes | `src/config.ts` |
-| `wind=0..3` or `wind=calm\|waves\|restless\|stormy` | Forces the wind over Keri's scenery (ft_1_06 AC12): in the knoll the grass, the sea, the clouds and the smoke follow it, on the map the clouds; without it each day has its own wind | yes | `src/config.ts` |
+| `wind=0..3` or `wind=calm\|waves\|restless\|stormy` | Forces the wind over Keri's scenery (ft_1_14 AC9): in the knoll the grass, the sea, the clouds and the smoke follow it, on the map the clouds; without it each day has its own wind | yes | `src/config.ts` |
 | `now=<ISO time>` | Sets the instant the sky phase is worked out from (an ISO date and time in UTC), for screenshots and tests (ft_1_14); the room also takes today from it for Kiur's reminders and the teacher's check-up (ft_1_27) | yes | `src/config.ts` |
 | `demo=art` | The pixel font, Kiur, the icons, buttons and bars at this screen's zoom (`docs/sprites.md`) | yes | `src/game/BootScene.ts` |
 

@@ -31,7 +31,7 @@ Check: `src/game/ui/pixel/estonianFont.test.ts` "an uppercase letter is a full c
 
 ## d097
 
-**The sky follows the sun over Keri, computed offline; looks are layers.** Features: ft_1_14, ft_Y_14, ft_1_06.
+**The sky follows the sun over Keri, computed offline; looks are layers.** Features: ft_1_14, ft_Y_14.
 
 The core computes sun elevation from the UTC instant and Keri's lighthouse (59.698722 N, 25.0227421 E, `KERI` in `src/core/sky/skyPhase.ts`) with the NOAA low-precision formulas in `src/core/sky/`, no dependency and no network. Phases: night below -6 degrees, dawn or dusk -6 to +3, day above +3 (options with these defaults). A phase swaps the sky, cloud, moon and halo palette slots (phase colours in `skyLooks.ts`, `toRgba` takes a palette), decided when the picture opens and never swapped while viewed; the room's window follows the same phase. `sceneLook(instant, options)` returns `{ phase, season, weather, holidays }` in layers (base, phase, season, weather, holiday props at named anchors; season and weather null and holidays empty in ft_1_14, data added by ft_Y_14). Nothing is saved.
 

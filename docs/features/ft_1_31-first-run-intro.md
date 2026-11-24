@@ -5,7 +5,7 @@ scope: "Every new player is shown the game once: Kiur shows the room and the pra
 effort: "medium"
 status: "built: the spotlight, the room's and the map's tour, the practice screen's tour, the teacher's lesson (learn, practise, tug) and the world flags, with unit and end-to-end tests; open: the maintainer's look and wording, the painter's arrow and the teacher's figure"
 completeness: 80
-depends_on: ["ft_1_27", "ft_1_21", "ft_1_06", "core_03"]
+depends_on: ["ft_1_27", "ft_1_21", "core_03"]
 ---
 # ft_1_31: First-run intro: Kiur's tour and the teacher's first lesson
 
@@ -23,7 +23,7 @@ AX-0: the intro ends with the student having read and played a piece three times
   2. **Map** (the map of Keri; the same intro stage for the map as for the room, so no functionality stays obscure): Kiur shows the island, the first place the student's level has opened (where a character lives, what to do there, more places opening with the level) and the house, the way back. Esc there skips the rest of the intro.
   3. **Knock** (room): back home, someone knocks; the teacher stands in the doorway and says the lesson's three steps.
   4. **Learn** (room, then the practice screen): the teacher says how; the piano opens with the lesson's bars as a section (core_03: Wait mode at the written tempo, no XP, its bars kept in the practice log under the piece), only Listen and Start over in the band. Before the first lap Kiur shows the staff, the lit next note, Listen and the way back. One lap to the end.
-  5. **Practise**: back in the room the teacher asks for `practisePasses` more laps (2); Kiur shows Start over. One play to learn and two to practise are the three plays the tug's gate asks for (ft_1_06.AC15).
+  5. **Practise**: back in the room the teacher asks for `practisePasses` more laps (2); Kiur shows Start over. One play to learn and two to practise are the three plays the tug's gate asks for (ft_1_21.AC19).
   6. **Tug** (room): the teacher explains and tugs the lesson with the student over the room, level 1 (keys only, no staff, d100), Kiur's practice tug rules (ft_1_21.AC14: won and lost at 2, nothing kept, no XP).
   7. **End**: the teacher says every piece goes this way; Kiur points at the piano. `intro.done` is kept.
 - **Back and Esc.** Back on the practice screen returns to the room's stage that opened the play, said again. The lesson's play has no tools strip, and its mode, tempo and section keys do nothing, as at the check-up. Esc in the tug ends the tug as any tug's end does and goes on to the end stage: the tug keeps nothing, so it is not played again (AX-3 provisional). Esc in a spotlight or a talk in the room skips the rest of the intro, kept as done. On the practice screen Esc in the spotlight skips only Kiur's tour there; the play goes on.

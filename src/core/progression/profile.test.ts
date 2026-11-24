@@ -6,31 +6,38 @@ import fixture from '../../../tests/fixtures/saves/profile.v17.json';
 import type { PieceResult } from '../judge/types';
 import { starsFor } from '../scoring/stars';
 import { parseProgressionConfig } from './config';
+import { parseProfile } from './migrate';
 import { DEFAULT_PLAY_SETTINGS } from '../judge/playSettings';
 import { DEFAULT_STAFF_SETTINGS } from '../layout/staffSettings';
 import { DEFAULT_PIECES_SETTINGS } from './pieceSwitch';
-import { PROFILE_SCHEMA_VERSION, deriveProgress, emptyProfile, profileSchema, recordAttempt, recordBattle, type ProfileData } from './profile';
+import { PROFILE_SCHEMA_VERSION, deriveProgress, emptyProfile, profileSchema, recordAttempt, addTugRecord, type ProfileData } from './profile';
 import { computeXp, type PieceHistory } from './xp';
 
 const config = parseProgressionConfig(progressionJson);
+/** A saved record as the game holds it today. */
+const todayOf = (raw: unknown) => {
+  const parsed = parseProfile(raw, config);
+  if (!parsed.ok) throw new Error(parsed.errors.join('; '));
+  return parsed.profile;
+};
 const NOW = new Date('1998-10-05T12:00:00.000Z');
-const profile = profileSchema.parse(fixture);
+const profile = todayOf(fixture);
 
 const result = (chartId: string, accuracy = 1, extra: Partial<PieceResult> = {}): PieceResult => ({
   chartId, contentVersion: 1, notes: 10, firstTryCorrect: Math.round(accuracy * 10), mistakes: 0, accuracy, rhythmErrorMs: null,
   hints: { noteNames: 0, fingers: 0 }, bothHands: { notes: 0, together: 0 }, ...extra,
 });
 
-describe('the save fixture of the current version (v17)', () => {
+describe('the save fixture of the last record version (v17), as the game holds it today', () => {
   it('is a valid profile, with the staff settings of the player', () => {
     expect(profile.attempts).toHaveLength(4);
-    expect(profile.settings).toEqual({ staff: { lines: 2, barsPerLine: 4 }, play: { mode: 'tempo', scoreView: 'number' }, pieces: { hidden: ['rest-waltz', 'a-piece-that-no-longer-exists'] }, battle: { fights: 'many' }, keyboard: { onScreen: false }, barNumbers: { mode: 'every2' }, noteNaming: 'B', staffGap: 'wide', keyLights: { enabled: false, afterWrong: 0 }, earTrainer: { seconds: 2, repeat: false } });
-    expect(profile.battles.map((b) => [b.monsterId, b.won, b.xp])).toEqual([['wobble', true, 30], ['wobble', false, 4], ['wobble', true, 30], ['wobble', true, 38], ['wobble', false, 5]]);
+    expect(profile.settings).toEqual({ staff: { lines: 2, barsPerLine: 4 }, play: { mode: 'tempo', scoreView: 'number' }, pieces: { hidden: ['rest-waltz', 'a-piece-that-no-longer-exists'] }, keyboard: { onScreen: false }, barNumbers: { mode: 'every2' }, noteNaming: 'B', staffGap: 'wide', keyLights: { enabled: false, afterWrong: 0 }, earTrainer: { seconds: 2, repeat: false } });
+    expect(profile.tugs.map((b) => [b.characterId, b.won, b.xp])).toEqual([['wobble', true, 30], ['wobble', false, 4], ['wobble', true, 30], ['wobble', true, 38], ['wobble', false, 5]]);
   });
 
-  it('folds to 331 XP from the pieces and the battles, level 3, with a record per piece', () => {
+  it('folds to 331 XP from the pieces and the tugs, level 3, with a record per piece', () => {
     const progress = deriveProgress(profile, config);
-    expect(progress.totalXp).toBe(70 + 25 + 64 + 65 + 30 + 4 + 30 + 38 + 5); // pieces and battles (the last three are one series)
+    expect(progress.totalXp).toBe(70 + 25 + 64 + 65 + 30 + 4 + 30 + 38 + 5); // pieces and tugs
     expect(progress.level).toMatchObject({ level: 3, xpIntoLevel: 81 });
     expect(progress.pieces['little-steps']).toEqual({
       // the piece XP is worked out again with today's rules (ft_1_13): 70 + 15, where the save gave the player 70 + 25 then
@@ -84,13 +91,6 @@ describe('profile schema', () => {
     expect(broken((p) => { delete (p.settings as Partial<ProfileData['settings']>).pieces; }).success).toBe(false);
   });
 
-  it('a battle keeps the player\'s HP left and maximum, in place of the hearts', () => {
-    expect(fixture.schemaVersion).toBe(PROFILE_SCHEMA_VERSION);
-    expect(profileSchema.parse(fixture).battles.map((b) => [b.playerHpLeft, b.playerMaxHp])).toEqual([[80, 100], [0, 100], [74, 100], [60, 100], [0, 100]]);
-    expect(broken((p) => { delete (p.battles[0] as Partial<ProfileData['battles'][number]>).playerMaxHp; }).success).toBe(false);
-    expect(broken((p) => { (p.battles[0] as Record<string, unknown>).heartsLeft = 3; delete (p.battles[0] as Partial<ProfileData['battles'][number]>).playerHpLeft; }).success).toBe(false);
-  });
-
   it('ft_Y_12.AC3: the on-screen keyboard setting is on or off, and a player who has never chosen has it on', () => {
     expect(emptyProfile('p', 'P', NOW.toISOString()).settings.keyboard).toEqual({ onScreen: true });
     expect(profile.settings.keyboard).toEqual({ onScreen: false });
@@ -105,27 +105,19 @@ describe('profile schema', () => {
     expect(broken((p) => { delete (p.settings as Partial<ProfileData['settings']>).barNumbers; }).success).toBe(false);
   });
 
-  it('the settings say how many monsters a fight has: One or Many, nothing else', () => {
+  it('rejects tugs out of order or with negative XP', () => {
     expect(PROFILE_SCHEMA_VERSION).toBe(17);
     expect(fixture.schemaVersion).toBe(17);
-    expect(emptyProfile('p', 'P', NOW.toISOString()).settings.battle).toEqual({ fights: 'one' });
-    expect(broken((p) => { (p.settings.battle as { fights: unknown }).fights = 'two'; }).success).toBe(false);
-    expect(broken((p) => { delete (p.settings as Partial<ProfileData['settings']>).battle; }).success).toBe(false);
-  });
-
-  it('rejects battles out of order, negative XP, more HP taken than the monster had, or a player ending above the maximum', () => {
-    expect(broken((p) => { p.battles[0]!.playerHpLeft = 101; }).success).toBe(false);
-    expect(broken((p) => { p.battles[0]!.playerMaxHp = 0; }).success).toBe(false);
-    expect(broken((p) => { p.battles[1]!.n = 5; }).success).toBe(false);
-    expect(broken((p) => { p.battles[0]!.xp = -1; }).success).toBe(false);
-    expect(broken((p) => { p.battles[1]!.hpTaken = 25; }).success).toBe(false);
+    expect(broken((p) => { p.tugs[1]!.n = 5; }).success).toBe(false);
+    expect(broken((p) => { p.tugs[0]!.xp = -1; }).success).toBe(false);
   });
 });
 
 describe('a new profile', () => {
   it('starts with the default staff settings and an empty log', () => {
     const p = emptyProfile('p1', 'Test', '1998-10-01T00:00:00.000Z');
-    expect(p).toMatchObject({ schemaVersion: PROFILE_SCHEMA_VERSION, attempts: [], battles: [], settings: { staff: DEFAULT_STAFF_SETTINGS, play: DEFAULT_PLAY_SETTINGS, pieces: DEFAULT_PIECES_SETTINGS, battle: { fights: 'one' } } });
+    expect(p).toMatchObject({ schemaVersion: PROFILE_SCHEMA_VERSION, attempts: [], tugs: [], settings: { staff: DEFAULT_STAFF_SETTINGS, play: DEFAULT_PLAY_SETTINGS, pieces: DEFAULT_PIECES_SETTINGS } });
+    expect(p.settings).not.toHaveProperty('battle');
     expect(profileSchema.safeParse(p).success).toBe(true);
   });
 
@@ -210,39 +202,37 @@ describe('recordAttempt', () => {
   });
 });
 
-describe('recordBattle', () => {
+describe('addTugRecord', () => {
   const fresh = () => emptyProfile('p1', 'Test', '1998-10-01T00:00:00.000Z');
-  const won = { monsterId: 'wobble', pieceId: 'little-steps', won: true, hpTaken: 20, maxHp: 20, potentialXp: 30, rounds: 2, playerHpLeft: 80, playerMaxHp: 100, xp: 30 };
+  const won = { characterId: 'puuvaim', pieceId: 'little-steps', won: true, potentialXp: 30, exchanges: 2, xp: 30 };
 
-  it('adds the battle to the log, counts its XP and reports it', () => {
-    const out = recordBattle(fresh(), won, config, NOW);
-    expect(out.battle).toMatchObject({ n: 1, at: NOW.toISOString(), monsterId: 'wobble', won: true, xp: 30 });
-    expect(out.profile.battles).toHaveLength(1);
+  it('ft_1_21.AC9 adds the tug to the log, counts its XP and reports it', () => {
+    const out = addTugRecord(fresh(), won, config, NOW);
+    expect(out.tug).toMatchObject({ n: 1, at: NOW.toISOString(), characterId: 'puuvaim', won: true, xp: 30 });
+    expect(out.profile.tugs).toHaveLength(1);
     expect(out.after.totalXp).toBe(30);
-    expect(out.events).toEqual([expect.objectContaining({ type: 'BattleFinished', monsterId: 'wobble', pieceId: 'little-steps', won: true, xp: 30, totalXp: 30, v: 1 })]);
+    expect(out.events).toEqual([expect.objectContaining({ type: 'TugFinished', characterId: 'puuvaim', pieceId: 'little-steps', won: true, xp: 30, totalXp: 30, v: 1 })]);
   });
 
-  it('a lost battle pays what it paid, and nothing is ever taken away', () => {
-    const start = recordBattle(fresh(), won, config, NOW).profile;
-    const out = recordBattle(start, { ...won, won: false, hpTaken: 5, playerHpLeft: 0, rounds: 1, xp: 4 }, config, NOW);
+  it('a lost tug pays what it paid, and nothing is ever taken away', () => {
+    const start = addTugRecord(fresh(), won, config, NOW).profile;
+    const out = addTugRecord(start, { ...won, won: false, exchanges: 1, xp: 4 }, config, NOW);
     expect(out.after.totalXp).toBe(34);
     expect(out.after.totalXp).toBeGreaterThanOrEqual(out.before.totalXp);
   });
 
-  it('a battle that crosses a level reports the level-up, and keeps piece records apart', () => {
+  it('a tug that crosses a level reports the level-up, and keeps piece records apart', () => {
     let p = fresh();
-    for (let i = 0; i < 3; i++) p = recordBattle(p, won, config, NOW).profile; // 90 XP
-    const out = recordBattle(p, won, config, NOW);
-    expect(out.events.map((e) => e.type)).toEqual(['BattleFinished', 'LevelUp']);
-    expect(out.after.pieces).toEqual({}); // battles do not change stars or completions
+    for (let i = 0; i < 3; i++) p = addTugRecord(p, won, config, NOW).profile; // 90 XP
+    const out = addTugRecord(p, won, config, NOW);
+    expect(out.events.map((e) => e.type)).toEqual(['TugFinished', 'LevelUp']);
+    expect(out.after.pieces).toEqual({}); // tugs do not change stars or completions
   });
 
   it('does not change the profile it was given', () => {
     const start = fresh();
     const frozen = structuredClone(start);
-    recordBattle(start, won, config, NOW);
+    addTugRecord(start, won, config, NOW);
     expect(start).toEqual(frozen);
   });
 });
-
-

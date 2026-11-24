@@ -77,7 +77,6 @@ src/
     scoring/             Stars, the two-hands bonus, the session lines of the looping play (ft_1_12)
     progression/         XP, levels, unlocks, profile (versioned save; the version history is the comment on PROFILE_SCHEMA_VERSION in profile.ts), migrations, repository
     editor/              Piece editor model: edits, history, ABC and chart output, hit testing (ft_1_02a)
-    campaign/            The campaign state kept in the save (ft_1_06)
     properties/          What a piece asks of the player (note values, range, hands), for the piece card and difficulty
     random.ts, issues.ts Seeded random numbers; schema problems as readable lines
     upgrade.ts, median.ts The schemaVersion loop every saved format shares (charts, profiles); the median

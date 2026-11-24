@@ -347,16 +347,16 @@ describe('ProfileService', () => {
     expect(restarted.durationHelp).toEqual({ RH: 'off', LH: 'off' });
   });
 
-  it('a finished battle adds its XP, is saved, and shows in progress after a restart', async () => {
+  it('ft_1_21.AC9 a finished tug adds its XP, is saved, and shows in progress after a restart', async () => {
     const store = new MemoryStore();
     const { service } = await setup(store);
-    const outcome = await service.completeBattle({ monsterId: 'wobble', pieceId: 'a', won: false, hpTaken: 10, maxHp: 20, potentialXp: 30, rounds: 1, playerHpLeft: 0, playerMaxHp: 100, xp: 8 });
+    const outcome = await service.completeTug({ characterId: 'puuvaim', pieceId: 'a', won: false, potentialXp: 30, exchanges: 1, xp: 8 });
     expect(outcome.saved).toBe(true);
-    expect(outcome.events.map((e) => e.type)).toEqual(['BattleFinished']);
+    expect(outcome.events.map((e) => e.type)).toEqual(['TugFinished']);
     expect(service.progress.totalXp).toBe(8);
     const restarted = (await setup(store)).service;
     expect(restarted.progress.totalXp).toBe(8);
-    expect(restarted.profile.battles).toHaveLength(1);
+    expect(restarted.profile.tugs).toHaveLength(1);
   });
 
   it('reports why an import failed and leaves the active player alone', async () => {
@@ -475,12 +475,7 @@ describe('ft_1_07.AC6: rename and delete a player (admin)', () => {
     expect(service.profile.id).toBe(first);
     expect(service.profiles.map((p) => p.name)).toEqual(['Player 1']);
   });
-  it('updateCampaign keeps the campaign state for the active player and reports it saved (ft_1_06 phase 1)', async () => {
-    const { service } = await setup();
-    const next = { ...service.campaign, phase: service.campaign.phase.map((p, i) => (i === 0 ? 'find-door' as const : p)) };
-    expect(await service.updateCampaign(next)).toBe(true);
-    expect(service.campaign).toEqual(next);
-  });
+
 });
 
 describe('ft_1_07.AC10: new players need a free name, at most 10 players', () => {

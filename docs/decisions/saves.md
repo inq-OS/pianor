@@ -89,9 +89,9 @@ Check: `tests/storage/moveSaves.test.ts` "copies every pianor/ key, checks it re
 
 **Profile v15 adds trainerXp, the note-name trainer's XP.** Features: ft_0_17.
 
-`trainerXp` is a non-negative whole number next to `campaign`, the sum of the XP of every right name pressed in the trainer; `deriveProgress` adds it to total XP, and it is never taken away. Migration 14 to 15 sets it to 0; fixtures `tests/fixtures/saves/steps/profile.v14-to-v15.json` and `profile.v15.json`. No level-up events for trainer XP.
+`trainerXp` is a non-negative whole number in the profile, the sum of the XP of every right name pressed in the trainer; `deriveProgress` adds it to total XP, and it is never taken away. Migration 14 to 15 sets it to 0; fixtures `tests/fixtures/saves/steps/profile.v14-to-v15.json` and `profile.v15.json`. No level-up events for trainer XP.
 
-Check: `src/core/progression/trainerXp.test.ts` "adds up over several right names and never lowers the total"; `src/core/progression/trainerXp.test.ts` "ignores negative and fractional amounts: the XP is whole and never taken away"; `src/core/progression/migrate.test.ts` "every fixture, from v0 to v16, reaches the current version, is valid there, and migrating twice gives the same save"
+Check: `src/core/progression/trainerXp.test.ts` "adds up over several right names and never lowers the total"; `src/core/progression/trainerXp.test.ts` "ignores negative and fractional amounts: the XP is whole and never taken away"; `src/core/progression/migrate.test.ts` "every fixture, from v0 to v17, reaches the current version, is valid there, and migrating twice gives the same save"
 
 ## d092
 
@@ -99,15 +99,15 @@ Check: `src/core/progression/trainerXp.test.ts` "adds up over several right name
 
 `practice: { bars: BarPlay[] }` sits next to `attempts`; a `BarPlay` holds time, piece, 0-based bar in the piece, notes and first-try count, the Tempo timing score (null in Wait mode), mode, tempo percent, the section range (null for a whole piece) and misses by `(tick in bar, track, midi)`. Heat, progress graph, weakest sections, proposed start tempo and part stars are folds over it and no derived number is stored; piece stats still fold `attempts` only. At most 600 bar plays per piece are kept, oldest dropped first. Migration 15 to 16 sets an empty log; fixtures `tests/fixtures/saves/steps/profile.v15-to-v16.json` and `profile.v16.json`. Changed by d136 (the log is the `practiceLog` document).
 
-Check: `src/core/progression/migrate.test.ts` "a v15 save migrates to v17 with an empty practice log, everything else kept, and migrating twice gives the same save"; `src/core/progression/practiceLog.test.ts` "returns only the bar plays of the piece, in the order they were kept"
+Check: `src/core/progression/migrate.test.ts` "a v15 save migrates to the current version with an empty practice log, everything else kept, and migrating twice gives the same save"; `src/core/progression/practiceLog.test.ts` "returns only the bar plays of the piece, in the order they were kept"
 
 ## d136
 
 **A player's save is four documents (profile, practiceLog, world, curriculum), each with its own version and migrations.** Features: core_11.
 
-Each document has its own `schemaVersion` (starting at 1), frozen migration steps and golden tests, and is read and written alone through `KeyValueStore` (d080). A change migrates only its document; d069's shared bump applies per document and per stage, and the dev team owns every bump. The move from the old single record runs once, writes all four and leaves the old record untouched until the next release (core_11); the open v18 round lands in the old record or in `profile` v1, never both. Contract: `SaveDocument` in `docs/architect/program-characters-teacher.md`.
+Each document has its own `schemaVersion` (starting at 1), frozen migration steps and golden tests, and is read and written alone through `KeyValueStore` (d080). A change migrates only its document; d069's shared bump applies per document and per stage, and the dev team owns every bump. The move from the old single record runs once, writes all four and leaves the old record untouched until the next release (core_11); the old record stays frozen at version 17. Profile version 2 holds the finished tugs as tug records (ft_1_21.AC9) and has no campaign state or battle setting. Contract: `SaveDocument` in `docs/architect/program-characters-teacher.md`.
 
-Check: `tests/progression/saveDocuments.test.ts` "names the four documents and each starts at version 1 with no steps yet"; `tests/progression/saveDocuments.test.ts` "golden: each version-1 fixture reads and writes back byte for byte"; `tests/progression/saveDocuments.test.ts` "refuses a document from a newer game, broken JSON and a wrong shape with a reason, never by throwing from readDocument"
+Check: `tests/progression/saveDocuments.test.ts` "names the four documents, the profile at version 2 with one step and the others at version 1 with none"; `tests/progression/saveDocuments.test.ts` "golden: each current fixture reads and writes back byte for byte"; `tests/progression/saveDocuments.test.ts` "refuses a document from a newer game, broken JSON and a wrong shape with a reason, never by throwing from readDocument"
 
 ## d158
 
@@ -131,7 +131,7 @@ Check: `tests/progression/profile-service.test.ts` "a player open in one window 
 
 The list of formats, their versions and migration tests is generated in `docs/architecture/schemas.md`; a content file whose version is not the code's fails (`docs/testing.md` section 4, CLAUDE.md, d064, d136).
 
-Check: `tools/docs/schemaVersions.test.ts` "fails on a missing file and on a content file whose version is not the code"; `src/core/progression/migrate.test.ts` "every fixture, from v0 to v16, reaches the current version"
+Check: `tools/docs/schemaVersions.test.ts` "fails on a missing file and on a content file whose version is not the code"; `src/core/progression/migrate.test.ts` "every fixture, from v0 to v17, reaches the current version"
 
 ## d242
 

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { createBitmap } from '../bitmap';
 import { GROUND_MOVES, groundLook, gust, lean, paintLooks, paintStillOnce, SkyMask, StillPart, swing, twinkle } from './motion';
 
-describe('the motion every painted place shares (ft_1_19.AC9, ft_1_06.AC12)', () => {
-  it('ft_1_06.AC12 a gust runs the wind\'s way through the looks: where it is strongest moves left when the wind blows left, right when it blows right', () => {
+describe('the motion every painted place shares (ft_1_19.AC9, ft_1_14.AC9)', () => {
+  it('ft_1_14.AC9 a gust runs the wind\'s way through the looks: where it is strongest moves left when the wind blows left, right when it blows right', () => {
     const strongest = (look: number, way: -1 | 1): number => {
       let best = 0, at = 0;
       for (let x = 0; x < 300; x++) { const g = gust(x, 100, look, 8, way); if (g > best) { best = g; at = x; } }
@@ -14,7 +14,7 @@ describe('the motion every painted place shares (ft_1_19.AC9, ft_1_06.AC12)', ()
     expect(step(1)).toBeGreaterThan(0);
   });
 
-  it('ft_1_06.AC12 a blade leans the wind\'s way, the same in every look while the ground stands still', () => {
+  it('ft_1_14.AC9 a blade leans the wind\'s way, the same in every look while the ground stands still', () => {
     expect(GROUND_MOVES).toBe(false);
     const leans = Array.from({ length: 8 }, (_, look) => lean(50, 100, look, 8, -1));
     for (const l of leans) expect(l).toBeCloseTo(leans[0]!);
@@ -23,7 +23,7 @@ describe('the motion every painted place shares (ft_1_19.AC9, ft_1_06.AC12)', ()
     expect(groundLook(5)).toBe(0);
   });
 
-  it('ft_1_06.AC12 the gust a moving ground would follow is stronger in some looks than in others, and the loop comes round', () => {
+  it('ft_1_14.AC9 the gust a moving ground would follow is stronger in some looks than in others, and the loop comes round', () => {
     const gusts = Array.from({ length: 8 }, (_, look) => gust(50, 100, look, 8, -1));
     expect(Math.min(...gusts)).toBeLessThan(Math.max(...gusts) - 0.5);
     expect(gust(50, 100, 8, 8, -1)).toBeCloseTo(gusts[0]!);

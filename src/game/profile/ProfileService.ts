@@ -12,8 +12,8 @@ import type { WorldState } from '../../core/island/worldState';
 import { staffSettingsSchema, type StaffSettings } from '../../core/layout/staffSettings';
 import { DEFAULT_DURATION_HELP, durationHelpSchema, type DurationHelp } from '../../core/layout/durationHelp';
 import {
-  DEFAULT_PLAY_INFO, addEarPoints, addTrainerXp, canTurnOff, deriveProgress, profileSettingsSchema, isPieceOn, pieceHistory, pieceStats, recordAttempt, recordBattle, setPieceOn, startPercent,
-  type BarPlay, type PracticeLog, type BattleInput, type HistoryPoint, type PieceStats, type PlayInfo, appendBarPlays, piecePlays,
+  DEFAULT_PLAY_INFO, addEarPoints, addTrainerXp, canTurnOff, deriveProgress, profileSettingsSchema, isPieceOn, pieceHistory, pieceStats, recordAttempt, addTugRecord, setPieceOn, startPercent,
+  type BarPlay, type PracticeLog, type TugInput, type HistoryPoint, type PieceStats, type PlayInfo, appendBarPlays, piecePlays,
   type PieceRecord, type ProfileData, type ProfileRepository, type ProfileSummary, type ProgressEvent, type ProgressionConfig,
   type ProgressSummary,
 } from '../../core/progression';
@@ -28,7 +28,7 @@ export interface CompletionOutcome {
   after: ProgressSummary;
   /** False when writing the save failed (full or blocked storage): progress still counts for this session. */
   saved: boolean;
-  /** After a piece (not a battle): what the history now says about it. */
+  /** After a piece (not a tug): what the history now says about it. */
   stats?: PieceStats;
 }
 
@@ -96,11 +96,6 @@ export class ProfileService {
     // window has it, this one shows it but writes nothing until a player is picked on the main menu
     await service.claim(active.id);
     return service;
-  }
-
-  /** The monster campaign's state of the active player (ft_1_06, map screen); read-only here, rules live in `core/campaign`. */
-  get campaign(): ProfileData['campaign'] {
-    return this.profile.campaign;
   }
 
   get profile(): ProfileData {
@@ -357,7 +352,7 @@ export class ProfileService {
     return this.persist();
   }
 
-  /** Take a finished piece's or battle's new profile, save it, and say what changed. */
+  /** Take a finished piece's or tug's new profile, save it, and say what changed. */
   private async commit(outcome: { profile: ProfileData; events: ProgressEvent[]; before: ProgressSummary; after: ProgressSummary }): Promise<CompletionOutcome> {
     this.active = outcome.profile;
     this.derived = outcome.after;
@@ -387,15 +382,9 @@ export class ProfileService {
     return startPercent(this.active.attempts, pieceId);
   }
 
-  /** Write the active player's campaign state (ft_1_06) and save; like `updateStaffSettings`. The rules that make the state are in `core/campaign`. */
-  async updateCampaign(campaign: ProfileData['campaign']): Promise<boolean> {
-    this.active = { ...this.active, campaign };
-    return this.persist();
-  }
-
   /**
    * Add bar plays of a play to the active player's practice log and save (core_10). Nothing is written for an empty list.
-   * Section plays are kept here but never change the piece stats (core_04). Like `updateCampaign`: false when the save failed.
+   * Section plays are kept here but never change the piece stats (core_04). False when the save failed.
    */
   async recordBarPlays(plays: readonly BarPlay[]): Promise<boolean> {
     if (plays.length === 0) return true;
@@ -442,12 +431,11 @@ export class ProfileService {
   }
 
   /**
-   * Record a finished contest's XP as a battle record and save (the tug of ft_1_21 writes here, AC9: the saved keys keep their
-   * old names until the next shared save round). Kept in memory even if the save fails.
+   * Record a finished tug and its XP and save (ft_1_21.AC9). Kept in memory even if the save fails.
    */
-  async completeBattle(input: BattleInput): Promise<CompletionOutcome> {
+  async completeTug(input: TugInput): Promise<CompletionOutcome> {
     const now = this.options.now?.() ?? new Date();
-    const outcome = recordBattle(this.active, input, this.options.config, now);
+    const outcome = addTugRecord(this.active, input, this.options.config, now);
     return this.commit(outcome);
   }
 

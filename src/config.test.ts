@@ -109,7 +109,7 @@ describe('the sky switches (ft_1_14 AC6, dev only)', () => {
     expect(createConfig('?sky=noon&now=yesterday', true).flags.sky).toEqual({ phase: null, now: null, wind: null });
   });
 
-  it('ft_1_06.AC12 reads ?wind= as a number or a sea state in a dev build, and never in a production build', () => {
+  it('ft_1_14.AC9 reads ?wind= as a number or a sea state in a dev build, and never in a production build', () => {
     expect(createConfig('?wind=3', true).flags.sky.wind).toBe(3);
     expect(createConfig('?wind=calm', true).flags.sky.wind).toBe(0);
     expect(createConfig('?wind=9', true).flags.sky.wind).toBeNull();

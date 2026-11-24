@@ -3,7 +3,7 @@ title: "Decisions: Game design"
 ---
 # Decisions: Game design
 
-The campaign, characters and challenges, the teacher and curriculum, Keri, progression and screens. One entry per decision, oldest first. Index: [DECISIONS.md](DECISIONS.md).
+Characters and challenges, the teacher and curriculum, Keri, progression and screens. One entry per decision, oldest first. Index: [DECISIONS.md](DECISIONS.md).
 
 ## d004
 
@@ -95,7 +95,7 @@ Check: `src/core/layout/frame.test.ts` "fits the smallest screen with the longes
 
 ## d095
 
-**The tug plays the student's piece; a character sets only the level.** Features: ft_1_06, ft_1_21.
+**The tug plays the student's piece; a character sets only the level.** Features: ft_1_21.
 
 Level 1 plays the first half of the piece rounded up, levels 2 and 3 the whole piece (`tugPart`, `src/core/exchange/tug.ts`). Students can use pieces from their lessons, their own pieces and any piece turned on (AX-0.3).
 
@@ -175,7 +175,7 @@ Check: `src/core/layout/mainMenu.test.ts` "the picture is the whole target scree
 
 ## d129
 
-**A character challenges the student in a scene, and the two trade the phrases of the student's piece.** Features: ft_1_21, ft_1_06, ft_1_19.
+**A character challenges the student in a scene, and the two trade the phrases of the student's piece.** Features: ft_1_21, ft_1_19.
 
 A challenge (VÄLJAKUTSE) is held with a character (TEGELANE), over the scene picture where it was met, with no stage of its own. The student's piece is cut into two-bar phrases (a pick-up joins the first bar); the character plays one, the student answers with the next, each answer is an exchange won when the share of notes right first try (on time in Tempo mode) reaches the level's share (60, 80, 95 per cent); a standing of three steps each way moves one step per exchange, the student wins at +3 and the character at -3, and if the part ends first it restarts with roles swapped. Levels are d100's (from memory, no staff; 1 Wait mode, 2 Tempo mode with click, 3 Tempo mode with only the count-in); feedback is one objective fact per exchange and wrong notes keep their reason; a won challenge pays the prize, a lost one half the prize times furthest standing over 3, nothing taken, retry at once. Numbers (three steps, the shares) are unverified with children.
 
@@ -183,7 +183,7 @@ Check: `src/core/exchange/tug.test.ts` "content/challenge/rules.json parses and 
 
 ## d132
 
-**Characters are met by practising, talked to first, teach phrases for a phrase book, and give an item for a won tug; every character ties to music.** Features: ft_1_21, ft_1_22, ft_1_23, ft_1_19, ft_1_20, ft_1_06, ft_1_07.
+**Characters are met by practising, talked to first, teach phrases for a phrase book, and give an item for a won tug; every character ties to music.** Features: ft_1_21, ft_1_22, ft_1_23, ft_1_19, ft_1_20, ft_1_07.
 
 The challenge is the tug of reputation (one marker, three steps each way; Kiur's practice tug changed by d160); question and answer is the advanced-level challenge. A character can appear only after enough practice in the room (from the practice records, never time spent), semi-randomly in an open scene, replacing d113 point 2 for characters; a lost tug is followed by a cool-down counted in real practice, never hours. Pressing a character opens a conversation first; a won tug gives an item into the band's inventory (ft_1_20). Every character ties to music: it teaches a phrase of its style (three tries, shown on the staff and heard), a phrase becomes "mine" only when played clean in the room on a later day, and learned phrases go in the phrase book (no class screen); phrases are original or public domain. The knowledge layer (a character's field, with control-question levels) is optional, per player, switched under admin, and gated by playing; the birth date is stored as year and month only in the local save, never in reports or logs, and sets the default text level (ft_1_23).
 
@@ -191,11 +191,11 @@ Check: `src/core/island/presenceRules.test.ts` "needs the practice threshold, ne
 
 ## d135
 
-**A character's piece goes learn, practise, show.** Features: ft_1_06, ft_1_21, ft_1_22.
+**A character's piece goes learn, practise, show.** Features: ft_1_21, ft_1_22.
 
 The three phases are learn (the character teaches the piece, ft_1_22), practise (in the room and trainers until the evaluation says good enough, core_12) and show (the tug, ft_1_21). The gate to the tug is the practice evidence the evaluation already keeps, not a separate timed screen.
 
-Check: `src/core/exchange/tugGate.test.ts` "ft_1_06.AC15 it opens when the median of the last plays reaches the level"
+Check: `src/core/exchange/tugGate.test.ts` "ft_1_21.AC19 it opens when the median of the last plays reaches the level"
 
 ## d138
 
@@ -331,7 +331,7 @@ Check: untestable: whether a fact was invented is judged by the art review and t
 
 AX-1.1: a lost tug pays half the prize times the furthest standing over 3, leaving pays nothing, and no total ever goes down (CLAUDE.md, product rules; `docs/axioms.md`).
 
-Check: `src/core/progression/profile.test.ts` "a lost battle pays what it paid, and nothing is ever taken away"; `src/core/exchange/tug.test.ts` "a won tug pays the prize"
+Check: `src/core/progression/profile.test.ts` "a lost tug pays what it paid, and nothing is ever taken away"; `src/core/exchange/tug.test.ts` "a won tug pays the prize"
 
 ## d247
 
@@ -379,7 +379,7 @@ Check: `src/core/character/content.test.ts` "plays only pieces with an open lice
 
 Gates (a character's tug, a scene opening) read the piece level of core_12, not the player's XP. A lit key costs reward as ft_Y_06 says.
 
-Check: `src/core/exchange/tugGate.test.ts` "ft_1_06.AC15 it opens when the median of the last plays reaches the level"
+Check: `src/core/exchange/tugGate.test.ts` "ft_1_21.AC19 it opens when the median of the last plays reaches the level"
 
 ## d268
 
