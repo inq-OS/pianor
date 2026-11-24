@@ -500,3 +500,19 @@ Check: `tools/docs/oldWords.test.ts` "fails a line in code, content, tests or do
 A picture choice on the learning settings page turns it on; a setting saved before the choice reads as off. When on, the tempo, spread and wobble so far are two small dim lines at the right end of the strip's free stretch, never in the top bar or the stats pane, so they stay out of the student's sight while reading the staff.
 
 Check: `src/core/learn/progress.test.ts` "ft_1_32.AC17 the live tempo is off unless the player turned it on, and a setting saved before it reads as off"
+
+## d294
+
+**In the piece maker the keyboard cursor follows the pointer, the bubble offers only what applies, lassoed bars are slurred or tied from the bubble, and a paste that writes over notes warns first.** Features: ft_1_02d, ft_1_20.
+
+A move of the pointer over the staff takes the cursor and the selection to the note or place under it; the arrow keys still move it. The bubble and its menus hide an option that would do nothing there (no repeat on a note, no paste with nothing copied) and keep every other option in its slot. With bars selected the tie and slur menu slurs each hand over them or ties every repeat in them, previewed faint first. A paste over notes turns their bars red and says how many go; the same paste again does it.
+
+Check: `src/core/editor/rangeArcs.test.ts` "ft_1_02d.AC36 slurs each hand from its first note in the selected bars to its last, with no note picked first"; `src/core/editor/bars.test.ts` "ft_1_02d.AC37 counts the notes a paste over another selection would replace"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC34 the keyboard cursor follows the pointer: onto a note it selects it, onto a free place it goes there, and the arrows still move it"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC35 the bubble on a note offers no repeat signs, and paste only once something is copied"
+
+## d295
+
+**A name is typed on the computer keyboard into the game's name box; the box has no letter buttons.** Features: ft_1_07.
+
+The box is big, with a red caret where the next letter goes, and takes only the Estonian name letters, up to 12; Backspace deletes and Enter is Done, and Delete and Done stay as picture buttons. A tablet with no keyboard gets the system's on-screen keyboard later.
+
+Check: `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box"

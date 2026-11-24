@@ -8,10 +8,11 @@ import { moveBar, moveInTime, movePitch, otherStaff, startKeyCursor, withPitch, 
 import { nextLength } from '../core/editor/nextLength';
 import { beatsFit, confirmBeats, firstBarFull, guessBeats, type Beats } from '../core/editor/meterGuess';
 import { chordKeyPress, moveNoteKeepingLegato, repeatTied } from '../core/editor/keyEdits';
-import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, moveBars, pasteAt, pasteSpan, replaceBars, type BarRange, type Clip } from '../core/editor/bars';
+import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, moveBars, pasteAt, pasteOverwrites, pasteSpan, replaceBars, type BarRange, type Clip } from '../core/editor/bars';
 import { deleteNotes, eraseBefore, nearestPitch, pitchAbove, snapToNote, stepsTo, VIM_START, vimKey, vimMotion, vimShowCmd, type VimCommand, type VimState } from '../core/editor/vim';
 import { samePitchNotAdjacent, tieAll } from '../core/editor/ties';
 import { arcInto, toggleArc } from '../core/editor/arcs';
+import { slurBars, tieBars } from '../core/editor/rangeArcs';
 import { graceFromKey, graceFromPlace, graceItem } from '../core/editor/graces';
 import { barNumbersToShow } from '../core/layout/barNumbers';
 import { addedMarks, NO_MARKS, pendingArc, slurPoints, tiePoints, type AddedMarks } from '../core/layout/preview';
@@ -113,6 +114,16 @@ const AUTO_WIDTH = 34;
 /** The curriculum's levels, for AUTO fingers: the hand positions of each level (content/curriculum/levels.json). */
 const LEVEL_TABLE: readonly LevelDefinition[] = levelsFileSchema.parse(levelsJson).levels;
 const FLASH_MS = 500;
+/** A bubble's options without the empty slots at its end, so a short list does not turn to a second page. */
+const trimSlots = <T,>(slots: (T | null)[]): (T | null)[] => {
+  let end = slots.length;
+  while (end > 0 && slots[end - 1] === null) end -= 1;
+  return slots.slice(0, end);
+};
+/** Whether a note of the same hand starts after the note: a tie or slur picked from it has somewhere to end. */
+const hasLaterNote = (piece: EditorPiece, ref: NoteRef): boolean => piece.notes.some((n) => n.hand === ref.hand && (n.bar > ref.bar || (n.bar === ref.bar && n.start > ref.start)));
+/** Whether two places name the same head: hand, bar, start and pitch. */
+const sameRef = (a: NoteRef, b: NoteRef): boolean => a.hand === b.hand && a.bar === b.bar && a.start === b.start && a.step === b.step && a.octave === b.octave;
 const MESSAGE_MS = 3000;
 /** The chord dictionary the piece maker names a column's chord from (ft_1_29 slice D). */
 const CHORDS = loadChordContent(chordsJson);
@@ -237,6 +248,10 @@ export class EditorScene extends PixelScene {
   private lassoBox: Phaser.GameObjects.Graphics | null = null;
   /** The drag-repeat handle is held (ft_1_02d.AC24): the bars it repeats and the copies the drag asks for so far. */
   private repeatDrag: { range: BarRange; copies: number } | null = null;
+  /** The note or place the pointer was last over on the staff, so the cursor follows only a move onto another (ft_1_02d.AC34). */
+  private pointerAt: NoteRef | null = null;
+  /** The paste that warned it writes over notes (ft_1_02d.AC37): the same paste on the same piece and bars does it. */
+  private pasteWarn: { piece: EditorPiece; from: number; to: number } | null = null;
   /** The column (bar, start and keys) whose chord was last named (ft_1_29 slice D), so the name is said once for it. */
   private namedColumn: string | null = null;
   /** The ghost copies of a drag-repeat, over the bars they will take. */
@@ -389,6 +404,7 @@ export class EditorScene extends PixelScene {
     this.player = new ChartPlayer(context.audio.piano, context.audio.clock);
     this.input.mouse?.disableContextMenu();
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
+      this.followPointer(p);
       this.hover(p);
       this.dragLasso(p);
       this.dragRepeat(p);
@@ -566,6 +582,28 @@ export class EditorScene extends PixelScene {
     return { hand: this.handOf(note.track), bar: note.bar, start: note.tick - bar.startTick, step: note.spelling.step, octave: note.spelling.octave };
   }
 
+  /**
+   * The keyboard cursor follows the pointer over the staff (ft_1_02d.AC34): on a note it goes there and selects it, on a
+   * free place the cursor and the next played key go there. Only a move of the pointer moves it, so the keys still move the
+   * cursor away; it stays put while a button is held (a lasso, a drag), a menu is open, a pick waits or the time is asked.
+   */
+  private followPointer(p: Phaser.Input.Pointer): void {
+    if (p.isDown || this.menuOpen || this.meterAsk !== null || this.arcFrom || this.graceFor || this.repeatPick || this.repeatDrag || this.overStaffControls(p)) return;
+    const hit = this.hit(p);
+    const c = hit?.kind === 'note' ? this.refOf(hit.noteIndex) : hit?.kind === 'place' ? this.cursorAtHit(hit) : null;
+    // only a move onto another note or place counts: a jitter of the hand on the same one leaves an arrow key's move alone
+    const last = this.pointerAt;
+    this.pointerAt = c;
+    if (!c || (last && sameRef(c, last)) || (this.keyCursor && sameRef(c, this.keyCursor))) return;
+    this.keyCursor = c;
+    this.barAnchor = c.bar;
+    const on = findNote(this.piece, c) ? c : null;
+    if (!on) this.entryState = moveCursor(this.entryState, c.hand, c.bar, c.start);
+    if ((on === null && this.selected === null) || (on && this.selected && sameRef(on, this.selected))) return this.drawKeyCursor();
+    this.selected = on;
+    this.refreshStaff();
+  }
+
   private hover(p: Phaser.Input.Pointer): void {
     // an open menu covers the staff: no shadow note under it
     const hit = this.menuOpen ? null : this.hit(p);
@@ -705,7 +743,8 @@ export class EditorScene extends PixelScene {
       const span = pasteSpan(this.piece, this.barSel, fresh, this.barAnchor, this.barClip, times);
       if (!span) return;
       const S = this.layout.staffSpace;
-      const ink = DEFAULT_THEME.cursor;
+      // bars whose notes the paste would replace are shown in red (ft_1_02d.AC37)
+      const ink = pasteOverwrites(this.piece, this.barSel, fresh) > 0 ? DEFAULT_THEME.wrong : DEFAULT_THEME.cursor;
       const boxes = barBoxes(this.layout, span);
       for (const box of boxes) {
         if (box.page !== this.page) continue;
@@ -1044,7 +1083,7 @@ export class EditorScene extends PixelScene {
     const on = findNote(this.piece, c) ? c : null;
     if (!on) this.entryState = moveCursor(this.entryState, c.hand, c.bar, c.start);
     const page = this.layout ? pageOfBar(this.layout, c.bar) : this.page;
-    const same = (a: NoteRef | null, b: NoteRef | null) => a === b || (!!a && !!b && a.hand === b.hand && a.bar === b.bar && a.start === b.start && a.step === b.step && a.octave === b.octave);
+    const same = (a: NoteRef | null, b: NoteRef | null) => a === b || (!!a && !!b && sameRef(a, b));
     if (!redraw && same(on, this.selected) && page === this.page) return this.drawKeyCursor();
     this.selected = on;
     this.follow = c.bar;
@@ -1255,7 +1294,7 @@ export class EditorScene extends PixelScene {
       notes: () => this.lengthKey('note'),
       rests: () => this.lengthKey('rest'),
       accidentals: () => this.cycleAccidental(),
-      ties: () => this.openKeyMenu('ties', this.arcItems(), 0, ITEM_MENU_CELL, 3),
+      ties: () => this.openArcKeyMenu(),
       dynamics: () => this.openKeyMenu('dynamics', this.dynamicItems(), this.nextDynamicIndex(), ITEM_MENU_CELL, 7),
       fingers: () => this.fingerKey(),
       repeats: () => this.pressRepeat(),
@@ -1274,6 +1313,13 @@ export class EditorScene extends PixelScene {
     this.openKeyMenu(entry === 'note' ? 'notes' : 'rests', items, LENGTH_ORDER.indexOf('quarter'), ITEM_MENU_CELL, LENGTH_ORDER.length, digits);
   }
 
+  /** T: the tie and slur items that apply here, each with its own number whatever is left out (ft_1_02d.AC35), or why there are none. */
+  private openArcKeyMenu(): void {
+    const items = this.arcItems();
+    if (items.length === 0) return this.say(t(this.selected || this.barSel ? 'editor.tie.all.none' : 'editor.arc.none'), MESSAGE_MS);
+    this.openKeyMenu('ties', items, 0, ITEM_MENU_CELL, items.length, items.map((item, i) => item.shortcut ?? String(i + 1)));
+  }
+
   /**
    * Opens the choices of a tool's key from its band item (or over the band when the item is on another page), a number on
    * each choice (1 up, or `digits`).
@@ -1286,10 +1332,6 @@ export class EditorScene extends PixelScene {
     this.keyMenu = { items: numbered, fallback: Math.max(0, fallback) };
   }
 
-  /**
-   * A key while a key's menu is open: a digit picks its choice, Esc closes it, and any other key takes the default choice
-   * and closes it, then does its own work (Enter writes, an arrow moves). True when the key is used up.
-   */
   /** A menu closed any way (a click off it, a pick) takes its key's choices with it, so a later mouse menu is not read as one. */
   protected override closeMenu(): void {
     this.keyMenu = null;
@@ -1297,6 +1339,10 @@ export class EditorScene extends PixelScene {
     if (this.photo) this.drawPhoto();
   }
 
+  /**
+   * A key while a key's menu is open: a digit picks its choice, Esc closes it, and any other key takes the default choice
+   * and closes it, then does its own work (Enter writes, an arrow moves). True when the key is used up.
+   */
   private keyMenuKey(e: KeyboardEvent): boolean {
     const menu = this.keyMenu!;
     const take = () => {
@@ -1823,11 +1869,28 @@ export class EditorScene extends PixelScene {
     this.say(t('editor.cut.done'), MESSAGE_MS);
   }
 
-  /** PASTE with Ctrl+V: after a fresh copy or paste, after the selection; over another selection; else before the last click. */
-  private pasteSelection(): void {
-    if (!this.barClip) return this.say(t('editor.paste.none'), MESSAGE_MS);
-    const fresh = !!this.barSel && !!this.clipRange && this.barSel.from === this.clipRange.from && this.barSel.to === this.clipRange.to;
-    const { edit, range } = pasteAt(this.piece, this.barSel, fresh, this.barAnchor, this.barClip);
+  /**
+   * PASTE with Ctrl+V: after a fresh copy or paste, after the selection; over another selection; else before the last click.
+   * A paste that would write over notes warns first (ft_1_02d.AC37): the bars it would replace turn red and the message says
+   * how many notes go; the same paste again does it. False when nothing was pasted.
+   */
+  private pasteSelection(): boolean {
+    if (!this.barClip) {
+      this.say(t('editor.paste.none'), MESSAGE_MS);
+      return false;
+    }
+    const sel = this.barSel;
+    const fresh = !!sel && !!this.clipRange && sel.from === this.clipRange.from && sel.to === this.clipRange.to;
+    const over = pasteOverwrites(this.piece, sel, fresh);
+    const warned = this.pasteWarn;
+    if (over > 0 && sel && !(warned && warned.piece === this.piece && warned.from === sel.from && warned.to === sel.to)) {
+      this.pasteWarn = { piece: this.piece, from: sel.from, to: sel.to };
+      this.refreshStaff();
+      this.say(t('editor.paste.over', { n: over }), MESSAGE_MS * 4);
+      return false;
+    }
+    this.pasteWarn = null;
+    const { edit, range } = pasteAt(this.piece, sel, fresh, this.barAnchor, this.barClip);
     this.apply(edit, null);
     if (edit.ok && range) {
       this.barSel = range;
@@ -1835,6 +1898,7 @@ export class EditorScene extends PixelScene {
       this.clipRange = range;
       this.refreshStaff();
     }
+    return edit.ok;
   }
 
   /**
@@ -2704,6 +2768,15 @@ export class EditorScene extends PixelScene {
   /** Whether the next `refreshStaff` keeps the page shown (a page turn that drew the screen again). */
   private pageTurnPending = false;
 
+  /** The bars a warned paste would write over, red until it is done or anything else changes (ft_1_02d.AC37). */
+  private drawPasteWarning(g: Phaser.GameObjects.Graphics, layout: StaffLayout, sel: BarRange): void {
+    const warn = this.pasteWarn;
+    if (!warn || warn.piece !== this.piece || warn.from !== sel.from || warn.to !== sel.to) return;
+    for (const box of barBoxes(layout, sel)) {
+      if (box.page === this.page) g.fillStyle(DEFAULT_THEME.wrong, 0.22).fillRect(box.x1, this.staffTop + box.y1, box.x2 - box.x1, box.y2 - box.y1);
+    }
+  }
+
   private refreshStaff(pageTurn = false): void {
     // a page turned that drew the screen again (its page buttons or the bar buttons changed) stays turned
     if (this.pageTurnPending) pageTurn = true;
@@ -2732,6 +2805,7 @@ export class EditorScene extends PixelScene {
       for (const box of barBoxes(this.layout, this.barSel)) {
         if (box.page === this.page) this.band.fillStyle(DEFAULT_THEME.cursor, 0.18).fillRect(box.x1, this.staffTop + box.y1, box.x2 - box.x1, box.y2 - box.y1);
       }
+      this.drawPasteWarning(this.band, this.layout, this.barSel);
       // the drag-repeat handle at the selection's right edge (ft_1_02d.AC24)
       const grip = repeatHandleBox(this.layout, this.barSel, this.page);
       if (grip) this.band.fillStyle(DEFAULT_THEME.cursor, 0.9).fillRect(grip.x1, this.staffTop + grip.y1, grip.x2 - grip.x1, grip.y2 - grip.y1);
@@ -2838,7 +2912,7 @@ export class EditorScene extends PixelScene {
   /**
    * The bubble (ft_1_20, d282) for what is under the pointer, each option in its fixed slot. On a note (it becomes the
    * selected note, unless it is in the selected bars, which the options then act on): 0 length, 1 accidental, 2 delete, 3 tie
-   * or slur, 4 dynamic, 5 fingers, 6 grace note, 7 copy; with bars selected also paste and repeat. On the time signature: 0
+   * or slur, 4 dynamic, 5 fingers, 6 grace note, 7 copy; with bars selected also paste (`noteOptions`). On the time signature: 0
    * the time panel. Elsewhere on the staff (the entry cursor moves there): 0 notes or rests, 1 paste at that bar, 2 repeat, 3
    * the staff for played notes, 4 the short tap, 6 the key. From More (`at` null): the note's options while one is
    * selected, else the place's.
@@ -2852,50 +2926,66 @@ export class EditorScene extends PixelScene {
     if (this.meterAsk !== null) return null;
     const hit = at ? this.hit({ x: this.root.x + at.x * this.px.scale, y: this.root.y + at.y * this.px.scale }) : null;
     if (hit?.kind === 'time') return [{ label: t('editor.timePanel'), icon: TOOL_ICONS.timePanel, onClick: () => this.openPanel('time') }];
+    const sel = this.barSel;
+    const inSelection = (bar: number) => !!sel && bar >= sel.from && bar <= sel.to;
     if (hit?.kind === 'note') {
       const ref = this.refOf(hit.noteIndex);
-      const sel = this.barSel;
-      if (ref && !(sel && ref.bar >= sel.from && ref.bar <= sel.to)) {
+      if (ref && !inSelection(ref.bar)) {
         this.barSel = null;
         this.keyCursor = ref;
-        if (this.selected?.bar !== ref.bar || this.selected.start !== ref.start || this.selected.step !== ref.step || this.selected.octave !== ref.octave || this.selected.hand !== ref.hand) this.select(ref);
+        if (!this.selected || !sameRef(this.selected, ref)) this.select(ref);
       }
-      return this.noteOptions();
+      return trimSlots(this.noteOptions());
     }
     if (hit?.kind === 'place') {
+      // an empty place inside the selected bars keeps them: the bubble acts on them (ft_1_02d.AC36)
+      if (inSelection(hit.bar)) {
+        this.selected = null;
+        return trimSlots(this.noteOptions());
+      }
       this.barSel = null;
       this.barAnchor = hit.bar;
       this.selectSpot(hit);
-      return this.placeOptions();
+      return trimSlots(this.placeOptions());
     }
-    if (at === null && (this.selected || this.barSel)) return this.noteOptions();
-    return this.placeOptions();
+    if (at === null && (this.selected || this.barSel)) return trimSlots(this.noteOptions());
+    return trimSlots(this.placeOptions());
   }
 
-  /** The bubble on a note or the selected bars: what is done to them. */
+  /**
+   * The bubble on a note or the selected bars: what is done to them, each option only where it applies (ft_1_02d.AC35). On a
+   * note: 0 length, 1 accidental, 2 delete, 3 tie or slur, 4 dynamic, 5 fingers, 6 grace note, 7 copy, and with bars
+   * selected 8 paste (with something copied). With bars selected and no note under the pointer the note's options are gone,
+   * 1 is paste (its slot on an empty place) and 6 the repeat round the selected bars, so all fit one page. A repeat is never
+   * offered on a note.
+   */
   private noteOptions(): (ToolbarItem | null)[] {
     const note = this.selected ? findNote(this.piece, this.selected) : undefined;
     const sign = ACCIDENTAL_SIGN[note?.alter ?? 1];
     const sel = this.barSel;
-    const options: (ToolbarItem | null)[] = [
-      { label: t(`editor.length.${this.length}` as StringKey), icon: this.lengthPicture(this.length, 'note'), fineIcon: true, onClick: () => undefined, menu: { items: () => this.lengthItems('note'), cell: ITEM_MENU_CELL, columns: LENGTH_ORDER.length } },
-      { label: t(`editor.acc.${sign}`), icon: itemPicture(sign), fineIcon: true, tooltip: t('editor.acc.tip'), shortcut: EDITOR_KEYS.accidentals.label, onClick: () => undefined, menu: { items: () => this.accidentalItems(), cell: ITEM_MENU_CELL, columns: 3 } },
-      { label: t('editor.delete'), icon: TOOL_ICONS.trash, shortcut: EDITOR_KEYS.delete.label, onClick: () => (sel ? this.change(clearBars(this.piece, sel)) : this.deleteSelected()) },
-      { label: t('editor.arc.menu'), icon: itemPicture('tie'), fineIcon: true, shortcut: EDITOR_KEYS.ties.label, onClick: () => undefined, menu: { items: () => this.arcItems(), cell: ITEM_MENU_CELL, columns: 3 } },
-      { label: note?.dynamic ?? '-', icon: dynamicPicture(note?.dynamic ?? 'mf'), fineIcon: true, keepCase: true, tooltip: t('editor.dyn.tip'), shortcut: EDITOR_KEYS.dynamics.label, onClick: () => undefined, menu: { items: () => this.dynamicItems(), cell: ITEM_MENU_CELL, columns: 7 } },
-      { label: t('editor.finger.menu'), icon: TOOL_ICONS.fingers, shortcut: EDITOR_KEYS.fingers.label, onClick: () => undefined, menu: { items: () => this.fingerItems(), cell: FINGER_MENU_CELL, columns: 6 } },
-      { label: t('editor.grace'), icon: TOOL_ICONS.grace, tooltip: t('editor.grace.tip'), onClick: () => this.pressGrace() },
-      { label: t('editor.copy'), icon: TOOL_ICONS.copy, shortcut: EDITOR_KEYS.copy.label, onClick: () => this.copyBar() },
+    const arcs = this.arcItems();
+    const paste = sel && this.barClip ? this.pasteOption() : null;
+    const onNote = <T,>(item: T): T | null => (note ? item : null);
+    return [
+      onNote({ label: t(`editor.length.${this.length}` as StringKey), icon: this.lengthPicture(this.length, 'note'), fineIcon: true, onClick: () => undefined, menu: { items: () => this.lengthItems('note'), cell: ITEM_MENU_CELL, columns: LENGTH_ORDER.length } }),
+      note
+        ? { label: t(`editor.acc.${sign}`), icon: itemPicture(sign), fineIcon: true, tooltip: t('editor.acc.tip'), shortcut: EDITOR_KEYS.accidentals.label, onClick: () => undefined, menu: { items: () => this.accidentalItems(), cell: ITEM_MENU_CELL, columns: 3 } }
+        : paste,
+      note || sel ? { label: t('editor.delete'), icon: TOOL_ICONS.trash, shortcut: EDITOR_KEYS.delete.label, onClick: () => (sel ? this.change(clearBars(this.piece, sel)) : this.deleteSelected()) } : null,
+      arcs.length > 0 ? { label: t('editor.arc.menu'), icon: sel ? TOOL_ICONS.slur : itemPicture('tie'), fineIcon: !sel, shortcut: EDITOR_KEYS.ties.label, onClick: () => undefined, menu: { items: () => this.arcItems(), cell: ITEM_MENU_CELL, columns: arcs.length } } : null,
+      onNote({ label: note?.dynamic ?? '-', icon: dynamicPicture(note?.dynamic ?? 'mf'), fineIcon: true, keepCase: true, tooltip: t('editor.dyn.tip'), shortcut: EDITOR_KEYS.dynamics.label, onClick: () => undefined, menu: { items: () => this.dynamicItems(), cell: ITEM_MENU_CELL, columns: 7 } }),
+      onNote({ label: t('editor.finger.menu'), icon: TOOL_ICONS.fingers, shortcut: EDITOR_KEYS.fingers.label, onClick: () => undefined, menu: { items: () => this.fingerItems(), cell: FINGER_MENU_CELL, columns: 6 } }),
+      note ? { label: t('editor.grace'), icon: TOOL_ICONS.grace, tooltip: t('editor.grace.tip'), onClick: () => this.pressGrace() } : sel ? this.repeatOption() : null,
+      note || sel ? { label: t('editor.copy'), icon: TOOL_ICONS.copy, shortcut: EDITOR_KEYS.copy.label, onClick: () => this.copyBar() } : null,
+      note ? paste : null,
     ];
-    if (sel) options.push(this.pasteOption(), this.repeatOption());
-    return options;
   }
 
-  /** The bubble on an empty place of the staff: how the next notes are written. */
+  /** The bubble on an empty place of the staff: how the next notes are written; paste only with something copied (ft_1_02d.AC35). */
   private placeOptions(): (ToolbarItem | null)[] {
     return [
       { label: t(`editor.entry.${this.entry}`), icon: this.lengthPicture(this.length), fineIcon: true, onClick: () => undefined, menu: { items: () => this.entryItems(), cell: ITEM_MENU_CELL, columns: 2 } },
-      this.pasteOption(),
+      this.barClip ? this.pasteOption() : null,
       this.repeatOption(),
       { label: t(STAFF_LABEL[this.staffMode]), icon: TOOL_ICONS.staff, tooltip: t('editor.staff.tip'), shortcut: EDITOR_KEYS.staff.label, onClick: () => undefined, menu: { items: () => this.staffItems(), cell: { w: 40, h: BAR_BUTTON_HEIGHT }, columns: 3 } },
       {
@@ -2903,7 +2993,6 @@ export class EditorScene extends PixelScene {
         menu: { items: () => this.shortTapItems(), cell: { w: 40, h: BAR_BUTTON_HEIGHT }, columns: 2 } },
       null,
       circleItem(() => this.openCircle()),
-      null,
     ];
   }
 
@@ -3110,20 +3199,34 @@ export class EditorScene extends PixelScene {
    */
   private pasteItems(): MenuItem[] {
     return ([1, 2, 4] as const).map((times) => ({ label: t(`editor.paste.${times}`), tooltip: t('editor.paste.tip'), keepCase: true, preview: this.pastePreview(times), onPick: () => {
-      for (let i = 0; i < times; i++) this.pasteSelection();
+      // a paste that only warned (ft_1_02d.AC37) stops the rest: the same pick again does them all
+      for (let i = 0; i < times; i++) if (!this.pasteSelection()) break;
     } }));
   }
 
   /**
-   * The tie and slur menu (core_09.AC13, AC30; one item for both): the curve on the selected note (a tie to
-   * the same key right after, else a slur; a second press takes it away), pick the note it goes to, tie every repeat.
+   * The tie and slur menu (core_09.AC13, AC30; one item for both), only the items that would do something (ft_1_02d.AC35).
+   * On a note: the curve on it (a tie to the same key right after, else a slur; a second press takes it away), pick the note
+   * it goes to, tie every repeat. With bars selected (ft_1_02d.AC36): a slur over them for each hand and a tie of every
+   * repeat in them, no first note to pick; each drawn faint on the staff while the pointer rests on it (d286).
    */
   private arcItems(): MenuItem[] {
-    return [
-      { label: t('editor.arc'), icon: itemPicture('tie'), fineIcon: true, tooltip: t('editor.arc.tip'), onPick: () => this.toggleArcOnSelected() },
-      { label: t('editor.arc.pick.button'), icon: itemPicture('tieTo'), fineIcon: true, tooltip: t('editor.arc.pick.tip'), onPick: () => this.armArc() },
-      { label: t('editor.tie.all'), icon: TOOL_ICONS.tieAll, tooltip: t('editor.tie.all.tip'), preview: this.itemPreview('tieAll', () => tieAll(this.piece)), onPick: () => this.tieEverything() },
-    ];
+    const sel = this.barSel;
+    if (sel) {
+      const span = `${sel.from}-${sel.to}`;
+      const slur = () => slurBars(this.piece, sel);
+      const tie = () => tieBars(this.piece, sel);
+      return [
+        ...(slur().ok ? [{ label: t('editor.slur.bars'), icon: TOOL_ICONS.slur, shortcut: '1', tooltip: t('editor.slur.bars.tip'), preview: this.itemPreview(`slurBars:${span}`, slur), onPick: () => this.apply(slur(), null) }] : []),
+        ...(tie().ok ? [{ label: t('editor.tie.bars'), icon: TOOL_ICONS.tie, shortcut: '2', tooltip: t('editor.tie.bars.tip'), preview: this.itemPreview(`tieBars:${span}`, tie), onPick: () => this.apply(tie(), null) }] : []),
+      ];
+    }
+    const ref = this.selected;
+    const items: MenuItem[] = [];
+    if (ref && toggleArc(this.piece, ref).ok) items.push({ label: t('editor.arc'), icon: itemPicture('tie'), fineIcon: true, shortcut: '1', tooltip: t('editor.arc.tip'), preview: this.itemPreview(`arc:${ref.bar}:${ref.start}:${ref.step}${ref.octave}`, () => toggleArc(this.piece, ref)), onPick: () => this.toggleArcOnSelected() });
+    if (ref && hasLaterNote(this.piece, ref)) items.push({ label: t('editor.arc.pick.button'), icon: itemPicture('tieTo'), fineIcon: true, shortcut: '2', tooltip: t('editor.arc.pick.tip'), onPick: () => this.armArc() });
+    if (tieAll(this.piece).ok) items.push({ label: t('editor.tie.all'), icon: TOOL_ICONS.tieAll, shortcut: '3', tooltip: t('editor.tie.all.tip'), preview: this.itemPreview('tieAll', () => tieAll(this.piece)), onPick: () => this.tieEverything() });
+    return items;
   }
 
   private chooseKey(fifths: number, mode: KeyMode): void {
