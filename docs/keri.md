@@ -195,3 +195,4 @@ Places on the photo map are given by cells of the painter's grid: cells of 25 m,
 - `KERI-TODO`: the flagpole's exact spot; the layout of the warden's house.
 
 - TODO(painter, R3): the garden scene is paused (d252); it is reworked when it is picked up again.
+- TODO(painter, R2): the scene notes in `docs/keri/` and the notes in `projects/painter/` still tell the history of their passes (what an art review found, what was tried and taken out); rewrite each to what the picture is now and what is open, as d151 asks of every doc.

@@ -5,6 +5,9 @@ import type Phaser from 'phaser';
 import { firstPrintedBar, unrollRepeats, writtenTick, writtenView, type Chart, type PlayChart } from '../../core/chart';
 import { DEFAULT_FOLLOW_RULES, TempoMode, WaitMode, type Hints, type TempoStart, type JudgeEvent, type NoteJudged, type PieceResult, type PlaySettings, type PlayState } from '../../core/judge';
 import { barNumbersToShow, type BarNumberSettings } from '../../core/layout/barNumbers';
+import { prizeColumn, type PrizeGlyph } from '../../core/layout/learnPrizes';
+import type { LearnRewards } from '../../core/learn/progress';
+import type { PrizeFocus } from '../../core/learn/view';
 import { passScorePlace } from '../../core/layout/passScore';
 import { durationMarks, type DurationHelp } from '../../core/layout/durationHelp';
 import { playheadAt } from '../../core/layout/playhead';
@@ -19,6 +22,7 @@ import type { Mascot } from '../ui/pixel/PixelObjects';
 import { SpeechBubble, type BubbleSpot } from '../ui/pixel/SpeechBubble';
 import { StaffView } from '../ui/staff/StaffView';
 import { PracticeController } from './PracticeController';
+import { drawPrizes } from './prizeGlyphs';
 import { staffSpaceLimits } from '../../core/layout/canvasSize';
 
 
@@ -62,6 +66,13 @@ export interface PlaySessionOptions {
   section?: { whole: Chart; first: number };
   /** Tracks drawn grey on their own staves and not played: the resting hand of a hand step in learning (ft_1_32.AC18). */
   restingTracks?: readonly string[];
+  /**
+   * What the staff draws instead of `chart` (learning, ft_1_32.AC20): the whole piece, the bars of `faint` (inclusive ranges)
+   * very faint; its first notes are `chart`'s, in the same order, so the judge's note indexes are its own.
+   */
+  shown?: { chart: Chart; faint: readonly { from: number; to: number }[] };
+  /** Staff spaces left free right of the staff (the column of the prizes of learning, ft_1_32.AC19). */
+  roomRight?: number;
   /** A wrong key on the staff from the start, as the run before ended on it (ft_1_32.AC6); gone at the first right key. */
   wrongKey?: WrongKey;
   keyboard: KeyboardInput;
@@ -106,6 +117,11 @@ export class PlaySession {
   private layoutNow: StaffLayout | null = null;
   /** The score of the pass just finished, drawn past the last bar (ft_1_12); empty when none is shown. */
   private passScore: Phaser.GameObjects.GameObject[] = [];
+  /** The width of the area the staff was last drawn in: the sheet's, which the prizes' column keeps inside. */
+  private areaWidth = 0;
+  /** The prizes of learning drawn at the sheet's top right (ft_1_32.AC19), and what they show (read by the tests). */
+  private prizes: Phaser.GameObjects.Graphics | null = null;
+  prizesShown: readonly PrizeGlyph[] = [];
   private bubble: SpeechBubble | null = null;
   private onBubbleLines: ((lines: number) => void) | undefined;
   private mascot: Mascot | null = null;
@@ -132,6 +148,11 @@ export class PlaySession {
     this.startJudge();
   }
 
+  /** The chart the staff draws: the written chart, or what `shown` puts in its place. */
+  private get drawn(): Chart {
+    return this.options.shown?.chart ?? this.written;
+  }
+
   /** The judge of the round on screen. */
   get controller(): PracticeController {
     return this.controllerNow;
@@ -155,7 +176,7 @@ export class PlaySession {
   }
 
   /**
-   * A fresh judge for the same chart: the piece again from its first note (find the key started over). Wait mode only: a
+   * A fresh judge for the same chart: the piece again from its first note (the play started over). Wait mode only: a
    * Tempo-mode transport cannot start over.
    */
   restart(): void {
@@ -199,7 +220,7 @@ export class PlaySession {
     this.controllerNow.setHints(hints);
   }
 
-  /** Stop listening to the keyboard (the piece or the fight is over); what is on screen stays. */
+  /** Stop listening to the keyboard (the piece or the tug is over); what is on screen stays. */
   stop(): void {
     this.controllerNow.dispose();
   }
@@ -215,15 +236,26 @@ export class PlaySession {
     const options = { viewport: { width: area.width, height: area.height }, ...staffSpaceLimits(this.scene.scale.zoom), scoreRoom: this.transport !== null && this.scoreView === 'number', staffGap: prefs.staffGap, noteNaming: prefs.noteNaming, ...(this.options.restingTracks ? { restingTracks: this.options.restingTracks } : {}) };
     this.naming = prefs.noteNaming;
     const section = this.options.section;
-    const whole = layoutForSettings(section?.whole ?? this.written, options, settings);
-    const layout = section ? layoutSection(this.written, whole, options, settings) : whole;
+    const drawn = this.drawn;
+    this.areaWidth = area.width;
+    let whole = layoutForSettings(section?.whole ?? this.written, options, settings);
+    const room = this.options.roomRight ?? 0;
+    if (room > 0) {
+      // the room is in staff spaces of the staff that is left: laid out once to know its size, then again narrower
+      options.viewport = { ...options.viewport, width: Math.max(1, area.width - Math.ceil(room * whole.staffSpace)) };
+      whole = layoutForSettings(section?.whole ?? this.written, options, settings);
+    }
+    const layout = section ? layoutSection(drawn, whole, options, settings) : whole;
     this.layoutNow = layout;
     // numbered as printed: a piece's pick-up is bar 0 (core_09.AC25)
-    const numbers = barNumbersToShow(prefs.barNumberSettings.mode, this.written.bars.length, section?.first ?? 0, firstPrintedBar(section?.whole ?? this.written));
-    this.view = new StaffView(this.scene, layout, undefined, { ...this.hints, chordFingers: this.options.chordFingers === true }, { x: 0, y: area.top }, numbers);
-    this.view.setDurationMarks(durationMarks(layout, this.written, prefs.durationHelp));
+    // a learning run draws the whole piece, numbered from its first bar
+    const numbers = barNumbersToShow(prefs.barNumberSettings.mode, drawn.bars.length, this.options.shown ? 0 : section?.first ?? 0, firstPrintedBar(section?.whole ?? this.written));
+    // the parchment runs the whole width of the area, also past a staff that leaves room at its right
+    this.view = new StaffView(this.scene, layout, undefined, { ...this.hints, chordFingers: this.options.chordFingers === true }, { x: 0, y: area.top }, numbers, room > 0 ? { x: 0, width: area.width } : undefined);
+    this.view.setDurationMarks(durationMarks(layout, drawn, prefs.durationHelp));
     // where the hand moves, shown with the finger numbers (ft_1_30.AC10)
-    this.view.setHandShifts(handShiftMap(this.written, LEVELS.find((l) => l.level === this.written.level)));
+    this.view.setHandShifts(handShiftMap(drawn, LEVELS.find((l) => l.level === drawn.level)));
+    this.view.veil(this.options.shown?.faint ?? []);
     if (this.transport) this.view.followPlayhead(true);
     this.applyState(this.controllerNow.getState());
     if (this.lastWrong) this.showWrongKey(this.lastWrong);
@@ -309,7 +341,7 @@ export class PlaySession {
   /** Put a wrong key on the staff beside the awaited note (`awaiting`, of the written notes), with its name; it stays until a right key. */
   showWrongKey(wrong: WrongKey): void {
     this.lastWrong = wrong;
-    const mark = this.layoutNow ? playedMark(this.layoutNow, this.written, wrong.awaiting, wrong.midi) : null;
+    const mark = this.layoutNow ? playedMark(this.layoutNow, this.drawn, wrong.awaiting, wrong.midi) : null;
     this.view?.setPlayed(mark, mark ? noteLabel(mark.spelling, this.naming) : '');
   }
 
@@ -346,6 +378,18 @@ export class PlaySession {
     this.passScore = [g];
   }
 
+  /** The prizes of learning a piece in a column at the sheet's top right (ft_1_32.AC19); they stay until the staff is drawn again. */
+  showPrizes(rewards: LearnRewards, focus: PrizeFocus): void {
+    this.prizes?.destroy();
+    const layout = this.layoutNow;
+    const view = this.view;
+    if (!layout || !view) return;
+    // the column's right edge a little in from the sheet's, in the room the staff left there
+    const column = prizeColumn(layout.staffSpace, this.areaWidth - view.origin.x - 1.2 * layout.staffSpace, rewards, focus);
+    this.prizesShown = column.glyphs;
+    this.prizes = drawPrizes(this.scene, column, view.origin, layout.staffSpace);
+  }
+
   private clearPassScore(): void {
     for (const o of this.passScore) o.destroy();
     this.passScore = [];
@@ -354,6 +398,8 @@ export class PlaySession {
   /** Before the scene draws again: the staff goes, and the bubble and Kiur with the scene's root. */
   clearView(): void {
     this.clearPassScore();
+    this.prizes?.destroy();
+    this.prizes = null;
     this.view?.destroy();
     this.view = null;
     this.bubble = null;

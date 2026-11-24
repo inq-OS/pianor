@@ -2,7 +2,7 @@
 
 Written by the architect: the work package ft_1_22 of the [programme](program-characters-teacher.md). It follows the answers to Q5 to Q7 and Q10: a character's piece goes learn, practise, show ([d135](../decisions/game.md#d135)); no label word such as VÄLJAKUTSE or TEGELANE on screen, a character's own line invites the tug; a character has a name, a generic name or a generated one. Characters come from Keri's own world (d132, ft_1_21): folk spirits and belief, visitors who really come to the island, ghosts of its past; never a real person and nothing from a copyrighted novel.
 
-**The cast (Q10):** for now a border guard, a Prangli fisherman and a tree spirit (puuvaim). The style of each and the one built first are the architect's (AX-3 provisional: the maintainer may swap them): the tree spirit (classical) first, then the Prangli fisherman (folk) and the border guard (jazz). The other candidates of the first draft (the bonfire's voice, the straw kratt, the old keeper's ghost, the conservatory student, the ship's cook) are dropped; any may come back in a later cast.
+**The cast (Q10):** for now a border guard, a Prangli fisherman and a tree spirit (puuvaim). The style of each and the one built first are the architect's (AX-3 provisional: the maintainer may swap them): the tree spirit (classical) first, then the Prangli fisherman (folk) and the border guard (jazz).
 
 ## 1. The cast
 

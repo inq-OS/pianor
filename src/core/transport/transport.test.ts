@@ -189,7 +189,7 @@ describe('Transport: the end of the chart', () => {
   });
 });
 
-describe('Transport: a click for the count-in only (a level-3 campaign battle)', () => {
+describe('Transport: a click for the count-in only (a level-3 tug)', () => {
   it('the plan stops after the count-in beats', () => {
     const transport = new Transport(chart);
     transport.start(250);

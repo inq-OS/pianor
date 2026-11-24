@@ -93,6 +93,17 @@ describe('LearnSession', () => {
     expect(last.endLine(played.outcome, played.bpm)).toBe('Learned: every note right, at an even 75');
   });
 
+  it('ft_1_32.AC19 the prizes stay on the staff at the moment the piece is learned, the clef earned and nothing more aimed at', async () => {
+    const { session } = open({ ...START_PROGRESS, step: 1, wholeStreak: 2, lastDay: '1998-11-22' });
+    const last = session();
+    expect(last.prizeFocus(last.rewards()).clef).toBe(true);
+    const played = playRun(last, [0, 800, 1600, 2400]);
+    await last.finish(played.outcome, played.bpm);
+    const rewards = last.rewards();
+    expect(rewards.piece).not.toBeNull();
+    expect(last.prizeFocus(rewards)).toEqual({ chunk: 0, bars: [], chunks: [], clef: false });
+  });
+
   it('a step played three times in a row says which play it is, so its line is never the same twice', async () => {
     const { session } = open({ ...START_PROGRESS, step: 1, lastDay: '1998-11-22' });
     const lines: string[] = [];

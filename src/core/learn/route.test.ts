@@ -1,9 +1,9 @@
-// Covers ft_1_32.AC13, ft_1_32.AC14.
+// Covers ft_1_32.AC13, ft_1_32.AC14, ft_1_32.AC21.
 import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
 import { learnPlan } from './plan';
 import { DEFAULT_LEARN_SETTINGS, START_PROGRESS } from './progress';
-import { learnsOnOpen, pieceLearned } from './route';
+import { learnsOnOpen, pieceClef, pieceLearned } from './route';
 
 const bars = (n: number) => chartWith(Array.from({ length: n }, (_, bar) => ({ tick: bar * 1920, dur: 480, midi: 60 + bar })));
 
@@ -24,5 +24,13 @@ describe('where a piece is learned bar by bar', () => {
     expect(pieceLearned(piece, START_PROGRESS, DEFAULT_LEARN_SETTINGS)).toBe(false);
     expect(pieceLearned(piece, { ...START_PROGRESS, step: plan.length - 1, lastDay: '1998-11-22', handsApart: true, stepBars: 1 }, DEFAULT_LEARN_SETTINGS)).toBe(false);
     expect(pieceLearned(piece, { ...START_PROGRESS, step: plan.length, lastDay: '1998-11-22', handsApart: true, stepBars: 1 }, DEFAULT_LEARN_SETTINGS)).toBe(true);
+  });
+
+  it('ft_1_32.AC21 the book\'s clef is empty before the piece is learned, and in the medal it was learned with', () => {
+    const piece = bars(4);
+    const plan = learnPlan(piece);
+    expect(pieceClef(piece, START_PROGRESS, DEFAULT_LEARN_SETTINGS, [])).toBeNull();
+    const learned = { ...START_PROGRESS, step: plan.length, lastDay: '1998-11-22', stepBars: 1 as const, medals: plan.map(() => 'silver' as const) };
+    expect(pieceClef(piece, learned, DEFAULT_LEARN_SETTINGS, [])).toBe('silver');
   });
 });

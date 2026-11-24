@@ -19,7 +19,7 @@ export interface BubbleSpot {
 }
 
 /**
- * Kiur's speech bubble on the play screens (practice, battle): as wide as its spot, as tall as its text, hidden while the
+ * Kiur's speech bubble on the play screens: as wide as its spot, as tall as its text, hidden while the
  * message is empty. Art pixels.
  */
 export class SpeechBubble {

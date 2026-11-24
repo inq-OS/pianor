@@ -46,7 +46,6 @@ export const decisionMeta = z
     id: z.string().regex(/^d\d{3}$/),
     title: z.string().min(1),
     features: z.array(z.union([featureId, z.literal('all')])),
-    supersedes: z.array(z.string().regex(/^d\d{3}$/)).optional(),
     ...tracking,
   })
   .strict();

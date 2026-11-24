@@ -1,6 +1,6 @@
 /**
  * Which pieces a player has turned off (profile version 5 on). A piece that is off is hidden from the menu and never offered
- * in a battle; nothing is deleted, so turning it on again brings it back with its stars. Pure rules; the menu and the list
+ * in a tug; nothing is deleted, so turning it on again brings it back with its stars. Pure rules; the menu and the list
  * screen only call them.
  */
 import { z } from 'zod';
@@ -36,4 +36,20 @@ export function setPieceOn(settings: PiecesSettings, pieceId: string, on: boolea
   if (on) return { hidden: settings.hidden.filter((id) => id !== pieceId) };
   if (!canTurnOff(settings, pieceId, offered)) return settings;
   return isPieceOn(settings, pieceId) ? { hidden: [...settings.hidden, pieceId] } : settings;
+}
+
+/** A second press on an armed hide sooner than this after the first is a double click, not a confirmation (ft_1_02c.AC8). */
+export const HIDE_SECOND_PRESS_MS = 500;
+
+/** The hide pressed once, and when (ms on any one clock). */
+export interface ArmedHide { piece: string; at: number }
+
+/**
+ * A press on a piece's hide button in the book (ft_1_02c.AC8) at time `now`: the first press arms it (the book shows what
+ * will happen), a second press on the same piece hides it, unless it comes within `HIDE_SECOND_PRESS_MS` (a double click
+ * or a held key), which leaves it armed. A press on another piece arms that one.
+ */
+export function pressHide(armed: ArmedHide | null, pieceId: string, now: number): { armed: ArmedHide | null; hide: string | null } {
+  if (armed?.piece !== pieceId) return { armed: { piece: pieceId, at: now }, hide: null };
+  return now - armed.at < HIDE_SECOND_PRESS_MS ? { armed, hide: null } : { armed: null, hide: pieceId };
 }

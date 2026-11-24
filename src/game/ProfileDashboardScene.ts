@@ -975,7 +975,7 @@ export class ProfileDashboardScene extends PixelScene {
       [t('card.pieces'), String(stats.piecesPlayed)],
       [t('card.passes'), String(stats.passes)],
       [t('card.fiveStars'), String(stats.fiveStarPieces)],
-      [t('card.campaign'), String(stats.campaignLevelsBeaten)],
+      [t('card.tugsWon'), String(stats.tugsWon)],
       [t('card.noteTrainer'), String(stats.noteTrainerXp)],
       [t('card.earPoints'), String(stats.earPoints)],
     ];

@@ -55,7 +55,7 @@ export const strings = {
   'card.pieces': 'Pieces played',
   'card.passes': 'Times played through',
   'card.fiveStars': 'Pieces with five stars',
-  'card.campaign': 'Monster levels beaten',
+  'card.tugsWon': 'Wins against characters',
   'card.noteTrainer': 'XP from theory',
   'card.earPoints': 'Points by ear',
   'room.door': 'Door',
@@ -99,6 +99,9 @@ export const strings = {
   'menu.group.curriculum': "Teacher's pieces",
   'menu.group.character': "Characters' pieces",
   'menu.edit': 'Edit',
+  'menu.hide': 'Take out of the book',
+  'menu.hideAgain': 'Press again to take it out',
+  'menu.allPieces': 'All pieces',
   'parts.whole': 'Whole piece',
   'parts.bars': 'Bars {first} to {last}',
   'admin.title': 'Admin',
@@ -287,6 +290,7 @@ export const strings = {
   'editor.untitled': 'My piece',
   'editor.titleLabel': 'Name of the piece',
   'editor.title.ask': 'Give the piece a name, then press Enter.',
+  'editor.title.taken': 'Another piece has this name. Give it a new name, then press Enter.',
   'editor.leaveUnsaved': 'Leave without saving? The changes since the last save will be lost.',
   'editor.bars': '{bars} bars',
   'editor.bpm': '{bpm} BPM',
@@ -537,9 +541,6 @@ export const strings = {
   'editor.import.cannotSave': 'Could not add that piece: {problem}',
   'editor.nothingToUndo': 'Nothing to undo.',
   'editor.nothingToRedo': 'Nothing to redo.',
-  // A monster in a scene of Keri (ft_1_19) with nothing to play now. Gentle, never "failed".
-
-  // Monster campaign, find the key (ft_1_06). Gentle: a broken key is never "failed".
   'settings.pageLearn': 'Learning',
   'settings.learnStep': 'New bars in learning',
   'settings.learnStepOne': 'One bar at a time',

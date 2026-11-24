@@ -34,6 +34,9 @@ import { paintRoom } from '../src/game/ui/pixel/keri/roomPicture.ts';
 import { packTerrace } from '../src/game/ui/pixel/keri/terracePack.ts';
 import { paintTerrace } from '../src/game/ui/pixel/keri/terracePicture.ts';
 
+/** A string as a JavaScript literal for generated source: JSON plus the characters that could end a script or a line. */
+export const jsLiteral = (text: string): string =>
+  JSON.stringify(text).replace(/[<>/\u2028\u2029]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`);
 const VIRTUAL_ID = 'virtual:keri-pictures';
 const RESOLVED_ID = `\0${VIRTUAL_ID}`;
 /** The code and data the pictures are made from: a change in any of it, or in this file, paints them again. */
@@ -263,7 +266,7 @@ export function keriPlugin(): Plugin {
     async load(id) {
       if (id === RESOLVED_ID) {
         // the table of loaders: a dynamic import for every picture and hour, so the build splits each into its own file
-        const table = KERI_PICTURES.map((name) => `${JSON.stringify(name)}: {${SKY_PHASES.map((phase) => `${phase}: () => import(${JSON.stringify(`${VIRTUAL_ID}/${name}-${phase}`)})`).join(', ')}}`);
+        const table = KERI_PICTURES.map((name) => `${jsLiteral(name)}: {${SKY_PHASES.map((phase) => `${phase}: () => import(${jsLiteral(`${VIRTUAL_ID}/${name}-${phase}`)})`).join(', ')}}`);
         return `export default {\n  ${table.join(',\n  ')}\n};`;
       }
       const one = pictureHour(id);
