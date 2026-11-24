@@ -27,7 +27,9 @@ export function piecesPlugin(piecesDir = 'content/pieces', levelsPath = 'content
   // the end-to-end tests run without it, so a machine's own pieces never change what they see
   const ownDir = privateDir === null ? null : resolve(privateDir);
   const levelsFile = resolve(levelsPath);
-  let isBuild = false;
+  // a production build carries the approved pieces only and fails on a piece with an error; a build in mode development (the end-to-end tests' bundle,
+  // playwright.config.ts) keeps the drafts and only warns, as the dev server does
+  let approvedOnly = false;
 
   const collect = (): { pieces: unknown[]; omittedIds: string[]; diagnostics: Diagnostic[] } => {
     const diagnostics: Diagnostic[] = [];
@@ -40,7 +42,7 @@ export function piecesPlugin(piecesDir = 'content/pieces', levelsPath = 'content
       const check = checkPieceFolder(dir, folder, levels);
       diagnostics.push(...check.diagnostics);
       if (check.ok && check.compiled?.chart && check.compiled.meta) {
-        if (isBuild && check.compiled.meta.status !== 'approved') {
+        if (approvedOnly && check.compiled.meta.status !== 'approved') {
           omittedIds.push(check.compiled.meta.id);
           continue;
         }
@@ -61,7 +63,7 @@ export function piecesPlugin(piecesDir = 'content/pieces', levelsPath = 'content
         diagnostics.push({ severity: 'warning', file: `${privateDir}/${folder}`, message: `left out: content/pieces has a piece "${meta.id}" too` });
         continue;
       }
-      if (isBuild && meta.status !== 'approved') {
+      if (approvedOnly && meta.status !== 'approved') {
         omittedIds.push(meta.id);
         continue;
       }
@@ -70,10 +72,12 @@ export function piecesPlugin(piecesDir = 'content/pieces', levelsPath = 'content
     return { pieces, omittedIds, diagnostics };
   };
 
+  const preview = () => previewHandler({ piecesDir: dir, levelsPath: levelsFile, modelsDirs: [resolve('private/models'), resolve('content/models')] });
+
   return {
     name: 'pianor-pieces',
     configResolved(config) {
-      isBuild = config.command === 'build';
+      approvedOnly = config.command === 'build' && config.mode !== 'development';
     },
     resolveId(id) {
       return id === VIRTUAL_ID ? RESOLVED_ID : null;
@@ -83,16 +87,21 @@ export function piecesPlugin(piecesDir = 'content/pieces', levelsPath = 'content
       const { pieces, omittedIds, diagnostics } = collect();
       for (const d of diagnostics) {
         const text = formatDiagnostic(d);
-        if (d.severity === 'error' && isBuild) this.error(text);
+        if (d.severity === 'error' && approvedOnly) this.error(text);
         else this.warn(text);
       }
       this.addWatchFile(levelsFile);
       return `export default ${JSON.stringify(pieces)};\nexport const omittedIds = ${JSON.stringify(omittedIds)};`;
     },
+    configurePreviewServer(server) {
+      // the end-to-end tests play a bundle on the preview server (playwright.config.ts) and test these requests there; a
+      // student's own build (start:local) never answers them, so nothing can change a piece's status there
+      if (process.env['PIANOR_E2E'] === '1') server.middlewares.use(preview());
+    },
     configureServer(server) {
-      // The preview tool's two requests (piece list, approve or send back to draft). Dev server only: a production
-      // build has no server to ask, so nothing can change a piece's status there.
-      server.middlewares.use(previewHandler({ piecesDir: dir, levelsPath: levelsFile, modelsDirs: [resolve('private/models'), resolve('content/models')] }));
+      // The preview tool's two requests (piece list, approve or send back to draft). Dev server only (and the end-to-end
+      // tests' preview server, above): a production build has no server to ask.
+      server.middlewares.use(preview());
       server.watcher.add([dir, ...(ownDir ? [ownDir] : []), levelsFile]);
       const reload = (file: string) => {
         if (!resolve(file).startsWith(dir) && !(ownDir && resolve(file).startsWith(ownDir)) && resolve(file) !== levelsFile) return;

@@ -1,9 +1,9 @@
 ---
 id: "ft_1_02"
 title: "Piece editor, pieces on and off"
-scope: "Click notes onto the staff; own pieces private (licence `NaN`); turn pieces on and off per player. Built in four parts:"
+scope: "Click notes onto the staff; own pieces private (licence `NaN`); turn pieces on and off per player. Built in five parts:"
 effort: "split"
-status: "split into four parts, each with its own file"
+status: "split into five parts, each with its own file"
 ---
 # ft_1_02: Piece editor and turning pieces on and off
 
@@ -15,6 +15,7 @@ An "Add piece" screen where anyone writes a piece by clicking on the staff, with
 - [ft_1_02b](ft_1_02b-own-pieces-as-files.md): own pieces as files: export and import, the dev server saving into `private/pieces/`, licence `NaN` accepted for private pieces only.
 - [ft_1_02c](ft_1_02c-pieces-on-and-off.md): turning pieces on and off, per player.
 - [ft_1_02d](ft_1_02d-editor-extras.md): dotted notes, entering notes from the piano, and the other editor extras.
+- [ft_1_02e](ft_1_02e-vim-keys.md): opt-in vim keys.
 
 ## Rules
 
