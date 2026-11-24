@@ -1,4 +1,4 @@
-// Covers ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC11, ft_1_36.AC20.
+// Covers ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { allMenuTitles, clickButton, expectNoErrors, openGame, sceneButton, sceneTexts, waitForScene } from './helpers';
@@ -16,6 +16,12 @@ async function press(page: Page, key: string): Promise<void> {
   await page.keyboard.press(key);
   await page.waitForFunction((f) => window.__game.loop.frame >= f + 2, frame);
 }
+
+/** The words a song puts on the practice staff: its part names and its folds (ft_1_36 rule 7). */
+const staffWords = (page: Page) => page.evaluate(() => {
+  const view = (window.__game.scene.getScene('practice') as unknown as { playSession: { view: { partTexts: { text: { text: string } }[] } } }).playSession.view;
+  return view.partTexts.map((p) => p.text.text);
+});
 
 async function openSongPage(page: Page): Promise<void> {
   await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
@@ -82,6 +88,41 @@ test.describe('songs made of pieces', () => {
     // the switches are this player's, kept across a reload
     await openGame(page);
     expect(await partsOff(page)).toEqual(['outro', 'verse-1', 'verse-2']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC9 ft_1_36.AC12 the whole song names its parts and folds its blanks on the staff; a play with a part off is kept apart; Back returns to the song page', async ({ page }) => {
+    const errors = await openGame(page);
+    await openSongPage(page);
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'Play Morning Song'));
+    await waitForScene(page, 'practice');
+    expect(await staffWords(page)).toEqual(['Intro', 'Outro', 'Verses and chorus, bars 13 to 70, not written yet']);
+    expect((await practising(page)).id).toBe('song:morning-song');
+    // Back leads to the song page the play started from, not the piece book
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'song');
+    // with the outro off the whole song is another chart, so its passes never count as the song's best
+    for (let i = 0; i < 7; i++) await press(page, 'ArrowDown');
+    await press(page, ' ');
+    await expect.poll(() => partsOff(page)).toEqual(['outro']);
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'Play Morning Song'));
+    await waitForScene(page, 'practice');
+    const some = await practising(page);
+    expect(some.bars).toBe(12);
+    expect(some.id).not.toBe('song:morning-song');
+    expect(await staffWords(page)).toContain('Outro, bars 71 to 82, off');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC12 the song\'s stats from the songs list go back to the songs list, also by way of its learning page', async ({ page }) => {
+    const errors = await openGame(page);
+    await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', 'S'));
+    await waitForScene(page, 'results');
+    expect(await sceneButton(page, 'results', 'Back to the songs')).toBeGreaterThanOrEqual(0);
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'songs');
     expectNoErrors(errors);
   });
 });

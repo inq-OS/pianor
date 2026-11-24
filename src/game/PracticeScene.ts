@@ -36,6 +36,9 @@ import { BAR_BUTTON_HEIGHT, BAR_EDGE, BAR_GAP, BUBBLE_X, TITLE_X, TOP_BAR } from
 import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { openOverlay, startScene, type OverlayOutcome } from './scenes';
+import { goBackFrom, type SongReturn } from './songReturn';
+import { songIdOfChart, songStaffMarks } from '../core/song/songChart';
+import type { PartMarks } from './ui/staff/StaffView';
 import type { KeriScreen } from './visit/islandVisit';
 import type { ClefFlight } from './MenuScene';
 import { introLearnProfile } from './practice/introLearning';
@@ -114,6 +117,8 @@ const modeTooltip = (choice: PlayChoice): string => {
 /** What the scene is started with; a restart (a new tempo, a section, the next lap) passes it on with a change. */
 export interface PracticeData {
   chartId?: string;
+  /** Started from the songs list or a song page (ft_1_36): Back and the score screen lead there, not to the piece book. */
+  fromSong?: SongReturn;
   chart?: Chart;
   preview?: boolean;
   returnTo?: 'preview' | 'editor';
@@ -463,6 +468,7 @@ export class PracticeScene extends PixelScene {
     this.playSession = new PlaySession(this, {
       chart: this.chart,
       ...(section ? { section: { whole: this.fullChart, first: section.first } } : {}),
+      ...this.songMarks(section),
       keyboard: this.guarded,
       hints: this.hints,
       chordFingers: contextOf(this).profiles.chordFingers,
@@ -746,6 +752,30 @@ export class PracticeScene extends PixelScene {
     else startScene(this, 'profile', { checkup: { piece: this.fullChart.id, since: checkup.since } });
   }
 
+  /**
+   * A song's part names and folds (ft_1_36 rule 7) for the bars on the staff: the whole song's, or a group's when it plays as
+   * a section of it (shifted to the section's first bar). None for any other chart.
+   */
+  private songMarks(section: { first: number } | undefined): { partMarks?: PartMarks } {
+    const first = section?.first ?? 0;
+    const songs = contextOf(this).songs;
+    const songId = songIdOfChart(this.fullChart.id);
+    const song = songId === null ? undefined : songs.find(songId);
+    const joined = song ? songs.joinedChart(song) : null;
+    if (!joined || joined.chart !== this.fullChart || this.learn) return {};
+    const marks = songStaffMarks(joined);
+    const count = this.chart.bars.length;
+    const why = { blank: 'song.foldBlank', off: 'song.foldOff', missing: 'song.foldMissing' } as const;
+    return {
+      partMarks: {
+        names: marks.names.map((m) => ({ bar: m.bar - first, text: m.names.join(' · ') })).filter((m) => m.bar >= 0 && m.bar < count),
+        folds: marks.folds
+          .map((f) => ({ beforeBar: f.beforeBar - first, text: t(why[f.reason], { name: f.name, first: f.startBar, last: f.endBar }) }))
+          .filter((f) => (section ? f.beforeBar > 0 && f.beforeBar < count : f.beforeBar >= 0 && f.beforeBar <= count)),
+      },
+    };
+  }
+
   private leave(): void {
     // while a pass's score shows the scene is already "leaving" for the next pass; Back still ends the session then
     if (this.leaving && this.loopTimer === null) return;
@@ -780,7 +810,7 @@ export class PracticeScene extends PixelScene {
     }
     if (this.learn) {
       // learning has no score screen: back to the pieces once the run's bars and a whole run's pass are kept
-      void Promise.all([this.pendingPass, this.barsSaved]).then(() => startScene(this, 'menu'));
+      void Promise.all([this.pendingPass, this.barsSaved]).then(() => goBackFrom(this, this.startData.fromSong));
       return;
     }
     if (!this.preview) {
@@ -788,12 +818,15 @@ export class PracticeScene extends PixelScene {
       const summary = summarizeFreePlay(this.session, contextOf(this).audio.clock.nowMs());
       const pending = this.pendingPass;
       if (!summary.played && !pending) {
-        startScene(this, 'menu');
+        goBackFrom(this, this.startData.fromSong);
         return;
       }
       void (pending ?? Promise.resolve(undefined)).then((outcome) => {
         const passes = outcome ? [...this.passes, outcome] : this.passes;
-        startScene(this, 'results', { chartId: this.fullChart.id, summary, outcome: mergeOutcomes(passes) ?? undefined, ...(this.lastResult ? { result: this.lastResult } : {}) });
+        startScene(this, 'results', {
+          chartId: this.fullChart.id, summary, outcome: mergeOutcomes(passes) ?? undefined, ...(this.lastResult ? { result: this.lastResult } : {}),
+          ...(this.startData.fromSong ? { fromSong: this.startData.fromSong } : {}),
+        });
       });
       return;
     }

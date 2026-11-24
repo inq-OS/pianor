@@ -10,7 +10,7 @@ import { PixelScene, type ToolbarItem } from '../ui/pixel/PixelScene';
 import { TOOL_ICONS } from '../ui/pixel/toolArt';
 import type { Bitmap } from '../ui/pixel/bitmap';
 import { paintSeal } from '../ui/pixel/paint/card';
-import { startScene } from '../scenes';
+import { goBackFrom, type SongReturn } from '../songReturn';
 
 /** The big XP line and the steps after it; the level line, the gap to its bar and the gap under the bar. */
 /** How far a bar written on a card stays in from the card's torn edge, in cells. */
@@ -32,13 +32,15 @@ export abstract class OutcomeScene extends PixelScene {
   protected override keyboardNavigation = true;
   /** With the band: play again and back to the pieces, set by `againAndBack` while the screen draws. */
   private outcomeActions: ToolbarItem[] = [];
+  /** Where Back and the pieces button lead: the song page or songs list a song's play started from (ft_1_36), else the book. */
+  protected fromSong: SongReturn | undefined = undefined;
 
   protected override bandActions(): ToolbarItem[] {
     return this.outcomeActions;
   }
 
   protected override back(): void {
-    startScene(this, 'menu');
+    goBackFrom(this, this.fromSong);
   }
 
   /** The play-again button (`again` from `resultsLayout`) and, under it, back to the pieces. */
@@ -48,7 +50,7 @@ export abstract class OutcomeScene extends PixelScene {
     if (this.bandShown) {
       this.outcomeActions = [
         { label: againLabel, icon: TOOL_ICONS.repeat, main: true, onClick: onAgain },
-        { label: t('results.pieces'), icon: TOOL_ICONS.pieces, onClick: () => startScene(this, 'menu') },
+        { label: this.backLabel(), icon: this.fromSong ? TOOL_ICONS.songs : TOOL_ICONS.pieces, onClick: () => this.back() },
         ...(more ? [{ label: more.label, icon: more.icon, onClick: more.onClick }] : []),
       ];
       return;
@@ -56,8 +58,14 @@ export abstract class OutcomeScene extends PixelScene {
     // on a card the two are wax seals pressed into it, their pictures in the wax
     const sealed = (icon: Bitmap) => (this.inkWriting ? { picture: paintSeal(icon, Math.min(again.w, again.h)) } : {});
     this.button({ ...rectCentre(again), label: againLabel, icon: TOOL_ICONS.repeat, iconOnly: true, ...sealed(TOOL_ICONS.repeat), onClick: onAgain });
-    this.button({ ...rectCentre(back), label: t('results.pieces'), icon: TOOL_ICONS.pieces, iconOnly: true, ...sealed(TOOL_ICONS.pieces), onClick: () => startScene(this, 'menu') });
+    const backIcon = this.fromSong ? TOOL_ICONS.songs : TOOL_ICONS.pieces;
+    this.button({ ...rectCentre(back), label: this.backLabel(), icon: backIcon, iconOnly: true, ...sealed(backIcon), onClick: () => this.back() });
     if (more) this.button({ ...rectCentre(more.at), label: more.label, icon: more.icon, iconOnly: true, ...sealed(more.icon), onClick: more.onClick });
+  }
+
+  /** The back button's name: to the pieces, or to the song or songs list a song's play started from. */
+  private backLabel(): string {
+    return t(this.fromSong === undefined ? 'results.pieces' : this.fromSong === 'songs' ? 'results.songs' : 'results.song');
   }
 
   /** A piece's title as the menu shows it, or its id when it is not on offer. */

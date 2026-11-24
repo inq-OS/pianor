@@ -1,7 +1,7 @@
 import type { Chart } from '../core/chart/schema';
 import { pieceFactsOf, resolveSong, type ResolvedSong } from '../core/song/resolve';
 import { songSchema, walkSong, type Song } from '../core/song/schema';
-import { songChart, type SongChart } from '../core/song/songChart';
+import { songChart, songIdOfChart, type SongChart } from '../core/song/songChart';
 import type { Piece } from './pieceList';
 
 /** What the song catalogue is built from (`src/main.ts`). */
@@ -17,7 +17,7 @@ export interface SongCatalogueSources {
 }
 
 /** The chart id of a whole song (ft_1_36 rule 9): its records are kept under it. */
-export const songChartId = (songId: string): string => `song:${songId}`;
+export { songChartId } from '../core/song/songChart';
 
 /**
  * The songs the game offers (ft_1_36), built once by the composition root: each read through its schema (a song file that
@@ -77,8 +77,8 @@ export class SongCatalogue {
 
   /** The whole song as a piece the practice screen plays, by its chart id (`song:<id>`); undefined for any other id. */
   pieceFor(chartId: string): Piece | undefined {
-    if (!chartId.startsWith('song:')) return undefined;
-    const song = this.find(chartId.slice('song:'.length));
+    const songId = songIdOfChart(chartId);
+    const song = songId === null ? undefined : this.find(songId);
     const joined = song ? this.joinedChart(song) : null;
     if (!song || !joined) return undefined;
     return { chart: joined.chart, status: song.status, level: joined.chart.level, unlockLevel: joined.chart.level, source: song.source };

@@ -17,8 +17,42 @@ export interface SongFold {
 /** A part of the joined chart: a node's bars in it, 0-based chart bars like a phrase. */
 export interface SongPart {
   node: string;
+  name: string;
   startBar: number;
   endBar: number;
+}
+
+/** The whole song's chart id, where its passes, stars and graph are kept (rule 9). */
+export const songChartId = (songId: string): string => `song:${songId}`;
+
+/**
+ * The chart id of the whole song played with a written part off (rule 9, `AX-3 provisional:`): scored and shown like any
+ * pass, but kept apart, so the song's own best is only ever a play of every written part.
+ */
+const SOME_PARTS = '~some';
+
+/** The song a whole-song chart id belongs to, with every part on or some off; null for a group's chart or any other id. */
+export function songIdOfChart(chartId: string): string | null {
+  if (!chartId.startsWith('song:')) return null;
+  const rest = chartId.slice('song:'.length);
+  const id = rest.endsWith(SOME_PARTS) ? rest.slice(0, -SOME_PARTS.length) : rest;
+  return id === '' || id.includes('/') ? null : id;
+}
+
+/** What the staff writes over a song (rule 7): each part's name over its first bar, outer parts first, and its folds. */
+export interface SongStaffMarks {
+  names: { bar: number; names: string[] }[];
+  folds: Omit<SongFold, 'node'>[];
+}
+
+export function songStaffMarks(joined: SongChart): SongStaffMarks {
+  const names: SongStaffMarks['names'] = [];
+  for (const part of joined.parts) {
+    const last = names[names.length - 1];
+    if (last?.bar === part.startBar) last.names.push(part.name);
+    else names.push({ bar: part.startBar, names: [part.name] });
+  }
+  return { names, folds: joined.folds.map(({ name, startBar, endBar, reason, beforeBar }) => ({ name, startBar, endBar, reason, beforeBar })) };
 }
 
 export interface SongChart {
@@ -126,6 +160,15 @@ export function songChart(song: Song, chartOf: (pieceId: string) => Chart | unde
     songBar += bars;
   };
 
+  /** Whether a node holds a written part: a piece or link whose piece is there (a blank is not written). */
+  const writes = (node: SongNode): boolean => {
+    if (node.kind === 'group') return node.nodes.some(writes);
+    if (node.kind === 'blank') return false;
+    const pieceId = node.kind === 'piece' ? node.piece : pieceOf.get(node.to);
+    return pieceId !== undefined && chartOf(pieceId) !== undefined;
+  };
+  let someOff = false;
+
   /** Adds the node; true when it put bars into the chart. */
   const visit = (node: SongNode): boolean => {
     const pieceId = node.kind === 'piece' ? node.piece : node.kind === 'link' ? pieceOf.get(node.to) : undefined;
@@ -133,6 +176,7 @@ export function songChart(song: Song, chartOf: (pieceId: string) => Chart | unde
     const name = node.kind === 'group' || node.kind === 'blank' ? node.name : node.name ?? chart?.title ?? pieceId ?? node.id;
     if (off.has(node.id)) {
       fold(node, name, 'off');
+      if (writes(node)) someOff = true;
       return false;
     }
     if (node.kind === 'blank') {
@@ -152,7 +196,7 @@ export function songChart(song: Song, chartOf: (pieceId: string) => Chart | unde
         return false;
       }
       out.phrases.splice(at, 0, { name, startBar, endBar: out.bars.length - 1 });
-      parts.push({ node: node.id, startBar, endBar: out.bars.length - 1 });
+      parts.push({ node: node.id, name, startBar, endBar: out.bars.length - 1 });
       return true;
     }
     if (!chart) {
@@ -162,7 +206,7 @@ export function songChart(song: Song, chartOf: (pieceId: string) => Chart | unde
     const startBar = out.bars.length;
     out.phrases.push({ name, startBar, endBar: startBar + chart.bars.length - 1 });
     append(chart);
-    parts.push({ node: node.id, startBar, endBar: out.bars.length - 1 });
+    parts.push({ node: node.id, name, startBar, endBar: out.bars.length - 1 });
     return true;
   };
 
@@ -175,7 +219,7 @@ export function songChart(song: Song, chartOf: (pieceId: string) => Chart | unde
   const { repeats, slurs, graces, tuplets, ...rest } = out;
   const chart: Chart = {
     schemaVersion: CHART_SCHEMA_VERSION,
-    id: root ? `song:${song.id}/${root.id}` : `song:${song.id}`,
+    id: root ? `song:${song.id}/${root.id}` : someOff ? `${songChartId(song.id)}${SOME_PARTS}` : songChartId(song.id),
     contentVersion: song.contentVersion,
     title: root?.kind === 'group' ? root.name : song.title,
     ...(root || !song.titles ? {} : { titles: song.titles }),
