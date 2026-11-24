@@ -655,11 +655,11 @@ test.describe('piece editor (preliminary)', () => {
     expect(JSON.parse(text)).toMatchObject({ kind: 'pianor-piece', schemaVersion: 3, id: 'own-carry-me' });
     await expect.poll(() => status(page)).toContain('Saved the file');
 
-    // Import adds the piece from the file as a new own piece, and the piece being written stays as it is
+    // Import adds the piece from the file as a new own piece, under a free title (ft_1_02a.AC15), and the piece being written stays as it is
     const chooser = page.waitForEvent('filechooser');
     await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
     await (await chooser).setFiles(path);
-    await expect.poll(() => status(page)).toContain('Added "Carry Me" to your pieces.');
+    await expect.poll(() => status(page)).toContain('Added "Carry Me 2" to your pieces.');
     expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().map((r: { id: string }) => r.id))).toEqual(['own-carry-me', 'own-carry-me-2']);
     expect(await notes(page)).toEqual(['0:0:E:quarter', '0:480:G:quarter']);
 

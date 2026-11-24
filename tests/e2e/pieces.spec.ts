@@ -104,13 +104,13 @@ test.describe('taking a piece out of the book (ft_1_02c.AC8, AC9)', () => {
     const r = canvas.getBoundingClientRect();
     return { x: r.left + (c.x / canvas.width) * r.width, y: r.top + (c.y / canvas.height) * r.height };
   }, chartId);
-  const armed = (page: Page) => page.evaluate(() => window.__game.scene.getScene('menu').armedHide as string | null);
+  const armed = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('menu').armedHide as { piece: string } | null)?.piece ?? null);
   /** The hide's stroke through a title shown now: 'armed', 'hint' (under the pointer) or null. */
   const stroke = (page: Page) => page.evaluate(() => {
     type Node = { name: string; visible: boolean; list?: Node[] };
     const walk = (nodes: Node[]): Node[] => nodes.flatMap((o) => [o, ...walk(o.list ?? [])]);
     const shown = walk(window.__game.scene.getScene('menu').children.list as unknown as Node[]).find((o) => o.name.startsWith('hideStroke') && o.visible);
-    return shown ? (shown.name === 'hideStroke:armed' ? 'armed' : 'hint') : null;
+    return shown ? (shown.name.startsWith('hideStroke:armed') ? 'armed' : 'hint') : null;
   });
 
   test('ft_1_02c.AC8 the hide shows what it does, the first press only arms it, the second takes the piece out of the book; AC9 the book opens every piece and Back returns to it', async ({ page }) => {
@@ -127,7 +127,15 @@ test.describe('taking a piece out of the book (ft_1_02c.AC8, AC9)', () => {
     await expect.poll(() => armed(page)).toBe('twinkle-twinkle');
     expect(await stroke(page)).toBe('armed');
     expect(await hidden(page)).toEqual([]);
-    // the second press takes it out
+    // Esc puts it back to rest; a double click only arms it
+    await page.keyboard.press('Escape');
+    await expect.poll(() => armed(page)).toBeNull();
+    expect(await page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key))).toContain('menu');
+    await page.mouse.dblclick(point!.x, point!.y);
+    await expect.poll(() => armed(page)).toBe('twinkle-twinkle');
+    expect(await hidden(page)).toEqual([]);
+    // the second press, a moment later, takes it out
+    await page.waitForTimeout(600);
     await page.mouse.click(point!.x, point!.y);
     await expect.poll(() => hidden(page)).toEqual(['twinkle-twinkle']);
     expect(await allMenuTitles(page)).toEqual(all.filter((title) => title !== TWINKLE));
