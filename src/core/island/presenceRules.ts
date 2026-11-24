@@ -86,7 +86,8 @@ export function turnsUp(
  */
 export function longestWait(chance: number, rules: Pick<PresenceRules, 'appearChance' | 'maxDaysAway'>): number {
   if (chance === rules.appearChance || chance <= 0) return chance <= 0 ? 0 : rules.maxDaysAway;
-  return Math.ceil((rules.maxDaysAway * rules.appearChance) / chance);
+  // rounded to a thousandth first, so 3 x 0.5 / 0.3 is 5 days and not 5.0000001 made 6
+  return Math.ceil(Math.round((rules.maxDaysAway * rules.appearChance * 1000) / chance) / 1000);
 }
 
 /** The teacher's boat from the next deadline (or asked-for test day, `teacherDays`) on or after today: null with none within `boatDays`, 1 on the day (AC4). */

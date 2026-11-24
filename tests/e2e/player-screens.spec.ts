@@ -613,6 +613,13 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
     await press('Save');
     await expect.poll(async () => ((await saved()) as { sent?: { wanderer: string }[] }).sent?.map((s) => s.wanderer)).toEqual(['traveller']);
     await page.screenshot({ path: 'test-results/teacher-cast.png' });
+    // Back with something not saved says so first, and leaves without saving on a second press
+    await press('+1');
+    await clickToolbar(page, 'back');
+    await expect.poll(() => sceneTexts(page, 'teacherCast')).toContain('Not saved. Back again leaves without saving.');
+    await clickToolbar(page, 'back');
+    await waitForScene(page, 'teacher');
+    expect(await saved()).not.toHaveProperty('characters.traveller');
     expectNoErrors(errors);
   });
 

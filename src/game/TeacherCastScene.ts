@@ -11,11 +11,11 @@ import { lineText } from './adventure/sceneScript';
 import { guardTeacher } from './adminGuard';
 import { contextOf } from './context';
 import { startScene } from './scenes';
-import { castLines, castValues, stepChance, stepNeediness, toggleCastDay, toggleOn, toggleSend, withPiece, type CastFormRules, type CastKind, type CastLine } from './teacher/castForm';
+import { castChanged, changedMembers, castLines, castValues, stepChance, stepNeediness, toggleCastDay, toggleOn, toggleSend, withPiece, type CastFormRules, type CastKind, type CastLine } from './teacher/castForm';
 import { WEEK_ORDER } from './teacher/testsForm';
 import { drawnText, measure } from './ui/pixel/font';
 import { C } from './ui/pixel/palette';
-import { inkRing, RING_PAD } from './ui/pixel/paint/register';
+import { inkDot, inkRing, RING_PAD } from './ui/pixel/paint/register';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 
 /** Whose cast. */
@@ -50,7 +50,10 @@ function members(): Member[] {
  * The teacher runs the cast for a player (ft_1_37): the characters and wanderers along the head of the left page, the
  * chosen one ringed; then a ruled line a setting, its value at the left page's edge and its buttons in inked boxes on the
  * right page (as `TeacherTestsScene`). Every press changes the page's draft and shows it; Save on the toolbar keeps the
- * whole draft in the player's curriculum, Back leaves it as it was (d286). Pick lists the pieces down both pages.
+ * whole draft in the player's curriculum and stays here (several of the cast are set in one visit, unlike the piece page,
+ * which goes back on Save). A name whose settings are not saved yet has an ink dot after it; Back with anything not saved
+ * says so first and leaves without saving on a second press (d286, d293). Pick lists the pieces down both pages, the
+ * chosen one marked.
  * The rules are `teacher/castForm.ts` and `core/island/cast.ts`.
  */
 export class TeacherCastScene extends PixelScene {
@@ -67,6 +70,8 @@ export class TeacherCastScene extends PixelScene {
   private picking: number | null = null;
   private status = '';
   private saving = false;
+  /** Back was pressed once with something not saved: a second press leaves without saving. */
+  private leaving = false;
 
   constructor() {
     super('teacherCast');
@@ -80,6 +85,7 @@ export class TeacherCastScene extends PixelScene {
     this.picking = null;
     this.status = '';
     this.saving = false;
+    this.leaving = false;
   }
 
   override create(): void {
@@ -96,7 +102,13 @@ export class TeacherCastScene extends PixelScene {
 
   protected override back(): void {
     if (this.picking !== null) { this.picking = null; this.redraw(); return; }
+    if (this.unsaved() && !this.leaving) { this.leaving = true; this.redraw(); return; }
     startScene(this, 'teacher', { player: this.player });
+  }
+
+  /** Whether the draft holds anything not saved yet, by its contents. */
+  private unsaved(): boolean {
+    return this.saved !== null && this.draft !== null && castChanged(this.saved, this.draft);
   }
 
   /** The draft as the page shows it now, for the tests. */
@@ -121,6 +133,7 @@ export class TeacherCastScene extends PixelScene {
   /** The cast along the head of the left page, as many lines as they take, the chosen one ringed: the row under them. */
   private drawMembers(top: number, page: { x: number; w: number }): number {
     const all = members();
+    const changed = this.saved && this.draft ? changedMembers(this.saved, this.draft) : [];
     const widths = all.map((m) => width(m.name));
     const flow = flowLine(widths, page.w, NAME.gap);
     all.forEach((m, i) => {
@@ -132,6 +145,8 @@ export class TeacherCastScene extends PixelScene {
         x: left + widths[i]! / 2, y: y + 4, width: widths[i]! + 4, height: NAME.h - 1, look: 'ink', label: m.name, labelWidth: widths[i]! + 2,
         onClick: () => { this.chosen = m.id; this.redraw(); },
       }).setActive(chosen);
+      // not saved yet: an ink dot after its name
+      if (changed.includes(m.id)) this.fineImage((left + widths[i]! + 2) * 2, y * 2 + 3, inkDot(C.redDark, 7)).setName('castUnsaved');
     });
     const lines = flow.length === 0 ? 1 : flow[flow.length - 1]!.line + 1;
     return top + lines * NAME.h + 3;
@@ -144,7 +159,7 @@ export class TeacherCastScene extends PixelScene {
     const today = dayString(new Date());
     const values = castValues(draft, member.id, member.kind, today, FORM_RULES);
     const id = member.id;
-    const change = (next: Curriculum) => { this.draft = next; this.status = ''; this.redraw(); };
+    const change = (next: Curriculum) => { this.draft = next; this.status = ''; this.leaving = false; this.redraw(); };
     const title = (piece: string) => { const chart = pieces.find(piece)?.chart; return chart ? pieceTitle(chart) : piece; };
     const valueOf: Record<CastLine, string> = {
       on: t(values.on ? 'teacher.cast.yes' : 'teacher.cast.no'),
@@ -161,8 +176,8 @@ export class TeacherCastScene extends PixelScene {
       const shown = clipToWidth(value, room, width);
       this.label(left.x + left.w - width(shown), y, shown, C.ink);
       this.label(left.x, y, t(`teacher.cast.line.${line}`), C.umberDark, { maxWidth: left.w - width(shown) - 6 });
-      const box = (i: number, label: string, onClick: () => void, w: number = STEP.w) => this.button({
-        x: right.x + i * (w + STEP.gap) + w / 2, y: y + 3, width: w, height: REGISTER.row - 2, look: 'ink', inkBox: true, label, onClick,
+      const box = (i: number, label: string, onClick: () => void, w: number = STEP.w, disabled = false) => this.button({
+        x: right.x + i * (w + STEP.gap) + w / 2, y: y + 3, width: w, height: REGISTER.row - 2, look: 'ink', inkBox: true, label, onClick, disabled,
       });
       if (line === 'on') box(0, t(values.on ? 'teacher.cast.off' : 'teacher.cast.on'), () => change(toggleOn(draft, id)), 40);
       if (line === 'days') {
@@ -177,14 +192,15 @@ export class TeacherCastScene extends PixelScene {
       if (line === 'needy') [-1, 1].forEach((by, i) => box(i, by > 0 ? '+1' : '-1', () => change(stepNeediness(draft, id, by))));
       if (line === 'piece') {
         box(0, t('teacher.cast.pick'), () => { this.picking = 0; this.redraw(); }, 40);
-        box(1, t('teacher.cast.ownPiece'), () => change(withPiece(draft, id, undefined)), 40);
+        box(1, t(member.kind === 'character' ? 'teacher.cast.ownPiece' : 'teacher.cast.learnedPiece'), () => change(withPiece(draft, id, undefined)), 40);
       }
-      if (line === 'send') box(0, t(values.sent ? 'teacher.cast.recall' : 'teacher.cast.send'), () => change(toggleSend(draft, id, today)), 40);
+      // a wanderer switched off does not come: nothing to send until it is on again
+      if (line === 'send') box(0, t(values.sent ? 'teacher.cast.recall' : 'teacher.cast.send'), () => change(toggleSend(draft, id, today)), 40, !values.on && !values.sent);
     });
     const last = this.ruleToFoot(book, first);
-    const unsaved = this.draft !== this.saved;
     if (this.status) this.label(left.x, last, this.status, C.redDark, { maxWidth: left.w });
-    else if (unsaved) this.label(left.x, last, t('teacher.cast.unsaved'), C.umberDark, { maxWidth: left.w });
+    else if (this.leaving) this.label(left.x, last, t('teacher.cast.leave'), C.redDark, { maxWidth: book.left.w + book.right.w });
+    else if (this.unsaved()) this.label(left.x, last, t('teacher.cast.unsaved'), C.umberDark, { maxWidth: left.w });
   }
 
   /** The pieces this build offers, down the left page and on down the right; a click gives the chosen one that piece. */
@@ -192,6 +208,7 @@ export class TeacherCastScene extends PixelScene {
     const { pieces } = contextOf(this);
     const first = this.registerTitle(book.left, book.top, t('teacher.cast.pickFor', { name: member.name })) + 2;
     const all = pieces.list();
+    const current = this.draft?.cast?.characters?.[member.id]?.piece;
     const fit = registerRows(first, book.bottom, REGISTER.row);
     const slice = pageOf(all.length, page, { singlePageMax: 2 * fit.single, perPage: 2 * fit.paged });
     const lines = slice.paged ? fit.paged : fit.single;
@@ -201,8 +218,8 @@ export class TeacherCastScene extends PixelScene {
       this.button({
         x: side.x + side.w / 2, y: y + 4, width: side.w, height: REGISTER.row - 2, look: 'ink', align: 'left',
         label: clipToWidth(pieceTitle(piece.chart), side.w - 6, width), labelWidth: side.w - 6,
-        onClick: () => { if (this.draft) this.draft = withPiece(this.draft, member.id, piece.chart.id); this.picking = null; this.redraw(); },
-      });
+        onClick: () => { if (this.draft) this.draft = withPiece(this.draft, member.id, piece.chart.id); this.picking = null; this.leaving = false; this.redraw(); },
+      }).setActive(piece.chart.id === current);
     });
     const rules = Array.from({ length: lines + 1 }, (_, i) => first + i * REGISTER.row - 2);
     this.ruling(book, rules, [], null, first - 2, first + lines * REGISTER.row - 2);
@@ -213,7 +230,7 @@ export class TeacherCastScene extends PixelScene {
   protected override toolbarItems(): ToolbarItem[] {
     if (this.draft === null || this.picking !== null) return [];
     const draft = this.draft;
-    return [{ label: t('teacher.save'), disabled: draft === this.saved, onClick: () => void this.save(draft) }];
+    return [{ label: t('teacher.save'), disabled: !this.unsaved(), onClick: () => void this.save(draft) }];
   }
 
   /** Saves the player's curriculum (its own save document, d136); a failed save keeps the draft and says so. */
@@ -224,7 +241,7 @@ export class TeacherCastScene extends PixelScene {
     const ok = await contextOf(this).profiles.saveCurriculum(player, next);
     this.saving = false;
     if (!this.scene.isActive() || this.player !== player) return;
-    if (ok) this.saved = next;
+    if (ok) { this.saved = next; this.leaving = false; }
     this.status = ok ? '' : t('admin.failed');
     this.redraw();
   }

@@ -180,6 +180,8 @@ export const strings = {
   'teacher.cast.send': 'Send',
   'teacher.cast.recall': 'Recall',
   'teacher.cast.unsaved': 'Not saved yet',
+  'teacher.cast.learnedPiece': 'Learned',
+  'teacher.cast.leave': 'Not saved. Back again leaves without saving.',
   'weekday.0': 'Su',
   'weekday.1': 'Mo',
   'weekday.2': 'Tu',

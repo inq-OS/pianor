@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Curriculum } from '../../core/curriculum/curriculum';
 import { DEFAULT_PRESENCE_RULES } from '../../core/island/presenceRules';
 import { DEFAULT_WANDERER_RULES } from '../../core/island/wanderer';
-import { castLines, castValues, sentToday, stepChance, stepNeediness, toggleCastDay, toggleOn, toggleSend, withPiece } from './castForm';
+import { castChanged, changedMembers, castLines, castValues, sentToday, stepChance, stepNeediness, toggleCastDay, toggleOn, toggleSend, withPiece } from './castForm';
 
 const plain: Curriculum = { base: 85, pieces: [], calendar: [] };
 const rules = { presence: DEFAULT_PRESENCE_RULES, wanderers: DEFAULT_WANDERER_RULES, tugShares: [0.6, 0.8, 0.95] };
@@ -54,5 +54,14 @@ describe("the teacher's cast page (ft_1_37)", () => {
     expect(castValues(sent, 'traveller', 'wanderer', today, rules).sent).toBe(true);
     expect(sentToday(toggleSend(sent, 'traveller', today), 'traveller', today)).toBe(false);
     expect(sentToday(sent, 'traveller', '1998-11-19')).toBe(false);
+  });
+
+  it('ft_1_37.AC10 knows what is not saved yet by its contents: a press undone again leaves nothing to save', () => {
+    expect(castChanged(plain, toggleOn(toggleOn(plain, 'puuvaim'), 'puuvaim'))).toBe(false);
+    expect(castChanged(plain, stepNeediness(stepNeediness(plain, 'puuvaim', 1), 'puuvaim', -1))).toBe(false);
+    const changed = toggleSend(toggleOn(plain, 'puuvaim'), 'traveller', today);
+    expect(castChanged(plain, changed)).toBe(true);
+    expect(changedMembers(plain, changed)).toEqual(['puuvaim', 'traveller']);
+    expect(changedMembers(changed, changed)).toEqual([]);
   });
 });

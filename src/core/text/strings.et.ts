@@ -176,6 +176,8 @@ export const stringsEt: Record<StringKey, string> = {
   'teacher.cast.send': 'Saada',
   'teacher.cast.recall': 'Tühista',
   'teacher.cast.unsaved': 'Veel salvestamata',
+  'teacher.cast.learnedPiece': 'Õpitud',
+  'teacher.cast.leave': 'Salvestamata. Veel kord Tagasi lahkub salvestamata.',
   'weekday.0': 'P',
   'weekday.1': 'E',
   'weekday.2': 'T',

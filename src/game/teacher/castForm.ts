@@ -82,3 +82,29 @@ export function sentToday(curriculum: Curriculum, id: string, today: DayString):
 export function toggleSend(curriculum: Curriculum, id: string, today: DayString): Curriculum {
   return sentToday(curriculum, id, today) ? recallWanderer(curriculum, id, today) : sendWanderer(curriculum, id, today);
 }
+
+/** One member's settings and sendings as plain text, the same for the same contents (an empty setting is none). */
+function memberKey(curriculum: Curriculum, id: string): string {
+  const set = curriculum.cast?.characters?.[id] ?? {};
+  const sent = (curriculum.cast?.sent ?? []).filter((s) => s.wanderer === id).map((s) => `${s.day}:${s.piece ?? ''}`).sort();
+  return JSON.stringify([Object.entries(set).filter(([, v]) => v !== undefined).sort(([a], [b]) => (a < b ? -1 : 1)), sent]);
+}
+
+function memberIds(...curricula: Curriculum[]): string[] {
+  const ids = new Set<string>();
+  for (const c of curricula) {
+    for (const id of Object.keys(c.cast?.characters ?? {})) ids.add(id);
+    for (const s of c.cast?.sent ?? []) ids.add(s.wanderer);
+  }
+  return [...ids].sort();
+}
+
+/** The members whose settings differ between what is saved and the draft, by their contents (ft_1_37.AC10). */
+export function changedMembers(saved: Curriculum, draft: Curriculum): string[] {
+  return memberIds(saved, draft).filter((id) => memberKey(saved, id) !== memberKey(draft, id));
+}
+
+/** Whether the draft holds anything the saved curriculum does not. */
+export function castChanged(saved: Curriculum, draft: Curriculum): boolean {
+  return changedMembers(saved, draft).length > 0;
+}

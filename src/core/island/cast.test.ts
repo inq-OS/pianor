@@ -9,7 +9,7 @@ import {
   DEFAULT_NEEDINESS, castCharacter, castSettingOf, mayComeOn, neededShare, setCast, tugRulesFor,
 } from './cast';
 import type { PresenceInput } from './presence';
-import { DEFAULT_PRESENCE_RULES, daysBetween, presence } from './presenceRules';
+import { DEFAULT_PRESENCE_RULES, daysBetween, longestWait, presence } from './presenceRules';
 import { weekdayOf } from './teacher';
 import type { WorldState } from './worldState';
 
@@ -69,6 +69,7 @@ describe('the teacher sets each character per player (ft_1_37)', () => {
     expect(count(rare)).toBeLessThan(count(plain));
     expect(count(plain)).toBeLessThan(count(often));
     expect(dayNumber(year[0]!)).toBeLessThan(dayNumber(year[1]!));
+    expect([0.1, 0.3, 0.5, 1].map((c) => longestWait(c, rules))).toEqual([15, 5, 3, 2]);
   });
 
   it('ft_1_37.AC4 a piece the teacher picks replaces the character\'s own at every level it teaches', () => {
