@@ -531,6 +531,34 @@ class SquarePainter {
     };
   }
 
+  /**
+   * A wall as the 1991 game builds a town's: stones of every size laid in loose courses, each its own flat blotch of
+   * colour (the wash, ochre, a rusty one now and then), pale soft mortar and no dark joints, the whole wall mottled in
+   * broad patches and damp at its foot. `lift` moves the courses up or down at a pixel, for a wall that curves or leans.
+   */
+  private masonry(light: number, foot: number, seed: number, wash: readonly number[] = F.plaster, scale = 1, lift: (x: number) => number = () => 0): Tone {
+    return (x, y) => {
+      const yy = y + lift(x) + 2.4 * noise2(x / 34, 1, 960 + seed);
+      const course = Math.floor(yy / (8 * scale)), tall = 8 * scale;
+      const long = (13 + 12 * hash2(course, 1, 961 + seed)) * scale;
+      const along = (x + hash2(course, 2, 961 + seed) * 40) / long + 0.3 * noise2(course, x / 60, 962 + seed);
+      const k = Math.floor(along), u = along - k, v = yy / tall - course;
+      const patch = (fbm(x / 60, y / 40, 2, 963 + seed) - 0.5) * 0.3;
+      const damp = 0.16 * smooth(foot - 26, foot, y + 6 * noise2(x / 9, 1, 861 + seed));
+      const base = light + patch - damp;
+      // the mortar: a pale soft line, wider at a stone's corners so each stone is rounded
+      const edge = Math.min(u, 1 - u) * long, bed = Math.min(v, 1 - v) * tall;
+      if (edge < 1 || bed < 0.9 || edge + bed < 2.6) return this.worn(wash, base + 0.16, x, y, 0.04, seed);
+      const kind = hash2(k, course, 964 + seed), own = (hash2(k, course, 965 + seed) - 0.5) * 0.26;
+      // a stone's far edge catches the light, its near edge is a tone down
+      const dome = v < 0.3 ? 0.06 : v > 0.74 ? -0.08 : 0;
+      if (kind > 0.96) return this.worn(F.earth, base + 0.56 + own + dome, x, y, 0.05, seed);
+      if (kind > 0.86) return this.worn(F.dry, base + 0.1 + own + dome, x, y, 0.05, seed);
+      if (kind > 0.6) return this.worn(F.shingle, base - 0.04 + own + dome, x, y, 0.05, seed);
+      return this.worn(wash, base - 0.06 + own + dome, x, y, 0.05, seed);
+    };
+  }
+
   /** A tin roof, blue or painted red: ribs down its slope every few pixels, a pale side and a dark side to each, rust in patches. */
   private tin(light: number, slope: number, seed: number, paint: readonly number[] = F.tin): Tone {
     return (x, y) => {
@@ -556,9 +584,9 @@ class SquarePainter {
   private cinema(): void {
     const { hour } = this;
     this.as(() => {
-      this.poly([[104, 168], [250, 160], [256, 118], [104, 124]], ((wall: Tone): Tone => (x, y) => (x + noise2(y / 9, 1, 862) * 5 < 170 ? tone(F.dry, clamp01(hour.front * 0.3), x, y) : wall(x, y)))(this.plaster(hour.front * 0.8 + 0.1, 164, 2, 2, F.dry)));
+      this.poly([[104, 168], [250, 160], [256, 118], [104, 124]], ((wall: Tone): Tone => (x, y) => (x + noise2(y / 9, 1, 862) * 5 < 170 ? tone(F.dry, clamp01(hour.front * 0.3), x, y) : wall(x, y)))(this.masonry(hour.front * 0.8 + 0.1, 164, 2, F.dry, 0.8)));
       // the gable end turned to the sea, in the other light
-      this.poly([[232, 161], [250, 160], [256, 118], [236, 119]], this.plaster(hour.south * 0.8 + 0.08, 162, 3, 2, F.dry));
+      this.poly([[232, 161], [250, 160], [256, 118], [236, 119]], this.masonry(hour.south * 0.8 + 0.08, 162, 3, F.dry, 0.8));
     });
     this.as(() => {
       // a hip roof that sags along its ridge
@@ -588,7 +616,7 @@ class SquarePainter {
   private sideBuilding(): void {
     const { hour } = this;
     this.as(() => {
-      this.poly([[-10, 262], [140, 186], [146, 104], [-10, -30]], this.plaster(hour.south, 250, 5, 0.6), 1.6);
+      this.poly([[-10, 262], [140, 186], [146, 104], [-10, -30]], this.masonry(hour.south, 250, 5, F.plaster, 1.5, (x) => -x * 0.16), 1.6);
       // the eaves' shade lies in a slanting band under the roof
       this.poly([[-10, -10], [146, 114], [146, 126], [-10, 22]], (x, y) => this.worn(F.plaster, hour.south - 0.34, x, y, 0.05, 6), 1.8);
       // the corner's dressed stones
@@ -631,11 +659,29 @@ class SquarePainter {
     });
   }
 
-  /** The lighthouse's own foot at the viewer's left hand: a low curve of big limestone blocks in the shade, dark and near. */
+  /**
+   * The lighthouse's own foot at the viewer's left hand: the round tower's base of pale limestone, near and big. Its
+   * courses curve round it, the side toward the square is lit and it darkens as it turns away, a plinth at the ground.
+   */
   private lighthouseFoot(): void {
+    const { hour } = this;
+    const RIM: readonly Pt[] = [[-10, 170], [34, 174], [88, 194], [130, 228], [152, 268], [164, 316], [168, 372]];
+    // the silhouette's column at a row
+    const rim = (y: number): number => {
+      const k = Math.max(0, Math.min(RIM.length - 2, RIM.findIndex(([, py]) => py > y) - 1));
+      const [x0, y0] = RIM[k]!, [x1, y1] = RIM[k + 1]!;
+      return x0 + (x1 - x0) * clamp01((y - y0) / (y1 - y0));
+    };
     this.as(() => {
-      this.poly([[-10, 372], [-10, 170], [34, 174], [88, 194], [130, 228], [152, 268], [164, 316], [168, 372]], this.blocks(0.1, 14, 30, 11), 1.2);
-      this.poly([[-10, 170], [34, 174], [88, 194], [130, 228], [152, 268], [164, 316], [168, 372], [160, 372], [156, 318], [145, 274], [124, 236], [84, 202], [32, 182], [-10, 178]], (x, y) => tone(F.stone, 0.34, x, y), 0.8);
+      const stone = (turn: number): Tone => this.masonry(hour.ground * 0.4 + 0.5 - turn, 400, 11, F.plaster, 2.2, (x) => (x / 168) ** 2 * 26);
+      const bands = [stone(0), stone(0.1), stone(0.2), stone(0.3)];
+      this.poly([[-10, 372], ...RIM], (x, y) => {
+        // round: lit near its edge toward the square, a thin dark turn at the very rim, darker the further round
+        const off = rim(y) - x + 6 * (noise2(y / 14, 1, 966) - 0.5);
+        return bands[off < 3 ? 2 : off < 56 ? 0 : off < 104 ? 1 : off < 150 ? 2 : 3]!(x, y);
+      }, 1.2);
+      // the plinth: a course of bigger stones standing out at the ground, in the near shade
+      this.poly([[150, 372], [168, 372], [172, 346], [160, 338]], this.blocks(hour.north + 0.1, 12, 26, 12), 0.6);
     });
   }
 
