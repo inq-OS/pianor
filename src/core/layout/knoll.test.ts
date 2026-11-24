@@ -1,17 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import keriJson from '../../../content/world/keri.json';
 import { insideRing, loadWorld, onLand } from '../world/world';
-import { ART_DETAIL } from './frame';
+import { ART_DETAIL, FRAME_MIN } from './frame';
 import { KNOLL, KNOLL_FIRE, KNOLL_PICTURE, KNOLL_PLATEAU, fromKnoll, knollCrest, knollPlace, knollPlan, knollShore, toKnoll } from './knoll';
-import { ROOM_PICTURE } from './room';
 
 const KERI = loadWorld(keriJson);
 const plan = knollPlan();
 
 describe('the grassy knoll: its plan (ft_1_19.AC9)', () => {
-  it('ft_1_19.AC1 ft_1_19.AC9 the picture is the room\'s low wide band, so the same strip stays free under it', () => {
-    expect(KNOLL_PICTURE).toEqual(ROOM_PICTURE);
-    expect(plan.fine).toEqual({ w: ROOM_PICTURE.w * ART_DETAIL, h: ROOM_PICTURE.h * ART_DETAIL });
+  it('ft_1_19.AC1 ft_1_19.AC9 the picture fills every row of the target screen\'s main area', () => {
+    expect(KNOLL_PICTURE).toEqual({ w: FRAME_MIN.width, h: FRAME_MIN.height });
+    expect(plan.fine).toEqual({ w: FRAME_MIN.width * ART_DETAIL, h: FRAME_MIN.height * ART_DETAIL });
   });
 
   it('ft_1_19.AC9 the knoll is the scene of the world model, on the meadow; the viewer\'s metres and the island\'s go into each other', () => {
@@ -59,9 +58,8 @@ describe('the grassy knoll: its plan (ft_1_19.AC9)', () => {
     expect(shore[320]!.water).toBeGreaterThan(shore[10]!.water);
   });
 
-  it('ft_1_19.AC9 the knoll is a plateau with the sea over its lip: the lip highest by the fire, falling only a little to the left edge; past its shoulder it cuts off and its side comes down toward the viewer', () => {
-    // the knoll is a plateau that rises gradually away from the house, then cuts off abruptly
-    // to a drop to a rocky shore
+  it('ft_1_19.AC9 the knoll is a plateau with the sea over its lip: the lip highest by the fire, falling only a little to the left edge; past its shoulder the edge leads off down to the right with no step, grass still high at the right edge', () => {
+    // the knoll is a plateau that rises gradually away from the house, with a rocky shore below its far edge
     const { top, shoulder, cut } = KNOLL_PLATEAU;
     expect(top.y).toBeGreaterThan(plan.horizon + 20);
     const lip = Array.from({ length: shoulder.x + 1 }, (_, x) => knollCrest(x));
@@ -72,10 +70,13 @@ describe('the grassy knoll: its plan (ft_1_19.AC9)', () => {
     let turns = 0;
     for (let x = 2; x < shoulder.x; x += 2) if (Math.sign(lip[x]! - lip[x - 2]!) !== Math.sign(lip[x + 2 > shoulder.x ? x : x + 2]! - lip[x]!)) turns++;
     expect(turns).toBeGreaterThan(10);
-    // the cut: past the shoulder it falls steeply at once, then keeps falling to the right edge
+    // past the shoulder the edge leads off to the right: no step and no wedge anywhere (never a row a pixel over a dozen pixels), yet it keeps falling to the right edge
+    for (let x = shoulder.x - 12; x < plan.fine.w - 12; x++) expect(knollCrest(x + 12) - knollCrest(x), `no step at ${x}`).toBeLessThan(12);
     expect(knollCrest(shoulder.x + cut.wide) - knollCrest(shoulder.x)).toBeGreaterThan(cut.drop * 0.8);
-    for (let x = shoulder.x + cut.wide; x < plan.fine.w - 30; x += 30) expect(knollCrest(x + 30)).toBeGreaterThan(knollCrest(x));
-    expect(knollCrest(plan.fine.w - 1)).toBeGreaterThan(top.y + 80);
+    for (let x = shoulder.x; x < plan.fine.w - 60; x += 60) expect(knollCrest(x + 60)).toBeGreaterThan(knollCrest(x));
+    // grass stands high at the right edge: the edge ends well above the picture's middle of the ground
+    expect(knollCrest(plan.fine.w - 1)).toBeGreaterThan(top.y + 30);
+    expect(knollCrest(plan.fine.w - 1)).toBeLessThan(top.y + 70);
     expect(knollCrest(plan.fine.w - 1)).toBeLessThan(plan.fine.h);
   });
 

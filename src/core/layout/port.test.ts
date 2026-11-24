@@ -1,17 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import keriJson from '../../../content/world/keri.json';
 import { loadWorld } from '../world/world';
-import { ART_DETAIL } from './frame';
-import { BOAT_KINDS, PORT, PORT_BERTHS, PORT_MOORED, PORT_PICTURE, PORT_TALL, portPlace, portPlan, portWaterAt } from './port';
-import { ROOM_PICTURE } from './room';
+import { ART_DETAIL, FRAME_MIN } from './frame';
+import { BOAT_KINDS, PORT, PORT_BERTHS, PORT_MOORED, PORT_PICTURE, PORT_TALL, portPlace, portPlan, portView, portWaterAt } from './port';
+
+const FRAME_MIN_SIZE = { w: FRAME_MIN.width, h: FRAME_MIN.height };
 
 const KERI = loadWorld(keriJson);
 const plan = portPlan();
 
 describe('the southern harbour: its plan', () => {
-  it('ft_1_19.AC10 the picture is the room\'s low wide band; the tall cut is that and the dive under it', () => {
-    expect(PORT_PICTURE).toEqual(ROOM_PICTURE);
-    expect(plan.fine).toEqual({ w: ROOM_PICTURE.w * ART_DETAIL, h: ROOM_PICTURE.h * ART_DETAIL });
+  it('ft_1_19.AC10 the picture fills every row of the target screen\'s main area; the tall cut is that and the dive under it', () => {
+    expect(PORT_PICTURE).toEqual(FRAME_MIN_SIZE);
+    expect(plan.fine).toEqual({ w: FRAME_MIN.width * ART_DETAIL, h: FRAME_MIN.height * ART_DETAIL });
+    expect(portView({ w: FRAME_MIN.width, h: FRAME_MIN.height }, 0).picture).toEqual({ x: 0, y: 0, ...FRAME_MIN_SIZE });
     expect(plan.tall).toEqual({ w: plan.fine.w, h: plan.fine.h + PORT.dive });
     expect(PORT_TALL).toBe(plan.tall.h);
   });

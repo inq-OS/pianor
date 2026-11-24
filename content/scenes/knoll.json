@@ -7,7 +7,7 @@
       "id": "fire",
       "area": {
         "x": 252,
-        "y": 112,
+        "y": 152,
         "w": 84,
         "h": 24
       },
@@ -19,31 +19,31 @@
     {
       "id": "left-of-the-fire",
       "x": 196,
-      "y": 143,
+      "y": 183,
       "facing": "right"
     },
     {
       "id": "right-of-the-fire",
       "x": 392,
-      "y": 142,
+      "y": 182,
       "facing": "left"
     },
     {
       "id": "before-the-fire-left",
       "x": 254,
-      "y": 159,
+      "y": 199,
       "facing": "right"
     },
     {
       "id": "before-the-fire-right",
       "x": 336,
-      "y": 160,
+      "y": 200,
       "facing": "left"
     },
     {
       "id": "in-the-tree",
       "x": 91,
-      "y": 80,
+      "y": 120,
       "facing": "right"
     }
   ],

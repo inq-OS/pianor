@@ -1,7 +1,7 @@
 import { insideRing, type World, type WorldPoint } from '../world/world';
 import { ART_DETAIL } from './frame';
 import { toRing } from './knoll';
-import { ROOM_PICTURE, roomView } from './room';
+import { LOW_PICTURE, pictureView } from './room';
 
 /**
  * The terrace (ft_1_19, d113): the wooden deck before the main door of the warden's house, seen from its end by the
@@ -35,8 +35,8 @@ export const TERRACE = {
 } as const;
 
 /** The scene's picture has the room's size: a low wide band over the same strip. */
-export const TERRACE_PICTURE = ROOM_PICTURE;
-export const terraceView = roomView;
+export const TERRACE_PICTURE = LOW_PICTURE;
+export const terraceView = pictureView(TERRACE_PICTURE);
 
 const FINE = { w: TERRACE_PICTURE.w * ART_DETAIL, h: TERRACE_PICTURE.h * ART_DETAIL } as const;
 

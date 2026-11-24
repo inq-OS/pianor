@@ -7,20 +7,20 @@
     {
       "id": "sea-far",
       "x": 120,
-      "y": 116,
+      "y": 156,
       "facing": "right",
       "scale": 0.4
     },
     {
       "id": "pier",
       "x": 226,
-      "y": 156,
+      "y": 196,
       "facing": "right"
     },
     {
       "id": "jetty",
       "x": 340,
-      "y": 214,
+      "y": 254,
       "facing": "left"
     }
   ],
