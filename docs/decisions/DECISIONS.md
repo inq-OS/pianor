@@ -275,4 +275,5 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d291](game.md#d291) | The live tempo of a learning run is off unless the player turns it on in the learning settings, and is drawn small in the slim strip at the foot | ft_1_32 |
 | [d292](notation.md#d292) | The piece maker has opt-in vim keys, off by default and kept per device, that drive the piece maker's own moves, edits and tools | ft_1_02e |
 | [d293](workflow.md#d293) | Every change to how the game is controlled or used (input, keys, buttons, menus, where an action sits) gets an ergonomics review and analysis before it merges; art and look do not |  |
+| [d294](game.md#d294) | A learned piece's clef grows to twice its size on the practice screen, then the book opens at the piece and the clef drops onto the piece's clef sign | ft_1_32 |
 <!-- /docs:index -->

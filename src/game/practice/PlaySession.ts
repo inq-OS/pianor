@@ -5,7 +5,8 @@ import type Phaser from 'phaser';
 import { firstPrintedBar, unrollRepeats, writtenTick, writtenView, type Chart, type PlayChart } from '../../core/chart';
 import { DEFAULT_FOLLOW_RULES, TempoMode, WaitMode, type Hints, type TempoStart, type JudgeEvent, type NoteJudged, type PieceResult, type PlaySettings, type PlayState } from '../../core/judge';
 import { barNumbersToShow, type BarNumberSettings } from '../../core/layout/barNumbers';
-import { prizeColumn, type PrizeGlyph } from '../../core/layout/learnPrizes';
+import { PRIZE, prizeColumn, type PrizeColumn, type PrizeGlyph } from '../../core/layout/learnPrizes';
+import { CLEF_FLIGHT, grownBox } from '../../core/layout/clefFlight';
 import type { LearnRewards } from '../../core/learn/progress';
 import type { PrizeFocus } from '../../core/learn/view';
 import { passScorePlace } from '../../core/layout/passScore';
@@ -22,7 +23,8 @@ import type { Mascot } from '../ui/pixel/PixelObjects';
 import { SpeechBubble, type BubbleSpot } from '../ui/pixel/SpeechBubble';
 import { StaffView } from '../ui/staff/StaffView';
 import { PracticeController } from './PracticeController';
-import { drawPrizes } from './prizeGlyphs';
+import { drawMedalClef, drawPrizes } from './prizeGlyphs';
+import { motionAllowed } from '../motion';
 import { staffSpaceLimits } from '../../core/layout/canvasSize';
 
 
@@ -121,6 +123,9 @@ export class PlaySession {
   private areaWidth = 0;
   /** The prizes of learning drawn at the sheet's top right (ft_1_32.AC19), and what they show (read by the tests). */
   private prizes: Phaser.GameObjects.Graphics | null = null;
+  /** The learned piece's clef lifted off the column on its way to the book (ft_1_32.AC22). */
+  private clef: Phaser.GameObjects.Graphics | null = null;
+  private columnShown: PrizeColumn | null = null;
   prizesShown: readonly PrizeGlyph[] = [];
   private bubble: SpeechBubble | null = null;
   private onBubbleLines: ((lines: number) => void) | undefined;
@@ -387,7 +392,29 @@ export class PlaySession {
     // the column's right edge a little in from the sheet's, in the room the staff left there
     const column = prizeColumn(layout.staffSpace, this.areaWidth - view.origin.x - 1.2 * layout.staffSpace, rewards, focus);
     this.prizesShown = column.glyphs;
-    this.prizes = drawPrizes(this.scene, column, view.origin, layout.staffSpace);
+    this.columnShown = column;
+    this.prizes = drawPrizes(this.scene, column, view.origin, layout.staffSpace, { withoutClef: this.clef !== null });
+  }
+
+  /**
+   * Lifts the learned piece's clef off the prize column and grows it smoothly to twice its size where it stands
+   * (ft_1_32.AC22); it stays until the screen closes. Returns its grown box on the screen, or null with no clef shown.
+   */
+  liftClef(): { x: number; y: number; w: number; h: number } | null {
+    const glyph = this.prizesShown.find((p) => p.role === 'piece');
+    const layout = this.layoutNow;
+    const view = this.view;
+    if (!glyph || !layout || !view) return null;
+    const S = layout.staffSpace;
+    const box = { x: view.origin.x + glyph.x, y: view.origin.y + glyph.y, w: PRIZE.clefBox.w * PRIZE.clefScale * S, h: PRIZE.clefBox.h * PRIZE.clefScale * S };
+    this.clef?.destroy();
+    this.clef = drawMedalClef(this.scene, glyph.medal, { x: box.x + box.w / 2, y: box.y + box.h / 2 }, S).setDepth(3);
+    // the column again without its clef: the lifted one stands in its place
+    this.prizes?.destroy();
+    if (this.columnShown) this.prizes = drawPrizes(this.scene, this.columnShown, view.origin, S, { withoutClef: true });
+    if (motionAllowed()) this.scene.tweens.add({ targets: this.clef, scale: CLEF_FLIGHT.grow, duration: CLEF_FLIGHT.growMs, ease: 'Sine.easeInOut' });
+    else this.clef.setScale(CLEF_FLIGHT.grow);
+    return grownBox(box);
   }
 
   private clearPassScore(): void {

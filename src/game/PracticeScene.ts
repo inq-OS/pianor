@@ -37,6 +37,7 @@ import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelSce
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { openOverlay, startScene, type OverlayOutcome } from './scenes';
 import type { KeriScreen } from './visit/islandVisit';
+import type { ClefFlight } from './MenuScene';
 import { afterPlay, type PlayStage, type PracticeSpot } from '../core/intro/intro';
 import { INTRO } from './intro/introContent';
 import type { Rect } from '../core/layout/rect';
@@ -270,6 +271,8 @@ export class PracticeScene extends PixelScene {
   private loopTimer: Phaser.Time.TimerEvent | null = null;
   /** The piece just learned (ft_1_32 rule 5): the reward stays on the paper until a key or a press calls this, once. */
   private learnedGoOn: (() => void) | null = null;
+  /** The learned piece's clef on its way to the book (ft_1_32.AC22): set at the learned moment, flown when the screen goes on. */
+  private clefFlight: Omit<ClefFlight, 'then'> | null = null;
   /** This start follows a learning run, whose line Kiur says: no other words over it. */
   private afterLearnRun = false;
   /** The wrong key carried from the run before (`learnWrong`), shown again on this run's staff. */
@@ -306,6 +309,7 @@ export class PracticeScene extends PixelScene {
   init(data: PracticeData): void {
     this.startData = data;
     this.learnedGoOn = null;
+    this.clefFlight = null;
     this.preview = data.preview === true;
     this.returnTo = data.returnTo ?? 'preview';
     this.readLesson(data);
@@ -901,7 +905,14 @@ export class PracticeScene extends PixelScene {
     const said = learn.endLine(outcome, bpm);
     // an uneven run is asked again with its own line; otherwise Kiur also says what comes next
     const line = learn.learned || outcome === 'unsteady' ? said : [said, learn.nextLine()].filter((part) => part !== '').join(' ');
+    const clefBefore = this.playSession.prizesShown.find((p) => p.role === 'piece')?.medal ?? null;
     this.redraw(); // the new note shows at once
+    // learned: the clef lifts off the column and grows, on its way to the book (ft_1_32.AC22)
+    if (learn.learned) {
+      const from = this.playSession.liftClef();
+      const after = this.playSession.prizesShown.find((p) => p.role === 'piece')?.medal ?? null;
+      this.clefFlight = from && after ? { chartId: this.fullChart.id, before: clefBefore, after, from } : null;
+    }
     this.playSession.say(learn.learned ? `${line}${/[.!?]$/.test(line) ? '' : '.'} ${t('learn.goOn')}` : line);
     this.loopTimer = this.time.delayedCall(LEARN_NEXT_MS, () => {
       this.loopTimer = null;
@@ -928,7 +939,9 @@ export class PracticeScene extends PixelScene {
    */
   private afterLearned(line: string): void {
     const teacher = this.startData.teacher;
-    if (teacher) startScene(this, teacher.scene, {});
+    // the book opens and the clef drops onto the piece's card; a character's piece then goes on to the character
+    if (this.clefFlight) startScene(this, 'menu', { clefFlight: { ...this.clefFlight, ...(teacher ? { then: teacher.scene } : {}) } });
+    else if (teacher) startScene(this, teacher.scene, {});
     else if (this.startData.learn === true) startScene(this, 'profile', {});
     else this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });
   }

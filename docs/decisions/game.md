@@ -500,3 +500,11 @@ Check: untestable: the word check against the glossary comes with its own CI ste
 A picture choice on the learning settings page turns it on; a setting saved before the choice reads as off. When on, the tempo, spread and wobble so far are two small dim lines at the right end of the strip's free stretch, never in the top bar or the stats pane, so they stay out of the student's sight while reading the staff.
 
 Check: `src/core/learn/progress.test.ts` "ft_1_32.AC17 the live tempo is off unless the player turned it on, and a setting saved before it reads as off"
+
+## d294
+
+**A learned piece's clef grows to twice its size on the practice screen, then the book opens at the piece and the clef drops onto the piece's clef sign.** Features: ft_1_32.
+
+At the learned moment the clef lifts off the prize column and grows smoothly about its centre (0.7 s) and stays with Kiur's line until a key or a press. The book then opens at the page of the piece, the card still showing the clef it had (the empty place or the old medal); after 0.3 s the clef drops from where the practice screen left it onto that sign, shrinking to its size (0.9 s), and the sign takes the new medal. A character's piece then goes on to the character after 1.2 s; any other piece stays in the book. With the scenery still (`?motion=still`) the clef shows at once at its end.
+
+Check: `src/core/layout/clefFlight.test.ts` "ft_1_32.AC22 starts in the book where the practice screen left it, and lands on the sign at the height of the sign"; `tests/e2e/learn.spec.ts` "ft_1_32.AC15 ft_1_32.AC22 a piece learned keeps its reward and the learned line until a key, its clef grown to twice its size, then the book opens and the clef drops onto the card of the piece"
