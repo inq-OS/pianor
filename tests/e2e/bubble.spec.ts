@@ -172,14 +172,14 @@ test.describe('the two-finger tap on a touch screen (ft_1_20.AC25)', () => {
   test.use({ hasTouch: true });
 
   /** Two fingers land on the page (the second `gapMs` after the first) and, unless `slide`, lift where they landed. */
-  async function twoFingers(page: Page, a: { x: number; y: number }, b: { x: number; y: number }, options: { slide?: number } = {}): Promise<void> {
+  async function twoFingers(page: Page, a: { x: number; y: number }, b: { x: number; y: number }, options: { slide?: number; slideOne?: boolean } = {}): Promise<void> {
     const cdp = await page.context().newCDPSession(page);
     const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd' | 'touchCancel', points: { x: number; y: number; id: number }[]) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points });
     await touch('touchStart', [{ ...a, id: 0 }]);
     await touch('touchStart', [{ ...a, id: 0 }, { ...b, id: 1 }]);
     await page.waitForTimeout(100);
     if (options.slide) {
-      await touch('touchMove', [{ x: a.x - options.slide, y: a.y, id: 0 }, { x: b.x + options.slide, y: b.y, id: 1 }]);
+      await touch('touchMove', [{ x: options.slideOne ? a.x : a.x - options.slide, y: a.y, id: 0 }, { x: b.x + options.slide, y: b.y, id: 1 }]);
       await page.waitForTimeout(100);
     }
     await touch('touchEnd', []);
@@ -203,6 +203,34 @@ test.describe('the two-finger tap on a touch screen (ft_1_20.AC25)', () => {
     expect(Math.abs(centre.x - 160)).toBeLessThanOrEqual(1);
     expect(Math.abs(centre.y - 80)).toBeLessThanOrEqual(1);
     expect(await hints()).toEqual(before);
+    expectNoErrors(errors);
+  });
+
+  /** Where practice starts the play from: a tap on a bar restarts it with a section from that bar. */
+  const section = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { startData: { section?: { first: number } } }).startData.section?.first ?? null);
+
+  test('ft_1_20.AC25 a finger tap outside the bubble only closes it: it never starts the play from the bar under it', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'practice', { chartId: 'little-steps' });
+    await waitForScene(page, 'practice');
+    await twoFingers(page, await artPoint(page, 'practice', 100, 80), await artPoint(page, 'practice', 120, 80));
+    await expect.poll(() => bubbleOpen(page, 'practice')).toBe(true);
+    const away = await artPoint(page, 'practice', 250, 80);
+    await page.touchscreen.tap(away.x, away.y);
+    await expect.poll(() => bubbleOpen(page, 'practice')).toBe(false);
+    await page.waitForTimeout(300);
+    expect(await section(page)).toBeNull();
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_20.AC25 a pinch of one finger closes the bubble, and the lift of the other finger starts nothing', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'practice', { chartId: 'little-steps' });
+    await waitForScene(page, 'practice');
+    await twoFingers(page, await artPoint(page, 'practice', 200, 80), await artPoint(page, 'practice', 240, 80), { slide: 60, slideOne: true });
+    await expect.poll(() => bubbleOpen(page, 'practice')).toBe(false);
+    await page.waitForTimeout(300);
+    expect(await section(page)).toBeNull();
     expectNoErrors(errors);
   });
 

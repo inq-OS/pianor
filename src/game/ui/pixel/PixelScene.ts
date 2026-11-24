@@ -226,6 +226,8 @@ export abstract class PixelScene extends Phaser.Scene {
   private twoFinger: { ids: number[]; start: { x: number; y: number }[] } | null = null;
   /** Lifts of the fingers that opened the bubble still to come: they pick nothing. */
   private bubbleTouchLifts = 0;
+  /** Whether the fingers now on the screen, or the last ones, came down two or more at once (a gesture, never a tap). */
+  private manyFingers = false;
   /** The door and the gear over the top corners with the band and no toolbar: faded until the pointer or the focus is on them. */
   private corners: PixelButton[] = [];
   /** Everything of the scene goes in here, positions in art pixels. */
@@ -1182,6 +1184,11 @@ export abstract class PixelScene extends Phaser.Scene {
    * two fingers that land together opens the bubble at once midway between them, and the first finger's lift picks
    * nothing; two fingers that then slide apart are a pinch, which closes it again.
    */
+  /** Whether the touch now ending was part of two or more fingers at once: its lift is no tap. */
+  protected get severalFingers(): boolean {
+    return this.manyFingers;
+  }
+
   private listenForTwoFingers(): void {
     const canvas = this.game.canvas;
     // fingers are followed in CSS pixels of the page, the same distance under the finger on any screen
@@ -1194,6 +1201,11 @@ export abstract class PixelScene extends Phaser.Scene {
     const PALM = 40;
     const start = (e: TouchEvent) => {
       const now = this.time.now;
+      // a finger alone on the screen starts a new gesture: what the last one left behind is gone
+      if (e.touches.length === 1) {
+        this.manyFingers = false;
+        this.bubbleTouchLifts = 0;
+      } else if (e.touches.length > 1) this.manyFingers = true;
       for (const touch of Array.from(e.changedTouches)) this.touches.set(touch.identifier, { ...at(touch), t: now, palm: Math.max(touch.radiusX, touch.radiusY) > PALM });
       if (e.touches.length !== 2 || this.touches.size !== 2 || this.sys.isPaused() || !this.screenFrame?.band || this.menuOpen) return;
       const [one, two] = Array.from(e.touches);
@@ -1221,11 +1233,11 @@ export abstract class PixelScene extends Phaser.Scene {
     };
     const end = (e: TouchEvent) => {
       for (const touch of Array.from(e.changedTouches)) this.touches.delete(touch.identifier);
-      // every finger is up: the game has seen the last lift by the next frame, and none is still to come
+      // the lifts still to be swallowed stay counted until the next finger or mouse press starts afresh, whichever order
+      // the game and this listener see the last lift in
       if (e.touches.length === 0) {
         this.touches.clear();
         this.twoFinger = null;
-        this.time.delayedCall(0, () => (this.bubbleTouchLifts = 0));
       }
     };
     const options = { passive: true };
@@ -1236,6 +1248,10 @@ export abstract class PixelScene extends Phaser.Scene {
     this.touches.clear();
     this.twoFinger = null;
     this.bubbleTouchLifts = 0;
+    this.manyFingers = false;
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      if (!p.wasTouch) this.bubbleTouchLifts = 0;
+    });
     this.events.once('shutdown', () => {
       canvas.removeEventListener('touchstart', start);
       canvas.removeEventListener('touchmove', move);

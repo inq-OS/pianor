@@ -493,13 +493,15 @@ export class PracticeScene extends PixelScene {
     // a slow tap is still a tap: a finger held long enough opened the bubble instead, and that lift is the bubble's
     let fingerDown: { x: number; y: number } | null = null;
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (pointer.wasTouch) fingerDown = { x: pointer.x, y: pointer.y };
-      else this.onTap(pointer);
+      if (pointer.wasTouch) {
+        // a finger down while a menu is open is the menu's: its lift closes it and starts nothing
+        fingerDown = this.menuOpen ? null : { x: pointer.x, y: pointer.y };
+      } else this.onTap(pointer);
     });
     this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       const down = fingerDown;
       fingerDown = null;
-      if (!down || !pointer.wasTouch || this.menuOpen) return;
+      if (!down || !pointer.wasTouch || this.menuOpen || this.severalFingers) return;
       if (Math.hypot(pointer.x - down.x, pointer.y - down.y) > TAP_SLIP) return;
       this.onTap(pointer);
     });
