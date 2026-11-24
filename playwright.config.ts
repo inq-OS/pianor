@@ -42,8 +42,9 @@ export default defineConfig({
   // Each test runs a WebGL game with audio; too many at once on a laptop makes them time out, so two with a GPU. Without one
   // each browser's software GPU keeps about one core busy: one browser per core but one (three on a 4-core cloud session,
   // 20.5 to about 16 minutes), never fewer than two and, until more is measured, never more than four.
-  // CI: two per runner. A hosted 4-core runner is several times slower than a cloud session: with three browsers a full run's
-  // shards took 15 to 25 minutes and about 20 tests ran out of their time waiting on the game (browser-tests.yml shards).
+  // CI: one per runner, and more runners (browser-tests.yml shards). A hosted runner is several times slower than a cloud
+  // session: with two or three browsers on one, about 20 tests that wait on the game's clock ran out of time in every run
+  // (its audio clock was measured to run true); with one, none did, and ten shards took about 11 minutes.
   workers: process.env.CI ? 1 : E2E_GPU ? 2 : Math.min(4, Math.max(2, availableParallelism() - 1)),
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
