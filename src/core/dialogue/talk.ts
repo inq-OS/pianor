@@ -18,6 +18,8 @@ export interface TalkFacts {
   readonly level: number;
   /** The per-player knowledge switch (d132). */
   readonly knowledge: boolean;
+  /** The pieces the character may teach now (approved, or picked by the teacher); absent: every piece. A choice that leads straight to teaching another is not offered. */
+  readonly teachable?: readonly PieceId[];
 }
 
 /** The effects that start playing (`teach`, `tug`, `checkup`) or leave: a node that has one ends the talk. */
@@ -64,6 +66,13 @@ function applyEffect(f: TalkFacts, e: Effect): TalkFacts {
   return f;
 }
 
+/** Whether the node a choice leads to teaches only pieces the character may teach now (`TalkFacts.teachable`). */
+function teachesAllowed(node: ConversationNode | undefined, f: TalkFacts): boolean {
+  const teachable = f.teachable;
+  if (teachable === undefined || node === undefined) return true;
+  return (node.effects ?? []).every((e) => !('teach' in e) || teachable.includes(e.teach));
+}
+
 /** Show `id`, skipping nodes whose condition fails to their `next`; null when the talk ends on the way. */
 function show(conv: Conversation, id: NodeId | undefined, facts: TalkFacts): TalkStep | null {
   const skipped = new Set<NodeId>();
@@ -79,7 +88,7 @@ function show(conv: Conversation, id: NodeId | undefined, facts: TalkFacts): Tal
     const effects = node.effects ?? [];
     const after = effects.reduce(applyEffect, facts);
     const outcome = effects.find(outcomeOf);
-    const choices = (node.choices ?? []).filter((ch) => ch.when === undefined || conditionHolds(ch.when, after));
+    const choices = (node.choices ?? []).filter((ch) => (ch.when === undefined || conditionHolds(ch.when, after)) && teachesAllowed(conv.nodes[ch.next], after));
     return {
       node: current,
       speaker: node.speaker,

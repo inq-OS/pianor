@@ -6,7 +6,7 @@ import { dayNumber } from '../curriculum/evaluate';
 import { DEFAULT_TUG_RULES } from '../exchange/tug';
 import { curriculumDocument } from '../save/documents';
 import {
-  DEFAULT_NEEDINESS, castCharacter, castSettingOf, mayComeOn, neededShare, setCast, tugRulesFor,
+  DEFAULT_NEEDINESS, castCharacter, castTeachPiece, teachablePieces, castSettingOf, mayComeOn, neededShare, setCast, tugRulesFor,
 } from './cast';
 import type { PresenceInput } from './presence';
 import { DEFAULT_PRESENCE_RULES, daysBetween, longestWait, presence } from './presenceRules';
@@ -87,5 +87,18 @@ describe('the teacher sets each character per player (ft_1_37)', () => {
     const strict = tugRulesFor(DEFAULT_TUG_RULES, 5);
     expect(strict.levels.map((l) => l.share)).toEqual([0.8, 1, 1]);
     expect(tugRulesFor(DEFAULT_TUG_RULES, 3)).toEqual(DEFAULT_TUG_RULES);
+  });
+
+  it('a character offers to teach only an approved piece, or the piece the teacher picked for it', () => {
+    const offer = (status: Record<string, 'approved' | 'draft'>) => (piece: string) => status[piece];
+    const own = Object.values(puuvaim.phrases).flat();
+    expect(teachablePieces(puuvaim, plain, offer({}))).toEqual([]);
+    expect(teachablePieces(puuvaim, plain, offer(Object.fromEntries(own.map((p) => [p, 'draft']))))).toEqual([]);
+    expect(teachablePieces(puuvaim, plain, offer({ [own[0]!]: 'approved' }))).toEqual([own[0]]);
+    const picked = setCast(plain, 'puuvaim', { piece: 'mine' });
+    expect(teachablePieces(puuvaim, picked, offer({ mine: 'draft' }))).toEqual([...new Set(own)]);
+    expect(teachablePieces(puuvaim, picked, offer({}))).toEqual([]);
+    expect(castTeachPiece(picked, 'puuvaim', own[0]!)).toBe('mine');
+    expect(castTeachPiece(plain, 'puuvaim', own[0]!)).toBe(own[0]);
   });
 });
