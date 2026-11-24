@@ -123,12 +123,11 @@ Open work is a doc tag (d116). Count a release's work with the grep in [todo-tag
 
 **Theme:** the map of Keri becomes a small world: walk with the arrow keys and meet characters; their styles are the music styles of d132.
 
-**Open (d112):** the game's world is a set of painted scenes on Keri (ft_1_19), opened from the map. A tile overworld walked with the arrow keys (Grid Engine, Tiled) does not fit that world; nothing below is decided until the maintainer says how the world grows from scenes.
+**Open (d112):** the game's world is a set of painted scenes on Keri (ft_1_19), opened from the map. A tile map walked with the arrow keys does not fit that world; nothing below is decided until the maintainer says how the world grows from scenes.
 
 | Content | What |
 |---|---|
-| Phaser review R3 to R8 | A world base scene (PixelScene's full redraw does not suit scrolling), Tiled maps as content, events as data with a pure core interpreter, a loading scene, world save |
-| Candidate dependency | **Grid Engine** (Apache-2.0) for grid movement; **Tiled** as the map editor (a tool, GPL, not shipped; its JSON output is fine). Needs a decision file and `docs/dependencies.md` |
+| Phaser review R3 to R8 | A world base scene (PixelScene's full redraw does not suit scrolling), maps as content, events as data with a pure core interpreter, a loading scene, world save |
 
 **Gate in:** R4 played; the cold start measured on a modest laptop (Phaser is 357 kB gzipped); tiles in outline style A.
 

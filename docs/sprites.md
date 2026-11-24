@@ -17,4 +17,4 @@ What pixel art the game has and where it lives. The painted pictures of Keri are
 
 ## 2. Engine: stay on Phaser
 
-Phaser stays (d007). It does what pixel art needs (nearest-neighbour textures, whole-number zoom, sprite sheets and animations), it is code-first, which suits an agent, and Web MIDI is plain browser JavaScript next to it. The alternatives (Kaplay, Excalibur, PixiJS, Godot) were looked at again and none fixes a problem we have: the hard part of pixel art is the **art pipeline**, not the engine.
+Phaser stays (d007). It does what pixel art needs (nearest-neighbour textures, whole-number zoom, sprite sheets and animations), it is code-first, which suits an agent, and Web MIDI is plain browser JavaScript next to it. The hard part of pixel art is the **art pipeline**, not the engine.

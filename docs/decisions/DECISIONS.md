@@ -42,7 +42,7 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d021](saves.md#d021) | Progression is an event-sourced attempt log with XP numbers in `content/curriculum/progression.json` | ft_0_10, ft_0_15 |
 | [d022](notation.md#d022) | `layoutStaff` draws a grand staff for two played tracks, with one time axis and the cursor on the outer side | ft_0_15 |
 | [d023](notation.md#d023) | Importers will emit ABC plus a draft meta file, not chart JSON | ft_Y_04 |
-| [d024](workflow.md#d024) | Check prior art per work package; keep our own sampler and staff renderer for now | ft_0_11, core_09, ft_Y_04 |
+| [d024](workflow.md#d024) | Before building a new subsystem, look briefly for permissively licensed code to use; the sampler and the staff renderer are our own | ft_0_11, core_09, ft_Y_04 |
 | [d025](notation.md#d025) | The piece preview tool runs at `/?demo=preview` and only a human approves pieces | ft_0_11 |
 | [d026](workflow.md#d026) | The gitignored `private/` folder may hold code and output under any licence, and nothing committed may import it | all |
 | [d027](notation.md#d027) | Generators in `tools/generate/` write ABC plus meta and only output what the real linter accepts | ft_0_12 |
@@ -139,7 +139,7 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d152](workflow.md#d152) | Decisions are kept as one short entry each in seven ledgers by area, not one file each |  |
 | [d153](workflow.md#d153) | Lean: a builder and a painter, an architect that sets one playable goal a week; no work packages, mailboxes, board, scan or triage |  |
 | [d154](art.md#d154) | The student is drawn as a child of about three heads on the template: pick A | ft_1_24, ft_1_22 |
-| [d155](notation.md#d155) | VexFlow re-evaluated for beams and sixteenths: we keep our own staff renderer and take VexFlow's beam rules as a reference only | core_09, ft_Y_04 |
+| [d155](notation.md#d155) | Beams and sixteenths are drawn by our own staff renderer, by the common engraving rules | core_09, ft_Y_04 |
 | [d156](art.md#d156) | What is organic in a painted place moves live, seeded by the day, on one wind: water, fire, beam, fish, gulls, sparks, fireflies and spray | ft_1_19, ft_1_18, ft_1_07 |
 | [d157](game.md#d157) | Difficulty is 0 to 100 points in five grades of 20 (Beginner, Intermediate, Advanced, Expert, Master), each shown as five stars of 4 points that fill partly; a confirmed `difficulty` counts half stars, 1 to 50 | core_08, core_05 |
 | [d158](saves.md#d158) | A damaged save never hides a player without a word | core_11 |

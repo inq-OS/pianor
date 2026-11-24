@@ -33,7 +33,7 @@ Check: `src/io/mock/VirtualEz220.test.ts` "exposes a connected input and output 
 
 **Code is MIT, original pieces are CC0 or CC-BY, dependencies must be permissive.** Features: ft_0_00.
 
-GPL projects (Neothesia, PianoBooster) are reference only, with local private use allowed under d026. Each piece records its own licence.
+GPL code may be used only privately, under d026. Each piece records its own licence.
 
 Check: untestable: licence choice, reviewed with docs/dependencies.md by the maintainer and reviewers
 
@@ -47,9 +47,9 @@ Check: `playwright.config.ts` "Number(process.env.PW_PORT) || 5180"
 
 ## d024
 
-**Check prior art per work package; keep our own sampler and staff renderer for now.** Features: ft_0_11, core_09, ft_Y_04.
+**Before building a new subsystem, look briefly for permissively licensed code to use; the sampler and the staff renderer are our own.** Features: ft_0_11, core_09, ft_Y_04.
 
-Sightread is GPL-3.0 (reference only); VexFlow 5 (MIT) is to be re-evaluated when accidentals, key signatures, ties or beams are scheduled (done for beams: kept as a reference only, changed by [d155](notation.md#d155)). Before a package that builds a new subsystem, spend a short bounded search for permissively licensed prior art and record the verdict (`docs/dependencies.md`).
+The search is short and bounded; what is taken is recorded in `docs/dependencies.md`, and what is not taken is not written down.
 
 Check: untestable: process rule for agents (a bounded prior-art search before a new subsystem)
 

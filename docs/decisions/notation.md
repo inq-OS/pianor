@@ -187,9 +187,9 @@ Check: `src/core/judge/tempo.test.ts` "core_09.AC33 ignores a press of the grace
 
 ## d155
 
-**VexFlow re-evaluated for beams and sixteenths: we keep our own staff renderer and take VexFlow's beam rules as a reference only.** Features: core_09, ft_Y_04. Changes d024.
+**Beams and sixteenths are drawn by our own staff renderer, by the common engraving rules.** Features: core_09, ft_Y_04.
 
-VexFlow 5 (MIT) lays out and draws in one step through its own render context and SMuFL font glyphs, so using it would give up the pure `layoutStaff` (core tests, the editor's hit tests, the duration help, cursor and per-note colours read its positions) and the pixel-art ink, for one feature (beams) that is a small pure function (`src/core/layout/beams.ts`). Its beam rules (notes grouped per beat in simple meters, one stem direction for a run from the mean of its heads, partial beams pointing to their beat neighbour) are studied and written in our own code; no VexFlow code or dependency comes in. Re-evaluate only if the renderer has to grow two voices in one hand or cross-staff beams.
+Beams are a small pure function (`src/core/layout/beams.ts`) beside the pure `layoutStaff`, whose positions the core tests, the editor's hit tests, the duration help, the cursor and the per-note colours read: notes are grouped per beat in simple meters, a run has one stem direction from the mean of its heads, and a partial beam points to its beat neighbour.
 
 
 Check: `src/core/layout/beams.test.ts` "core_09.AC40 beams the eighths of each beat: four eighths in a row are two pairs"; `src/core/layout/beams.test.ts` "core_09.AC40 never beams across a rest, a bar line or a beat"
@@ -205,9 +205,9 @@ Check: `src/core/chart/tuplets.test.ts` "core_09.AC49 the compiler writes each t
 
 ## d164
 
-**Two voices in one hand: ABC `&` overlay to voice 2, stems by voice, one step per tick.** Features: core_09, core_01, core_02. Changes d155.
+**Two voices in one hand: ABC `&` overlay to voice 2, stems by voice, one step per tick.** Features: core_09, core_01, core_02.
 
-ABC `&` inside a bar writes the music after it, up to the bar line, to voice 2 of the same track, filling exactly as much as voice 1 (its own rests with `z`); a third voice, `(&`, `&)`, a voice-2 note past the bar line and (AX-3 provisional) a pitch one voice strikes while the other starts or still holds it are refused with their position, and the chart already allows voices 1 to 4, so there is no format change. In a bar of two voices the staff draws voice 1 stems up and voice 2 stems down whatever the pitch, raises voice 1's rests and lowers voice 2's, puts the lower head right when the two start a second apart, beams each voice on its own, puts ties and slurs on the stem side, and prints accidentals from the whole staff (a sign holds on its line for both voices to the bar line). The judge makes one step of every note starting on a tick, so Wait mode awaits both voices like a chord, a key still held from voice 1 is neither wrong nor a release, and Tempo mode grades each hold on its own; the level table gets an optional `voices` limit (absent means 1), 2 at level 5. d155 is re-evaluated: two voices are a stem rule and an offset on the own renderer, so VexFlow stays out.
+ABC `&` inside a bar writes the music after it, up to the bar line, to voice 2 of the same track, filling exactly as much as voice 1 (its own rests with `z`); a third voice, `(&`, `&)`, a voice-2 note past the bar line and (AX-3 provisional) a pitch one voice strikes while the other starts or still holds it are refused with their position, and the chart already allows voices 1 to 4, so there is no format change. In a bar of two voices the staff draws voice 1 stems up and voice 2 stems down whatever the pitch, raises voice 1's rests and lowers voice 2's, puts the lower head right when the two start a second apart, beams each voice on its own, puts ties and slurs on the stem side, and prints accidentals from the whole staff (a sign holds on its line for both voices to the bar line). The judge makes one step of every note starting on a tick, so Wait mode awaits both voices like a chord, a key still held from voice 1 is neither wrong nor a release, and Tempo mode grades each hold on its own; the level table gets an optional `voices` limit (absent means 1), 2 at level 5.
 
 Check: `src/core/piece/abc.voices.test.ts` "core_09.AC52 the music after & is voice 2 of the same bar, from its bar line"; `src/core/layout/staff.voices.test.ts` "core_09.AC53 heads of the two voices a second apart stand side by side, the lower one on the right, so the stems meet in one line"; `src/core/judge/voices.test.ts` "core_09.AC54 every note of both voices that starts on a tick is one step, like a chord"
 

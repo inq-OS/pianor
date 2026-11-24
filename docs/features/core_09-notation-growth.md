@@ -24,7 +24,7 @@ More of real music, as a beginner's lessons need it. The renderer and the compil
 - **Dotted quarters** (the first slice for real classics) are built in compiler, staff, judge and linter; core_09.AC37 to AC39. The eighth after a dotted quarter starts off the beat, so it keeps its flag. The editor does not write them yet.
 - **Sixteenths and beams** (d155) are built in staff, judge and linter; core_09.AC40 to AC43. Eighths, dotted eighths and sixteenths are beamed in runs inside one beat (`src/core/layout/beams.ts`), flat, with one stem direction per run; a sixteenth has a second beam, a partial one when it has no sixteenth beside it. AX-3 provisional: beams group by the beat (four eighths in 4/4 are two pairs) and lie flat. Level 5 allows sixteenths and dotted eighths, so imported pieces can be bundled. On the laptop a piece of sixteenths shows one bar a line (core_09.AC44). A draft piece, Little Gallop (level 5), shows them.
 - **The piece maker writes them** (core_09.AC55): dotted quarter, dotted eighth and sixteenth buttons beside the others, notes on a sixteenth grid, and a photo or MusicXML import that holds them keeps them.
-- **Prior art:** VexFlow (MIT) was re-evaluated for beams (d155): our renderer stays, VexFlow's beam rules are a reference (`docs/decisions/notation.md#d155`). Most real songs need some of these notations, so this, not the file format, is the limit of piece import (ft_Y_04).
+- **Our own renderer** draws every notation here (d155). Most real songs need some of these notations, so this, not the file format, is the limit of piece import (ft_Y_04).
 
 ## Acceptance criteria
 
