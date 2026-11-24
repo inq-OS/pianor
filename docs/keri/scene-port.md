@@ -66,7 +66,7 @@ The landing:
 
 ## Open
 
-- ASAP(painter, R2): the port is seen from a raised eye (the eye a storey up on the quay's root, the horizon in the upper quarter, the quay a shape curling out to sea with the beacon small and far at its head, a dark parapet along the foot), and the low landing at the quay's end is a scene of its own: today's side view, with the dive to the reef, the rowing boat and the fire pan. Semi-sketch in `harbourPicture.ts`, awaiting the maintainer's marks.
+- ASAP(painter, R2): the port is seen from a raised eye (the eye a storey up on the quay's root, the horizon in the upper quarter, the quay a shape curling out to sea with the beacon small and far at its head, a dark parapet along the foot), and the low landing at the quay's end is a scene of its own: today's side view, with the dive to the reef, the rowing boat and the fire pan. A semi-sketch was shown; it lands with the two scenes wired.
 - TODO(builder, R3): moor the boat of each visitor who is here today (the teacher's galleon, the fisherman's rowing boat at the landing, and him on it, the border guard's patrol boat), from presence (ft_1_25), and nothing at a berth nobody came to (`PORT_MOORED` and `PORT_AT_LANDING` in `port.ts`).
 - TODO(painter, R3): a near-water berth for the other small boat (the motorboat), at the landing on a day the rowing boat is away.
 - TODO(painter, R2): the smooth sky and the grain kept to the things in the other outdoor scenes (the docks' sky is grained in strokes today), once the maintainer has seen it here.

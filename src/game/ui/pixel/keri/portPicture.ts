@@ -66,9 +66,6 @@ const LEAF = [R.bush[2]!, tone(F.bush, 0.62, 0, 0), R.bush[3]!, R.bush[4]!] as c
  */
 const GRAIN_RUNS = Object.entries(F).filter(([name]) => !['ember', 'cloud', 'sky', 'sea'].includes(name)).map(([, run]) => run);
 
-/** The port's runs and the runs its grain goes over, for the same harbour seen from above (`harbourPicture.ts`). */
-export const PORT_TONES = { run: R, fine: F, grain: GRAIN_RUNS } as const;
-
 export function portPalette(phase: SkyPhase): readonly number[] {
   return SHARED.at(phase);
 }
