@@ -31,7 +31,14 @@ import { lineSpot, TALK } from '../../core/layout/talk';
 import { readingMs } from '../../core/scene/scriptRunner';
 import { scriptInk, spokenLine, spokenPages, talkColour } from '../ui/pixel/talkArt';
 import type { ScriptView } from '../../core/scene/scriptRunner';
-import { ACTORS, CHARACTERS, CONVERSATIONS, ITEMS, SCRIPTS, TUG_RULES } from './scenesData';
+import { ACTORS, CHARACTERS, CONVERSATIONS, ITEMS, SCRIPTS, TUG_RULES, WANDERER_RULES } from './scenesData';
+import type { Curriculum } from '../../core/curriculum/curriculum';
+import { castCharacter, castSettingOf, tugRulesFor } from '../../core/island/cast';
+import { castToday, wandererPlay, type CastToday } from '../../core/island/castToday';
+import { DEFAULT_PRESENCE_RULES } from '../../core/island/presenceRules';
+import { giveKeepsake, keptToday, wandererVerdict } from '../../core/island/wanderer';
+import { pieceTitle } from '../../core/text/pieceTitle';
+import { visitable } from '../visit/islandVisit';
 import type { ToolbarItem } from '../ui/pixel/PixelScene';
 import { TalkView } from './talkView';
 import { TugView } from './tugView';
@@ -120,6 +127,15 @@ export class AdventureScene extends PixelScene {
   private flocks: { gulls?: Flock; school?: Flock } = {};
   /** While the view pans between the two, presses do nothing. */
   private panning = false;
+  /** The player's curriculum (the teacher's cast, ft_1_37), read with the world; null before, or when it cannot be read. */
+  private curriculum: Curriculum | null = null;
+  /** Who stands where today (ft_1_37 slice 3); null until the documents are read. */
+  private today: CastToday | null = null;
+  /** Back from a wanderer's ask: the play it hears once the documents are read (ft_1_37.AC7). */
+  private wandererBack: NonNullable<AdventureData['wanderer']> | null = null;
+  /** The line a wanderer says now over its head, whether it is its ask (a press then opens the piece), and its timer. */
+  private wandererLine: { id: string; text: string; ask: boolean } | null = null;
+  private wandererTimer: Phaser.Time.TimerEvent | null = null;
 
   constructor(private readonly sceneData: SceneData, private readonly life: SceneLife) {
     super(sceneData.id);
@@ -143,6 +159,7 @@ export class AdventureScene extends PixelScene {
   init(data?: AdventureData): void {
     this.visiting = data?.visiting === true;
     this.scriptId = data?.script ?? null;
+    this.wandererBack = data?.wanderer ?? null;
   }
 
   /** The script of this visit: whether one runs, is done, what it gave and the line said now. For the demo and the tests. */
@@ -170,6 +187,10 @@ export class AdventureScene extends PixelScene {
     this.looking = null;
     this.lookTimer = null;
     this.lookImage = null;
+    this.curriculum = null;
+    this.today = null;
+    this.wandererLine = null;
+    this.wandererTimer = null;
     this.talkVisit += 1;
     this.worldRead = this.readWorld(this.talkVisit);
     // while a conversation is open its keys are its own, ahead of the screen's keyboard navigation
@@ -264,7 +285,7 @@ export class AdventureScene extends PixelScene {
     if (!this.scripted) this.spots(origin, at);
     if (this.scripted) this.stage(this.scripted, origin, at, { figures: this.life.figures?.(picture) ?? {}, palette, behind });
     else if (context.flags.actors) this.cast(origin);
-    if (!this.scripted && (context.flags.actors || context.flags.autoplay || isTester(context.profiles.profile.name))) this.characters(origin);
+    if (!this.scripted) this.standing(origin, at);
     if (this.talk || this.tug || this.teach) {
       this.talkLayer = this.overlayLayer();
       this.talk?.redrawIn(this.talkLayer);
@@ -624,16 +645,28 @@ export class AdventureScene extends PixelScene {
     this.animators.push(show);
   }
 
+  /** Who stands here: the tester and the dev switches see every character, every other player who presence puts here today, and the wanderers sent (ft_1_37). */
+  private standing(origin: { x: number; y: number }, at: Rect): void {
+    const { flags, profiles } = contextOf(this);
+    const everyone = flags.actors || flags.autoplay || isTester(profiles.profile.name);
+    const here = Object.entries(this.today?.characters ?? {}).filter(([, scene]) => scene === this.sceneData.id).map(([id]) => id);
+    if (everyone || here.length > 0) this.characters(origin, everyone ? null : new Set(here));
+    this.wanderers(origin, at);
+  }
+
   /**
    * The characters of this scene (ft_1_22.AC1), each on its place and pressable: pressing one opens its conversation. Until
    * presence decides who is here today (WP-11 on WP-08's `presence`) they stand for the tester profile and with `?actors=1`.
    * AX-3 provisional: a character stands on the scene's last place (the knoll's is in the tree, Puuvaim's), see the TODO
    * in ft_1_22.
    */
-  private characters(origin: { x: number; y: number }): void {
+  private characters(origin: { x: number; y: number }, only: ReadonlySet<string> | null): void {
     const place = this.sceneData.places[this.sceneData.places.length - 1];
     if (!place) return;
-    for (const def of CHARACTERS.values()) {
+    for (const own of CHARACTERS.values()) {
+      if (only !== null && !only.has(own.id)) continue;
+      // the teacher's piece in place of its own (ft_1_37.AC4)
+      const def = this.curriculum ? castCharacter(own, this.curriculum) : own;
       const actor = ACTORS.get(def.actor);
       if (!def.scenes.includes(this.sceneData.id) || !actor || !CONVERSATIONS.has(def.conversation)) continue;
       const at = placeActor(actor, place);
@@ -746,8 +779,117 @@ export class AdventureScene extends PixelScene {
     this.worldSaves = read !== null;
     this.world = read ?? { flags: [], items: [], met: {}, teacherVisits: [] };
     this.keepLearnedTaught();
+    await this.readCast(visit);
+    if (visit !== this.talkVisit) return;
     const anyKnown = [...CHARACTERS.keys()].some((id) => characterKnown(this.world!.flags, id));
     if ((this.world.items.length > 0 || anyKnown) && this.sys.isActive()) this.redraw();
+  }
+
+  /**
+   * The teacher's cast for this player and who stands where today (ft_1_37): the curriculum and the practice log read, the
+   * characters presence picks and the wanderers sent; then a wanderer's play is heard when the student comes back from it.
+   */
+  private async readCast(visit: number): Promise<void> {
+    const { profiles, pieces } = contextOf(this);
+    const player = profiles.profile.id;
+    const [curriculum, log] = await Promise.all([profiles.curriculumOf(player).catch(() => null), profiles.practiceLogOf(player).catch(() => null)]);
+    if (visit !== this.talkVisit || !this.world) return;
+    this.curriculum = curriculum;
+    if (curriculum === null || log === null) return;
+    const barCount = (piece: string) => pieces.find(piece)?.chart.bars.length;
+    const learned = pieces.list().map((p) => p.chart).filter((chart) => pieceLearned(chart, profiles.learnProgressOf(chart.id), profiles.learnSettings)).map((c) => c.id);
+    this.today = castToday({
+      day: dayString(new Date()), log, dayOf: (iso) => dayString(new Date(iso)), barCount, characters: [...CHARACTERS.values()], world: this.world,
+      curriculum, openScenes: visitable(this), learned,
+    }, { presence: DEFAULT_PRESENCE_RULES, wanderers: WANDERER_RULES });
+    const back = this.wandererBack;
+    this.wandererBack = null;
+    const bars = back ? barCount(back.piece) : undefined;
+    const play = back && bars !== undefined ? wandererPlay(log, back.piece, bars, back.since) : null;
+    if (back && play) {
+      const day = dayString(new Date());
+      const verdict = wandererVerdict(curriculum, back.id, play.share, WANDERER_RULES);
+      let text = t('wanderer.notYet', { right: play.right, notes: play.notes });
+      if (verdict.kept && !keptToday(this.world, back.id, day)) {
+        this.world = giveKeepsake(this.world, back.id, day, WANDERER_RULES);
+        const item = ITEMS.get(this.world.items[this.world.items.length - 1] ?? '');
+        text = t('wanderer.kept', { right: play.right, notes: play.notes, item: item ? t(item.name as StringKey) : '' });
+        if (this.worldSaves) await profiles.saveWorld(player, this.world);
+      } else if (verdict.kept) text = t('wanderer.again', { right: play.right, notes: play.notes });
+      this.sayWanderer(back.id, text, false);
+    }
+    if (this.sys.isActive()) this.redraw();
+  }
+
+  /** The wanderers standing here today (ft_1_37.AC6), each on the scene's first place, pressable; the line one says over its head. */
+  private wanderers(origin: { x: number; y: number }, at: Rect): void {
+    const place = this.sceneData.places[0];
+    if (!place) return;
+    for (const [id, ask] of Object.entries(this.today?.wanderers ?? {})) {
+      const def = WANDERER_RULES.wanderers.find((w) => w.id === id);
+      const actor = def ? ACTORS.get(def.actor) : undefined;
+      if (!def || !actor || ask.scene !== this.sceneData.id) continue;
+      const spot = placeActor(actor, place);
+      const phase = this.look?.phase ?? 'day';
+      const frames: readonly (Bitmap | RgbaArt)[] = actorFrames(actor, actorStateOf(actor, 'idle'), phase) ?? [boxOf(actor)];
+      const images = frames.map((frame) => this.fineImage(origin.x + spot.x, origin.y + spot.y, frame).setName(`actor:${actor.id}`).setScale(spot.scale / ART_DETAIL).setFlipX(spot.mirrored).setVisible(false));
+      const step = (time: number): void => {
+        const frame = motionAllowed() ? actorFrame(actor, actorStateOf(actor, 'idle'), time) : 0;
+        images.forEach((image, i) => image.setVisible(i === frame % images.length));
+      };
+      step(this.time.now);
+      this.animators.push(step);
+      const box: Rect = { x: (origin.x + spot.x) / ART_DETAIL, y: (origin.y + spot.y) / ART_DETAIL, w: (actor.size.w * spot.scale) / ART_DETAIL, h: (actor.size.h * spot.scale) / ART_DETAIL };
+      this.button({ ...rectCentre(box), label: lineText(def.name), picture: createBitmap(Math.max(1, Math.round(box.w)), Math.max(1, Math.round(box.h))), onClick: () => this.pressWanderer(id) });
+      const line = this.wandererLine;
+      if (line?.id === id) {
+        const words = spokenLine(spokenPages(line.text)[0] ?? [], talkColour('character', id));
+        const head = { x: Math.round((origin.x + place.x) / ART_DETAIL) - at.x, y: Math.round(box.y) - at.y };
+        const placed = lineSpot({ head, size: { w: words.width, h: words.height }, area: { w: at.w, h: at.h } });
+        this.root.add(new PixelImage(this, at.x + placed.x, at.y + placed.y, words).setName('wandererLine'));
+      }
+    }
+  }
+
+  /** A wanderer says `text` over its head for its reading time, or until the next press. */
+  private sayWanderer(id: string, text: string, ask: boolean): void {
+    this.wandererTimer?.remove();
+    this.wandererLine = { id, text, ask };
+    this.wandererTimer = this.time.delayedCall(readingMs(text) * (ask ? 2 : 1), () => {
+      this.wandererTimer = null;
+      this.wandererLine = null;
+      if (this.sys.isActive()) this.redraw();
+    });
+  }
+
+  /**
+   * A press on a wanderer (ft_1_37.AC6, AC7): it asks for its piece; a press while it asks opens the piano with that piece
+   * (one pass in Wait mode with the staff, as the teacher's check-up), heard back here. One that gave its keepsake today
+   * says so and asks nothing more.
+   */
+  pressWanderer(id: string): boolean {
+    const ask = this.today?.wanderers[id];
+    if (!ask || !this.world || this.talk || this.tug || this.teach || this.scripted) return false;
+    const { pieces } = contextOf(this);
+    const screen = SCENE_SCREENS[this.sceneData.id]?.scene;
+    if (keptToday(this.world, id, dayString(new Date()))) this.sayWanderer(id, t('wanderer.thanks'), false);
+    else if (this.wandererLine?.id === id && this.wandererLine.ask && screen) {
+      startScene(this, 'practice', { chartId: ask.piece, checkup: { since: new Date().toISOString(), wanderer: { id, scene: screen } } });
+      return true;
+    } else {
+      const chart = pieces.find(ask.piece)?.chart;
+      this.sayWanderer(id, t('wanderer.ask', { piece: chart ? pieceTitle(chart) : ask.piece }), true);
+    }
+    this.redraw();
+    return true;
+  }
+
+  /** The wanderers here today and the line one says, for the tests and the demo. */
+  get wanderersHere(): { ids: string[]; saying: string | null } {
+    return {
+      ids: Object.entries(this.today?.wanderers ?? {}).filter(([, w]) => w.scene === this.sceneData.id).map(([id]) => id),
+      saying: this.wandererLine?.text ?? null,
+    };
   }
 
   /**
@@ -803,7 +945,8 @@ export class AdventureScene extends PixelScene {
       chart,
       character: def,
       level,
-      rules: TUG_RULES,
+      // as needy as the teacher set it (ft_1_37.AC8): every level's share moved
+      rules: this.curriculum ? tugRulesFor(TUG_RULES, castSettingOf(this.curriculum, def.id, DEFAULT_PRESENCE_RULES).neediness) : TUG_RULES,
       place: { area: { w: this.px.width, h: this.mainRows }, head },
       devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome },
     }, {
