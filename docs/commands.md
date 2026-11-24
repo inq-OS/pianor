@@ -19,7 +19,7 @@ Every `npm run` script, what it does and when to use it. `npm run docs:check` fa
 - `npm run typecheck` (the native TypeScript 7 compiler, about 4 seconds; ESLint and knip keep using TypeScript 6's library), `npm run lint`
 - `npm run analyze`: type-aware lint (`npm run analyze:types`), unused files and exports (`npm run analyze:unused`, knip), duplicated code (`npm run analyze:dupes`, jscpd); in CI. Reading findings: `docs/architecture/static-analysis.md`
 - `npm run check`: typecheck, lint, the unit tests the branch touches (`test:changed`) and `docs:check`: the one command before saying a task is done (end-to-end is separate; `check:ci` and CI run every unit test)
-- `npm run check:ci`: what the CI `check` and `art rules` jobs run (plus analyze, coverage, `piece:build`, `piece:lint`, production build; about 3 minutes on four cores): run it before pushing
+- `npm run check:ci`: what the CI `check` and `art rules` jobs run (plus analyze, coverage, `piece:build`, `piece:lint`, production build; about 3 minutes on four cores): CI runs it on every push, so run it locally only to reproduce a red CI job (d217)
 - `npm run piece:lint [piecesDir] [--levels=path] [--strict]`: check every piece in `content/pieces/` against its level in `content/curriculum/levels.json` (errors fail, warnings are for review)
 - `npm run piece:build [piecesDir] [outDir]`: compile `content/pieces/<id>/piece.abc` + `piece.meta.json` to `build/charts/<id>.chart.json` (errors as `file:line:column`)
 - `npm run piece:generate -- <kind> --level N [--seed S] [--hand ..] [--bars N]`: a draft piece (five-finger, scale, reading-drill, echo, phrase); same seed, same piece; passes `piece:lint` by construction. `--regenerate <id>` checks or remakes one. `docs/authoring/au06-generators.md`

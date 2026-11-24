@@ -399,7 +399,7 @@ Check: untestable: an order of authority applied by agents and reviewers
 
 ## d217
 
-**Before a push the branch is up to date with `main`, `npm run check:ci` passes, `npm run test:e2e:affected` ran if the game changed, and the pull request body says what was not verified.** Features: none.
+**Before a push the branch is up to date with `main`, `npm run check` passes, `npm run test:e2e:affected` ran if the game changed, and the pull request body says what was not verified; `npm run check:ci` is left to CI, which runs it on every push and must be green before a merge.** Features: none.
 
 The body follows `.github/pull_request_template.md`: `Closes #N` or `Part of #N`, every `AX-3 provisional:` choice, `[save]` in the title for a save bump, real EZ-220 behaviour as needs human, changed screenshot baselines named, and a changed screen checked against the baselines first (`before-pr` skill). A pull request changing `src/core`, `tools` or `content/curriculum` touches a doc or says `docs: n/a` and why.
 

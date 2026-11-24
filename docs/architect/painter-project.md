@@ -39,7 +39,7 @@ A change on the right side goes to the builder or the architect as a tag in the 
 6. **Reference pictures never go into git:** not the reference photographs of Keri, not screenshots of other games. They are studied locally (the gitignored `private/painter/`), each batch with a README.
 7. **No shadow or vignette laid over a picture**, in any scene.
 8. **Look and measure before you show:** `npm run art:render` writes a picture to a PNG without starting the game; `npm run art:check` measures it against the rules that have numbers (colour runs, clouds) and draws the stage-set lines over it; a browser screenshot shows it in the game. Nobody can judge a picture from its code, and the numbers do not say whether it is good.
-9. **Checks:** `npm run check:ci` before a push; the end-to-end areas of the screen (`npm run test:e2e:affected`). A repainted screen changes its screenshot baseline: make the new one (`--update-snapshots` on the visual area, or the "Update screenshot baselines" workflow) and say so in the pull request, where the maintainer looks at it.
+9. **Checks:** `npm run check` before a push (CI runs `check:ci`); the end-to-end areas of the screen (`npm run test:e2e:affected`). A repainted screen changes its screenshot baseline: make the new one (`--update-snapshots` on the visual area, or the "Update screenshot baselines" workflow) and say so in the pull request, where the maintainer looks at it.
 10. **Merge:** only on the maintainer's word. Art is taste; a green check is not a verdict.
 11. **Helpers:** subagents are allowed; choose each one's model by how hard its task is, never the largest by habit.
 12. **Explain app and web matters briefly** (what, why, where). The game is laid out for a modest laptop at 1920 x 1080.
