@@ -835,6 +835,7 @@ export const stringsEt: Record<StringKey, string> = {
   'learn.bothStepOne': 'Takt {n}, mõlema käega: kõik noodid õigesti',
   'learn.bothStep': 'Taktid {from} kuni {to}, mõlema käega: kõik noodid õigesti',
   'learn.clean': 'Kõik noodid õigesti!',
+  'learn.flawed': 'Lõpuni, valesid klahve {n}',
   'learn.nextOne': 'Nüüd takt {n}',
   'learn.next': 'Nüüd taktid {from} kuni {to}',
   'learn.goOn': 'Edasi: vajuta mõnda klahvi',

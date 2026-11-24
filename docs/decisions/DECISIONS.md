@@ -278,4 +278,6 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d296](game.md#d296) | A learned piece's clef grows to twice its size on the practice screen, then the book opens at the piece and the clef drops onto the piece's clef sign | ft_1_32 |
 | [d297](game.md#d297) | The intro's learn stage learns the lesson's bars bar by bar and ends at the learned moment, with no extra whole play | ft_1_31, ft_1_32 |
 | [d298](game.md#d298) | The teacher sets each character per player (on, weekdays, chance, piece, neediness) and sends wanderers, who ask for one piece and give a plain keepsake | ft_1_37, ft_1_25, ft_1_21 |
+| [d300](game.md#d300) | The whole piece is learned in three plays: the first two go on past a wrong key and count, the third must be perfect | ft_1_32 |
+| [d301](game.md#d301) | Key bashing brings Kiur to the door whenever it happens on a screen the student plays on | ft_1_15 |
 <!-- /docs:index -->

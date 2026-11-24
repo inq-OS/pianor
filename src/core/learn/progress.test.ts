@@ -4,7 +4,7 @@ import { chartWith } from '../../../tests/helpers/charts';
 import type { BarPlay } from '../progression/practiceLog';
 import { learnPlan } from './plan';
 import {
-  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnHandsApart, learnLiveTempo, learnStepBars, measuredOutcome, medalOf, sitDown, START_PROGRESS, withTest,
+  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnHandsApart, learnLiveTempo, learnStepBars, measuredOutcome, medalOf, playsOn, sitDown, START_PROGRESS, withTest,
   type LearnProgress, type RunOutcome,
 } from './progress';
 
@@ -42,12 +42,30 @@ describe('learning progress', () => {
     expect(play(learned, [false])).toMatchObject({ step: plan.length }); // learned stays learned
   });
 
-  it('a step asked several times needs them in a row; a stopped run starts the count again', () => {
+  it('ft_1_32.AC2 the last step is three plays: the first two go on past a wrong key and count, a mistake only lowers the clef\'s medal', () => {
     const atWhole = play(START_PROGRESS, all(10), '1998-11-22', three);
-    const broken = play(atWhole, [true, true, false, true, true], '1998-11-22', three);
-    expect(isLearned(three, broken)).toBe(false);
-    expect(broken.wholeStreak).toBe(2);
-    expect(isLearned(three, play(broken, [true], '1998-11-22', three))).toBe(true);
+    const twice = play(atWhole, ['flawed', true], '1998-11-22', three);
+    expect(twice).toMatchObject({ wholeStreak: 2, misses: 1 });
+    expect(isLearned(three, play(twice, [true], '1998-11-22', three))).toBe(true);
+    expect(play(twice, [true], '1998-11-22', three).medals.at(-1)).toBe('silver');
+    expect(play(atWhole, all(3), '1998-11-22', three).medals.at(-1)).toBe('gold');
+  });
+
+  it('ft_1_32.AC2 the third play must be perfect: a wrong key starts it again from the first bar, still the third play', () => {
+    const atWhole = play(START_PROGRESS, all(10), '1998-11-22', three);
+    const third = play(atWhole, [true, true, false, false], '1998-11-22', three);
+    expect(third).toMatchObject({ wholeStreak: 2, misses: 2 });
+    expect(currentRun(three, third)).toMatchObject({ firstBar: 0, lastBar: 7, step: { kind: 'whole' } });
+    expect(playsOn(three[third.step]!, third)).toBe(false);
+    expect(playsOn(three[atWhole.step]!, atWhole)).toBe(true);
+    const learned = play(third, [true], '1998-11-22', three);
+    expect(isLearned(three, learned)).toBe(true);
+    expect(learned.medals.at(-1)).toBe('silver');
+  });
+
+  it('ft_1_32.AC2 a play with mistakes never counts for a step asked once: the step comes again, as after a stopped run', () => {
+    expect(play(START_PROGRESS, ['flawed'])).toMatchObject({ step: 0, misses: 1 });
+    expect(playsOn(plan[0]!, START_PROGRESS)).toBe(false);
   });
 
   it('keeps the tempo of the measured runs that counted: the confirmation plays and the whole run (ft_1_32.AC7)', () => {
@@ -237,9 +255,9 @@ describe('learnRewards', () => {
     expect(learnRewards(withRest, learned, chart, new Set([0, 2, 3, 4, 5, 6, 7])).piece).toBe('gold');
   });
 
-  it('a run with note names breaks a streak of whole runs, like a stopped one', () => {
+  it('ft_1_32.AC2 a run with note names counts nothing in the whole runs and keeps their count, like a stopped one', () => {
     const atWhole = play(START_PROGRESS, all(10), '1998-11-22', three);
-    expect(play(atWhole, [true, true, 'hinted'], '1998-11-22', three).wholeStreak).toBe(0);
+    expect(play(atWhole, [true, true, 'hinted'], '1998-11-22', three)).toMatchObject({ wholeStreak: 2, confirm: true });
   });
 
   it('ft_1_32.AC12 with hands apart a bar earns its note only once both hands played it, not after one hand alone', () => {

@@ -165,9 +165,16 @@ export const START_PROGRESS: LearnProgress = { step: 0, wholeStreak: 0, recall: 
 
 /**
  * How a run ended: perfect, perfect with note names shown, perfect but a measured run (a confirmation play or a whole run)
- * not kept evenly enough to give a tempo, or stopped by a wrong key.
+ * not kept evenly enough to give a tempo, stopped by a wrong key, or played to its end with wrong keys (`flawed`: a play of
+ * a step asked several times, d300).
  */
-export type RunOutcome = 'perfect' | 'hinted' | 'unsteady' | 'stopped';
+export type RunOutcome = 'perfect' | 'hinted' | 'unsteady' | 'stopped' | 'flawed';
+
+/**
+ * Whether the next run of `step` goes on past a wrong key to the end (d300): every play but the last of a step asked
+ * several times (the whole piece). The last play must be perfect; a wrong key starts it again, still the last play.
+ */
+export const playsOn = (step: LearnStep, progress: LearnProgress): boolean => step.runs > 1 && progress.wholeStreak < step.runs - 1;
 
 /** Whether a run of `step` is measured: its tempo is kept, and it must be played evenly to count. */
 export const isMeasured = (run: LearnRun): boolean => run.kind === 'step' && run.step.kind !== 'grow';
@@ -247,13 +254,23 @@ export function afterRun(plan: readonly LearnStep[], progress: LearnProgress, ou
   if (isLearned(plan, progress)) return next;
   // every note was right, only the pace wobbled: nothing is lost and nothing counts; the run is asked for again, slower
   if (outcome === 'unsteady') return progress.recall ? next : { ...next, unsteady: (progress.unsteady ?? 0) + 1 };
-  if (outcome === 'hinted') return progress.recall ? { ...next, confirm: true } : { ...next, confirm: true, wholeStreak: 0, misses: progress.misses + 1 };
-  if (outcome === 'stopped') return progress.recall ? next : { ...next, wholeStreak: 0, misses: progress.misses + 1 };
+  // a run that does not count keeps the count of a step asked several times: a mistake never sends it back to its first play (d300)
+  if (outcome === 'hinted') return progress.recall ? { ...next, confirm: true } : { ...next, confirm: true, misses: progress.misses + 1 };
+  if (outcome === 'stopped' || (outcome === 'flawed' && (progress.recall || !playsOn(plan[progress.step]!, progress)))) {
+    return progress.recall ? next : { ...next, misses: progress.misses + 1 };
+  }
+  // a play of a step asked several times, with mistakes: it counts as a play, and lowers the step's medal (d300)
+  if (outcome === 'flawed') return countPlay(plan, { ...next, confirm: false }, { ...progress, misses: progress.misses + 1 }, at);
   if (progress.recall) return { ...next, confirm: false, recall: false };
   const measured = bpm !== undefined && plan[progress.step]!.kind !== 'grow';
   const counted = { ...next, confirm: false, ...(measured ? { bpm: [...(progress.bpm ?? []), bpm] } : {}) };
+  return countPlay(plan, counted, progress, at);
+}
+
+/** A run of the current step that counts: the step's count goes on, and the step is done after its last run. */
+function countPlay(plan: readonly LearnStep[], counted: LearnProgress, progress: LearnProgress, at: string): LearnProgress {
   const streak = progress.wholeStreak + 1;
-  if (streak < plan[progress.step]!.runs) return { ...counted, wholeStreak: streak };
+  if (streak < plan[progress.step]!.runs) return { ...counted, wholeStreak: streak, misses: progress.misses };
   const advanced: LearnProgress = { ...counted };
   delete advanced.unsteady;
   const step = progress.step + 1;

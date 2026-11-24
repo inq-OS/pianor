@@ -559,8 +559,9 @@ test.describe("Kiur and the teacher speak in the room (ft_1_27, WP-15)", () => {
   });
 
   test('ft_1_26.AC9 a test ordered for a time: before it she is not there; at it she comes into the room while the student is there', async ({ page }) => {
-    // a Monday, five seconds before the test she ordered for the fixture's evening (the room's clock runs on from `now`)
-    const errors = await openGame(page, '?device=virtual&now=1998-11-23T16:59:55', 'en', 'profiles');
+    // a Monday, ten seconds before the test she ordered for the fixture's evening (the room's clock runs on from `now`):
+    // Kiur's reminder must be over by then, or she comes on the next visit
+    const errors = await openGame(page, '?device=virtual&now=1998-11-23T16:59:50', 'en', 'profiles');
     await page.evaluate(async () => {
       const { profiles } = window.__game.registry.get('context');
       const ok = await profiles.saveCurriculum(profiles.profiles[0].id, {

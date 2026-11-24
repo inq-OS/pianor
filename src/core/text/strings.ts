@@ -842,6 +842,7 @@ export const strings = {
   'learn.bothStepOne': 'Bar {n}, both hands: every note right',
   'learn.bothStep': 'Bars {from} to {to}, both hands: every note right',
   'learn.clean': 'Every note right!',
+  'learn.flawed': 'To the end, with {n} wrong keys',
   'learn.nextOne': 'Now bar {n}',
   'learn.next': 'Now bars {from} to {to}',
   'learn.goOn': 'Play any key to go on',

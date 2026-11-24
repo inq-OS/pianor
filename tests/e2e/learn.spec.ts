@@ -16,7 +16,7 @@ async function shown(page: Page): Promise<{ bars: number; first: number; midis: 
   });
 }
 
-const progress = (page: Page) => page.evaluate(() => window.__game.registry.get('context').profiles.learnProgressOf('little-steps') as { step: number; misses: number; unsteady?: number });
+const progress = (page: Page) => page.evaluate(() => window.__game.registry.get('context').profiles.learnProgressOf('little-steps') as { step: number; misses: number; unsteady?: number; wholeStreak: number });
 const kiurSays = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { startMessage: string }).startMessage);
 
 /** From the piece book to the room: Kiur on the bed pressed, and his question open. */
@@ -282,5 +282,52 @@ test('ft_1_32.AC15 ft_1_32.AC22 a piece learned keeps its reward and the learned
   expect((await clefs()).filter((n) => /^clefPrize:(gold|silver|bronze)$/.test(n))).toHaveLength(1);
   // a piece Kiur was asked to teach then goes back to the room, where Kiur waits with the tug
   await waitForScene(page, 'profile');
+  expectNoErrors(errors);
+});
+
+test('ft_1_32.AC2 the whole piece three times: the first plays go on past a wrong key and count, the third starts again on a mistake and stays the third', async ({ page }) => {
+  const errors = await openGame(page, '?device=virtual&learn=1');
+  await learnPiece(page, 'Little Steps');
+  const [steps, runs] = await page.evaluate(() => {
+    const { plan } = (window.__game.scene.getScene('practice') as unknown as { learn: { plan: { runs: number }[] } }).learn;
+    return [plan.length, plan[plan.length - 1]!.runs];
+  });
+  expect(runs).toBe(3);
+  await page.keyboard.press('Escape');
+  await waitForScene(page, 'menu');
+  const seed = (streak: number) => page.evaluate(({ step, streak }) => {
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return window.__game.registry.get('context').profiles.saveLearnProgress('little-steps', {
+      // asked again for its pace once already: quick keys are never stopped for speed here
+      step, wholeStreak: streak, recall: false, confirm: false, misses: 0, unsteady: 1, medals: [], lastDay: today, bpm: [100], stepBars: 1,
+    });
+  }, { step: steps - 1, streak });
+  const open = async () => {
+    await learnPieceAsked(page, 'Little Steps');
+    await page.keyboard.press('Escape'); // go on
+    await waitForScene(page, 'practice');
+  };
+  // the first play: a wrong key in the middle, Wait mode waits for the right one, and the play counts
+  await seed(0);
+  await open();
+  expect(await kiurSays(page)).toMatch(/\(play 1 of 3\)$/);
+  const { midis } = await shown(page);
+  await playWithKeys(page, midis.slice(0, 2));
+  await playWithKeys(page, [midis[2]! + 1]);
+  await playWithKeys(page, midis.slice(2));
+  await expect.poll(() => progress(page), { timeout: 10_000 }).toMatchObject({ step: steps - 1, wholeStreak: 1, misses: 1 });
+  await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toMatch(/^To the end, with 1 wrong keys .*\(play 2 of 3\)$/);
+  await page.keyboard.press('Escape');
+  await waitForScene(page, 'menu');
+
+  // the third play: a wrong key stops it, and it starts again from the first bar, still the third play
+  await seed(2);
+  await open();
+  expect(await kiurSays(page)).toMatch(/\(play 3 of 3\)$/);
+  await playWithKeys(page, [midis[0]! + 1]);
+  await expect.poll(() => kiurSays(page), { timeout: 10_000 }).toMatch(/\(play 3 of 3\)$/);
+  expect(await progress(page)).toMatchObject({ step: steps - 1, wholeStreak: 2, misses: 1 });
+  expect(await shown(page)).toMatchObject({ first: 0 });
   expectNoErrors(errors);
 });

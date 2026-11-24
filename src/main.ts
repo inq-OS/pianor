@@ -57,6 +57,7 @@ import { displayText, setLanguage } from './core/text/language';
 import { t } from './core/text/strings';
 import { C, css } from './game/ui/pixel/palette';
 import { loadStaffFont } from './game/ui/staff/staffFont';
+import { gameLoopConfig } from './game/gameLoop';
 
 async function startGame(): Promise<void> {
   const keyboardHost = document.getElementById('keyboard')!;
@@ -109,10 +110,8 @@ async function startGame(): Promise<void> {
     parent: 'game',
     backgroundColor: css(C.night),
     pixelArt: true,
-    // `?loop=timer` (dev only, src/config.ts): the end-to-end tests on a machine without a GPU step the loop on a timer. Phaser
-    // holds each step's time to one target frame (1/60 s) for its first `panicMax` steps; on a timer those come after the start,
-    // at the software GPU's 13 frames a second, so the game's clocks would run at a fifth of real time for ten seconds. Off.
-    ...(appConfig.flags.timerLoop ? { fps: { forceSetTimeOut: true, target: 60, panicMax: 0 } } : {}),
+    // every step gets its real time, so the game's timers keep real time on a slow or unfocused machine (gameLoop.ts)
+    fps: gameLoopConfig(appConfig.flags.timerLoop),
     // sized by `fitGame` below in physical pixels, not by Phaser's RESIZE mode (which uses CSS pixels)
     scale: { mode: Phaser.Scale.NONE },
     scene: [BootScene, MenuScene, ProfilesScene, ProfileDashboardScene, NoteTrainerScene, EarTrainerScene, ShapeTrainerScene, ChordTrainerScene, AdminScene, AdminGateScene, AdminPagesScene, AdminPasswordScene, AdminDeleteScene, TeacherScene, TeacherPieceScene, TeacherTestsScene, TeacherCastScene, TeacherGateScene, TeacherPasswordScene, NameScene, SongScene, SongsScene, CreditsScene, SettingsScene, PiecesScene, AnalyzeScene, LearnStatsScene, PracticeScene, ResultsScene, EditorScene, StaffDemoScene, ArtDemoScene, KiurDoorScene, LearnResumeScene, IntroScene, CircleOfFifthsScene, KeriMapScene, ...adventureScenes()],
