@@ -13,7 +13,7 @@ The student opens the map of Keri and goes to a place; each place is one painted
 
 ## Rules
 
-1. Levelling up opens scenes ([d113](../decisions/game.md#d113)).
+1. Levelling up opens scenes ([d113](../decisions/game.md#d113)). A scene marked `closed` in `content/world/keri.json` stays closed to every player but a tester, whatever the level (`openScenes`), until the maintainer opens it: for now every scene but the knoll is closed (the terrace is not finished).
 2. A character challenges the student in its scene ([d129](../decisions/game.md#d129), [ft_1_21](ft_1_21-challenges-with-characters.md)); the challenge is drawn over the picture. A character is met only after enough practice and not every day, and pressing it opens a conversation first ([d132](../decisions/game.md#d132), [ft_1_22](ft_1_22-conversations-and-phrase-book.md)).
 3. AX-0: a scene is the way to a piece, never a place to stay: one press starts a character's game, and nothing in a scene must be solved before the student may play. AX-2: scenes give no reward of their own. AX-3: what is not yet decided is built simply and marked provisional.
 4. The room's screensaver visits the open scenes ([ft_1_17](ft_1_17-a-walk.md)).

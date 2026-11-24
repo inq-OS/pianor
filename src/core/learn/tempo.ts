@@ -8,7 +8,7 @@ import type { JudgeEvent } from '../judge/types';
  * The player's own tempo, measured and never asked for (ft_1_32.AC7: the confirmation play of a chunk
  * sets the baseline). Pure. A learning run is played in Wait mode, where every right key carries its clock time:
  * the gaps between the steps, against their written lengths, are the pace the student chose, how evenly it was kept, and
- * where it stopped. No metronome is needed and the student is never asked to keep a given speed; Kiur says the pace that was played.
+ * where it stopped. The student is never asked to keep a given speed.
  *
  * AX-3 provisional: a gap is even when it is within `tolerance` of the run's own pace, a halt when it is `haltFactor`
  * times as long as written or longer, and a run is steady with no halt and at least `steadyShare` of its gaps even. An

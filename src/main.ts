@@ -25,7 +25,8 @@ import { ShapeTrainerScene } from './game/ShapeTrainerScene';
 import { ChordTrainerScene } from './game/ChordTrainerScene';
 import { AdminScene } from './game/AdminScene';
 import { NameScene } from './game/NameScene';
-import { PartsScene } from './game/PartsScene';
+import { SongScene } from './game/SongScene';
+import { SongsScene } from './game/SongsScene';
 import { PiecesScene } from './game/PiecesScene';
 import { SettingsScene } from './game/SettingsScene';
 import { createSoundAndInput } from './compose';
@@ -33,8 +34,9 @@ import { startDebug } from './debugSetup';
 import { chooseStore, createMemoryProfileService, createProfileService } from './profileSetup';
 import { MemoryStore } from './io/storage/MemoryStore';
 import { OwnPieces } from './game/editor/OwnPieces';
-import { bundledPieceSources } from './game/content';
+import { bundledPieceSources, bundledSongFiles } from './game/content';
 import { PieceCatalogue } from './game/pieceCatalogue';
+import { SongCatalogue } from './game/songCatalogue';
 import { browserTextFiles } from './io/files/textFiles';
 import { EditorScene } from './game/EditorScene';
 import { AdminGateScene } from './game/AdminGateScene';
@@ -55,6 +57,7 @@ import { displayText, setLanguage } from './core/text/language';
 import { t } from './core/text/strings';
 import { C, css } from './game/ui/pixel/palette';
 import { loadStaffFont } from './game/ui/staff/staffFont';
+import { gameLoopConfig } from './game/gameLoop';
 
 async function startGame(): Promise<void> {
   const keyboardHost = document.getElementById('keyboard')!;
@@ -76,16 +79,19 @@ async function startGame(): Promise<void> {
   // the piano this computer plays (ft_0_07.AC3, AC4): full unless the admin pages chose light or the keyboard; no sample loads before this
   void audio.piano.setSound(adminSettings.pianoSound);
   const showDrafts = appConfig.flags.showDraftContent || (import.meta.env.DEV && (await admin.drafts()));
-  const pieces = new PieceCatalogue({ ...bundledPieceSources(), ownPieces: () => ownPieces.pieces(), showDrafts });
+  // the songs (ft_1_36) find their pieces in the catalogue, and the catalogue finds a whole song by its chart id
+  let songs: SongCatalogue | null = null;
+  const pieces = new PieceCatalogue({ ...bundledPieceSources(), ownPieces: () => ownPieces.pieces(), showDrafts, songPiece: (id) => songs?.pieceFor(id) });
   const { service: profiles, persistent } = autoplay
     ? { service: await createMemoryProfileService(), persistent: false }
     : await createProfileService(pieces, appConfig.flags.testPlayers);
+  songs = new SongCatalogue({ files: bundledSongFiles(), showDrafts, piece: (id) => pieces.find(id), partsOff: (id) => profiles.songPartsOff(id) });
   const { actors, editor, learn, demo, staffDemo, sky } = appConfig.flags;
   // the keyboard switch's state, made before the context that hands it to the scenes (the switch rule is further down)
   let keysShown = params.get('keys') === '1';
   const switchListeners = new Set<() => void>();
   const context: GameContext = {
-    keyboard: inputs.keyboard, lights: inputs.lights, midi: null, audio, profiles, flags: { actors, editor, learn, demo, staffDemo, sky, devTools: import.meta.env.DEV, autoplay: autoplay !== null, draftsShown: appConfig.flags.showDraftContent, pageBase: window.location.href, intro: appConfig.flags.intro }, pieces, ownPieces, files: browserTextFiles, savesPersist: persistent, admin, teacher: createTeacherDesk(store), adminSettings,
+    keyboard: inputs.keyboard, lights: inputs.lights, midi: null, audio, profiles, flags: { actors, editor, learn, demo, staffDemo, sky, devTools: import.meta.env.DEV, autoplay: autoplay !== null, draftsShown: appConfig.flags.showDraftContent, pageBase: window.location.href, intro: appConfig.flags.intro }, pieces, songs, ownPieces, files: browserTextFiles, savesPersist: persistent, admin, teacher: createTeacherDesk(store), adminSettings,
     keyboardSwitch: {
       shown: () => keyboardHost.style.display !== 'none',
       toggle: () => toggleKeyboard(),
@@ -104,13 +110,11 @@ async function startGame(): Promise<void> {
     parent: 'game',
     backgroundColor: css(C.night),
     pixelArt: true,
-    // `?loop=timer` (dev only, src/config.ts): the end-to-end tests on a machine without a GPU step the loop on a timer. Phaser
-    // holds each step's time to one target frame (1/60 s) for its first `panicMax` steps; on a timer those come after the start,
-    // at the software GPU's 13 frames a second, so the game's clocks would run at a fifth of real time for ten seconds. Off.
-    ...(appConfig.flags.timerLoop ? { fps: { forceSetTimeOut: true, target: 60, panicMax: 0 } } : {}),
+    // every step gets its real time, so the game's timers keep real time on a slow or unfocused machine (gameLoop.ts)
+    fps: gameLoopConfig(appConfig.flags.timerLoop),
     // sized by `fitGame` below in physical pixels, not by Phaser's RESIZE mode (which uses CSS pixels)
     scale: { mode: Phaser.Scale.NONE },
-    scene: [BootScene, MenuScene, ProfilesScene, ProfileDashboardScene, NoteTrainerScene, EarTrainerScene, ShapeTrainerScene, ChordTrainerScene, AdminScene, AdminGateScene, AdminPagesScene, AdminPasswordScene, AdminDeleteScene, TeacherScene, TeacherPieceScene, TeacherTestsScene, TeacherCastScene, TeacherGateScene, TeacherPasswordScene, NameScene, PartsScene, CreditsScene, SettingsScene, PiecesScene, AnalyzeScene, LearnStatsScene, PracticeScene, ResultsScene, EditorScene, StaffDemoScene, ArtDemoScene, KiurDoorScene, LearnResumeScene, IntroScene, CircleOfFifthsScene, KeriMapScene, ...adventureScenes()],
+    scene: [BootScene, MenuScene, ProfilesScene, ProfileDashboardScene, NoteTrainerScene, EarTrainerScene, ShapeTrainerScene, ChordTrainerScene, AdminScene, AdminGateScene, AdminPagesScene, AdminPasswordScene, AdminDeleteScene, TeacherScene, TeacherPieceScene, TeacherTestsScene, TeacherCastScene, TeacherGateScene, TeacherPasswordScene, NameScene, SongScene, SongsScene, CreditsScene, SettingsScene, PiecesScene, AnalyzeScene, LearnStatsScene, PracticeScene, ResultsScene, EditorScene, StaffDemoScene, ArtDemoScene, KiurDoorScene, LearnResumeScene, IntroScene, CircleOfFifthsScene, KeriMapScene, ...adventureScenes()],
   });
   game.registry.set(CONTEXT_KEY, context);
   debug?.watch(game, inputs.keyboard);

@@ -36,7 +36,7 @@ student back to reading (AX-0).
    from. Nothing earned is taken away and nothing is shown as a fail.
 6. **Whenever the student bashes** ([d301](../decisions/game.md#d301)): on the practice screen whatever it is doing, while
    the student plays, while the game plays the piece (Kuula, which stops; Back has the piece ready to play), while a pass's
-   score or Kiur's line after a learning run waits for the next run (Back lets it go on; the door goes out instead), and in
+   score or a learning run ended waits for the next run (Back lets it go on; the door goes out instead), and in
    the trainers (note names, ear, chords, shapes: Back goes on, the door is the trainer's way out to the room; the keys of
    a bash before the eleventh may be judged by the trainer, AX-3 provisional). Not while another overlay is up, or once
    the screen is already on its way out with nothing waiting. In learning bar by bar the bash's first key often stops the

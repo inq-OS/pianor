@@ -1,7 +1,7 @@
 import type { World, WorldPoint } from '../world/world';
 import { ART_DETAIL } from './frame';
 import { toRing } from './knoll';
-import { ROOM_PICTURE, roomView } from './room';
+import { pictureView } from './room';
 
 /**
  * The docks (ft_1_19, d113): the jetty on the north shore behind the warden's house (the reference aerial photograph,
@@ -27,7 +27,7 @@ export const DOCKS = {
   /** Fine pixels per radian: how wide the picture looks (about 78 degrees). */
   lens: 470,
   /** The horizon's row in the picture, in fine pixels: a little over a third sky. */
-  horizon: 90,
+  horizon: 130,
   /**
    * The 1991 game's bent wide-angle look, never a camera's (it must not try
    * to look realistic, and quirks are welcome): how much a level line bows toward the picture's edges, in fine pixels per (fine
@@ -41,8 +41,8 @@ export const DOCKS = {
 } as const;
 
 /** The scene's picture has the room's size: a low wide band over the same strip. */
-export const DOCKS_PICTURE = ROOM_PICTURE;
-export const docksView = roomView;
+export const DOCKS_PICTURE = { w: 320, h: 180 } as const;
+export const docksView = pictureView(DOCKS_PICTURE);
 
 const FINE = { w: DOCKS_PICTURE.w * ART_DETAIL, h: DOCKS_PICTURE.h * ART_DETAIL } as const;
 

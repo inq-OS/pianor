@@ -35,7 +35,7 @@ test.describe('icon buttons', () => {
     await waitForScene(page, 'profile');
     const back = await sceneButton(page, 'profile', 'Back');
     await pointAt(page, 'profile', back);
-    await page.waitForTimeout(200);
+    // not at once: the game's timers keep real time, so a later look on a busy machine may already be past the delay
     expect(await tooltipOf(page, 'profile', back)).toBeNull();
     await expect.poll(() => tooltipOf(page, 'profile', back), { timeout: 10_000 }).toBe('Back');
     expect(await sceneTexts(page, 'profile')).toContain('Back');

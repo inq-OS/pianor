@@ -20,6 +20,8 @@ export interface PieceCatalogueSources {
   ownPieces: () => readonly Piece[];
   /** Offer drafts and the dev samples (the dev server). */
   showDrafts: boolean;
+  /** A whole song as a piece, by its chart id (`song:<id>`, ft_1_36): found, never listed. */
+  songPiece?: (chartId: string) => Piece | undefined;
 }
 
 const samePieces = (a: readonly Piece[], b: readonly Piece[]): boolean =>
@@ -47,9 +49,9 @@ export class PieceCatalogue {
     return [...this.build().list];
   }
 
-  /** The offered piece with this id, if any. */
+  /** The offered piece with this id, if any; a song's chart id finds the whole song (ft_1_36 rule 7). */
   find(chartId: string): Piece | undefined {
-    return this.build().byId.get(chartId);
+    return this.build().byId.get(chartId) ?? this.sources.songPiece?.(chartId);
   }
 
   /** Ids of the pieces that come with the game (not the player's own), shipped or not: a piece file must not claim one. */

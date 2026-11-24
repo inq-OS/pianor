@@ -33,7 +33,7 @@ import { scriptInk, spokenLine, spokenPages, talkColour } from '../ui/pixel/talk
 import type { ScriptView } from '../../core/scene/scriptRunner';
 import { ACTORS, CHARACTERS, CONVERSATIONS, ITEMS, SCRIPTS, TUG_RULES, WANDERER_RULES } from './scenesData';
 import type { Curriculum } from '../../core/curriculum/curriculum';
-import { castCharacter, castSettingOf, tugRulesFor } from '../../core/island/cast';
+import { castCharacter, castSettingOf, castTeachPiece, teachablePieces, tugRulesFor } from '../../core/island/cast';
 import { castToday, wandererPlay, type CastToday } from '../../core/island/castToday';
 import { DEFAULT_PRESENCE_RULES } from '../../core/island/presenceRules';
 import { giveKeepsake, keptToday, wandererVerdict } from '../../core/island/wanderer';
@@ -724,7 +724,7 @@ export class AdventureScene extends PixelScene {
     // the scene may have closed, another talk opened or the view begun to pan while the world was read
     if (!this.sys.isActive() || this.talk || this.tug || this.teach || !this.world || this.panning || this.deep) return false;
     const before = this.world;
-    const facts = talkFactsOf(meetCharacter(before, def.id, dayString(new Date())), profiles.progress.level.level, false);
+    const facts = { ...talkFactsOf(meetCharacter(before, def.id, dayString(new Date())), profiles.progress.level.level, false), teachable: this.teachable(def) };
     const save = () => { if (this.world && this.worldSaves) void profiles.saveWorld(id, this.world); };
     this.talkLayer ??= this.overlayLayer();
     this.talk = TalkView.open(this, this.talkLayer, conversation, def, facts, { area: { w: this.px.width, h: this.mainRows }, head }, {
@@ -757,6 +757,21 @@ export class AdventureScene extends PixelScene {
     this.world = meetCharacter(this.world ?? before, def.id, dayString(new Date()));
     save();
     return true;
+  }
+
+  /**
+   * The pieces `def`'s talk may offer to teach: approved ones, the player's own, and the teacher's pick; a draft only on
+   * the plain dev server or for a tester (the drafts switch alone does not make a character teach one).
+   */
+  private teachable(def: CharacterDef): string[] {
+    const context = contextOf(this);
+    const drafts = context.flags.draftsShown || isTester(context.profiles.profile.name);
+    const offer = (piece: string): 'approved' | 'draft' | undefined => {
+      const found = context.pieces.find(piece);
+      if (!found) return undefined;
+      return found.status === 'approved' || found.own === true || drafts ? 'approved' : 'draft';
+    };
+    return teachablePieces(CHARACTERS.get(def.id) ?? def, this.curriculum ?? undefined, offer);
   }
 
   /**
@@ -1013,8 +1028,10 @@ export class AdventureScene extends PixelScene {
    * three tries; a heard phrase is kept with the character in the world (`teachAfter`). False when the piece is not in
    * the game (a draft in a build).
    */
-  private openTeach(def: CharacterDef, head: { x: number; y: number }, piece: string): boolean {
+  private openTeach(def: CharacterDef, head: { x: number; y: number }, asked: string): boolean {
     const context = contextOf(this);
+    // the teacher's pick in place of its own (ft_1_37.AC4)
+    const piece = castTeachPiece(this.curriculum ?? undefined, def.id, asked);
     const chart = context.pieces.find(piece)?.chart;
     if (!chart || !this.talkLayer) return false;
     // the character teaches its piece bar by bar (ft_1_32.AC15): learning opens, and leaving it comes back here, where a

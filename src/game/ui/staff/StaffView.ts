@@ -34,6 +34,9 @@ export interface StaffTheme {
   /** The soft background of a section's bars while it is chosen, and the colour of its A and B. */
   sectionFill: number;
   sectionInk: string;
+  /** A song's fold zigzag (ft_1_36 rule 7), as a number, and the words under it. */
+  foldInk: number;
+  foldText: string;
 }
 
 /** High-contrast defaults for a small student on a laptop screen. */
@@ -51,7 +54,15 @@ export const DEFAULT_THEME: StaffTheme = {
   // a highlighter's pale yellow, a quarter of the way from the paper to gold: soft, and unlike the grey cursor box
   sectionFill: 0xfbebbc,
   sectionInk: '#8a5a00',
+  foldInk: 0x6e6e7a,
+  foldText: '#4a4a55',
 };
+
+/** A song's marks on the staff (ft_1_36 rule 7): part names by chart bar (0-based), folds before a chart bar. */
+export interface PartMarks {
+  names: readonly { bar: number; text: string }[];
+  folds: readonly { beforeBar: number; text: string }[];
+}
 
 /** AX-3 provisional: a marker's red from a pale pink at the threshold (shade near 0) to a full red (1). */
 const MARKER_LIGHT = [0xf2, 0xa8, 0xa8] as const;
@@ -171,6 +182,11 @@ export class StaffView {
   private veiled: readonly { from: number; to: number }[] = [];
   /** The A and B of a section, each with the system of its bar. */
   private readonly markTexts: { text: Phaser.GameObjects.Text; system: number }[] = [];
+  /** A song's part names over their first bars and its folds (ft_1_36 rule 7); drawn with the marks, kept apart from a section's. */
+  private partMarks: PartMarks | null = null;
+  private readonly partTexts: { text: Phaser.GameObjects.Text; system: number; bar?: number }[] = [];
+  /** Hears every page turn (the song map's frame follows the page, ft_1_36 rule 8). */
+  onPageShown: ((page: number) => void) | null = null;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -248,6 +264,7 @@ export class StaffView {
       d.word.setVisible(this.onPage(d.system) && hints.noteNames && d.fits);
     }
     for (const mark of this.markTexts) mark.text.setVisible(this.onPage(mark.system));
+    for (const mark of this.partTexts) mark.text.setVisible(this.onPage(mark.system));
     for (const slur of this.slurTexts) slur.text.setVisible(this.onPage(slur.system) && hints.noteNames);
     for (const v of this.veils) v.image.setVisible(this.onPage(v.system));
   }
@@ -331,6 +348,86 @@ export class StaffView {
     }
     this.drawStaff();
     this.setHints(this.hints);
+  }
+
+  /**
+   * A song's parts (ft_1_36 rule 7), or none with null: each part's name over its first bar in the section ink, after any bar
+   * number, and a thin double line at each fold with its words under the staff, where a blank or a part that is off was
+   * left out. The staff keeps its size.
+   */
+  setPartMarks(marks: PartMarks | null): void {
+    this.partMarks = marks;
+    for (const mark of this.partTexts) mark.text.destroy();
+    this.partTexts.length = 0;
+    const S = this.layout.staffSpace;
+    const name = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: this.theme.sectionInk };
+    const fold = { fontFamily: STAFF_FONT, fontSize: `${Math.round(S * 0.9)}px`, color: this.theme.foldText };
+    const cell = (0.8 * S) / 5;
+    for (const { bar: index, text } of marks?.names ?? []) {
+      const bar = this.layout.bars[index];
+      if (!bar) continue;
+      const number = this.barNumbers.find((n) => n.index === index);
+      const numberWidth = number === undefined ? 0 : String(number.number).length * 4 * cell - cell + 0.4 * S;
+      const x = this.origin.x + bar.x + 0.25 * S + numberWidth;
+      const y = this.origin.y + this.layout.systems[bar.system]!.topLineY - 1.95 * S;
+      this.partTexts.push({ text: this.scene.add.text(x, y, text, name).setOrigin(0, 0.5), system: bar.system, bar: index });
+    }
+    for (const at of this.foldsAt()) {
+      const y = this.origin.y + this.layout.systems[at.system]!.bottomLineY + 2.2 * S;
+      this.partTexts.push({ text: this.scene.add.text(this.origin.x + at.x + 0.3 * S, y, at.text, fold).setOrigin(0, 0.5), system: at.system });
+    }
+    this.drawStaff();
+    this.setHints(this.hints);
+  }
+
+  /**
+   * A song's folds (ft_1_36 rule 7): a zigzag in the fold grey through the staff, like a page folded under, so it is never
+   * read as a bar line or a repeat sign.
+   */
+  private drawFolds(): void {
+    const g = this.paper;
+    const S = this.layout.staffSpace;
+    for (const at of this.foldsAt()) {
+      if (!this.onPage(at.system)) continue;
+      const system = this.layout.systems[at.system]!;
+      g.lineStyle(this.lineWidth() * 1.5, this.theme.foldInk, 1);
+      const top = system.topLineY - S;
+      const steps = Math.max(2, Math.round((system.bottomLineY + S - top) / (0.6 * S)));
+      const step = (system.bottomLineY + S - top) / steps;
+      for (let i = 0; i < steps; i++) g.lineBetween(at.x + (i % 2 === 0 ? -0.3 : 0.3) * S, top + i * step, at.x + (i % 2 === 0 ? 0.3 : -0.3) * S, top + (i + 1) * step);
+    }
+    g.lineStyle(this.lineWidth(), this.theme.ink, 1);
+  }
+
+  /** The page that shows bar `index` (0-based), or null for a bar past the staff. */
+  pageOfBar(index: number): number | null {
+    const bar = this.layout.bars[index];
+    return bar ? this.layout.systems[bar.system]!.page : null;
+  }
+
+  /** The bars (0-based, first and last) on page `page`. */
+  barsOnPage(page: number): { first: number; last: number } | null {
+    const on = this.layout.bars.flatMap((b, i) => (this.layout.systems[b.system]!.page === page ? [i] : []));
+    return on.length === 0 ? null : { first: on[0]!, last: on[on.length - 1]! };
+  }
+
+  /** A part's name over bar `index` flashes twice, so the eye finds where the song map turned to (ft_1_36 rule 8). */
+  flashPart(index: number): void {
+    const texts = this.partTexts.filter((p) => p.bar === index).map((p) => p.text);
+    if (texts.length === 0) return;
+    this.scene.tweens.killTweensOf(texts);
+    this.scene.tweens.add({ targets: texts, alpha: { from: 1, to: 0.15 }, duration: 180, yoyo: true, repeat: 1 });
+  }
+
+  /** Where each fold stands: at the start of the bar it comes before, or at the end of the last bar. */
+  private foldsAt(): { x: number; system: number; text: string }[] {
+    const bars = this.layout.bars;
+    return (this.partMarks?.folds ?? []).flatMap(({ beforeBar, text }) => {
+      const bar = bars[beforeBar];
+      if (bar) return [{ x: bar.x, system: bar.system, text }];
+      const last = bars[bars.length - 1];
+      return last ? [{ x: last.x + last.width, system: last.system, text }] : [];
+    });
   }
 
   /**
@@ -498,6 +595,7 @@ export class StaffView {
     const target = Math.max(0, Math.min(this.layout.pageCount - 1, page));
     if (target === this.page) return;
     this.page = target;
+    this.onPageShown?.(target);
     this.drawStaff();
     this.drawDuration();
     this.drawLane(true);
@@ -505,7 +603,7 @@ export class StaffView {
     this.drawNotes();
     this.drawPlayhead();
     if (!fade) return;
-    const targets = [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)];
+    const targets = [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)];
     this.scene.tweens.killTweensOf(targets);
     this.scene.tweens.add({ targets, alpha: { from: 0.2, to: 1 }, duration: PAGE_FADE_MS });
   }
@@ -627,7 +725,7 @@ export class StaffView {
   }
 
   destroy(): void {
-    [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
+    [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
     this.playedName?.destroy();
     for (const v of this.veils) v.image.destroy();
     this.sheet.release();
@@ -655,6 +753,7 @@ export class StaffView {
     g.clear();
     g.lineStyle(this.lineWidth(), theme.ink, 1);
     for (const line of here(layout.staffLines)) g.lineBetween(line.x1, line.y, line.x2, line.y);
+    this.drawFolds();
     for (const bar of here(layout.barlines)) {
       if (bar.kind === 'final') {
         g.lineStyle(this.lineWidth(), theme.ink, 1).lineBetween(bar.x - S * 0.35, bar.y1, bar.x - S * 0.35, bar.y2);

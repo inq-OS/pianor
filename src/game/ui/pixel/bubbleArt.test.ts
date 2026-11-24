@@ -8,7 +8,7 @@ import { TOOL_ICONS } from './toolArt';
 
 const at = (b: Bitmap, x: number, y: number) => b.pixels[y * b.width + x]!;
 const same = (a: Bitmap, b: Bitmap) => a.width === b.width && a.height === b.height && a.pixels.every((p, i) => p === b.pixels[i]);
-const LOOKS: PlateLook[] = ['plain', 'hover', 'down', 'on', 'off', 'main'];
+const LOOKS: PlateLook[] = ['plain', 'hover', 'down', 'on', 'off', 'main', 'armed'];
 
 describe('the bubble, the strip and the backpack (ft_1_20, d282): their look fits the layout', () => {
   it('ft_1_20.AC19 an option is a round plate a little larger than its box, centred on it, with no dark line round it', () => {

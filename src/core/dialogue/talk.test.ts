@@ -259,3 +259,17 @@ describe('Puuvaim\'s conversation: learn before show (ft_1_22.AC3, d135)', async
     expect(menuOf(first.facts)!.choices.map((c) => c.text)).toEqual(['talk.puuvaim.askTeach', 'talk.puuvaim.askTug', 'talk.puuvaim.askLater']);
   });
 });
+
+describe('a choice that leads to teaching a piece not in the game', () => {
+  const c = conv({
+    menu: say('l.menu', { choices: [{ text: 'l.teach', next: 'teach' }, { text: 'l.bye', next: 'bye' }] }),
+    teach: say('l.about', { effects: [{ teach: 'draft-piece' }] }),
+    bye: say('l.bye', { effects: [{ leave: true }] }),
+  });
+
+  it('is not offered when the piece is not among the teachable pieces', () => {
+    expect(startTalk(c, { ...facts, teachable: [] })!.choices.map((ch) => ch.next)).toEqual(['bye']);
+    expect(startTalk(c, { ...facts, teachable: ['draft-piece'] })!.choices.map((ch) => ch.next)).toEqual(['teach', 'bye']);
+    expect(startTalk(c, facts)!.choices.map((ch) => ch.next)).toEqual(['teach', 'bye']);
+  });
+});

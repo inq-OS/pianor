@@ -130,7 +130,7 @@ export interface PictureFigure {
 
 const knoll = knollPlan();
 /** Where the fireflies of the knoll fly: over the long grass before the fire (fine pixels of the picture). */
-const KNOLL_FIREFLIES = { x: 170, y: 125, w: 420, h: 105 } as const;
+const KNOLL_FIREFLIES = { x: 170, y: 165, w: 420, h: 150 } as const;
 
 /**
  * A fire's thread of smoke drawn as the game runs (`paint/smoke.ts`), on the place's wind (`windField.ts`): a gust bends
@@ -197,7 +197,7 @@ const DOCKS_LIFE: SceneLife<NonNullable<ReturnType<typeof PAINTED.docks.ready>>>
   layers: (picture) => [{ overlay: picture.lamp, ms: 0, level: (time) => glowAt(time, picture.lamp.frames.length, 5) }],
   // moths round the lantern while it is lit
   motes: (_picture, look, _air, seed) => (lampLitAt(look.phase) ? [{ source: (time) => mothsAt(time, docks.lamp, 4, seed), most: 4 }] : []),
-  gulls: { n: 3, span: 3, box: { x: 40, y: 14, w: 540, h: 48 } },
+  gulls: { n: 3, span: 3, box: { x: 60, y: 44, w: 500, h: 56 } },
 };
 
 const crossroads = crossroadsPlan();
@@ -212,8 +212,8 @@ const CROSSROADS_LIFE: SceneLife<NonNullable<ReturnType<typeof PAINTED.crossroad
   way: -1,
   leastClouds: 4,
   layers: () => [],
-  motes: (_picture, look, _air, seed) => (look.phase === 'day' ? [] : [{ source: (time) => firefliesAt(time, { x: 20, y: 140, w: 560, h: 80 }, 8, seed), most: 8 }]),
-  gulls: { n: 2, span: 3, box: { x: 20, y: 20, w: 600, h: 56 } },
+  motes: (_picture, look, _air, seed) => (look.phase === 'day' ? [] : [{ source: (time) => firefliesAt(time, { x: 20, y: 180, w: 560, h: 110 }, 8, seed), most: 8 }]),
+  gulls: { n: 2, span: 3, box: { x: 60, y: 44, w: 520, h: 64 } },
 };
 
 const port = portPlan();
@@ -244,7 +244,7 @@ const PORT_LIFE: SceneLife<NonNullable<ReturnType<typeof PAINTED.port.ready>>> =
   live: (picture, _look, _air, seed) => [leapLayer(PORT_LEAPS, picture.leap, seed)],
   // moths round the beacon while it is lit
   motes: (_picture, look, _air, seed) => (lampLitAt(look.phase) ? [{ source: (time) => mothsAt(time, port.lamp, 3, seed), most: 3 }] : []),
-  gulls: { n: 3, span: 3, box: { x: 20, y: 12, w: 600, h: 44 } },
+  gulls: { n: 3, span: 3, box: { x: 60, y: 44, w: 520, h: 52 } },
   // the teacher's galleon (ft_1_27.AC2; for now the galley is the teacher's ship) sails in behind the quay
   figures: (picture) => ({ galleon: { frames: [boatStill(picture.boats.galleon)], ms: 0 } }),
   dive: {

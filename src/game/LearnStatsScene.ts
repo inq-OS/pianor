@@ -17,10 +17,13 @@ import { measure as textWidth } from './ui/pixel/font';
 import { C } from './ui/pixel/palette';
 import { PixelImage } from './ui/pixel/PixelObjects';
 import { PixelScene } from './ui/pixel/PixelScene';
+import type { SongReturn } from './songReturn';
 
 export interface LearnStatsData {
   /** The piece whose learning is shown, for the active player. */
   chartId: string;
+  /** A song's play (ft_1_36): handed back to the score screen, so its Back still leads to the song. */
+  fromSong?: SongReturn | undefined;
 }
 
 const MONTHS: readonly StringKey[] = ['month.1', 'month.2', 'month.3', 'month.4', 'month.5', 'month.6', 'month.7', 'month.8', 'month.9', 'month.10', 'month.11', 'month.12'];
@@ -62,8 +65,11 @@ export class LearnStatsScene extends PixelScene {
     super('learn-stats');
   }
 
+  private fromSong: SongReturn | undefined = undefined;
+
   init(data: LearnStatsData): void {
     this.chartId = data.chartId;
+    this.fromSong = data.fromSong;
     this.filter = DEFAULT_STATS_FILTER;
     this.help = null;
   }
@@ -74,7 +80,7 @@ export class LearnStatsScene extends PixelScene {
       this.redraw();
       return;
     }
-    startScene(this, 'results', { chartId: this.chartId });
+    startScene(this, 'results', { chartId: this.chartId, ...(this.fromSong ? { fromSong: this.fromSong } : {}) });
   }
 
   protected draw(): void {

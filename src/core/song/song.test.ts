@@ -4,7 +4,7 @@ import { chartSchema, type Chart } from '../chart/schema.ts';
 import { compilePiece } from '../piece/compile.ts';
 import { pieceFactsOf, resolveSong, type PieceFacts } from './resolve.ts';
 import { piecesInTwoSongs, songSchema, type Song, type SongNode } from './schema.ts';
-import { songChart } from './songChart.ts';
+import { songChart, songChartId, songIdOfChart, songStaffMarks } from './songChart.ts';
 
 import exampleSong from '../../../content/songs/morning-song/song.json';
 import introMeta from '../../../content/pieces/morning-song-intro/piece.meta.json';
@@ -214,5 +214,24 @@ describe('songChart', () => {
     const joined = songChart(t, lookup(charts))!;
     expect(joined.folds.map((f) => [f.node, f.reason, f.startBar, f.endBar])).toEqual([['g', 'blank', 1, 3], ['z', 'missing', 4, 3]]);
     expect(joined.songBars).toEqual([4]);
+  });
+
+  it('ft_1_36.AC12 keeps the whole song under its own id only with every written part on; with a part off it is another id of the same song', () => {
+    expect(songChart(s, lookup(charts))!.chart.id).toBe(songChartId('test-song'));
+    const some = songChart(s, lookup(charts), new Set(['g']))!;
+    expect(some.chart.id).not.toBe(songChartId('test-song'));
+    expect(songIdOfChart(some.chart.id)).toBe('test-song');
+    expect(songIdOfChart(songChartId('test-song'))).toBe('test-song');
+    expect(songIdOfChart('song:test-song/g')).toBeNull();
+    expect(songIdOfChart('p1')).toBeNull();
+    // a blank is not written: the song with its blank, on or off, is still the whole song
+    expect(songChart(s, lookup(charts), new Set(['b']))!.chart.id).toBe(songChartId('test-song'));
+    expect(songChart(song([{ kind: 'piece', id: 'a', piece: 'p3' }, { kind: 'blank', id: 'b', name: 'B', bars: 2 }]), lookup(charts))!.chart.id).toBe(songChartId('test-song'));
+  });
+
+  it('ft_1_36.AC9 names every part over its first bar, outer parts first, and puts each fold before the bar it stands at', () => {
+    const marks = songStaffMarks(songChart(s, lookup(charts))!);
+    expect(marks.names).toEqual([{ bar: 0, names: ['Intro'] }, { bar: 2, names: ['Middle', 'p2'] }, { bar: 5, names: ['p3'] }, { bar: 6, names: ['Intro again'] }]);
+    expect(marks.folds).toEqual([{ beforeBar: 2, name: 'Verse 1', startBar: 3, endBar: 6, reason: 'blank' }]);
   });
 });

@@ -6,6 +6,7 @@ import type { TextFiles } from '../io/files';
 import type { KeyboardInput, KeyLightOutput } from '../io/keyboard';
 import type { OwnPieces } from './editor/OwnPieces';
 import type { PieceCatalogue } from './pieceCatalogue';
+import type { SongCatalogue } from './songCatalogue';
 import type { ProfileService } from './profile/ProfileService';
 import type { SkyPhase } from '../core/sky/skyPhase';
 import type { Wind } from '../core/sky/wind';
@@ -78,6 +79,8 @@ export interface GameContext {
   flags: GameFlags;
   /** The pieces the game offers (with the player's own), built once for the page. */
   pieces: PieceCatalogue;
+  /** The songs made of pieces (ft_1_36), with each player's parts on and off. */
+  songs: SongCatalogue;
   /** Pieces written in the editor on this device. */
   ownPieces: OwnPieces;
   /** Checks the admin password; scenes never read the stored record. */

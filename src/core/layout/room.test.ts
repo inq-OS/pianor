@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ART_DETAIL, FRAME_MIN, FRAME_ROWS } from './frame';
+import { ART_DETAIL, BOARD_ROWS, FRAME_MIN } from './frame';
 import { rectBottom, rectRight, type Rect } from './rect';
 
 const rectsOverlap = (a: Rect, b: Rect): boolean => a.x < rectRight(b) && b.x < rectRight(a) && a.y < rectBottom(b) && b.y < rectBottom(a);
@@ -18,13 +18,13 @@ describe('the warden\'s room: the plan and its camera (ft_1_18.AC3)', () => {
   const plan = roomPlan();
   const whole: Rect = { x: 0, y: 0, w: ROOM_PICTURE.w, h: ROOM_PICTURE.h };
 
-  it('ft_1_18.AC3 the picture is a low band as wide as the target screen, with a strip kept free under it', () => {
-    expect(ROOM_PICTURE.w).toBe(FRAME_MIN.width);
-    expect(ROOM_PICTURE.h + STRIP_ROWS).toBe(FRAME_MIN.height - FRAME_ROWS);
+  it('ft_1_18.AC3 the picture fills the main area of the target screen, and what is pressed in it stays above the rows a board covers', () => {
+    expect(ROOM_PICTURE).toEqual({ w: FRAME_MIN.width, h: FRAME_MIN.height });
+    for (const box of [...Object.values(plan.objects), plan.phone]) expect(box.y + box.h).toBeLessThanOrEqual(ROOM_PICTURE.h - BOARD_ROWS);
     expect(plan.fine).toEqual({ w: ROOM_PICTURE.w * ART_DETAIL, h: ROOM_PICTURE.h * ART_DETAIL });
     for (const screen of SCREENS) {
       const { picture, strip } = roomView(screen);
-      expect(inside(picture, { x: 0, y: 0, w: screen.w, h: screen.h - STRIP_ROWS })).toBe(true);
+      expect(picture.y).toBeGreaterThanOrEqual(0);
       expect([picture.w, picture.h]).toEqual([ROOM_PICTURE.w, ROOM_PICTURE.h]);
       expect(strip).toEqual({ x: 0, y: screen.h - STRIP_ROWS, w: screen.w, h: STRIP_ROWS });
       // in the middle of the room it has
@@ -33,7 +33,7 @@ describe('the warden\'s room: the plan and its camera (ft_1_18.AC3)', () => {
   });
 
   it('ft_1_20.AC2 under the action and inventory band the room keeps no strip of its own: the picture fills the main area', () => {
-    const { picture, strip } = roomView({ w: 320, h: 124 }, 0);
+    const { picture, strip } = roomView({ w: 320, h: 180 }, 0);
     expect(picture).toEqual({ x: 0, y: 0, w: ROOM_PICTURE.w, h: ROOM_PICTURE.h });
     expect(strip.h).toBe(0);
   });

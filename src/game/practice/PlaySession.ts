@@ -23,7 +23,7 @@ import { Transport } from '../../core/transport';
 import type { KeyboardInput } from '../../io/keyboard';
 import type { Mascot } from '../ui/pixel/PixelObjects';
 import { SpeechBubble, type BubbleSpot } from '../ui/pixel/SpeechBubble';
-import { StaffView } from '../ui/staff/StaffView';
+import { StaffView, type PartMarks } from '../ui/staff/StaffView';
 import { PracticeController } from './PracticeController';
 import { drawMedalClef, drawPrizes } from './prizeGlyphs';
 import { motionAllowed } from '../motion';
@@ -76,6 +76,8 @@ export interface PlaySessionOptions {
    * tick of `chart`'s start in it (0 when absent).
    */
   shown?: { chart: Chart; faint: readonly { from: number; to: number }[]; offset?: number };
+  /** A song's part names and folds over the staff (ft_1_36 rule 7), by the bars of `chart`. */
+  partMarks?: PartMarks;
   /** Staff spaces left free right of the staff (the column of the prizes of learning, ft_1_32.AC19). */
   roomRight?: number;
   /** A wrong key on the staff from the start, as the run before ended on it (ft_1_32.AC6); gone at the first right key. */
@@ -306,6 +308,7 @@ export class PlaySession {
     // where the hand moves, shown with the finger numbers (ft_1_30.AC10)
     this.view.setHandShifts(handShiftMap(drawn, LEVELS.find((l) => l.level === drawn.level)));
     this.view.veil(this.options.shown?.faint ?? []);
+    if (this.options.partMarks) this.view.setPartMarks(this.options.partMarks);
     if (this.transport) this.view.followPlayhead(true);
     this.applyState(this.controllerNow.getState());
     if (this.lastWrong) this.showWrongKey(this.lastWrong);

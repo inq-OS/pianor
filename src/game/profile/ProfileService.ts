@@ -12,7 +12,7 @@ import type { WorldState } from '../../core/island/worldState';
 import { staffSettingsSchema, type StaffSettings } from '../../core/layout/staffSettings';
 import { DEFAULT_DURATION_HELP, durationHelpSchema, type DurationHelp } from '../../core/layout/durationHelp';
 import {
-  DEFAULT_PLAY_INFO, addEarPoints, addTrainerXp, canTurnOff, deriveProgress, profileSettingsSchema, isPieceOn, pieceHistory, pieceStats, recordAttempt, addTugRecord, setPieceOn, startPercent,
+  DEFAULT_PLAY_INFO, addEarPoints, addTrainerXp, canTurnOff, deriveProgress, profileSettingsSchema, isPieceOn, pieceHistory, pieceStats, recordAttempt, addTugRecord, setPieceOn, songPartsOff, startPercent, withSongPartsOff,
   type BarPlay, type PracticeLog, type TugInput, type HistoryPoint, type PieceStats, type PlayInfo, appendBarPlays, piecePlays,
   type PieceRecord, type ProfileData, type ProfileRepository, type ProfileSummary, type ProgressEvent, type ProgressionConfig,
   type ProgressSummary,
@@ -324,6 +324,17 @@ export class ProfileService {
     } catch {
       return { changed: true, saved: false };
     }
+  }
+
+  /** The node ids of a song the active player turned off (ft_1_36 rule 5); ids the song no longer has are ignored where it is read. */
+  songPartsOff(songId: string): readonly string[] {
+    return songPartsOff(this.active.settings.pieces, songId);
+  }
+
+  /** Keep a song's parts that are off for the active player and save; false when the save failed (the change still holds for this session). */
+  setSongPartsOff(songId: string, off: readonly string[]): Promise<boolean> {
+    this.active = { ...this.active, settings: { ...this.active.settings, pieces: withSongPartsOff(this.active.settings.pieces, songId, off) } };
+    return this.persist();
   }
 
   /** The pieces on offer: no piece is locked by level (ft_1_13.AC3), so the guard "keep one piece on" counts them all. */

@@ -188,7 +188,7 @@ export function sceneMock(): Mock {
 export function kitMock(): Mock {
   const b = createBitmap(W, H);
   fill(b, 0, 0, W, H, C.night);
-  const looks: PlateLook[] = ['plain', 'hover', 'down', 'on', 'off', 'main'];
+  const looks: PlateLook[] = ['plain', 'hover', 'down', 'on', 'off', 'main', 'armed'];
   looks.forEach((look, i) => {
     const x = 4 + i * 52;
     blit(b, optionPlate(look), x, 2);
