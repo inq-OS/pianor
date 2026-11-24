@@ -394,7 +394,11 @@ export class SongScene extends PixelScene {
   }
 
   /** The selected row is lit: a pale band behind it over its whole height, drawn before what is written on it. */
+  /** A row's ground: a thin rule under it, so each row reads as one block, and the gold band while it is selected. */
   private lit(left: number, top: number, width: number, selected: boolean): void {
+    const rule = createBitmap(width - 4, 1);
+    rule.pixels.fill(C.umberLight);
+    this.root.add(new PixelImage(this, left + 2, top + CARD_HEIGHT - 3, rule).setName('rowRule').setAlpha(0.6));
     if (!selected) return;
     const band = createBitmap(width, CARD_HEIGHT - 4);
     band.pixels.fill(C.goldLight);

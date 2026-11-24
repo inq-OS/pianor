@@ -10,7 +10,8 @@ import { songChartId } from './songCatalogue';
 import { startScene } from './scenes';
 import { C } from './ui/pixel/palette';
 import { drawnText, measure } from './ui/pixel/font';
-import { PixelText, pixelStars } from './ui/pixel/PixelObjects';
+import { createBitmap } from './ui/pixel/bitmap';
+import { PixelImage, PixelText, pixelStars } from './ui/pixel/PixelObjects';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 
@@ -95,6 +96,10 @@ export class SongsScene extends PixelScene {
     });
     const { x: left, y: top } = button.rect;
     const right = left + width - 5;
+    // a thin rule under the row, so each song reads as one block
+    const rule = createBitmap(width - 4, 1);
+    rule.pixels.fill(C.umberLight);
+    this.root.add(new PixelImage(this, left + 2, top + CARD_HEIGHT - 2, rule).setName('rowRule').setAlpha(0.6));
     const factsText = new PixelText(this, right - factsWidth, top + 4, facts, { color: C.umberDark }).setName('songFacts');
     this.root.add(factsText);
     const record = profiles.recordFor(songChartId(song.id));
