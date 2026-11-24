@@ -31,11 +31,11 @@ They rank above every decision, feature and design doc; in a conflict **AX-0 dec
 
 ## Stack (update this section if a decision changes)
 
-TypeScript (strict), Vite, Phaser 4, Vitest, raw Web MIDI, Web Audio with a sampled piano, saves in IndexedDB behind `KeyValueStore` (`src/io/storage/`; localStorage only as fallback, d080). Run on the player's own machine or network, never hosted (d068); FOSS-compatible licences only. Chrome/Edge; a modest 1920x1080 laptop, Android tablets later.
+TypeScript (strict; typechecked by the native TypeScript 7 compiler), Vite, Phaser 4, Vitest, raw Web MIDI, Web Audio with a sampled piano, saves in IndexedDB behind `KeyValueStore` (`src/io/storage/`; localStorage only as fallback, d080). Run on the player's own machine or network, never hosted (d068); FOSS-compatible licences only. Chrome/Edge; a modest 1920x1080 laptop, Android tablets later.
 
 ## Commands
 
-All scripts (`docs:verify` among them) and the working notes on tests and long jobs: `docs/commands.md`. Daily: `npm run check` (before saying done), `npm run check:ci` (before pushing), `npm run test:e2e:affected`, `npm run docs:index` (regenerates `<!-- docs:... -->` blocks; never edit inside them by hand).
+All scripts (`docs:verify` among them) and the working notes on tests and long jobs: `docs/commands.md`. Daily: `npm run check` (typecheck, lint, the unit tests the branch touches, docs check: before saying done), `npm run check:ci` (before pushing), `npm run test:e2e:affected`, `npm run docs:index` (regenerates `<!-- docs:... -->` blocks; never edit inside them by hand).
 
 ## Architecture rules
 
