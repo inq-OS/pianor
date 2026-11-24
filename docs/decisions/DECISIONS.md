@@ -277,4 +277,5 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d294](game.md#d294) | In the piece maker the keyboard cursor follows the pointer, the bubble offers only what applies, lassoed bars are slurred or tied from the bubble, and a paste that writes over notes warns first | ft_1_02d, ft_1_20 |
 | [d295](game.md#d295) | A name is typed on the computer keyboard into the game's name box; the box has no letter buttons | ft_1_07 |
 | [d296](game.md#d296) | A learned piece's clef grows to twice its size on the practice screen, then the book opens at the piece and the clef drops onto the piece's clef sign | ft_1_32 |
+| [d297](game.md#d297) | The intro's learn stage learns the lesson's bars bar by bar and ends at the learned moment, with no extra whole play | ft_1_31, ft_1_32 |
 <!-- /docs:index -->
