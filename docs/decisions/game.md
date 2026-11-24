@@ -39,9 +39,9 @@ Check: `src/core/layout/lines.test.ts` "one line of a two-hand piece: 20 px or m
 
 ## d030
 
-**The editor has no limits, and own pieces get `license: "NaN"` and stay private.** Features: ft_1_02, ft_Y_01, core_08.
+**The editor has no limits, and own pieces get `license: "NaN"` and stay private.** Features: ft_1_02, core_08.
 
-Anyone writes any piece; it is playable at once and earns XP, and the person who saves it is the approver (agents never approve, tests never save into real content). Own pieces live in browser storage or the gitignored `private/pieces/`, never in `content/pieces/` and never deployed; the lint rule `license` accepts `NaN` only for them. Pieces can be turned on and off per player (ft_1_02c), the first step toward the spellbook. A lost battle pays but never removes XP: changed by d129 (no battles).
+Anyone writes any piece; it is playable at once and earns XP, and the person who saves it is the approver (agents never approve, tests never save into real content). Own pieces live in browser storage or the gitignored `private/pieces/`, never in `content/pieces/` and never deployed; the lint rule `license` accepts `NaN` only for them. Pieces can be turned on and off per player (ft_1_02c).
 
 Check: `tools/piece/license.test.ts` "ft_1_02b.AC3 warns about NaN in content/pieces and says why"
 
@@ -57,7 +57,7 @@ Check: `src/core/editor/pieceFile.test.ts` "ft_1_02b.AC1 export then import give
 
 **The mascot is Kiur, a songbird, and the main menu offers the editor as a tab.** Features: ft_1_02a, ft_0_13.
 
-`?editor` is on unless the address says `=0`; menu tabs are each as wide as their word with the chosen one drawn flat and dark with gold letters. Kiur is 24 x 20 with moods idle, cheer and thinking. Changed by d114 (Kiur is a tree pipit) and d129 (the Fight tab is gone with the battles).
+`?editor` is on unless the address says `=0`; menu tabs are each as wide as their word with the chosen one drawn flat and dark with gold letters. Kiur is 24 x 20 with moods idle, cheer and thinking. Changed by d114 (Kiur is a tree pipit).
 
 Check: `src/game/ui/pixel/kiur/kiurModel.test.ts` "takes 24 x 20 layout cells as the mascot, every mood the same size"
 
@@ -95,17 +95,17 @@ Check: `src/core/layout/frame.test.ts` "fits the smallest screen with the longes
 
 ## d095
 
-**The campaign piece is the player's choice; a character sets only the difficulty.** Features: ft_1_06.
+**The tug plays the student's piece; a character sets only the level.** Features: ft_1_06, ft_1_21.
 
-A character sets the difficulty only: its name, find-the-key cracks and window factor, door share and battle monster; the ladder's `piece` is its own song, used by the demo. The player's piece plays: level 1 the first half rounded up, levels 2 and 3 the whole piece (`levelBars`, `src/core/campaign/content.ts`). The piece list has the usual level locks, hidden pieces and own pieces, so students can use pieces from their lessons (AX-0.3).
+Level 1 plays the first half of the piece rounded up, levels 2 and 3 the whole piece (`tugPart`, `src/core/exchange/tug.ts`). Students can use pieces from their lessons, their own pieces and any piece turned on (AX-0.3).
 
-Check: `src/core/campaign/content.test.ts` "ft_1_06.AC5: levels 1 to 3 ask for the first half of the song, the whole song, the whole song"
+Check: `src/core/exchange/tug.test.ts` "level 1 plays the first half of the piece, levels 2 and 3 the whole piece"
 
 ## d098
 
 **Practice earns the piece XP and a piece level, not the player; levels lock no piece.** Features: ft_1_13, ft_0_10, ft_1_12, core_04.
 
-Each finished pass earns its piece ft_0_10's XP, recomputed from the saved results whenever the profile is read (`deriveProgress`, a pure function of the history, no save bump); the piece level comes from `pieceLevels` in `content/curriculum/progression.json`, provisionally `[0, 50, 150, 300, 500, 750, 1050, 1400, 1800, 2250]`. A new attempt saves an XP breakdown with `total: 0`; player XP is the sum of saved totals plus battles plus trainer XP, so earlier XP is kept. No piece is locked by level (`unlockLevel`, `PieceUnlocked` and `?unlock=all` are gone; pieces shown are those turned on, ft_1_02c); player levels gate monsters only. The score screen shows session piece XP, piece level and bar, and a card shows the level of a played piece.
+Each finished pass earns its piece ft_0_10's XP, recomputed from the saved results whenever the profile is read (`deriveProgress`, a pure function of the history, no save bump); the piece level comes from `pieceLevels` in `content/curriculum/progression.json`, provisionally `[0, 50, 150, 300, 500, 750, 1050, 1400, 1800, 2250]`. A new attempt saves an XP breakdown with `total: 0`; player XP is the sum of saved totals plus tugs plus trainer XP, so earlier XP is kept. No piece is locked by level (pieces shown are those turned on, ft_1_02c); player levels open scenes only (d113). The score screen shows session piece XP, piece level and bar, and a card shows the level of a played piece.
 
 Check: `src/core/progression/pieceLevel.test.ts` "ft_1_13.AC1: a piece earns the ft_0_10 XP of each of its passes, and its level comes from the piece curve"; `src/core/progression/pieceLevel.test.ts` "ft_1_13.AC3: a level-up announces no unlocked pieces: player levels lock no piece"
 
@@ -119,7 +119,7 @@ Check: `src/core/layout/frame.test.ts` "puts the on-screen keyboard switch at th
 
 ## d108
 
-**One world model of Keri in real metres; every scene is a projection of it and art never hardcodes where a real thing is.** Features: ft_1_18, ft_1_14, ft_1_17, ft_Y_03, ft_Y_14.
+**One world model of Keri in real metres; every scene is a projection of it and art never hardcodes where a real thing is.** Features: ft_1_18, ft_1_14, ft_1_17, ft_Y_14.
 
 `content/world/keri.json` (zod schema, `schemaVersion` 1, new fields optional) holds the island in local metres, origin at the lighthouse (59.6987220 N, 25.0227421 E), x east, y north, z up: coast, building footprints with heights and looks, paths, landmarks, and scenes (viewpoint, eye height, facing bearing, field of view; windows are scenes), each with its source. Pure `src/core/world/` (90% coverage) gives `toLocal`/`toGeo`, `bearingTo`, `distanceTo` and the sun's elevation and azimuth for the world's origin (not Tartu); scenes place things through a pure layout projection (map top view north up; side views map bearing to x, elevation to y), so the game stays offline (d068). Status: AX-3 provisional; the offline `tools/world/` builder, the sun's azimuth and the side views are not built, and an explorable real-size Keri is undecided and needs its own decision against AX-0.
 
@@ -127,19 +127,19 @@ Check: `src/core/world/world.test.ts` "ft_1_18.AC2 loads the shipped world file 
 
 ## d112
 
-**The campaign's world is painted scenes on Keri where beings are found, not one continuous trail.** Features: ft_1_19, ft_1_18, ft_1_06, ft_1_14, ft_1_17.
+**Keri's places are painted scenes, each one picture opened from the map.** Features: ft_1_19, ft_1_18, ft_1_14, ft_1_17.
 
-A scene is one painted picture seen from inside a place (as the room, d111), with a strip free under it; the map shows a place for each scene and pressing it opens the scene. Which places are scenes and what lives there come from the maintainer, never invented (`KERI-TODO`, ft_1_19). The campaign's rules, ladder and save do not change (AX-3 provisional); only where the student meets a being does. The trail was removed by d117; "being" became "character" in d129; random placement is d113.
+A scene is one painted picture seen from inside a place (as the room, d111), with a strip free under it; the map shows a place for each scene and pressing it opens the scene. Which places are scenes and what lives there come from the maintainer, never invented (`KERI-TODO`, ft_1_19).
 
 Check: `src/core/layout/keriMap.test.ts` "ft_1_19.AC2 every scene of the world model has a button round its place"
 
 ## d113
 
-**Levelling up opens scenes, and every unlocked being turns up in exactly one open scene, drawn at random per student and day.** Features: ft_1_19, ft_1_18, ft_1_06. Supersedes point 4 of d112.
+**Levelling up opens scenes.** Features: ft_1_19, ft_1_18.
 
-A scene carries a `level` in `content/world/keri.json` and is open when the level from total XP (`levelForXp`, `src/core/progression/xp.ts`) is at least that; the knoll (x -50, y -2 m from the lighthouse, good to about 15 m) is level 1. Every monster the ladder has unlocked is in exactly one open scene, chosen at random per student per day by a pure core rule (ft_1_19.AC8), so an unlocked being is never hidden (AX-0); where it is is computed, not saved, so no save bump; a scene not yet open is painted on the map but is no button. For each reference picture, the agent notes what it sees in `docs/keri/` (map, room, knoll) with improvement tips that are not built until picked. Changed by d132 (a character comes only after enough practice and not every day).
+A scene carries a `level` in `content/world/keri.json` and is open when the level from total XP (`levelForXp`, `src/core/progression/xp.ts`) is at least that; the knoll (x -50, y -2 m from the lighthouse, good to about 15 m) is level 1. A scene not yet open is painted on the map but is no button. For each reference picture, the agent notes what it sees in `docs/keri/` (map, room, knoll) with improvement tips that are not built until picked.
 
-Check: `src/core/campaign/sceneBeings.test.ts` "ft_1_19.AC8 every unlocked monster is in exactly one open scene, and none is anywhere else"; `src/core/campaign/sceneBeings.test.ts` "ft_1_19.AC2 a scene is open when the student"
+Check: `src/core/world/openScenes.test.ts` "ft_1_19.AC2 a scene is open when the student"
 
 ## d115
 
@@ -151,9 +151,9 @@ Check: `src/core/layout/frame.test.ts` "ft_1_20.AC21 gives the main area 163 row
 
 ## d117
 
-**The old campaign trail and the walk are removed; after two idle minutes in the room a screensaver visits the open scenes.** Features: ft_1_06, ft_1_17, ft_1_18, ft_1_19, ft_1_14. Carries out d112 point 6.
+**After two idle minutes in the room a screensaver visits the open scenes.** Features: ft_1_17, ft_1_18, ft_1_19, ft_1_14.
 
-The side-scrolling trail (screen, art, map dot, the piece list's "door" mode), the walk and the room's window button are gone; nothing saved changes. The screensaver opens the first scene the student's level has opened, stays 45 seconds, then goes to the next in the world model's order, round and round (`src/core/visit/islandVisit.ts`); any key, note, tap, pointer move or Back returns to the room. The campaign rules, ladder, save, the monster frames (`src/game/ui/pixel/beings/monsterArt.ts`), the hour's look (`src/game/ui/pixel/sky/skyLooks.ts`) and `meetings.ts` (what pressing a monster opens; removed by d135) stay; beings are hidden in scenes unless `?beings=1`.
+The screensaver opens the first scene the student's level has opened, stays 45 seconds, then goes to the next in the world model's order, round and round (`src/core/visit/islandVisit.ts`); any key, note, tap, pointer move or Back returns to the room.
 
 Check: `src/core/visit/islandVisit.test.ts` "ft_1_17.AC4 the screensaver goes round the open scenes in order and starts over"
 
@@ -175,9 +175,9 @@ Check: `src/core/layout/mainMenu.test.ts` "the picture is the whole target scree
 
 ## d129
 
-**No battles: a character challenges the student in a scene, and the two trade the phrases of the student's piece.** Features: ft_1_21, ft_1_06, ft_1_19, ft_Y_01, ft_Y_02, ft_Y_03, ft_Y_10.
+**A character challenges the student in a scene, and the two trade the phrases of the student's piece.** Features: ft_1_21, ft_1_06, ft_1_19.
 
-Nothing the student sees says battle, fight, monster, attack, health or damage: a challenge (VÄLJAKUTSE) is held with a character (TEGELANE), over the scene picture where it was met, with no stage of its own. The student's piece is cut into two-bar phrases (a pick-up joins the first bar); the character plays one, the student answers with the next, each answer is an exchange won when the share of notes right first try (on time in Tempo mode) reaches the level's share (60, 80, 95 per cent); a standing of three steps each way moves one step per exchange, the student wins at +3 and the character at -3, and if the part ends first it restarts with roles swapped. Levels are d100's (from memory, no staff; 1 Wait mode, 2 Tempo mode with click, 3 Tempo mode with only the count-in); feedback is one objective fact per exchange and wrong notes keep their reason; a won challenge pays the prize, a lost one half the prize times furthest standing over 3, nothing taken, retry at once. Each ladder monster becomes a character with the same id, name (Locria, Doria, Lydia, Phrygia), song, levels and unlock order, turning up at random in open scenes (d113), kept off with `?beings=1` until the maintainer says what they look like. Changed by d290 (the ladder's four, the beings and the old save keys go). There is no battle screen, health, graded attack or monster series. Numbers (three steps, the shares) are unverified with children.
+A challenge (VÄLJAKUTSE) is held with a character (TEGELANE), over the scene picture where it was met, with no stage of its own. The student's piece is cut into two-bar phrases (a pick-up joins the first bar); the character plays one, the student answers with the next, each answer is an exchange won when the share of notes right first try (on time in Tempo mode) reaches the level's share (60, 80, 95 per cent); a standing of three steps each way moves one step per exchange, the student wins at +3 and the character at -3, and if the part ends first it restarts with roles swapped. Levels are d100's (from memory, no staff; 1 Wait mode, 2 Tempo mode with click, 3 Tempo mode with only the count-in); feedback is one objective fact per exchange and wrong notes keep their reason; a won challenge pays the prize, a lost one half the prize times furthest standing over 3, nothing taken, retry at once. Numbers (three steps, the shares) are unverified with children.
 
 Check: `src/core/exchange/tug.test.ts` "content/challenge/rules.json parses and holds the defaults: 3 steps, shares 60, 80, 95 per cent"; `src/core/exchange/tug.test.ts` "the student wins at +3 and the character at -3"
 
@@ -191,9 +191,9 @@ Check: `src/core/island/presenceRules.test.ts` "needs the practice threshold, ne
 
 ## d135
 
-**A character's piece goes learn, practise, show; "find the key" and "find the door" are retired as names and as a gate.** Features: ft_1_06, ft_1_21, ft_1_22.
+**A character's piece goes learn, practise, show.** Features: ft_1_06, ft_1_21, ft_1_22.
 
-The three phases are learn (the character teaches the piece, ft_1_22), practise (in the room and trainers until the evaluation says good enough, core_12) and show (the tug, ft_1_21); "key" and "door" leave screens, docs and new code. The gate to the tug is the practice evidence the evaluation already keeps, not a separate timed screen. `FindKeyScene` and the Tempo door stay playable until ft_1_21 removes them.
+The three phases are learn (the character teaches the piece, ft_1_22), practise (in the room and trainers until the evaluation says good enough, core_12) and show (the tug, ft_1_21). The gate to the tug is the practice evidence the evaluation already keeps, not a separate timed screen.
 
 Check: `src/core/exchange/tugGate.test.ts` "ft_1_06.AC15 it opens when the median of the last plays reaches the level"
 
@@ -287,9 +287,9 @@ Check: `src/core/progression/playerNames.test.ts` "ft_1_07.AC10 allows at most 1
 
 ## d191
 
-**The book in the player's room stays hidden until pieces become abilities a player equips; everything goes through the piano.** Features: none.
+**The book in the player's room stays hidden; everything goes through the piano.** Features: none.
 
-Until those RPG mechanics exist the book has nothing of its own to offer.
+The book has nothing of its own to offer.
 
 Check: untestable: product rule on what stays hidden, judged by the maintainer
 
@@ -299,7 +299,7 @@ Check: untestable: product rule on what stays hidden, judged by the maintainer
 
 So a new scene can be tried before a player's progress opens it. Nothing is saved for it.
 
-Check: `src/core/campaign/sceneBeings.test.ts` "opens every scene there is to the player called tester, whatever the level and the letter case"
+Check: `src/core/world/openScenes.test.ts` "opens every scene there is to the player called tester, whatever the level and the letter case"
 
 ## d193
 
@@ -385,7 +385,7 @@ Check: `src/core/exchange/tugGate.test.ts` "ft_1_06.AC15 it opens when the media
 
 **Characters are built in order: the tree spirit, then the Prangli fisherman, then the border guard; each is learn, practise, show (d135) and its final level is a tug.** Features: ft_1_21, ft_1_22.
 
-Challenges, not battles (d129): what is left of the battle screens and the battle core is deleted, not kept. The cast and each character's sheet are in `docs/architect/cast-and-phrases.md`.
+The cast and each character's sheet are in `docs/architect/cast-and-phrases.md`.
 
 Check: untestable: the order of building work
 
@@ -479,8 +479,8 @@ Check: `src/core/layout/preview.test.ts` "ft_1_02d.AC25 note A then the same key
 
 ## d290
 
-**Code, content, tests and docs use only the current words of `docs/glossary.md`; the battle vision's words and what they named are removed.** Features: ft_1_06, ft_1_19, ft_1_21, ft_Y_01, ft_Y_02, ft_Y_03, ft_Y_08, ft_Y_10.
+**Code, content, tests and docs use only the words of `docs/glossary.md`; a dropped idea leaves no trace.** Features: none.
 
-A current thing still named with an old word is renamed with no change of behaviour (monster and being to character, battle and fight to tug or challenge, battle record to tug record, campaign to a character's learn, practise and show, trail to scene or map). What only the battle vision had is deleted: the monster ladder of four (`content/campaign/ladder.json`) and the campaign state in the save, the beings drawn at random into scenes, the monster art, the battle setting and health, find the key and find the door, and the RPG ideas (spellbook, classes, the RPG shell, the power attack, the confuser, modular monsters). The save gets a version that renames or drops its old keys, so only the migration that reads an older save may name them.
+A current thing named with a word the glossary bans is renamed with no change of behaviour. What belongs to no current feature is deleted with every mention of it: no stub file, no rejected row, no note that it was removed. Only a frozen migration step may read an old save key (d064), and only the glossary's list of banned words names them.
 
 Check: untestable: the word check against the glossary comes with its own CI step

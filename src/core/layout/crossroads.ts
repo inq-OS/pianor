@@ -1,6 +1,5 @@
 import { buildingCorners, type World, type WorldPoint } from '../world/world';
 import { ART_DETAIL } from './frame';
-import type { Rect } from './rect';
 import { ROOM_PICTURE, roomView } from './room';
 
 /**
@@ -181,33 +180,16 @@ export function crossroadsHouses(world: World): CrossroadsHouse[] {
     .sort((a, b) => Math.min(...b.corners.map((c) => c.z)) - Math.min(...a.corners.map((c) => c.z)));
 }
 
-/** Where a being stands: its feet on the grass beside the path, in fine pixels. AX-3 provisional: four places, as many as the ladder has monsters. */
-export const CROSSROADS_SPOTS: readonly { x: number; y: number }[] = [
-  { x: 150, y: 196 },
-  { x: 506, y: 190 },
-  { x: 236, y: 160 },
-  { x: 430, y: 156 },
-];
-
-/** A being's button in layout cells: the being with its name and stars over it. */
-const SPOT_HIT = { w: 26, h: 44 } as const;
-
 export interface CrossroadsPlan {
   /** The picture's size in fine pixels. */
   fine: { w: number; h: number };
   /** The horizon's row, in fine pixels. */
   horizon: number;
-  /** For each place of `CROSSROADS_SPOTS`: where a being's feet are (fine pixels) and its button (layout cells from the picture's top-left corner). */
-  spots: { feet: { x: number; y: number }; button: Rect }[];
 }
 
 export function crossroadsPlan(): CrossroadsPlan {
   return {
     fine: { ...FINE },
     horizon: CROSSROADS.horizon,
-    spots: CROSSROADS_SPOTS.map((feet) => {
-      const x = Math.round(feet.x / ART_DETAIL - SPOT_HIT.w / 2), bottom = Math.round(feet.y / ART_DETAIL) + 2;
-      return { feet: { ...feet }, button: { x, y: bottom - SPOT_HIT.h, w: SPOT_HIT.w, h: SPOT_HIT.h } };
-    }),
   };
 }

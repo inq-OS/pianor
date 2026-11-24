@@ -21,7 +21,7 @@ A later decision that changes one edits the old entry to say what still holds an
 |---|---|---|
 | [d000](workflow.md#d000) | Four axioms (AX-0 to AX-3) rank above every decision, and AX-0 (learning music) decides every conflict |  |
 | [d001](stack.md#d001) | The game is a browser app on Web MIDI, Chrome or Edge only | ft_0_00, ft_0_01 |
-| [d002](notation.md#d002) | Staff notation is core and there are no falling notes in the MVP | ft_0_05, ft_Y_05 |
+| [d002](notation.md#d002) | Staff notation is core and there are no falling notes in the MVP | ft_0_05 |
 | [d003](workflow.md#d003) | Build a thin practice slice first and playtest it before the ABC compiler and linter | ft_0_09 |
 | [d004](game.md#d004) | `docs/authoring/au03-chart-format.md` is the one chart format; level 1 and 2 pieces use steps and repeats only | ft_0_02, ft_0_04 |
 | [d005](workflow.md#d005) | Everything must be testable without the EZ-220 | ft_0_06 |
@@ -48,7 +48,7 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d027](notation.md#d027) | Generators in `tools/generate/` write ABC plus meta and only output what the real linter accepts | ft_0_12 |
 | [d028](art.md#d028) | The pixel kit is a 21-colour palette, a pixel font and pictures as rows of letters, drawn at a whole-number zoom | ft_0_13 |
 | [d029](game.md#d029) | The MVP gains a one-line staff (ft_0_16), with the piece editor planned after it | ft_0_16, ft_1_02 |
-| [d030](game.md#d030) | The editor has no limits, and own pieces get `license: "NaN"` and stay private | ft_1_02, ft_Y_01, core_08 |
+| [d030](game.md#d030) | The editor has no limits, and own pieces get `license: "NaN"` and stay private | ft_1_02, core_08 |
 | [d032](play.md#d032) | The staff shows one line at a time by default, with per-player settings in the save (profile v2) | ft_0_16 |
 | [d033](play.md#d033) | The hardware spike page `spike.html` is standalone raw Web MIDI and Web Audio, built into production too | ft_0_01, core_01 |
 | [d035](game.md#d035) | The piece editor is built in parts a to d, and every edit is a pure function that returns a piece or a refusal reason | ft_1_02, ft_1_02a, ft_1_02b, ft_1_02c, ft_1_02d |
@@ -63,7 +63,6 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d045](saves.md#d045) | The list of pieces turned off lives in `settings.pieces.hidden`; save v6 | ft_1_02c |
 | [d048](workflow.md#d048) | Every feature file carries a `completeness` percentage rated by a rule and rolled up by the generator |  |
 | [d050](notation.md#d050) | An own piece is one versioned `<id>.pianor-piece.json` file, and licence `NaN` is allowed only for private pieces | ft_1_02b |
-| [d051](art.md#d051) | Sprites are text-row JSON composed by a pure core composer from colour slots, on Phaser | ft_Y_11, ft_Y_02 |
 | [d054](saves.md#d054) | The on-screen keyboard setting is `settings.keyboard.onScreen`; save v9 | ft_Y_12, ft_0_16 |
 | [d055](saves.md#d055) | Bar numbers are `settings.barNumbers.mode` (off, first, every2, every4); save v10 | ft_0_16, core_03 |
 | [d056](workflow.md#d056) | End-to-end tests are split into areas; pull requests run the areas they touch and every run writes a log |  |
@@ -74,7 +73,7 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d063](workflow.md#d063) | Static analysis: `npm run analyze` runs type-aware ESLint, knip and jscpd in CI |  |
 | [d064](saves.md#d064) | Save migration steps write frozen literals, never today's defaults |  |
 | [d065](stack.md#d065) | Flags and the piece catalogue reach scenes through `GameContext`; a production build ships approved pieces only |  |
-| [d066](notation.md#d066) | Piece styles are a closed list in `content/pieces/styles.json` and a `styles` field in the meta file | core_05, ft_Y_03 |
+| [d066](notation.md#d066) | Piece styles are a closed list in `content/pieces/styles.json` and a `styles` field in the meta file | core_05 |
 | [d067](notation.md#d067) | The chart key is a structured signature `{ tick, fifths, mode }`; chart schema version 2 | core_09 |
 | [d068](stack.md#d068) | Pianor is never hosted: it runs locally, every third-party part is FOSS-licensed, laptops are the target | ft_0_14 |
 | [d069](saves.md#d069) | One shared save-format bump per round: the first pull request to land owns the version | core_04 |
@@ -93,25 +92,25 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d090](workflow.md#d090) | CI runs on GitHub's hosted runners: `check` and `art rules` on every pull request push, the browser jobs on a label or weekly |  |
 | [d092](saves.md#d092) | Profile v16 adds the practice log, one list of per-bar plays | core_10 |
 | [d093](play.md#d093) | Tempo mode grades how long each note is held | core_01 |
-| [d095](game.md#d095) | The campaign piece is the player's choice; a character sets only the difficulty | ft_1_06 |
+| [d095](game.md#d095) | The tug plays the student's piece; a character sets only the level | ft_1_06, ft_1_21 |
 | [d097](art.md#d097) | The sky follows the sun over Keri, computed offline; looks are layers | ft_1_14, ft_Y_14, ft_1_06 |
 | [d098](game.md#d098) | Practice earns the piece XP and a piece level, not the player; levels lock no piece | ft_1_13, ft_0_10, ft_1_12, core_04 |
 | [d099](game.md#d099) | The on-screen keyboard is hidden at first and its switch is on the settings screen only | ft_Y_12, ft_0_16 |
-| [d100](play.md#d100) | The campaign challenge is played from memory with no staff, harder at each level | ft_1_06, core_01 |
+| [d100](play.md#d100) | The tug is played from memory with no staff, harder at each level | ft_1_21, core_01 |
 | [d101](notation.md#d101) | Ties are drawn and allowed at every level; dynamic marks are shown, not judged | core_09, core_01 |
 | [d102](notation.md#d102) | Repeats stay written once in the chart and are unrolled for playing, so the student reads the repeat sign | core_09, core_03, core_10 |
 | [d105](stack.md#d105) | A browser window plays; the size line shows only when the window cannot hold the tested layout | ft_0_13, ft_0_14 |
 | [d106](notation.md#d106) | Multi-choice tools of the piece maker open a drop-down menu; a new piece opens on its staff, with no start screen | ft_1_02a, ft_1_02d |
 | [d107](art.md#d107) | Private room art reaches the game only at build time; the repository ships only its own drawn picture | ft_1_08 |
-| [d108](game.md#d108) | One world model of Keri in real metres; every scene is a projection of it and art never hardcodes where a real thing is | ft_1_18, ft_1_14, ft_1_17, ft_Y_03, ft_Y_14 |
+| [d108](game.md#d108) | One world model of Keri in real metres; every scene is a projection of it and art never hardcodes where a real thing is | ft_1_18, ft_1_14, ft_1_17, ft_Y_14 |
 | [d110](art.md#d110) | The art canvas is a 640x360 fine grid under layout cells of 2 x 2 fine pixels | ft_0_13, ft_1_08 |
 | [d111](art.md#d111) | The room and the map of Keri are painted pictures made at build time; outdoor scenes are pixel art in shared flat-tone runs | ft_1_18, ft_1_19, ft_1_08, ft_1_09, ft_1_14 |
-| [d112](game.md#d112) | The campaign's world is painted scenes on Keri where beings are found, not one continuous trail | ft_1_19, ft_1_18, ft_1_06, ft_1_14, ft_1_17 |
-| [d113](game.md#d113) | Levelling up opens scenes, and every unlocked being turns up in exactly one open scene, drawn at random per student and day | ft_1_19, ft_1_18, ft_1_06 |
+| [d112](game.md#d112) | Keri's places are painted scenes, each one picture opened from the map | ft_1_19, ft_1_18, ft_1_14, ft_1_17 |
+| [d113](game.md#d113) | Levelling up opens scenes | ft_1_19, ft_1_18 |
 | [d114](art.md#d114) | Kiur is a tree pipit drawn from one small model on the fine grid | ft_0_13, ft_1_15, ft_1_08, ft_1_18 |
 | [d115](game.md#d115) | A band at the foot of the screen holds a 3 x 3 grid of actions and an inventory of items; places are used in their picture | ft_1_20, ft_0_13, ft_1_18, core_09 |
 | [d116](workflow.md#d116) | GitHub issues are for people; agents track their own work as tags in the docs | all |
-| [d117](game.md#d117) | The old campaign trail and the walk are removed; after two idle minutes in the room a screensaver visits the open scenes | ft_1_06, ft_1_17, ft_1_18, ft_1_19, ft_1_14 |
+| [d117](game.md#d117) | After two idle minutes in the room a screensaver visits the open scenes | ft_1_17, ft_1_18, ft_1_19, ft_1_14 |
 | [d118](art.md#d118) | The band and every screen are warm wood; the cold tones stay in the palette as paints | ft_1_20 |
 | [d119](notation.md#d119) | Every staff lies on a sheet of parchment painted in the game for the staff's size | ft_0_05, ft_1_02a |
 | [d120](notation.md#d120) | Pick-up bars are a short first bar and slurs are drawn and graded as legato | core_09, core_01, core_02, core_10 |
@@ -123,10 +122,10 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d126](game.md#d126) | The main menu is the lantern over Keri filling the screen, with the players down a parchment sheet, and paints every row itself | ft_1_07, ft_1_20 |
 | [d127](stack.md#d127) | The scenery moves whatever the operating system says; only the game's own switch stands it still | ft_1_08, ft_1_17, ft_1_19 |
 | [d128](art.md#d128) | The room stays a lit set but is drawn as the 1991 rooms are: a bent view, leaning things, light in pools, flat island in the windows | ft_1_18, ft_1_20, ft_1_08 |
-| [d129](game.md#d129) | No battles: a character challenges the student in a scene, and the two trade the phrases of the student's piece | ft_1_21, ft_1_06, ft_1_19, ft_Y_01, ft_Y_02, ft_Y_03, ft_Y_10 |
+| [d129](game.md#d129) | A character challenges the student in a scene, and the two trade the phrases of the student's piece | ft_1_21, ft_1_06, ft_1_19 |
 | [d130](art.md#d130) | Screens that are not painted places lie on the warden's walnut desk, with parchment card, open book, card catalogue, scroll and door in place of the felt and vine | ft_1_08, ft_1_02c, ft_1_07, ft_1_15, ft_1_10, core_06 |
 | [d132](game.md#d132) | Characters are met by practising, talked to first, teach phrases for a phrase book, and give an item for a won tug; every character ties to music | ft_1_21, ft_1_22, ft_1_23, ft_1_19, ft_1_20, ft_1_06, ft_1_07 |
-| [d135](game.md#d135) | A character's piece goes learn, practise, show; "find the key" and "find the door" are retired as names and as a gate | ft_1_06, ft_1_21, ft_1_22 |
+| [d135](game.md#d135) | A character's piece goes learn, practise, show | ft_1_06, ft_1_21, ft_1_22 |
 | [d136](saves.md#d136) | A player's save is four documents (profile, practiceLog, world, curriculum), each with its own version and migrations | core_11 |
 | [d137](stack.md#d137) | Scenes are `SceneData` files run by one `AdventureScene` on a world base scene, with actors, scripts and map walkers | ft_1_24, ft_1_19 |
 | [d138](game.md#d138) | One difficulty scale 1 to 10 for phrases and pieces, proposed by the estimator and confirmed by a person | ft_1_22, core_08 |
@@ -137,7 +136,7 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d144](art.md#d144) | The template character is cast on MI2's grid: 2 x 2 fine-pixel blocks, no outline, five-tone ramps, lit by the scene's hour | ft_1_24, ft_1_21 |
 | [d145](art.md#d145) | The teacher's screens are written in a green school register, and the academic hat is a painted mortarboard on the menu's scroll | ft_1_26, ft_1_07 |
 | [d147](workflow.md#d147) | Unfinished work merges early behind a flag that is off by default instead of waiting on a long branch |  |
-| [d151](workflow.md#d151) | An idea that is given up is deleted, not kept on hold; a rejected idea stays as one line |  |
+| [d151](workflow.md#d151) | Docs say only what is relevant: the current state, what is planned or partly built, and future or shelved ideas still wanted; anything else is deleted with no trace |  |
 | [d152](workflow.md#d152) | Decisions are kept as one short entry each in seven ledgers by area, not one file each |  |
 | [d153](workflow.md#d153) | Lean: a builder and a painter, an architect that sets one playable goal a week; no work packages, mailboxes, board, scan or triage |  |
 | [d154](art.md#d154) | The student is drawn as a child of about three heads on the template: pick A | ft_1_24, ft_1_22 |
@@ -176,7 +175,7 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d188](workflow.md#d188) | A thread whose branch is held by a pull request waiting on someone else puts its next item on `<branch>-<topic>` |  |
 | [d189](game.md#d189) | Screens say each thing once: no text that repeats a picture, no hint lines, symbol buttons, and a set of options is one cycling button; every grade is five stars |  |
 | [d190](game.md#d190) | At most ten players, each with a unique name; the admin unlocks with the password for 30 minutes and can lock again by hand |  |
-| [d191](game.md#d191) | The book in the player's room stays hidden until pieces become abilities a player equips; everything goes through the piano |  |
+| [d191](game.md#d191) | The book in the player's room stays hidden; everything goes through the piano |  |
 | [d192](game.md#d192) | A player named "tester" (letter case and spaces aside) has every scene open as soon as it is built, whatever the level | ft_1_19 |
 | [d193](game.md#d193) | A student's curriculum level is not tracked; a piece's `level` is only the rule set it is linted against |  |
 | [d194](game.md#d194) | The teacher lands at the southern port; walkers show on the map only while they move, each with its own visiting days, along the paths or the coast | ft_1_24, ft_1_25, ft_1_27 |
@@ -271,5 +270,5 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d286](game.md#d286) | No silent tool action: every tool shows the result it would make before it commits, on the screen where it acts | ft_1_02d, ft_1_20 |
 | [d288](workflow.md#d288) | No game text uses a font of the computer: the staff's text is JetBrains Mono Bold shipped with the game and every other text the pixel font, so one screenshot baseline per screen serves every machine |  |
 | [d289](workflow.md#d289) | Screenshot tests and baselines make no difference between Windows and Linux: every job runs on Linux, a baseline is made by the baseline workflow or any local run, and the screenshot area always draws in software |  |
-| [d290](game.md#d290) | Code, content, tests and docs use only the current words of `docs/glossary.md`; the battle vision's words and what they named are removed | ft_1_06, ft_1_19, ft_1_21, ft_Y_01, ft_Y_02, ft_Y_03, ft_Y_08, ft_Y_10 |
+| [d290](game.md#d290) | Code, content, tests and docs use only the words of `docs/glossary.md`; a dropped idea leaves no trace |  |
 <!-- /docs:index -->

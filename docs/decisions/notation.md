@@ -7,7 +7,7 @@ Chart model, ABC, the staff, notation features, pieces and their tools. One entr
 
 ## d002
 
-**Staff notation is core and there are no falling notes in the MVP.** Features: ft_0_05, ft_Y_05.
+**Staff notation is core and there are no falling notes in the MVP.** Features: ft_0_05.
 
 The goal is learning to read music, and falling notes let a student play without reading. The own-built staff renderer is the most important MVP piece.
 
@@ -97,7 +97,7 @@ Check: `src/core/editor/pieceFile.test.ts` "writes a readable file that says wha
 
 ## d066
 
-**Piece styles are a closed list in `content/pieces/styles.json` and a `styles` field in the meta file.** Features: core_05, ft_Y_03.
+**Piece styles are a closed list in `content/pieces/styles.json` and a `styles` field in the meta file.** Features: core_05.
 
 `styles.json` (`schemaVersion: 1`, provisional) lists `{ id, nameKey }` with names in `src/core/text/strings.ts`, loaded by pure code in `src/core/properties/styles.ts`; starters `folk`, `classical`, `exercise`, `original`. `piece.meta.json` gets `styles: string[]` (default empty, meta `schemaVersion` stays 1); `piece:lint` rule `style` errors on an unknown style and warns on a committed piece with none (own pieces get none); `tags` is no longer the style.
 

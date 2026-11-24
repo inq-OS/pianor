@@ -18,7 +18,7 @@ What a piece is, shown on an info card in the menu (an "i" button on an unlocked
 3. **Features:** `pieceFeatures` (`src/core/properties/features.ts`) derives them from the chart. "Hands apart" means the lowest right-hand note is above the highest left-hand note; the fastest note is the shortest the student plays, named from its length (no plain name says "Fast special notes"); an odd meter is anything outside 2/4, 3/4, 4/4, 2/2, 3/8, 6/8, 9/8, 12/8. `pieceInfo` (`info.ts`) puts stars, tags and features together; the card is `src/game/menu/PieceInfoCard.ts`, opened from `MenuScene.ts`.
 4. Tags have names through string keys (`tag.<id>`, `tagLabel`).
 5. Tests: unit and property tests beside the code, `tests/content/pieceFeatures.test.ts` on the real pieces, `tests/e2e/pieceInfo.spec.ts`.
-6. Not built: the player's stats on the card (needs core_04), mapping tags to RPG classes (needs ft_Y_03), menu filter by style.
+6. Not built: the player's stats on the card (needs core_04), menu filter by style.
 7. Not verified (a person): how the card reads for a young student ("How hard", "In this piece:", "Fastest: quarter notes"), whether an "i" is understood, the card on a tablet with a finger (the button is 11 art pixels, 44 screen pixels at 4x), screenshot baselines (none).
 
 ## Acceptance criteria

@@ -253,17 +253,6 @@ describe('the painted knoll with the bonfire place (ft_1_19.AC9)', () => {
         if (wood.has(frame.pixels[Math.round(at.y) * W + Math.round(at.x)]!)) on++;
       }
       expect(on, `log at ${log.a[0]}`).toBeGreaterThanOrEqual(5);
-      for (const { feet } of plan.spots) {
-        const x0 = Math.min(log.a[0], log.b[0]) - log.r, x1 = Math.max(log.a[0], log.b[0]) + log.r, y0 = Math.min(log.a[1], log.b[1]) - log.r, y1 = Math.max(log.a[1], log.b[1]) + log.r;
-        expect(feet.x + 8 < x0 || feet.x - 8 > x1 || feet.y + 3 < y0 || feet.y - 3 > y1, `log at ${log.a[0]} and the being at ${feet.x}`).toBe(true);
-      }
-    }
-  });
-
-  it('ft_1_19.AC8 where the beings stand the ground is clear: short grass under a being\'s feet, no bush, boulder or tall clump', () => {
-    for (const { feet } of plan.spots) {
-      const here = share(pictures.day, { x: feet.x - 8, y: feet.y - 3, w: 16, h: 6 }, ([r, g, b]) => g > b + 8 && r + g + b > 200);
-      expect(here).toBeGreaterThan(0.7);
     }
   });
 

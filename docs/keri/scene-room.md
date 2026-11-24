@@ -7,7 +7,7 @@ These notes are what the agent saw on the reference pictures. They may be wrong,
 
 ## What it is
 
-The player room is the south-east room of the warden's house, painted as one picture seen looking south ([ft_1_18.AC3](../features/ft_1_18-keri-island.md), [d111](../decisions/art.md#d111)). It is the home screen, not a scene where beings are found ([ft_1_19](../features/ft_1_19-scenes-of-beings.md)), but it is kept here so every place has its notes.
+The player room is the south-east room of the warden's house, painted as one picture seen looking south ([ft_1_18.AC3](../features/ft_1_18-keri-island.md), [d111](../decisions/art.md#d111)). It is the home screen, not a scene ([ft_1_19](../features/ft_1_19-scenes-on-keri.md)), but it is kept here so every place has its notes.
 
 ## Sources
 
