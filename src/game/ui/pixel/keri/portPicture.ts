@@ -1,4 +1,4 @@
-import { BOAT_KINDS, PORT, PORT_AT_LANDING, PORT_LANDING_BERTH, portWaterAt, type BoatKind, type PortPlan } from '../../../../core/layout/port';
+import { BOAT_KINDS, PORT, PORT_AT_LANDING, PORT_BEACON, PORT_LANDING_BERTH, portWaterAt, type BoatKind, type PortPlan } from '../../../../core/layout/port';
 import type { SkyPhase } from '../../../../core/sky/skyPhase';
 import { blit, createBitmap, type Bitmap } from '../bitmap';
 import { cropTogether, type Overlay } from '../pack';
@@ -80,7 +80,7 @@ export const PORT_DEEP_FRAMES = 4;
 export const PORT_WAY: WindWay = -1;
 export const LAMP_LOOKS = 3;
 /** The fire pan on the beacon post: half its width at the rim and how deep it is (fine pixels). */
-const FIRE_PAN = { half: 14, deep: 6 } as const;
+const FIRE_PAN = { half: 30, deep: 12 } as const;
 
 const MOON = { x: 596, y: 40, r: 8 } as const;
 
@@ -633,7 +633,7 @@ class PortPainter {
     for (const x of RINGS) this.as(() => this.ring(x, PORT.deck + 22));
     for (const x of [208, 369]) this.as(() => this.tyre(x, look));
     this.as(() => this.ladder(LADDER, PORT.water + 2));
-    this.as(() => this.crates(452));
+    this.as(() => this.crates(424));
     this.as(() => this.ropeCoil(330));
     this.as(() => this.lampPost());
     // the mooring pile stands before the quay and the boats behind it, so it is laid again over them too
@@ -889,47 +889,63 @@ class PortPainter {
   }
 
   /**
-   * The beacon at the quay's head: a stout post leaning a little, banded red, and on its top a wide iron fire pan on
-   * three short struts, rusty, a heap of split logs in it. By day it is cold (charred ends, grey ash); at dusk and night
-   * it burns, and its flames are the beacon's light (`fireLooks`).
+   * The beacon at the quay's head: a raised platform of the quay's own dressed blocks at the very end, its top about as
+   * high as a standing person's head, and on it on three stubby legs a wide black iron fire pan, rusty, big enough for a
+   * bonfire, heaped with split logs. By day it is cold (charred ends, grey ash); at dusk and night it burns, and its fire
+   * is the beacon's light (`fire`).
    */
   private lampPost(): void {
-    const { lamp: pan } = this.plan;
-    const foot = PORT.deck + sag(pan.x) + 1, px = pan.x, top = pan.y + FIRE_PAN.deep + 2;
-    for (let y = top; y < foot; y++) {
-      const lean = Math.round((foot - y) * 0.04);
-      const half = y > foot - 8 ? 6 : 4;
-      for (let k = -half; k <= half; k++) {
-        const band = Math.floor((foot - y) / 12) % 2 === 0;
-        const u = k / half;
-        this.put(px + k - lean, y, y > foot - 8 ? tone(F.stone, clamp01(0.5 + u * this.hour.side * 0.3), px + k, y) : band && y > top + 6 ? tone(F.red, clamp01(0.55 + u * this.hour.side * 0.3), px + k, y) : tone(F.hull, clamp01(0.62 + u * this.hour.side * 0.3), px + k, y));
+    this.beaconPlatform();
+    this.firePan();
+  }
+
+  /** The beacon's raised platform at the quay's end: courses of blocks, its top slab pale, its seaward end catching the light. */
+  private beaconPlatform(): void {
+    const { l, r, top } = PORT_BEACON;
+    // the platform: courses of blocks, its top slab pale, its seaward end catching the light as the quay's head does
+    const [a, b] = this.rows(top, PORT.deck + 2);
+    for (let y = a; y < b; y++) {
+      const course = Math.floor((y - top - 3) / 9), off = course % 2 ? 7 : 0;
+      for (let x = l; x <= r; x++) {
+        if (y > PORT.deck + sag(x)) continue;
+        const end = x > r - 7, slab = y < top + 3;
+        const seam = !slab && ((y - top - 3) % 9 === 0 || (!end && (x - l + off) % 15 === 0));
+        const t = slab ? (y === top ? 0.85 : 0.7) : end ? 0.55 + this.hour.side * 0.25 : this.blockTone(course * 5 + Math.floor((x - l + off) / 15) + 170, (y - top) / (PORT.deck - top) * 0.5);
+        this.put(x, y, x === l || x === r || seam ? R.stone[slab ? 1 : 0]! : tone(F.stone, clamp01(t), x, y, 0.1));
       }
     }
-    const cx = panMiddle(pan);
-    // three short iron struts from the post's top out to the pan's belly
-    for (let k = 0; k <= 3; k++) for (const dx of [-1, 0, 1]) this.put(cx + dx * (2 + k * 2), top - k + 1, R.stone[0]!);
-    // the pan: a wide shallow bowl of black iron, its rim lit on top and on the light's side, rust down its belly
-    const { half, deep } = FIRE_PAN;
+  }
+
+  /** The fire pan on the beacon's platform, on three stubby legs, heaped with logs; cold here, its fire is `fire`. */
+  private firePan(): void {
+    const { top } = PORT_BEACON;
+    const { lamp: pan } = this.plan;
+    const { half, deep } = FIRE_PAN, cx = pan.x;
+    // three stubby iron legs under the pan
+    for (const dx of [-14, 0, 14]) for (let y = pan.y + deep; y < top; y++) for (const k of [0, 1]) this.put(cx + dx + k, y, k ? R.stone[1]! : R.ink);
+    // the pan: a wide bowl of black iron, its thick rim lit on top and on the light's side, rust down its belly
     for (let y = pan.y; y <= pan.y + deep; y++) {
-      const d = (y - pan.y) / deep, w = Math.round(half - d * d * (half - 4));
+      const d = (y - pan.y) / deep, w = Math.round(half - d * d * (half - 16));
       for (let k = -w; k <= w; k++) {
         const u = k / w, edge = Math.abs(k) === w || y === pan.y + deep;
-        const rust = !edge && hash2(k >> 1, y, 471) > 0.72;
-        this.put(cx + k, y, edge ? R.ink : y === pan.y ? (u * this.hour.side > 0.2 ? R.stone[3]! : R.stone[2]!) : rust ? R.sponge[1]! : tone(F.stone.slice(0, 3), clamp01(0.4 + u * this.hour.side * 0.4 - d * 0.2), cx + k, y));
+        const rust = !edge && y > pan.y + 2 && hash2(k >> 1, y >> 1, 471) > 0.75;
+        const lip = y <= pan.y + 1;
+        this.put(cx + k, y, edge ? R.ink : lip ? (y === pan.y ? (u * this.hour.side > 0.2 ? R.stone[3]! : R.stone[2]!) : R.stone[1]!) : rust ? R.sponge[1]! : tone(F.stone.slice(0, 3), clamp01(0.45 + u * this.hour.side * 0.4 - d * 0.25), cx + k, y));
       }
     }
-    // the logs heaped in it, split ends up, charred dark at their tips; grey ash between them
-    const logs: readonly (readonly [number, number, number])[] = [[-9, -2, -3], [-4, -6, 1], [1, -7, 5], [5, -4, 9], [-1, -3, 3]];
-    for (const [x0, rise, x1] of logs) {
+    // the logs heaped in it, crossed, split ends up, charred dark at their tips; grey ash between them
+    const logs: readonly (readonly [number, number, number, number])[] = [[-24, -1, -6, -9], [-12, -1, 4, -12], [-2, -12, 14, -1], [6, -10, 24, -1], [-18, -3, 18, -4], [-8, -2, 10, -7]];
+    for (const [x0, y0, x1, y1] of logs) {
       const n = Math.max(1, Math.abs(x1 - x0));
       for (let i = 0; i <= n; i++) {
-        const x = cx + x0 + ((x1 - x0) * i) / n, y = pan.y - 1 + Math.round((rise * Math.sin((Math.PI * i) / n)) / 2) - (i === 0 || i === n ? 0 : 1);
-        const tip = i === 0 || i === n;
+        const x = cx + x0 + ((x1 - x0) * i) / n, y = pan.y + y0 + ((y1 - y0) * i) / n;
+        const tip = i < 2 || i > n - 2;
+        this.put(x, y - 1, tip ? R.wood[1]! : R.wood[3]!);
         this.put(x, y, tip ? R.wood[0]! : R.wood[2]!);
         this.put(x, y + 1, tip ? R.ink : R.wood[1]!);
       }
     }
-    for (let k = -half + 2; k <= half - 2; k++) if (hash2(k, 2, 472) > 0.55) this.put(cx + k, pan.y, R.stone[3]!);
+    for (let k = -half + 3; k <= half - 3; k++) if (hash2(k, 2, 472) > 0.6) this.put(cx + k, pan.y, R.stone[3]!);
   }
 
   /**
@@ -1541,8 +1557,8 @@ class PortPainter {
         bitmap.pixels[0] = R.ink;
         return bitmap;
       }
-      const flameY = plan.lamp.y - 10;
-      lamp.paint(brush, panMiddle(plan.lamp), flameY, optionsOf(lamp, undefined, { reach: 34 + look * 2, water: PORT.water + 2 - flameY, lantern: false }), look);
+      const flameY = plan.lamp.y - 16;
+      lamp.paint(brush, plan.lamp.x, flameY, optionsOf(lamp, undefined, { reach: 52 + look * 3, water: PORT.water + 2 - flameY, lantern: false }), look);
       fire(brush.put, plan.lamp, look);
       return bitmap;
     }));
@@ -1563,32 +1579,27 @@ export function paintPort(plan: PortPlan, phase: SkyPhase): PortPicture {
   return { palette: p.palette, frames, fore, clouds, front, lamp: p.lamp(frames[0]!), water: p.liveWater!, ...p.deep(frames[0]!), kelp: p.kelps(frames[0]!), swimmers: p.swimmers(), boats: boatsOf(p), gull: p.gullTone(), leap: p.leapTones() };
 }
 
-/** The column the fire pan's middle stands on: the post's top, which leans a little toward the sea. */
-function panMiddle(pan: { x: number; y: number }): number {
-  const foot = PORT.deck + sag(pan.x) + 1, top = pan.y + FIRE_PAN.deep + 2;
-  return pan.x - Math.round((foot - top) * 0.04);
-}
-
 /**
  * The fire burning in the beacon's pan, one of its flickering looks: a bed of glowing coals along the rim and tongues of
  * flame over it, white-yellow at the heart, orange, red at their tips, a little taller and leaning a different way in
  * each look, and a few sparks flying up. Its own light: no hour changes it.
  */
 function fire(put: (x: number, y: number, c: number) => void, pan: { x: number; y: number }, look: number): void {
-  const cx = panMiddle(pan);
-  const half = FIRE_PAN.half - 2;
-  for (let k = -half; k <= half; k++) put(cx + k, pan.y, hash2(k, look, 481) > 0.4 ? R.ember[4]! : R.ember[3]!);
+  const cx = pan.x, half = FIRE_PAN.half - 3;
+  for (let k = -half; k <= half; k++) for (const dy of [0, 1]) put(cx + k, pan.y + dy, hash2(k, look + dy, 481) > 0.45 ? R.ember[4]! : R.ember[3]!);
+  // tongues of flame: tallest in the middle, each column its own height, leaning and licking a different way in each look
   for (let k = -half; k <= half; k++) {
-    const u = k / half, sway = Math.sin(look * 2.1 + k / 3) * 1.2;
-    const tall = Math.round((15 - 10 * u * u) * (0.7 + 0.45 * hash2(k >> 1, look, 482)));
+    const u = k / half, sway = Math.sin(look * 2.1 + k / 4) * 2.2;
+    const tall = Math.round((34 - 24 * u * u) * (0.65 + 0.5 * hash2(k >> 1, look, 482)));
     for (let up = 1; up <= tall; up++) {
       const f = up / tall, x = Math.round(cx + k + sway * f * f);
-      if (f > 0.75 && hash2(k, up + look * 7, 483) > 0.6) continue; // ragged tips
-      put(x, pan.y - up, f < 0.3 && Math.abs(u) < 0.5 ? R.ember[5]! : f < 0.55 ? R.ember[4]! : f < 0.8 ? R.ember[3]! : R.ember[2]!);
+      if (f > 0.7 && hash2(k, up + look * 7, 483) > 0.55) continue; // ragged tips
+      put(x, pan.y - up, f < 0.35 && Math.abs(u) < 0.6 ? R.ember[5]! : f < 0.6 ? R.ember[4]! : f < 0.82 ? R.ember[3]! : R.ember[2]!);
     }
   }
-  for (let k = 0; k < 4; k++) {
-    const x = cx + Math.round((hash2(k, look, 484) - 0.5) * 18), y = pan.y - 18 - Math.round(hash2(k, look, 485) * 12);
+  // sparks flying up over it
+  for (let k = 0; k < 7; k++) {
+    const x = cx + Math.round((hash2(k, look, 484) - 0.5) * 40), y = pan.y - 36 - Math.round(hash2(k, look, 485) * 20);
     put(x, y, k % 2 ? R.ember[4]! : R.ember[3]!);
   }
 }
