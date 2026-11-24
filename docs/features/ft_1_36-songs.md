@@ -3,8 +3,8 @@ id: "ft_1_36"
 title: "Songs made of pieces"
 scope: "A song is a tree like a folder of folders: groups, pieces, links to a piece that repeats, and blanks not written yet; the song's tempo, key and meter pass down to every part that does not set its own, an own value shown beside the crossed-out default; each player turns parts on and off; a piece plays alone, a group or the whole song plays as one staff the student pages through, with a map of the song's parts; songs listed behind a bookmark of the piece book and each song a page of the same book; one page for a song's tree and a piece's parts"
 effort: "large"
-status: "slice 1 done (the song file, the resolved tree, songChart, the song checks in piece:lint, the example song Morning Song, au11); slice 2 in part: the song bookmark, the songs list, the song page in place of the part cards with folding, switches per player, labels and play buttons. the whole song on one staff with each part's name over its first bar and a fold where a part was left out, its own records (a play with a written part off kept apart), Back to the song page or songs list. Open in slice 2: the song map, tempo, key and meter changes drawn inside a song. Slices 3 and 4 open"
-completeness: 40
+status: "slice 1 done (the song file, the resolved tree, songChart, the song checks in piece:lint, the example song Morning Song, au11); slice 2 in part: the song bookmark, the songs list, the song page in place of the part cards with folding, switches per player, labels and play buttons. the whole song on one staff with each part's name over its first bar and a fold where a part was left out, its own records (a play with a written part off kept apart), Back to the song page or songs list, the song map over the staff (blanks hatched, AX-3 provisional: a link's curled arrow and a blank's hatching only where they fit beside the name). Open in slice 2: tempo, key and meter changes drawn inside a song. Slices 3 and 4 open"
+completeness: 45
 depends_on: ["core_06", "core_03", "ft_1_02a", "ft_1_12"]
 ---
 # ft_1_36: Songs made of pieces
@@ -89,7 +89,7 @@ Slice 4:
 
 ## TODO
 
-- TODO(builder, R2): the rest of slice 2: the song map (rule 8), the player's first visit told once what a tick does, the songs in the library's drawers, the songs list's `i` button; the song map gets the ergonomics review with previews before it merges (d293).
+- TODO(builder, R2): the rest of slice 2: the player's first visit told once what a tick does, the songs in the library's drawers, the songs list's `i` button.
 - TODO(builder, R2): a part with its own key or meter inside a song: the staff layout draws one key and one meter per piece (`UnsupportedNotationError`), so such a song does not draw yet; draw the key and time signature changes and a tempo mark where a part sets its own (rule 7, AC9).
 - TODO(painter, R2): a part's name over its first bar is the section ink in the staff font, without the bracket rule 7 names.
 - TODO(painter, R2): the song bookmark, the marks of a link and a blank on the song page, and the song map's blocks.
