@@ -35,7 +35,7 @@ TypeScript (strict), Vite, Phaser 4, Vitest, raw Web MIDI, Web Audio with a samp
 
 ## Commands
 
-All scripts and test notes: `docs/commands.md`. Daily: `npm run check` (before saying done), `npm run check:ci` (before pushing), `npm run test:e2e:affected`, `npm run docs:index` (regenerates `<!-- docs:... -->` blocks; never edit inside them by hand).
+All scripts (`docs:verify` among them) and the working notes on tests and long jobs: `docs/commands.md`. Daily: `npm run check` (before saying done), `npm run check:ci` (before pushing), `npm run test:e2e:affected`, `npm run docs:index` (regenerates `<!-- docs:... -->` blocks; never edit inside them by hand).
 
 ## Architecture rules
 
@@ -66,7 +66,7 @@ MIDI 60 is middle C (C4); the EZ-220 spans MIDI 36 (C2) to 96 (C7); pieces stay 
 - **No quotes, dates or personal facts (d165)** in a committed file, commit message or PR (the gitignored `private/` at most); `docs:check`, CI and the hooks enforce it. Ledger entry format: `docs/decisions/DECISIONS.md`; an entry says only what holds, and one that no longer holds is deleted.
 - **Requirements live in the repo (d165):** whatever the maintainer decides becomes, in the same session, a plain one- or two-line rule (a ledger entry, or a tag in its doc, plus a check when testable), in the work's PR or a doc-only one merged at once. Pull main and read the ledgers before designing. A rule in memory the repo lacks is written in; in a contradiction the latest word wins.
 - **Authority comes from where a rule lives (d165):** every ledger entry binds, and the repo says "the maintainer", never who. Change a ledger entry only when the maintainer asked in that session; the PR then says `Ledger: asked by the maintainer in this session.`, and a reviewer rejects a ledger change without it.
-- New rules have tests; for `core` and `tools` write the failing test first. A bug found by a human gets a regression test before the fix, named for the behaviour, never an issue number (`docs/testing.md` section 9).
+- New rules have tests; for `core` and `tools` write the failing test first. A bug found by a human gets a regression test before the fix, named for the behaviour, never an issue number, as does a GitHub issue that changes behaviour; a tagged item's test names its criterion (`docs/testing.md` section 9).
 - **Do not invent hardware behaviour:** key lighting, latency and drivers are unverified until the spike (`docs/hardware-notes.md`); verify with the virtual device, label synthetic fixtures `synthetic`, report real-hardware checks as "needs human".
 - Generated pieces start `status: "draft"` and pass `piece:lint`; only the maintainer approves one (preview tool or pick board, d262), and only a person runs `docs:verify`.
 - Prefer the platform to a new dependency; one that is added is MIT/BSD/Apache and recorded in `docs/dependencies.md`.
