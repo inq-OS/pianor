@@ -60,7 +60,7 @@ export interface ClefFlight {
   before: LearnMedal | null;
   after: LearnMedal;
   from: Box;
-  then?: KeriScreen;
+  then?: KeriScreen | 'profile';
 }
 
 const CARD_HEIGHT = 32;
@@ -135,6 +135,8 @@ export class MenuScene extends PixelScene {
   private flight: ClefFlight | null = null;
   private flightSign: PixelImage | null = null;
   private flyer: Phaser.GameObjects.Graphics | null = null;
+  /** Where the screen goes on after the clef lands (a character, or the room where Kiur waits); Back goes there at once. */
+  private goOnTo: KeriScreen | 'profile' | null = null;
   /** The piece whose info card is open, if any. */
   private infoId: string | null = null;
   /** The small "i" button of each unlocked card on this page, by piece id (not in `buttons`: they are not piece cards). */
@@ -207,6 +209,11 @@ export class MenuScene extends PixelScene {
 
   /** Esc and the toolbar's Back: close a piece's info, or go back to the player's room, or to the main menu from the piece maker. */
   protected override back(): void {
+    // a learned piece's clef on its way: Back goes on at once to where the piece goes back to
+    if (this.goOnTo) {
+      this.goOn();
+      return;
+    }
     if (this.infoId !== null) {
       this.showInfo(null);
       return;
@@ -224,6 +231,7 @@ export class MenuScene extends PixelScene {
     this.forKiur = this.maker ? null : (data?.forKiur ?? null);
     this.flight = this.maker ? null : (data?.clefFlight ?? null);
     this.flyer = null;
+    this.goOnTo = this.flight?.then ?? null;
     // the book opens at the page of the piece whose clef is coming
     if (this.flight) this.page = Number.POSITIVE_INFINITY;
     // the piece maker saves nothing for a player: the toolbar shows no name, level or settings
@@ -390,7 +398,7 @@ export class MenuScene extends PixelScene {
     this.tweens.add({ targets: flyer, x: end.x, y: end.y, scale: end.scale, delay: CLEF_FLIGHT.waitMs, duration: CLEF_FLIGHT.dropMs, ease: 'Quad.easeIn', onComplete: () => this.landFlight() });
   }
 
-  /** The clef is on its card: the sign shows its new medal, and a character's piece goes on to the character. */
+  /** The clef is on its card: the sign shows its new medal, and the screen goes on to the character or the room. */
   private landFlight(): void {
     const flight = this.flight;
     if (!flight) return;
@@ -401,8 +409,15 @@ export class MenuScene extends PixelScene {
     }
     this.flight = null;
     this.flightSign?.setBitmap(clefPrize(flight.after)).setName(`clefPrize:${flight.after}`);
-    const then = flight.then;
-    if (then) this.time.delayedCall(CLEF_FLIGHT.afterMs, () => { if (this.scene.isActive()) startScene(this, then, {}); });
+    if (this.goOnTo) this.time.delayedCall(CLEF_FLIGHT.afterMs, () => this.goOn());
+  }
+
+  /** On to the character or the room the learned piece goes back to (ft_1_32 rule 5), once. */
+  private goOn(): void {
+    const to = this.goOnTo;
+    if (!to || !this.scene.isActive()) return;
+    this.goOnTo = null;
+    startScene(this, to, {});
   }
 
   /** The light rule in the gap under `cell`: one fine pixel high, a little shorter than the card at each end. */

@@ -933,14 +933,16 @@ export class PracticeScene extends PixelScene {
   }
 
   /**
-   * Where a learned piece goes on: a character's piece back to the character, who has taught it (ft_1_32.AC15); a piece
-   * Kiur was asked to teach back to the room, where Kiur waits with the tug (rule 15); a character's piece learned at the
-   * piano opens for practice.
+   * Where a learned piece goes on: the book, where its clef drops onto its card (ft_1_32.AC22), then a character's piece
+   * back to the character, who has taught it (ft_1_32.AC15), and a piece Kiur was asked to teach back to the room, where
+   * Kiur waits with the tug (rule 15); a piece learned at the piano stays in the book. With no clef shown, straight there
+   * (a piece learned at the piano opens for practice).
    */
   private afterLearned(line: string): void {
     const teacher = this.startData.teacher;
-    // the book opens and the clef drops onto the piece's card; a character's piece then goes on to the character
-    if (this.clefFlight) startScene(this, 'menu', { clefFlight: { ...this.clefFlight, ...(teacher ? { then: teacher.scene } : {}) } });
+    // the book opens and the clef drops onto the piece's card (ft_1_32.AC22); then on to the character or the room
+    const then = teacher ? teacher.scene : this.startData.learn === true ? 'profile' as const : null;
+    if (this.clefFlight) startScene(this, 'menu', { clefFlight: { ...this.clefFlight, ...(then ? { then } : {}) } });
     else if (teacher) startScene(this, teacher.scene, {});
     else if (this.startData.learn === true) startScene(this, 'profile', {});
     else this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line });

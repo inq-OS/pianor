@@ -279,5 +279,7 @@ test('ft_1_32.AC15 ft_1_32.AC22 a piece learned keeps its reward and the learned
   await expect.poll(clefs).toContain('clefFlight');
   await expect.poll(clefs, { timeout: 5_000 }).not.toContain('clefFlight');
   expect((await clefs()).filter((n) => /^clefPrize:(gold|silver|bronze)$/.test(n))).toHaveLength(1);
+  // a piece Kiur was asked to teach then goes back to the room, where Kiur waits with the tug
+  await waitForScene(page, 'profile');
   expectNoErrors(errors);
 });
