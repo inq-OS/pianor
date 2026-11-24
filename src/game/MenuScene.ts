@@ -78,7 +78,7 @@ const MARGIN = 6;
 const BOOK_SIDE = 3;
 const BOOK_MARGIN = 14;
 const BOOK_GUTTER = 18;
-/** The group signs just past a title keep this far apart. */
+/** The group signs at the end of a title's line keep this far apart. */
 const SIGN_GAP = 3;
 /** The bar under a curriculum piece's days left: how near its level is to the expected one. */
 const NEAR_BAR = { w: 14, h: 5 } as const;
@@ -759,8 +759,8 @@ export class MenuScene extends PixelScene {
   }
 
   /**
-   * One piece: its title and, once played, its own level (ft_1_13) under it, with its stars and small buttons. Just past
-   * the title its groups' signs: an own piece's pencil (which opens it in the piece maker), a character's speech bubble in
+   * One piece: its title and, once played, its own level (ft_1_13) under it, with its stars and small buttons. At the outer
+   * end of the title's line its groups' signs: an own piece's pencil (which opens it in the piece maker), a character's speech bubble in
    * its colour, and the teacher's academic hat on a curriculum piece with the days left and a bar of how near it is, or,
    * finished, the hat in its medal's colours (ft_1_26.AC8), then its clef prizes. No piece is locked (ft_1_13.AC3).
    */
@@ -775,7 +775,7 @@ export class MenuScene extends PixelScene {
     const firstButton = left + 6 + GRADE_WIDTH + INFO_SIZE + INFO_SIZE / 2;
     const at = (place: number) => ({ x: flip(firstButton + place * STATS_OFFSET), y: top + 23 });
     const lineEnd = left + width - 5;
-    // written in the book: the title on the first line with its signs just past it, the line under it the stars and the
+    // written in the book: the title on the first line with its signs at the line's outer end, the line under it the stars and the
     // piece's level; the title is what plays the piece
     const mark = this.maker ? undefined : this.curriculumMarks.get(piece.chart.id);
     const teacher = CHARACTER_PIECES.get(piece.chart.id);
@@ -789,12 +789,12 @@ export class MenuScene extends PixelScene {
       ...(mark ? [HAT.w + (days === null ? 0 : daysWidth + SIGN_GAP)] : []),
       ...prizes.map((p) => p.bitmap.width),
     ];
-    const signRoom = signs.reduce((a, b) => a + b + SIGN_GAP, 0);
-    // a title too long for the room before the signs and the block is cut on one line
-    const room = lineEnd - 2 - (left + 6) - signRoom;
+    // the signs at the title line's outer end, clear of the turned corner; a title too long for the room before them is cut on one line
+    const signsStart = lineEnd - 6 - signs.reduce((a, b) => a + b + SIGN_GAP, 0) + SIGN_GAP;
+    const room = signsStart - 4 - (left + 6);
     const title = signs.length === 0 ? pieceTitle(piece.chart) : clipToWidth(pieceTitle(piece.chart), room, (text) => measure(drawnText(text)));
     const titleEnd = left + 6 + measure(drawnText(title));
-    const buttonWidth = (signs.length === 0 ? lineEnd : titleEnd + 2) - left;
+    const buttonWidth = (signs.length === 0 ? lineEnd : signsStart - 2) - left;
     const button = this.button({
       x: flip(left + buttonWidth / 2), y: top + CARD_HEIGHT / 4, width: buttonWidth, height: CARD_HEIGHT / 2, label: title, look: 'ink', align: mirrored ? 'right' : 'left', labelWidth: room,
       onClick: () => {
@@ -804,8 +804,8 @@ export class MenuScene extends PixelScene {
         else startScene(this, 'practice', { chartId: piece.chart.id });
       },
     });
-    // the signs, left to right from just past the title: the pencil, the bubble, the days and bar with the hat, the prizes
-    let cursor = titleEnd + SIGN_GAP + 1;
+    // the signs, outward: the pencil, the bubble, the days and bar with the hat, the prizes at the line's end
+    let cursor = signsStart;
     const signImages: PixelImage[] = [];
     const sign = (bitmap: Bitmap, name: string): PixelImage => {
       const image = new PixelImage(this, flip(cursor, bitmap.width), top + Math.floor((line - bitmap.height) / 2), bitmap).setName(name);
@@ -832,7 +832,7 @@ export class MenuScene extends PixelScene {
     });
     const { info, stats } = this.cardButtons(piece, button, at);
     // past the small buttons, else past the title and its signs
-    if (record) this.pieceLevel(button, record, flip, [{ x: firstButton + 3 * STATS_OFFSET + INFO_SIZE / 2 + 4, y: top + 20, limit: left + width - 1 }, { x: cursor + 5, y: top + 4, limit: lineEnd }]);
+    if (record) this.pieceLevel(button, record, flip, [{ x: firstButton + 3 * STATS_OFFSET + INFO_SIZE / 2 + 4, y: top + 20, limit: left + width - 1 }, { x: titleEnd + 6, y: top + 4, limit: signsStart - 3 }]);
     // the five-star grade of the best play, stacked like interlocking rings: three over two, the two set in between (ft_1_12 rule 7)
     const grade = record?.bestGrade ?? 0;
     const starsAt = flip(left + 6, GRADE_WIDTH);
