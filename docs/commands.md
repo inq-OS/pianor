@@ -1,5 +1,5 @@
 ---
-covers: ["package.json", ".githooks/", ".claude/hooks/", ".mcp.json", "playwright.config.ts"]
+covers: ["package.json", ".githooks/", ".claude/hooks/", "playwright.config.ts"]
 ---
 # Commands
 
@@ -45,8 +45,3 @@ Every `npm run` script, what it does and when to use it. `npm run docs:check` fa
 - A full end-to-end run takes about 8 minutes with a GPU, 20 to 30 without (SwiftShader, `E2E_GPU=0`, CI). Use `npm run test:e2e:affected`.
 - Screenshot baselines are one file per screen that every machine compares, tolerance 2 percent, made by the "Update screenshot baselines" workflow or a local `--update-snapshots` run of the visual area (a small control can slip through: look at the picture when a screen changes). No game text uses a font of the computer: the staff's font ships with the game, and the screenshot area draws without a GPU (`docs/decisions/workflow.md#d288`, d289).
 - Playwright uses port 5180 (`PW_PORT=<n>` changes it) and never reuses a server already there, so a stale server fails the run: find the holder (`lsof -i :5180` or `netstat -ano | findstr :5180`) and stop it or change `PW_PORT`. `PW_REUSE_SERVER=1` reuses a server you started on purpose.
-
-## Code graph (code-review-graph MCP)
-
-Only where the `code-review-graph` MCP server runs (`.mcp.json`: wherever the tool is installed and its index built). When its tools are present, narrow scope with the graph before reading files: skills `explore-codebase`, `debug-issue`, `review-changes`, `refactor-safely` in `.claude/skills/`. Then read the source and its tests before changing anything; when graph and source disagree, the source wins, and an empty result may only mean "not indexed". Hooks in `.claude/settings.json` update the graph after edits and skip silently where it is not installed.
-Agents without the MCP tools can use the CLI: `code-review-graph update` (refresh the index) and `code-review-graph search <name>` (find a symbol).
