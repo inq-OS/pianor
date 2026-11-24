@@ -15,8 +15,11 @@ import { ChartPlayer } from '../preview/ChartPlayer';
 const WALK_PX_PER_SECOND = 40;
 /** `ChartPlayer`'s lead-in before a phrase's first note. */
 const PHRASE_LEAD_IN_MS = 200;
-/** A frame longer than this (a hidden tab, a pause) counts as this long, so a script never jumps ahead. */
-const LONGEST_FRAME_MS = 100;
+/**
+ * A frame longer than this (a hidden tab, a pause) counts as this long, so a script never jumps ahead. A slow machine's
+ * frames (a software GPU at a few frames a second) count in full, so the script keeps time with its tune.
+ */
+const LONGEST_FRAME_MS = 1000;
 
 /** The words of a line: its string, or the key itself when the game does not have it (content is checked in its test). */
 export function lineText(key: string): string {

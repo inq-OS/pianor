@@ -1,21 +1,28 @@
 # Pianor releases and roadmap
 
-## This week
+## The barrel
 
-**Goal: the student learns one approved piece bar by bar on the laptop, through to its clef, and on the next day the recall check asks the step before.** The builder, in this order, each a `TODO(builder, R2)` in [ft_1_32](../features/ft_1_32-learn-a-piece-bar-by-bar.md): count only plays after the piece is learned for the three-plays-to-gold rule; keep the step when the step size changes; the learning settings on the settings screen; three perfect whole runs to finish the learning (the architect's call there). The painter: the reward notes and the clef in the house manner (`TODO(painter, R2)` there). The maintainer: approve Puuvaim's three phrases and at least one piece to learn in the piece preview, learn that piece on the EZ-220 over two days, and write three lines in the architect thread.
+The game is a barrel: it holds only as much as its shortest stave (d283). Each area of the game has a level, the mean `completeness` of its features (`docs/features/FEATURES.md`), lowest first; how it feels in play can rank an area lower than its number. What comes next is raising the shortest stave the maintainer feels in play, chosen with the maintainer, never a fixed goal for a week.
 
-**Done before this.** The tug of phrases with Puuvaim on the knoll plays end to end (ft_1_21); only the maintainer's look on the real keyboard is left (NEEDS-HUMAN in [ft_1_22](../features/ft_1_22-conversations-and-phrase-book.md)). The circle of fifths is built (ft_1_28).
-
-**Next week, unless the playtest says otherwise:** the scales and chords trainer, slices A to D ([ft_1_29](../features/ft_1_29-scales-and-chords.md)). After it, beside the goal, in this order: the piece maker's drag-repeat handle ([ft_1_02d](../features/ft_1_02d-editor-extras.md)); the key-light settings rows, practice wiring and half-cost XP rule ([ft_Y_06](../features/ft_Y_06-key-light-hints.md); the real EZ-220 light still waits on the maintainer's silent-light test).
-
-**Real pieces, after those** (the goal: import and split 64 bars of a public-domain classical piece). In this order, each a `TODO(builder, R2)`: a real-piece level with no bar maximum and parts of any length ([ft_0_04](../features/ft_0_04-piece-linter.md)); the notation such a piece needs first, dotted quarter and eighth, sixteenths, first and second endings ([core_09](../features/core_09-notation-growth.md)); MusicXML import in the browser with parts proposed from double bars and repeats ([ft_Y_04](../features/ft_Y_04-piece-import.md)). Until then a real piece goes in as hand-written ABC with `phrases` for its parts (core_06).
-
+| Area | Features | Level | What holds it back |
+|---|---|---|---|
+| Pieces to play | content, core_08, core_09, ft_Y_04 | low | 6 of 39 pieces approved; Puuvaim's phrases are drafts, so a release build has no tug |
+| Getting it to a player | ft_0_14, [release.md](../release.md) | low | the Windows zip never run on a real PC; no credits file for CC BY assets |
+| Learning a new piece | ft_1_32 | 55 | slices 1 to 3 built; characters teaching by it (slice 4) and the review schedule (slice 6) open |
+| Characters and challenges | ft_1_21, ft_1_22 | 50 | one character plays end to end; the phrase book, the border guard |
+| The teacher and the curriculum | ft_1_26, ft_1_27 | 55 | statistics, calendar, requests held |
+| The EZ-220 | ft_0_01, ft_Y_06, core_01 | 60 | key lights wait on the silent-light test; latency calibration |
+| Theory and ear | ft_0_17, ft_1_10, ft_1_28, ft_1_29 | 65 | scales and chords not started |
+| The world of Keri | ft_1_18, ft_1_19, ft_1_24, ft_1_25 | 70 | pictures loaded per hour; walkers held |
+| The piece maker | ft_1_02b, ft_1_02d, ft_1_30, ft_1_33 | 75 | the drag-repeat handle |
+| Reading and playing | ft_0_05 to ft_0_16, core_01, core_03, core_10, ft_1_12, ft_1_35, core_13 | 85 | Tempo latency, rhythm practice; the autotrainer and the beat helpers designed, held for the maintainer's word |
+| Progress and rewards | ft_0_10, ft_1_09, ft_1_13, core_12 | 90 | earned trophies (Later) |
 
 The architect's working tool (roadmap questions are the architect's to decide). Each release is a GitHub milestone (R1 to R5, `Later pool`); when a grouping changes, change this file and the milestone together. Tracking rules: [labels.md](labels.md).
 
-A release's work is the open issues in its milestone plus every doc tag carrying its release, `TODO(<project>, R2)` and the like (d116, [todo-tags.md](../automation/todo-tags.md#finding-work)); the release is the roadmap tag on a tag. Each release lists its content (feature ids), its gate in, its exit and what only the maintainer can do (the real EZ-220, playtests, approvals). **One release = at most one profile save bump** (d069). No dates: order and gates matter, the calendar does not. Order: R1, R2, R3, R4, R5; the Later pool takes items any time after their gate. Three tracks feed the releases: hardware (EZ-220 spike, key lights, EZ-220 sounds), art (sprite toolkit, monsters, tiles) and groundwork (refactors that keep the code from fighting the next release).
+A release's work is the open issues in its milestone plus every doc tag carrying its release, `TODO(<project>, R2)` and the like (d116, [todo-tags.md](../automation/todo-tags.md#finding-work)); the release is the roadmap tag on a tag. Each release lists its content (feature ids), its gate in, its exit and what only the maintainer can do (the real EZ-220, playtests, approvals). **One release = at most one profile save bump** (d069). No dates: order and gates matter, the calendar does not. Order: R1, R2, R3, R4, R5; the Later pool takes items any time after their gate. Three tracks feed the releases: hardware (EZ-220 spike, key lights, EZ-220 sounds), art (sprite toolkit, characters, tiles) and groundwork (refactors that keep the code from working against the next release).
 
-**R0 (done):** MVP features ft_0_00 to ft_0_16 except ft_0_01's measurements and ft_0_17, plus the piece editor (ft_1_02a, c), Tempo mode a to c (core_01), core_02 to core_05, sharps and flats (all slices), keyboard menus ft_Y_13, demo director ft_Y_09, the campaign's rules and save (ft_1_06 K1 to K3, K5), the shared play session and the scene and core groundwork. Much was built ahead of the student having the MVP, which is why R1 is small and first.
+**R0 (done):** MVP features ft_0_00 to ft_0_16 except ft_0_01's measurements and ft_0_17, plus the piece editor (ft_1_02a, c), Tempo mode a to c (core_01), core_02 to core_05, sharps and flats (all slices), keyboard menus ft_Y_13, demo director ft_Y_09, the shared play session and the scene and core groundwork. Much was built ahead of the student having the MVP, which is why R1 is small and first.
 
 ## Status
 
@@ -25,11 +32,11 @@ Open work is a doc tag (d116). Count a release's work with the grep in [todo-tag
 |---|---|
 | R1 | **Done** |
 | R2 | **Open now.** Count the tags with the grep above (about 50). Built since then: dynamic marks, repeat signs, ties, slurs and grace notes (d120, d121), the band on practice, the piece maker, the trainers and results (ft_1_20), the warm wood on every screen (d118), Kiur (d114), the circle of fifths (ft_1_28), the tug with Puuvaim (ft_1_21). Open, in order: learning a piece bar by bar (ft_1_32 slice 2); scales and chords (ft_1_29); the pictures loaded per hour; the piece maker's drag-repeat handle (ft_1_02d); the band's item model and the other screens (ft_1_20); the v18 save round (rhythm practice, helper marks, the wheel, text settings; none started); pick-up bars (d120 slice 1); the key-light settings and wiring, the real light after the maintainer's silent-light test (ft_Y_06); the painter's inventory sheet and the staff screens ([painter-project.md](painter-project.md) section 7) |
-| R3 | ft_1_21 (challenges with characters, d129), the campaign phase screens (now in the scenes of ft_1_19), the admin settings page, four character songs, harder campaign defaults, EZ-220 sounds; per-piece XP built, try-out open |
-| R4 | "Living characters" (d132): the phrase book, the knowledge layer, question and answer, the birth month (ft_1_22, ft_1_23); the turn battle deleted (d151) |
-| R5 | the cold start (the pictures' weight), the world (open since d112) |
-| Later | the trainers' two-player split (ft_1_29), the rhythm clock, vim-style editing, earned trophies, seasonal looks (ft_Y_14, now with the motion kit's weather seam), EZ-220 command keys |
-| Keri (maintainer-driven, R2) | ft_1_18 and ft_1_19: the room, the map (a caricature of Keri since d125), the knoll, the docks and the crossroads are painted on one painter's kit (d124) and one motion kit; the garden is paused (d252). Each new scene adds about 1.3 MB to the game file until the pictures load per hour |
+| R3 | ft_1_21 (challenges with characters, d129), each character's learn, practise, show in the scenes of ft_1_19, the admin settings page, four character songs, harder challenge defaults, EZ-220 sounds; per-piece XP built, try-out open |
+| R4 | "Living characters" (d132): the phrase book, the knowledge layer, question and answer, the birth month (ft_1_22, ft_1_23) |
+| R5 | the cold start (the pictures' weight), the world (open, d112) |
+| Later | the trainers' two-player split (ft_1_29), the rhythm clock, earned trophies, seasonal looks (ft_Y_14, now with the motion kit's weather seam), EZ-220 command keys |
+| Keri (maintainer-driven, R2) | ft_1_18 and ft_1_19: the room, the map (a caricature of Keri, d125), the knoll, the docks and the crossroads are painted on one painter's kit (d124) and one motion kit; the garden is paused (d252). Each new scene adds about 1.3 MB to the game file until the pictures load per hour |
 
 ## R1 "First lessons": the MVP at the laptop (done)
 
@@ -53,7 +60,7 @@ Open work is a doc tag (d116). Count a release's work with the grep in [todo-tag
 
 | Content | What | Size |
 |---|---|---|
-| ft_1_14 MVP slice | The sky and the room's window follow the real day (first on the trail, removed by d117; now the painted room, map and scenes): dawn, day, dusk, night as palette swaps, computed offline (d097); pulled forward from R3; polish slice stays R3 | medium |
+| ft_1_14 MVP slice | The sky and the room's window follow the real day (the painted room, map and scenes): dawn, day, dusk, night as palette swaps, computed offline (d097); pulled forward from R3; polish slice stays R3 | medium |
 | core_10 | Practice analysis: per-bar store keyed by musical address, Analyze button with a bar gradient, per-bar graph, 3 weakest sections with a start tempo and ramp; tricky spots with Kiur's "!!!" | large |
 | – | Rhythm practice as its own levels: any key per hand zone, one-line rhythm staff, drum sound | large |
 | core_01 slice d | Tempo latency calibration: a short tap-along at the start of each Tempo session, not one stored value per device (spike: median 77 to 129 ms between runs, steady inside a run; `docs/hardware-notes.md`) | simple |
@@ -84,47 +91,43 @@ Open work is a doc tag (d116). Count a release's work with the grep in [todo-tag
 
 **The maintainer by hand:** try Tempo mode and rhythm in a playtest; confirm the rhythm levels' order; confirm the heatmap colours for a student.
 
-## R3 "Character campaign"
+## R3 "Characters"
 
 **The characters and the teacher run as one programme** ([program-characters-teacher.md](program-characters-teacher.md)): stages 1 (foundations) and 2 (the gameplay MVP) make R3; stage 3 is R4 "Living characters". Held until the maintainer approves it.
 
-**Theme:** characters met in the scenes of Keri, one after another: each teaches a part of a piece, the student practises it, then shows it in the character's tug of phrases (ft_1_06, ft_1_21; no battles since d129, no key or door screens since d135). The parent tunes the numbers while watching.
+**Theme:** characters met in the scenes of Keri, one after another: each teaches a part of a piece, the student practises it, then shows it in the character's tug of phrases (ft_1_21, d135). The parent tunes the numbers while watching.
 
 | Content | What | Size |
 |---|---|---|
-| ft_1_06 | The piece pick of AC9 and the ladder defaults the maintainer confirms; the practice gate in front of the tug is built | medium |
-| ft_1_21, ft_1_22 slice A (d129, d132) | The tug of reputation with two or three visitors and a voice with no body (the knoll's bonfire), met by practising, a conversation first, an item for a win, a practice tug with Kiur; challenges with characters: the pure core (slice A), the challenge drawn over its scene as phase 3 (B), the rename of monster and battle and the removal of the battle screens (C), the painter's look (D, after the maintainer says what the characters are) | large |
+| ft_1_21 | The piece pick of AC20 | medium |
+| ft_1_21, ft_1_22 slice A (d129, d132) | The tug of reputation with two or three visitors and a voice with no body (the knoll's bonfire), met by practising, a conversation first, an item for a win, a practice tug with Kiur; challenges with characters: the pure core (slice A), the challenge drawn over its scene (B), the painter's look (D, after the maintainer says what the characters are) | large |
 | – | Admin settings page behind a parent gate; overrides content defaults | medium |
 | – | Four original character songs of 8, 16, 24 and 32 bars, taught in levels by ft_1_32 slice 4; the maintainer approves them | simple + human |
 | if the spike says yes | `SoundOutput` interface; gameplay sounds and drums from the EZ-220 | medium |
-| ft_1_13 | Per-piece XP and level from practice; pieces no longer locked by level, levels gate characters (AX-0.3); derived from history, no save bump | medium |
+| ft_1_13 | Per-piece XP and level from practice; pieces not locked by level, levels gate characters (AX-0.3); derived from history, no save bump | medium |
 | ft_Y_04 | MusicXML import in the browser, any length, parts proposed; long-piece budget on a modest laptop; after core_09 | large |
 
 **Gate in:** `openOverlay` from d070 built with its first user.
 
-**Save bump:** campaign state is already in v14. The admin settings are stored per device, outside the student's profile, with its own `schemaVersion`. Anything else in the profile is v16, one bump.
+**Save bump:** the admin settings are stored per device, outside the student's profile, with its own `schemaVersion`. Anything else in the profile is v16, one bump.
 
-**Done when:** ft_1_06 AC1 to AC7 and ft_1_21 AC1 to AC10 pass; the campaign plays end to end in the scenes of ft_1_19 (the trail is removed, d117) with the virtual player (`npm run demo` gets a campaign scenario); AC8 (the student understands learn, practise and show) is a playtest.
+**Done when:** ft_1_21 AC1 to AC10 and AC19 to AC21 pass; a character's learn, practise, show plays end to end in the scenes of ft_1_19 with the virtual player (`npm run demo` gets a challenge scenario); ft_1_21.AC22 (the student understands learn, practise and show) is a playtest.
 
-**The maintainer by hand:** confirm the campaign defaults; say what the characters are on Keri (ft_1_21); approve the four character songs; playtest, tuning on the admin page.
+**The maintainer by hand:** confirm the challenge defaults; say what the characters are on Keri (ft_1_21); approve the four character songs; playtest, tuning on the admin page.
 
 ## R4 "Living characters"
 
-**Since d132:** characters teach phrases of their style into a phrase book (the classes come back as styles), the knowledge layer per player, question and answer as the advanced challenge, the birth month (ft_1_22 slices B and C, ft_1_23); one shared save round.
+**d132:** characters teach phrases of their style into a phrase book, the knowledge layer per player, question and answer as the advanced challenge, the birth month (ft_1_22 slices B and C, ft_1_23); one shared save round.
 
-The turn battle with classes and spells that R4 used to be is deleted ([d151](../decisions/workflow.md#d151)); the classes come back as music styles (d132).
+## R5 "The world"
 
-## R5 "The world": overworld RPG
+**Theme:** the map of Keri becomes a small world: walk with the arrow keys and meet characters; their styles are the music styles of d132.
 
-**Theme:** the campaign map becomes a small world: walk with the arrow keys and meet characters; their styles are the music styles of d132.
-
-**Open since d112:** the campaign's world is a set of painted scenes on Keri (ft_1_19), opened from the map. A tile overworld walked with the arrow keys (Grid Engine, Tiled) no longer fits that world; nothing below is decided again until the maintainer says how the world grows from scenes.
+**Open (d112):** the game's world is a set of painted scenes on Keri (ft_1_19), opened from the map. A tile map walked with the arrow keys does not fit that world; nothing below is decided until the maintainer says how the world grows from scenes.
 
 | Content | What |
 |---|---|
-| ft_Y_03 | Overworld, inventory, classes from the closed style list (d066) |
-| Phaser review R3 to R8 | A world base scene (PixelScene's full redraw does not suit scrolling), Tiled maps as content, events as data with a pure core interpreter, a loading scene, world save |
-| Candidate dependency | **Grid Engine** (Apache-2.0) for grid movement; **Tiled** as the map editor (a tool, GPL, not shipped; its JSON output is fine). Needs a decision file and `docs/dependencies.md` |
+| Phaser review R3 to R8 | A world base scene (PixelScene's full redraw does not suit scrolling), maps as content, events as data with a pure core interpreter, a loading scene, world save |
 
 **Gate in:** R4 played; the cold start measured on a modest laptop (Phaser is 357 kB gzipped); tiles in outline style A.
 
@@ -138,20 +141,18 @@ The turn battle with classes and spells that R4 used to be is deleted ([d151](..
 |---|---|---|
 | two-player split, lit keys for the trainers (ft_1_29) | ft_1_29 slices A to D; ft_Y_06's real output | Scales, chords, switcher and chord namer moved to R2 |
 | rhythm clock, USB drum kit | rhythm practice done; a drum kit tested (needs human) | Zones as a list (R2) make the kit cheap |
-| vim-style editing (opt-in) | bar selection and keyboard navigation done; a spec with the maintainer | Pure moves in `core/editor` make it a thin key layer |
-| ft_Y_14 seasonal and holiday looks for the campaign scene | ft_1_14 built | Layers on the day phase through `sceneLook` (d097); weigh a seasonal public-domain piece first (AX-0) |
-| EZ-220 command keys (hold an edge key, [key] labels on buttons, mode indicator), record in tempo | recording by playing done; a spec with the maintainer | vim-style editing builds on its latched mode |
+| ft_Y_14 seasonal and holiday looks for Keri's scenes | ft_1_14 built | Layers on the day phase through `sceneLook` (d097); weigh a seasonal public-domain piece first (AX-0) |
+| EZ-220 command keys (hold an edge key, [key] labels on buttons, mode indicator), record in tempo | recording by playing done; a spec with the maintainer | the vim keys (ft_1_02e) can read its latched mode |
 | earned trophies, medals, paintings in the room; piano upgrades with rank | the rank diploma done; an architect design pass (earned only, AX-2) | Awards as content, derived from progress so no save bump if possible |
-| core_09 rest (ties, pick-up bars, repeats) | none | Repeats also let campaign songs be AABA |
+| core_09 rest (ties, pick-up bars, repeats) | none | Repeats also let character songs be AABA |
 | Android tablets | the maintainer decides | Reopens hosting: Web MIDI needs a secure context, a tablet on the LAN is not `localhost` (HTTPS, PWA) |
 | ft_Y_07 content packs | none | Drops cloud sync (d068); file-based packs and save export/import only; the feature file changes when it is planned |
-| ft_Y_05 falling notes | rejected | AX-0.1: never built |
 
 ## What gates what
 
 | Gate | Unblocks | Who |
 |---|---|---|
-| EZ-220 spike results (ft_0_01) | core_01 d (sections 1 to 6 done), ft_Y_06 lighting (needs the silent-light test), EZ-220 sounds, ft_Y_08, the trainers' lit-key games | the maintainer |
+| EZ-220 spike results (ft_0_01) | core_01 d (sections 1 to 6 done), ft_Y_06 lighting (needs the silent-light test), EZ-220 sounds, the trainers' lit-key games | the maintainer |
 | Playtest after each release | the next release's priorities | the maintainer |
-| d070 `openOverlay` first use | campaign (R3), overworld (R5) | agent |
+| d070 `openOverlay` first use | characters (R3), the world (R5) | agent |
 | One save bump per release (d069) | parallel save work in each release | architect watches |

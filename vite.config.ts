@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import { piecesPlugin } from './tools/vite-pieces.ts';
 import { keriPlugin } from './tools/vite-keri.ts';
 import { photoPlugin } from './tools/vite-photo.ts';
@@ -30,6 +30,9 @@ export default defineConfig({
     setupFiles: ['tools/test/englishText.ts'],
     // The CLI tests start whole programs: on a busy machine five seconds is too tight.
     testTimeout: 30_000,
+    // `npm run test:changed` runs only the tests that import a changed file. Many tests read content/ from disk instead of
+    // importing it, so a change there (or to the lock file, Vitest's default) runs them all.
+    forceRerunTriggers: [...configDefaults.forceRerunTriggers, '**/package-lock.json', '**/content/**'],
     // Warns at the end when the working tree changed during the run (a pull or a checkout): a failure may then come from a mix of two revisions.
     globalSetup: ['tools/test/treeGuard.ts'],
     coverage: {
@@ -38,8 +41,8 @@ export default defineConfig({
       // src/io is tested through the browser fakes (src/io/mock, fake MIDIAccess and AudioContext). The CLI entry points
       // only read arguments and call tested functions.
       include: ['src/core/**/*.ts', 'src/io/**/*.ts', 'tools/**/*.ts'],
-      exclude: ['**/*.test.ts', '**/index.ts', 'tools/piece/build.ts', 'tools/piece/lint.ts', 'tools/generate/cli.ts', 'tools/docs/cli.ts', 'tools/docs/touched-cli.ts', 'tools/docs/privacy-cli.ts', 'tools/docs/privacy-ci.ts', 'tools/ci/code-changed-cli.ts', 'tools/vite-pieces.ts', 'tools/vite-keri.ts', 'tools/vite-keri-worker.ts',
-        'tools/e2e/affected-cli.ts', 'tools/e2e/runLogReporter.ts', 'tools/start-local/cli.ts', 'tools/art/render-cli.ts', 'tools/art/check-cli.ts', 'tools/art/pictures.ts', 'tools/board/cli.ts', 'tools/analysis/train-cli.ts', 'tools/import/photo-cli.ts', 'tools/import/audiveris.ts', 'tools/import/piece-cli.ts'],
+      exclude: ['**/*.test.ts', '**/index.ts', 'tools/piece/build.ts', 'tools/piece/lint.ts', 'tools/generate/cli.ts', 'tools/docs/cli.ts', 'tools/docs/touched-cli.ts', 'tools/docs/privacy-cli.ts', 'tools/docs/merge-driver-cli.ts', 'tools/docs/privacy-ci.ts', 'tools/ci/code-changed-cli.ts', 'tools/vite-pieces.ts', 'tools/vite-keri.ts', 'tools/vite-keri-worker.ts',
+        'tools/e2e/affected-cli.ts', 'tools/e2e/runLogReporter.ts', 'tools/start-local/cli.ts', 'tools/art/render-cli.ts', 'tools/art/check-cli.ts', 'tools/art/pictures.ts', 'tools/board/cli.ts', 'tools/board/human-cli.ts', 'tools/analysis/train-cli.ts', 'tools/analysis/fit-grades-cli.ts', 'tools/analysis/calibrate-cli.ts', 'tools/import/photo-cli.ts', 'tools/import/audiveris.ts', 'tools/import/piece-cli.ts'],
       reporter: ['text', 'html'],
       thresholds: { lines: 90, branches: 90, functions: 90, statements: 90 },
     },

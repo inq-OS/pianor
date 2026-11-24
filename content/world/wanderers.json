@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "note": "AX-3 provisional (ft_1_37). share: the share of notes right first try a wanderer's play needs at neediness 3 (each step 10 points, src/core/island/cast.ts); keepsakes: what a wanderer may give, drawn per wanderer and day; wanderers: who the teacher can send, each with the scenes it may stand in (an open one is drawn for the day).",
+  "share": 0.8,
+  "keepsakes": ["copper-coin", "silver-coin", "glass-bead", "brass-button"],
+  "wanderers": [
+    { "id": "traveller", "name": "wanderer.traveller.name", "actor": "traveller", "scenes": ["knoll", "docks", "port", "crossroads", "terrace"] }
+  ]
+}

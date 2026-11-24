@@ -48,17 +48,11 @@ describe('the southern harbour: its plan', () => {
     for (const kind of PORT_MOORED) expect(BOAT_KINDS).toContain(kind);
   });
 
-  it('ft_1_19.AC10 a press dives from the near water and rises from the water line\'s strip; the beings stand on the quay and on the bed', () => {
+  it('ft_1_19.AC10 a press dives from the near water and rises from the water line\'s strip', () => {
     expect(plan.diveAt.y * ART_DETAIL).toBeGreaterThan(PORT.water);
     expect(plan.diveAt.y + plan.diveAt.h).toBe(PORT_PICTURE.h);
     expect(plan.riseAt.y).toBe(0);
     expect(plan.riseAt.h * ART_DETAIL).toBeLessThanOrEqual(PORT.water - PORT.dive);
-    for (const spot of plan.spots) expect(spot.feet.y).toBeGreaterThan(PORT.deck);
-    for (const spot of plan.deepSpots) {
-      // from the underwater view's own top
-      expect(spot.feet.y + PORT.dive).toBeGreaterThan(PORT.bed);
-      expect(spot.feet.y).toBeLessThan(plan.fine.h);
-    }
   });
 
   it('ft_1_19.AC2 the harbour is a scene of the world model, at the southern slipway\'s foot by the water', () => {

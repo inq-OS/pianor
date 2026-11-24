@@ -15,8 +15,8 @@ export interface PlayerStats {
   passes: number;
   /** Pieces whose best pass earned five stars. */
   fiveStarPieces: number;
-  /** Levels of the campaign's monsters beaten (three a monster). */
-  campaignLevelsBeaten: number;
+  /** Tugs the student won (ft_1_21). */
+  tugsWon: number;
   /** XP from the note-name trainer (ft_0_17) and points from the ear trainer (ft_1_10). */
   noteTrainerXp: number;
   earPoints: number;
@@ -32,7 +32,7 @@ export function playerStats(profile: ProfileData, progress: ProgressSummary): Pl
     piecesPlayed: pieces.length,
     passes: pieces.reduce((sum, p) => sum + p.completions, 0),
     fiveStarPieces: pieces.filter((p) => p.bestGrade === 5).length,
-    campaignLevelsBeaten: profile.campaign.beaten.flat().filter(Boolean).length,
+    tugsWon: profile.tugs.filter((tug) => tug.won).length,
     noteTrainerXp: profile.trainerXp,
     earPoints: profile.earPoints,
   };

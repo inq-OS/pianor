@@ -3,7 +3,7 @@ import type { WindWay } from './paint/motion';
 
 /**
  * The pace of everything that moves in a painted place, in one table for every scene (motion shared
- * as the colours are), all read from the one wind of the scenery (ft_1_06.AC12): how fast a gust runs
+ * as the colours are), all read from the one wind of the scenery (ft_1_14.AC9): how fast a gust runs
  * through a picture's looks, how fast the clouds drift, and the day's sky: where the clouds start, at what pace each
  * goes and how many show (cloud movement, pattern and placement should vary,
  * especially once different weathers are considered). Pure: the scene (`PixelScene.drift`) only places what this gives.

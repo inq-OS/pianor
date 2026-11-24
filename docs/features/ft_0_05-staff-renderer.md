@@ -22,5 +22,5 @@ Own-built renderer in `src/game/ui/staff`: treble clef first, then bass; ledger 
 
 ## TODO
 
-- TODO(painter, R2): the cursor's box and a chosen section's bars are opaque fills tuned for the old cream paper (`cursorFill`, `sectionFill` in `StaffView.ts`); on the parchment they hide the skin's grain. Lay them as a tint the grain shows through, without losing the contrast chosen for the staff.
+- TODO(painter, R2): the cursor's box and a chosen section's bars are opaque fills tuned for cream paper (`cursorFill`, `sectionFill` in `StaffView.ts`); on the parchment they hide the skin's grain. Lay them as a tint the grain shows through, without losing the contrast chosen for the staff.
 - TODO(painter, R2): the piece maker's title is a white text box of the browser in the bar; write it on the sheet as a manuscript's heading (acceptable for now, on the painter's list for the piece maker). Its start screen (meter and key) and the grey note names are on the same list.

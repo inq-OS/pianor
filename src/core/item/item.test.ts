@@ -46,4 +46,11 @@ describe('the items (ft_1_20 item model)', () => {
     expect(bandInventory(['shell', 'shell'], five, [ladder]).map((e) => e.item.id)).toEqual(['shell']);
     expect(bandInventory([], five, [ladder])).toEqual([]);
   });
+
+  it('ft_1_37.AC9 several keepsakes of one kind stand once in the backpack with how many', () => {
+    const kept = (id: string) => ({ id, kind: 'kept', name: `item.${id}` });
+    const items = parseItems({ schemaVersion: 1, items: ['coin', 'bead', 'leaf'].map(kept) });
+    const shown = bandInventory(['coin', 'bead', 'coin', 'leaf', 'coin'], items, [['leaf']]);
+    expect(shown.map((e) => [e.item.id, e.count])).toEqual([['coin', 3], ['bead', 1], ['leaf', undefined]]);
+  });
 });

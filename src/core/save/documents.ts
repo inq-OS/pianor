@@ -8,8 +8,7 @@ import { z } from 'zod';
 import type { Curriculum } from '../curriculum/curriculum';
 import type { WorldState } from '../island/worldState';
 import { formatIssues } from '../issues';
-import type { ProgressionConfig } from '../progression/config';
-import { parseProfile } from '../progression/migrate';
+import { profileAfterRecord17, validateProfile } from '../progression/migrate';
 import { practiceLogSchema, type PracticeLog } from '../progression/practiceLog';
 import { PROFILE_SCHEMA_VERSION, type ProfileData } from '../progression/profile';
 import { upgradeToCurrent } from '../upgrade';
@@ -88,12 +87,18 @@ export type ProfileCore = Omit<ProfileData, 'schemaVersion' | 'practice'>;
  */
 export const PROFILE_DOCUMENT_V1_HOLDS = 17;
 
-/** The profile document: everything the profile held, less the practice log (d136). Needs the XP rules to validate. */
-export function profileDocument(config: ProgressionConfig): SaveDocument<ProfileCore> {
-  return document<ProfileCore>('profile', 1, [], () => {
+/**
+ * Version 2 of the profile document (d290): the tug records in place of the old battle records, the old campaign and its
+ * battle setting gone (`profileAfterRecord17`, frozen). The input is not changed.
+ */
+const profileV1ToV2: Migration = { from: 1, migrate: (doc) => ({ ...profileAfterRecord17(doc as Record<string, unknown>), schemaVersion: 2 }) };
+
+/** The profile document: everything the profile held, less the practice log (d136). */
+export function profileDocument(): SaveDocument<ProfileCore> {
+  return document<ProfileCore>('profile', 2, [profileV1ToV2], () => {
     throw new SaveDocumentError('profile: a player has no empty profile; create one with the repository');
   }, (value) => {
-    const parsed = parseProfile({ ...value, schemaVersion: PROFILE_DOCUMENT_V1_HOLDS, practice: { bars: [] } }, config);
+    const parsed = validateProfile({ ...value, schemaVersion: PROFILE_SCHEMA_VERSION, practice: { bars: [] } });
     if (!parsed.ok) throw new SaveDocumentError(`profile: ${parsed.errors.join('; ')}`);
     return splitProfile(parsed.profile).core;
   });
@@ -119,6 +124,8 @@ const worldStateSchema = z.object({
     lastLostTug: z.object({ piece: z.string().min(1), at: z.string().min(1) }).exactOptional(),
   })),
   teacherVisits: z.array(z.object({ day, piece: z.string().min(1), result: z.enum(['passed', 'notYet']) })),
+  // ft_1_37: added without a version step (d069.3)
+  wandererGifts: z.array(z.object({ day, wanderer: z.string().min(1), item: z.string().min(1) })).exactOptional(),
 });
 
 /** The world document: `WorldState` (ft_1_25, WP-08; contract A.8). */
@@ -151,6 +158,17 @@ const curriculumSchema = z.object({
   // ft_1_26.AC9: added without a version step (d069.3); absent, the defaults (Sunday and Wednesday, from the day's start)
   testWeekdays: z.array(z.int().min(0).max(6)).exactOptional(),
   testTime: clock.exactOptional(),
+  // ft_1_37: added without a version step (d069.3); absent, every character as before
+  cast: z.object({
+    characters: z.record(z.string().min(1), z.object({
+      on: z.boolean().exactOptional(),
+      weekdays: z.array(z.int().min(0).max(6)).exactOptional(),
+      chance: z.number().min(0).max(1).exactOptional(),
+      piece: z.string().min(1).exactOptional(),
+      neediness: z.int().min(1).max(5).exactOptional(),
+    })).exactOptional(),
+    sent: z.array(z.object({ wanderer: z.string().min(1), day, piece: z.string().min(1).exactOptional() })).exactOptional(),
+  }).exactOptional(),
 });
 
 /** The curriculum document: `Curriculum` (core_12, WP-04; contract A.12). Base 85 by d139. */

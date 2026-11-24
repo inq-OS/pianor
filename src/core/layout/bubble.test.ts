@@ -1,0 +1,188 @@
+// Covers ft_1_20 (actions in a bubble, a pinned strip and a backpack, d282).
+import { describe, expect, it } from 'vitest';
+import { BUBBLE_SLOTS, PIN_COLUMNS, PINCH_SLIDE, PIN_ROWS, TAP_SLIP, TWO_FINGER_TOGETHER_MS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, twoFingerTap, twoFingersSlid, wheelChoice } from './bubble';
+import { rectBottom, rectRight, type Rect } from './rect';
+
+const SCREEN = { w: 320, h: 180 };
+const overlap = (a: Rect, b: Rect) => a.x < rectRight(b) && b.x < rectRight(a) && a.y < rectBottom(b) && b.y < rectBottom(a);
+const inside = (r: Rect, s = SCREEN) => r.x >= 0 && r.y >= 0 && rectRight(r) <= s.w && rectBottom(r) <= s.h;
+
+describe('the bubble (ft_1_20, d282)', () => {
+  it('ft_1_20.AC19 opens round the pointer with each round option in its own fixed slot, 15 rows high at least, none touching', () => {
+    const b = bubbleLayout({ at: { x: 160, y: 90 }, options: BUBBLE_SLOTS, screen: SCREEN });
+    expect(b.options).toHaveLength(BUBBLE_SLOTS);
+    for (const o of b.options) {
+      expect(o.h).toBeGreaterThanOrEqual(15);
+      expect(inside(o)).toBe(true);
+    }
+    // the options are round: a cell and a half at least between neighbours, and two from the round Close target in the centre
+    const middle = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+    const apart = (a: Rect, c: Rect) => Math.hypot(middle(a).x - middle(c).x, middle(a).y - middle(c).y) - a.w / 2 - c.w / 2;
+    for (let i = 0; i < b.options.length; i++) {
+      expect(apart(b.options[i]!, b.close)).toBeGreaterThanOrEqual(2);
+      for (let j = i + 1; j < b.options.length; j++) expect(apart(b.options[i]!, b.options[j]!)).toBeGreaterThanOrEqual(1.5);
+    }
+    // slot 0 is straight above the centre, slot 2 to its right, slot 4 below, slot 6 to its left
+    const mid = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+    expect(mid(b.options[0]!).x).toBeCloseTo(b.centre.x, 0);
+    expect(mid(b.options[0]!).y).toBeLessThan(b.centre.y);
+    expect(mid(b.options[2]!).x).toBeGreaterThan(b.centre.x);
+    expect(mid(b.options[4]!).y).toBeGreaterThan(b.centre.y);
+    expect(mid(b.options[6]!).x).toBeLessThan(b.centre.x);
+  });
+
+  it('ft_1_20.AC19 an option keeps its slot whatever how many options the screen has, so the hand learns it', () => {
+    const three = bubbleLayout({ at: { x: 160, y: 90 }, options: 3, screen: SCREEN });
+    const eight = bubbleLayout({ at: { x: 160, y: 90 }, options: 8, screen: SCREEN });
+    expect(three.options).toEqual(eight.options.slice(0, 3));
+  });
+
+  it('ft_1_20.AC19 stays whole on the screen near an edge or a corner, as close to the pointer as it can', () => {
+    for (const at of [{ x: 0, y: 0 }, { x: 319, y: 179 }, { x: 5, y: 170 }, { x: 310, y: 4 }]) {
+      const b = bubbleLayout({ at, options: BUBBLE_SLOTS, screen: SCREEN });
+      expect(inside(b.area), JSON.stringify(at)).toBe(true);
+      for (const o of b.options) expect(inside(o), JSON.stringify(at)).toBe(true);
+    }
+    expect(bubbleLayout({ at: { x: 160, y: 90 }, options: 8, screen: SCREEN }).centre).toEqual({ x: 160, y: 90 });
+  });
+
+  it('ft_1_20.AC20 an option with choices opens them on an outer ring round the bubble, centred on that option, inside the screen', () => {
+    const centreOf = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+    const b = bubbleLayout({ at: { x: 160, y: 90 }, options: 8, screen: SCREEN, open: { option: 0, choices: 8 } });
+    expect(b.choices).toHaveLength(8);
+    const radius = (r: Rect) => Math.hypot(centreOf(r).x - b.centre.x, centreOf(r).y - b.centre.y);
+    for (const c of b.choices) {
+      expect(c.h).toBeGreaterThanOrEqual(15);
+      expect(inside(c)).toBe(true);
+      // every choice on the same outer ring, outside the options' ring and over no option
+      expect(Math.abs(radius(c) - radius(b.choices[0]!))).toBeLessThanOrEqual(1);
+      expect(radius(c)).toBeGreaterThan(rectRight(b.area) - b.centre.x);
+      for (const o of b.options) expect(overlap(c, o)).toBe(false);
+    }
+    // neighbouring choices do not touch, and they read left to right over the top option
+    for (let i = 1; i < b.choices.length; i++) {
+      expect(overlap(b.choices[i - 1]!, b.choices[i]!)).toBe(false);
+      expect(b.choices[i]!.x).toBeGreaterThan(b.choices[i - 1]!.x);
+    }
+    // centred on the pressed option: the middle of the arc lies straight above the centre, as slot 0 does
+    const mid = (centreOf(b.choices[3]!).x + centreOf(b.choices[4]!).x) / 2;
+    expect(mid).toBeCloseTo(b.centre.x, 0);
+    // the option on the right opens its few choices to the right of the bubble
+    const right = bubbleLayout({ at: { x: 160, y: 90 }, options: 8, screen: SCREEN, open: { option: 2, choices: 3 } });
+    for (const c of right.choices) expect(c.x).toBeGreaterThanOrEqual(rectRight(right.area));
+    expect(bubbleLayout({ at: { x: 160, y: 90 }, options: 8, screen: SCREEN }).choices).toEqual([]);
+  });
+
+  it('ft_1_20.AC20 near an edge the outer ring turns round the bubble to the side with room, and stays on the screen', () => {
+    for (const at of [{ x: 160, y: 4 }, { x: 316, y: 90 }, { x: 4, y: 170 }, { x: 316, y: 176 }]) {
+      for (const option of [0, 2, 4, 6]) {
+        const b = bubbleLayout({ at, options: 8, screen: SCREEN, open: { option, choices: 8 } });
+        for (const c of b.choices) {
+          expect(inside(c), JSON.stringify({ at, option })).toBe(true);
+          for (const o of b.options) expect(overlap(c, o)).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('ft_1_20.AC20 near an edge the bubble moves only as far as its outer ring needs, and not at all where a turn is enough', () => {
+    const shut = bubbleLayout({ at: { x: 160, y: 40 }, options: 8, screen: SCREEN });
+    const open = bubbleLayout({ at: { x: 160, y: 40 }, options: 8, screen: SCREEN, open: { option: 0, choices: 8 } });
+    // the choices' top edge rests on the screen's top: moved no farther than that
+    expect(Math.min(...open.choices.map((c) => c.y))).toBeLessThanOrEqual(1);
+    expect(open.centre.x).toBe(shut.centre.x);
+    // a few choices turn round the bubble instead of moving it
+    const few = bubbleLayout({ at: { x: 160, y: 60 }, options: 8, screen: SCREEN, open: { option: 0, choices: 2 } });
+    expect(few.centre).toEqual(bubbleLayout({ at: { x: 160, y: 60 }, options: 8, screen: SCREEN }).centre);
+  });
+
+  it('ft_1_20.AC19 more options than slots: the last slot is More and turns to the rest', () => {
+    const first = bubblePage({ options: 11, page: 0 });
+    expect(first.slots).toEqual([0, 1, 2, 3, 4, 5, 6, 'more']);
+    expect(first.pages).toBe(2);
+    expect(bubblePage({ options: 11, page: 1 }).slots).toEqual([7, 8, 9, 10, null, null, null, 'more']);
+    expect(bubblePage({ options: 11, page: 2 }).page).toBe(0);
+    expect(bubblePage({ options: 5, page: 0 }).slots).toEqual([0, 1, 2, 3, 4, null, null, null]);
+  });
+});
+
+describe('the pinned strip (ft_1_20, d282)', () => {
+  it('ft_1_20.AC21 a screen with nothing pinned has no strip, and anything pinned takes one row of 15-row cells', () => {
+    expect(pinRows(0)).toBe(0);
+    expect(pinRows(2)).toBe(PIN_ROWS);
+    expect(PIN_ROWS).toBe(17);
+  });
+
+  it('ft_1_20.AC18 never cuts a word: a word wider than a cell takes as many cells of the row as it needs', () => {
+    expect(cellSpan(10, 30)).toBe(1);
+    expect(cellSpan(30, 30)).toBe(1);
+    expect(cellSpan(31, 30)).toBe(2);
+    expect(cellSpan(70, 30)).toBe(3);
+    expect(cellSpan(500, 30)).toBe(PIN_COLUMNS);
+  });
+
+  it('ft_1_20.AC21 lays the pinned actions left to right in their order; those that do not fit go to the bubble', () => {
+    const flow = pinFlow({ spans: [2, 2, 3, 2] });
+    expect(flow.placed).toEqual([
+      { action: 0, rect: flow.placed[0]!.rect, span: 2 },
+      { action: 1, rect: flow.placed[1]!.rect, span: 2 },
+      { action: 2, rect: flow.placed[2]!.rect, span: 3 },
+    ]);
+    expect(flow.toBubble).toEqual([3]);
+    for (const p of flow.placed) {
+      expect(p.rect.h).toBeGreaterThanOrEqual(15);
+      expect(rectBottom(p.rect)).toBeLessThanOrEqual(PIN_ROWS);
+    }
+    for (let i = 1; i < flow.placed.length; i++) expect(flow.placed[i]!.rect.x).toBeGreaterThan(rectRight(flow.placed[i - 1]!.rect));
+  });
+
+  it('ft_1_20.AC21 the main action stands at the right end of the strip on every screen, the rest from the left', () => {
+    for (const width of [320, 427]) {
+      const flow = pinFlow({ spans: [1, 1], width, main: 1 });
+      expect(flow.placed.map((p) => p.action)).toEqual([0, 1]);
+      expect(rectRight(flow.placed[1]!.rect)).toBe(width - 2);
+      expect(flow.placed[0]!.rect.x).toBe(2);
+    }
+  });
+
+  it('ft_1_20.AC19 keeps off the top strip a screen without a toolbar has: opened near the top it moves down below it', () => {
+    const b = bubbleLayout({ at: { x: 160, y: 5 }, options: BUBBLE_SLOTS, screen: { y: 20, w: 320, h: 160 }, open: { option: 0, choices: 4 } });
+    expect(bubbleLayout({ at: { x: 160, y: 5 }, options: BUBBLE_SLOTS, screen: { y: 20, w: 320, h: 160 } }).area.y).toBe(20);
+    // with choices open over slot 0 it moves down as far as their outer ring needs
+    expect(b.area.y).toBeGreaterThanOrEqual(20);
+    expect(b.choices).toHaveLength(4);
+    for (const r of [...b.options, ...b.choices]) expect(r.y).toBeGreaterThanOrEqual(20);
+  });
+});
+
+describe('the wheel over a strip cell with choices (ft_1_20.AC16)', () => {
+  it('ft_1_20.AC16 the wheel over an item with choices steps to the next choice that can be picked, and stops at the ends', () => {
+    const choices = [{}, { active: true }, { disabled: true }, {}];
+    expect(wheelChoice(choices, 1)).toBe(3);
+    expect(wheelChoice(choices, -1)).toBe(0);
+    expect(wheelChoice([{}, {}, { active: true }], 1)).toBeNull();
+    expect(wheelChoice([{ active: true }, {}], -1)).toBeNull();
+    // no choice lit: the first one that can be picked, either way
+    expect(wheelChoice([null, { disabled: true }, {}, {}], 1)).toBe(2);
+    expect(wheelChoice([], 1)).toBeNull();
+  });
+});
+
+describe('the two-finger tap on a touch screen (ft_1_20.AC25)', () => {
+  it('ft_1_20.AC25 two fingers down together open the bubble midway between them', () => {
+    const first = { x: 100, y: 200, t: 1000 };
+    expect(twoFingerTap({ ...first, now: { x: 103, y: 198 } }, { x: 300, y: 260, t: 1080 })).toEqual({ x: 200, y: 230 });
+  });
+
+  it('ft_1_20.AC25 a second finger that comes late, or a first that has already slid, is no two-finger tap', () => {
+    const first = { x: 100, y: 200, t: 1000 };
+    expect(twoFingerTap({ ...first, now: first }, { x: 300, y: 260, t: 1000 + TWO_FINGER_TOGETHER_MS + 1 })).toBeNull();
+    expect(twoFingerTap({ ...first, now: { x: 100, y: 200 + TAP_SLIP + 1 } }, { x: 300, y: 260, t: 1050 })).toBeNull();
+  });
+
+  it('ft_1_20.AC25 two fingers that slide apart after it opened are a pinch, not a tap', () => {
+    const start = [{ x: 100, y: 200 }, { x: 300, y: 260 }];
+    expect(twoFingersSlid(start, [{ x: 104, y: 200 }, { x: 300, y: 255 }])).toBe(false);
+    expect(twoFingersSlid(start, [{ x: 100 - PINCH_SLIDE - 1, y: 200 }, { x: 300, y: 260 }])).toBe(true);
+  });
+});

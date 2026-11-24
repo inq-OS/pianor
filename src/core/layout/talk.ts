@@ -1,4 +1,4 @@
-import { BAND_ROWS } from './band';
+import { BOARD_ROWS } from './frame';
 import type { Rect } from './rect';
 
 /**
@@ -126,7 +126,7 @@ export function choiceLayout(input: { rows: readonly number[]; lineHeight: numbe
   const textX = TALK.choiceLeft + TALK.textIndent;
   const textWidth = width - textX - TALK.choiceLeft;
   const heights = rows.map((r) => Math.max(1, r) * lineHeight - 2);
-  const inner = BAND_ROWS - TALK.boardTop - TALK.boardBottom;
+  const inner = BOARD_ROWS - TALK.boardTop - TALK.boardBottom;
   const used = heights.reduce((a, b) => a + b, 0);
   const free = inner - used;
   const overflow = free < 0 || (rows.length > 1 && free < rows.length - 1);

@@ -1,7 +1,7 @@
-// Covers the bar editing of the piece editor: copy, cut, paste, drag-repeat, replace, clear and move by step or octave.
+// Covers ft_1_02d.AC28, ft_1_02d.AC37. Covers the bar editing of the piece editor: copy, cut, paste, drag-repeat, replace, clear and move by step or octave.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, isValidRange, moveBars, pasteAt, replaceBars, type BarRange } from './bars';
+import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, isValidRange, moveBars, pasteAt, pasteOverwrites, pasteSpan, replaceBars, type BarRange } from './bars';
 import { MAX_BARS, emptyPiece, pieceProblem, type Edit, type EditorNote, type EditorPiece } from './model';
 
 const piece = (over: Partial<EditorPiece> = {}): EditorPiece => ({ ...emptyPiece({ title: 'Test', hands: 'RH', beats: 4, bars: 8 }), ...over });
@@ -194,6 +194,20 @@ describe('pasting over bars', () => {
   });
 });
 
+describe('a paste that writes over notes (ft_1_02d.AC37)', () => {
+  it('ft_1_02d.AC37 counts the notes a paste over another selection would replace', () => {
+    const p = piece({ notes: [note({ bar: 1 }), note({ bar: 1, start: 480, step: 'D' }), note({ bar: 3 })] });
+    expect(pasteOverwrites(p, range(1, 2), false)).toBe(2);
+  });
+
+  it('ft_1_02d.AC37 an insert (no selection, or right after the fresh copy) and empty bars write over nothing', () => {
+    const p = piece({ notes: [note({ bar: 1 })] });
+    expect(pasteOverwrites(p, null, false)).toBe(0);
+    expect(pasteOverwrites(p, range(1), true)).toBe(0);
+    expect(pasteOverwrites(p, range(4, 5), false)).toBe(0);
+  });
+});
+
 describe('clearing bars', () => {
   it('empties the range and keeps the bars', () => {
     const cleared = clearBars(piece({ notes: [note({ bar: 0 }), note({ bar: 1 })] }), range(0));
@@ -305,6 +319,16 @@ describe('pasting bars', () => {
     expect(p.bars).toBe(8);
     expect(sorted(p.notes).map((n) => n.bar)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
     expect(sel).toEqual(range(7));
+  });
+
+  it('ft_1_02d.AC28 the paste menu shows the bars x1, x2 or x4 would take, one paste after the other', () => {
+    const p = piece({ notes: [single(0)] });
+    const clip = copyBars(p, range(0));
+    expect(pasteSpan(p, range(0), true, null, clip, 1)).toEqual(range(1));
+    expect(pasteSpan(p, range(0), true, null, clip, 4)).toEqual({ from: 1, to: 4 });
+    // with no selection, before the last clicked bar
+    expect(pasteSpan(p, null, false, 2, clip, 2)).toEqual({ from: 2, to: 3 });
+    expect(pasteSpan(p, null, false, 2, clip, 0)).toBeNull();
   });
 
   it('with another selection, replaces the selected bars by the clip', () => {

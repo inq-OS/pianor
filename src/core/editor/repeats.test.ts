@@ -4,7 +4,7 @@ import { toAbc, toMeta } from './abc';
 import { toChart } from './chart';
 import { emptyPiece, placeNote, type EditorPiece } from './model';
 import { exportPieceFile, importPieceFile } from './pieceFile';
-import { repeatAround, toggleRepeatEnd, toggleRepeatStart } from './repeats';
+import { removeRepeatAt, repeatAround, repeatAt, toggleRepeatEnd, toggleRepeatStart } from './repeats';
 
 const piece = (): EditorPiece => {
   let p = emptyPiece({ title: 'R', hands: 'RH', beats: 4, bars: 4 });
@@ -52,5 +52,15 @@ describe('repeats in the editor', () => {
     expect(repeatAround(p, 0, 1).repeats).toEqual([{ startBar: 0, endBar: 1 }]);
     // bars past the piece's end are held to its last bar
     expect(repeatAround(piece(), 2, 9).repeats).toEqual([{ startBar: 2, endBar: 3 }]);
+  });
+
+  it('ft_1_02d.AC39 finds the repeat a bar lies in and takes only that one away', () => {
+    const p = repeatAround(repeatAround(piece(), 0, 1), 3, 3);
+    expect(repeatAt(p, 1)).toEqual({ startBar: 0, endBar: 1 });
+    expect(repeatAt(p, 2)).toBeNull();
+    expect(removeRepeatAt(p, 1).repeats).toEqual([{ startBar: 3, endBar: 3 }]);
+    expect(removeRepeatAt(removeRepeatAt(p, 0), 3).repeats).toBeUndefined();
+    // a bar in no repeat leaves the piece as it is
+    expect(removeRepeatAt(p, 2)).toBe(p);
   });
 });

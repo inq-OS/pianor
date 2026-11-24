@@ -9,13 +9,13 @@ Platform, libraries, build, hosting, performance and code structure. One entry p
 
 **The game is a browser app on Web MIDI, Chrome or Edge only.** Features: ft_0_00, ft_0_01.
 
-Web MIDI gives input and output (key lighting), runs on laptop and Android tablet, and needs no install. Changed by d007 (Phaser 4, not 3).
+Web MIDI gives input and output (key lighting), runs on laptop and Android tablet, and needs no install. The game engine is Phaser 4 (d007).
 
 Check: untestable: platform choice (Chrome or Edge only); real Web MIDI needs a human on the EZ-220 (`docs/hardware-notes.md`)
 
 ## d007
 
-**The game runs on Phaser 4.** Features: ft_0_00. Supersedes d001 (the Phaser 3 part).
+**The game runs on Phaser 4.** Features: ft_0_00.
 
 Phaser 4.x (MIT) was npm `latest` at scaffold time; Phaser stays confined to `src/game`, so a switch only touches that folder. Check v4 docs, not Phaser 3 tutorials.
 
@@ -47,7 +47,7 @@ Check: untestable: licence and hosting policy (nothing deployed, FOSS-only parts
 
 ## d070
 
-**Scene flow: screens are modules, start switches, overlays push and return a typed result, input goes through intents.** Features: ft_Y_13, ft_1_06.
+**Scene flow: screens are modules, start switches, overlays push and return a typed result, input goes through intents.** Features: ft_Y_13.
 
 A screen is one scene class plus its `src/game/<area>/` folder; screens meet only through `src/game/scenes.ts` and `GameContext`. `startScene` switches mode; an overlay (dialog, pause, confirmation) is pushed with `openOverlay(key, data)`, which pauses the caller and resolves with a typed `SceneResult` or `cancelled` (Esc and Back). Screens react to intents (`up`, `down`, `left`, `right`, `confirm`, `back`), so piano keys can drive them later; rules stay in `src/core`.
 
@@ -65,7 +65,7 @@ Check: `eslint.config.js` "src/core is pure: no Node APIs. File access belongs i
 
 **A browser window plays; the size line shows only when the window cannot hold the tested layout.** Features: ft_0_13, ft_0_14.
 
-One tested size: the full screen of a modest laptop at 1920x1080, 1536x864 CSS pixels at `devicePixelRatio` 1.25 (1920x1080 physical); fit, layout and screenshot tests run only there, plus a guard spec at small windows. Every screen is laid out for at least the tested art area (`FRAME_MIN`, `src/core/layout/frame.ts`) at the largest whole zoom that fits; the one-line guard, string key `screen.tooSmall` ("TEE MIND SUUREMAKS + F11!"), shows only when the window cannot hold that area at 2x (`frameFits`). `npm run start:local` opens full screen; `?anysize=1` turns the guard off. Changed by d110 (the area is 320 x 180 layout cells, the guard needs the 640 x 360 canvas at 1x).
+One tested size: the full screen of a modest laptop at 1920x1080, 1536x864 CSS pixels at `devicePixelRatio` 1.25 (1920x1080 physical); fit, layout and screenshot tests run only there, plus a guard spec at small windows. Every screen is laid out for at least the tested art area (`FRAME_MIN`, `src/core/layout/frame.ts`) at the largest whole zoom that fits; the one-line guard, string key `screen.tooSmall` ("TEE MIND SUUREMAKS + F11!"), shows only when the window cannot hold that area at 2x (`frameFits`). `npm run start:local` opens full screen; `?anysize=1` turns the guard off. The area is 320 x 180 layout cells, and the guard needs the 640 x 360 canvas at 1x (d110).
 
 Check: `src/core/layout/frame.test.ts` "gives every window at least the layout area of a 1920x1080 full screen, 320 x 180 cells, by a smaller zoom (d105, d110)"; `src/core/layout/frame.test.ts` "plays in any window that holds the art canvas at 1x (2x per cell) or more"; `tests/e2e/screen-guard.spec.ts` "a window too small to play in shows only the line asking for F11, and the game waits until it is big again"; `tests/e2e/screen-guard.spec.ts` "?anysize=1 lets a developer play in a window of any size"; `tools/start-local/browser.test.ts` "opens the game as its own full-screen app window with its own profile"
 
@@ -73,7 +73,7 @@ Check: `src/core/layout/frame.test.ts` "gives every window at least the layout a
 
 **The scenery moves whatever the operating system says; only the game's own switch stands it still.** Features: ft_1_08, ft_1_17, ft_1_19.
 
-The game no longer reads `prefers-reduced-motion`; `motionAllowed()` (`src/game/motion.ts`) is true unless `config.theme.reducedMotion` is set by the page switch `?motion=still` (also in a production build, handed over once by `setSceneryStill` in `src/main.ts`), and then the first frame shows. AX-3 provisional: a player who needs less motion gets a per-player saved setting later, not the system's switch. Why: an operating system's reduced-motion setting can be on for reasons other than the player's need, which froze the scenery.
+The game does not read `prefers-reduced-motion`; `motionAllowed()` (`src/game/motion.ts`) is true unless `config.theme.reducedMotion` is set by the page switch `?motion=still` (also in a production build, handed over once by `setSceneryStill` in `src/main.ts`), and then the first frame shows. AX-3 provisional: a player who needs less motion gets a per-player saved setting later, not the system's switch. Why: an operating system's reduced-motion setting can be on for reasons other than the player's need, which froze the scenery.
 
 Check: `src/game/motion.test.ts` "moves by default, whatever the operating system says about motion (d127)"; `src/game/motion.test.ts` "stands still only when the game is told to"
 

@@ -1,6 +1,6 @@
 // Covers d088 (the frame of every screen).
 import { describe, expect, it } from 'vitest';
-import { BAND_ROWS } from './band';
+import { PIN_ROWS } from './bubble';
 import { ART_CANVAS, ART_DETAIL, BAND_KEEPS_TOOLBAR, FRAME_MIN, FRAME_ROWS, fineToCells, frameCorners, TOOLBAR_ROWS, frameFits, frameView, toolbarLayout, type ToolbarInput, type ToolbarLayout } from './frame';
 import { rectRight, type Rect } from './rect';
 
@@ -99,7 +99,7 @@ describe('the frame of every screen (d088)', () => {
 
   it('fits the smallest screen with the longest name: the XP numbers go first, then the screen\'s items show as icons', () => {
     const longest = { nameWidth: 72, rankWidth: 34, xpTextWidth: 64 };
-    // the fullest bar: settings and the keyboard switch (no screen has both since d099, so this is the worst case)
+    // the fullest bar: settings and the keyboard switch (no screen has both, d099, so this is the worst case)
     const numbersGone = toolbarLayout({ ...base, keys: true, width: 320, player: longest });
     expect(numbersGone.fits).toBe(true);
     expect(numbersGone.xpText).toBeNull();
@@ -136,22 +136,24 @@ describe('the frame with the action and inventory band (ft_1_20, d115)', () => {
     expect(frameView(1920, 1080, { band: true })).toEqual(frameView(1920, 1080, { band: true, toolbar: BAND_KEEPS_TOOLBAR }));
   });
 
-  it.each(SIZES)('ft_1_20.AC12 at %ix%i lays out the band with and without the toolbar, the band at the foot and the main area all rows above it', (width, height) => {
+  it.each(SIZES)('ft_1_20.AC21 at %ix%i lays out the strip with and without the toolbar, at the foot, the main area all rows above it', (width, height) => {
     const plain = frameView(width, height);
     const rows = Math.floor(height / plain.scale);
     for (const toolbar of [false, true]) {
-      const view = frameView(width, height, { band: true, toolbar });
-      expect(view).toMatchObject({ scale: plain.scale, fine: plain.fine, width: plain.width, toolbar });
-      expect(view.top).toBe(toolbar ? FRAME_ROWS : 0);
-      // the band starts right under the main area and ends on the last whole row
-      expect(view.band).toEqual({ top: view.height, rows: BAND_ROWS });
-      expect(view.top + view.height + BAND_ROWS).toBe(rows);
+      for (const stripRows of [0, PIN_ROWS]) {
+        const view = frameView(width, height, { band: true, toolbar, bandRows: stripRows });
+        expect(view).toMatchObject({ scale: plain.scale, fine: plain.fine, width: plain.width, toolbar });
+        expect(view.top).toBe(toolbar ? FRAME_ROWS : 0);
+        // the strip starts right under the main area and ends on the last whole row
+        expect(view.band).toEqual({ top: view.height, rows: stripRows });
+        expect(view.top + view.height + stripRows).toBe(rows);
+      }
     }
   });
 
-  it('gives the main area 124 rows over the band on the target screen, 101 with the toolbar kept (d115)', () => {
-    expect(frameView(1920, 1080, { band: true }).height).toBe(124);
-    expect(frameView(1920, 1080, { band: true, toolbar: true }).height).toBe(101);
+  it('ft_1_20.AC21 gives the main area 163 rows over a strip on the target screen and all 180 without one (d282)', () => {
+    expect(frameView(1920, 1080, { band: true, bandRows: PIN_ROWS }).height).toBe(163);
+    expect(frameView(1920, 1080, { band: true }).height).toBe(180);
   });
 
   it.each([320, 342, 427])('ft_1_20.AC2 at %i wide puts Back and Settings in the top corners where the toolbar had them', (width) => {

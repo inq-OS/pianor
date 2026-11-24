@@ -1,4 +1,3 @@
-import { BAND_ROWS } from './band';
 import { pixelView } from './pixelView';
 import { rectRight, type Rect } from './rect';
 
@@ -64,13 +63,13 @@ export interface FrameView {
 /**
  * The one flag of the frame's layout for the top toolbar under the band (d115, ft_1_20.AC12; the
  * toolbar is set aside for now, kept in the code so it can come back). Off: the band holds Back, Settings and the
- * player, and the main area has every row above it (124 on the target screen). On: the toolbar and the vine are drawn as
- * before d115 and hold them, and the main area has 101 rows. No scene changes when it flips.
+ * player, and the main area has every row above it (124 on the target screen). On: the toolbar and the vine are drawn
+ * above the band and hold them, and the main area has 101 rows. No scene changes when it flips.
  */
 export const BAND_KEEPS_TOOLBAR = false;
 
 export interface FrameOptions {
-  /** Draw the action and inventory band at the foot (ft_1_20): every framed screen but the battle screens (d129). */
+  /** Draw the action and inventory band at the foot (ft_1_20): every framed screen but the tug (d129). */
   band: boolean;
   /** With the band: keep the toolbar too. `BAND_KEEPS_TOOLBAR` by default; only tests pass it. */
   toolbar?: boolean;
@@ -79,7 +78,17 @@ export interface FrameOptions {
    * vine and no band, whatever `band` says. AX-3 provisional: asked of the architect (d088 has a toolbar on every screen).
    */
   whole?: boolean;
+  /**
+   * The rows of the strip at the foot (ft_1_20, d282: `pinRows`, 0 on a screen with nothing pinned); none when not given.
+   */
+  bandRows?: number;
 }
+
+/**
+ * How tall the board is that a talk or a tug lays over the foot of a painted place (ft_1_21, ft_1_22): the height the old
+ * band had, which its pictures are painted for.
+ */
+export const BOARD_ROWS = 56;
 
 export function frameView(screenWidth: number, screenHeight: number, options: FrameOptions = { band: false }): FrameView {
   const fine = pixelView(screenWidth, screenHeight, { minWidth: ART_CANVAS.width, minHeight: ART_CANVAS.height, maxScale: MAX_FINE_ZOOM }).scale;
@@ -90,8 +99,9 @@ export function frameView(screenWidth: number, screenHeight: number, options: Fr
   // the band stands on the last whole row, so none of it is cut off at the screen's foot
   const toolbar = options.toolbar ?? BAND_KEEPS_TOOLBAR;
   const top = toolbar ? FRAME_ROWS : 0;
-  const height = Math.floor(screenHeight / scale) - BAND_ROWS - top;
-  return { scale, fine, width, height, top, toolbar, band: { top: height, rows: BAND_ROWS } };
+  const rows = options.bandRows ?? 0;
+  const height = Math.floor(screenHeight / scale) - rows - top;
+  return { scale, fine, width, height, top, toolbar, band: { top: height, rows } };
 }
 
 /** What a screen puts on the toolbar; widths in art pixels, the texts measured by the caller. */
@@ -101,7 +111,7 @@ export interface ToolbarInput {
   back: boolean;
   /** The settings gear: false on the settings screen itself. */
   settings: boolean;
-  /** The on-screen keyboard switch at the right end: only on the settings screen since d099 (a developer's tool now). */
+  /** The on-screen keyboard switch at the right end: only on the settings screen (a developer's tool, d099). */
   keys: boolean;
   /** The active player's name, rank and XP, or null on a screen without a player (the profile picker, admin). */
   player: { nameWidth: number; rankWidth: number; xpTextWidth: number } | null;

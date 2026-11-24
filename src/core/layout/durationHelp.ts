@@ -62,7 +62,7 @@ const LINE_CLEARANCE = 0.12;
 /**
  * The marks for `layout` (made from `chart`) that `help` asks for, hand by hand: the band of a note (two strips for a note on
  * a line) and its ghost heads. A track's hand is its `hand`, or its clef when it has none (treble right, bass left). `layout`
- * must not use `spacing` (the piece editor); the practice and battle staffs do not.
+ * must not use `spacing` (the piece editor); the practice and tug staffs do not.
  */
 export function durationMarks(layout: StaffLayout, chart: Chart, help: DurationHelp): DurationMarks {
   const marks: DurationMarks = { bands: [], ghosts: [] };

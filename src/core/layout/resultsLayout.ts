@@ -14,7 +14,7 @@ const BUTTON_GAP = 4;
 const BUTTON_BOTTOM = 11;
 
 export interface ResultsLayout {
-  /** The celebration column: title, Kiur (and the monster), and the two buttons at its foot. */
+  /** The celebration column: title, Kiur, and the two buttons at its foot. */
   left: Rect;
   /** Play again (left) and back to the pieces (right of it): two small icon buttons on one row. */
   again: Rect;
@@ -26,7 +26,7 @@ export interface ResultsLayout {
 }
 
 /**
- * The screens after playing (results, battle results, the Free play rundown) share one frame: a left column that cheers,
+ * The screens after playing (results, the stats page, the Free play rundown) share one frame: a left column that cheers,
  * with its two buttons at the bottom, and the numbers on the right. Art pixels; pure, so the three screens cannot drift.
  * `rightInset` keeps the numbers clear of something in the top right corner (the band's gear, ft_1_20.AC2).
  */

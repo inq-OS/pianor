@@ -157,7 +157,7 @@ export class ResultsScene extends OutcomeScene {
     const stats = contextOf(this).profiles.statsFor(this.chartId);
     if (stats.plays === 0) return this.line(numbers, y, t('stats.notYet'), C.white) + 4;
     y = this.line(numbers, y, stats.plays === 1 ? t('stats.playsOne') : t('stats.plays', { count: stats.plays }), C.white);
-    y = this.line(numbers, y, t('results.proficiency', { percent: stats.proficiency }), C.gold);
+    y = this.line(numbers, y, t('results.proficiency', { percent: stats.proficiency }), C.white);
     if (stats.accuracy !== null) y = this.line(numbers, y, t('stats.accuracy', { percent: Math.round(100 * stats.accuracy) }), C.white);
     if (stats.speed !== null) y = this.line(numbers, y, t('results.speed', { percent: stats.speed }), C.white);
     return y + 4;

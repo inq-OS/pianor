@@ -8,7 +8,7 @@ What the painter has learned from pictures, in words: how a thing is painted, on
 
 Started so far: [rocks.md](rocks.md), [buildings.md](buildings.md), [water.md](water.md), [sky.md](sky.md), [plants.md](plants.md), [wood.md](wood.md), [light.md](light.md), [proportions.md](proportions.md), [maps.md](maps.md), [paper-and-books.md](paper-and-books.md).
 
-**The MI2 atlas** (study-a-picture section 9): [mi2-manner.md](mi2-manner.md) is its front page, what makes a picture MI2 in measured numbers; [mi2-gauge.json](mi2-gauge.json) holds the numbers the gauge compares with (no pictures). [mi3.md](mi3.md) is a second shelf: The Curse of Monkey Island (1997), its inventory items above all; tagged `mi3`, never in the gauge. Entries name swatch ids (`sea-1`) as well as catalogue ids: `refcat.py swatches --subject sea` draws them.
+**The MI2 atlas** (study-a-picture section 9): [mi2-manner.md](mi2-manner.md) is its front page, what makes a picture MI2 in measured numbers; [mi2-gauge.json](mi2-gauge.json) holds the numbers the gauge compares with (no pictures). [mi3.md](mi3.md) is a second shelf: The Curse of Monkey Island (1997), its inventory items above all; tagged `mi3`, never in the gauge; The Secret of Monkey Island as first released is a third, tagged `mi1`. [atlas-tags.json](atlas-tags.json) keeps the tags of every library picture the gauge does not measure, so a library gathered again gets them back. Entries name swatch ids (`sea-1`) as well as catalogue ids: `refcat.py swatches --subject sea` draws them.
 
 One file each, started when the first entry needs it: `rocks.md`, `plants.md`, `water.md`, `sky.md`, `light.md`, `buildings.md`, `characters.md`, `interface.md`, `motion.md`. A new subject gets a new file and a line here.
 

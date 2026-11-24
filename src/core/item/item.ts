@@ -50,6 +50,8 @@ export function inventoryOf(ids: readonly ItemId[], catalog: ReadonlyMap<ItemId,
 export interface InventoryEntry {
   readonly item: ItemDef;
   readonly rung?: { readonly at: number; readonly of: number };
+  /** How many of it the student holds, for an item on no ladder (keepsakes stack, ft_1_37.AC9). */
+  readonly count?: number;
 }
 
 /**
@@ -66,7 +68,7 @@ export function bandInventory(ids: readonly ItemId[], catalog: ReadonlyMap<ItemI
   const placed = new Set<readonly ItemId[]>();
   return held.flatMap((item): InventoryEntry[] => {
     const ladder = ladderOf.get(item.id);
-    if (!ladder) return [{ item }];
+    if (!ladder) return [{ item, count: ids.filter((id) => id === item.id).length }];
     if (placed.has(ladder)) return [];
     placed.add(ladder);
     const best = ladder.reduce((top, id, i) => (heldIds.has(id) ? i : top), -1);

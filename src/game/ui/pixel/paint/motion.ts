@@ -8,7 +8,7 @@ import { cropTogether, type Overlay } from '../pack';
  * grass); in each look the painter asks here how the wind bends a blade, where the sea's strokes have rocked to and
  * which glints are lit. The clouds are lifted out of the sky to drift over it in the game (`SkyMask`); the smoke is its
  * own loop (`smoke.ts`). The game steps the looks and moves the clouds at the pace of the one wind
- * (`../windMotion.ts`, ft_1_06.AC12). Pure: no Phaser, no DOM.
+ * (`../windMotion.ts`, ft_1_14.AC9). Pure: no Phaser, no DOM.
  */
 
 const TAU = Math.PI * 2;

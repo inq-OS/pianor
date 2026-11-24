@@ -2,13 +2,11 @@ import { describe, expect, it } from 'vitest';
 import keriJson from '../../../content/world/keri.json';
 import { insideRing, loadWorld, onLand } from '../world/world';
 import { ART_DETAIL } from './frame';
-import { KNOLL, KNOLL_CLEARING, KNOLL_FIRE, KNOLL_PICTURE, KNOLL_PLATEAU, KNOLL_SPOTS, fromKnoll, knollCrest, knollPlace, knollPlan, knollShore, toKnoll } from './knoll';
-import { rectBottom, rectRight, type Rect } from './rect';
+import { KNOLL, KNOLL_FIRE, KNOLL_PICTURE, KNOLL_PLATEAU, fromKnoll, knollCrest, knollPlace, knollPlan, knollShore, toKnoll } from './knoll';
 import { ROOM_PICTURE } from './room';
 
 const KERI = loadWorld(keriJson);
 const plan = knollPlan();
-const overlap = (a: Rect, b: Rect): boolean => a.x < rectRight(b) && b.x < rectRight(a) && a.y < rectBottom(b) && b.y < rectBottom(a);
 
 describe('the grassy knoll: its plan (ft_1_19.AC9)', () => {
   it('ft_1_19.AC1 ft_1_19.AC9 the picture is the room\'s low wide band, so the same strip stays free under it', () => {
@@ -89,27 +87,5 @@ describe('the grassy knoll: its plan (ft_1_19.AC9)', () => {
     expect(KNOLL_FIRE.y - KNOLL_FIRE.ry).toBeLessThan(knollCrest(KNOLL_FIRE.x) + 12);
     expect(Math.hypot(plan.fire.x - KNOLL_FIRE.x, plan.fire.y - KNOLL_FIRE.y)).toBeLessThan(4);
     expect(plan.fire.y).toBeGreaterThan(plan.horizon);
-  });
-
-  it('ft_1_19.AC8 a being\'s place is on the short grass round the fire; the buttons lie inside the picture, apart from each other, the first two left and right of the fire', () => {
-    const whole: Rect = { x: 0, y: 0, w: KNOLL_PICTURE.w, h: KNOLL_PICTURE.h };
-    expect(plan.spots).toHaveLength(KNOLL_SPOTS.length);
-    expect(plan.spots.length).toBeGreaterThanOrEqual(4);
-    for (const spot of KNOLL_SPOTS) {
-      expect(Math.hypot((spot.x - KNOLL_CLEARING.x) / KNOLL_CLEARING.rx, (spot.y - KNOLL_CLEARING.y) / KNOLL_CLEARING.ry)).toBeLessThan(0.9);
-      expect(spot.y).toBeGreaterThan(knollCrest(spot.x) + 10);
-      // and not in the fire
-      expect(Math.hypot((spot.x - KNOLL_FIRE.x) / KNOLL_FIRE.rx, (spot.y - KNOLL_FIRE.y) / KNOLL_FIRE.ry)).toBeGreaterThan(1.6);
-    }
-    plan.spots.forEach((spot, i) => {
-      const { button, feet } = spot;
-      expect(button.x >= whole.x && button.y >= whole.y && rectRight(button) <= whole.w && rectBottom(button) <= whole.h).toBe(true);
-      // the feet are at the button's foot, in its middle
-      expect(Math.abs(feet.x / ART_DETAIL - (button.x + button.w / 2))).toBeLessThanOrEqual(1);
-      expect(rectBottom(button)).toBeGreaterThanOrEqual(feet.y / ART_DETAIL);
-      plan.spots.slice(i + 1).forEach((other) => expect(overlap(button, other.button)).toBe(false));
-    });
-    expect(plan.spots[0]!.feet.x).toBeLessThan(plan.fire.x);
-    expect(plan.spots[1]!.feet.x).toBeGreaterThan(plan.fire.x);
   });
 });

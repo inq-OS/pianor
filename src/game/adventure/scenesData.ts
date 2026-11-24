@@ -1,12 +1,14 @@
 import { sceneDataSchema, type SceneData } from '../../core/scene/scene';
 import { actorDefSchema, type ActorDef } from '../../core/scene/actor';
 import { scriptSchema, type Script } from '../../core/scene/script';
-import { characterDefSchema, type CharacterDef } from '../../core/character/character';
+import { characterDefSchema, phrasePieceCharacters, type CharacterDef } from '../../core/character/character';
 import { conversationSchema, type Conversation } from '../../core/dialogue/conversation';
 import { parseTugRules, type TugRules } from '../../core/exchange/tug';
 import tugRulesJson from '../../../content/challenge/rules.json';
 import itemsJson from '../../../content/items/items.json';
 import { parseItems, type ItemDef } from '../../core/item/item';
+import { parseWandererRules, type WandererRules } from '../../core/island/wanderer';
+import wanderersJson from '../../../content/world/wanderers.json';
 
 const sceneFiles = import.meta.glob<unknown>('../../../content/scenes/*.json', { eager: true, import: 'default' });
 const actorFiles = import.meta.glob<unknown>('../../../content/actors/*.json', { eager: true, import: 'default' });
@@ -40,6 +42,9 @@ export const CHARACTERS: ReadonlyMap<string, CharacterDef> = new Map(Object.valu
   return [character.id, character];
 }));
 
+/** The characters' phrase pieces, by piece id: the character that teaches each. */
+export const CHARACTER_PIECES = phrasePieceCharacters(CHARACTERS.values());
+
 /** Every conversation of `content/conversations/` by its id, validated once (ft_1_22.AC1; the linter runs in a unit test). */
 export const CONVERSATIONS: ReadonlyMap<string, Conversation> = new Map(Object.values(conversationFiles).map((raw) => {
   const conversation = conversationSchema.parse(raw);
@@ -51,3 +56,6 @@ export const TUG_RULES: TugRules = parseTugRules(tugRulesJson);
 
 /** Every item of `content/items/items.json` by its id, validated once (ft_1_20 item model, ft_1_21.AC15). */
 export const ITEMS: ReadonlyMap<string, ItemDef> = parseItems(itemsJson);
+
+/** The wanderers the teacher can send, their keepsakes and share (ft_1_37, content/world/wanderers.json), validated once. */
+export const WANDERER_RULES: WandererRules = parseWandererRules(wanderersJson);

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-/* The CI rules of the workflow ledger, held against the workflow files themselves (d042, d062, d090, d165). Read as text. */
+/* The CI rules of the workflow ledger, held against the workflow files themselves (d042, d090, d165, d288, d289). Read as text. */
 const file = (name: string): string => readFileSync(`.github/workflows/${name}`, 'utf8');
 /** The block under a key at the given indent, up to the next key at that indent. */
 const block = (text: string, key: string, indent: number): string => {
@@ -39,11 +39,26 @@ describe('the CI workflows (d042, d090)', () => {
   });
 });
 
-describe('the screenshot baselines (d062)', () => {
-  it('are checked by a Windows job and made by a Windows workflow run by hand', () => {
-    expect(job('browser-tests.yml', 'visual-windows')).toContain('runs-on: windows-latest');
+describe('one screenshot baseline per screen for every machine (d288, d289)', () => {
+  it('names a baseline without the platform, and the baseline workflow hands back those names', () => {
+    expect(readFileSync('playwright.config.ts', 'utf8')).toContain("snapshotPathTemplate: '{snapshotDir}/{testFileDir}/{testFileName}-snapshots/{arg}-chromium{ext}'");
+    expect(job('update-snapshots.yml', 'update')).toContain('path: tests/e2e/*-snapshots/*-chromium.png');
+  });
+
+  it('runs every screenshot job on Linux, the baselines committed to the branch, never to main', () => {
+    expect(job('browser-tests.yml', 'visual')).toContain('runs-on: ubuntu-latest');
     expect(triggers('update-snapshots.yml').trim()).toMatch(/^on:\s+workflow_dispatch:/);
-    expect(job('update-snapshots.yml', 'update')).toContain('runs-on: windows-latest');
+    const update = job('update-snapshots.yml', 'update');
+    expect(update).toContain('runs-on: ubuntu-latest');
+    expect(update).toContain("if: github.ref_name != 'main'");
+    expect(update).toContain('git push origin "HEAD:${{ github.ref_name }}"');
+    for (const name of ['ci.yml', 'browser-tests.yml', 'update-snapshots.yml', 'pr-events.yml']) expect(file(name)).not.toMatch(/windows/i);
+  });
+
+  it('draws the screenshot area without a GPU on every machine', () => {
+    const config = readFileSync('playwright.config.ts', 'utf8');
+    expect(config).toContain("...(area.name === 'visual' ? { launchOptions: { ...(CHROMIUM_PATH ? { executablePath: CHROMIUM_PATH } : {}), args: BROWSER_ARGS } } : {}),");
+    expect(config).toMatch(/const BROWSER_ARGS = \[[^\]]*--font-render-hinting=none[^\]]*--disable-lcd-text/);
   });
 });
 

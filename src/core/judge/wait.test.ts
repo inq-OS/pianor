@@ -362,7 +362,7 @@ describe('PlayMode is not Wait-specific', () => {
   });
 });
 
-describe('WaitMode with moveOnWrong: a monster battle from memory (level 1)', () => {
+describe('WaitMode with moveOnWrong: a tug from memory (level 1)', () => {
   const chord = chartWith([
     { tick: 0, dur: 960, midi: 60 }, { tick: 0, dur: 960, midi: 64 }, { tick: 0, dur: 960, midi: 67 },
     { tick: 960, dur: 960, midi: 62 },
@@ -452,7 +452,7 @@ describe('WaitMode: grace notes are never required and never wrong (core_09.AC33
     expect(judged(mode.handle(on(65, 940))).map((e) => e.verdict)).toEqual(['wrong']);
   });
 
-  it('core_09.AC33 a monster battle from memory (moveOnWrong) does not move on for a grace press', () => {
+  it('core_09.AC33 a tug from memory (moveOnWrong) does not move on for a grace press', () => {
     const mode = new WaitMode(graced, { moveOnWrong: true });
     drive(mode, toTheE);
     expect(mode.handle(on(65, 940))).toEqual([]);

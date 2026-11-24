@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { activeScenes, expectNoErrors, letGameRun, openGame, waitForScene } from './helpers';
 
 /**
@@ -155,7 +156,8 @@ test.describe('autoplay (ft_Y_09, dev only)', () => {
     test.slow(); // the boat sails in, Kiur speaks, the tune plays to its end
     const errors = await openGame(page, '?autoplay=1&scenario=boat-arrives');
     await page.waitForFunction(() => '__autoplay' in window);
-    await expect.poll(async () => (await autoplayStatus(page)).phase, { timeout: 60000 }).toBe('finished');
+    // the script plays about 45 s in a cloud session and over a minute on a CI runner (the director waits up to three)
+    await expect.poll(async () => (await autoplayStatus(page)).phase, { timeout: 180_000 }).toBe('finished');
     expect(await autoplayStatus(page)).toMatchObject({ scenario: 'boat-arrives', run: 1, error: null });
     expect(await activeScenes(page)).toContain('docks');
     expectNoErrors(errors);

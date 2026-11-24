@@ -1,3 +1,4 @@
+// Covers ft_1_02d.AC34.
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_ENTRY_PREFS, ENTRY_PREFS_KEY, ENTRY_PREFS_VERSION, parseEntryPrefs, serializeEntryPrefs } from './entryPrefs';
 
@@ -41,5 +42,25 @@ describe('the piece maker entry preferences', () => {
 
   it('reads back the default after a roundtrip', () => {
     expect(parseEntryPrefs(serializeEntryPrefs(DEFAULT_ENTRY_PREFS))).toEqual(DEFAULT_ENTRY_PREFS);
+  });
+
+  it('ft_1_02e.AC1 keeps the vim keys switch beside the short tap, off when absent or mistyped, with no version bump', () => {
+    const on = { ...DEFAULT_ENTRY_PREFS, vimKeys: true };
+    expect(parseEntryPrefs(serializeEntryPrefs(on))).toEqual(on);
+    // a record from before the switch reads as off and keeps its short tap
+    expect(parseEntryPrefs(JSON.stringify({ schemaVersion: 1, shortTapEighth: true }))).toEqual({ schemaVersion: 1, shortTapEighth: true });
+    expect(parseEntryPrefs(JSON.stringify({ schemaVersion: 1, shortTapEighth: true, vimKeys: 'yes' }))).toEqual({ schemaVersion: 1, shortTapEighth: true });
+    // off is not written, so the record is as it was before the switch
+    expect(serializeEntryPrefs(DEFAULT_ENTRY_PREFS)).toBe(JSON.stringify({ schemaVersion: 1, shortTapEighth: false }));
+  });
+
+  it('ft_1_02d.AC34 the cursor following the pointer is off unless turned on, and a record from before reads as off', () => {
+    expect(DEFAULT_ENTRY_PREFS.followPointer).toBeUndefined();
+    expect(parseEntryPrefs(JSON.stringify({ schemaVersion: ENTRY_PREFS_VERSION, shortTapEighth: true })).followPointer).toBeUndefined();
+    const on = parseEntryPrefs(serializeEntryPrefs({ ...DEFAULT_ENTRY_PREFS, followPointer: true }));
+    expect(on.followPointer).toBe(true);
+    // a mistyped value reads as off and keeps the settings beside it
+    const bad = parseEntryPrefs(JSON.stringify({ schemaVersion: ENTRY_PREFS_VERSION, shortTapEighth: true, vimKeys: true, followPointer: 'yes' }));
+    expect(bad).toEqual({ schemaVersion: ENTRY_PREFS_VERSION, shortTapEighth: true, vimKeys: true });
   });
 });

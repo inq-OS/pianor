@@ -1,5 +1,6 @@
 // Covers ft_1_24.AC6 (WP-07): a script runs in an adventure scene; the placeholder boat sails in to the docks.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { activeScenes, expectNoErrors, openGame, waitForScene } from './helpers';
 
 interface Box { x: number; y: number; w: number; h: number }

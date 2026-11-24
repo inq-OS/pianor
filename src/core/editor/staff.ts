@@ -196,6 +196,55 @@ export function barBoxes(layout: StaffLayout, range: { from: number; to: number 
 }
 
 /**
+ * What the repeat item's next click would make (d286, ft_1_02d.AC27): the bars lit, from the picked start bar (or the bar
+ * under the pointer while none is picked) to the bar under the pointer, either way round, and where its two signs go: the
+ * start sign at the left side of its first bar, the end sign at the right side of its last, each only on the page it is on.
+ */
+export function repeatPreview(layout: StaffLayout, startBar: number | null, bar: number, page: number): { boxes: ReturnType<typeof barBoxes>; signs: { side: 'start' | 'end'; x: number; y1: number; y2: number }[] } {
+  const start = startBar ?? bar;
+  const all = barBoxes(layout, { from: Math.min(start, bar), to: Math.max(start, bar) });
+  const signs: { side: 'start' | 'end'; x: number; y1: number; y2: number }[] = [];
+  const first = all[0];
+  const last = all.at(-1);
+  if (first?.page === page) signs.push({ side: 'start', x: first.x1, y1: first.y1, y2: first.y2 });
+  if (last?.page === page) signs.push({ side: 'end', x: last.x2, y1: last.y1, y2: last.y2 });
+  return { boxes: all.filter((b) => b.page === page), signs };
+}
+
+/**
+ * The bar a repeat sign goes to when the pointer is near a bar line (d286, ft_1_02d.AC31): the sign snaps to the nearest bar
+ * line of the line of music the pointer is on. A start sign takes the bar that line starts, an end sign the bar it ends; null
+ * off the bars of the page.
+ */
+export function snapBar(layout: StaffLayout, page: number, point: { x: number; y: number }, side: 'start' | 'end'): number | null {
+  const boxes = layout.bars.map((_, i) => ({ bar: i, box: barBoxes(layout, { from: i, to: i })[0] })).filter((b) => b.box?.page === page);
+  // the line of music under the pointer: the one whose boxes hold its height, else the nearest
+  const gap = (box: { y1: number; y2: number }) => (point.y < box.y1 ? box.y1 - point.y : point.y > box.y2 ? point.y - box.y2 : 0);
+  let best: { bar: number; distance: number; gap: number } | null = null;
+  for (const { bar, box } of boxes) {
+    if (!box) continue;
+    const distance = Math.abs((side === 'start' ? box.x1 : box.x2) - point.x);
+    const g = gap(box);
+    if (!best || g < best.gap || (g === best.gap && distance < best.distance)) best = { bar, distance, gap: g };
+  }
+  return best?.bar ?? null;
+}
+
+/**
+ * Where the key's name (C, Em) shows while the pointer is on a key signature (ft_1_02d.AC32): over the middle of the
+ * signature's sharps or flats, or of the clef when the key has none, a staff space and a half above the top line.
+ */
+export function keyNameSpot(layout: StaffLayout, system: number): { x: number; y: number } | null {
+  const line = layout.systems[system];
+  if (!line) return null;
+  const signs = layout.keySignature.filter((k) => k.system === system);
+  const clefs = layout.clefs.filter((c) => c.system === system);
+  const xs = signs.length > 0 ? signs.map((k) => k.x) : clefs.map((c) => c.x + c.w / 2);
+  const x = xs.length > 0 ? (Math.min(...xs) + Math.max(...xs)) / 2 : line.left;
+  return { x, y: line.topLineY - layout.staffSpace * 1.5 };
+}
+
+/**
  * The bars a lasso rectangle touches on a page, from the first to the last, as a bar range; null when it touches
  * none. A bar's box is the one its highlight uses (`barBoxes`), so the lasso picks what it will light up.
  */

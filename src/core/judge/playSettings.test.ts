@@ -1,6 +1,6 @@
 // Covers core_01.AC10 and core_01.AC11: the two Tempo-mode options are saved per player with no save bump (d069.3).
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PLAY_SETTINGS, followsPlayer, nextPlayChoice, playChoiceOf, playSettingsSchema } from './playSettings';
+import { DEFAULT_PLAY_SETTINGS, PLAY_CHOICES, choiceSettings, followsPlayer, nextPlayChoice, playChoiceOf, playSettingsSchema } from './playSettings';
 
 describe('play settings: the Tempo-mode start and auto reset', () => {
   it('core_01.AC10 core_01.AC11 an older save without them still reads, as the count-in and no auto reset', () => {
@@ -41,5 +41,11 @@ describe('the cycling mode button', () => {
     expect(playSettingsSchema.safeParse({ mode: 'tempo', scoreView: 'colour', tempoClock: 'loose' }).success).toBe(false);
     // the steps after it put the strict clock back
     expect(nextPlayChoice(follow).tempoClock).toBe('strict');
+  });
+
+  it('core_01.AC10 each choice of the mode menu saves the settings that read back as that choice, in the order of the cycle', () => {
+    expect(PLAY_CHOICES).toEqual(['wait', 'follow', 'tempo', 'tempoFirstNote']);
+    for (const choice of PLAY_CHOICES) expect(playChoiceOf(choiceSettings(choice))).toBe(choice);
+    expect(choiceSettings('follow')).toEqual(nextPlayChoice({ mode: 'wait' }));
   });
 });

@@ -54,9 +54,8 @@ The model is `src/game/ui/pixel/kiur/kiurModel.ts` (the painter) and `kiurFrames
 - His colours are sixteen entries of the game palette (umber, buff, down and leg ramps, his outline and his streaks). The bill shares the legs' pink and the back's dark brown: three colours fewer and no visible difference.
 - Which pixels get no line round them (the thin legs) is remembered while painting, not told from the colour, so the bill keeps its line.
 - Kiur at the door is a new pose: square to the student, head turned to the door, one wing held out flat with its feathers hanging down (`wings: 'point'`). A flying wing seen from the front is only a thin line, so pointing needed its own way to hold the wing.
-- The hats of the three battle outfits are the old drawings set on the fine grid: 24 fine pixels wide, they fit his head as they are.
 - In the room he sits on the bed with no line round him and the room's light on him. At dusk and at night he nearly melts into the bed, as the real bird would; by day he reads well.
-- Seen on the screens: at the laptop's size he is about 85 by 115 screen pixels beside the staff, finer and smaller than the teal bird in the same room. Next to the battle's monster he is small. His size is tagged below.
+- Seen on the screens: at the laptop's size he is about 85 by 115 screen pixels beside the staff, finer and smaller than the teal bird in the same room. His size is tagged below.
 - On the settings screen his feet touch the end of the label "Space between staves". The place is the screen's, not the picture's (tagged below).
 
 ## TODO
@@ -66,7 +65,7 @@ The later refinements of Kiur as work tags (d116, `docs/automation/todo-tags.md`
 - TODO(painter, Later): flight wings that bend and overlap like feathers instead of three stiff striped boards (`openWing` in `kiurModel.ts`, frames `KIUR_FLIGHT`). Waits on the photographs below.
 - TODO(painter, Later): a "thinks" pose that reads at a glance (a tilted head, a foot at the bill), not only a look aside (`KIUR_MOODS.hmm`).
 - TODO(painter, Later): break up the back's streaks; they stand in rows too regular for feathers (`bodyMarks`, `wingMarks`).
-- TODO(painter, Later): Kiur's size on the screens. He fills less of his 48 x 40 box than the teal bird did (about 85 by 115 screen pixels beside the staff) and is small beside a battle monster. Decide with the interface band (ft_1_20), which may change his box.
+- TODO(painter, Later): Kiur's size on the screens. He fills less of his 48 x 40 box than the teal bird did (about 85 by 115 screen pixels beside the staff) Decide with the interface band (ft_1_20), which may change his box.
 - TODO(painter, Later): Kiur asleep on the bed at dusk and at night nearly melts into the blanket. A lighter rim or a paler blanket under him, with no line round him (inside a painted picture).
 - TODO(painter, Later): on the settings screen his feet touch the end of the label "Space between staves". The place is the screen's: move him with the settings screen's repaint.
 - NEEDS-HUMAN: photographs of a metskiur singing (bill open, on a branch top) and flying (wings open from the side and from below), studied locally, never committed (d223).

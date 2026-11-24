@@ -124,11 +124,26 @@ export const learnSettingsSchema = z.object({
   stepBars: z.union([z.literal(1), z.literal(2)]),
   markers: z.boolean(),
   markersFrom: z.int().min(1).max(5),
+  /**
+   * Learn a new two-hand piece hands apart (ft_1_32 rule 13): each growing step by the right hand, the left, then both.
+   * Absent (saved before it) or false: both hands together, the default. An optional field, no version bump (d069.3).
+   */
+  handsApart: z.boolean().optional(),
+  /**
+   * The run's live tempo, spread and wobble in the slim strip at the foot while a piece is learned (ft_1_32 rule 18): a parent's or
+   * teacher's tool, off unless turned on. Absent or false: off. An optional field, no version bump (d069.3).
+   */
+  liveTempo: z.boolean().optional(),
 });
+
+/** Whether a learning run shows its live tempo in the top bar: only when the player turned it on (rule 18). */
+export function learnLiveTempo(settings: LearnSettings): boolean {
+  return settings.liveTempo === true;
+}
 
 export type LearnSettings = z.infer<typeof learnSettingsSchema>;
 
-export const DEFAULT_LEARN_SETTINGS: LearnSettings = { stepBars: 1, markers: true, markersFrom: 2 };
+export const DEFAULT_LEARN_SETTINGS: LearnSettings = { stepBars: 1, markers: true, markersFrom: 2, handsApart: false };
 
 /**
  * The step size to plan a piece with: the player's setting for a piece not started yet, else the size its learning began
@@ -138,18 +153,28 @@ export function learnStepBars(progress: LearnProgress, settings: LearnSettings):
   return progress.lastDay === null ? settings.stepBars : (progress.stepBars ?? 1);
 }
 
-/** Whether to plan a piece with hands-apart steps: yes for a piece not begun yet, else as its learning began. */
-export function learnHandsApart(progress: LearnProgress): boolean {
-  return progress.lastDay === null ? true : (progress.handsApart ?? false);
+/**
+ * Whether to plan a piece with hands-apart steps: the player's setting for a piece not begun yet (both hands together when
+ * unset), else as its learning began, so a change of the setting applies to the next piece.
+ */
+export function learnHandsApart(progress: LearnProgress, settings: LearnSettings): boolean {
+  return progress.lastDay === null ? (settings.handsApart ?? false) : (progress.handsApart ?? false);
 }
 
 export const START_PROGRESS: LearnProgress = { step: 0, wholeStreak: 0, recall: false, confirm: false, misses: 0, medals: [], lastDay: null };
 
 /**
  * How a run ended: perfect, perfect with note names shown, perfect but a measured run (a confirmation play or a whole run)
- * not kept evenly enough to give a tempo, or stopped by a wrong key.
+ * not kept evenly enough to give a tempo, stopped by a wrong key, or played to its end with wrong keys (`flawed`: a play of
+ * a step asked several times, d300).
  */
-export type RunOutcome = 'perfect' | 'hinted' | 'unsteady' | 'stopped';
+export type RunOutcome = 'perfect' | 'hinted' | 'unsteady' | 'stopped' | 'flawed';
+
+/**
+ * Whether the next run of `step` goes on past a wrong key to the end (d300): every play but the last of a step asked
+ * several times (the whole piece). The last play must be perfect; a wrong key starts it again, still the last play.
+ */
+export const playsOn = (step: LearnStep, progress: LearnProgress): boolean => step.runs > 1 && progress.wholeStreak < step.runs - 1;
 
 /** Whether a run of `step` is measured: its tempo is kept, and it must be played evenly to count. */
 export const isMeasured = (run: LearnRun): boolean => run.kind === 'step' && run.step.kind !== 'grow';
@@ -229,13 +254,23 @@ export function afterRun(plan: readonly LearnStep[], progress: LearnProgress, ou
   if (isLearned(plan, progress)) return next;
   // every note was right, only the pace wobbled: nothing is lost and nothing counts; the run is asked for again, slower
   if (outcome === 'unsteady') return progress.recall ? next : { ...next, unsteady: (progress.unsteady ?? 0) + 1 };
-  if (outcome === 'hinted') return progress.recall ? { ...next, confirm: true } : { ...next, confirm: true, wholeStreak: 0, misses: progress.misses + 1 };
-  if (outcome === 'stopped') return progress.recall ? next : { ...next, wholeStreak: 0, misses: progress.misses + 1 };
+  // a run that does not count keeps the count of a step asked several times: a mistake never sends it back to its first play (d300)
+  if (outcome === 'hinted') return progress.recall ? { ...next, confirm: true } : { ...next, confirm: true, misses: progress.misses + 1 };
+  if (outcome === 'stopped' || (outcome === 'flawed' && (progress.recall || !playsOn(plan[progress.step]!, progress)))) {
+    return progress.recall ? next : { ...next, misses: progress.misses + 1 };
+  }
+  // a play of a step asked several times, with mistakes: it counts as a play, and lowers the step's medal (d300)
+  if (outcome === 'flawed') return countPlay(plan, { ...next, confirm: false }, { ...progress, misses: progress.misses + 1 }, at);
   if (progress.recall) return { ...next, confirm: false, recall: false };
   const measured = bpm !== undefined && plan[progress.step]!.kind !== 'grow';
   const counted = { ...next, confirm: false, ...(measured ? { bpm: [...(progress.bpm ?? []), bpm] } : {}) };
+  return countPlay(plan, counted, progress, at);
+}
+
+/** A run of the current step that counts: the step's count goes on, and the step is done after its last run. */
+function countPlay(plan: readonly LearnStep[], counted: LearnProgress, progress: LearnProgress, at: string): LearnProgress {
   const streak = progress.wholeStreak + 1;
-  if (streak < plan[progress.step]!.runs) return { ...counted, wholeStreak: streak };
+  if (streak < plan[progress.step]!.runs) return { ...counted, wholeStreak: streak, misses: progress.misses };
   const advanced: LearnProgress = { ...counted };
   delete advanced.unsteady;
   const step = progress.step + 1;
@@ -292,6 +327,9 @@ export type ChunkNote = 'quarter' | 'half' | 'dotted-half' | 'whole';
 
 const NOTE_OF_UNITS: Record<number, ChunkNote> = { 1: 'quarter', 2: 'half', 3: 'dotted-half', 4: 'whole' };
 
+/** The note a chunk of `units` units merges into: four bars a whole note, three a dotted half, two a half, one a quarter. */
+export const chunkNoteOf = (units: number): ChunkNote => NOTE_OF_UNITS[Math.max(1, Math.min(4, units))]!;
+
 export interface ChunkReward {
   /** The medal of each secured unit (its quarter note), in order; the rest are not secured yet. */
   quarters: Medal[];
@@ -326,9 +364,9 @@ export function learnRewards(
     return true;
   };
   const done = plan.slice(0, Math.min(progress.step, plan.length));
-  // each unit's medal: that of the first finished step that reached it
+  // each unit's medal: that of the first finished step that reached it with both hands (a one-hand step earns nothing, rule 13)
   const unitMedal = (u: number): Medal | null => {
-    const at = done.findIndex((s) => s.firstUnit <= u && s.lastUnit >= u);
+    const at = done.findIndex((s) => s.hand === undefined && s.firstUnit <= u && s.lastUnit >= u);
     if (at < 0) return null;
     return shines(u) ? 'gold' : progress.medals[at] ?? 'bronze';
   };
@@ -352,4 +390,20 @@ export function learnRewards(
   const allGolden = units.every((_, u) => shines(u));
   const piece = learned ? (allGolden ? 'gold' : lowest([...chunks.map((c) => c.merged?.medal ?? 'bronze'), ...measured])) : null;
   return { chunks, piece };
+}
+
+/** Whether a piece's learning has begun and is past its first step: reopening it asks to continue or start over (ft_1_32.AC16). */
+export function halfLearned(progress: LearnProgress): boolean {
+  return progress.lastDay !== null && progress.step > 0;
+}
+
+/**
+ * The learning of a piece started over on `today` (ft_1_32.AC16): the first step again with no medals, planned with the
+ * player's settings now; the measured paces and runs stay, as they are true numbers of what was played.
+ */
+export function startOver(progress: LearnProgress, settings: LearnSettings, today: DayString): LearnProgress {
+  return {
+    ...START_PROGRESS, lastDay: today, stepBars: settings.stepBars, handsApart: settings.handsApart ?? false,
+    ...(progress.bpm ? { bpm: progress.bpm } : {}), ...(progress.tests ? { tests: progress.tests } : {}),
+  };
 }

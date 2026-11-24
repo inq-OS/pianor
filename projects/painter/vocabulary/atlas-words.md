@@ -37,49 +37,51 @@ Also understood: inventory (item), mugs, tankard, grog (mug), bottles, tools, pa
 
 ## 2. The games by place
 
-Say the place and get its rooms (the clean backgrounds, `mi2-bg-<part>-<room>`; `MI3` before a room is The Curse of Monkey Island's `mi3-bg-<part>-<room>`) and the game screens that show them (`mi2-scr-...`, with characters and often the verb band). An island's name finds everything on it. The names were given by eye; correct one with `refcat.py tag <id> --tags <place>`.
+Say the place and get its rooms (the clean backgrounds, `mi2-bg-<part>-<room>`; `MI3` before a room is The Curse of Monkey Island's `mi3-bg-part<part>-<room>`, `MI1` The Secret of Monkey Island's `mi1-bg-<part>-<name>`) and the game screens that show them (`mi2-screen-...`, with characters and often the verb band). An island's name finds everything on it. The names were given by eye; correct one with `refcat.py tag <id> --tags <place>`.
 
 | Place | What it is | Rooms | Screens |
 |---|---|---|---|
 | `scabb` | Scabb Island (Part I): every room on it, and its map | 0-002, 0-004, 0-005, 0-006, 0-007, 0-008, 0-009, 0-011, 0-012, 0-013, 0-014, 0-015, 0-016, 0-017, 0-018, 0-019, 0-020, 0-021, 0-022, 0-023 | 61 |
-| `woodtick` | Woodtick, Scabb's town of beached ships: plank walks, lamps, and its rooms | 0-006, 0-007, 0-008, 0-009, 0-011, 0-012, 0-013, 0-014, 0-015 | 30 |
-| `bar` | the bar in Woodtick | 0-009, MI3 3-08 | 4 |
-| `kitchen` | a kitchen (Woodtick's bar, the Booty mansion) | 0-006, 1-057 | 2 |
-| `inn` | the inn in Woodtick | 0-011 | 1 |
-| `cartographer` | the map maker's cabin in Woodtick | 0-008 | 2 |
+| `woodtick` | Woodtick, Scabb's town of beached ships: plank walks, lamps, and its rooms | 0-006, 0-007, 0-008, 0-009, 0-011, 0-012, 0-013, 0-014, 0-015 | 31 |
+| `bar` | the bar in Woodtick | 0-009, MI3 part3-008, MI1 0-bar, MI1 0-cu-bar-1, MI1 0-cu-bar-2, MI1 0-cu-bar-3, MI1 0-kitchen | 4 |
+| `kitchen` | a kitchen (Woodtick's bar, the Booty mansion) | 0-006, 1-057, MI1 0-kitchen | 2 |
+| `inn` | the inn in Woodtick | 0-011, MI3 part3-008, MI3 part3-011, MI3 part3-012, MI3 part3-013 | 1 |
+| `cartographer` | the map maker's cabin in Woodtick | 0-008 | 3 |
 | `woodsmith` | the woodsmith's workshop in Woodtick | 0-015 | 2 |
-| `cemetery` | Scabb's graveyard: the fence and gate, the hill of graves, the crypt | 0-016, 0-017, 0-018, 0-019, MI3 3-14 | 13 |
-| `crypt` | the crypt under the graveyard | 0-018, MI3 3-14, MI3 3-16, MI3 3-17, MI3 3-18 | 1 |
-| `voodoo` | the voodoo house in the swamp | 0-021, MI3 1-26 | 4 |
-| `beach` | a beach (Scabb's with the twisted tree, Phatt's under the cottage, Dinky's) | 0-004, 0-005, 2-037, 4-085, MI3 1-02, MI3 1-14, MI3 1-15, MI3 3-22 | 8 |
+| `cemetery` | Scabb's graveyard: the fence and gate, the hill of graves, the crypt | 0-016, 0-017, 0-018, 0-019, MI3 part3-014 | 13 |
+| `crypt` | the crypt under the graveyard | 0-018, MI3 part3-014, MI3 part3-016, MI3 part3-017, MI3 part3-018 | 1 |
+| `voodoo` | the voodoo house in the swamp | 0-021, MI3 part1-016, MI3 part1-017, MI3 part1-026 | 3 |
+| `beach` | a beach (Scabb's with the twisted tree, Phatt's under the cottage, Dinky's) | 0-004, 0-005, 2-037, 4-085, MI3 part1-002, MI3 part1-013, MI3 part1-014, MI3 part1-015, MI3 part3-022, MI1 2-beach, MI1 2-main-beac | 8 |
 | `bonfire` | the campfire of the opening, on Scabb's beach | 0-004, 0-005 | 3 |
 | `peninsula` | Scabb's peninsula with the jetty and the houseboat | 0-023 | 1 |
-| `dock` | a jetty with a ship or a fisherman (Scabb's peninsula, Phatt's pier) | 0-023, 2-028 | 4 |
+| `dock` | a jetty with a ship or a fisherman (Scabb's peninsula, Phatt's pier) | 0-023, 2-028, MI1 0-cu-dock, MI1 0-dock | 4 |
 | `dread-ship` | the houseboat, inside, moored and at sea | 0-022, 0-023, 0-024 | 3 |
-| `booty` | Booty Island (Part II): every room on it, and its map | 1-045, 1-046, 1-047, 1-048, 1-049, 1-050, 1-051, 1-052, 1-053, 1-054, 1-055, 1-056, 1-057, 1-058, 1-059, 1-060, 1-061, 1-062, 1-065, 1-066 | 57 |
+| `booty` | Booty Island (Part II): every room on it, and its map | 1-045, 1-046, 1-047, 1-048, 1-049, 1-050, 1-051, 1-052, 1-053, 1-054, 1-055, 1-056, 1-057, 1-058, 1-059, 1-060, 1-061, 1-062, 1-065, 1-066 | 51 |
 | `stans` | the coffin shop on Booty | 1-046, 1-050 | 4 |
 | `spitting` | Booty's street with the flags | 1-047 | 4 |
 | `antique-shop` | the antique shop on Booty | 1-048 | 1 |
 | `costume-shop` | the costume shop on Booty | 1-049 | 2 |
-| `mansion` | a governor's mansion (Booty's and Phatt's), outside and in | 1-052, 1-053, 1-054, 1-055, 1-056, 1-057, 2-041, 2-042, 2-043, 2-044 | 26 |
-| `big-tree` | the foot of Booty's big tree, with a small hut | 1-060 | 7 |
-| `treehouse` | the huts up in Booty's big tree, and inside one | 1-060, 1-061, 1-062 | 9 |
-| `sunken-ship` | the wreck on the sea bed off Booty | 1-065, 1-066 | 6 |
+| `mansion` | a governor's mansion (Booty's and Phatt's), outside and in | 1-052, 1-053, 1-054, 1-055, 1-056, 1-057, 2-041, 2-042, 2-043, 2-044, MI1 0-foyer, MI1 0-mansion-e | 26 |
+| `big-tree` | the foot of Booty's big tree, with a small hut | 1-060 | 2 |
+| `treehouse` | the huts up in Booty's big tree, and inside one | 1-060, 1-061, 1-062 | 4 |
+| `sunken-ship` | the wreck on the sea bed off Booty | 1-065, 1-066 | 7 |
 | `phatt` | Phatt Island (Part II): every room on it, and its map | 2-026, 2-027, 2-028, 2-029, 2-030, 2-031, 2-032, 2-033, 2-034, 2-035, 2-036, 2-037, 2-038, 2-039, 2-040, 2-041, 2-042, 2-043, 2-044 | 38 |
 | `library` | Phatt's library, with its card drawers | 2-030, 2-031, 2-032 | 5 |
-| `jail` | Phatt's jail | 2-029 | 2 |
+| `jail` | Phatt's jail | 2-029, MI1 0-jail | 2 |
 | `alley` | a back alley (Phatt's, and the night street at the end) | 2-033, 2-034, 4-089 | 4 |
 | `cottage` | the cottage on the small island off Phatt, its beach, room and cellar | 2-037, 2-038, 2-039, 2-040 | 9 |
 | `fortress` | the fortress (Part III): the rock in a storm, and its fire-lit rooms | 3-068, 3-069, 3-070, 3-071, 3-072, 3-073, 3-074, 3-075, 3-076, 3-077, 3-078, 3-079 | 27 |
 | `dinky` | Dinky Island (Part IV): beach, jungle paths, the clearing | 4-085, 4-086, 4-096, 4-097, 4-098 | 16 |
-| `tunnels` | the tunnels under Dinky: storerooms, a lift, bare rooms | 4-087, 4-088, 4-090, 4-091, 4-092, 4-093 | 37 |
+| `tunnels` | the tunnels under Dinky: storerooms, a lift, bare rooms | 4-087, 4-088, 4-090, 4-091, 4-092, 4-093, MI1 2-hellcliff, MI1 2-hellhall | 37 |
 | `melee` | the night street at the end | 4-089 | 1 |
-| `carnival` | the carnival at the end | 4-110, MI3 4-00-01, MI3 4-00, MI3 4-02, MI3 4-03, MI3 4-04, MI3 4-05 | 4 |
-| `death-starfish` | MI3: LeChuck's ship and the opening at sea | MI3 0-1, MI3 0-2, MI3 0-3, MI3 0-4 | 0 |
-| `plunder` | MI3: Plunder Island, Puerto Pollo | MI3 1-01, MI3 1-02, MI3 1-03, MI3 1-04, MI3 1-05, MI3 1-06-01, MI3 1-06, MI3 1-07, MI3 1-08, MI3 1-09, MI3 1-10, MI3 1-11, MI3 1-12, MI3 1-13, MI3 1-14, MI3 1-15, MI3 1-16, MI3 1-17, MI3 1-18, MI3 1-19, MI3 1-20, MI3 1-21, MI3 1-22, MI3 1-23, MI3 1-24, MI3 1-25, MI3 1-26, MI3 1-27, MI3 1-28 | 0 |
-| `ship-combat` | MI3: the Sea Cucumber at sea and its fights | MI3 2-00, MI3 2-01, MI3 2-02, MI3 2-03, MI3 2-04, MI3 2-05, MI3 2-06, MI3 2-07, MI3 2-08, MI3 2-09, MI3 2-10, MI3 2-11, MI3 2-12, MI3 2-13 | 0 |
-| `blood` | MI3: Blood Island | MI3 3-00, MI3 3-01, MI3 3-02, MI3 3-03, MI3 3-04, MI3 3-05, MI3 3-06, MI3 3-07, MI3 3-08, MI3 3-09, MI3 3-10, MI3 3-11, MI3 3-12, MI3 3-13, MI3 3-14, MI3 3-15, MI3 3-16, MI3 3-17, MI3 3-18, MI3 3-20, MI3 3-21, MI3 3-22, MI3 3-23, MI3 3-24, MI3 3-25, MI3 3-26, MI3 3-27 | 0 |
-| `monkey-island` | MI3: Monkey Island and the end | MI3 4-00-01, MI3 4-00, MI3 4-01, MI3 4-02, MI3 4-03, MI3 4-04, MI3 4-05 | 0 |
+| `carnival` | the carnival at the end | 4-110, MI3 part4-000-01, MI3 part4-000, MI3 part4-001, MI3 part4-002, MI3 part4-003, MI3 part4-004, MI3 part4-005 | 4 |
+| `death-starfish` | MI3: LeChuck's ship and the opening at sea | MI3 part0-001, MI3 part0-002, MI3 part0-003, MI3 part0-004 | 0 |
+| `plunder` | MI3: Plunder Island, Puerto Pollo | MI3 part1-001, MI3 part1-002, MI3 part1-003, MI3 part1-004, MI3 part1-005, MI3 part1-006-01, MI3 part1-006, MI3 part1-007, MI3 part1-008, MI3 part1-009, MI3 part1-010, MI3 part1-011, MI3 part1-012, MI3 part1-013, MI3 part1-014, MI3 part1-015, MI3 part1-016, MI3 part1-017, MI3 part1-018, MI3 part1-019, MI3 part1-020, MI3 part1-021, MI3 part1-022, MI3 part1-023, MI3 part1-024, MI3 part1-025, MI3 part1-026, MI3 part1-027, MI3 part1-028 | 0 |
+| `ship-combat` | MI3: the Sea Cucumber at sea | MI3 part2-000, MI3 part2-001, MI3 part2-002, MI3 part2-003, MI3 part2-004, MI3 part2-005, MI3 part2-006, MI3 part2-007, MI3 part2-008, MI3 part2-009, MI3 part2-010, MI3 part2-011, MI3 part2-012, MI3 part2-013 | 0 |
+| `blood` | MI3: Blood Island | MI3 part3-000, MI3 part3-001, MI3 part3-002, MI3 part3-003, MI3 part3-004, MI3 part3-005, MI3 part3-006, MI3 part3-007, MI3 part3-008, MI3 part3-009, MI3 part3-010, MI3 part3-011, MI3 part3-012, MI3 part3-013, MI3 part3-014, MI3 part3-015, MI3 part3-016, MI3 part3-017, MI3 part3-018, MI3 part3-020, MI3 part3-021, MI3 part3-022, MI3 part3-023, MI3 part3-024, MI3 part3-025, MI3 part3-026, MI3 part3-027 | 0 |
+| `monkey-island` | MI3: Monkey Island and the end; MI1: Monkey Island, its jungle, village and the ghost ship | MI3 part4-000-01, MI3 part4-000, MI3 part4-001, MI3 part4-002, MI3 part4-003, MI3 part4-004, MI3 part4-005, MI1 2-beach, MI1 2-bighead, MI1 2-crack, MI1 2-fork, MI1 2-fort, MI1 2-gen-jungl, MI1 2-gh-captai, MI1 2-gh-crews, MI1 2-gh-deck, MI1 2-gh-hull, MI1 2-gh-room, MI1 2-gh-storag, MI1 2-hellcliff, MI1 2-hellhall, MI1 2-hut, MI1 2-main-beac, MI1 2-monkey-1, MI1 2-monkey-2, MI1 2-monkey-3, MI1 2-monkey-4, MI1 2-monkey-5, MI1 2-monkey-he, MI1 2-pond, MI1 2-seesaw, MI1 2-village, MI1 2-vista-1 | 0 |
+| `melee-island` | MI1: Melee Island (Part I): the town by night, the bar, the forest, the circus, its map | MI1 0-alley, MI1 0-bar, MI1 0-bridge, MI1 0-church, MI1 0-circus-gr, MI1 0-circus-te, MI1 0-crossing, MI1 0-cu-bar-1, MI1 0-cu-bar-2, MI1 0-cu-bar-3, MI1 0-cu-brush, MI1 0-cu-church, MI1 0-cu-dock, MI1 0-cu-gov, MI1 0-cu-naviga, MI1 0-cu-sword, MI1 0-cu-traine, MI1 0-cu-works, MI1 0-dock, MI1 0-fortune, MI1 0-foyer, MI1 0-gym, MI1 0-high-stre, MI1 0-jail, MI1 0-kitchen, MI1 0-logo, MI1 0-lookout, MI1 0-low-stree, MI1 0-mansion-e, MI1 0-map, MI1 0-masters-h, MI1 0-meats-hou, MI1 0-melee, MI1 0-recipe, MI1 0-road, MI1 0-stans, MI1 0-store, MI1 0-sword-mas, MI1 0-trainers, MI1 0-treasure, MI1 0-underwate | 0 |
+| `sea-monkey` | MI1: the ship Sea Monkey, at sea and inside | MI1 1-seamonkey, MI1 1-sh-captai, MI1 1-sh-crews, MI1 1-sh-crows, MI1 1-sh-deck, MI1 1-sh-galley, MI1 1-sh-hull | 0 |
 
 Not on an island: the sea chart held in two hands (0-082), an island seen from the sea at night (0-109), a round window in a plank wall (0-010), a blank parchment (1-080), the houseboat and a second ship at sea (0-024, 1-081), the storm sea (3-083), the title and chapter cards (`title`).
 
@@ -91,11 +93,11 @@ Not on an island: the sea chart held in two hands (0-082), an island seen from t
 
 **subject:** sky (112), clouds (57), moon (3), stars (32), sea (133), water (33), shore (63), waterfall (6), rock (94), shingle (9), cliff (24), sand (17), stone-wall (61), grave (25), grass (58), foliage (81), tree (55), bush (7), flowers (17), moss (1), jungle (70), swamp (14), path (72), wood (166), plaster (40), roof (10), building (222), hut (60), lighthouse (69), tower (7), town (41), jetty (33), bridge (9), fence (10), mast (28), window (52), door (69), stairs (34), sign (51), ship (56), boat (8), wreck (9), fire (39), lamp (78), furniture (142), props (145), figure (12), bird (17), animal (2), interface (168), text (16), mug (9), bottle (16), tool (18), weapon (4), treasure (8), food (28), paper (24), book (4), rope (2), nautical (19)
 
-**source:** mi2 (359), mi3 (225), keri (183), ours (3)
+**source:** mi1 (221), mi2 (359), mi3 (225), keri (183), ours (3)
 
 **flag:** blurry (1), wide (132), tall (17), dark-frame (4), screenshot (263)
 
-- **setting** says what kind of picture it is; **hour** the light; **subject** what is in it; **source** whose it is (`mi2` the 1991 game, `mi3` The Curse of Monkey Island of 1997, never in the gauge, `keri` a photograph of the real island, `ours` a screen of Pianor); **flag** how to read it (`screenshot` a game screen with characters, `wide` a scrolling room, `blurry` an enlarged close-up).
+- **setting** says what kind of picture it is; **hour** the light; **subject** what is in it; **source** whose it is (`mi2` the 1991 game, `mi3` The Curse of Monkey Island of 1997 and `mi1` The Secret of Monkey Island as first released, never in the gauge, `keri` a photograph of the real island, `ours` a screen of Pianor); **flag** how to read it (`screenshot` a game screen with characters, `wide` a scrolling room, `blurry` an enlarged close-up).
 - Counts move as pictures come in; `refcat.py tags --md` prints these tables again.
 
 ## 4. How pictures get their tags

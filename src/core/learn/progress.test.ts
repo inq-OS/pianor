@@ -4,7 +4,7 @@ import { chartWith } from '../../../tests/helpers/charts';
 import type { BarPlay } from '../progression/practiceLog';
 import { learnPlan } from './plan';
 import {
-  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, goldenBars, isLearned, learnProgressSchema, learnRewards, MAX_LEARN_TESTS, learnHandsApart, learnStepBars, measuredOutcome, medalOf, sitDown, START_PROGRESS, withTest,
+  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnHandsApart, learnLiveTempo, learnStepBars, measuredOutcome, medalOf, playsOn, sitDown, START_PROGRESS, withTest,
   type LearnProgress, type RunOutcome,
 } from './progress';
 
@@ -42,12 +42,30 @@ describe('learning progress', () => {
     expect(play(learned, [false])).toMatchObject({ step: plan.length }); // learned stays learned
   });
 
-  it('a step asked several times needs them in a row; a stopped run starts the count again', () => {
+  it('ft_1_32.AC2 the last step is three plays: the first two go on past a wrong key and count, a mistake only lowers the clef\'s medal', () => {
     const atWhole = play(START_PROGRESS, all(10), '1998-11-22', three);
-    const broken = play(atWhole, [true, true, false, true, true], '1998-11-22', three);
-    expect(isLearned(three, broken)).toBe(false);
-    expect(broken.wholeStreak).toBe(2);
-    expect(isLearned(three, play(broken, [true], '1998-11-22', three))).toBe(true);
+    const twice = play(atWhole, ['flawed', true], '1998-11-22', three);
+    expect(twice).toMatchObject({ wholeStreak: 2, misses: 1 });
+    expect(isLearned(three, play(twice, [true], '1998-11-22', three))).toBe(true);
+    expect(play(twice, [true], '1998-11-22', three).medals.at(-1)).toBe('silver');
+    expect(play(atWhole, all(3), '1998-11-22', three).medals.at(-1)).toBe('gold');
+  });
+
+  it('ft_1_32.AC2 the third play must be perfect: a wrong key starts it again from the first bar, still the third play', () => {
+    const atWhole = play(START_PROGRESS, all(10), '1998-11-22', three);
+    const third = play(atWhole, [true, true, false, false], '1998-11-22', three);
+    expect(third).toMatchObject({ wholeStreak: 2, misses: 2 });
+    expect(currentRun(three, third)).toMatchObject({ firstBar: 0, lastBar: 7, step: { kind: 'whole' } });
+    expect(playsOn(three[third.step]!, third)).toBe(false);
+    expect(playsOn(three[atWhole.step]!, atWhole)).toBe(true);
+    const learned = play(third, [true], '1998-11-22', three);
+    expect(isLearned(three, learned)).toBe(true);
+    expect(learned.medals.at(-1)).toBe('silver');
+  });
+
+  it('ft_1_32.AC2 a play with mistakes never counts for a step asked once: the step comes again, as after a stopped run', () => {
+    expect(play(START_PROGRESS, ['flawed'])).toMatchObject({ step: 0, misses: 1 });
+    expect(playsOn(plan[0]!, START_PROGRESS)).toBe(false);
   });
 
   it('keeps the tempo of the measured runs that counted: the confirmation plays and the whole run (ft_1_32.AC7)', () => {
@@ -152,13 +170,11 @@ describe('measuredOutcome', () => {
     expect(measuredOutcome(START_PROGRESS, null)).toEqual({ outcome: 'perfect' });
   });
 
-  it('asks an uneven run again twice at most: the student is never held at a step for the pace (ft_1_32.AC7)', () => {
+  it('ft_1_32.AC7 asks an uneven run again once at most: the student is never held at a step for the pace', () => {
     const atConfirm = play(START_PROGRESS, all(4));
     expect(measuredOutcome(atConfirm, uneven)).toEqual({ outcome: 'unsteady' });
     const once = play(atConfirm, ['unsteady']);
-    expect(measuredOutcome(once, uneven)).toEqual({ outcome: 'unsteady' });
-    const twice = play(once, ['unsteady']);
-    expect(measuredOutcome(twice, uneven)).toEqual({ outcome: 'perfect' }); // counts, with no tempo kept
+    expect(measuredOutcome(once, uneven)).toEqual({ outcome: 'perfect' }); // counts, with no tempo kept
   });
 });
 
@@ -239,9 +255,21 @@ describe('learnRewards', () => {
     expect(learnRewards(withRest, learned, chart, new Set([0, 2, 3, 4, 5, 6, 7])).piece).toBe('gold');
   });
 
-  it('a run with note names breaks a streak of whole runs, like a stopped one', () => {
+  it('ft_1_32.AC2 a run with note names counts nothing in the whole runs and keeps their count, like a stopped one', () => {
     const atWhole = play(START_PROGRESS, all(10), '1998-11-22', three);
-    expect(play(atWhole, [true, true, 'hinted'], '1998-11-22', three).wholeStreak).toBe(0);
+    expect(play(atWhole, [true, true, 'hinted'], '1998-11-22', three)).toMatchObject({ wholeStreak: 2, confirm: true });
+  });
+
+  it('ft_1_32.AC12 with hands apart a bar earns its note only once both hands played it, not after one hand alone', () => {
+    const notes = [0, 1].flatMap((bar) => [{ tick: bar * 1920, dur: 480, midi: 64, track: 'rh' }, { tick: bar * 1920, dur: 480, midi: 48, track: 'lh' }]);
+    notes.push({ tick: 1920, dur: 1920, midi: 52, track: 'bk' });
+    const chart = chartWith(notes);
+    const apart = learnPlan(chart, 1, true); // bar 1 RH, bar 1 LH, bar 1, bars 1-2 RH, LH, both, confirm
+    expect(learnRewards(apart, play(START_PROGRESS, [true], '1998-11-22', apart), chart).chunks[0]!.quarters).toEqual([]);
+    expect(learnRewards(apart, play(START_PROGRESS, all(2), '1998-11-22', apart), chart).chunks[0]!.quarters).toEqual([]);
+    expect(learnRewards(apart, play(START_PROGRESS, all(3), '1998-11-22', apart), chart).chunks[0]!.quarters).toEqual(['gold']);
+    expect(learnRewards(apart, play(START_PROGRESS, all(4), '1998-11-22', apart), chart).chunks[0]!.quarters).toEqual(['gold']);
+    expect(learnRewards(apart, play(START_PROGRESS, all(6), '1998-11-22', apart), chart).chunks[0]!.quarters).toEqual(['gold', 'gold']);
   });
 
   it('a recall check never takes a note away', () => {
@@ -260,13 +288,40 @@ describe('the step size a piece is learned in', () => {
   });
 });
 
+describe('live tempo in learning', () => {
+  it('ft_1_32.AC17 the live tempo is off unless the player turned it on, and a setting saved before it reads as off', () => {
+    expect(learnLiveTempo(DEFAULT_LEARN_SETTINGS)).toBe(false);
+    expect(learnLiveTempo(learnSettingsSchema.parse({ stepBars: 1, markers: true, markersFrom: 2 }))).toBe(false);
+    expect(learnLiveTempo(learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, liveTempo: true }))).toBe(true);
+  });
+});
+
 describe('hands apart in a piece begun', () => {
-  it('ft_1_32.AC12 a new piece is learned hands apart; a piece begun before keeps the plan it began with', () => {
-    expect(learnHandsApart(START_PROGRESS)).toBe(true);
+  it('ft_1_32.AC12 a new piece is learned with both hands together unless the player chose hands apart, and a piece begun keeps the plan it began with', () => {
+    expect(DEFAULT_LEARN_SETTINGS.handsApart).toBe(false);
+    expect(learnHandsApart(START_PROGRESS, DEFAULT_LEARN_SETTINGS)).toBe(false);
+    expect(learnHandsApart(START_PROGRESS, { ...DEFAULT_LEARN_SETTINGS, handsApart: true })).toBe(true);
+    // saved before the setting: both hands together
+    expect(learnHandsApart(START_PROGRESS, learnSettingsSchema.parse({ stepBars: 1, markers: true, markersFrom: 2 }))).toBe(false);
     const begun = afterRun(plan, START_PROGRESS, 'perfect', '1998-11-22');
-    expect(learnHandsApart({ ...begun, handsApart: true })).toBe(true);
-    expect(learnHandsApart(begun)).toBe(false); // kept before the field: its plan had no hand steps
+    expect(learnHandsApart({ ...begun, handsApart: true }, DEFAULT_LEARN_SETTINGS)).toBe(true);
+    expect(learnHandsApart({ ...begun, handsApart: false }, { ...DEFAULT_LEARN_SETTINGS, handsApart: true })).toBe(false);
+    expect(learnHandsApart(begun, { ...DEFAULT_LEARN_SETTINGS, handsApart: true })).toBe(false); // kept before the field: its plan had no hand steps
     expect(learnProgressSchema.parse({ ...begun, handsApart: true }).handsApart).toBe(true);
   });
 });
 
+
+describe('starting a half-learned piece over (ft_1_32.AC16)', () => {
+  it('ft_1_32.AC16 back to the first step with no medals, on the player\'s settings now; the measured paces and runs stay', () => {
+    const begun = { ...play(START_PROGRESS, all(5)), bpm: [80, 84], tests: [], stepBars: 1 as const, handsApart: true };
+    expect(begun.step).toBeGreaterThan(0);
+    const over = startOver(begun, { ...DEFAULT_LEARN_SETTINGS, stepBars: 2, handsApart: false }, '1998-11-23');
+    expect(over).toEqual({ ...START_PROGRESS, lastDay: '1998-11-23', stepBars: 2, handsApart: false, bpm: [80, 84], tests: [] });
+    // no recall check on that day: nothing is done yet
+    expect(sitDown(plan, over, '1998-11-23').recall).toBe(false);
+    expect(halfLearned(begun)).toBe(true);
+    expect(halfLearned(over)).toBe(false);
+    expect(halfLearned(START_PROGRESS)).toBe(false);
+  });
+});

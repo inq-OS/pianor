@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import keriJson from '../../../content/world/keri.json';
-import { isTester, openScenes } from '../../core/campaign/sceneBeings';
+import { isTester, openScenes } from '../../core/world/openScenes';
 import { t } from '../../core/text/strings';
 import { VISIT, nextVisit } from '../../core/visit/islandVisit';
 import { loadWorld, type World } from '../../core/world/world';
@@ -14,7 +14,10 @@ const KERI: World = loadWorld(keriJson);
  * Every scene of the world model that has a screen, and its name: the map's buttons (ft_1_19.AC2) and the screensaver's
  * round (ft_1_17.AC4). A scene without one is painted on the map but is no button and is not visited.
  */
-export const SCENE_SCREENS: Readonly<Record<string, { scene: 'knoll' | 'docks' | 'crossroads' | 'port' | 'terrace'; label: () => string }>> = {
+/** The scenes of Keri that have a screen, by their scene key. */
+export type KeriScreen = 'knoll' | 'docks' | 'crossroads' | 'port' | 'terrace';
+
+export const SCENE_SCREENS: Readonly<Record<string, { scene: KeriScreen; label: () => string }>> = {
   knoll: { scene: 'knoll', label: () => t('map.scene.knoll') },
   docks: { scene: 'docks', label: () => t('map.scene.docks') },
   crossroads: { scene: 'crossroads', label: () => t('map.scene.crossroads') },
@@ -25,10 +28,12 @@ export const SCENE_SCREENS: Readonly<Record<string, { scene: 'knoll' | 'docks' |
 /** What a scene of Keri is started with: `visiting` when the screensaver shows it (ft_1_17.AC4). */
 export interface VisitData {
   visiting?: boolean;
+  /** Back from a wanderer's ask (ft_1_37.AC7): its scene hears the first whole play of `piece` after `since`. */
+  wanderer?: { id: string; piece: string; since: string };
 }
 
 /** The scenes the student's level has opened that have a screen, in the world model's order. */
-function visitable(from: Phaser.Scene): string[] {
+export function visitable(from: Phaser.Scene): string[] {
   const open = openScenes(KERI.scenes ?? [], contextOf(from).profiles.progress.level.level, isTester(contextOf(from).profiles.profile.name));
   return open.filter((id) => SCENE_SCREENS[id] !== undefined);
 }

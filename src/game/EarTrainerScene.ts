@@ -20,6 +20,7 @@ import { C } from './ui/pixel/palette';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { StaffView } from './ui/staff/StaffView';
 import { startScene } from './scenes';
+import { watchKeyBash } from './practice/bashDoor';
 
 const MARGIN = 8;
 /** The ear level line at the top of the main area: the ear, "Ear level N" and a bar of the points towards the next level. */
@@ -86,13 +87,17 @@ export class EarTrainerScene extends PixelScene {
   override create(): void {
     this.input.keyboard?.on('keydown-ESC', () => this.leave());
     this.events.once('shutdown', () => this.stopListening());
+    // key bashing brings Kiur to the door here too (ft_1_15.AC8); the door is the way out
+    watchKeyBash(this, contextOf(this).keyboard, () => this.leave());
     // every piano key (the EZ-220, the on-screen keys, the computer keyboard's note keys) comes here
     this.unsubscribe = contextOf(this).keyboard.onNote((event) => {
-      if (event.kind === 'on' && event.velocity > 0) this.onKey(event.midi);
+      // nothing is judged while an overlay is open over the trainer (Kiur at the door)
+      if (event.kind === 'on' && event.velocity > 0 && this.scene.isActive()) this.onKey(event.midi);
     });
     // any other computer key (Space, Enter, ...) can only continue; a note key also arrives above, and is ignored there
     this.onWindowKey((e) => {
-      if (!e.repeat && !MODIFIER_KEYS.has(e.key)) this.onKey(null);
+      // a key on an overlay over the trainer (Kiur at the door) is the overlay's
+      if (!e.repeat && !MODIFIER_KEYS.has(e.key) && this.scene.isActive()) this.onKey(null);
     });
     // a click or touch on the screen (not on a button) goes on too, for a mouse or a tablet without the on-screen keys
     this.input.on('pointerdown', (_pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
@@ -137,7 +142,7 @@ export class EarTrainerScene extends PixelScene {
   protected override toolbarItems(): ToolbarItem[] {
     const repeat = t(this.repeatOn ? 'ear.repeatOn' : 'ear.repeatOff');
     return [
-      { label: displayText(t('ear.playAgain')), icon: ICONS.ear, iconOnly: true, tooltip: t('ear.playAgain'), onClick: () => this.play() },
+      { label: displayText(t('ear.playAgain')), icon: ICONS.ear, iconOnly: true, tooltip: t('ear.playAgain'), main: true, onClick: () => this.play() },
       { label: displayText(repeat), icon: TOOL_ICONS.repeat, iconOnly: true, active: this.repeatOn, tooltip: repeat, onClick: () => this.toggleRepeat() },
       { label: displayText(t('ear.length', { n: this.seconds })), tooltip: t('ear.lengthTip'), onClick: () => this.cycleLength() },
     ];

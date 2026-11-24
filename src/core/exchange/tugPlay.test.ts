@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
 import type { WorldState } from '../island/worldState';
 import { DEFAULT_TUG_RULES, advanceTug, startTug, type TugState } from './tug';
-import { studentShare, trainerLevel, trainerRules, tugAfter, tugBattle, tugFact, tugLevelFor, tugSetupOf, turnChartBars } from './tugPlay';
+import { onTimeShare, studentShare, trainerLevel, trainerRules, tugAfter, tugFact, tugRecord, tugLevelFor, tugSetupOf, turnChartBars } from './tugPlay';
 
 const rules = DEFAULT_TUG_RULES;
 /** Four whole bars of quarter notes (C D E F in each). */
@@ -121,12 +121,9 @@ describe('the finished tug in the world and the XP (ft_1_21.AC8, AC9, AC15)', ()
     expect(tugAfter(met, 'puuvaim', practiceLost, 'golden-leaf', '1998-11-20T10:00:00.000Z')).toEqual(met);
   });
 
-  it('ft_1_21.AC9 the XP is kept as a battle record under the old keys: the full prize won, part of half of it lost', () => {
-    expect(tugBattle(won, 'puuvaim', rules)).toEqual({
-      monsterId: 'puuvaim', pieceId: 'puuvaim-1', won: true, hpTaken: 3, maxHp: 3, potentialXp: 30, rounds: 3, playerHpLeft: 3, playerMaxHp: 3, xp: 30,
-    });
-    const lostBattle = tugBattle(lost, 'puuvaim', rules);
-    expect(lostBattle).toMatchObject({ won: false, hpTaken: 0, xp: 0, playerHpLeft: 0, rounds: 3 });
+  it('ft_1_21.AC9 the XP is kept as a tug record: the full prize won, part of half of it lost', () => {
+    expect(tugRecord(won, 'puuvaim', rules)).toEqual({ characterId: 'puuvaim', pieceId: 'puuvaim-1', won: true, potentialXp: 30, exchanges: 3, xp: 30 });
+    expect(tugRecord(lost, 'puuvaim', rules)).toMatchObject({ won: false, xp: 0, exchanges: 3 });
   });
 
   it('ft_1_21.AC8 a lost tug that came close pays half the prize times the best standing over 3', () => {
@@ -137,11 +134,11 @@ describe('the finished tug in the world and the XP (ft_1_21.AC8, AC9, AC15)', ()
       s = s.plan.turns[s.turn]!.who === 'character' ? advanceTug(s, rules) : advanceTug(s, rules, { share: shares[i++]!, hands: {}, reasons: [] });
     }
     expect(s.outcome).toBe('lost');
-    expect(tugBattle(s, 'puuvaim', rules)).toMatchObject({ won: false, hpTaken: 2, xp: 10, rounds: 7 });
+    expect(tugRecord(s, 'puuvaim', rules)).toMatchObject({ won: false, xp: 10, exchanges: 7 });
   });
 
   it('an unfinished tug is refused', () => {
-    expect(() => tugBattle(startTug(tugSetupOf(fourBars, 'tug', 1), rules), 'puuvaim', rules)).toThrow(RangeError);
+    expect(() => tugRecord(startTug(tugSetupOf(fourBars, 'tug', 1), rules), 'puuvaim', rules)).toThrow(RangeError);
     expect(() => tugAfter(met, 'puuvaim', startTug(tugSetupOf(fourBars, 'tug', 1), rules), 'golden-leaf', 'x')).toThrow(RangeError);
   });
 });
@@ -164,5 +161,21 @@ describe('Kiur the trainer (ft_1_21.AC14)', () => {
       s = s.plan.turns[s.turn]!.who === 'character' ? advanceTug(s, kiur) : advanceTug(s, kiur, { share: 1, hands: {}, reasons: [] });
     }
     expect(s).toMatchObject({ outcome: 'won', standing: 2 });
+  });
+});
+
+describe('onTimeShare: the Tempo measure of a phrase (ft_1_21.AC5)', () => {
+  const timing = (onTime: number, early = 0, late = 0, missed = 0) => ({ played: onTime + early + late, onTime, early, late, missed, meanAbsErrorMs: null, score: 0 });
+  it('ft_1_21.AC5 is the share of the phrase\'s notes played on time in Tempo mode', () => {
+    expect(onTimeShare({ notes: 10, timing: timing(8, 1, 0, 1) })).toBeCloseTo(0.8);
+    expect(onTimeShare({ notes: 4, timing: timing(4) })).toBe(1);
+  });
+  it('ft_1_21.AC5 does not count early, late or missed notes, so keeping up only roughly is not enough', () => {
+    expect(onTimeShare({ notes: 10, timing: timing(5, 3, 2, 0) })).toBeCloseTo(0.5);
+    expect(onTimeShare({ notes: 10, timing: timing(0, 0, 0, 10) })).toBe(0);
+  });
+  it('ft_1_21.AC5 counts a phrase with no notes as on time, and a result with no timing (not Tempo mode) as none on time', () => {
+    expect(onTimeShare({ notes: 0, timing: timing(0) })).toBe(1);
+    expect(onTimeShare({ notes: 6 })).toBe(0);
   });
 });

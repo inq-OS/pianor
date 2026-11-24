@@ -87,19 +87,8 @@ export const PORT_AT_LANDING: BoatKind | null = 'row';
 /** Where the fire pan on the beacon post at the quay's head sits (fine pixels): the middle of its rim. It burns at dusk and night. */
 const LAMP = { x: PORT.head - 2, y: 76 } as const;
 
-/** Where people stand: on the quay's top, and on the sand of the bed after a dive (feet, fine pixels of the tall picture). */
-const STAND_ON_QUAY = [{ x: 210, y: PORT.deck + 2 }, { x: 400, y: PORT.deck + 2 }] as const;
-const STAND_ON_BED = [{ x: 150, y: PORT.bed + 14 }, { x: 470, y: PORT.bed + 16 }] as const;
-
-/** A being's button in layout cells: the being with its name and stars over it. */
-const SPOT_HIT = { w: 26, h: 44 } as const;
-
-/** A being's place: its feet (fine pixels) and its button (layout cells from the picture's corner), on a stage whose top is row `top` of the tall picture. */
-function spotOf(feet: { x: number; y: number }, top: number): { feet: { x: number; y: number }; button: Rect } {
-  const at = { x: feet.x, y: feet.y - top };
-  const x = Math.round(at.x / ART_DETAIL - SPOT_HIT.w / 2), bottom = Math.round(at.y / ART_DETAIL) + 2;
-  return { feet: at, button: { x, y: bottom - SPOT_HIT.h, w: SPOT_HIT.w, h: SPOT_HIT.h } };
-}
+/** Where the light falls in pools on the sand of the bed (centres, fine pixels of the tall picture). */
+const SAND_LIGHT = [{ x: 150, y: PORT.bed + 14 }, { x: 470, y: PORT.bed + 16 }] as const;
 
 export interface PortPlan {
   /** The screen's picture, fine pixels. */
@@ -117,12 +106,8 @@ export interface PortPlan {
   head: number;
   lamp: { x: number; y: number };
   berths: readonly { x: number; water: number; room: number }[];
-  /** Feet on the quay and on the bed (rows of the tall picture). */
-  quay: readonly { x: number; y: number }[];
-  under: readonly { x: number; y: number }[];
-  /** The beings' places on each stage: on the quay, and on the bed (feet and buttons from that stage's own corner). */
-  spots: { feet: { x: number; y: number }; button: Rect }[];
-  deepSpots: { feet: { x: number; y: number }; button: Rect }[];
+  /** The pools of light on the sand of the bed. */
+  sandLight: readonly { x: number; y: number }[];
   /** Where a press dives (the near water) and where one rises again (the deep stage's top, over the water), layout cells. */
   diveAt: Rect;
   riseAt: Rect;
@@ -141,10 +126,7 @@ export function portPlan(): PortPlan {
     head: PORT.head,
     lamp: { ...LAMP },
     berths: PORT_BERTHS.map((b) => ({ ...b })),
-    quay: STAND_ON_QUAY.map((p) => ({ ...p })),
-    under: STAND_ON_BED.map((p) => ({ ...p })),
-    spots: STAND_ON_QUAY.map((p) => spotOf(p, 0)),
-    deepSpots: STAND_ON_BED.map((p) => spotOf(p, PORT.dive)),
+    sandLight: SAND_LIGHT.map((p) => ({ ...p })),
     diveAt: { x: 0, y: Math.ceil((PORT.water + 4) / ART_DETAIL), w: PORT_PICTURE.w, h: PORT_PICTURE.h - Math.ceil((PORT.water + 4) / ART_DETAIL) },
     riseAt: { x: 0, y: 0, w: PORT_PICTURE.w, h: Math.floor((PORT.water - PORT.dive) / ART_DETAIL) },
   };

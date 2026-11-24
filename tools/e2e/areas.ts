@@ -31,10 +31,10 @@ export const E2E_AREAS: E2eArea[] = [
   },
   {
     name: 'menu',
-    specs: ['progress', 'player-screens', 'icon-buttons', 'room', 'pieces', 'pieceInfo', 'piece-stats', 'keyboard-navigation', 'adventure-script', 'teacher-arrival', 'intro', 'hotspots', 'talk', 'fisherman', 'tug', 'teach', 'estonian', 'note-trainer', 'ear-trainer'],
+    specs: ['progress', 'player-screens', 'icon-buttons', 'room', 'pieces', 'pieceInfo', 'piece-stats', 'keyboard-navigation', 'adventure-script', 'teacher-arrival', 'intro', 'hotspots', 'talk', 'fisherman', 'tug', 'teach', 'wanderer', 'estonian', 'note-trainer', 'ear-trainer', 'shape-trainer', 'chord-trainer'],
     sources: [
-      'src/game/MenuScene.ts', 'src/game/KeriMapScene.ts', 'src/game/adventure/', 'content/scenes/', 'content/actors/', 'content/scripts/', 'content/characters/', 'content/conversations/', 'content/challenge/', 'content/items/', 'src/core/item/', 'src/core/dialogue/', 'src/core/exchange/', 'src/core/scene/', 'src/game/visit/', 'src/core/visit/', 'src/game/room/', 'src/core/world/', 'src/core/campaign/', 'content/world/', 'src/game/PiecesScene.ts', 'src/game/CreditsScene.ts', 'src/game/menu/', 'src/game/profile/',
-      'src/game/ProfilesScene.ts', 'src/game/ProfileDashboardScene.ts', 'src/game/IntroScene.ts', 'src/game/intro/', 'src/core/intro/', 'content/intro/', 'src/game/NoteTrainerScene.ts', 'src/core/trainer/', 'content/trainer/', 'src/game/AdminScene.ts', 'src/game/NameScene.ts',
+      'src/game/MenuScene.ts', 'src/game/KeriMapScene.ts', 'src/game/adventure/', 'content/scenes/', 'content/actors/', 'content/scripts/', 'content/characters/', 'content/conversations/', 'content/challenge/', 'content/items/', 'src/core/item/', 'src/core/dialogue/', 'src/core/exchange/', 'src/core/scene/', 'src/game/visit/', 'src/core/visit/', 'src/game/room/', 'src/core/world/', 'content/world/', 'src/game/PiecesScene.ts', 'src/game/CreditsScene.ts', 'src/game/menu/', 'src/game/profile/',
+      'src/game/ProfilesScene.ts', 'src/game/ProfileDashboardScene.ts', 'src/game/IntroScene.ts', 'src/game/intro/', 'src/core/intro/', 'content/intro/', 'src/game/NoteTrainerScene.ts', 'src/game/ShapeTrainerScene.ts', 'src/game/ChordTrainerScene.ts', 'src/core/trainer/', 'content/trainer/', 'src/game/AdminScene.ts', 'src/game/NameScene.ts',
       'src/game/pieceList.ts', 'src/profileSetup.ts', 'src/core/progression/', 'src/core/properties/', 'content/curriculum/',
     ],
   },
@@ -54,9 +54,9 @@ export const E2E_AREAS: E2eArea[] = [
     sources: ['src/dev/', 'content/dev/', 'src/spike/', 'spike.html', 'src/debugSetup.ts', 'src/core/debug/'],
   },
   {
-    // Screenshot tests; they skip without a baseline for the platform (on CI and in cloud sessions), so they cost little.
+    // Screenshot tests against the one baseline per screen (d289); a screen without a baseline skips.
     name: 'visual',
-    specs: ['visual', 'button-fit', 'toolbar', 'band', 'screen-guard'],
+    specs: ['visual', 'button-fit', 'toolbar', 'strip', 'bubble', 'screen-guard'],
     sources: ['src/game/'],
   },
 ];

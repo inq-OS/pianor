@@ -1,5 +1,6 @@
 // Covers ft_1_22.AC1 and AC10 (WP-09): pressing a character opens a conversation over the scene; choices by mouse and keys.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { activeScenes, clickButton, expectNoErrors, letGameRun, openGame, sceneButton, waitForScene, type PageErrors } from './helpers';
 
 interface TalkState { showing: 'line' | 'student' | 'choices'; node: string; line: string; page: number; choices: string[]; lit: number }
@@ -90,6 +91,25 @@ test.describe('a conversation in the scene (ft_1_22.AC1, WP-09)', () => {
     expect(await page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { talkTo(id: string): Promise<boolean> }).talkTo('puuvaim'))).toBe(true);
     await pressToChoices(page);
     expect(await talk(page)).toMatchObject({ node: 'menu', choices: ['talk.puuvaim.askTeach', 'talk.puuvaim.askLater'] });
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_22.AC1 the talk\'s choices board stands inside the screen, along its foot', async ({ page }) => {
+    const errors = await openKnoll(page);
+    expect(await page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { talkTo(id: string): Promise<boolean> }).talkTo('puuvaim'))).toBe(true);
+    await pressToChoices(page);
+    const board = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('knoll') as unknown as { children: { list: { list?: { name: string; getBounds(): { y: number; height: number } }[] }[] } };
+      const image = scene.children.list.flatMap((c) => c.list ?? []).find((o) => o.name === 'talkBoard');
+      if (!image) return null;
+      const b = image.getBounds();
+      return { top: b.y, bottom: b.y + b.height, screen: document.querySelector('canvas')!.height };
+    });
+    expect(board).not.toBeNull();
+    // the whole board is on the screen (it was once drawn below its foot, where no choice could be clicked)
+    expect(board!.top).toBeGreaterThan(board!.screen / 2);
+    expect(board!.bottom).toBeLessThanOrEqual(board!.screen);
+    expect(board!.bottom).toBeGreaterThan(board!.screen * 0.9);
     expectNoErrors(errors);
   });
 

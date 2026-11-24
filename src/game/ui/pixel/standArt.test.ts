@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { C } from './palette';
-import { STAND_ART, listeningEar, noteInSight } from './standArt';
+import { STAND_ART, chordBoard, listeningEar, noteInSight, scaleSteps } from './standArt';
 
 const count = (pixels: Uint8Array, colour: number) => pixels.filter((p) => p === colour).length;
 
 describe("the stand's pictures (ft_1_08.AC11)", () => {
   it('ft_1_08.AC11 each picture fills its 64 x 48 fine pixels with a fat thing and clear round it', () => {
-    for (const picture of [listeningEar(), noteInSight()]) {
+    for (const picture of [listeningEar(), noteInSight(), scaleSteps(), chordBoard()]) {
       expect([picture.width, picture.height]).toEqual([STAND_ART.w, STAND_ART.h]);
       const drawn = picture.pixels.length - count(picture.pixels, C.clear);
       expect(drawn).toBeGreaterThan(picture.pixels.length * 0.35);
@@ -21,7 +21,7 @@ describe("the stand's pictures (ft_1_08.AC11)", () => {
   });
 
   it('ft_1_08.AC11 the rim of each thing is its own colour gone dark, never a black line round all of it', () => {
-    for (const picture of [listeningEar(), noteInSight()]) {
+    for (const picture of [listeningEar(), noteInSight(), scaleSteps(), chordBoard()]) {
       const { width, height, pixels } = picture;
       let edge = 0, black = 0;
       for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
@@ -39,5 +39,6 @@ describe("the stand's pictures (ft_1_08.AC11)", () => {
   it('ft_1_08.AC11 the same picture every time', () => {
     expect(listeningEar().pixels).toEqual(listeningEar().pixels);
     expect(noteInSight().pixels).toEqual(noteInSight().pixels);
+    expect(scaleSteps().pixels).toEqual(scaleSteps().pixels);
   });
 });

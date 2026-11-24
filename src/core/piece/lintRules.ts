@@ -207,7 +207,7 @@ function checkLengths({ chart, level, metaFile, error, warn }: LintContext): voi
     const length = phrase.endBar - phrase.startBar + 1;
     if (length < 2 || length > 8) error('phrase-length', `phrase "${phrase.name}" has ${length} bar(s); a phrase needs 2 to 8`, null, metaFile);
   }
-  if (chart.phrases.length === 0) warn('no-phrases', 'the piece has no phrases; phrases become spells in the battle game', null, metaFile);
+  if (chart.phrases.length === 0) warn('no-phrases', 'the piece has no phrases; phrases are what the characters trade', null, metaFile);
 }
 
 /**

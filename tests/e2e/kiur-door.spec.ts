@@ -1,6 +1,7 @@
-// Covers ft_1_15.AC4, ft_1_15.AC5.
-import { expect, test, type Page } from '@playwright/test';
-import { clickButton, expectNoErrors, openGame, openPiece, sceneButton, waitForScene } from './helpers';
+// Covers ft_1_15.AC4, ft_1_15.AC5, ft_1_15.AC7, ft_1_15.AC8.
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
+import { LITTLE_STEPS, clickButton, expectNoErrors, openFromStand, openGame, openPiece, pickChoice, playWithVirtualPiano, profileButton, sceneButton, waitForScene } from './helpers';
 
 /** Palms on the keys: eleven keys down at once on the virtual EZ-220, away from the awaited note, then all up. */
 async function bash(page: Page, release = true): Promise<void> {
@@ -67,7 +68,7 @@ test.describe('Kiur at the door', () => {
   test('ft_1_15.AC4 in Tempo mode Back starts the pass again with a fresh clock', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Wait')); // to Tempo mode (its following clock, started by the first note)
+    await pickChoice(page, 'practice', 'Wait', 'Tempo that follows you'); // to Tempo mode (its following clock, started by the first note)
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').transport !== null)).toBe(true);
     await page.evaluate(() => { window.__virtualDevice!.press(60, 80); window.__virtualDevice!.release(60); }); // the first note starts the clock
     await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice').transport as { started: boolean }).started)).toBe(true);
@@ -78,4 +79,91 @@ test.describe('Kiur at the door', () => {
     await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice').transport as { started: boolean }).started)).toBe(false);
     expectNoErrors(errors);
   });
+
+  test('ft_1_15.AC7 a bash in learning bar by bar brings Kiur to the door although its first key ended the run', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual&learn=1');
+    await learnThroughKiur(page, 'Little Steps');
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { learn: unknown }).learn !== null)).toBe(true);
+    await bash(page);
+    await waitForScene(page, 'kiurDoor');
+    expect(await running(page, 'practice')).toBe(false);
+    // Back: the same step of the learning starts again
+    await clickButton(page, 'kiurDoor', await sceneButton(page, 'kiurDoor', 'Back to the piece'));
+    await backAtPiece(page);
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { leaving: boolean }).leaving)).toBe(false);
+    // a second bash, and the door out to the room
+    await bash(page);
+    await waitForScene(page, 'kiurDoor');
+    await clickButton(page, 'kiurDoor', await sceneButton(page, 'kiurDoor', 'Out the door'));
+    await waitForScene(page, 'profile');
+    expectNoErrors(errors);
+  });
 });
+
+test.describe('Kiur at the door whatever the screen does (ft_1_15.AC8)', () => {
+  test('ft_1_15.AC8 a bash while the game plays the piece stops it and brings Kiur; Back has the piece ready to play', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { listen: (on: boolean) => void }).listen(true));
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { listening: boolean }).listening)).toBe(true);
+    await bash(page);
+    await waitForScene(page, 'kiurDoor');
+    await clickButton(page, 'kiurDoor', await sceneButton(page, 'kiurDoor', 'Back to the piece'));
+    await backAtPiece(page);
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { listening: boolean }).listening)).toBe(false);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_15.AC8 a bash while the score of a pass shows brings Kiur, Back goes on to the next pass and the door to the room', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    const lap = () => page.evaluate(() => (window.__game.scene.getScene('practice').startData.lap ?? 0) as number);
+    const scoreShown = () => page.evaluate(() => (window.__game.scene.getScene('practice').playSession.passScore as unknown[]).length > 0);
+    await playWithVirtualPiano(page, LITTLE_STEPS);
+    await expect.poll(scoreShown).toBe(true);
+    await bash(page);
+    await waitForScene(page, 'kiurDoor');
+    await clickButton(page, 'kiurDoor', await sceneButton(page, 'kiurDoor', 'Back to the piece'));
+    await expect.poll(lap).toBe(1);
+    await playWithVirtualPiano(page, LITTLE_STEPS);
+    await expect.poll(scoreShown).toBe(true);
+    await bash(page);
+    await waitForScene(page, 'kiurDoor');
+    await clickButton(page, 'kiurDoor', await sceneButton(page, 'kiurDoor', 'Out the door'));
+    await waitForScene(page, 'profile');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_15.AC8 a bash in a trainer brings Kiur; Back goes on with the trainer, the door to the room', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
+    await clickButton(page, 'profiles', await profileButton(page, 'TUVI'));
+    await waitForScene(page, 'profile');
+    await openFromStand(page, 'Note names');
+    await waitForScene(page, 'noteTrainer');
+    await bash(page);
+    await waitForScene(page, 'kiurDoor');
+    expect(await running(page, 'noteTrainer')).toBe(false);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => running(page, 'noteTrainer')).toBe(true);
+    await bash(page);
+    await waitForScene(page, 'kiurDoor');
+    await clickButton(page, 'kiurDoor', await sceneButton(page, 'kiurDoor', 'Out the door'));
+    await waitForScene(page, 'profile');
+    expectNoErrors(errors);
+  });
+});
+
+/** A piece opened to be learned bar by bar through Kiur in the room: Learn, and the piece picked in the book (ft_1_32 rule 14). */
+async function learnThroughKiur(page: Page, title: string): Promise<void> {
+  await page.evaluate(() => {
+    window.__game.scene.stop('menu');
+    window.__game.scene.start('profile');
+  });
+  await waitForScene(page, 'profile');
+  await expect.poll(() => sceneButton(page, 'profile', 'Kiur')).toBeGreaterThanOrEqual(0);
+  await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Kiur'));
+  await expect.poll(() => sceneButton(page, 'profile', 'Learn')).toBeGreaterThanOrEqual(0);
+  await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Learn'));
+  await waitForScene(page, 'menu');
+  await openPiece(page, title);
+}

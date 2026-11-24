@@ -2,10 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import { chartWith, graceAt } from '../../../tests/helpers/charts';
 import { Transport } from '../../core/transport';
-import { SCHEDULE_LOOKAHEAD_MS, type MetronomeSound } from '../../io/audio';
-import type { PlaySession } from './PlaySession';
+import { SCHEDULE_LOOKAHEAD_MS } from '../../io/audio';
 import { CountInGrace } from './countInGrace';
-import { TempoFrame } from './tempoFrame';
 
 // 4/4 at 120 bpm, started at 1000: the count-in's last beat (the grace) is at 2500, bar 1 at 3000
 const graced = () => chartWith([{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 64 }], { graces: [graceAt(0, 62)] });
@@ -55,35 +53,5 @@ describe('CountInGrace: the grace is queued only just before its beat (core_09.A
     grace.update(started(1000), piano, 1100); // the old session, far ahead of its grace
     grace.update(started(5000), piano, 6400); // replaced: its grace is at 6500
     expect(piano.calls).toEqual(['on62@6500', 'off62@7000']);
-  });
-});
-
-describe('TempoFrame: the count-in grace (core_09.AC34)', () => {
-  function frameRun(transport: Transport) {
-    const piano = fakePiano();
-    let now = 0;
-    const session = { transport, advance: () => undefined, say: () => undefined, movePlayhead: () => undefined } as unknown as PlaySession;
-    const metronome = { running: false, start: () => undefined, stop: () => undefined } as unknown as MetronomeSound;
-    const audio = { clock: { nowMs: () => now, fromDomTime: (ms: number) => ms }, metronome, piano } as never;
-    return { piano, metronome, at: (frame: TempoFrame, ms: number) => ((now = ms), frame.run(session, audio)) };
-  }
-
-  it('core_09.AC34 the frame queues the grace once inside the lookahead and never after it stops', () => {
-    const transport = started();
-    const run = frameRun(transport);
-    const frame = new TempoFrame('none');
-    run.at(frame, 1000);
-    run.at(frame, GRACE_AT - SCHEDULE_LOOKAHEAD_MS - 1);
-    expect(run.piano.calls).toEqual([]);
-    run.at(frame, GRACE_AT - 50);
-    run.at(frame, GRACE_AT);
-    expect(run.piano.calls).toEqual(['on62@2500', 'off62@3000']);
-
-    const left = frameRun(started());
-    const leaving = new TempoFrame('all');
-    left.at(leaving, 1200);
-    leaving.stop(left.metronome); // Back, Restart or the battle's end during the count-in
-    left.at(leaving, GRACE_AT);
-    expect(left.piano.calls).toEqual([]);
   });
 });

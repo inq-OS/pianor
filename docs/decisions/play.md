@@ -25,7 +25,7 @@ Check: `src/io/createInputs.test.ts` "is playable at once with the on-screen and
 
 **The practice slice is a menu, a Practice scene and results, with scenes that only draw and forward.** Features: ft_0_09.
 
-`PracticeController` (no Phaser) connects a `KeyboardInput` to `WaitMode` and is tested in `tests/practice/`; `src/main.ts` is the composition root and starts before MIDI permission is answered. The on-screen keyboard hides while a real piano is connected (`?keys=1` keeps it). Hints are two buttons (note names, fingers) toggled by mouse or touch only, counted per correct note. Stars depend on accuracy only (`core/scoring/stars.ts`): 3 from 95%, 2 from 75%, otherwise 1; finishing earns at least one. `window.__game` exists in dev builds only. Wrong-note feedback sentences were removed by ft_1_12.AC7: the staff shows the key that was played.
+`PracticeController` (no Phaser) connects a `KeyboardInput` to `WaitMode` and is tested in `tests/practice/`; `src/main.ts` is the composition root and starts before MIDI permission is answered. The on-screen keyboard hides while a real piano is connected (`?keys=1` keeps it). Hints are two buttons (note names, fingers) toggled by mouse or touch only, counted per correct note. Stars depend on accuracy only (`core/scoring/stars.ts`): 3 from 95%, 2 from 75%, otherwise 1; finishing earns at least one. `window.__game` exists in dev builds only. A wrong note shows on the staff as the key that was played, with no sentence (ft_1_12.AC7).
 
 Check: `src/core/scoring/stars.test.ts` "gives three stars for 95% and up, two for 75% and up, otherwise one"; `src/core/scoring/stars.test.ts` "always gives at least one star, even for zero accuracy"; `tests/practice/practice-controller.test.ts` "plays a whole piece from a keyboard: every note judged, progress updated, completed once"
 
@@ -95,9 +95,9 @@ Check: `src/core/judge/tempo.hold.test.ts` "core_01.AC6: the press score is mult
 
 ## d100
 
-**The campaign challenge is played from memory with no staff, harder at each level.** Features: ft_1_06, core_01. Changed by d129.
+**The tug is played from memory with no staff, harder at each level.** Features: ft_1_21, core_01.
 
-The campaign's third phase never draws the staff; the piece was met on the staff earlier. Level 1 is Wait mode with `moveOnWrong` (`src/core/judge/wait.ts`: a wrong key is judged wrong with its reason, unpressed notes of the step are missed, the cursor moves on; no click, no count-in); level 2 is Tempo at 100 per cent with the click through count-in and piece; level 3 is Tempo at 100 per cent with only the count-in bar heard (`Transport.metronome({ countInOnly: true })`, `beats`). The levels are one pure function, `campaignBattleMode` (src/core/campaign/battleMode.ts); `TempoFrame` takes a click of `none`, `all` or `count-in`. d129 applies the levels to the student's phrases of a challenge, where a wrong key costs the exchange.
+The tug never draws the staff; the piece was met on the staff earlier. Level 1 is Wait mode with `moveOnWrong` (`src/core/judge/wait.ts`: a wrong key is judged wrong with its reason, unpressed notes of the step are missed, the cursor moves on; no click, no count-in); level 2 is Tempo at 100 per cent with the click through count-in and piece; level 3 is Tempo at 100 per cent with only the count-in bar heard (`Transport.metronome({ countInOnly: true })`, `beats`). Each level's mode is in `content/challenge/rules.json`; a wrong key costs the exchange (d129).
 
 Check: `src/core/judge/wait.test.ts` "a wrong key is judged wrong with its reason, the note is missed and the cursor moves on"; `src/core/judge/wait.test.ts` "a wrong key in a chord ends the chord: keys already pressed stay right, the rest are missed"; `src/core/transport/transport.test.ts` "the plan stops after the count-in beats"
 
@@ -132,3 +132,11 @@ Check: `src/core/piece/abc.test.ts` "reports a length that does not fit the 480 
 Key lighting, latency, driver quirks, sleep and reconnect are unverified until the hardware spike and are recorded in `docs/hardware-notes.md`; the rest is marked as assumptions (CLAUDE.md, `docs/testing.md` section 7, d005).
 
 Check: untestable: a rule about what agents may claim; real hardware needs a human
+
+## d281
+
+**A learning run with every note right counts for its pace unless it was clearly uneven; a beginner's wobble passes, and an uneven run is asked again at most once.** Features: ft_1_32.
+
+`TEMPO_RULES` in `src/core/learn/tempo.ts`: a gap is even within 50% of the run's own pace, a stop is a gap three times as long as written at that pace or longer, a run is even with no stop and at least 60% of its gaps even, and an uneven measured run is asked again at most once before the next run with every note right counts. Kiur's line for an uneven run asks for an even pace, not a slower one.
+
+Check: `src/core/learn/tempo.test.ts` "ft_1_32.AC7 counts a slightly uneven run of a beginner as even: gaps a third off its pace, one pause of twice the gap"; `src/core/learn/progress.test.ts` "ft_1_32.AC7 asks an uneven run again once at most: the student is never held at a step for the pace"

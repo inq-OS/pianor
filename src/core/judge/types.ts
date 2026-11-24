@@ -1,6 +1,6 @@
 /**
  * Judge types and domain events. Pure: no DOM, no io, no UI.
- * Events are versioned (`v`); see `JUDGE_EVENT_VERSION`. Progression, battle, achievements and dashboards
+ * Events are versioned (`v`); see `JUDGE_EVENT_VERSION`. Progression, the tug, achievements and dashboards
  * listen to these events and never reach into judge internals (docs/futureproofing.md 1.3).
  */
 

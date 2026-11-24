@@ -26,7 +26,7 @@ Pictures are in the painter's local folder, never in git (d223).
 ## The palette and the looks
 
 - **The palette** has 79 colours: 53, Kiur's 16, and 10 for the warm screens. `night`, `panel`, `panelLight`, `panelDark`, `dim` and `lock` are warm browns (0x2b1e17, 0x4b3625, 0x6d5136, 0x35261b, 0xcdb894, 0x6a5440); `groove` 0x1e1410 is the line cut round every panel, then `panelLit` 0x644a30, `honey` 0xdcbc82, `honeyDark` 0x8a6c44.
-- **Cold tones used as paint keep names of their own**, so nothing painted changes: `duskDeep`, `duskDark`, `dusk`, `duskLight` (the battle stage's backdrop, the portrait in the room, the room's palette) and `silverDark`, `silver` (the knight's steel, the silver rank, the portrait's hair, the mug's steam, Kiur's "z").
+- **Cold tones used as paint keep names of their own**, so nothing painted changes: `duskDeep`, `duskDark`, `dusk`, `duskLight` (the portrait in the room, the room's palette) and `silverDark`, `silver` (the silver rank, the portrait's hair, the mug's steam, Kiur's "z").
 - **The looks** (`LOOKS` in `frames.ts`): a panel is the board with `groove` round it; a button is the palette's brown ramp; a card is the board with a `honeyDark` line, `honey` under the pointer; gold stays for what is on, cream for the bubble. The shadow under the screens' letters and the edge of a bar are `groove`, not the navy `ink`. The page's own ground (`main.ts`, `index.html`) is `night`.
 - **Left as it is, on purpose:** the staff (paper, ink, the blue pointer, the blue duration helpers, and the settings pictures that show them), the name field of the piece maker, the dots and lines of the results and analyse graphs, the rank colours, the navy `ink` outline of every sprite.
 - **Tests:** `art.test.ts` holds every sprite ramp's mid shade off from `dusk`, `duskLight`, the ground and from `night` and `panel`; `frames.test.ts` holds the looks.
@@ -50,15 +50,15 @@ Nearly every button in the game is drawn by three things, so most of the look ch
 | Action pictures | every screen | about 30 (today's `toolArt.ts` and `iconArt.ts` are drawn for a 14-row button and are flat) |
 | Panels that open above the band | the tempo ramp, the piece's options | a panel in the band's manner |
 | Cards and tabs in the main area | piece list, parts, profiles, settings, the new piece's key choice | the same manner as the cells |
-| Speech | practice and battle (the bubble), menu | the bubble; the others are open |
+| Speech | practice (the bubble), menu | the bubble; the others are open |
 | The focus ring | every screen (keyboard) | a ring that shows on the band's dark ground |
 | The paper round the staff | practice, piece maker, trainers | 124 plain rows now; a painted frame is allowed (painter-project.md rule 4), nothing over the notes |
-| Kiur | practice, menu, results, settings, credits, battle | a head-and-shoulders picture if he speaks from the band |
+| Kiur | practice, menu, results, settings, credits | a head-and-shoulders picture if he speaks from the band |
 
 ## TODO
 
 Work tags (d116, `docs/automation/todo-tags.md`). The band's kit itself is the `TODO(painter, R2)` line in `docs/features/ft_1_20-action-and-inventory-strip.md`; the lines here are what is left open beside it. The release is the band's (R2); the architect may move a line. The pull request that does a line deletes it.
 
 - TODO(painter, R2): pictures for the cells the desk screens' buttons move into at the switch-over: the results' Again and Pieces (their wax seals, `paintSeal`, could lend the cell its picture), the name's Delete and Done, settings' Report a bug and Pieces. Until then they get the plain `TOOL_ICONS`.
-- TODO(painter, R2): `results` and `battle` on the all-screens sheet. They cannot be opened without data, so the band has not been looked at on them.
-- NEEDS-HUMAN: the Windows screenshot baselines must show the warm look (d118) and the parchment staff (d119). Delete this line when they do.
+- TODO(painter, R2): `results` on the all-screens sheet. It cannot be opened without data, so the band has not been looked at on it.
+- NEEDS-HUMAN: the screenshot baselines must show the warm look (d118) and the parchment staff (d119). Delete this line when they do.

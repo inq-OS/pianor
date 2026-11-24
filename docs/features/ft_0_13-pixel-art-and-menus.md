@@ -13,9 +13,9 @@ Minimal art: one UI skin, one character, level and XP display, piece selection s
 ## Rules
 
 1. An original pixel-art kit (`src/game/ui/pixel/`), whole-number zoom (`pixelView`: 4x at 1366x768 and 1280x720, 3x at 1024x600).
-2. The paged menu (six pieces and a pager, ft_0_11) shows Kiur, level and XP, two-column piece cards with stars and padlocks (the hand badges are gone; pieces are told apart by a light rule between them); plus the credits screen, results screen and practice bars (Kiur speaks in a bubble).
+2. The paged menu (six pieces and a pager, ft_0_11) shows Kiur, level and XP, two-column piece cards with stars and padlocks (pieces are told apart by a light rule between them); plus the credits screen, results screen and practice bars (Kiur speaks in a bubble).
 3. Eighth notes are drawn (beamed with their beat, a flag on a lone one, the eighth rest; sixteenths since core_09.AC40), as level 5 allows them; generators use them and `skipping-stones` shows them.
-4. Not done: animation beyond Kiur's bob, mood and level-up sparkles, sound effects, a tileset or world map (RPG shell), a settings screen. Not verified: how the look reads to the student (human).
+4. Not done: animation beyond Kiur's bob, mood and level-up sparkles, sound effects, a tileset or world map, a settings screen. Not verified: how the look reads to the student (human).
 
 ## Acceptance criteria
 

@@ -17,7 +17,7 @@ The **student** is whoever plays: the design target is a young beginner, and adu
 **Test.** "Does this option make the student read and play more, or better?" An option that trades learning for anything else (fun, looks, speed of building) loses. If two options are equal for learning, take the simpler one (AX-3).
 
 Corollaries:
-- AX-0.1 Staff notation is the main view; nothing lets the student play without reading (no falling notes).
+- AX-0.1 Staff notation is the main view, and the student reads every note from it.
 - AX-0.2 Pitch is judged first; a wrong note carries a reason (wrong octave, neighbour key, wrong letter), so the student learns from it.
 - AX-0.3 Real music: a whole piece of any length must be playable, including classics a student may already practise elsewhere.
 - AX-0.4 Pianor is agnostic to any method or teacher outside the game. A request from outside enters the game as an ordinary feature or improvement that stands on AX-0 alone.
@@ -46,7 +46,7 @@ Harder means more and better repetitions, not punishment. Corollaries:
 Corollaries:
 - AX-2.1 Objective feedback: say what happened ("wrong octave in bar 4", "3 of 4 bars right first try"). No unearned praise and no celebration without a basis in real performance; a bigger moment only for a real milestone (a new level, a first three-star piece). Stoic, not harsh: no shaming sounds or words either.
 - AX-2.2 Every number the game shows (stars, XP, damage) comes from what was played.
-- AX-2.3 Pixel-art look with minimal original assets; "Pokémon-style" means mechanics and feel only.
+- AX-2.3 Pixel-art look with minimal original assets.
 - AX-2.4 Big, readable notes for a young student.
 
 ## AX-3 "The Scaffold": when the axioms do not decide, build the simplest thing and mark it

@@ -55,7 +55,7 @@ export function offeredPieces(candidates: readonly Piece[], showDrafts: boolean)
 }
 
 /**
- * The pieces a player sees in the menu and can play in the campaign: `pieces` without the ones turned off (`hidden` holds their ids,
+ * The pieces a player sees in the menu and can play in a tug: `pieces` without the ones turned off (`hidden` holds their ids,
  * and ids of pieces that no longer exist are ignored). The list screen still shows every piece, so one can be turned on again.
  */
 export function piecesThatAreOn(pieces: readonly Piece[], hidden: readonly string[]): Piece[] {
@@ -72,10 +72,11 @@ export function groupsOf(piece: Piece, curriculum: ReadonlySet<string>, characte
   return PIECE_GROUPS.filter((g) => (g === 'own' ? piece.own === true : g === 'curriculum' ? curriculum.has(id) : characterPieces.has(id)));
 }
 
-/**
- * The pieces the book shows under the filter: a piece in a group that is hidden is left out; a piece in no group always
- * shows. AX-3 provisional: a piece in a shown and a hidden group is left out (TODO(architect) in ft_1_12).
- */
-export function piecesInShownGroups(pieces: readonly Piece[], groups: (piece: Piece) => readonly PieceGroup[], hidden: ReadonlySet<PieceGroup>): Piece[] {
-  return pieces.filter((p) => !groups(p).some((g) => hidden.has(g)));
+/** A bookmark of the piece book (ft_1_12.AC10): every piece, or one group's. */
+export type Bookmark = 'all' | PieceGroup;
+export const BOOKMARKS: readonly Bookmark[] = ['all', ...PIECE_GROUPS];
+
+/** The pieces the book shows at a bookmark: every piece at `all`, else the pieces in that group (a piece may be in two). */
+export function piecesUnderBookmark(pieces: readonly Piece[], groups: (piece: Piece) => readonly PieceGroup[], mark: Bookmark): Piece[] {
+  return mark === 'all' ? [...pieces] : pieces.filter((p) => groups(p).includes(mark));
 }
