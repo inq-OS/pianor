@@ -5,11 +5,12 @@
  * files are still the ones the maintainer saw, through the same checked write as the preview tool.
  */
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { LevelDefinition } from '../../src/core/chart/index.ts';
 import { formatDiagnostic } from '../../src/core/piece/diagnostics.ts';
 import { readStatus } from '../../src/core/piece/status.ts';
+import { strings } from '../../src/core/text/strings.ts';
 import { checkPieceFolder, listPieceFolders } from '../piece/folder.ts';
 import { changePieceStatus } from '../piece/previewApi.ts';
 
@@ -26,6 +27,8 @@ export interface BoardPiece {
   id: string;
   title: string;
   level: number;
+  /** The player level that opens it in the piece book (`unlockLevel`, else `level`). */
+  opens: number;
   hands: string[];
   bpm: number;
   source: string;
@@ -36,12 +39,61 @@ export interface BoardPiece {
   /** Fingerprint of both files as shown; a pick applies only while the files still match it. */
   hash: string;
   notes: BoardNote[];
+  /** Where the game uses it beyond the piece book, in plain words; empty when the piece book is its only place. */
+  uses: string[];
 }
 
 export interface BoardContent {
   pieces: BoardPiece[];
   /** Drafts that cannot be offered, each with its first error. */
   refused: { id: string; reason: string }[];
+}
+
+const readJson = (path: string): unknown => {
+  try {
+    return JSON.parse(readFileSync(path, 'utf-8')) as unknown;
+  } catch {
+    return null;
+  }
+};
+const jsonFiles = (dir: string): string[] => (existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.json')).sort().map((f) => join(dir, f)) : []);
+const add = (uses: Map<string, string[]>, id: unknown, use: string): void => {
+  if (typeof id === 'string') uses.set(id, [...(uses.get(id) ?? []), use]);
+};
+const nameOf = (key: unknown, fallback: string): string => (typeof key === 'string' && key in strings ? strings[key as keyof typeof strings] : fallback);
+
+/**
+ * Where the game uses each piece besides the piece book (which offers every approved piece from its level): a character's
+ * phrases, the first-run intro, a scene's script, a song. Read from the content files, so the board always says what the
+ * game does now.
+ */
+export function pieceUses(contentDir: string): Map<string, string[]> {
+  const uses = new Map<string, string[]>();
+  for (const file of jsonFiles(join(contentDir, 'characters'))) {
+    const c = readJson(file) as { id?: string; name?: { name?: string }; phrases?: Record<string, unknown> } | null;
+    const who = nameOf(c?.name?.name, c?.id ?? 'a character');
+    for (const [round, ids] of Object.entries(c?.phrases ?? {})) {
+      for (const id of Array.isArray(ids) ? ids : []) add(uses, id, `${who}: the tug of phrases on Keri, level ${round}`);
+    }
+  }
+  const intro = readJson(join(contentDir, 'intro', 'intro.json')) as { piece?: unknown } | null;
+  add(uses, intro?.piece, 'The first-run intro: the student\u2019s first lesson');
+  for (const file of jsonFiles(join(contentDir, 'scripts'))) {
+    const script = readJson(file) as { id?: string; commands?: { piece?: unknown }[] } | null;
+    for (const command of script?.commands ?? []) add(uses, command.piece, `Played in the scene \u201c${script?.id ?? file}\u201d`);
+  }
+  const songsDir = join(contentDir, 'songs');
+  for (const folder of existsSync(songsDir) ? readdirSync(songsDir).sort() : []) {
+    const song = readJson(join(songsDir, folder, 'song.json')) as { title?: string; nodes?: unknown } | null;
+    const walk = (nodes: unknown): void => {
+      for (const node of Array.isArray(nodes) ? (nodes as { piece?: unknown; name?: string; nodes?: unknown }[]) : []) {
+        add(uses, node.piece, `Part \u201c${node.name ?? '?'}\u201d of the song \u201c${song?.title ?? folder}\u201d`);
+        walk(node.nodes);
+      }
+    };
+    walk(song?.nodes);
+  }
+  return uses;
 }
 
 /** Fingerprint of a piece's two files: 12 hex characters of their SHA-256. */
@@ -52,7 +104,7 @@ export function pieceHash(abc: string, meta: string): string {
 const round = (x: number): number => Math.round(x * 1000) / 1000;
 
 /** Every draft piece of `piecesDir` that compiles and passes its level, ready for the board; the rest with a reason. */
-export function boardPieces(piecesDir: string, levels: readonly LevelDefinition[]): BoardContent {
+export function boardPieces(piecesDir: string, levels: readonly LevelDefinition[], uses: ReadonlyMap<string, string[]> = new Map()): BoardContent {
   const content: BoardContent = { pieces: [], refused: [] };
   for (const folder of listPieceFolders(piecesDir)) {
     const abc = readFileSync(join(piecesDir, folder, 'piece.abc'), 'utf-8');
@@ -78,6 +130,7 @@ export function boardPieces(piecesDir: string, levels: readonly LevelDefinition[
       id: pieceMeta.id,
       title: pieceMeta.title,
       level: pieceMeta.level,
+      opens: pieceMeta.unlockLevel ?? pieceMeta.level,
       hands: [...pieceMeta.hands],
       bpm,
       source: pieceMeta.source,
@@ -85,6 +138,7 @@ export function boardPieces(piecesDir: string, levels: readonly LevelDefinition[
       abc,
       warnings: check.diagnostics.filter((d) => d.severity === 'warning').map((d) => d.message),
       hash: pieceHash(abc, meta),
+      uses: uses.get(pieceMeta.id) ?? [],
       notes: chart.notes.map((n) => ({ t: round(n.tick * secondsPerTick), d: round(n.dur * secondsPerTick), midi: n.midi, play: playTracks.has(n.track) })),
     });
   }
@@ -172,6 +226,10 @@ h1{font-size:1.35rem;margin:.2rem 0}
 article{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:0 0 16px}
 article h2{font-size:1.1rem;margin:0}
 .facts{color:var(--muted);font-size:.85rem;margin:.15rem 0 .5rem}
+.goes{font-size:.9rem;border-left:3px solid var(--accent);padding:.1rem 0 .1rem .6rem;margin:.3rem 0 .5rem}
+.goes b{display:block;font-size:.75rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+h3{font-size:1rem;margin:1.4rem 0 .2rem}
+.lead{color:var(--muted);font-size:.9rem;margin:0 0 .8rem}
 .sheet{background:#fff;border-radius:8px;overflow:hidden;margin:.4rem 0}
 .sheet svg{display:block;max-width:100%;height:auto}
 .row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-top:.5rem}
@@ -286,6 +344,7 @@ function card(piece) {
   const more = el('details', {}, el('summary', { textContent: 'Source and ABC' }), el('div', { textContent: piece.source }), el('pre', { textContent: piece.abc }));
   const node = el('article', { id: 'p-' + piece.id },
     el('h2', { textContent: piece.title }), el('div', { className: 'facts', textContent: piece.id + ' \u00b7 ' + facts }),
+    el('div', { className: 'goes' }, el('b', { textContent: 'Goes to' }), ...piece.uses.map((u) => el('div', { textContent: u })), el('div', { textContent: 'The piece book (Choose a piece), open from player level ' + piece.opens + '; the teacher can put it in the curriculum' })),
     sheet, warn, el('div', { className: 'row' }, playBtn, speed),
     parts.note, el('div', { className: 'row' }, parts.approve, parts.wait, parts.state), more);
   views[piece.id] = parts;
@@ -295,7 +354,15 @@ function card(piece) {
 function draw() {
   const list = document.getElementById('list');
   const sheets = [];
-  for (const piece of BOARD.pieces) { const c = card(piece); list.append(c.node); sheets.push([c.sheet, piece]); }
+  const groups = [
+    ['Used on Keri', 'A character, the intro, a scene or a song plays these, and they also go in the piece book.', BOARD.pieces.filter((p) => p.uses.length)],
+    ['Piece book only', 'Extra pieces to read and play: the student picks them from Choose a piece once their level is high enough, or the teacher puts them in the curriculum.', BOARD.pieces.filter((p) => !p.uses.length)],
+  ];
+  for (const [name, lead, pieces] of groups) {
+    if (!pieces.length) continue;
+    list.append(el('h3', { textContent: name + ' (' + pieces.length + ')' }), el('p', { className: 'lead', textContent: lead }));
+    for (const piece of pieces) { const c = card(piece); list.append(c.node); sheets.push([c.sheet, piece]); }
+  }
   if (!BOARD.pieces.length) list.append(el('p', { textContent: 'No draft pieces to review.' }));
   for (const [sheet, piece] of sheets) {
     if (window.ABCJS) { try { const w = Math.max(280, sheet.clientWidth - 12); ABCJS.renderAbc(sheet, piece.abc, { staffwidth: w, scale: w < 500 ? 1.15 : 1, paddingleft: 2, paddingright: 2, wrap: { minSpacing: 1.6, maxSpacing: 2.6, preferredMeasuresPerLine: w < 500 ? 2 : 4 } }); continue; } catch (e) {} }
