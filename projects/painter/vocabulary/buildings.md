@@ -27,3 +27,16 @@
 
 ## The warden's door bay
 - Over the main door the wall goes up into a low, wide gable, flush with the wall: about three windows wide and a third as high, with its own little roof of the same pale blue tin running back into the big roof, a cornice across its foot, and a **red half-round window** in it. The door below is grey-blue with a window each side inside the bay. The roof is pale blue tin, not grey; the chimneys are brick.
+
+## A town's houses and what hangs on them (mi2-wharf-concept, mi2-bg-2-027, mi1-town-street-night, mi1-town-from-above, mi3-town-terrace)
+- **Walls:** warm sunlit stone or plaster against big blue-violet shade. Stones are drawn only in patches (a few blotches of another tone, a run of courses near a corner), the rest of the wall is left as wash. A wall's foot spreads or stands on a plinth; corners get long and short dressed stones.
+- **Shade is a shape:** one wall of every house is wholly in shade, and a cast shade from something outside the picture lies across the near ground and climbs the first wall it meets.
+- **Openings:** arches everywhere (doors, windows, a passage through a house), each set deep with a dark reveal and a rim of pale stones; a small barred or leaded window high up; shutters and planked doors with iron straps. At night every window is a warm yellow pane with a dark cross, and nothing else in the picture is warm.
+- **Timber:** half-timbering as dark posts, beams and one slanting brace per panel, none straight; beam ends sticking out of the wall in a row under the eave, each with its small shade; a storey that steps out on brackets.
+- **Roofs:** steep, sagging at the ridge, overhanging far; tiles or planks as a few broken rows, never a full grid; a crooked chimney or stovepipe; a small dormer or a hatch.
+- **Things that stick out from a wall:** a signboard hung from an iron arm with a curl (a picture on it), a lantern on a scrolled bracket, a washing line from house to house with a few pale cloths, a poster, a pulley beam.
+- **Things on the ground near the viewer:** a square stone post with a slab and a ball on it, in a row along steps or a quay, the nearest one large, dark and cut by the bottom edge; a lamp post as a black shape with a curl at its top; a bollard; barrels, crates and loose boards lying at angles; a low wall with a rounded coping.
+- **Ground:** pale paving with warm rounded cobbles scattered in drifts and no drawn joints; steps as broad pale slabs, each with a dark riser; boards of a wharf fanned round a bend.
+- **Green and sea as the frame:** a dark wooded slope behind the roofs, a strip of bright sea at one side, a few curled clouds.
+- Ours: `squarePicture.ts` has the cobbles, the beam ends, the arched openings, the signboard, the lantern on a scroll and one ball-topped post. Missing: a wall wholly in shade on each house, a cast shade climbing a wall, a washing line, stones only in patches (ours cover the whole wall), a row of posts.
+- TODO(painter, R2): in the square from the raised spot, give each house one lit and one shaded wall and leave most of each wall as wash.
