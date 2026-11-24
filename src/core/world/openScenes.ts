@@ -8,8 +8,8 @@ export interface ScenePlace {
   id: string;
   /** The student's level that opens the scene. */
   level: number;
-  /** Not finished yet: closed to every player but a tester. */
-  unfinished?: boolean | undefined;
+  /** Closed to every player but a tester, until the maintainer opens it (unfinished, or not open yet). */
+  closed?: boolean | undefined;
 }
 
 /**
@@ -23,7 +23,7 @@ export function isTester(name: string): boolean {
   return TESTER_NAMES.includes(name.trim().toLowerCase());
 }
 
-/** The scenes open at `level`, in the world model's order, an unfinished one never; every scene for a tester. */
+/** The scenes open at `level`, in the world model's order, a closed one never; every scene for a tester. */
 export function openScenes(scenes: readonly ScenePlace[], level: number, tester = false): string[] {
-  return scenes.filter((scene) => tester || (level >= scene.level && scene.unfinished !== true)).map((scene) => scene.id);
+  return scenes.filter((scene) => tester || (level >= scene.level && scene.closed !== true)).map((scene) => scene.id);
 }

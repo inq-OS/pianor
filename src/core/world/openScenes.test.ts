@@ -23,19 +23,19 @@ describe('a tester', () => {
   });
 });
 
-describe('a scene not finished yet', () => {
+describe('a closed scene', () => {
   it('stays closed to every player but a tester, whatever the level', () => {
-    const scenes = [...SCENES, { id: 'terrace', level: 1, unfinished: true }];
+    const scenes = [...SCENES, { id: 'terrace', level: 1, closed: true }];
     expect(openScenes(scenes, 9)).toEqual(['knoll', 'harbour', 'spit']);
     expect(openScenes(scenes, 1, true)).toContain('terrace');
   });
 });
 
 describe('Keri as shipped', () => {
-  it('keeps the unfinished terrace closed to players at any level', async () => {
+  it('keeps every scene but the knoll closed to players at any level', async () => {
     const { loadWorld } = await import('./world');
     const keri = loadWorld((await import('../../../content/world/keri.json')).default);
-    expect(openScenes(keri.scenes ?? [], 10)).not.toContain('terrace');
+    expect(openScenes(keri.scenes ?? [], 10)).toEqual(['knoll']);
     expect(openScenes(keri.scenes ?? [], 10, true)).toContain('terrace');
   });
 });
