@@ -580,7 +580,9 @@ class PortPainter {
       const plane = night ? moon(x, y) : 0, lit = plane > 0.7 ? 0.12 : plane > 0.35 ? 0.06 : 0;
       const base = (night ? 0.8 - near * 0.08 : 0.44 - near * 0.18) + lit;
       const t = trough ? (night ? base - 0.22 : 0.2 - near * 0.22) : crest ? base + (night ? 0.14 : 0.24) : base;
-      this.put(x, y, tone(F.sea, clamp01(t), x, y));
+      // the paint's own scatter on the water: short level dashes a step lighter or darker, as the far sea has
+      const r = hash2((x + Math.floor(hash2(y, 2, 389) * 3)) >> 1, y, 390);
+      this.put(x, y, tone(F.sea, clamp01(t + (r < 0.14 ? -0.09 : r > 0.86 ? 0.09 : 0)), x, y));
     }
     // bubbles rising from below in two places, one gap in each look, so the loop does not jump
     const gap = 14, n = 3;
