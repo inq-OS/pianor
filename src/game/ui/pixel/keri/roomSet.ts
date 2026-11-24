@@ -1291,7 +1291,7 @@ export function roomSet(hour: RoomHour, awake: RoomAwake = {}): RoomSet {
   // foot): without it the picture's lower left is one dark mass with nothing drawn in it; by night it is the moon's,
   // a cool low light, so the near things stand as shapes the eye can read and not as a black slab
   const near = hour.phase === 'night' ? NEAR_MOON : [day[0] * NEAR_FILL, day[1] * NEAR_FILL, day[2] * NEAR_FILL];
-  lamps.push({ x: -1.1, y: 1.7, z: 5.9, far: false, r: near[0]!, g: near[1]!, b: near[2]!, reach: 2.6, size: 0.5, flickers: false });
+  lamps.push({ x: -1.1, y: 1.7, z: 5.9, far: false, r: near[0], g: near[1], b: near[2], reach: 2.6, size: 0.5, flickers: false });
   if (awake.door) {
     // the hallway's own light, from its far end: by day a window that is out of sight, after dark a small lamp
     const at = wallTool('right').p((ROOM.door.a0 + ROOM.door.a1) / 2, 1.8, -ROOM.wall - HALL.length * 0.5);
