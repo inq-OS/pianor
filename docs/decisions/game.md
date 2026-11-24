@@ -484,3 +484,11 @@ Check: `src/core/layout/preview.test.ts` "ft_1_02d.AC25 note A then the same key
 A current thing named with a word the glossary bans is renamed with no change of behaviour. What belongs to no current feature is deleted with every mention of it: no stub file, no rejected row, no note that it was removed. Only a frozen migration step may read an old save key (d064), and only the glossary's list of banned words names them.
 
 Check: untestable: the word check against the glossary comes with its own CI step
+
+## d291
+
+**The live tempo of a learning run is off unless the player turns it on in the learning settings, and is drawn small in the slim strip at the foot.** Features: ft_1_32.
+
+A picture choice on the learning settings page turns it on; a setting saved before the choice reads as off. When on, the tempo, spread and wobble so far are two small dim lines at the right end of the strip's free stretch, never in the top bar or the stats pane, so they stay out of the student's sight while reading the staff.
+
+Check: `src/core/learn/progress.test.ts` "ft_1_32.AC17 the live tempo is off unless the player turned it on, and a setting saved before it reads as off"

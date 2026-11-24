@@ -218,6 +218,8 @@ export abstract class PixelScene extends Phaser.Scene {
   private stripOverflow: ToolbarItem[] = [];
   /** Where the strip's items are drawn (art pixels), for the wheel over an item with choices (ft_1_20.AC16); null without a strip. */
   private inventoryBand: { area: Rect; slots: { rect: Rect; item: ToolbarItem }[] } | null = null;
+  /** The strip's free stretch between its left group (with the worn options) and its main action, in art pixels; null without a strip. */
+  private stripFree: { left: number; right: number; top: number; rows: number } | null = null;
   /** A long press on a touch screen that may open the bubble (ft_1_20, d282): where it began and its timer. */
   private longPress: { x: number; y: number; timer: Phaser.Time.TimerEvent; ring: Phaser.GameObjects.Graphics } | null = null;
   /** The bubble was just opened by a long press: the lift of that finger must not close it or pick anything. */
@@ -269,6 +271,13 @@ export abstract class PixelScene extends Phaser.Scene {
 
   /** Draw the scene into `this.root` for the current `this.px`. Called again after every resize. */
   protected abstract draw(): void;
+
+  /**
+   * Called after the frame is drawn, with the strip's free stretch (between its left group and its main action, in art
+   * pixels from the main area's top), so a screen can show a small reading there; nothing by default.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected afterFrame(_free: { left: number; right: number; top: number; rows: number } | null): void {}
 
   /**
    * True while a screen writes on parchment (a card, a book): `label` writes in ink, with no
@@ -1064,6 +1073,7 @@ export abstract class PixelScene extends Phaser.Scene {
     this.stripOverflow = [];
     if (!this.screenFrame.toolbar) this.drawCorners();
     const rows = this.screenFrame.band?.rows ?? 0;
+    this.stripFree = null;
     if (rows === 0) {
       this.toolbarButtons = { ...this.toolbarButtons, keys: null, items: [] };
       return;
@@ -1103,9 +1113,10 @@ export abstract class PixelScene extends Phaser.Scene {
         this.pulseMore(button);
       }
     }
+    const mainLeft = Math.min(width, ...flow.placed.filter((p) => list[p.action]!.main).map((p) => p.rect.x));
+    let freeLeft = Math.max(0, ...flow.placed.filter((p) => !list[p.action]!.main).map((p) => p.rect.x + p.rect.w));
     // the worn options that are on, beside More: a press turns one off (ft_1_20, d282)
     if (bubble && moreRight > 0) {
-      const mainLeft = Math.min(width, ...flow.placed.filter((p) => list[p.action]!.main).map((p) => p.rect.x));
       let x = moreRight + 3;
       for (const worn of (this.bubbleOptions(null) ?? []).filter((o): o is ToolbarItem => o !== null && o.worn === true && o.active === true && o.icon !== undefined)) {
         if (x + CHIP > mainLeft - 2) break;
@@ -1113,7 +1124,9 @@ export abstract class PixelScene extends Phaser.Scene {
         chip.setActive(true);
         x += CHIP + 1;
       }
+      freeLeft = Math.max(freeLeft, x);
     }
+    this.stripFree = { left: freeLeft, right: mainLeft, top, rows };
     const items = actions.map((a) => made.get(a)).filter((b): b is PixelButton => b !== undefined);
     this.toolbarButtons = {
       ...this.toolbarButtons,
@@ -1469,7 +1482,12 @@ export abstract class PixelScene extends Phaser.Scene {
   /** Names `key` as the button's key: a key menu opens from it, and its name shows on it while `shortcutsShown`. */
   protected markKey(button: PixelButton, key: string, parent: Phaser.GameObjects.Container = this.root): void {
     this.shortcutButtons.set(key, button);
-    if (this.shortcutsShown) this.keyBadge(parent, button, key);
+    if (this.shortcutsShown) this.keyBadge(parent, button, this.keyName(key));
+  }
+
+  /** The name F1 shows for a key: its own, unless a screen reads its keys another way (the piece maker's vim keys). */
+  protected keyName(key: string): string {
+    return key;
   }
 
   /** A key's name in the top left corner of a button, white on a dark box so it reads on any cell, gone with the button. */
@@ -1639,6 +1657,7 @@ export abstract class PixelScene extends Phaser.Scene {
       return;
     }
     if (this.framed) this.drawFrame();
+    this.afterFrame(this.stripFree);
     if (this.keyboardNavigation) {
       this.focusIndex = refocus(previous, this.focusables().map((b) => ({ ...b.rect, disabled: b.disabled })));
       this.paintFocus();

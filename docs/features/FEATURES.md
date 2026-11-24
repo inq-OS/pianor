@@ -32,10 +32,10 @@ Every feature file carries `completeness: N` (an integer, 0 to 100) in its front
 | Scope | Features at 100 | Done % |  |
 |---|---|---|---|
 | MVP, iteration 0 | 15 of 19 | 88 | `##################..` |
-| Iteration 1 | 4 of 33 | 66 | `#############.......` |
+| Iteration 1 | 4 of 34 | 66 | `#############.......` |
 | Core behaviour | 0 of 13 | 66 | `#############.......` |
 | Iteration not defined yet | 0 of 8 | 38 | `########............` |
-| Overall | 19 of 73 | 65 | `#############.......` |
+| Overall | 19 of 74 | 65 | `#############.......` |
 <!-- /docs:completeness -->
 
 ## MVP, iteration 0 (ft_0_00 to ft_0_17)
@@ -93,11 +93,12 @@ Every feature file carries `completeness: N` (an integer, 0 to 100) in its front
 <!-- docs:index features ft_1 -->
 | ID | Feature | Scope | Effort | Done % | Human | Status |
 |---|---|---|---|---|---|---|
-| [ft_1_02](ft_1_02-piece-editor.md) | Piece editor, pieces on and off | Click notes onto the staff; own pieces private (licence `NaN`); turn pieces on and off per player. Built in four parts: | split | 79 |  | split into four parts, each with its own file |
+| [ft_1_02](ft_1_02-piece-editor.md) | Piece editor, pieces on and off | Click notes onto the staff; own pieces private (licence `NaN`); turn pieces on and off per player. Built in five parts: | split | 81 |  | split into five parts, each with its own file |
 | [ft_1_02a](ft_1_02a-editor-model-and-screen.md) | Editor model and screen | Edit rules, hit testing, ABC output, the editor screen; own pieces in the browser, playable with XP | done (preliminary) | 100 |  | preliminary, in the menu as Make (`?editor=0` hides it); human try-out open |
 | [ft_1_02b](ft_1_02b-own-pieces-as-files.md) | Own pieces as files | Export and import; dev server saves to `private/pieces/`; licence `NaN` for private pieces | simple | 67 |  | slice built: licence rule, export and import; dev-server save open |
 | [ft_1_02c](ft_1_02c-pieces-on-and-off.md) | Pieces on and off | Per-player list; hidden from the menu | done | 100 | 1 | done; the real-tablet check is open (Human) |
 | [ft_1_02d](ft_1_02d-editor-extras.md) | Editor extras | Dotted notes; entering notes from the piano; automatic note length; wheel changes the length; finger numbers; BPM on every piece and in the editor | large | 72 |  | partly built: piano entry, automatic length, wheel, BPM, finger numbers, keyboard-only writing, bar editing; dotted half only; per-player helper-mark strength and touch open |
+| [ft_1_02e](ft_1_02e-vim-keys.md) | Vim keys in the piece maker | An opt-in, per-device vim layer over the piece maker's keys: normal, insert and visual mode, counts, motions, operators, undo, redo and repeat, and a : line, all driving the piece maker's own moves, edits and tools | medium | 85 |  | built: the parser, motions, note and bar edits, insert mode by letter, visual bars, the : line, the mode line and F1 labels, with unit and end-to-end tests; open: the maintainer's use on a real keyboard, a slot in the bubble once ft_1_20 has it |
 | [ft_1_07](ft_1_07-profile-selection-and-room.md) | Profile selection and player room | Open the game on a profile chosen from a list (a new install makes no player: it asks for the first player's name); a player's room (the profile screen: name, level, XP, Settings and Quit) with buttons for the training dummy (practice songs), the door (the map of Keri) and the book (song list); add a profile and an admin page. One character per profile for the MVP; three characters per profile is a future idea | medium | 80 | 2 | slices 1 to 4 and the admin page built; bare piano (AC11) not built |
 | [ft_1_08](ft_1_08-organic-menus.md) | Organic menus: staff-line vine, icon buttons, a real room | Softer, more musical menus in three slices: a vine whose stalks are staff lines in the screen corners of the menu screens; icon buttons with a delayed tooltip; the player room as a real room whose objects are the buttons | done | 100 | 1 | built: slices 1 to 5 (icon buttons, the room as objects, the room lives, the stand panel); the maintainer's look on the laptop (AC8) open |
 | [ft_1_09](ft_1_09-rank-shield.md) | Rank shield in the player room | The player's level shown as a pixel-art rank shield on the wall above the piano, twenty ranks, and an XP table of twenty levels | done | 100 | 1 | built: twenty shields, placement above the piano, XP table of twenty levels; the maintainer's look on the laptop (AC5) open |

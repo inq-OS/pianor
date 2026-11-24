@@ -82,6 +82,9 @@ export async function openGame(page: Page, query = '?device=virtual', lang: 'en'
   // a new install asks for the first player's name (ft_1_07.AC1); the tests start on the four test players instead
   if (!params.has('players')) params.set('players', 'test');
   await page.goto(`/?${params.toString()}`);
+  // a bundle built without the dev-only handles would leave every test waiting out its whole time limit: say so at once
+  await page.waitForFunction(() => window.__game !== undefined, null, { timeout: 30_000 })
+    .catch(() => { throw new Error('the page has no window.__game: the server serves no development build (playwright.config.ts SERVER_COMMAND)'); });
   // Ready means the piano has loaded and, unless autoplay drives the game, the main menu (who is playing) is on screen. With
   // `?autoplay=1` the director may leave the menu before the piano has loaded, so waiting for both at one moment could hang.
   await page.waitForFunction(() => {

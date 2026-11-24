@@ -1,7 +1,7 @@
 import { firstPrintedBar, isSection, sectionHasNotes, sliceChart, writtenNotes, type Chart } from '../core/chart';
 import { pieceTitle } from '../core/text/pieceTitle';
 import { MissedBars, type Hints, type JudgeEvent, type NoteJudged, type PieceResult, type PlayState, type WrongNoteJudged } from '../core/judge';
-import type { LearnRewards } from '../core/learn/progress';
+import { learnLiveTempo, type LearnRewards } from '../core/learn/progress';
 import { learnsOnOpen } from '../core/learn/route';
 import { baselinePercent } from '../core/learn/tempo';
 import { CHARACTER_PIECES } from './adventure/scenesData';
@@ -66,8 +66,8 @@ const RAMP_BAR = 16;
 const BOTTOM_BAR = 32;
 /** The stats pane under the bottom bar, in place of the on-screen keyboard (ft_1_12.AC5), and the registry key of its switch (session only, no save). */
 const STATS_PANE = 40;
-/** Room at the stats pane's left edge for a learning run's live tempo lines, the longer Estonian ones included. */
-const LIVE_TEMPO_WIDTH = 86;
+/** The live tempo's two half-size lines in the strip at the foot (ft_1_32.AC17), this many rows apart. */
+const LIVE_TEMPO_LINE = 6;
 export const STATS_PANE_KEY = 'statsPane';
 
 /** Typing a bar number: how long a number that could still grow waits before it is taken (Enter takes it at once). */
@@ -1285,8 +1285,7 @@ export class PracticeScene extends PixelScene {
     this.root.add(new PixelImage(this, 0, top, panelBitmap(Math.max(5, width), height, 'panel')));
     const plotWidth = Math.min(width - 60, 200);
     // the plot starts low enough that the wrong key count over a full bar stays inside the panel
-    // in learning the run's live tempo lines stand at the pane's left edge (ft_1_32.AC17), and the plot moves right of them
-    const plotX = this.learn ? Math.max(LIVE_TEMPO_WIDTH, Math.floor((width - plotWidth) / 2)) : Math.floor((width - plotWidth) / 2);
+    const plotX = Math.floor((width - plotWidth) / 2);
     const plot = { x: plotX, y: top + 3 + STATS_PANE_COUNT_HEIGHT, w: plotWidth, h: height - 5 - 3 - STATS_PANE_COUNT_HEIGHT };
     this.paneData = statsPane(contextOf(this).profiles.historyFor(this.fullChart.id), plot);
     const box = createBitmap(plot.w, plot.h + 1);
@@ -1309,8 +1308,6 @@ export class PracticeScene extends PixelScene {
     this.root.add(new PixelImage(this, plot.x, plot.y, box));
     // each play's wrong keys as a bare number over its bar: how many wrong keys were pressed
     for (const bar of this.paneData.bars) this.label(0, bar.count.y, String(bar.mistakes), bar.mistakes > 0 ? C.redLight : C.green).centerAt(bar.count.x);
-    if (this.learn) this.liveLabels = [0, 1, 2].map((row) => this.label(4, top + 4 + row * 11, '', C.cream));
-    this.showLiveTempo();
     const latest = this.paneData.bars.at(-1);
     if (latest) {
       const text = t('practice.paneLatest', { percent: Math.round(latest.accuracy * 100) });
@@ -1336,8 +1333,25 @@ export class PracticeScene extends PixelScene {
   }
 
   /**
-   * The learning run measured while it is played (ft_1_32.AC17), at the stats pane's left edge: the pace, the spread and the
-   * wobble of the notes so far, as the learning stats screen names them; a dash before three notes are played.
+   * The learning run's live tempo in the strip at the foot (ft_1_32.AC17), when the player turned it on: the pace on the
+   * first line, the spread and the wobble on the second, small and dim, at the right end of the strip's free stretch, out
+   * of the student's way. Nothing when the stretch is too narrow for it.
+   */
+  protected override afterFrame(free: { left: number; right: number; top: number; rows: number } | null): void {
+    this.liveLabels = null;
+    if (!free || !this.learn || !learnLiveTempo(contextOf(this).profiles.learnSettings)) return;
+    // at half size, on the fine pixels (d110): as wide as its widest second line, so changing numbers never move it
+    const widest = `${t('practice.liveSpread', { value: '100%' })} ${t('practice.liveWobble', { value: '100%' })}`;
+    const left = free.right - 3 - Math.ceil(measure(drawnText(widest)) / 2);
+    if (left < free.left + 3) return;
+    const top = free.top + Math.max(1, Math.floor((free.rows - 2 * LIVE_TEMPO_LINE) / 2));
+    this.liveLabels = [0, 1].map((line) => this.label(left, top + line * LIVE_TEMPO_LINE, '', C.dim).setScale(0.5));
+    this.showLiveTempo();
+  }
+
+  /**
+   * The learning run measured while it is played (ft_1_32.AC17): the pace, the spread and the wobble of the notes so far,
+   * as the learning stats screen names them; a dash before three notes are played.
    */
   private showLiveTempo(): void {
     const labels = this.liveLabels;
@@ -1345,8 +1359,7 @@ export class PracticeScene extends PixelScene {
     const live = this.learn.liveTempo;
     const percent = (share: number): string => (live ? `${Math.round(share * 100)}%` : '-');
     labels[0]!.setText(t('practice.liveBpm', { bpm: live ? String(live.bpm) : '-' }));
-    labels[1]!.setText(t('practice.liveSpread', { value: percent(live?.spread ?? 0) }));
-    labels[2]!.setText(t('practice.liveWobble', { value: percent(live?.robust ?? 0) }));
+    labels[1]!.setText(`${t('practice.liveSpread', { value: percent(live?.spread ?? 0) })} ${t('practice.liveWobble', { value: percent(live?.robust ?? 0) })}`);
   }
 
   /**

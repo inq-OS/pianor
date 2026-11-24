@@ -271,4 +271,7 @@ A later decision that changes one edits the old entry to say what still holds an
 | [d288](workflow.md#d288) | No game text uses a font of the computer: the staff's text is JetBrains Mono Bold shipped with the game and every other text the pixel font, so one screenshot baseline per screen serves every machine |  |
 | [d289](workflow.md#d289) | Screenshot tests and baselines make no difference between Windows and Linux: every job runs on Linux, a baseline is made by the baseline workflow or any local run, and the screenshot area always draws in software |  |
 | [d290](game.md#d290) | Code, content, tests and docs use only the words of `docs/glossary.md`; a dropped idea leaves no trace |  |
+| [d291](game.md#d291) | The live tempo of a learning run is off unless the player turns it on in the learning settings, and is drawn small in the slim strip at the foot | ft_1_32 |
+| [d292](notation.md#d292) | The piece maker has opt-in vim keys, off by default and kept per device, that drive the piece maker's own moves, edits and tools | ft_1_02e |
+| [d293](workflow.md#d293) | Every change to how the game is controlled or used (input, keys, buttons, menus, where an action sits) gets an ergonomics review and analysis before it merges; art and look do not |  |
 <!-- /docs:index -->
