@@ -27,9 +27,8 @@ export function piecesPlugin(piecesDir = 'content/pieces', levelsPath = 'content
   // the end-to-end tests run without it, so a machine's own pieces never change what they see
   const ownDir = privateDir === null ? null : resolve(privateDir);
   const levelsFile = resolve(levelsPath);
-  let isBuild = false;
-  // a production build carries the approved pieces only; a build in mode development (the end-to-end tests' bundle,
-  // playwright.config.ts) keeps the drafts, as the dev server does
+  // a production build carries the approved pieces only and fails on a piece with an error; a build in mode development (the end-to-end tests' bundle,
+  // playwright.config.ts) keeps the drafts and only warns, as the dev server does
   let approvedOnly = false;
 
   const collect = (): { pieces: unknown[]; omittedIds: string[]; diagnostics: Diagnostic[] } => {
@@ -78,8 +77,7 @@ export function piecesPlugin(piecesDir = 'content/pieces', levelsPath = 'content
   return {
     name: 'pianor-pieces',
     configResolved(config) {
-      isBuild = config.command === 'build';
-      approvedOnly = isBuild && config.mode !== 'development';
+      approvedOnly = config.command === 'build' && config.mode !== 'development';
     },
     resolveId(id) {
       return id === VIRTUAL_ID ? RESOLVED_ID : null;
@@ -89,7 +87,7 @@ export function piecesPlugin(piecesDir = 'content/pieces', levelsPath = 'content
       const { pieces, omittedIds, diagnostics } = collect();
       for (const d of diagnostics) {
         const text = formatDiagnostic(d);
-        if (d.severity === 'error' && isBuild) this.error(text);
+        if (d.severity === 'error' && approvedOnly) this.error(text);
         else this.warn(text);
       }
       this.addWatchFile(levelsFile);

@@ -94,3 +94,25 @@ describe('virtual:pieces with the private folder (ft_Y_04.AC14)', () => {
     rmSync(root, { recursive: true, force: true });
   });
 });
+
+describe('a piece with an error', () => {
+  it('fails a production build, and only warns in the end-to-end tests\' bundle as on the dev server', () => {
+    const root = mkdtempSync(join(tmpdir(), 'pianor-pieces-'));
+    mkdirSync(join(root, 'broken'));
+    writeFileSync(join(root, 'broken', 'piece.abc'), 'X:1\nT:broken\nM:4/4\nL:1/4\nK:C\nC4 | D3 |]\n');
+    writeFileSync(join(root, 'broken', 'piece.meta.json'), JSON.stringify({ id: 'broken', title: 'broken', level: 1, unlockLevel: 1, status: 'draft', hands: ['RH'], phrases: [], source: 'synthetic', license: 'CC0-1.0', generator: { kind: 'import' } }));
+    const load = (command: 'serve' | 'build', mode: string) => {
+      const plugin = piecesPlugin(root, 'content/curriculum/levels.json', null);
+      (plugin.configResolved as Hook)({ command, mode });
+      const context = { error: (text: string) => { throw new Error(text); }, warn: () => {}, addWatchFile: () => {} };
+      return () => (plugin.load as Hook).call(context, (plugin.resolveId as Hook)('virtual:pieces'));
+    };
+    try {
+      expect(load('build', 'production')).toThrow();
+      expect(load('build', 'development')).not.toThrow();
+      expect(load('serve', 'development')).not.toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
