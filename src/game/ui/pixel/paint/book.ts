@@ -2,6 +2,7 @@ import { createBitmap, type Bitmap } from '../bitmap';
 import { clamp01 } from './ease';
 import { fineRun } from './lab';
 import { fbm, hash2, noise2 } from './noise';
+import { TREBLE_CLEF_STROKE } from '../../staff/glyphs';
 
 /**
  * The open book the song list is written in (it should resemble a book, as the open book in the second or third game of the series), after the big open book of the 1997 game: a blue cloth cover with brass corners
@@ -207,18 +208,21 @@ function paintBookRibbon(put: (x: number, y: number, place: number) => void, wid
   }
 }
 
+/** How far a page's turned corner reaches in along the page's edges, in fine pixels: at rest a dog-ear, under the pointer a hand lifting it. */
+export const PAGE_TURN = { rest: 16, lifted: 64 } as const;
+
 /**
  * A page's bottom outer corner turned up to turn the page (ft_1_12 rule 10), `size` fine pixels on a side, the page's
  * corner at the picture's bottom right (`flipX` it for the left page). At rest only a small dog-ear; `lifted` (under the
  * pointer) the corner rolls up far over the page, its back paler, the page under it showing where it was, and it lays a
  * soft shade on the page.
  */
-export function paintPageTurn(size: number, lifted: boolean): Bitmap {
+export function paintPageTurn(size: number, lifted: boolean, rest = PAGE_TURN.rest, up = PAGE_TURN.lifted): Bitmap {
   const out = createBitmap(size, size);
   const put = (x: number, y: number, place: number) => { if (x >= 0 && y >= 0 && x < size && y < size) out.pixels[y * size + x] = place; };
   // u and v count in from the page's right edge and its foot
   const at = (u: number, v: number) => ({ x: size - 1 - u, y: size - 1 - v });
-  const fold = Math.round(size * (lifted ? 0.74 : 0.46));
+  const fold = Math.min(size - 2, lifted ? up : rest);
   // the rolled flap: the cut-off corner turned over the fold. Rolling, not creased, it reaches less far over the page than
   // the corner it was (`roll`), and its tip is rounded off
   const roll = lifted ? 0.62 : 0.85;
@@ -304,27 +308,37 @@ export function paintFolio(n: number): Bitmap {
 
 /**
  * A bookmark's ribbon (ft_1_12 rule 10), `width` by `height` fine pixels, in silk `mark` (0 All, 1 own, 2 the teacher's,
- * 3 the characters'): woven edges, a sheen along it, a soft wave, its outer (left) end cut in a swallowtail and its inner
- * end slipping under the next leaf. The open one is the brighter; a closed one lies a little dimmer, in the page's light.
+ * 3 the characters'): it comes out from between the leaves at its outer (left) end, a shade where it leaves them, with
+ * woven edges, a sheen along it and a soft wave, and its inner end lies on the page split like a lizard's tongue: two
+ * prongs that part as they go and taper to points turning outwards. The open one is the brighter; a closed one lies a little dimmer.
  */
 export function paintBookmark(mark: number, width: number, height: number, open: boolean): Bitmap {
   const run = SILK[mark] ?? RIBBON, first = SILK_FIRST[mark] ?? FIRST.ribbon;
   const out = createBitmap(width, height);
   const put = (x: number, y: number, place: number) => { if (x >= 0 && y >= 0 && x < width && y < height) out.pixels[y * width + x] = place; };
-  const notch = Math.round(height * 0.32);
+  const forkFrom = width - Math.round(width * (open ? 0.4 : 0.5));
   for (let x = 0; x < width; x++) {
     const wave = Math.round(Math.sin(x / 9 + mark) * 0.8);
     const top = 1 + wave, foot = height - 2 + wave;
+    const t = x < forkFrom ? -1 : (x - forkFrom) / (width - 1 - forkFrom);
     for (let y = top; y <= foot; y++) {
       const across = (y - top) / (foot - top);
-      // the swallowtail: a V cut into the outer end
-      if (x < notch - Math.round(Math.abs(across - 0.5) * 2 * notch)) continue;
-      const fromEnd = width - 1 - x;
-      // the inner end slides under the next leaf: a shade where it goes
-      let value = (open ? 0.62 : 0.5) + (across > 0.16 && across < 0.36 ? 0.24 : 0) - (across > 0.8 ? 0.18 : 0);
-      if (y === top || y === foot) value = open ? 0.28 : 0.2;
-      if (fromEnd < 2) value = 0.15;
-      else if (fromEnd < 4) value -= 0.2;
+      let edge = y === top || y === foot;
+      let lit = across > 0.16 && across < 0.36;
+      if (t >= 0) {
+        // the fork: two prongs either side of the middle, parting as they go and tapering to a point that turns outwards
+        const half = 0.03 + 0.24 * (1 - t) ** 0.8;
+        const centre = across < 0.5 ? 0.26 - 0.16 * t * t : 0.74 + 0.16 * t * t;
+        const d = across - centre;
+        if (Math.abs(d) > half) continue;
+        edge ||= Math.abs(d) > half - 1.2 / (foot - top);
+        lit = d < -half * 0.2 && d > -half * 0.7;
+      }
+      let value = (open ? 0.62 : 0.5) + (lit ? 0.24 : 0) - (across > 0.8 && t < 0 ? 0.18 : 0);
+      if (edge) value = open ? 0.28 : 0.2;
+      // where it comes out from between the leaves
+      if (x < 2) value = 0.15;
+      else if (x < 4) value -= 0.2;
       // the weave: a faint fleck along the threads
       if (hash2(x, y, 81 + mark) > 0.9) value -= 0.1;
       put(x, y, tone(run, first, value, x, y));
@@ -354,6 +368,9 @@ export function paintCover(width: number, height: number, label: { x: number; y:
   coverLeaves(put, width, boardW, boardH);
   coverBoard(put, boardW, boardH, spine);
   coverFrame(put, boardW, boardH, spine);
+  coverClef(put, label, Math.max(22, label.y - 14 - 7 * 11));
+  coverKeys(put, label, Math.round((label.y + label.h + boardH) / 2) + 12);
+  coverClasp(put, width, boardW, boardH);
   namePlate(put, label);
   return out;
 }
@@ -426,9 +443,26 @@ function coverFrame(put: Put, boardW: number, boardH: number, spine: number): vo
   const inner = frame(12, true);
   for (const [cx, cy] of [[inner.x0, inner.y0], [inner.x1, inner.y0], [inner.x0, inner.y1], [inner.x1, inner.y1]] as const) {
     const sx = cx === inner.x0 ? 1 : -1, sy = cy === inner.y0 ? 1 : -1;
-    // four petals round a dot, set just inside the corner
-    const fx = cx + sx * 6, fy = cy + sy * 6;
-    for (const [dx, dy] of [[0, 0], [0, -2], [0, 2], [-2, 0], [2, 0], [0, -3], [0, 3], [-3, 0], [3, 0], [1, 1], [-1, -1], [1, -1], [-1, 1]] as const) put(fx + dx, fy + dy, gilt(fx + dx, fy + dy, dx + dy < 0));
+    // a flower of four petals round a dot just inside the corner, and from it a scroll along each fillet ending in a curl
+    const fx = cx + sx * 8, fy = cy + sy * 8;
+    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+      const petal = (Math.abs(dx) <= 1 && Math.abs(dy) <= 4) || (Math.abs(dy) <= 1 && Math.abs(dx) <= 4);
+      if (petal && Math.abs(dx) + Math.abs(dy) <= 5) put(fx + dx, fy + dy, gilt(fx + dx, fy + dy, dx + dy < 0));
+    }
+    for (const along of ['x', 'y'] as const) {
+      for (let k = 6; k < 34; k++) {
+        const wave = Math.round(Math.sin((k - 6) / 4.5) * 2.5);
+        const x = along === 'x' ? fx + sx * k : fx + sx * wave, y = along === 'x' ? fy + sy * wave : fy + sy * k;
+        put(x, y, gilt(x, y, true));
+      }
+      // the curl at the scroll's end
+      const ex = along === 'x' ? fx + sx * 36 : fx, ey = along === 'x' ? fy : fy + sy * 36;
+      for (let a = 0; a < 11; a++) {
+        const r = 3.4 - a * 0.22, th = a * 0.75;
+        const x = Math.round(ex + Math.cos(th) * r), y = Math.round(ey + Math.sin(th) * r * sy);
+        put(x, y, gilt(x, y, true));
+      }
+    }
   }
 }
 
@@ -456,3 +490,50 @@ function namePlate(put: Put, label: { x: number; y: number; w: number; h: number
     for (const [dx, dy, v] of [[0, 0, 0.6], [-1, 0, 0.9], [0, -1, 0.9], [1, 0, 0.3], [0, 1, 0.3]] as const) put(rx + dx, ry + dy, tone(BRASS, FIRST.brass, v, rx + dx, ry + dy));
   }
 }
+
+/** A treble clef stamped in gilt on the cover, over the name plate, two pixels thick and lit on its upper left. */
+function coverClef(put: Put, label: { x: number; w: number }, top: number): void {
+  const scale = 11, cx = label.x + label.w / 2 - 1.35 * scale;
+  // the stroke walked in steps under a pixel, so it is unbroken
+  TREBLE_CLEF_STROKE.forEach((p, i) => {
+    const q = TREBLE_CLEF_STROKE[i + 1] ?? p;
+    const steps = Math.max(1, Math.ceil(Math.hypot(q.x - p.x, q.y - p.y) * scale * 2));
+    for (let k = 0; k < steps; k++) {
+      const x = Math.round(cx + (p.x + ((q.x - p.x) * k) / steps) * scale), y = Math.round(top + (p.y + ((q.y - p.y) * k) / steps) * scale);
+      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]] as const) put(x + dx, y + dy, gilt(x + dx, y + dy, dx + dy === 0));
+    }
+  });
+  // the ball at its foot
+  const bx = Math.round(cx + 0.95 * scale), by = Math.round(top + 6.45 * scale);
+  for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (dx * dx + dy * dy <= 9) put(bx + dx, by + dy, gilt(bx + dx, by + dy, dx + dy < -1));
+}
+
+/** Two octaves of a keyboard stamped in gilt on the cover under the name plate: the keys' outlines, the black keys filled. */
+function coverKeys(put: Put, label: { x: number; w: number }, foot: number): void {
+  const key = 9, keys = 14, h = 30, w = key * keys;
+  const x0 = Math.round(label.x + label.w / 2 - w / 2), y0 = foot - h;
+  for (let x = x0; x <= x0 + w; x++) { put(x, y0, gilt(x, y0, true)); put(x, y0 + h, gilt(x, y0 + h, false)); }
+  for (let k = 0; k <= keys; k++) for (let y = y0; y <= y0 + h; y++) put(x0 + k * key, y, gilt(x0 + k * key, y, k === 0));
+  // the black keys after C, D, F, G and A in each octave
+  for (let k = 0; k < keys - 1; k++) {
+    if (k % 7 === 2 || k % 7 === 6) continue;
+    const bx = x0 + (k + 1) * key - 3;
+    for (let y = y0; y < y0 + Math.round(h * 0.6); y++) for (let x = bx; x < bx + 7; x++) put(x, y, gilt(x, y, x === bx));
+  }
+}
+
+/** A brass clasp over the fore-edge, halfway down: a plate reaching onto the board, its tongue over the leaves, a rivet. */
+function coverClasp(put: Put, width: number, boardW: number, boardH: number): void {
+  const h = 22, y0 = Math.round(boardH / 2 - h / 2), x0 = boardW - 26;
+  for (let y = y0; y < y0 + h; y++) for (let x = x0; x < width; x++) {
+    const fromTop = y - y0, fromFoot = y0 + h - 1 - y;
+    // the plate's left end is pointed, as a clasp's is
+    if (x - x0 < Math.abs(fromTop - h / 2) * 0.8) continue;
+    const edge = fromTop === 0 || fromFoot === 0 || x === width - 1;
+    const value = edge ? 0.1 : fromTop < 3 ? 0.95 : fromFoot < 3 ? 0.4 : 0.72;
+    put(x, y, tone(BRASS, FIRST.brass, value, x, y));
+  }
+  const rx = x0 + 12, ry = y0 + Math.round(h / 2);
+  for (const [dx, dy, v] of [[0, 0, 0.5], [-1, 0, 0.95], [0, -1, 0.95], [1, 0, 0.25], [0, 1, 0.25], [-1, -1, 0.9], [1, 1, 0.2]] as const) put(rx + dx, ry + dy, tone(BRASS, FIRST.brass, v, rx + dx, ry + dy));
+}
+

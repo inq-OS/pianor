@@ -27,9 +27,8 @@ const ACTION_WIDTH = 40;
 /** The closed book round the name plate (ft_1_07): its cloth beside the plate, and its spine on the left, in cells. */
 const COVER_SIDE = 22;
 const COVER_SPINE = 10;
-/** Room on the plate under the name for why a name was refused, and how far over the plate the title is stamped, in cells. */
+/** Room on the plate under the name for why a name was refused, in cells. */
 const REASON_ROOM = 10;
-const TITLE_OVER_PLATE = 16;
 
 /** What the picker asks, and what happens to the typed name. */
 export interface NameData {
@@ -177,8 +176,6 @@ export class NameScene extends PixelScene {
     const plate = { x: fine(left - FIELD_PAD - cover.x), y: fine(fieldY - FIELD_PAD - cover.y), w: fine(fieldW), h: fine(FIELD_HEIGHT + REASON_ROOM) };
     this.fineImage(fine(cover.x), fine(cover.y), paintedOnce(`cover:${fine(cover.w)}x${fine(cover.h)}:${plate.x},${plate.y},${plate.w},${plate.h}`, () => paintCover(fine(cover.w), fine(cover.h), plate)), BOOK_PALETTE);
     this.placeField(left - FIELD_PAD, fieldY - FIELD_PAD, fieldW, FIELD_HEIGHT);
-    // the title stamped in gilt on the cloth over the plate
-    this.label(0, fieldY - FIELD_PAD - TITLE_OVER_PLATE, this.request?.title ?? '', C.gold, { shadow: false }).centerAt(left - FIELD_PAD + fieldW / 2);
     this.inkWriting = true;
     if (this.typed) this.label(left, fieldY, this.typed, C.white, { big: true });
     const caret = createBitmap(fine(1), fine(BIG_CAPS));

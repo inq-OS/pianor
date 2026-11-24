@@ -61,7 +61,7 @@ describe('the desk, the paper and the book (the screens overhaul)', () => {
     expect(same(paintFolio(3), paintFolio(4))).toBe(false);
     for (let n = 0; n < 10; n++) expect(inPalette(paintFolio(n), BOOK_PALETTE)).toBe(true);
     // the corner rolls up further under the pointer: more of it painted
-    const rest = paintPageTurn(34, false), lifted = paintPageTurn(34, true);
+    const rest = paintPageTurn(80, false), lifted = paintPageTurn(80, true);
     expect(painted(lifted)).toBeGreaterThan(painted(rest));
     expect(inPalette(lifted, BOOK_PALETTE)).toBe(true);
     // the corner lies on the page's foot, inside the cover

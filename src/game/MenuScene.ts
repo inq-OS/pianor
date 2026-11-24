@@ -32,7 +32,7 @@ import { measure, drawnText } from './ui/pixel/font';
 import { clipToWidth } from '../core/text/clip';
 import { HAT, hatPicture } from './ui/pixel/menuArt';
 import { ART_DETAIL } from '../core/layout/frame';
-import { BOOK_PALETTE, pageCorners, paintBookmark, paintFolio, paintPageTurn } from './ui/pixel/paint/book';
+import { BOOK_PALETTE, PAGE_TURN, pageCorners, paintBookmark, paintFolio, paintPageTurn } from './ui/pixel/paint/book';
 import type { Rect } from '../core/layout/rect';
 import { startScene } from './scenes';
 import { CLEF_FLIGHT, clefDrop, type Box } from '../core/layout/clefFlight';
@@ -104,7 +104,7 @@ const LEFT_SHIFT = 12;
  * screen's edge, lying over the page's margin up to the pieces. Its height and the gap between two.
  */
 const TAB = { shut: 16, open: 30, h: 19, gap: 3, out: 5 } as const;
-/** A page's turned-up corner (the pager, ft_1_12 rule 1) is painted this many cells on a side, its corner on the page's. */
+/** A page's turned-up corner (the pager, ft_1_12 rule 1) takes a press this many cells on a side, its corner on the page's. */
 const FOLD = { size: 17 } as const;
 /** A page's number stands this many cells over the page's foot. */
 const FOLIO_FOOT = 3;
@@ -589,7 +589,8 @@ export class MenuScene extends PixelScene {
   private bookPager(slice: { page: number; pages: number }, book: Rect, turn: (page: number) => void): void {
     const fine = (v: number) => v * ART_DETAIL;
     const at = pageCorners(fine(book.w), fine(book.h));
-    const size = fine(FOLD.size);
+    // the picture is big enough for the corner lifted; the press is on the corner itself, FOLD.size cells on a side
+    const size = PAGE_TURN.lifted + 16, press = fine(FOLD.size);
     const resting = paintPageTurn(size, false), lifted = paintPageTurn(size, true);
     const corners = [
       { label: t('menu.previous'), x: fine(book.x) + at.left.x, y: fine(book.y) + at.left.y + 1 - size, flip: true, can: slice.page > 0, page: slice.page - 1 },
@@ -598,8 +599,9 @@ export class MenuScene extends PixelScene {
     for (const c of corners) {
       const look = (up: boolean) => (c.flip ? flipX(up ? lifted : resting) : up ? lifted : resting);
       const image = c.can ? this.fineImage(c.x, c.y, look(false), BOOK_PALETTE).setName(`pageTurn:${c.flip ? 'left' : 'right'}`) : null;
+      const pressX = c.flip ? c.x : c.x + size - press, pressY = c.y + size - press;
       this.button({
-        x: (c.x + size / 2) / ART_DETAIL, y: (c.y + size / 2) / ART_DETAIL, width: FOLD.size, height: FOLD.size, label: c.label, tooltip: c.label, iconOnly: true,
+        x: (pressX + press / 2) / ART_DETAIL, y: (pressY + press / 2) / ART_DETAIL, width: FOLD.size, height: FOLD.size, label: c.label, tooltip: c.label, iconOnly: true,
         picture: createBitmap(FOLD.size, FOLD.size), disabled: !c.can, onClick: () => turn(c.page),
         onHover: (over) => image?.setBitmap(look(over), BOOK_PALETTE),
       });
