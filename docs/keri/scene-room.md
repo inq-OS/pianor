@@ -44,6 +44,8 @@ How it is made (`roomSet.ts`, `roomPicture.ts`): the set is built again with the
 
 ## TODO
 
+- The top corners are calm under the door, the backpack and the gear: over each foreground brace the roof's near boards are one plain dark field (`foreground` in `roomSet.ts`).
+- The near things (the sea chest, its basket and books, the bed's foot) take a low light from behind the viewer, the moon's cool one by night (`NEAR_FILL`, `NEAR_MOON`), and the chest's front is broad level boards with a lock plate, so the lower left is drawn and never one dark slab.
 - TODO(painter, R2): by night the leaf of the open door is dim: give it a little light of its own, as the board's notes have. Seen on the night picture. (The piano has its two candles now.)
 - TODO(painter, R2): the objects' second looks on the screenshot baseline of the room: the rest picture changed (lid down, board beside the piano, strap hinges, the horn turned), so its baseline is made again.
 - TODO(painter, R2): the repaint changes every screenshot baseline that shows the room: they are made again in its pull request.

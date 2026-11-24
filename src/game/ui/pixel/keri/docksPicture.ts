@@ -7,6 +7,7 @@ import { clamp01, smoothstep as smooth } from '../paint/ease';
 import { lean, paintLooks, SkyMask, swing, type WindWay } from '../paint/motion';
 import { grain } from '../paint/grain';
 import { LiveRecorder, type LiveWater } from '../paint/live';
+import { moonlitFoot } from '../paint/moonlit';
 import { fbm, hash2, noise2 } from '../paint/noise';
 import { tintedCloud, type CurlSpec } from './curlCloud';
 import { KERI_HOURS, scenePalette, tone, type Hour } from './keriPalette';
@@ -35,6 +36,8 @@ const WOOD = KIT_WOOD;
 const SHARED = scenePalette({ wood: WOOD }, ['grass', 'dry', 'far', 'shingle', 'stone', 'earth', 'bush', 'near', 'rose']);
 const R = SHARED.run;
 const F = SHARED.fine;
+/** Where the night's moonlit plane begins, where it is full, and how far up its runs it lifts the ground (fine rows; the rows a conversation's board covers and a little over). */
+const DOCKS_FOOT = { from: 236, full: 320, lift: 0.4 } as const;
 
 /** The part of a whole run from one of its named tones to another. */
 const part = (whole: readonly number[], from: number, to: number): readonly number[] => whole.slice(whole.indexOf(from), whole.indexOf(to) + 1);
@@ -927,6 +930,8 @@ class DocksPainter {
     this.tufts(look, false);
     this.cornerRocks(look);
     this.as(() => this.mooringPost(look));
+    // at night the shore and the water nearest the eye are a moonlit plane, the rocks, the walk and the post dark shapes on it
+    if (this.hour.night) moonlitFoot(this.px, this.w, [F.shingle, F.stone, F.grass, F.dry, F.sea], { ...DOCKS_FOOT, keep: (i) => this.owner[i] !== 0 });
     if (look === 0) this.water = this.live.seal(bitmap);
     // the grain of scanned paint over every run (not the embers, not the clouds, which drift as their own pictures)
     grain(this.px, this.w, GRAIN_RUNS, { seed: 400 });
