@@ -225,18 +225,18 @@ export class SongScene extends PixelScene {
     const song = this.song;
     if (!row) {
       if (song) {
-        if (context.songs.joinedChart(song)) startScene(this, 'practice', { chartId: songChartId(song.id) });
-      } else if ('chartId' in this.opened) startScene(this, 'practice', { chartId: this.opened.chartId });
+        if (context.songs.joinedChart(song)) startScene(this, 'practice', { fromSong: this.opened, chartId: songChartId(song.id) });
+      } else if ('chartId' in this.opened) startScene(this, 'practice', { fromSong: this.opened, chartId: this.opened.chartId });
       return;
     }
     const what = rowPlay(row, outline.rows);
     if (!what) return;
-    if (what.kind === 'piece') startScene(this, 'practice', { chartId: what.piece });
-    else if (what.kind === 'phrase') startScene(this, 'practice', { chartId: what.piece, section: { first: what.first, last: what.last } });
+    if (what.kind === 'piece') startScene(this, 'practice', { fromSong: this.opened, chartId: what.piece });
+    else if (what.kind === 'phrase') startScene(this, 'practice', { fromSong: this.opened, chartId: what.piece, section: { first: what.first, last: what.last } });
     else if (what.kind === 'group' && song) {
       // a group is a section of the whole song: it earns no XP (rule 9)
       const part = context.songs.joinedChart(song)?.parts.find((p) => p.node === what.node);
-      if (part) startScene(this, 'practice', { chartId: songChartId(song.id), section: { first: part.startBar, last: part.endBar } });
+      if (part) startScene(this, 'practice', { fromSong: this.opened, chartId: songChartId(song.id), section: { first: part.startBar, last: part.endBar } });
     }
   }
 

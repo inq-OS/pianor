@@ -111,11 +111,11 @@ export class SongsScene extends PixelScene {
     this.button({
       x: right - SMALL / 2 - SMALL - SMALL_GAP, y: top + 23, width: SMALL, height: SMALL, label: t('song.play', { name: song.title }), look: 'ink', inkBox: true, icon: TOOL_ICONS.play, iconOnly: true,
       disabled: songs.joinedChart(song) === null,
-      onClick: () => startScene(this, 'practice', { chartId: songChartId(song.id) }),
+      onClick: () => startScene(this, 'practice', { chartId: songChartId(song.id), fromSong: 'songs' }),
     });
     this.button({
       x: right - SMALL / 2, y: top + 23, width: SMALL, height: SMALL, label: t('stats.button'), look: 'ink', inkBox: true,
-      onClick: () => startScene(this, 'results', { chartId: songChartId(song.id) }),
+      onClick: () => startScene(this, 'results', { chartId: songChartId(song.id), fromSong: 'songs' }),
     });
   }
 }
