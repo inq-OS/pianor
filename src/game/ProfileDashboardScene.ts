@@ -868,7 +868,10 @@ export class ProfileDashboardScene extends PixelScene {
     this.keepIntro(player, 'done');
     this.introStage = null;
     this.teacherHere = false;
+    // a skip in Kiur's spotlight ends the intro while the overlay still pauses the room: drawn again once it runs, so Kiur
+    // on the bed can be pressed on this visit (the way into learning, ft_1_32 rule 14)
     if (this.sys.isActive()) this.redraw();
+    else this.time.delayedCall(0, () => { if (this.sys.isActive() && !this.introStage) this.redraw(); });
   }
 
   /** The intro's stage running now, for the tests; null when none. */
