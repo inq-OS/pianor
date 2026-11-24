@@ -11,6 +11,10 @@
     { "id": "net-needle", "kind": "kept", "name": "item.netNeedle" },
     { "id": "gull-feather", "kind": "kept", "name": "item.gullFeather" },
     { "id": "holed-stone", "kind": "kept", "name": "item.holedStone" },
-    { "id": "ships-bell", "kind": "kept", "name": "item.shipsBell" }
+    { "id": "ships-bell", "kind": "kept", "name": "item.shipsBell" },
+    { "id": "copper-coin", "kind": "kept", "name": "item.copperCoin" },
+    { "id": "silver-coin", "kind": "kept", "name": "item.silverCoin" },
+    { "id": "glass-bead", "kind": "kept", "name": "item.glassBead" },
+    { "id": "brass-button", "kind": "kept", "name": "item.brassButton" }
   ]
 }

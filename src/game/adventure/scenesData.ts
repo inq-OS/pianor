@@ -7,6 +7,8 @@ import { parseTugRules, type TugRules } from '../../core/exchange/tug';
 import tugRulesJson from '../../../content/challenge/rules.json';
 import itemsJson from '../../../content/items/items.json';
 import { parseItems, type ItemDef } from '../../core/item/item';
+import { parseWandererRules, type WandererRules } from '../../core/island/wanderer';
+import wanderersJson from '../../../content/world/wanderers.json';
 
 const sceneFiles = import.meta.glob<unknown>('../../../content/scenes/*.json', { eager: true, import: 'default' });
 const actorFiles = import.meta.glob<unknown>('../../../content/actors/*.json', { eager: true, import: 'default' });
@@ -54,3 +56,6 @@ export const TUG_RULES: TugRules = parseTugRules(tugRulesJson);
 
 /** Every item of `content/items/items.json` by its id, validated once (ft_1_20 item model, ft_1_21.AC15). */
 export const ITEMS: ReadonlyMap<string, ItemDef> = parseItems(itemsJson);
+
+/** The wanderers the teacher can send, their keepsakes and share (ft_1_37, content/world/wanderers.json), validated once. */
+export const WANDERER_RULES: WandererRules = parseWandererRules(wanderersJson);

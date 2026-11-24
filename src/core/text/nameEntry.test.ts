@@ -1,5 +1,6 @@
+// Covers ft_1_07.AC6.
 import { describe, expect, it } from 'vitest';
-import { NAME_LETTERS, NAME_MAX, deleteLetter, typeLetter } from './nameEntry';
+import { NAME_LETTERS, NAME_MAX, nameFrom, deleteLetter, typeLetter } from './nameEntry';
 
 describe('NAME_LETTERS', () => {
   it('is the Estonian alphabet with X and Y: 30 single letters, each once', () => {
@@ -33,3 +34,13 @@ describe('deleteLetter', () => {
     expect(deleteLetter('')).toBe('');
   });
 });
+
+describe('a name typed into the text field (ft_1_07.AC6)', () => {
+  it('ft_1_07.AC6 keeps the name letters in capitals, drops anything else and stops at the longest name', () => {
+    expect(nameFrom('mõ1-ri ')).toBe('MÕRI');
+    expect(nameFrom('šžäöü')).toBe('ŠŽÄÖÜ');
+    expect(nameFrom('abcdefghijklmnop')).toBe('ABCDEFGHIJKL');
+    expect(Array.from(nameFrom('õõõõõõõõõõõõõõ')).length).toBe(NAME_MAX);
+  });
+});
+

@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import { ART_DETAIL } from '../core/layout/frame';
-import { NAME_LETTERS, NAME_MAX, deleteLetter, typeLetter } from '../core/text/nameEntry';
+import { NAME_LETTERS, NAME_MAX, deleteLetter, nameFrom, typeLetter } from '../core/text/nameEntry';
 import { t } from '../core/text/strings';
 import { createBitmap } from './ui/pixel/bitmap';
 import { drawnText, measure } from './ui/pixel/font';
@@ -49,6 +49,11 @@ export class NameScene extends PixelScene {
   protected override toolbarPlayer = false;
   private request: NameData | null = null;
   private blink: Phaser.Time.TimerEvent | null = null;
+  /**
+   * A see-through text field over the name's box (ft_1_07.AC6): a tap on the box focuses it, which brings up a tablet's own
+   * keyboard; what is typed into it becomes the name (`nameFrom`). The game draws the name, never the field.
+   */
+  private field: HTMLInputElement | null = null;
   private typed = '';
   private saving = false;
   /** Why the last Done was refused; cleared by the next letter. */
@@ -72,17 +77,76 @@ export class NameScene extends PixelScene {
     this.request?.back?.(this);
   }
 
-  /** The computer keys write the name: a letter of `NAME_LETTERS`, Backspace and Enter. */
+  /** The computer keys write the name (a letter of `NAME_LETTERS`, Backspace and Enter), and a tablet's keyboard through the field. */
   override create(): void {
     // ahead of the arrows-and-Enter navigation and of the computer-key piano, so a typed letter sounds no note
     this.onWindowKey((e) => this.onTyped(e));
+    this.makeField();
     super.create();
+  }
+
+  /** The text field a tablet's keyboard types into, focused at once so a computer's keys go there too. */
+  private makeField(): void {
+    const field = document.createElement('input');
+    field.type = 'text';
+    field.id = 'name-field';
+    field.autocomplete = 'off';
+    field.spellcheck = false;
+    field.setAttribute('autocapitalize', 'characters');
+    field.setAttribute('autocorrect', 'off');
+    field.setAttribute('enterkeyhint', 'done');
+    field.setAttribute('aria-label', this.request?.title ?? '');
+    // see-through: the game draws the box, the letters and the caret; 16px so a phone or tablet does not zoom in on focus
+    field.style.cssText = 'position:absolute;opacity:0;border:0;padding:0;margin:0;font-size:16px;background:transparent;color:transparent;caret-color:transparent;z-index:5';
+    // the field's own caret stays at the end, where the game draws its red one: a letter is never put in the middle
+    const toEnd = () => field.setSelectionRange(field.value.length, field.value.length);
+    field.addEventListener('input', () => {
+      this.typed = nameFrom(field.value);
+      field.value = this.typed;
+      toEnd();
+      this.refused = '';
+      this.redraw();
+    });
+    for (const event of ['focus', 'click']) field.addEventListener(event, toEnd);
+    document.body.append(field);
+    this.field = field;
+    field.focus({ preventScroll: true });
+    // the page moved under the field (a resize, a tablet's keyboard coming up): lay it over the box again
+    const replace = () => this.redraw();
+    window.addEventListener('resize', replace);
+    window.visualViewport?.addEventListener('resize', replace);
+    this.events.once('shutdown', () => {
+      window.removeEventListener('resize', replace);
+      window.visualViewport?.removeEventListener('resize', replace);
+      field.remove();
+      if (this.field === field) this.field = null;
+    });
+  }
+
+  /** The field laid over the name's box (layout cells), wherever the canvas sits on the page. */
+  private placeField(x: number, y: number, w: number, h: number): void {
+    const field = this.field;
+    if (!field) return;
+    const rect = this.game.canvas.getBoundingClientRect();
+    const zoom = rect.width / this.scale.width;
+    const at = (v: number, origin: number) => (origin + v * this.px.scale) * zoom;
+    field.style.left = `${rect.left + window.scrollX + at(x, this.root.x)}px`;
+    field.style.top = `${rect.top + window.scrollY + at(y, this.root.y)}px`;
+    field.style.width = `${w * this.px.scale * zoom}px`;
+    field.style.height = `${h * this.px.scale * zoom}px`;
   }
 
   private onTyped(e: KeyboardEvent): void {
     if (e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
     const letter = e.key.length === 1 ? e.key.toLocaleUpperCase('et') : '';
     const done = e.key === 'Enter' && this.typed.length > 0;
+    // with the field focused its own typing writes the name (a tablet's keyboard sends no key names, and `nameFrom` drops
+    // what is no name letter): every printable key and Backspace only goes no further, so the computer-key piano plays no
+    // note, a digit included; Esc, Tab and the arrows still move about the screen
+    if (!done && this.field && document.activeElement === this.field && (e.key.length === 1 || e.key === 'Backspace')) {
+      e.stopImmediatePropagation();
+      return;
+    }
     if (!NAME_LETTERS.includes(letter) && e.key !== 'Backspace' && !done) return;
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -107,6 +171,7 @@ export class NameScene extends PixelScene {
     const fieldY = Math.round((height - FIELD_HEIGHT) / 2) - FIELD_PAD;
     const fine = (v: number) => v * ART_DETAIL;
     this.fineImage(fine(left - FIELD_PAD), fine(fieldY - FIELD_PAD), inkField(fine(fieldW), fine(FIELD_HEIGHT), true));
+    this.placeField(left - FIELD_PAD, fieldY - FIELD_PAD, fieldW, FIELD_HEIGHT);
     if (this.typed) this.label(left, fieldY, this.typed, C.white, { big: true });
     const caret = createBitmap(fine(1), fine(BIG_CAPS));
     caret.pixels.fill(C.redDark);
@@ -138,12 +203,14 @@ export class NameScene extends PixelScene {
 
   private type(letter: string): void {
     this.typed = typeLetter(this.typed, letter);
+    if (this.field) this.field.value = this.typed;
     this.refused = '';
     this.redraw();
   }
 
   private delete(): void {
     this.typed = deleteLetter(this.typed);
+    if (this.field) this.field.value = this.typed;
     this.refused = '';
     this.redraw();
   }

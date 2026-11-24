@@ -457,9 +457,9 @@ Check: `src/core/curriculum/phoneCall.test.ts` "ft_1_34.AC1 rings for a curricul
 
 **Actions open in a bubble round the pointer on a right click, a screen pins its few most-used actions in one slim strip, and the items a student keeps are in a backpack.** Features: ft_1_20.
 
-The bubble's options keep fixed slots (eight round a ring, slot 0 up, then clockwise), an option with choices opens them in a row beside it, and a long press or the context-menu key opens it too. The strip is one row of 15-row cells along the foot (17 rows, none on a screen with nothing pinned) and ends with More, which opens the bubble, so nothing is reached by the right click alone; a word is never cut short. Only practice and the piece maker have a bubble; a screen whose actions fit the strip pins them all. Which action goes where is the table in ft_1_20, AX-3 provisional until the maintainer tunes it on the laptop.
+The bubble's options keep fixed slots (eight round a ring, slot 0 up, then clockwise), an option with choices opens them on a second, outer ring round the bubble, centred on that option, and a long press or the context-menu key opens it too. The strip is one row of 15-row cells along the foot (17 rows, none on a screen with nothing pinned) and ends with More, which opens the bubble, so nothing is reached by the right click alone; a word is never cut short. Only practice and the piece maker have a bubble; a screen whose actions fit the strip pins them all. Which action goes where is the table in ft_1_20, AX-3 provisional until the maintainer tunes it on the laptop.
 
-Check: `src/core/layout/bubble.test.ts` "ft_1_20.AC19 an option keeps its slot whatever how many options the screen has, so the hand learns it"; `src/core/layout/bubble.test.ts` "ft_1_20.AC21 a screen with nothing pinned has no strip, and anything pinned takes one row of 15-row cells"; `src/core/layout/bubble.test.ts` "ft_1_20.AC18 never cuts a word: a word wider than a cell takes as many cells of the row as it needs"
+Check: `src/core/layout/bubble.test.ts` "ft_1_20.AC19 an option keeps its slot whatever how many options the screen has, so the hand learns it"; `src/core/layout/bubble.test.ts` "ft_1_20.AC21 a screen with nothing pinned has no strip, and anything pinned takes one row of 15-row cells"; `src/core/layout/bubble.test.ts` "ft_1_20.AC18 never cuts a word: a word wider than a cell takes as many cells of the row as it needs"; `src/core/layout/bubble.test.ts` "ft_1_20.AC20 an option with choices opens them on an outer ring round the bubble, centred on that option, inside the screen"
 
 ## d284
 
@@ -503,19 +503,19 @@ Check: `src/core/learn/progress.test.ts` "ft_1_32.AC17 the live tempo is off unl
 
 ## d294
 
-**In the piece maker the keyboard cursor follows the pointer, the bubble offers only what applies, lassoed bars are slurred or tied from the bubble, and a paste that writes over notes warns first.** Features: ft_1_02d, ft_1_20.
+**In the piece maker the cursor follows the pointer only when that switch is on, the bubble hides what cannot apply there and greys what waits for an earlier step, lassoed bars are slurred or tied from the bubble, and a paste that writes over notes warns first.** Features: ft_1_02d, ft_1_20.
 
-A move of the pointer over the staff takes the cursor and the selection to the note or place under it; the arrow keys still move it. The bubble and its menus hide an option that would do nothing there (no repeat on a note, no paste with nothing copied) and keep every other option in its slot. With bars selected the tie and slur menu slurs each hand over them or ties every repeat in them, previewed faint first. A paste over notes turns their bars red and says how many go; the same paste again does it.
+The follow switch is in the bubble of an empty place, off by default and kept per device (`entryPrefs.followPointer`). An option that can never apply in a spot is hidden and its slot left empty (no repeat on a note, no grace note where one cannot go, AUTO when it changes no finger, the staff for played notes on a one-hand piece, the short tap and that staff with no piano to play (no MIDI keyboard connected and no on-screen keyboard), the key's circle off the clef and key signature); one waiting for an earlier step is greyed (Paste before a copy; Listen and Try it on an empty piece; Undo and Redo with nothing to undo or redo; a length the selected note cannot take there). The repeat picked from a right click on a bar starts on that bar and asks only for its end; a bar inside a repeat offers to remove it, its bars shaded red first, and "remove grace note" draws the grace note red first. A paste over notes turns their bars red and says how many go; the same paste again does it.
 
-Check: `src/core/editor/rangeArcs.test.ts` "ft_1_02d.AC36 slurs each hand from its first note in the selected bars to its last, with no note picked first"; `src/core/editor/bars.test.ts` "ft_1_02d.AC37 counts the notes a paste over another selection would replace"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC34 the keyboard cursor follows the pointer: onto a note it selects it, onto a free place it goes there, and the arrows still move it"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC35 the bubble on a note offers no repeat signs, and paste only once something is copied"
+Check: `src/core/editor/entryPrefs.test.ts` "ft_1_02d.AC34 the cursor following the pointer is off unless turned on, and a record from before reads as off"; `src/core/editor/repeats.test.ts` "ft_1_02d.AC39 finds the repeat a bar lies in and takes only that one away"; `src/core/editor/rangeArcs.test.ts` "ft_1_02d.AC36 slurs each hand from its first note in the selected bars to its last, with no note picked first"; `src/core/editor/bars.test.ts` "ft_1_02d.AC37 counts the notes a paste over another selection would replace"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC35 the bubble on a note offers no repeat signs, and paste stands greyed until something is copied"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC38 the repeat picked in the bubble of a right click on a bar starts on that bar and asks only for its end"; `tests/e2e/editor.spec.ts` "ft_1_02d.AC39 an option waiting for an earlier step is greyed, one that cannot apply there is gone"
 
 ## d295
 
 **A name is typed on the computer keyboard into the game's name box; the box has no letter buttons.** Features: ft_1_07.
 
-The box is big, with a red caret where the next letter goes, and takes only the Estonian name letters, up to 12; Backspace deletes and Enter is Done, and Delete and Done stay as picture buttons. A tablet with no keyboard gets the system's on-screen keyboard later.
+The box is big, with a red caret where the next letter goes, and takes only the Estonian name letters, up to 12; Backspace deletes and Enter is Done, and Delete and Done stay as picture buttons. A see-through text field lies over the box and is focused, so a tablet's own keyboard comes up on a tap and types into it; the game draws the name and keeps only the name letters.
 
-Check: `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box"
+Check: `src/core/text/nameEntry.test.ts` "ft_1_07.AC6 keeps the name letters in capitals, drops anything else and stops at the longest name"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 a tablet types into the see-through field over the name box: it is focused, keeps only name letters and its caret stays at the end"
 
 ## d296
 
@@ -532,3 +532,11 @@ Check: `src/core/layout/clefFlight.test.ts` "ft_1_32.AC22 starts in the book whe
 The lesson (Twinkle's first four bars) is learned by the same plan as any piece, its progress kept only for the intro, so the piece itself is neither counted as learned nor as played. At the learned moment Kiur's line stays until a key, which goes on to the room's practise stage; the clef does not fly to the book in the intro.
 
 Check: `src/game/practice/introLearning.test.ts` "ft_1_31.AC8 starts from the beginning, keeps its steps for the next run only, and never saves the piece"; `tests/e2e/intro.spec.ts` "ft_1_31.AC1 ft_1_31.AC2 ft_1_31.AC3 ft_1_31.AC4 ft_1_31.AC6 ft_1_31.AC8 a new player is shown the room and the map and walked through learning bar by bar, practise and the tug on Twinkle"
+
+## d298
+
+**The teacher sets each character per player (on, weekdays, chance, piece, neediness) and sends wanderers, who ask for one piece and give a plain keepsake.** Features: ft_1_37, ft_1_25, ft_1_21.
+
+The settings live in the player's `curriculum` document as the optional `cast`, absent reading as before. Neediness 1 to 5 holds for every character: 3 keeps a tug level's share, each step moves it 10 points, never past all the notes; a wanderer counts from 80 per cent. A wanderer comes only on a day it was sent, plays one whole pass with the staff in Wait mode, and gives one keepsake a day when the play reaches its share, nothing taken away otherwise.
+
+Check: `src/core/island/cast.test.ts` "ft_1_37.AC8 neediness moves the share a play needs by 10 points a step from 3, never past all the notes"; `src/core/island/wanderer.test.ts` "ft_1_37.AC7 ft_1_37.AC8 keeps a keepsake when the play reaches the share its neediness needs, never takes anything"

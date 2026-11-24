@@ -1,4 +1,4 @@
-// Covers ft_1_15.AC4, ft_1_15.AC5.
+// Covers ft_1_15.AC4, ft_1_15.AC5, ft_1_15.AC7.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { clickButton, expectNoErrors, openGame, openPiece, pickChoice, sceneButton, waitForScene } from './helpers';
@@ -79,4 +79,38 @@ test.describe('Kiur at the door', () => {
     await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice').transport as { started: boolean }).started)).toBe(false);
     expectNoErrors(errors);
   });
+
+  test('ft_1_15.AC7 a bash in learning bar by bar brings Kiur to the door although its first key ended the run', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual&learn=1');
+    await learnThroughKiur(page, 'Little Steps');
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { learn: unknown }).learn !== null)).toBe(true);
+    await bash(page);
+    await waitForScene(page, 'kiurDoor');
+    expect(await running(page, 'practice')).toBe(false);
+    // Back: the same step of the learning starts again
+    await clickButton(page, 'kiurDoor', await sceneButton(page, 'kiurDoor', 'Back to the piece'));
+    await backAtPiece(page);
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { leaving: boolean }).leaving)).toBe(false);
+    // a second bash, and the door out to the room
+    await bash(page);
+    await waitForScene(page, 'kiurDoor');
+    await clickButton(page, 'kiurDoor', await sceneButton(page, 'kiurDoor', 'Out the door'));
+    await waitForScene(page, 'profile');
+    expectNoErrors(errors);
+  });
 });
+
+/** A piece opened to be learned bar by bar through Kiur in the room: Learn, and the piece picked in the book (ft_1_32 rule 14). */
+async function learnThroughKiur(page: Page, title: string): Promise<void> {
+  await page.evaluate(() => {
+    window.__game.scene.stop('menu');
+    window.__game.scene.start('profile');
+  });
+  await waitForScene(page, 'profile');
+  await expect.poll(() => sceneButton(page, 'profile', 'Kiur')).toBeGreaterThanOrEqual(0);
+  await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Kiur'));
+  await expect.poll(() => sceneButton(page, 'profile', 'Learn')).toBeGreaterThanOrEqual(0);
+  await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Learn'));
+  await waitForScene(page, 'menu');
+  await openPiece(page, title);
+}

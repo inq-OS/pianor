@@ -16,6 +16,7 @@ import { signOnly } from './itemArt';
 import { PALETTE, C } from './palette';
 import { createBitmap, recolor, type Bitmap } from './bitmap';
 import { LiveImage, PixelBar, PixelButton, PixelImage, PixelText, type PixelButtonOptions, type RgbaArt } from './PixelObjects';
+import { BACKPACK, BUBBLE_ALPHA, choicesSausage } from './bubbleArt';
 import { LiveWaterPlayer } from './liveWater';
 import type { LiveWater } from './paint/live';
 import { TITLE_X, TOP_BAR } from './playBars';
@@ -67,6 +68,8 @@ export interface ToolbarItem {
   main?: boolean;
   /** A worn option (note names, fingers): picked in the bubble it switches and leaves the bubble open, and while on it stands lit beside More. */
   worn?: boolean;
+  /** A bubble option's preview (d286): drawn while the pointer rests on it, taken away when it leaves or the bubble closes. */
+  preview?: (on: boolean) => void;
   onClick: () => void;
 }
 
@@ -113,8 +116,6 @@ const BACKPACK_GAP = 2;
 /** The largest music sign (fine pixels) in a round option of the bubble and in a cell of the strip. */
 const BUBBLE_SIGN = 24;
 const STRIP_SIGN = 22;
-/** How much of the bubble's ground covers what is under it. */
-const BUBBLE_GROUND_ALPHA = 0.45;
 /** The long press's ring starts to fill this long after the finger went down. */
 const LONG_PRESS_RING_FROM_MS = 150;
 /** More pulses on this many first visits of a screen. */
@@ -122,16 +123,6 @@ const MORE_PULSE_VISITS = 3;
 const LONG_PRESS_MS = 450;
 const LONG_PRESS_SLIP = 12;
 
-/** The bubble's ground: a round board as wide as `size` layout cells, with a dark rim. */
-function ringBitmap(size: number): Bitmap {
-  const b = createBitmap(size, size);
-  const r = size / 2;
-  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
-    const d = Math.hypot(x + 0.5 - r, y + 0.5 - r);
-    if (d <= r) b.pixels[y * size + x] = d > r - 1.5 ? C.groove : C.panel;
-  }
-  return b;
-}
 const MENU_GAP = 2;
 const MENU_PAD = 3;
 
@@ -1049,7 +1040,7 @@ export abstract class PixelScene extends Phaser.Scene {
       const r = { ...corners.settings, x: left };
       // the items are read at the press, so one won while the screen is open is there
       const bag: PixelButton = this.buttonOn(layer, {
-        ...rectCentre(r), label: t('band.backpack'), picture: TOOL_ICONS.backpack,
+        ...rectCentre(r), label: t('band.backpack'), picture: BACKPACK,
         onClick: () => {
           const items = this.backpackItems() ?? [];
           const choices: MenuItem[] = items.length
@@ -1390,15 +1381,20 @@ export abstract class PixelScene extends Phaser.Scene {
       }
       this.closeMenu();
     });
-    // the ground is see-through: the staff under it still reads while the bubble is open
-    container.add([catcher, new PixelImage(this, layout.area.x, layout.area.y, ringBitmap(layout.area.w)).setAlpha(BUBBLE_GROUND_ALPHA)]);
+    // nothing behind the ring: the staff reads between the plates, and faintly through them (ft_1_20 look)
+    container.add(catcher);
+    // an option's choices lie in one sausage curved along the outer ring, under their patches and pictures
+    if (layout.choices.length > 0) {
+      const sausage = choicesSausage(layout.centre, layout.choices);
+      container.add(new PixelImage(this, sausage.x, sausage.y, sausage.picture).setAlpha(BUBBLE_ALPHA));
+    }
     const buttons: PixelButton[] = [];
     // the options in slot order, for the arrows
     const ring: PixelButton[] = [];
-    const make = (r: Rect, item: ToolbarItem, onClick: () => void, onHover?: (over: boolean) => void): PixelButton => {
+    const make = (r: Rect, item: ToolbarItem, onClick: () => void, onHover?: (over: boolean) => void, look: 'bubble' | 'bubbleClose' | 'bubbleChoice' = 'bubble'): PixelButton => {
       const button = new PixelButton(this, container, {
         ...(onHover ? { onHover } : {}),
-        ...rectCentre(r), label: item.label, labelWidth: r.w - CELL_PAD, look: 'bubble',
+        ...rectCentre(r), label: item.label, labelWidth: r.w - CELL_PAD, look,
         // a music sign on its scrap of parchment is too big for a round option: the sign alone, in the option's colour
         ...(item.icon ? { icon: item.fineIcon ? signOnly(item.icon, BUBBLE_SIGN, BUBBLE_SIGN) : item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}),
         tooltip: item.tooltip ?? item.label, ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}),
@@ -1438,7 +1434,7 @@ export abstract class PixelScene extends Phaser.Scene {
         // a worn option leaves the bubble open, so several can be set in a row
         if (item.worn) this.time.delayedCall(0, () => this.openBubble(at));
       };
-      ring.push(make(r, item, pick));
+      ring.push(make(r, item, pick, item.preview));
       if (!item.disabled) sectorPick[i] = pick;
     });
     choices.forEach((choice, j) => {
@@ -1447,11 +1443,12 @@ export abstract class PixelScene extends Phaser.Scene {
       const button = make(r, { label: choice.label, ...(choice.icon ? { icon: choice.icon } : {}), ...(choice.fineIcon ? { fineIcon: true } : {}), ...(choice.tooltip ? { tooltip: choice.tooltip } : {}), ...(choice.disabled ? { disabled: true } : {}), ...(choice.keepCase ? { keepCase: true } : {}), ...(choice.shortcut ? { shortcut: choice.shortcut } : {}), onClick: () => undefined }, () => {
         this.closeMenu();
         choice.onPick();
-      }, choice.preview);
+      }, choice.preview, 'bubbleChoice');
       if (choice.active) button.setActive(true);
     });
-    make(layout.close, { label: t('band.close'), icon: TOOL_ICONS.close, onClick: () => undefined }, () => this.closeMenu());
-    this.menu = { container, buttons, focusBefore: this.focusIndex, bubble: true, ring, previews: choices.flatMap((choice) => (choice?.preview ? [choice.preview] : [])) };
+    make(layout.close, { label: t('band.close'), icon: TOOL_ICONS.close, onClick: () => undefined }, () => this.closeMenu(), undefined, 'bubbleClose');
+    const optionPreviews = paging.slots.flatMap((slot) => (typeof slot === 'number' && listed[slot]?.preview ? [listed[slot].preview] : []));
+    this.menu = { container, buttons, focusBefore: this.focusIndex, bubble: true, ring, previews: [...optionPreviews, ...choices.flatMap((choice) => (choice?.preview ? [choice.preview] : []))] };
     this.buttons.push(...buttons);
     if (options.keyboard || this.keyboardNavigation) this.focusOn(ring.find((b) => !b.disabled) ?? buttons[0]);
   }

@@ -14,6 +14,7 @@ import type { CircleKey } from '../core/layout/circleOfFifths';
 import type { TeacherData } from './TeacherScene';
 import type { TeacherPieceData } from './TeacherPieceScene';
 import type { TeacherTestsData } from './TeacherTestsScene';
+import type { TeacherCastData } from './TeacherCastScene';
 import type { CircleData } from './CircleOfFifthsScene';
 import type { MenuData } from './MenuScene';
 import type { VisitData } from './visit/islandVisit';
@@ -42,6 +43,7 @@ export interface SceneData {
   'teacherGate': undefined;
   'teacherPiece': TeacherPieceData;
   'teacherTests': TeacherTestsData;
+  'teacherCast': TeacherCastData;
   'teacherPassword': undefined;
   'name': NameData;
   'song': SongData;

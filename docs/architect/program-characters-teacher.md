@@ -246,6 +246,7 @@ interface WorldState {
   readonly items: readonly ItemId[];
   readonly met: Readonly<Record<CharacterId, MetRecord>>;
   readonly teacherVisits: readonly { readonly day: DayString; readonly piece: PieceId; readonly result: 'passed' | 'notYet' }[];
+  readonly wandererGifts?: readonly { readonly day: DayString; readonly wanderer: string; readonly item: ItemId }[];  // ft_1_37, d298: one keepsake a wanderer a day
 }
 interface MetRecord {
   readonly firstDay: DayString;
@@ -374,6 +375,10 @@ interface Curriculum {
   readonly base: number;                          // the expected level before priority, default 85
   readonly pieces: readonly CurriculumPiece[];
   readonly calendar: readonly CalendarEntry[];
+  readonly cast?: {                               // ft_1_37, d298: the teacher's settings of the cast; absent, every character as before
+    readonly characters?: Readonly<Record<CharacterId, { readonly on?: boolean; readonly weekdays?: readonly number[]; readonly chance?: number; readonly piece?: PieceId; readonly neediness?: number }>>;
+    readonly sent?: readonly { readonly wanderer: string; readonly day: DayString; readonly piece?: PieceId }[];
+  };
 }
 interface CurriculumPiece {
   readonly piece: PieceId;

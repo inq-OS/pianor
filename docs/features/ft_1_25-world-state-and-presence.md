@@ -17,6 +17,7 @@ Per player one versioned world document; one pure function says where every char
 - `meetCharacter` and `recordTug` (a lost tug keeps `lastLostTug { piece, at }`) keep the world document (A.8, core_11's `world` document, still version 1).
 - `cleanPlaysSince` (`src/core/curriculum/fromLog.ts`) counts clean whole-piece plays after the tug; `src/core/progression/practiceTime.ts` gives practice minutes from the log's bars (a pause over two minutes counts nothing).
 - `presence` fills `headsUps`: the teacher's boat first (`kiur.headsUp.teacher.boat`, `.landed` on the day), then each character in a scene by `kiur.headsUp.<character>.<scene>` (`headsUpKey`); a content test fails a character whose scene has no such key. Which one Kiur says: `kiurSays` (ft_1_27).
+- The teacher's cast ([ft_1_37](ft_1_37-teacher-runs-the-cast.md), d298): a character off, with chance 0 or on a weekday not its own is away; on its days it draws with its own chance, and the longest wait counts only its days (`castSettingOf`, `longestWait`).
 - Numbers in `content/world/presence.json`. Simulator: `npx tsx tools/presence/simulate-cli.ts [seed] [days]`.
 - AX-3 provisional (architect): chance 0.5, three days, seven boat days, two-minute session gap; every character is `present` (arriving and leaving come with the walkers, ft_1_24).
 

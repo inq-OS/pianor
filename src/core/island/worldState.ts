@@ -9,6 +9,11 @@ export interface WorldState {
   readonly items: readonly ItemId[];
   readonly met: Readonly<Record<CharacterId, MetRecord>>;
   readonly teacherVisits: readonly { readonly day: DayString; readonly piece: PieceId; readonly result: 'passed' | 'notYet' }[];
+  /**
+   * The keepsakes wanderers gave (ft_1_37.AC9), one a wanderer a day; the item is in `items` too. Optional, as saves from
+   * before it have none (the `world` document stays version 1, d069.3).
+   */
+  readonly wandererGifts?: readonly { readonly day: DayString; readonly wanderer: string; readonly item: ItemId }[];
 }
 export interface MetRecord {
   readonly firstDay: DayString;

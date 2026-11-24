@@ -300,6 +300,11 @@ export class PracticeScene extends PixelScene {
   private guarded!: GuardedKeyboard;
   /** Kiur is at the door (ft_1_15), or the intro's spotlight is up (ft_1_31): the overlay is up and this screen is paused. */
   private atDoor = false;
+  /**
+   * A learning run stopped (a wrong key or rushing) and the same step starts again after Kiur's line: this starts it. A bash
+   * in that moment still brings Kiur to the door (ft_1_15.AC7), as the bash's own first key is often what stopped the run.
+   */
+  private learnAgain: (() => void) | null = null;
   /** The staff's top on the screen, in screen pixels, as last drawn (the intro's spotlight finds the staff from it). */
   private staffOrigin: number | null = null;
   /** With the band (ft_1_20): the tempo ramp's panel is open over the staff's foot (an opening item, rule 2); not saved. */
@@ -348,6 +353,7 @@ export class PracticeScene extends PixelScene {
     this.lastResult = data.lastResult ?? null;
     this.pendingPass = null;
     this.loopTimer = null;
+    this.learnAgain = null;
     this.wrapping = false;
     this.listening = data.listen === true;
     // the piece loops (ft_1_12): a pass after the first starts with nothing said (its score was shown past the last bar)
@@ -888,11 +894,15 @@ export class PracticeScene extends PixelScene {
    */
   private againAfter(line: string, stopped?: { firstBar: number; lastBar: number }): void {
     this.playSession.say(line);
-    this.loopTimer = this.time.delayedCall(LEARN_STOP_MS, () => {
-      this.loopTimer = null;
+    this.learnAgain = () => {
+      this.learnAgain = null;
       const key = this.playSession.wrongKey;
       const learnWrong = stopped && key ? { learnWrong: { key, firstBar: stopped.firstBar, lastBar: stopped.lastBar } } : {};
-      if (this.scene.isActive()) this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line, ...learnWrong });
+      this.scene.restart({ ...this.startData, ...this.carry(), learnLine: line, ...learnWrong });
+    };
+    this.loopTimer = this.time.delayedCall(LEARN_STOP_MS, () => {
+      this.loopTimer = null;
+      if (this.scene.isActive()) this.learnAgain?.();
     });
   }
 
@@ -1032,10 +1042,17 @@ export class PracticeScene extends PixelScene {
 
   /**
    * Key bashing (ft_1_15): the piece pauses and Kiur points at the door (`KiurDoorScene`). The keys of the bash were never
-   * judged (`KeyBashGuard`), and nothing earned is touched. Not while the game plays the piece or a pass is ending.
+   * judged (`KeyBashGuard`), and nothing earned is touched. Not while the game plays the piece or a pass is ending, but in
+   * the moment a learning run stopped (ft_1_15.AC7): the bash's first key is often the wrong key that stopped it.
    */
   private onBash(): void {
-    if (this.leaving || this.listening || this.atDoor) return;
+    const learnStopped = this.learnAgain !== null;
+    if ((this.leaving && !learnStopped) || this.listening || this.atDoor) return;
+    if (learnStopped) {
+      // the step does not start again under Kiur: Back starts it (`fromDoor`)
+      this.loopTimer?.remove();
+      this.loopTimer = null;
+    }
     this.atDoor = true;
     this.guarded.setMuted(true);
     this.stopMetronome();
@@ -1066,6 +1083,16 @@ export class PracticeScene extends PixelScene {
    */
   private fromDoor(choice: OverlayOutcome<'kiurDoor'>): void {
     this.atDoor = false;
+    // a bash as a learning run stopped (ft_1_15.AC7): Back starts the same step again; the door goes out as from a run
+    const again = this.learnAgain;
+    if (again) {
+      if (choice !== 'door') {
+        again();
+        return;
+      }
+      this.learnAgain = null;
+      this.leaving = false;
+    }
     // the screen may still be resuming here (Phaser runs the resume on its next step), so only a leave stops this
     if (this.leaving) return;
     if (choice === 'door') {

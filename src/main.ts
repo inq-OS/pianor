@@ -48,6 +48,7 @@ import { TeacherPasswordScene } from './game/TeacherPasswordScene';
 import { TeacherScene } from './game/TeacherScene';
 import { TeacherPieceScene } from './game/TeacherPieceScene';
 import { TeacherTestsScene } from './game/TeacherTestsScene';
+import { TeacherCastScene } from './game/TeacherCastScene';
 import { createTeacherDesk } from './io/teacher/teacherDesk';
 import { createAdminAccess } from './io/admin/adminAccess';
 import { canvasSize } from './core/layout/canvasSize';
@@ -114,7 +115,7 @@ async function startGame(): Promise<void> {
     ...(appConfig.flags.timerLoop ? { fps: { forceSetTimeOut: true, target: 60, panicMax: 0 } } : {}),
     // sized by `fitGame` below in physical pixels, not by Phaser's RESIZE mode (which uses CSS pixels)
     scale: { mode: Phaser.Scale.NONE },
-    scene: [BootScene, MenuScene, ProfilesScene, ProfileDashboardScene, NoteTrainerScene, EarTrainerScene, ShapeTrainerScene, ChordTrainerScene, AdminScene, AdminGateScene, AdminPagesScene, AdminPasswordScene, AdminDeleteScene, TeacherScene, TeacherPieceScene, TeacherTestsScene, TeacherGateScene, TeacherPasswordScene, NameScene, SongScene, SongsScene, CreditsScene, SettingsScene, PiecesScene, AnalyzeScene, LearnStatsScene, PracticeScene, ResultsScene, EditorScene, StaffDemoScene, ArtDemoScene, KiurDoorScene, LearnResumeScene, IntroScene, CircleOfFifthsScene, KeriMapScene, ...adventureScenes()],
+    scene: [BootScene, MenuScene, ProfilesScene, ProfileDashboardScene, NoteTrainerScene, EarTrainerScene, ShapeTrainerScene, ChordTrainerScene, AdminScene, AdminGateScene, AdminPagesScene, AdminPasswordScene, AdminDeleteScene, TeacherScene, TeacherPieceScene, TeacherTestsScene, TeacherCastScene, TeacherGateScene, TeacherPasswordScene, NameScene, SongScene, SongsScene, CreditsScene, SettingsScene, PiecesScene, AnalyzeScene, LearnStatsScene, PracticeScene, ResultsScene, EditorScene, StaffDemoScene, ArtDemoScene, KiurDoorScene, LearnResumeScene, IntroScene, CircleOfFifthsScene, KeriMapScene, ...adventureScenes()],
   });
   game.registry.set(CONTEXT_KEY, context);
   debug?.watch(game, inputs.keyboard);
