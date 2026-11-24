@@ -118,6 +118,15 @@ test('ft_1_32.AC23 a new piece is learned bar by bar with nothing said: one bar 
   expectNoErrors(errors);
 });
 
+test('ft_1_32.AC23 a player who never saw the first-run hint gets no words as the first learning run starts', async ({ page }) => {
+  const errors = await openGame(page, '?device=virtual&learn=1&intro=auto');
+  await learnPiece(page, 'Little Steps');
+  await letGameRun(page, 5);
+  expect(await sceneTexts(page, 'practice')).not.toContain('More tools: right-click the music, or press More');
+  expect(await kiurSays(page)).toBe('');
+  expectNoErrors(errors);
+});
+
 test('the learning is kept: the piece opens again on the step the player reached', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
   await learnPiece(page, 'Little Steps');
@@ -141,7 +150,7 @@ test('ft_1_32.AC11 a run that speeds up beyond the baseline tempo is stopped and
   await learnPiece(page, 'Little Steps');
   // the keys pressed one right after the other: far faster than 40 BPM
   await playWithKeys(page, (await shown(page)).midis);
-  await expect.poll(() => progress(page), { timeout: 10_000 }).toMatchObject({ unsteady: 1 });
+  await expect.poll(() => nextRunStarted(page), { timeout: 10_000 }).toBe(true);
   expect(await kiurSays(page)).toBe('');
   expect(await shown(page)).toMatchObject({ bars: 1, first: 0 });
   expect(await progress(page)).toMatchObject({ step: 0, misses: 0, unsteady: 1 }); // nothing lost, asked again
@@ -331,7 +340,9 @@ test('ft_1_32.AC2 the whole piece three times: the first plays go on past a wron
   await seed(2);
   await open();
   await playWithKeys(page, [midis[0]! + 1]);
-  await expect.poll(() => progress(page), { timeout: 10_000 }).toMatchObject({ step: steps - 1, wholeStreak: 2, misses: 1 });
+  await expect.poll(() => nextRunStarted(page), { timeout: 10_000 }).toBe(true);
+  expect(await progress(page)).toMatchObject({ step: steps - 1, wholeStreak: 2, misses: 1 });
   expect(await shown(page)).toMatchObject({ first: 0 });
+  expect(await kiurSays(page)).toBe('');
   expectNoErrors(errors);
 });

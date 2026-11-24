@@ -37,7 +37,7 @@ AX-0: the student reads every bar they play and never rehearses a mistake. AX-1:
 19. **The prizes are on the staff's sheet** ([d287](../decisions/game.md#d287)). One narrow column at the top right of the sheet, which the staff leaves free: the piece's treble clef at its top, painted when the piece is learned; under it a quarter note for each bar of the chunk being learned, on one stem, stacked a step apart and staggered like a chord of seconds, each painted in its medal as its bar is secured; under them one note per chunk (a whole note for four bars), stacked the same way; a chunk shows either its quarters (while its bars are learned) or its note, never both. When every bar of the chunk is secured, its quarters go, replaced by its whole note, which is painted when the chunk's confirmation play counts. A prize still to earn is a faint placeholder, and the one the run is for (the new bar of a step, the chunk of a confirmation play or join, the clef of the whole run) has a soft box behind it.
 20. **The whole piece stays on the staff.** A learning run draws the whole piece, so the staff keeps its place from step to step; the bars outside the run are very faint and never awaited.
 21. **The book shows the clef.** Every piece in the piece book (while learning is on) shows its clef prize: in its medal once the piece is learned, an empty placeholder before.
-22. **Kiur is quiet while a piece is learned** (the maintainer asked: words between runs take the student's attention from the staff). Nothing is said as a run starts, after a wrong key, after a run played to its end or at the learned moment: the staff shows the run's bars and hand, the wrong key on the staff shows the mistake, the prize column shows how a run went, the grown clef shows the piece learned. What a learning run shows is a symbol or nothing; the only words are the answer to a press (note names kept off).
+22. **Kiur is quiet while a piece is learned** (the maintainer asked: words between runs take the student's attention from the staff). Nothing is said as a run starts, after a wrong key, after a run played to its end or at the learned moment: the staff shows the run's bars and hand, the wrong key on the staff shows the mistake, the prize column shows how a run went, the grown clef shows the piece learned. What a learning run shows is a symbol or nothing; the only words are the answer to a press (note names kept off). `AX-3 provisional:` an uneven or rushed run is asked again with no sign but the prize note not given; the beat ring (core_13) is to show the pace.
 
 ## Slices
 
@@ -96,6 +96,7 @@ Weighed against the axioms; they stay as built until real runs of the student sa
 
 ## TODO
 
+- TODO(architect, R2): rule 22's silent repeat of an uneven or rushed run: once the beat ring shows the pace in learning, check with the student that the repeat is understood; else give it a symbol.
 - TODO(architect, R2): after two weeks of the student's learning runs, look at their records in the learning stats and set the numbers above, and the following clock's ([core_01](core_01-tempo-mode.md)), from them.
 
 - TODO(builder, R2): the same records on the teacher's screen (ft_1_26 statistics).

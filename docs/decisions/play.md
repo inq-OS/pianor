@@ -137,6 +137,6 @@ Check: untestable: a rule about what agents may claim; real hardware needs a hum
 
 **A learning run with every note right counts for its pace unless it was clearly uneven; a beginner's wobble passes, and an uneven run is asked again at most once.** Features: ft_1_32.
 
-`TEMPO_RULES` in `src/core/learn/tempo.ts`: a gap is even within 50% of the run's own pace, a stop is a gap three times as long as written at that pace or longer, a run is even with no stop and at least 60% of its gaps even, and an uneven measured run is asked again at most once before the next run with every note right counts. Kiur's line for an uneven run asks for an even pace, not a slower one.
+`TEMPO_RULES` in `src/core/learn/tempo.ts`: a gap is even within 50% of the run's own pace, a stop is a gap three times as long as written at that pace or longer, a run is even with no stop and at least 60% of its gaps even, and an uneven measured run is asked again at most once before the next run with every note right counts.
 
 Check: `src/core/learn/tempo.test.ts` "ft_1_32.AC7 counts a slightly uneven run of a beginner as even: gaps a third off its pace, one pause of twice the gap"; `src/core/learn/progress.test.ts` "ft_1_32.AC7 asks an uneven run again once at most: the student is never held at a step for the pace"

@@ -277,7 +277,7 @@ export class PracticeScene extends PixelScene {
   private clefFlight: Omit<ClefFlight, 'then'> | null = null;
   /** Where the intro's lesson is in learning its bars, handed to the next run (ft_1_31.AC8). */
   private introLearning: LearnProgress | null = null;
-  /** This start follows a learning run, whose line Kiur says: no other words over it. */
+  /** This start follows a learning run that ended (the end-to-end tests wait on it for the next run). */
   private afterLearnRun = false;
   /** The wrong key carried from the run before (`learnWrong`), shown again on this run's staff. */
   private carriedWrong: PracticeData['learnWrong'] | null = null;
@@ -577,8 +577,8 @@ export class PracticeScene extends PixelScene {
   private bubbleHintDue(): boolean {
     const flags = contextOf(this).flags;
     // the intro switched off (the end-to-end tests) or a self-playing demo: no first-run words
-    // nor between learning runs
-    if (this.locked || this.wrap || this.listening || this.afterLearnRun || flags.intro === 'off' || flags.autoplay) return false;
+    // nor while a piece is learned (ft_1_32 rule 22)
+    if (this.locked || this.wrap || this.listening || this.learn || flags.intro === 'off' || flags.autoplay) return false;
     const key = `pianor.bubbleHint.${contextOf(this).profiles.profile.id}`;
     try {
       if (window.localStorage.getItem(key) === '1') return false;
