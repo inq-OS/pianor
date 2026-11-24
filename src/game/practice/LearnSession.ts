@@ -10,7 +10,7 @@ import {
 import { LearnRunJudge, type LearnRunVerdict } from '../../core/learn/run';
 import { prizeFocus, shownWithPiece, type PrizeFocus } from '../../core/learn/view';
 import { baselineBpm, runTempo, TEMPO_RULES, type RunTempo } from '../../core/learn/tempo';
-import { learnPace, type LearnPace } from '../../core/learn/paceRing';
+import { learnPace, type LearnPace } from '../../core/learn/livePace';
 import type { BarPlay } from '../../core/progression/practiceLog';
 import { t, type StringKey } from '../../core/text/strings';
 
@@ -88,7 +88,7 @@ export class LearnSession {
    * What the staff draws (ft_1_32.AC20): the whole piece, the bars outside the run very faint; the run's notes come first, so
    * the judge's note indexes are the staff's.
    */
-  get shown(): { chart: Chart; faint: { from: number; to: number }[] } {
+  get shown(): { chart: Chart; faint: { from: number; to: number }[]; offset: number } {
     return shownWithPiece(this.piece, this.run.step);
   }
 
@@ -178,7 +178,7 @@ export class LearnSession {
   }
 
   /**
-   * The beat ring's pace (core_13.AC5): the latest key against the student's own pace so far, or the piece's baseline before
+   * The live pace (core_13.AC5): the latest key against the student's own pace so far, or the piece's baseline before
    * the run has one; null before the run's first events.
    */
   get pace(): LearnPace | null {

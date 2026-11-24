@@ -4,7 +4,7 @@ import { chartWith } from '../../../tests/helpers/charts';
 import type { BarPlay } from '../progression/practiceLog';
 import { learnPlan } from './plan';
 import {
-  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnBeatRing, learnHandsApart, learnLiveTempo, learnPaceClick, learnStepBars, measuredOutcome, medalOf, playsOn, sitDown, START_PROGRESS, withTest,
+  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnBeatLane, learnHandsApart, learnLiveTempo, learnPaceClick, learnStepBars, measuredOutcome, medalOf, playsOn, sitDown, START_PROGRESS, withTest,
   type LearnProgress, type RunOutcome,
 } from './progress';
 
@@ -296,13 +296,14 @@ describe('live tempo in learning', () => {
   });
 });
 
-describe('the beat ring and the click at the student\'s pace', () => {
-  it('core_13.AC2 the beat ring is on and the click at the student\'s pace off until the player changes them, and a setting saved before them reads so', () => {
+describe('the beat lane and the click at the student\'s pace', () => {
+  it('core_13.AC2 the beat lane runs between the staves and the click at the student\'s pace is off until the player changes them, and a setting saved before them reads so', () => {
     const old = learnSettingsSchema.parse({ stepBars: 1, markers: true, markersFrom: 2 });
-    expect([learnBeatRing(DEFAULT_LEARN_SETTINGS), learnBeatRing(old)]).toEqual([true, true]);
+    expect([learnBeatLane(DEFAULT_LEARN_SETTINGS), learnBeatLane(old)]).toEqual(['between', 'between']);
     expect([learnPaceClick(DEFAULT_LEARN_SETTINGS), learnPaceClick(old)]).toEqual([false, false]);
-    const changed = learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatRing: false, paceClick: true });
-    expect([learnBeatRing(changed), learnPaceClick(changed)]).toEqual([false, true]);
+    const changed = learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLane: 'above', paceClick: true });
+    expect([learnBeatLane(changed), learnPaceClick(changed)]).toEqual(['above', true]);
+    expect(learnBeatLane(learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLane: 'off' }))).toBe('off');
   });
 });
 

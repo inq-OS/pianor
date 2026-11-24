@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Bitmap } from './bitmap';
 import { C } from './palette';
 import { BAR_NUMBER_MODES } from '../../../core/layout/barNumbers';
-import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, beatRingSymbol, durationSymbol, fingersSymbol, liveTempoSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, paceClickSymbol, resumeSymbol, scoreSymbol, staffGapSymbol } from './settingArt';
+import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, beatLaneSymbol, durationSymbol, fingersSymbol, liveTempoSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, paceClickSymbol, resumeSymbol, scoreSymbol, staffGapSymbol } from './settingArt';
 
 const same = (a: Bitmap, b: Bitmap) => a.pixels.every((p, i) => p === b.pixels[i]);
 const count = (b: Bitmap, colour: number) => b.pixels.filter((p) => p === colour).length;
@@ -23,7 +23,7 @@ const SETTINGS: Record<string, Bitmap[]> = {
   fingers: (['off', 'top', 'all'] as const).map(fingersSymbol),
   barNumbers: BAR_NUMBER_MODES.map(barNumbersSymbol),
   liveTempo: [false, true].map(liveTempoSymbol),
-  beatRing: [false, true].map(beatRingSymbol),
+  beatLane: (['above', 'between', 'off'] as const).map(beatLaneSymbol),
   paceClick: [false, true].map(paceClickSymbol),
 };
 
@@ -33,11 +33,11 @@ describe('settings button pictures', () => {
     for (let i = 0; i < pictures.length; i++) for (let j = i + 1; j < pictures.length; j++) expect(same(pictures[i]!, pictures[j]!), `choices ${i} and ${j}`).toBe(false);
   });
 
-  it('core_13.AC2 the beat ring\'s picture has its lit dot only when on, the click\'s picture its sound waves only when on, and each off picture is struck through', () => {
-    expect(count(beatRingSymbol(false), C.green)).toBe(0);
-    expect(count(beatRingSymbol(false), C.red)).toBeGreaterThan(0); // struck through
+  it('core_13.AC2 the beat lane\'s picture has its dots where the lane runs, the click\'s picture its sound waves only when on, and each off picture is struck through', () => {
+    expect(count(beatLaneSymbol('off'), C.blue)).toBe(0);
+    expect(count(beatLaneSymbol('off'), C.red)).toBeGreaterThan(0); // struck through
     expect(count(paceClickSymbol(false), C.red)).toBeGreaterThan(0);
-    expect(count(beatRingSymbol(true), C.green)).toBeGreaterThan(0);
+    for (const place of ['above', 'between'] as const) expect(count(beatLaneSymbol(place), C.blue)).toBeGreaterThan(0);
     expect(count(paceClickSymbol(false), C.blue)).toBe(0);
     expect(count(paceClickSymbol(true), C.blue)).toBeGreaterThan(0);
   });

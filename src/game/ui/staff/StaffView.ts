@@ -8,6 +8,8 @@ import type { DurationMarks } from '../../../core/layout/durationHelp';
 import { SCORE_COLOURS, STAFF_INK, scoreColour } from '../../../core/layout/scoreColour';
 import { wordFits } from '../../../core/layout/dynamicWords';
 import type { PlayedMark } from '../../../core/layout/playedMark';
+import { laneLift, paceColour, type LaneDot } from '../../../core/layout/beatLane';
+import type { PaceMark } from '../../../core/layout/beat';
 import { accidentalKind, pageOfNotes, type BeamGlyph, type NoteGlyph, type NoteValue, type SlurGlyph, type StaffLayout, type TieGlyph, type TupletGlyph } from '../../../core/layout/staff';
 import type { GraceGlyph } from '../../../core/layout/staffTypes';
 import { slurPoints, tiePoints } from '../../../core/layout/preview';
@@ -119,6 +121,13 @@ export class StaffView {
   /** The note duration helper (ft_1_11), under the lines; empty unless `setDurationMarks` gave it marks. */
   private readonly durationGfx: Phaser.GameObjects.Graphics;
   private durationMarks: DurationMarks = { bands: [], ghosts: [] };
+  /** The beat lane (core_13 rule 2), under the lines; empty unless `setLane` gave it dots. */
+  private readonly laneGfx: Phaser.GameObjects.Graphics;
+  private lane: readonly LaneDot[] = [];
+  private laneWave: number | null = null;
+  private laneMarks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>> = new Map();
+  private laneDrawn = '';
+  private lanePpq = 480;
   private readonly playheadGfx: Phaser.GameObjects.Graphics;
   private readonly notesGfx: Phaser.GameObjects.Graphics;
   private readonly labels: Phaser.GameObjects.Text[] = [];
@@ -185,10 +194,11 @@ export class StaffView {
     this.paperBg = layers.paper;
     this.cursorGfx = layers.highlight;
     this.durationGfx = layers.duration;
+    this.laneGfx = layers.lane;
     this.paper = layers.lines;
     this.notesGfx = layers.notes;
     this.playheadGfx = layers.playhead;
-    for (const g of [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.notesGfx, this.playheadGfx]) g.setPosition(origin.x, origin.y);
+    for (const g of [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx]) g.setPosition(origin.x, origin.y);
     this.drawStaff();
     const fontSize = `${Math.round(layout.staffSpace * 1.1)}px`;
     // a word that would run into the next mark of its staff is not drawn (core_09.AC15)
@@ -421,6 +431,56 @@ export class StaffView {
   }
 
   /** The band and the ghost heads, in the cursor's blue and faint, so they read as help and not as notes to play. */
+  /** The beat lane's dots (`laneDots`) and the drawn chart's ticks a quarter; no dots hide it. */
+  setLane(dots: readonly LaneDot[], ppq: number): void {
+    this.lane = dots;
+    this.lanePpq = ppq;
+    this.drawLane(true);
+  }
+
+  /**
+   * Where the lane's wave is (a tick of the chart drawn; null for none) and the colour of each key played against the
+   * student's pace, by its tick (core_13.AC5). Repainted only when what it shows changed.
+   */
+  moveLane(wave: number | null, marks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>>): void {
+    this.laneWave = wave;
+    this.laneMarks = marks;
+    this.drawLane(false);
+  }
+
+  /** How many lane dots this page shows, and how many the wave lifts now (end-to-end tests). */
+  laneShown(): { dots: number; lifted: number; coloured: number } {
+    const here = this.lane.filter((d) => this.onPage(d.system));
+    return { dots: here.length, lifted: here.filter((d) => this.liftOf(d) > 0).length, coloured: here.filter((d) => d.note && this.laneMarks.has(d.tick)).length };
+  }
+
+  private liftOf(dot: LaneDot): number {
+    return laneLift(dot.tick, this.laneWave, this.lanePpq);
+  }
+
+  /**
+   * The lane: faint ghost dots, a beat dot a little bigger and darker, the bar's first bigger still, a note's dot under its
+   * column; the wave lifts each dot it passes, the beat and note dots most (`AX-3 provisional:` sizes and shades).
+   */
+  private drawLane(force: boolean): void {
+    const shows = `${this.page}|${this.laneWave === null ? '' : Math.round(this.laneWave)}|${this.laneMarks.size}`;
+    if (!force && shows === this.laneDrawn) return;
+    this.laneDrawn = shows;
+    const g = this.laneGfx;
+    g.clear();
+    const S = this.layout.staffSpace;
+    for (const dot of this.lane) {
+      if (!this.onPage(dot.system)) continue;
+      const lift = this.liftOf(dot);
+      const mark = dot.note ? this.laneMarks.get(dot.tick) : undefined;
+      const size = dot.kind === 'downbeat' ? 0.3 : dot.kind === 'beat' || dot.note ? 0.22 : 0.11;
+      const rise = dot.kind === 'ghost' && !dot.note ? 0.45 : 0.8;
+      const alpha = mark ? 1 : dot.kind === 'downbeat' ? 0.55 : dot.kind === 'beat' || dot.note ? 0.4 : 0.22;
+      g.fillStyle(mark ? paceColour(mark) : this.theme.ink, Math.min(1, alpha + lift * 0.4));
+      g.fillCircle(dot.x, dot.y - lift * rise * S, size * S * (1 + 0.35 * lift));
+    }
+  }
+
   private drawDuration(): void {
     const g = this.durationGfx;
     g.clear();
@@ -440,11 +500,12 @@ export class StaffView {
     this.page = target;
     this.drawStaff();
     this.drawDuration();
+    this.drawLane(true);
     this.setHints(this.hints);
     this.drawNotes();
     this.drawPlayhead();
     if (!fade) return;
-    const targets = [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)];
+    const targets = [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)];
     this.scene.tweens.killTweensOf(targets);
     this.scene.tweens.add({ targets, alpha: { from: 0.2, to: 1 }, duration: PAGE_FADE_MS });
   }
@@ -566,7 +627,7 @@ export class StaffView {
   }
 
   destroy(): void {
-    [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
+    [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
     this.playedName?.destroy();
     for (const v of this.veils) v.image.destroy();
     this.sheet.release();

@@ -277,21 +277,6 @@ export function liveTempoSymbol(on: boolean): Bitmap {
   return b;
 }
 
-/** A small beat ring (core_13 rule 2) round (cx, cy): four dots, the first larger, the one of beat `lit` green with the hand on it; all grey when `dim`. */
-const beatRing = (b: Canvas, cx: number, cy: number, lit: number | null, dim = false) => {
-  const points = [[0, -7], [7, 0], [0, 7], [-7, 0]] as const;
-  points.forEach(([dx, dy], i) => {
-    const colour = dim ? C.lock : i === lit ? C.green : i === 0 ? INK : C.dim;
-    const size = i === 0 || i === lit ? 1 : 0;
-    for (let y = -size; y <= size; y++) for (let x = -size; x <= size; x++) put(b, cx + dx + x, cy + dy + y, colour);
-  });
-  if (lit !== null) {
-    const [dx, dy] = points[lit]!;
-    for (let s = 0; s <= 4; s++) put(b, cx + Math.round((dx * s) / 7), cy + Math.round((dy * s) / 7), dim ? C.lock : INK);
-  }
-  put(b, cx, cy, dim ? C.lock : INK);
-};
-
 /** A red cross over a box from (x0, y0), `size` wide: the thing under it is off. */
 const struck = (b: Canvas, x0: number, y0: number, size: number) => {
   for (let d = 0; d < size; d++) {
@@ -300,14 +285,32 @@ const struck = (b: Canvas, x0: number, y0: number, size: number) => {
   }
 };
 
-/** The beat ring (core_13 rule 2): a scrap of staff with the ring beside it, its second dot lit; off, the ring grey and struck through. */
-export function beatRingSymbol(on: boolean): Bitmap {
+/**
+ * Where the beat lane runs (core_13 rule 2): a grand staff with the row of dots above it or between its staves, a beat dot
+ * bigger every few, the one the wave is on lifted and blue; off, no dots and the staff struck through.
+ */
+export function beatLaneSymbol(place: 'above' | 'between' | 'off'): Bitmap {
   const b = paper();
-  staff(b, 6, { x1: 14 });
-  note(b, 5, 15);
-  note(b, 11, 12);
-  beatRing(b, 24, 11, 1, !on);
-  if (!on) struck(b, 16, 3, 17);
+  const thin = { x0: 2, x1: SYMBOL_WIDTH - 3, gap: 2, lines: 4 };
+  staff(b, 5, thin);
+  staff(b, 15, thin);
+  if (place === 'off') {
+    struck(b, 6, 0, 22);
+    return b;
+  }
+  const y = place === 'above' ? 2 : 13;
+  for (let x = 3; x <= SYMBOL_WIDTH - 4; x += 2) {
+    const beat = (x - 3) % 8 === 0;
+    const wave = x === 19;
+    const colour = wave ? C.blue : beat ? INK : C.dim;
+    const top = y - (wave ? 1 : 0);
+    put(b, x, top, colour);
+    if (beat || wave) {
+      put(b, x + 1, top, colour);
+      put(b, x, top + 1, colour);
+      put(b, x + 1, top + 1, colour);
+    }
+  }
   return b;
 }
 

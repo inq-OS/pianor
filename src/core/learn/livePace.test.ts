@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
 import { WaitMode } from '../judge/wait';
 import type { JudgeEvent } from '../judge/types';
-import { learnPace, paceClick } from './paceRing';
+import { learnPace, paceClick } from './livePace';
 
 // two bars of quarter notes at 120 BPM: C D E F | G A B C
 const midis = [60, 62, 64, 65, 67, 69, 71, 72];
@@ -19,7 +19,7 @@ describe('learnPace', () => {
     expect(learnPace(chart, [], null)).toEqual({ beats: 4, beatMs: null, press: null });
     const pace = learnPace(chart, played([1000, 2000]), null);
     expect(pace.beatMs).toBeNull();
-    expect(pace.press).toMatchObject({ place: 1, atMs: 2000 });
+    expect(pace.press).toMatchObject({ tick: 480, place: 1, atMs: 2000 });
   });
 
   it('core_13.AC5 takes the piece\'s baseline before the run has a pace of its own', () => {

@@ -5,7 +5,7 @@ import { paceMark, paceOff, type PaceMark } from '../layout/beat';
 import { onsetsOf, runTempo } from './tempo';
 
 /**
- * The beat ring of a learning run (core_13 rule 2, ft_1_32 rule 8): the student's own pace, never a given one. The pace is the
+ * The live pace of a learning run (core_13 rule 9, ft_1_32 rule 8): the student's own pace, never a given one. The pace is the
  * run's own once three keys are played (its usual gap, as the run's evenness is judged), and before that the piece's
  * baseline tempo when it has one. Each key's gap is held against it: even, early or late, and far off when the run's verdict
  * would not count it as even. Pure.
@@ -15,11 +15,11 @@ export interface LearnPace {
   beats: number;
   /** A quarter note at the student's pace, in ms; null before a pace is known. */
   beatMs: number | null;
-  /** The latest key played: its place in beats from its bar's first beat, its time, and its mark against the pace. */
-  press: { place: number; atMs: number; mark: PaceMark | null } | null;
+  /** The latest key played: its tick in the chart played, its place in beats from its bar's first beat, its time, and its mark against the pace. */
+  press: { tick: number; place: number; atMs: number; mark: PaceMark | null } | null;
 }
 
-/** A mark is drawn at most this many beats from its dot, so a long stop does not send it round the ring. */
+/** A mark is placed at most this many beats from its dot, so a long stop does not send it far. */
 const MARK_REACH = 1;
 
 /** The beats of a whole bar of `chart`, in quarters (as `metronomeFor` counts them). */
@@ -37,7 +37,7 @@ function placeInBar(chart: Chart, bar: number, tick: number, beats: number): num
 }
 
 /**
- * The ring's pace for a run so far: `chart` the chart the judge plays, `events` its events, `baselineBpm` the piece's
+ * The pace for a run so far: `chart` the chart the judge plays, `events` its events, `baselineBpm` the piece's
  * baseline tempo (null before the first measured run).
  */
 export function learnPace(chart: Chart, events: readonly JudgeEvent[], baselineBpm: number | null): LearnPace {
@@ -59,7 +59,7 @@ export function learnPace(chart: Chart, events: readonly JudgeEvent[], baselineB
     const shift = Math.max(-MARK_REACH, Math.min(MARK_REACH, off * writtenBeats));
     mark = { ...paceMark(off), at: place + shift };
   }
-  return { beats, beatMs, press: { place, atMs: last.timeMs, mark } };
+  return { beats, beatMs, press: { tick: last.tick, place, atMs: last.timeMs, mark } };
 }
 
 /**

@@ -1,11 +1,12 @@
-import { ringBox } from '../../core/layout/beat';
 import levelsJson from '../../../content/curriculum/levels.json';
 import { levelsFileSchema } from '../../core/chart';
 import { handShiftMap } from '../../core/fingering/shifts';
 import type Phaser from 'phaser';
-import { firstPrintedBar, unrollRepeats, writtenTick, writtenView, type Chart, type PlayChart } from '../../core/chart';
+import { firstPrintedBar, fullBarTicks, unrollRepeats, writtenTick, writtenView, type Chart, type PlayChart } from '../../core/chart';
 import { DEFAULT_FOLLOW_RULES, TempoMode, WaitMode, type Hints, type TempoStart, type JudgeEvent, type NoteJudged, type PieceResult, type PlaySettings, type PlayState } from '../../core/judge';
 import { barNumbersToShow, type BarNumberSettings } from '../../core/layout/barNumbers';
+import type { PaceMark } from '../../core/layout/beat';
+import { laneDots, waveTick, type LanePlace } from '../../core/layout/beatLane';
 import { PRIZE, prizeColumn, type PrizeColumn, type PrizeGlyph } from '../../core/layout/learnPrizes';
 import { CLEF_FLIGHT, grownBox } from '../../core/layout/clefFlight';
 import type { LearnRewards } from '../../core/learn/progress';
@@ -71,9 +72,10 @@ export interface PlaySessionOptions {
   restingTracks?: readonly string[];
   /**
    * What the staff draws instead of `chart` (learning, ft_1_32.AC20): the whole piece, the bars of `faint` (inclusive ranges)
-   * very faint; its first notes are `chart`'s, in the same order, so the judge's note indexes are its own.
+   * very faint; its first notes are `chart`'s, in the same order, so the judge's note indexes are its own; `offset` is the
+   * tick of `chart`'s start in it (0 when absent).
    */
-  shown?: { chart: Chart; faint: readonly { from: number; to: number }[] };
+  shown?: { chart: Chart; faint: readonly { from: number; to: number }[]; offset?: number };
   /** Staff spaces left free right of the staff (the column of the prizes of learning, ft_1_32.AC19). */
   roomRight?: number;
   /** A wrong key on the staff from the start, as the run before ended on it (ft_1_32.AC6); gone at the first right key. */
@@ -118,6 +120,9 @@ export class PlaySession {
   private readonly scoreView: PlaySettings['scoreView'];
   private view: StaffView | null = null;
   private layoutNow: StaffLayout | null = null;
+  /** Where the beat lane runs (core_13 rule 2), and the latest right key: its tick on the staff and its time. */
+  private lanePlace: LanePlace = 'off';
+  private laneAnchor: { tick: number; atMs: number } | null = null;
   /** The score of the pass just finished, drawn past the last bar (ft_1_12); empty when none is shown. */
   private passScore: Phaser.GameObjects.GameObject[] = [];
   /** The width of the area the staff was last drawn in: the sheet's, which the prizes' column keeps inside. */
@@ -137,10 +142,6 @@ export class PlaySession {
   private lastWrong: WrongKey | null = null;
   private wrongTimer: Phaser.Time.TimerEvent | null = null;
   private messageTimer: Phaser.Time.TimerEvent | null = null;
-
-  /** The room `setRoomRight` asked for, and the area the staff was drawn in last with the room it left. */
-  private roomRight: number | null = null;
-  private areaNow: { top: number; width: number; height: number; room: number } | null = null;
 
   constructor(private readonly scene: Phaser.Scene, private readonly options: PlaySessionOptions) {
     this.written = options.chart;
@@ -208,7 +209,10 @@ export class PlaySession {
         this.applyState(state);
         callbacks.onChange?.(state);
       },
-      onJudged: (event, state) => callbacks.onJudged(event, state),
+      onJudged: (event, state) => {
+        this.followKey(event);
+        callbacks.onJudged(event, state);
+      },
       onCompleted: (result) => callbacks.onCompleted(result),
       ...(callbacks.onEvents ? { onEvents: (events: readonly JudgeEvent[], state: PlayState) => callbacks.onEvents!(events, state) } : {}),
     }, this.hints, mode);
@@ -217,6 +221,41 @@ export class PlaySession {
   /** Tempo mode, every frame: let the judge's clock reach `nowMs`. Wait mode does nothing. */
   advance(nowMs: number): void {
     this.controllerNow.advance(nowMs);
+  }
+
+  /** A tick of the judge's chart as the same moment on the staff drawn: its written pass, in the piece a run is shown in. */
+  staffTick(playTick: number): number {
+    return writtenTick(this.play, playTick) + (this.options.shown?.offset ?? 0);
+  }
+
+  /** Where the beat lane runs, from the next `drawStaff` on. */
+  setLanePlace(place: LanePlace): void {
+    this.lanePlace = place;
+  }
+
+  /** The latest right key anchors the lane's wave in Wait mode: it runs on from there. */
+  private followKey(event: JudgeEvent): void {
+    if (event.type !== 'NoteJudged' || event.verdict !== 'correct') return;
+    const note = this.chart.notes[event.noteIndex];
+    if (!note) return;
+    const tick = this.staffTick(note.tick);
+    // a chord's other keys keep the time of its first
+    if (this.laneAnchor?.tick !== tick) this.laneAnchor = { tick, atMs: event.timeMs };
+  }
+
+  /**
+   * Move the lane's wave to `nowMs` (core_13.AC1): in Tempo mode with the piece's clock, so it runs with the playhead and the
+   * click; in Wait mode on from the latest right key at `msPerQuarter` (the click's, or the student's own pace in learning),
+   * at most a bar on, where it waits for the next key; none with no pace. `marks` colour the keys played, by staff tick.
+   */
+  moveLane(nowMs: number, msPerQuarter: number | null, marks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>>): void {
+    if (!this.view || this.lanePlace === 'off') return;
+    const drawn = this.drawn;
+    const playTick = this.transport?.tickAt(nowMs) ?? null;
+    const wave = playTick !== null
+      ? (playTick < 0 ? null : this.staffTick(playTick))
+      : waveTick(this.laneAnchor, msPerQuarter === null ? null : msPerQuarter / drawn.ppq, nowMs, fullBarTicks(drawn.meterMap, drawn.ppq));
+    this.view.moveLane(wave, marks);
   }
 
   /** Tempo mode: move the playhead to where the piece is at `nowMs`. */
@@ -228,18 +267,6 @@ export class PlaySession {
   setHints(hints: Hints): void {
     this.hints = hints;
     this.controllerNow.setHints(hints);
-  }
-
-  /** The room the next `drawStaff` leaves at the staff's right, in staff spaces, in place of the one it was made with. */
-  setRoomRight(room: number): void {
-    this.roomRight = room;
-  }
-
-  /** Where the beat ring stands (core_13.AC7): in the room right of the staff drawn last, at the sheet's foot; null with none. */
-  ringBox(): { x: number; y: number; size: number } | null {
-    const area = this.areaNow;
-    const layout = this.layoutNow;
-    return area && layout ? ringBox(area, layout.staffSpace, area.room) : null;
   }
 
   /** Stop listening to the keyboard (the piece or the tug is over); what is on screen stays. */
@@ -261,8 +288,7 @@ export class PlaySession {
     const drawn = this.drawn;
     this.areaWidth = area.width;
     let whole = layoutForSettings(section?.whole ?? this.written, options, settings);
-    const room = this.roomRight ?? this.options.roomRight ?? 0;
-    this.areaNow = { ...area, room };
+    const room = this.options.roomRight ?? 0;
     if (room > 0) {
       // the room is in staff spaces of the staff that is left: laid out once to know its size, then again narrower
       options.viewport = { ...options.viewport, width: Math.max(1, area.width - Math.ceil(room * whole.staffSpace)) };
@@ -276,6 +302,7 @@ export class PlaySession {
     // the parchment runs the whole width of the area, also past a staff that leaves room at its right
     this.view = new StaffView(this.scene, layout, undefined, { ...this.hints, chordFingers: this.options.chordFingers === true }, { x: 0, y: area.top }, numbers, room > 0 ? { x: 0, width: area.width } : undefined);
     this.view.setDurationMarks(durationMarks(layout, drawn, prefs.durationHelp));
+    this.view.setLane(laneDots(layout, drawn, this.lanePlace), drawn.ppq);
     // where the hand moves, shown with the finger numbers (ft_1_30.AC10)
     this.view.setHandShifts(handShiftMap(drawn, LEVELS.find((l) => l.level === drawn.level)));
     this.view.veil(this.options.shown?.faint ?? []);

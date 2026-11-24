@@ -47,8 +47,6 @@ export interface BeatInfo {
   beatInBar: number;
   /** Song time in ms the click sounds at. */
   atMs: number;
-  /** Ms from this beat to the next at the tempo it was placed with (the beat ring's sweep, core_13). */
-  intervalMs: number;
 }
 
 export interface MetronomeSound {
