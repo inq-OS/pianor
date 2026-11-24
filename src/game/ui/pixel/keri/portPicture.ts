@@ -1586,19 +1586,21 @@ export function paintPort(plan: PortPlan, phase: SkyPhase): PortPicture {
  */
 /**
  * The tongues of the beacon's fire, painted as the clouds are (`curlCloud`): each a stroke of a full brush that rises
- * from the logs, fattens and rolls up into a curl at its top. Where it stands over the pan's middle (`dx`), how tall
- * its stroke is, how fat, the size of its curl and the way it rolls (`left`).
+ * from the logs, leans with the wind (`PORT_WAY`, as the clouds lead) and rolls up into a curl at its top, every curl
+ * rolling the same way. Where it stands over the pan's middle (`dx`), how long its stroke is, how fat, and its curl.
  */
-const TONGUES: readonly { dx: number; length: number; girth: number; head: number; left: boolean }[] = [
-  { dx: -20, length: 4, girth: 8, head: 8, left: true },
-  { dx: 20, length: 5, girth: 8, head: 8, left: false },
-  { dx: -9, length: 10, girth: 9, head: 10, left: true },
-  { dx: 10, length: 12, girth: 9, head: 10, left: false },
-  { dx: 0, length: 16, girth: 10, head: 11, left: true },
+const TONGUES: readonly { dx: number; length: number; girth: number; head: number }[] = [
+  { dx: 17, length: 12, girth: 10, head: 8 },
+  { dx: 4, length: 20, girth: 13, head: 11 },
+  { dx: -10, length: 16, girth: 12, head: 10 },
+  { dx: -20, length: 8, girth: 8, head: 7 },
 ];
 
+/** How far the fire's tongues lean from upright, in radians, and how much a gust adds or takes in each look. */
+const FIRE_LEAN = 0.42, FIRE_GUST = 0.08;
+
 /** A fire tongue's tones (`CLOUD_TONES`, pale to the curl's line) as embers: hottest where a cloud is palest. */
-const FLAME_EMBERS = [5, 4, 4, 3] as const;
+const FLAME_EMBERS = [5, 4, 3, 2] as const;
 
 function fire(put: (x: number, y: number, c: number) => void, pan: { x: number; y: number }, look: number): void {
   const cx = pan.x, half = FIRE_PAN.half - 3;
@@ -1608,36 +1610,37 @@ function fire(put: (x: number, y: number, c: number) => void, pan: { x: number; 
     const u = k / half, tall = Math.round(5 + 4 * (1 - u * u) + 2 * hash2(k >> 2, look, 486));
     for (let up = 1; up <= tall; up++) put(cx + k, pan.y - up, up < tall - 2 && Math.abs(u) < 0.7 ? R.ember[5]! : R.ember[4]!);
   }
-  // the tongues: each a cloud's stroke stood on its tail, swaying and rolling a little differently in each look
+  // the tongues: each a cloud's stroke stood up on its tail and leaned the wind's way, its head rolling up as a cloud's does
+  const lean = FIRE_LEAN + FIRE_GUST * Math.sin(look * 2.1);
   TONGUES.forEach((t, i) => {
     const spec: CurlSpec = {
-      length: t.length + Math.round(3 * hash2(i, look, 487)), girth: t.girth, belly: 0.45, neck: 0.85, taper: 1,
-      bend: 2, wave: 1, phase: (look * 0.7 + i * 0.5) % 2, head: { size: t.head + (look + i) % 2, turns: 2 },
+      length: t.length + Math.round(3 * hash2(i, look, 487)), girth: t.girth, belly: 0.62, neck: 0.9, taper: 1.2,
+      bend: 2, wave: 1, phase: (look * 0.6 + i * 0.3) % 2, head: { size: t.head, turns: 2.2 },
     };
     const b = tintedCloud(spec, false, FLAME_EMBERS.map((e) => R.ember[e]!));
-    // turned upright: the stroke's tail at the bottom, its head rolling to the left (or, mirrored, to the right)
-    const w = b.height, h = b.width;
-    const upright = (x: number, y: number): number => {
-      if (x < 0 || y < 0 || x >= w || y >= h) return 0;
-      return b.pixels[(t.left ? x : w - 1 - x) * b.width + h - 1 - y]!;
+    // the stroke's tail: the middle of its first column
+    let tailY = 0, n = 0;
+    for (let y = 0; y < b.height; y++) if (b.pixels[y * b.width]) { tailY += y; n++; }
+    tailY = n ? tailY / n : b.height / 2;
+    // turned so the stroke runs up and leans downwind (the cloud's way, right, turned to the fire's heading), then
+    // mirrored when the wind blows left; each pixel round the tail is looked up in the cloud
+    const heading = -Math.PI / 2 + lean, cos = Math.cos(heading), sin = Math.sin(heading), reach = b.width + b.height;
+    const at = (x: number, y: number): number => {
+      const along = x * cos + y * sin, across = -x * sin + y * cos;
+      const sx = Math.round(along), sy = Math.round(tailY + across);
+      return sx < 0 || sy < 0 || sx >= b.width || sy >= b.height ? 0 : b.pixels[sy * b.width + sx]!;
     };
-    // the tail's column, to stand it over its place in the pan
-    let tailSum = 0, tailN = 0;
-    for (let x = 0; x < w; x++) for (let y = h - 3; y < h; y++) {
-      if (upright(x, y)) { tailSum += x; tailN++; }
-    }
-    const left = cx + t.dx - Math.round(tailN ? tailSum / tailN : w / 2), top = pan.y - 4 - h;
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const c = upright(x, y);
+    for (let y = -reach; y <= 2; y++) for (let x = -reach; x <= reach; x++) {
+      const c = at(x, y);
       if (!c) continue;
       // each tongue keeps a rim of deeper flame, so the one in front parts from the one behind
-      const rim = !upright(x - 1, y) || !upright(x + 1, y) || !upright(x, y - 1) || !upright(x, y + 1);
-      put(left + x, top + y, rim ? R.ember[2]! : c);
+      const rim = !at(x - 1, y) || !at(x + 1, y) || !at(x, y - 1) || !at(x, y + 1);
+      put(cx + t.dx + (PORT_WAY < 0 ? -x : x), pan.y - 4 + y, rim ? R.ember[2]! : c);
     }
   });
-  // sparks flying up over it
+  // sparks flying up over it, carried downwind
   for (let k = 0; k < 7; k++) {
-    const x = cx + Math.round((hash2(k, look, 484) - 0.5) * 40), y = pan.y - 44 - Math.round(hash2(k, look, 485) * 18);
+    const up = Math.round(hash2(k, look, 485) * 18), x = cx + PORT_WAY * Math.round(8 + up * 0.6) + Math.round((hash2(k, look, 484) - 0.5) * 36), y = pan.y - 44 - up;
     put(x, y, k % 2 ? R.ember[4]! : R.ember[3]!);
   }
 }
