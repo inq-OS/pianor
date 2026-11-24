@@ -659,32 +659,6 @@ class SquarePainter {
     });
   }
 
-  /**
-   * The lighthouse's own foot at the viewer's left hand: the round tower's base of pale limestone, near and big. Its
-   * courses curve round it, the side toward the square is lit and it darkens as it turns away, a plinth at the ground.
-   */
-  private lighthouseFoot(): void {
-    const { hour } = this;
-    const RIM: readonly Pt[] = [[-10, 170], [34, 174], [88, 194], [130, 228], [152, 268], [164, 316], [168, 372]];
-    // the silhouette's column at a row
-    const rim = (y: number): number => {
-      const k = Math.max(0, Math.min(RIM.length - 2, RIM.findIndex(([, py]) => py > y) - 1));
-      const [x0, y0] = RIM[k]!, [x1, y1] = RIM[k + 1]!;
-      return x0 + (x1 - x0) * clamp01((y - y0) / (y1 - y0));
-    };
-    this.as(() => {
-      const stone = (turn: number): Tone => this.masonry(hour.ground * 0.4 + 0.5 - turn, 400, 11, F.plaster, 2.2, (x) => (x / 168) ** 2 * 26);
-      const bands = [stone(0), stone(0.1), stone(0.2), stone(0.3)];
-      this.poly([[-10, 372], ...RIM], (x, y) => {
-        // round: lit near its edge toward the square, a thin dark turn at the very rim, darker the further round
-        const off = rim(y) - x + 6 * (noise2(y / 14, 1, 966) - 0.5);
-        return bands[off < 3 ? 2 : off < 56 ? 0 : off < 104 ? 1 : off < 150 ? 2 : 3]!(x, y);
-      }, 1.2);
-      // the plinth: a course of bigger stones standing out at the ground, in the near shade
-      this.poly([[150, 372], [168, 372], [172, 346], [160, 338]], this.blocks(hour.north + 0.1, 12, 26, 12), 0.6);
-    });
-  }
-
   /** The old boat shed's corner (`wood-shed`): the right wing, upright boards of every width, in the shade, a net and floats hung on it. */
   private boatShed(): void {
     const { hour } = this;
@@ -997,7 +971,7 @@ class SquarePainter {
     this.barrel(552, 238, 12, 28, 1);
     this.barrel(574, 246, 11, 24, 2);
     this.barrel(530, 247, 10, 20, 3);
-    // at the viewer's feet, big and in the near shade: boulders off the lighthouse's foot, a fish crate and barrels by the shed
+    // at the viewer's feet, big and in the near shade: boulders by the side building's wall, a fish crate and barrels by the shed
     this.boulder(214, 352, 30, 30, 5);
     this.boulder(262, 362, 18, 16, 6);
     this.crate(484, 356, 56, 40);
@@ -1061,7 +1035,6 @@ class SquarePainter {
     this.flowerBed();
     this.props();
     this.sideBuilding();
-    this.lighthouseFoot();
     this.boatShed();
     this.stringOfLights();
     this.lanterns();
