@@ -7,6 +7,7 @@ Add an entry before adding any dependency: what it is for, licence, and why the 
 | phaser | ^4.2.1 | MIT | Game framework: scenes, sprites, pixel-art scaling. See decision log: v4 chosen over v3 (latest stable line) |
 | zod | ^4.6.5 | MIT | Schemas for chart, meta, save data and content |
 | typescript | ^6.0.3 (dev) | Apache-2.0 | Strict typing |
+| typescript-native (npm alias of typescript 7) | ^7.0.2 (dev) | Apache-2.0 | `npm run typecheck`: the native compiler checks the project in about 4 seconds instead of 19 on four cores. TypeScript 6 stays for ESLint (typescript-eslint) and knip, which use its library. Both ship a `tsc` command, so the script names the native one by path |
 | vite | ^8.3.3 (dev) | MIT | Dev server and bundler |
 | vitest | ^5.0.3 (dev) | MIT | Unit, golden and replay tests |
 | @vitest/coverage-v8 | ^5.0.3 (dev) | MIT | Coverage report and 90% gate on src/core and tools/ |

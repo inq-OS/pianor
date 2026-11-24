@@ -1,0 +1,6 @@
+#!/bin/sh
+# After a merge or pull, write the generated docs blocks again from the merged files: the docs-index merge driver
+# (.gitattributes, tools/docs/merge-driver-cli.ts) merged only their hand-written text. A change is left for you to commit.
+cd "$(git rev-parse --show-toplevel)" || exit 0
+npx --no-install tsx tools/docs/cli.ts index | grep '^updated' && echo "post-merge: the docs indexes above were written again from the merged files; commit them."
+exit 0
