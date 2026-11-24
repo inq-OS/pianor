@@ -298,7 +298,7 @@ export class ProfileService {
     return this.active.settings.pieces.hidden;
   }
 
-  /** Whether a piece is on for the active player. Off pieces are hidden from the menu and the campaign but keep their stars. */
+  /** Whether a piece is on for the active player. Off pieces are hidden from the menu and the tugs but keep their stars. */
   isPieceOn(pieceId: string): boolean {
     return isPieceOn(this.active.settings.pieces, pieceId);
   }

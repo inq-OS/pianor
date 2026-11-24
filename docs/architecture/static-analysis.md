@@ -43,11 +43,11 @@ To silence a single finding, write the reason next to it:
 These functions are above the complexity limit (30) or nesting limit (5) and carry a disable comment pointing here. Each is
 a candidate for splitting; the comment goes when the split lands.
 
-Split (the disable comments went with them): `lintPiece` (one function per rule, run from `RULES`), the ABC
+Split, with no disable comment: `lintPiece` (one function per rule, run from `RULES`), the ABC
 scanner (`MusicLine` with `readChord`, `readRest` and `flushFinger`; the header fields are a table of readers),
 `layoutStaff` (`planFrame`, `layoutSystems`, `layoutStaffNotes`, `layoutStaffRests`, glyph metrics in `GLYPH`) and
-`generatePiece` (`validateRequest`, then the candidate loop). Split: `BattleResultsScene.draw` (the XP line and the
-outcome panel it shares with `ResultsScene` live in `src/game/results/OutcomeScene.ts`).
+`generatePiece` (`validateRequest`, then the candidate loop). The results screens' XP line and outcome panel live in
+`src/game/results/OutcomeScene.ts`.
 
 None is left. A new one gets a table here: the function, its complexity, why it is big and how to split it.
 

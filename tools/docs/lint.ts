@@ -6,6 +6,7 @@ import { lintLocalLinks } from './remarkLinks.ts';
 import { lintPrivacy } from './privacy.ts';
 import { lintTags } from './tags.ts';
 import { lintLedgerChecks } from './ledgerChecks.ts';
+import { lintOldWords } from './oldWords.ts';
 import { missingBlocks, expandAll, readItems } from './generate.ts';
 import type { Item } from './items.ts';
 import type { Repo } from './repo.ts';
@@ -50,7 +51,6 @@ export function lintItems(items: Item[]): Issue[] {
     }
     const refs: [string, unknown][] = [
       ['depends_on', item.meta.depends_on],
-      ['supersedes', item.meta.supersedes],
       ['features', item.kind === 'decision' ? item.meta.features : undefined],
     ];
     for (const [field, value] of refs) {
@@ -132,11 +132,10 @@ export function lintIds(repo: Repo, items: Item[]): Issue[] {
   return issues;
 }
 
-/** The numbering before d037 (`FT17`, `WP9`) may stay in the decision files, which keep history. */
+/** The numbering before d037 (`FT17`, `WP9`) is gone from every doc. */
 export function lintOldIds(repo: Repo): Issue[] {
   const issues: Issue[] = [];
   for (const [file, text] of repo.docs) {
-    if (file.startsWith('docs/decisions/')) continue;
     for (const line of linesOf(text)) {
       if (line.ignored) continue;
       for (const m of line.text.matchAll(/\b(?:FT\d\d[a-d]?|WP\d{1,2}[a-d]?)\b/g)) issues.push(error(file, `${m[0]} is the old numbering; use the id from docs/decisions/workflow.md#d037`, line.n));
@@ -191,6 +190,7 @@ export async function lintDocs(repo: Repo): Promise<Issue[]> {
     ...lintGenerated(repo),
     ...lintPrivacy(repo),
     ...lintLedgerChecks(repo),
+    ...lintOldWords(repo),
     ...lintTags(repo),
   ];
 }

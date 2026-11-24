@@ -200,7 +200,7 @@ describe('damaged saves', () => {
     expect(await store.get('pianor/v1/profile/bad')).toBe('garbage');
   });
 
-  it('a save from before the health bar is loaded with its battles kept as tug records', async () => {
+  it('a version-6 save is loaded with its old records kept as tug records', async () => {
     const { store, repository } = setup();
     await store.set('pianor/v1/profile/p-fixture-6', JSON.stringify(v6));
     const loaded = await repository.load('p-fixture-6');

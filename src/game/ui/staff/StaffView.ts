@@ -83,7 +83,7 @@ type NoteSelection = number | readonly number[] | null;
 const toSet = (selection: NoteSelection): ReadonlySet<number> =>
   new Set(selection === null ? [] : typeof selection === 'number' ? [selection] : selection);
 
-/** How long a page turn takes to fade in: quick, and no movement, so the staff never slides like falling notes. */
+/** How long a page turn takes to fade in: quick, and no movement, so the eye stays on the notes. */
 const PAGE_FADE_MS = 160;
 /**
  * Tempo mode: the staff is passed by an invisible running line. Lines, bar lines and notes turn this grey the moment

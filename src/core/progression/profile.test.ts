@@ -117,7 +117,6 @@ describe('a new profile', () => {
   it('starts with the default staff settings and an empty log', () => {
     const p = emptyProfile('p1', 'Test', '1998-10-01T00:00:00.000Z');
     expect(p).toMatchObject({ schemaVersion: PROFILE_SCHEMA_VERSION, attempts: [], tugs: [], settings: { staff: DEFAULT_STAFF_SETTINGS, play: DEFAULT_PLAY_SETTINGS, pieces: DEFAULT_PIECES_SETTINGS } });
-    expect(p.settings).not.toHaveProperty('battle');
     expect(profileSchema.safeParse(p).success).toBe(true);
   });
 

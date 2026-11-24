@@ -69,7 +69,7 @@ describe('content/pieces', () => {
     });
 
     it('is drawn on the staff at every supported screen size, big enough to read', () => {
-      // A two-hand song of more than 16 bars (the 32-bar monster song) cannot show all its grand staves at once
+      // A two-hand song of more than 16 bars (the 32-bar character song) cannot show all its grand staves at once
       // at 10 px: the student reads it a line at a time (the tests below); the whole-piece view (the preview) must fit the laptop.
       const twoHands = new Set(chart!.notes.map((n) => n.track)).size > 1;
       if (twoHands && chart!.bars.length > 16) {

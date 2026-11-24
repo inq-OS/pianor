@@ -81,7 +81,7 @@ export function startScene<K extends SceneKey>(from: Phaser.Scene, key: K, ...da
 
 /**
  * The data a scene is started with, never `undefined`: Phaser keeps a scene's last data when it is started again without
- * any, so the piano's piece list came back as the campaign's list after a campaign game left early.
+ * any, so a scene would come back with an earlier start's piece list.
  */
 export function freshData<T extends object>(data: T | undefined): T | Record<string, never> {
   return data ?? {};

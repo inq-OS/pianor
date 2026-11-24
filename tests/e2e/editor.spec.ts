@@ -168,7 +168,6 @@ test.describe('piece editor (preliminary)', () => {
     await expect.poll(() => menuButton(page, '+ New piece')).toBeGreaterThanOrEqual(0);
     // the piece maker saves no progress: it lists own pieces only and a card opens the editor, so no piece can be played from it
     expect(await menuButton(page, 'Practice')).toBe(-1);
-    expect(await menuButton(page, 'Fight')).toBe(-1);
     expect(await page.evaluate(() => window.__game.registry.get('context').profiles.progress.totalXp as number)).toBe(xpBefore);
     await clickButton(page, 'menu', await menuButton(page, 'Back'));
     await waitForScene(page, 'profiles');

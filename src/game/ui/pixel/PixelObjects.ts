@@ -37,7 +37,7 @@ export class PixelImage extends Phaser.GameObjects.Image {
   private textureKey: string;
 
   /**
-   * `palette` colours the bitmap's indexes (the campaign sky's phase palette, ft_1_14); the base palette when not given.
+   * `palette` colours the bitmap's indexes (the sky's phase palette, ft_1_14); the base palette when not given.
    * Art already in colour (`RgbaArt`) is shown as it is.
    */
   constructor(scene: Phaser.Scene, x: number, y: number, bitmap: Bitmap | RgbaArt, palette?: readonly number[]) {
@@ -616,7 +616,7 @@ export class PixelButton {
   }
 }
 
-/** A bar (XP, HP): a trough with a fill (gold unless `colors` say otherwise) of `fraction` of it. Call `set` when the fraction changes. */
+/** A bar (XP): a trough with a fill (gold unless `colors` say otherwise) of `fraction` of it. Call `set` when the fraction changes. */
 export class PixelBar extends PixelImage {
   private shown: number;
 

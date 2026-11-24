@@ -26,7 +26,7 @@ export const HOTKEYS: Readonly<Record<HotkeyAction, { code: string; letter: stri
   reset: { code: 'Space', letter: 'Space' },
 };
 
-/** Whether a key starts the play over from the first bar (practice and the campaign's key and door): the space bar, plain. */
+/** Whether a key starts the play over from the first bar (practice): the space bar, plain. */
 export function isResetKey(e: Pick<KeyboardEvent, 'code' | 'shiftKey' | 'ctrlKey' | 'metaKey' | 'altKey'>): boolean {
   return actionForCode(e.code, e.shiftKey) === 'reset' && !e.ctrlKey && !e.metaKey && !e.altKey;
 }

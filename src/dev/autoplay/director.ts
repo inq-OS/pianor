@@ -215,7 +215,7 @@ export function startAutoplay(options: AutoplayOptions): AutoplayHandle {
 
   /**
    * Tempo mode: after the lead-in, the first key only starts the count-in and is not a note; then every note of `chart`
-   * goes where the transport says it is, at the piece's own tempo (the find-the-door screen runs at it whatever `?speed=` says).
+   * goes where the transport says it is, at the piece's own tempo (a screen that plays at its own tempo runs at it whatever `?speed=` says).
    */
   async function performInTempo(chart: Chart, transport: () => TransportLike | null | undefined): Promise<void> {
     await sleep(leadMs);

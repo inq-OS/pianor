@@ -63,13 +63,13 @@ export interface FrameView {
 /**
  * The one flag of the frame's layout for the top toolbar under the band (d115, ft_1_20.AC12; the
  * toolbar is set aside for now, kept in the code so it can come back). Off: the band holds Back, Settings and the
- * player, and the main area has every row above it (124 on the target screen). On: the toolbar and the vine are drawn as
- * before d115 and hold them, and the main area has 101 rows. No scene changes when it flips.
+ * player, and the main area has every row above it (124 on the target screen). On: the toolbar and the vine are drawn
+ * above the band and hold them, and the main area has 101 rows. No scene changes when it flips.
  */
 export const BAND_KEEPS_TOOLBAR = false;
 
 export interface FrameOptions {
-  /** Draw the action and inventory band at the foot (ft_1_20): every framed screen but the battle screens (d129). */
+  /** Draw the action and inventory band at the foot (ft_1_20): every framed screen but the tug (d129). */
   band: boolean;
   /** With the band: keep the toolbar too. `BAND_KEEPS_TOOLBAR` by default; only tests pass it. */
   toolbar?: boolean;
@@ -111,7 +111,7 @@ export interface ToolbarInput {
   back: boolean;
   /** The settings gear: false on the settings screen itself. */
   settings: boolean;
-  /** The on-screen keyboard switch at the right end: only on the settings screen since d099 (a developer's tool now). */
+  /** The on-screen keyboard switch at the right end: only on the settings screen (a developer's tool, d099). */
   keys: boolean;
   /** The active player's name, rank and XP, or null on a screen without a player (the profile picker, admin). */
   player: { nameWidth: number; rankWidth: number; xpTextWidth: number } | null;
