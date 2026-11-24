@@ -558,7 +558,7 @@ PLACES = {
     "tunnels": "the tunnels under Dinky: storerooms, a lift, bare rooms",
     "melee": "the night street at the end", "carnival": "the carnival at the end",
     "death-starfish": "MI3: LeChuck's ship and the opening at sea", "plunder": "MI3: Plunder Island, Puerto Pollo",
-    "ship-combat": "MI3: the Sea Cucumber at sea and its fights", "blood": "MI3: Blood Island",
+    "ship-combat": "MI3: the Sea Cucumber at sea", "blood": "MI3: Blood Island",
     "monkey-island": "MI3: Monkey Island and the end; MI1: Monkey Island, its jungle, village and the ghost ship",
     "melee-island": "MI1: Melee Island (Part I): the town by night, the bar, the forest, the circus, its map",
     "sea-monkey": "MI1: the ship Sea Monkey, at sea and inside",

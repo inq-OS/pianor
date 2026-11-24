@@ -27,8 +27,6 @@
     "original"
   ],
   "tags": [
-    "starter-song",
-    "class-ranger",
     "c-position",
     "thirds",
     "rests"
@@ -40,8 +38,7 @@
     "params": {
       "model": "Claude",
       "theme": "an off-beat swing stroll (jazz feel)",
-      "class": "ranger",
-      "note": "Starter song of the ranger class for the turn battle: the fallback for every spellbook slot. The style is flavour only in the MVP, so it is marked original.",
+      "note": "An eight-bar song in one hand; the style is flavour only, so it is marked original.",
       "prompt": "docs/authoring/au07-agent-composing.md"
     }
   }

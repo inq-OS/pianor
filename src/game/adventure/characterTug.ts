@@ -27,7 +27,7 @@ export function characterTug(def: CharacterDef, asked: Level, world: WorldState 
 }
 
 /**
- * The gate in front of `def`'s tug on `chart` at `level` (ft_1_06.AC15, ft_1_21.AC13), from the player's practice log
+ * The gate in front of `def`'s tug on `chart` at `level` (ft_1_21.AC19, ft_1_21.AC13), from the player's practice log
  * and world: the piece learned bar by bar (`learned`, ft_1_32.AC15), practised for it and, after a lost tug, played clean again.
  */
 export function characterTugGate(def: CharacterDef, chart: Chart, level: Level, world: WorldState | null, log: PracticeLog, learned: boolean): TugGate {

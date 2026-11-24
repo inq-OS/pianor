@@ -1,6 +1,7 @@
 import type { Chart } from '../chart';
 import { learnPlan } from './plan';
-import { isLearned, learnHandsApart, learnStepBars, type LearnProgress, type LearnSettings } from './progress';
+import type { BarPlay } from '../progression/practiceLog';
+import { goldenBars, isLearned, learnHandsApart, learnRewards, learnStepBars, type LearnProgress, type LearnSettings, type Medal } from './progress';
 
 /**
  * Where a play of a piece comes from (ft_1_32 rules 14 and 15): the piano, which is a sandbox, or Kiur asked to teach the
@@ -23,4 +24,13 @@ export function learnsOnOpen(play: { readonly route: PlayRoute; readonly mustLea
 export function pieceLearned(piece: Chart, kept: LearnProgress, settings: LearnSettings): boolean {
   const plan = learnPlan(piece, learnStepBars(kept, settings), learnHandsApart(kept, settings));
   return plan.length === 0 || isLearned(plan, kept);
+}
+
+/**
+ * The clef prize of `piece` for the piece book (ft_1_32.AC21): its medal once the piece is learned (raised to gold by three
+ * perfect plays of every bar since, from `practice`), null before.
+ */
+export function pieceClef(piece: Chart, kept: LearnProgress, settings: LearnSettings, practice: readonly BarPlay[]): Medal | null {
+  const plan = learnPlan(piece, learnStepBars(kept, settings), learnHandsApart(kept, settings));
+  return learnRewards(plan, kept, piece, goldenBars(practice, piece.id, kept.learnedAt ?? null)).piece;
 }

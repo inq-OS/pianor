@@ -57,6 +57,11 @@ describe('rendering', () => {
     expect(out[2]).toBe('| [ft_0_01](ft_0_01-x.md) | T | S \\| with pipe | simple | 0 |  | idea |');
   });
 
+  it('escapes a backslash before a pipe so the pipe stays inside its cell', () => {
+    const out = renderFeatures([f('ft_0_01', { title: 'a\\|b' })], 'ft_0').split('\n');
+    expect(out[2]).toBe('| [ft_0_01](ft_0_01-x.md) | a\\\\\\|b | S \\| with pipe | simple | 0 |  | idea |');
+  });
+
   it('renders decisions, authoring topics and playtests', () => {
     const d: DecisionMeta = { id: 'd001', title: 'D', features: ['ft_0_00', 'ft_0_01'] };
     expect(renderDecisions([{ meta: d, file: 'd001-x.md' }]).split('\n')[2]).toBe('| [d001](d001-x.md) | D | ft_0_00, ft_0_01 |');

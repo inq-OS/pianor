@@ -5,10 +5,17 @@ import progressionJson from '../../../content/curriculum/progression.json';
 import fixture from '../../../tests/fixtures/saves/profile.v17.json';
 import type { PieceResult } from '../judge/types';
 import { parseProgressionConfig } from './config';
-import { deriveProgress, emptyProfile, profileSchema, recordAttempt, recordBattle } from './profile';
+import { parseProfile } from './migrate';
+import { deriveProgress, emptyProfile, profileSchema, recordAttempt, addTugRecord } from './profile';
 import { computeXp, levelForXp } from './xp';
 
 const config = parseProgressionConfig(progressionJson);
+/** A saved record as the game holds it today. */
+const todayOf = (raw: unknown) => {
+  const parsed = parseProfile(raw, config);
+  if (!parsed.ok) throw new Error(parsed.errors.join('; '));
+  return parsed.profile;
+};
 const NOW = new Date('1998-11-01T12:00:00.000Z');
 const fresh = () => emptyProfile('p1', 'Test', '1998-10-01T00:00:00.000Z');
 const result = (chartId: string, accuracy = 1): PieceResult => ({
@@ -16,7 +23,7 @@ const result = (chartId: string, accuracy = 1): PieceResult => ({
   hints: { noteNames: 0, fingers: 0 }, bothHands: { notes: 0, together: 0 },
 });
 
-const battle = (pieceId: string, xp: number) => ({ monsterId: 'wobble', pieceId, won: true, hpTaken: 20, maxHp: 20, potentialXp: xp, rounds: 2, playerHpLeft: 80, playerMaxHp: 100, xp });
+const tug = (pieceId: string, xp: number) => ({ characterId: 'puuvaim', pieceId, won: true, potentialXp: xp, exchanges: 2, xp });
 
 describe('piece XP and piece level (ft_1_13)', () => {
   it('ft_1_13.AC1: a piece earns the ft_0_10 XP of each of its passes, and its level comes from the piece curve', () => {
@@ -34,7 +41,7 @@ describe('piece XP and piece level (ft_1_13)', () => {
   });
 
   it('ft_1_13.AC1: is a pure function of the history: the same attempts give the same piece XP, saved XP or not', () => {
-    const saved = profileSchema.parse(fixture);
+    const saved = todayOf(fixture);
     const once = deriveProgress(saved, config).pieces;
     expect(deriveProgress(structuredClone(saved), config).pieces).toEqual(once);
     for (const record of Object.values(once)) expect(record.xp).toBeGreaterThan(0);
@@ -48,18 +55,18 @@ describe('piece XP and piece level (ft_1_13)', () => {
     expect(out.events[0]).toMatchObject({ piece: { xp: 70, before: { level: 1 }, after: levelForXp(70, config.pieceLevels) } });
   });
 
-  it('ft_1_13.AC2: XP saved before the change is kept, and battles still add player XP', () => {
-    const saved = profileSchema.parse(fixture);
+  it('ft_1_13.AC2: XP saved before the change is kept, and tugs still add player XP', () => {
+    const saved = todayOf(fixture);
     const before = deriveProgress(saved, config).totalXp;
     const played = recordAttempt(saved, result('little-steps'), config, NOW);
     expect(played.after.totalXp).toBe(before);
-    const fought = recordBattle(played.profile, battle('little-steps', 30), config, NOW);
+    const fought = addTugRecord(played.profile, tug('little-steps', 30), config, NOW);
     expect(fought.after.totalXp).toBe(before + 30);
   });
 
   it('ft_1_13.AC3: a level-up announces no unlocked pieces: player levels lock no piece', () => {
-    const out = recordBattle(fresh(), battle('a', 300), config, NOW);
-    expect(out.events.map((e) => e.type)).toEqual(['BattleFinished', 'LevelUp']);
+    const out = addTugRecord(fresh(), tug('a', 300), config, NOW);
+    expect(out.events.map((e) => e.type)).toEqual(['TugFinished', 'LevelUp']);
   });
 
   it('ft_1_13.AC1: piece XP and level never go down, and the player XP never moves, however passes come (property)', () => {

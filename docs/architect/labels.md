@@ -1,6 +1,6 @@
 # Labels and merge rules
 
-Since d153: no dispatch labels, no triage, no release labels. The builder takes the maintainer's issues directly; milestones R1 to R5 and `Later pool` stay as the maintainer sets them ([roadmap.md](roadmap.md)).
+No dispatch labels (d153), no triage, no release labels. The builder takes the maintainer's issues directly; milestones R1 to R5 and `Later pool` stay as the maintainer sets them ([roadmap.md](roadmap.md)).
 
 ## Labels
 

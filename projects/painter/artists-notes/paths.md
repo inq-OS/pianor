@@ -53,7 +53,7 @@ Trails (after mi2-bg-1-051):
 | Picture | Paths |
 |---|---|
 | Crossroads | brought to the two picked looks: the slabs are blotchy in a cool pale run from the stone's greys up to the smoke's pale, with dark seams and grass leaning in over both edges (rules 5 to 8); the trail is sand and earth with rust and ochre patches (rules 9 to 11). Sheet beside the two rooms: `paths-beside-mi2.png`. Seen beside the cottage: our slabs are greyer and carry none of its blue and green flecks, and the trail is narrower and browner than the hut's sand; whether to go further is the maintainer's word on that sheet. Since the lift the scene paints both through the kit and the trail's sand is cream; the crossroads' kit sheets (on the kit's sheet the trail lies wide on a flat field and reads paler and more ragged than the short branch in the scene) |
-| Knoll | no path (removed as invented); trodden earth round the fire with dry blades leaning in |
+| Knoll | no path (none is known); trodden earth round the fire with dry blades leaning in |
 | Docks | the plank walk is wood, not a path: see [not-picked-yet.md](not-picked-yet.md) |
 
 ## Open

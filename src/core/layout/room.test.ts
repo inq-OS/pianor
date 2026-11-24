@@ -38,7 +38,7 @@ describe('the warden\'s room: the plan and its camera (ft_1_18.AC3)', () => {
     expect(strip.h).toBe(0);
   });
 
-  it('ft_1_20.AC14 the things a press reaches are the objects in their order, then the shield (the window is none since d117)', () => {
+  it('ft_1_20.AC14 the things a press reaches are the objects in their order, then the shield (the window is none)', () => {
     expect(ROOM_PRESSABLES).toEqual([...ROOM_OBJECTS, 'shield']);
   });
 

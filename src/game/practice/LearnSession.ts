@@ -2,11 +2,13 @@ import type { Chart } from '../../core/chart';
 import { sliceChart } from '../../core/chart/section';
 import type { JudgeEvent, WrongNoteJudged, WrongReason } from '../../core/judge';
 import { markersByNote, mistakeMarkers } from '../../core/learn/markers';
+import { PRIZE } from '../../core/layout/learnPrizes';
 import { handChart, learnPlan, learnUnits, type LearnStep } from '../../core/learn/plan';
 import {
   afterRun, currentRun, goldenBars, halfLearned, isLearned, isMeasured, learnHandsApart, learnRewards, learnStepBars, measuredOutcome, sitDown, startOver, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
 } from '../../core/learn/progress';
 import { LearnRunJudge, type LearnRunVerdict } from '../../core/learn/run';
+import { prizeFocus, shownWithPiece, type PrizeFocus } from '../../core/learn/view';
 import { baselineBpm, runTempo, TEMPO_RULES, type RunTempo } from '../../core/learn/tempo';
 import type { BarPlay } from '../../core/progression/practiceLog';
 import { t, type StringKey } from '../../core/text/strings';
@@ -79,6 +81,26 @@ export class LearnSession {
   /** The run's bars of the piece, only its hand's notes for a hand step: what the staff shows and the judge waits for. */
   get chart(): Chart {
     return handChart(sliceChart(this.piece, this.run.firstBar, this.run.lastBar), this.run.step.hand);
+  }
+
+  /**
+   * What the staff draws (ft_1_32.AC20): the whole piece, the bars outside the run very faint; the run's notes come first, so
+   * the judge's note indexes are the staff's.
+   */
+  get shown(): { chart: Chart; faint: { from: number; to: number }[] } {
+    return shownWithPiece(this.piece, this.run.step);
+  }
+
+  /** Which prizes the run on the staff is for (ft_1_32.AC19). */
+  prizeFocus(rewards: LearnRewards): PrizeFocus {
+    // the piece just learned: nothing is aimed at, and the last chunk's quarters stay with the clef earned
+    if (this.learned) return { chunk: Math.max(0, rewards.chunks.length - 1), bars: [], chunks: [], clef: false };
+    return prizeFocus(this.run.step, this.plan, rewards);
+  }
+
+  /** The staff spaces the column of the prizes takes at the staff's right (ft_1_32.AC19). */
+  get prizeRoom(): number {
+    return PRIZE.room;
   }
 
   /**

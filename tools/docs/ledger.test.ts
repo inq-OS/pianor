@@ -8,15 +8,15 @@ title: Saves
 
 ## d095
 
-**The piece is the player's.** Features: ft_1_06, core_12. Supersedes d057, d061.
+**The piece is the player's.** Features: ft_1_21, core_12.
 
-A monster sets only the difficulty.
+A character sets only the difficulty.
 
 ## d096
 
-**Retired: the campaign battle in Tempo mode.** Features: none.
+**Tempo mode waits for its feature.** Features: none.
 
-Retired by d129.
+One line.
 
 ## d097
 
@@ -32,17 +32,16 @@ describe('decision ledgers (d152)', () => {
     expect(isLedger('docs/decisions/notes.txt')).toBe(false);
   });
 
-  it('reads one item per entry with its id, title, features and supersedes', () => {
+  it('reads one item per entry with its id, title and features', () => {
     const items = readLedger('docs/decisions/saves.md', LEDGER);
     expect(items.map((i) => i.fileId)).toEqual(['d095', 'd096', 'd097']);
     const [first, second] = items;
     expect(first?.file).toBe('saves.md#d095');
-    expect(first?.meta).toMatchObject({ id: 'd095', title: "The piece is the player's", features: ['ft_1_06', 'core_12'], supersedes: ['d057', 'd061'] });
+    expect(first?.meta).toMatchObject({ id: 'd095', title: "The piece is the player's", features: ['ft_1_21', 'core_12'] });
     expect(first?.body.startsWith('# d095: ')).toBe(true);
-    expect(first?.body).toContain('A monster sets only the difficulty.');
+    expect(first?.body).toContain('A character sets only the difficulty.');
     expect(first?.body).not.toContain('d096');
     expect(second?.meta).toMatchObject({ features: [] });
-    expect(second?.meta?.supersedes).toBeUndefined();
   });
 
   it('reports an entry without its first line instead of dropping it', () => {

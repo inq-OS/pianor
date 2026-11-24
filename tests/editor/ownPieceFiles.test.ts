@@ -47,6 +47,16 @@ describe('own pieces moved between devices as files', () => {
     expect(own.exportFile('own-nothing')).toBeNull();
   });
 
+  it('ft_1_02a.AC15 an imported piece whose title is taken, by an own piece or a piece of the game, in any case, gets a free one', async () => {
+    const own = await OwnPieces.load(new MemoryStore(), NOW);
+    await own.save(song(), { author: 'Mia' });
+    const file = own.exportFile('own-little-climb')!;
+    expect(await own.importFile(file.text)).toMatchObject({ ok: true, title: 'Little Climb 2' });
+    expect(own.get('own-little-climb-2')?.piece.title).toBe('Little Climb 2');
+    const other = await OwnPieces.load(new MemoryStore(), NOW);
+    expect(await other.importFile(file.text, { takenTitles: ['LITTLE CLIMB'] })).toMatchObject({ ok: true, title: 'Little Climb 2' });
+  });
+
   it('ft_1_02b.AC2 refuses a bad file with a message and changes nothing; a bundled id cannot be claimed', async () => {
     const store = new MemoryStore();
     const own = await OwnPieces.load(store, NOW);

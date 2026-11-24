@@ -310,6 +310,9 @@ export type ChunkNote = 'quarter' | 'half' | 'dotted-half' | 'whole';
 
 const NOTE_OF_UNITS: Record<number, ChunkNote> = { 1: 'quarter', 2: 'half', 3: 'dotted-half', 4: 'whole' };
 
+/** The note a chunk of `units` units merges into: four bars a whole note, three a dotted half, two a half, one a quarter. */
+export const chunkNoteOf = (units: number): ChunkNote => NOTE_OF_UNITS[Math.max(1, Math.min(4, units))]!;
+
 export interface ChunkReward {
   /** The medal of each secured unit (its quarter note), in order; the rest are not secured yet. */
   quarters: Medal[];

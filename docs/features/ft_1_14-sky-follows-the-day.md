@@ -5,7 +5,7 @@ scope: "The painted room, the map of Keri and its scenes show dawn, day, dusk or
 effort: "medium"
 status: "in progress: MVP slice built (sun, phase, look, palettes, room window); polish slice (R3) open"
 completeness: 80
-depends_on: ["ft_1_06"]
+depends_on: []
 ---
 # ft_1_14: The sky follows the real day
 
@@ -35,6 +35,7 @@ The painted room, the map of Keri and its scenes show the real time of day on Ke
 - **ft_1_14.AC5** In every phase the stars keep the contrast the art tests ask of them against the phase's sky.
 - **ft_1_14.AC6** `?sky=` and `?now=` set the phase and the instant; nothing is saved.
 - **ft_1_14.AC8** The room's window shows a sea view (sky, sun or moon, sea, far shore) in the same phase as the map of Keri and its scenes, and the same `?sky=` switch sets it.
+- **ft_1_14.AC9** AX-3 provisional: one wind for the whole scenery (weather effects must be consistent over all scenery details). `sceneLook` carries a `wind` from 0 (calm) to 3 (storm), and everything that moves in a picture of Keri reads that one number (in the knoll: the grass, the sea and the smoke; ft_1_19.AC5). Until the real weather sets it ([ft_Y_14](ft_Y_14-seasonal-and-holiday-looks.md)), each day has its own wind from the day's number; the dev switch `?wind=0..3` (or `calm`, `waves`, `restless`, `stormy`) shows any strength. Decoration only, nothing saved (`src/core/sky/wind.ts`).
 - **ft_1_14.AC7** The four phases look calm and right on the target laptop, in the room, on the map and in the scenes. [human]
 
 ## Phase colours (mock values, dark to light)

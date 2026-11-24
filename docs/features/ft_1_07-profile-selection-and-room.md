@@ -5,7 +5,7 @@ scope: "Open the game on a profile chosen from a list (a new install makes no pl
 effort: "medium"
 status: "slices 1 to 4 and the admin page built; bare piano (AC11) not built"
 completeness: 80
-depends_on: ["ft_0_10", "ft_1_06", "ft_0_18"]
+depends_on: ["ft_0_10", "ft_0_18"]
 ---
 # ft_1_07: Profile selection and player room
 

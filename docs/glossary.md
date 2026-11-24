@@ -13,7 +13,7 @@ exception is code that reads an old save to migrate it.
 | exchange | one phrase answered in a tug, won or lost |
 | standing | where the tug stands, three steps each way; the student wins at +3 |
 | learn, practise, show | the three steps of a character's piece, the student's route with that character; the show is the tug (d135) |
-| practice gate | the practice evidence that opens the show (ft_1_06.AC15) |
+| practice gate | the practice evidence that opens the show (ft_1_21.AC19) |
 | tug record | one finished tug as the save keeps it: character, piece, won or lost, XP |
 | prize, prize ladder | the item a won tug gives, by level (ft_1_21.AC18) |
 | item, backpack | what the student carries, shown in the backpack (d282) |
@@ -22,10 +22,6 @@ exception is code that reads an old save to migrate it.
 | level | the student's level from total XP, and a tug's level 1 to 3 |
 | hearts | a trainer's lives (note, shape and chord trainers) |
 
-## Banned words
+## Old words
 
-monster, beings, enemy, battle, fight, HP, health bar, damage, loot, campaign, arena, overworld, find the key, find the
-door, spellbook, spell, RPG, equipment, special ability, power attack, counterattack, boss fight, confuser.
-
-TODO(architect, R2): a CI check that fails on a banned word in code, content, tests or docs, with an allow-list for the
-migration that reads an old save (d290).
+The words of the game's old vision are listed in `tools/docs/oldWords.ts`, with the few files that may still hold one (a frozen migration step and the old saves it reads, d064). `npm run docs:check` fails on any of them anywhere else (d290).

@@ -1,6 +1,6 @@
 /**
  * Which notes of one staff are beamed together, and how (core_09.AC40, d155). Pure: the staff layout turns the plan into
- * glyphs. The rules follow common engraving (VexFlow's beam rules were the reference, d155, no code taken):
+ * glyphs. The rules follow common engraving (d155):
  *
  * - Eighths, dotted eighths and sixteenths (single notes or chords) are beamed in runs inside one beat of the meter's
  *   beat unit (a quarter in 2/4, 3/4 and 4/4), with no rest or longer note between them; a run of one keeps its flags.

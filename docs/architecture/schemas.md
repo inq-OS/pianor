@@ -18,7 +18,6 @@ A new format gets a row in `PERSISTED_FORMATS` in `tools/docs/schemaVersions.ts`
 | Progression | `content/curriculum/progression.json` | 1 | `progressionConfigSchema` in `src/core/progression/config.ts` | none yet | none yet |
 | Level modifiers | `content/curriculum/modifiers.json` | 1 | `modifierTableSchema` in `src/core/progression/modifiers.ts` | none yet | none yet |
 | XP bank | `content/curriculum/xpBank.json` | 1 | `xpBankConfigSchema` in `src/core/scoring/xpBankContent.ts` | none yet | none yet |
-| Campaign ladder | `content/campaign/ladder.json` | 1 | `ladderSchema` in `src/core/campaign/content.ts` | none yet | none yet |
 | Trainer steps | `content/trainer/steps.json` | 1 | `trainerStepsSchema` in `src/core/trainer/steps.ts` | none yet | none yet |
 | Ear levels | `content/trainer/ear-levels.json` | 1 | `earLevelsSchema` in `src/core/trainer/earLevels.ts` | none yet | none yet |
 | Piece styles | `content/pieces/styles.json` | 1 | `styleListSchema` in `src/core/properties/styles.ts` | none yet | none yet |

@@ -1,7 +1,7 @@
 // Covers ft_1_02c.AC3.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PIECES_SETTINGS, canTurnOff, isPieceOn, piecesSettingsSchema, setPieceOn, type PiecesSettings } from './pieceSwitch';
+import { DEFAULT_PIECES_SETTINGS, canTurnOff, isPieceOn, piecesSettingsSchema, pressHide, HIDE_SECOND_PRESS_MS, setPieceOn, type PiecesSettings } from './pieceSwitch';
 
 const hiding = (hidden: string[]): PiecesSettings => ({ hidden });
 const OFFERED = ['a', 'b', 'c'];
@@ -85,5 +85,21 @@ describe('turning a piece off and on', () => {
         }
       }),
     );
+  });
+});
+
+describe('hiding a piece from the book', () => {
+  it('ft_1_02c.AC8 the first press on a piece arms its hide, only a second press on the same piece hides it', () => {
+    const first = pressHide(null, 'a', 1000);
+    expect(first).toEqual({ armed: { piece: 'a', at: 1000 }, hide: null });
+    expect(pressHide(first.armed, 'a', 2000)).toEqual({ armed: null, hide: 'a' });
+    // a press on another piece's hide arms that one instead, and hides nothing
+    expect(pressHide(first.armed, 'b', 2000)).toEqual({ armed: { piece: 'b', at: 2000 }, hide: null });
+  });
+
+  it('ft_1_02c.AC8 a double click hides nothing: a second press too soon after arming leaves it armed', () => {
+    const first = pressHide(null, 'a', 1000);
+    expect(pressHide(first.armed, 'a', 1000 + HIDE_SECOND_PRESS_MS - 1)).toEqual({ armed: first.armed, hide: null });
+    expect(pressHide(first.armed, 'a', 1000 + HIDE_SECOND_PRESS_MS)).toEqual({ armed: null, hide: 'a' });
   });
 });

@@ -6,12 +6,18 @@ import v1 from '../fixtures/saves/profile.v1.json';
 import v6 from '../fixtures/saves/profile.v6.json';
 import v17 from '../fixtures/saves/profile.v17.json';
 import {
-  PROFILE_SCHEMA_VERSION, ProfileRepository, TEST_PLAYER_NAMES, deriveProgress, parseProgressionConfig, profileSchema, recordAttempt, type KeyValueStore,
+  PROFILE_SCHEMA_VERSION, ProfileRepository, TEST_PLAYER_NAMES, deriveProgress, parseProfile, parseProgressionConfig, recordAttempt, type KeyValueStore,
 } from '../../src/core/progression';
 import type { PieceResult } from '../../src/core/judge';
 import { MemoryStore } from '../../src/io/storage/MemoryStore';
 
 const config = parseProgressionConfig(progressionJson);
+/** A saved record as the game holds it today. */
+const parseOk = (raw: unknown) => {
+  const parsed = parseProfile(raw, config);
+  if (!parsed.ok) throw new Error(parsed.errors.join('; '));
+  return parsed.profile;
+};
 
 /** A repository whose clock ticks one minute per call and whose ids are predictable. */
 function setup(store: KeyValueStore = new MemoryStore()) {
@@ -33,7 +39,7 @@ describe('profiles', () => {
   it('creates, saves and loads a profile with its name and an empty log', async () => {
     const { repository } = setup();
     const created = await repository.createProfile('  Mia  ');
-    expect(created).toMatchObject({ id: 'id-1', name: 'Mia', attempts: [], battles: [], schemaVersion: PROFILE_SCHEMA_VERSION, settings: { staff: { lines: 2, barsPerLine: 'auto' } } });
+    expect(created).toMatchObject({ id: 'id-1', name: 'Mia', attempts: [], tugs: [], schemaVersion: PROFILE_SCHEMA_VERSION, settings: { staff: { lines: 2, barsPerLine: 'auto' } } });
     const loaded = await repository.load('id-1');
     expect(loaded).toEqual({ ok: true, profile: created });
   });
@@ -194,11 +200,11 @@ describe('damaged saves', () => {
     expect(await store.get('pianor/v1/profile/bad')).toBe('garbage');
   });
 
-  it('a save from before the health bar is loaded with its battles kept', async () => {
+  it('a version-6 save is loaded with its old records kept as tug records', async () => {
     const { store, repository } = setup();
     await store.set('pianor/v1/profile/p-fixture-6', JSON.stringify(v6));
     const loaded = await repository.load('p-fixture-6');
-    expect(loaded.ok && loaded.profile.battles.map((b) => [b.won, b.playerHpLeft, b.playerMaxHp])).toEqual([[true, 80, 100], [false, 0, 100]]);
+    expect(loaded.ok && loaded.profile.tugs.map((b) => [b.won, b.xp])).toEqual([[true, 30], [false, 4]]);
   });
 
   it('migrates an old save when it is loaded', async () => {
@@ -215,14 +221,14 @@ describe('export and import', () => {
     const { store, repository } = setup();
     await store.set('pianor/v1/profile/p-fixture-14', JSON.stringify(v17));
     const text = await repository.exportProfile('p-fixture-14');
-    expect(JSON.parse(text)).toMatchObject({ format: 'pianor-profile', exportVersion: 2, documents: { profile: { schemaVersion: 1, id: 'p-fixture-14', settings: { staff: { lines: 2, barsPerLine: 4 }, battle: { fights: 'many' } }, battles: [{ won: true }, { won: false }, { won: true }, { won: true }, { won: false }] } } });
+    expect(JSON.parse(text)).toMatchObject({ format: 'pianor-profile', exportVersion: 2, documents: { profile: { schemaVersion: 2, id: 'p-fixture-14', settings: { staff: { lines: 2, barsPerLine: 4 } }, tugs: [{ won: true }, { won: false }, { won: true }, { won: true }, { won: false }] } } });
 
     const other = setup().repository; // a different device
     const imported = await other.importProfile(text, 'replace');
     expect(imported.ok).toBe(true);
     const loaded = await other.load('p-fixture-14');
-    expect(loaded.ok && loaded.profile).toEqual(profileSchema.parse(v17));
-    expect(loaded.ok && deriveProgress(loaded.profile, config)).toEqual(deriveProgress(profileSchema.parse(v17), config));
+    expect(loaded.ok && loaded.profile).toEqual(parseOk(v17));
+    expect(loaded.ok && deriveProgress(loaded.profile, config)).toEqual(deriveProgress(parseOk(v17), config));
   });
 
   it('importing as new keeps the old profile and adds a copy under a new id', async () => {

@@ -43,7 +43,7 @@ import { StaffView } from '../ui/staff/StaffView';
 import { layoutForSettings } from '../../core/layout/staffSettings';
 import { staffSpaceLimits } from '../../core/layout/canvasSize';
 import type { Outcome } from '../../core/dialogue/talk';
-import { tugAfter, tugBattle } from '../../core/exchange/tugPlay';
+import { tugAfter, tugRecord } from '../../core/exchange/tugPlay';
 import { characterTug, characterTugGate } from './characterTug';
 import type { Chart } from '../../core/chart';
 import type { TugState } from '../../core/exchange/tug';
@@ -780,7 +780,7 @@ export class AdventureScene extends PixelScene {
   /**
    * The conversation's `tug` outcome starts the tug over the scene (ft_1_21.AC2, AC16) on the character's phrase of that
    * level (its `phrases`, d135: the piece it taught); false when that piece is not in the game (a draft in a build). Only
-   * once the piece was practised for it (ft_1_06.AC15) and, after a lost tug, played clean again (ft_1_21.AC13): until
+   * once the piece was practised for it (ft_1_21.AC19) and, after a lost tug, played clean again (ft_1_21.AC13): until
    * then the character says what practice it waits for.
    */
   private openTug(def: CharacterDef, head: { x: number; y: number }, outcome: Extract<Outcome, { tug: 1 | 2 | 3 }>): boolean {
@@ -879,8 +879,8 @@ export class AdventureScene extends PixelScene {
     const { profiles } = contextOf(this);
     if (profiles.profile.id !== player) return;
     const at = new Date().toISOString();
-    // the battle record first: it is the active player's, and the world is saved by id after it
-    await profiles.completeBattle(tugBattle(state, def.id, TUG_RULES));
+    // the tug record first: it is the active player's, and the world is saved by id after it
+    await profiles.completeTug(tugRecord(state, def.id, TUG_RULES));
     if (this.world && this.worldSaves) {
       const before = this.world.items.length;
       this.world = tugAfter(this.world, def.id, state, prizeFor(def, state.setup.level), at);

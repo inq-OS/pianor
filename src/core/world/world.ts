@@ -42,7 +42,7 @@ const pathSchema = z.object({
 });
 
 /**
- * A scene (ft_1_19, d112): a place on the island where beings to be tamed are found, opened from the map once the student
+ * A scene (ft_1_19, d112): a place on the island where characters are met, opened from the map once the student
  * has reached `level`. Its id names its picture and its texts.
  */
 const sceneSchema = z.object({ id: z.string().min(1), x: z.number(), y: z.number(), level: z.number().int().min(1), note: z.string().optional() });

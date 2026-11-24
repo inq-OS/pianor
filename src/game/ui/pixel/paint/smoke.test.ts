@@ -27,7 +27,7 @@ describe('smoke as one thin thread, here over the knoll\'s embers (ft_1_19.AC9)'
     }
   });
 
-  it('ft_1_19.AC9 ft_1_06.AC12 the wind bends its top east (to the viewer\'s left): more in more wind, and in a calm it rises over the embers', () => {
+  it('ft_1_19.AC9 ft_1_14.AC9 the wind bends its top east (to the viewer\'s left): more in more wind, and in a calm it rises over the embers', () => {
     const top = (wind: number): number => {
       let sum = 0, n = 0;
       for (const time of [0, 1000, 2000, 3000]) for (const [y, xs] of rows(time, wind)) if (FOOT.y - y > THREAD.rise * 0.5) { sum += xs[0]!; n++; }
@@ -44,7 +44,7 @@ describe('smoke as one thin thread, here over the knoll\'s embers (ft_1_19.AC9)'
     expect(at(SMOKE_FRAME_MS)).not.toEqual(at(0));
   });
 
-  it('ft_1_06.AC12 where the wind blows to the right in a view, the thread bends right', () => {
+  it('ft_1_14.AC9 where the wind blows to the right in a view, the thread bends right', () => {
     const o = smokeFrames(2, 1, FOOT, TONES);
     expect(o.x).toBeGreaterThan(FOOT.x - 24);
     expect(o.x + o.frames[0]!.width).toBeGreaterThan(FOOT.x + 1.5 * THREAD.drift);
