@@ -46,7 +46,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   // The run log (tools/e2e/runLogReporter.ts) writes test-logs/runs/<start>_<areas>/ and test-logs/history.jsonl.
-  reporter: [['list'], ...(process.env.CI ? [['html', { open: 'never' }] as const] : []), ['./tools/e2e/runLogReporter.ts']],
+  // PW_SHARDED: a CI shard (browser-tests.yml) writes a blob report, which the `e2e report` job joins into one HTML report.
+  reporter: [['list'], ...(process.env.CI ? [process.env.PW_SHARDED === '1' ? ['blob'] as const : ['html', { open: 'never' }] as const] : []), ['./tools/e2e/runLogReporter.ts']],
   use: {
     baseURL: `http://localhost:${PORT}`,
     // The one size (d105): the 1920x1080 full screen at Windows 125% scaling, as Chrome sees it.

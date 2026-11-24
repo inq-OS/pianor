@@ -22,11 +22,19 @@ jobs:
   # The browser tests (Playwright, Chromium), screenshot tests included: every run compares the one baseline per screen (d289).
   # A pull request with the `ci:e2e` label runs the areas its changes touch plus the smoke tests (on adding the label and
   # on each later push); the weekly and manual runs run every area (docs/testing.md section 10).
+  # Split in four shards on four runners (Playwright `--shard`), each with three browsers: a full run took about 21 minutes
+  # on one runner. The repository is public, so the minutes cost nothing. `e2e-report` joins the shards' reports into one.
   e2e:
-    name: e2e
+    name: e2e (${{ matrix.shard }}/4)
     if: inputs.e2e
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    strategy:
+      fail-fast: false # a failure in one shard still lets the others finish, so the report lists every failure
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      PW_SHARDED: '1' # playwright.config.ts: a blob report per shard, joined by e2e-report
     steps:
       - uses: actions/checkout@v7
         with:
@@ -46,26 +54,61 @@ jobs:
         if: ${{ !inputs.full }}
         env:
           BASE: origin/${{ github.base_ref }}
-        run: npm run test:e2e:affected -- "$BASE"
+        run: npm run test:e2e:affected -- "$BASE" --shard=${{ matrix.shard }}/4 --pass-with-no-tests
       - name: End-to-end tests, every area
         if: inputs.full
-        run: npm run test:e2e
+        run: npm run test:e2e -- --shard=${{ matrix.shard }}/4
       - name: Keep the run log (summary per area, failures with the browser console, history line)
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: e2e-run-log
+          name: e2e-run-log-${{ matrix.shard }}
           path: test-logs/
           if-no-files-found: ignore
           retention-days: 14
-      - name: Keep the report and traces of a failed run
+      - name: Keep this shard's report (joined by e2e-report)
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: blob-report/
+          if-no-files-found: ignore
+          retention-days: 1
+      - name: Keep the traces of a failed run
         if: failure()
         uses: actions/upload-artifact@v7
         with:
+          name: test-results-${{ matrix.shard }}
+          path: test-results/
+          retention-days: 7
+
+  # One HTML report of the four shards (playwright merge-reports), with the traces of failed tests.
+  e2e-report:
+    name: e2e report
+    if: ${{ always() && inputs.e2e }}
+    needs: e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v7
+        with:
+          path: all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+      - name: Join the shards' reports
+        run: |
+          if [ -d all-blob-reports ] && [ -n "$(ls -A all-blob-reports)" ]; then npx playwright merge-reports --reporter html ./all-blob-reports; else echo "no shard ran a test"; fi
+      - uses: actions/upload-artifact@v7
+        with:
           name: playwright-report
-          path: |
-            playwright-report/
-            test-results/
+          path: playwright-report/
+          if-no-files-found: ignore
           retention-days: 7
 
   # The screenshot tests alone (the visual area), with the `ci:visual` label, in the weekly run and by hand, on the same
