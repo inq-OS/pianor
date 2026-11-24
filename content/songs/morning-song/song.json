@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "morning-song",
+  "title": "Morning Song",
+  "status": "draft",
+  "source": "composed by an AI agent (Claude) for Pianor; original",
+  "license": "CC0-1.0",
+  "bpm": 80,
+  "key": { "fifths": 0, "mode": "major" },
+  "meter": { "num": 4, "den": 4 },
+  "nodes": [
+    { "kind": "piece", "id": "intro", "piece": "morning-song-intro", "name": "Intro", "labels": ["intro"] },
+    {
+      "kind": "group",
+      "id": "middle",
+      "name": "Verses and chorus",
+      "nodes": [
+        { "kind": "blank", "id": "verse-1", "name": "Verse 1", "bars": 24, "labels": ["verse"] },
+        { "kind": "blank", "id": "chorus", "name": "Chorus", "bars": 10, "labels": ["chorus"] },
+        { "kind": "blank", "id": "verse-2", "name": "Verse 2", "bars": 24, "labels": ["verse"] }
+      ]
+    },
+    { "kind": "piece", "id": "outro", "piece": "morning-song-outro", "name": "Outro", "labels": ["outro"] }
+  ]
+}
