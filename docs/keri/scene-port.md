@@ -67,6 +67,7 @@ The landing:
 ## Open
 
 - TODO(builder, R3): moor the boat of each visitor who is here today (the teacher's galleon, the fisherman's rowing boat, the border guard's patrol boat), from presence (ft_1_25), and nothing at a berth nobody came to (`PORT_MOORED` in `port.ts`).
+- NEEDS-HUMAN: the port's view may be moved to another place on the quay; its picture is not refined further until the maintainer decides where it looks from.
 - TODO(painter, R3): a berth at the low landing for the small boats (the rowing boat, the motorboat), lying in the near water before the quay; the boats' pictures are made to lie behind it today, their waterlines hidden.
 - TODO(painter, R2): the smooth sky and the grain kept to the things in the other outdoor scenes (the docks' sky is grained in strokes today), once the maintainer has seen it here.
 - IDEA: underwater characters on the bed's two open patches (future underwater characters).
