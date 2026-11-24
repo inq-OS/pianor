@@ -492,7 +492,7 @@ describe('linting folders of pieces', () => {
   });
 
   it('does nothing for a missing folder', () => {
-    expect(lintPieces(join(temp(), 'nope'), levels)).toEqual({ pieces: 0, linted: [], diagnostics: [] });
+    expect(lintPieces(join(temp(), 'nope'), levels)).toEqual({ pieces: 0, linted: [], songs: 0, diagnostics: [] });
   });
 });
 
