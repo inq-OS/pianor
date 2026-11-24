@@ -37,3 +37,11 @@ export function setPieceOn(settings: PiecesSettings, pieceId: string, on: boolea
   if (!canTurnOff(settings, pieceId, offered)) return settings;
   return isPieceOn(settings, pieceId) ? { hidden: [...settings.hidden, pieceId] } : settings;
 }
+
+/**
+ * A press on a piece's hide button in the book (ft_1_02c.AC8): the first press arms it (the book shows what will happen),
+ * a second press on the same piece hides it. `armed` is the piece armed before the press; a press on another piece arms that one.
+ */
+export function pressHide(armed: string | null, pieceId: string): { armed: string | null; hide: string | null } {
+  return armed === pieceId ? { armed: null, hide: pieceId } : { armed: pieceId, hide: null };
+}

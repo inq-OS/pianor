@@ -14,6 +14,7 @@ import { PixelScene } from './ui/pixel/PixelScene';
 import { CABINET_PALETTE, drawerLabelBox, paintCabinet, paintDrawerFront, paintDrawerInside, paintIndexCard } from './ui/pixel/paint/cabinet';
 import { paintedOnce } from './ui/pixel/paintedOnce';
 import { startScene } from './scenes';
+import type { MenuData } from './MenuScene';
 
 const MARGIN = 12;
 /** The list starts this far down, or lower when a notice takes more than one line; it keeps this much room under the notice. */
@@ -24,6 +25,11 @@ const TITLE_Y = 8;
 const NOTICE_Y = 26;
 /** The on/off word at a card's right end: this far in from the edge, in cells. */
 const STATE_INSET = 6;
+
+/** `back`: the catalogue was opened from the book (ft_1_02c.AC9), and Back goes to that book again, not to Settings. */
+export interface PiecesData {
+  back?: MenuData;
+}
 
 /** A piece in the catalogue: its title as the menu shows it. */
 interface Filed { id: string; title: string; piece: Piece }
@@ -49,20 +55,25 @@ export class PiecesScene extends PixelScene {
     super('pieces');
   }
 
-  init(): void {
+  /** The book the catalogue was opened from, if any (ft_1_02c.AC9). */
+  private fromBook: MenuData | null = null;
+
+  init(data?: PiecesData): void {
+    this.fromBook = data?.back ?? null;
     this.page = 0;
     this.open = null;
     this.notice = 'hint';
   }
 
-  /** Back closes an open drawer first, then goes to Settings. */
+  /** Back closes an open drawer first, then goes to Settings, or to the book it was opened from. */
   protected override back(): void {
     if (this.open !== null) {
       this.open = null;
       this.redraw();
       return;
     }
-    startScene(this, 'settings');
+    if (this.fromBook) startScene(this, 'menu', this.fromBook);
+    else startScene(this, 'settings');
   }
 
   /** The drawer that holds the piece with this title, its label and its place in the cabinet (for the end-to-end tests), or null. */

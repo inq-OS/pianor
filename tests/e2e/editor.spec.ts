@@ -1839,6 +1839,32 @@ test.describe('the next length and the A time', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_1_02a.AC15 a piece is never saved under a blank name or one another piece has, in any case: the field turns red until the name is new', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'C');
+    // spaces are no name
+    await page.fill('#editor-title', '   ');
+    await clickButton(page, 'editor', await editorButton(page, 'Save'));
+    expect(await status(page)).toContain('Give the piece a name, then press Enter.');
+    // a piece of the game has this name, in other letters
+    await page.fill('#editor-title', 'twinkle TWINKLE little star');
+    await page.press('#editor-title', 'Enter');
+    await clickButton(page, 'editor', await editorButton(page, 'Save'));
+    await expect.poll(() => status(page)).toContain('Another piece has this name.');
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('editor-title');
+    const ring = () => page.evaluate(() => getComputedStyle(document.querySelector('#editor-title')!).borderTopColor);
+    const red = await ring();
+    expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().length)).toBe(0);
+    // a new name: the ring goes back, and Enter saves
+    await page.fill('#editor-title', 'Twinkle for Me');
+    expect(await ring()).not.toBe(red);
+    await page.press('#editor-title', 'Enter');
+    await expect.poll(() => status(page)).toContain('Saved. It is in the menu now.');
+    expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().map((r: { piece: { title: string } }) => r.piece.title))).toEqual(['Twinkle for Me']);
+    expectNoErrors(errors);
+  });
+
   test('ft_1_02d.AC21 with A the first bar sets the time: three quarters, a click in the next bar, and the piece maker asks for 3/4', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await expect.poll(() => menuButton(page, '+ New piece')).toBeGreaterThanOrEqual(0);

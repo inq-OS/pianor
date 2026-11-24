@@ -6,6 +6,7 @@ import type { PracticeData } from './PracticeScene';
 import type { PreviewData } from './PreviewScene';
 import type { ResultsData } from './ResultsScene';
 import type { SettingsData } from './SettingsScene';
+import type { PiecesData } from './PiecesScene';
 import type { AnalyzeData } from './AnalyzeScene';
 import type { LearnStatsData } from './LearnStatsScene';
 import type { AdminData } from './AdminScene';
@@ -46,7 +47,7 @@ export interface SceneData {
   'parts': PartsData;
   'credits': undefined;
   'settings': SettingsData | undefined;
-  'pieces': undefined;
+  'pieces': PiecesData | undefined;
   'menu': MenuData | undefined;
   'practice': PracticeData;
   'results': ResultsData;

@@ -1,7 +1,7 @@
 // Covers ft_1_02c.AC3.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PIECES_SETTINGS, canTurnOff, isPieceOn, piecesSettingsSchema, setPieceOn, type PiecesSettings } from './pieceSwitch';
+import { DEFAULT_PIECES_SETTINGS, canTurnOff, isPieceOn, piecesSettingsSchema, pressHide, setPieceOn, type PiecesSettings } from './pieceSwitch';
 
 const hiding = (hidden: string[]): PiecesSettings => ({ hidden });
 const OFFERED = ['a', 'b', 'c'];
@@ -85,5 +85,15 @@ describe('turning a piece off and on', () => {
         }
       }),
     );
+  });
+});
+
+describe('hiding a piece from the book', () => {
+  it('ft_1_02c.AC8 the first press on a piece arms its hide, only a second press on the same piece hides it', () => {
+    const first = pressHide(null, 'a');
+    expect(first).toEqual({ armed: 'a', hide: null });
+    expect(pressHide(first.armed, 'a')).toEqual({ armed: null, hide: 'a' });
+    // a press on another piece's hide arms that one instead, and hides nothing
+    expect(pressHide(first.armed, 'b')).toEqual({ armed: 'b', hide: null });
   });
 });
