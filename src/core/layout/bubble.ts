@@ -141,3 +141,29 @@ export function wheelChoice(choices: readonly ({ active?: boolean; disabled?: bo
   for (let i = at + step; i >= 0 && i < choices.length; i += step) if (pickable(i)) return i;
   return null;
 }
+
+/**
+ * A two-finger tap opens the bubble on a touch screen (ft_1_20.AC25), as on a touchpad: at once, with no wait. AX-3
+ * provisional: the second finger lands within `TWO_FINGER_TOGETHER_MS` of the first, and neither slides farther than
+ * `TAP_SLIP` pixels; farther than `PINCH_SLIDE` afterwards it is a pinch. CSS pixels of the page (so the same distance under the
+ * finger on any screen) and milliseconds; generous, since a child's fingers land one after the other and roll.
+ */
+export const TWO_FINGER_TOGETHER_MS = 200;
+export const TAP_SLIP = 16;
+/** How far either finger slides, after a two-finger tap opened the bubble, before it is a pinch that closes it. */
+export const PINCH_SLIDE = 24;
+
+/** The point midway between two fingers that make a two-finger tap, or null: the second came late or the first slid (`now`). */
+export function twoFingerTap(first: { x: number; y: number; t: number; now: { x: number; y: number } }, second: { x: number; y: number; t: number }): { x: number; y: number } | null {
+  if (second.t - first.t > TWO_FINGER_TOGETHER_MS) return null;
+  if (Math.hypot(first.now.x - first.x, first.now.y - first.y) > TAP_SLIP) return null;
+  return { x: Math.round((first.x + second.x) / 2), y: Math.round((first.y + second.y) / 2) };
+}
+
+/** Whether either of two fingers slid farther than `PINCH_SLIDE` from where it landed (`start` and `now` in the same order). */
+export function twoFingersSlid(start: readonly { x: number; y: number }[], now: readonly { x: number; y: number }[]): boolean {
+  return start.some((s, i) => {
+    const n = now[i];
+    return n !== undefined && Math.hypot(n.x - s.x, n.y - s.y) > PINCH_SLIDE;
+  });
+}

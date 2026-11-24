@@ -8,19 +8,20 @@ import { moveBar, moveInTime, movePitch, otherStaff, startKeyCursor, withPitch, 
 import { nextLength } from '../core/editor/nextLength';
 import { beatsFit, confirmBeats, firstBarFull, guessBeats, type Beats } from '../core/editor/meterGuess';
 import { chordKeyPress, moveNoteKeepingLegato, repeatTied } from '../core/editor/keyEdits';
-import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, moveBars, pasteAt, type BarRange, type Clip } from '../core/editor/bars';
+import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, moveBars, pasteAt, pasteSpan, type BarRange, type Clip } from '../core/editor/bars';
 import { samePitchNotAdjacent, tieAll } from '../core/editor/ties';
 import { arcInto, toggleArc } from '../core/editor/arcs';
 import { graceFromKey, graceFromPlace, graceItem } from '../core/editor/graces';
 import { barNumbersToShow } from '../core/layout/barNumbers';
-import { addedMarks, pendingArc, slurPoints, tiePoints, type AddedMarks } from '../core/layout/preview';
+import { addedMarks, NO_MARKS, pendingArc, slurPoints, tiePoints, type AddedMarks } from '../core/layout/preview';
 import Phaser from 'phaser';
 import { strokePolyline } from './ui/staff/polyline';
+import { DIGITS } from './ui/staff/glyphs';
 import { firstPrintedBar, levelsFileSchema, playbackLengthMs, playbackNotes, staffPosition, type Chart, type LevelDefinition, type Step } from '../core/chart';
 import { toChart } from '../core/editor/chart';
 import { autoFingers } from '../core/editor/fingers';
 import levelsJson from '../../content/curriculum/levels.json';
-import type { KeyMode } from '../core/editor/key';
+import { keyLabel, type KeyMode } from '../core/editor/key';
 import { canRedo, canUndo, push, redo, startHistory, undo, type History } from '../core/editor/history';
 import { debugLog } from '../core/debug/debugLog';
 import { entryBackspace, entryDown, entryTick, entryUp, moveCursor, startEntry, type EntryKey, type EntryOptions, type EntryState } from '../core/editor/entryMachine';
@@ -28,7 +29,7 @@ import { DEFAULT_ENTRY_PREFS, ENTRY_PREFS_KEY, parseEntryPrefs, serializeEntryPr
 import { cursorAfter, cursorOf, type StaffMode } from '../core/editor/playEntry';
 import type { NoteEvent } from '../core/judge/types';
 import { hitTest, placeClick, pointOf, targetOf, type ActionTarget, type EntryMode, type Hit } from '../core/editor/hitTest';
-import { barBoxes, barsInRect, drawnWhileWriting, editorStaff, pageOfBar, repeatPreview, shadowsFor, targetBox } from '../core/editor/staff';
+import { barBoxes, barsInRect, drawnWhileWriting, editorStaff, keyNameSpot, pageOfBar, repeatPreview, shadowsFor, snapBar, targetBox } from '../core/editor/staff';
 import { onRepeatHandle, repeatCopies, repeatHandleBox } from '../core/editor/repeatHandle';
 import chordsJson from '../../content/trainer/chords.json';
 import { nameChord } from '../core/trainer/chordNamer';
@@ -198,6 +199,8 @@ export class EditorScene extends PixelScene {
   private arcFrom: NoteRef | null = null;
   /** The last pick preview laid out (d286): the piece it was made on, its target and the marks the click would add. */
   private previewCache: { piece: EditorPiece; key: string; marks: AddedMarks } | null = null;
+  /** Where a menu item's preview is drawn while the pointer rests on it (d286). */
+  private itemGhost: Phaser.GameObjects.Graphics | null = null;
   /** The repeat item's pick: waiting for the bar the repeat starts on, then for the bar it ends on. */
   private repeatPick: { startBar: number | null } | null = null;
   /** The accidental item (with the band): it shows the selected note's sharp, flat or natural. */
@@ -503,6 +506,8 @@ export class EditorScene extends PixelScene {
     this.ghost = null;
     this.ghostLabel?.destroy();
     this.ghostLabel = null;
+    this.itemGhost?.destroy();
+    this.itemGhost = null;
     this.shadows?.destroy();
     this.shadows = null;
     this.target?.destroy();
@@ -547,6 +552,7 @@ export class EditorScene extends PixelScene {
     const picking = this.arcFrom !== null || this.graceFor !== null || this.repeatPick !== null;
     this.drawTarget(picking ? null : this.targetAt(hit));
     if (picking) return this.previewPick(p, hit);
+    if (hit?.kind === 'key') return this.showKeyName(hit.system);
     if (!hit || hit.kind !== 'place' || !this.layout || !this.chart || !this.ghost || !this.ghostLabel) return;
     const at = pointOf(this.layout, this.chart, hit)!;
     const S = this.layout.staffSpace;
@@ -563,7 +569,7 @@ export class EditorScene extends PixelScene {
     if (!this.ghost || !this.layout || this.menuOpen) return;
     if (this.arcFrom) this.previewArc(this.ghost, this.layout, this.arcFrom, p, hit);
     else if (this.graceFor) this.previewGrace(this.ghost, this.layout, this.graceFor, hit);
-    else if (this.repeatPick) this.previewRepeat(this.ghost, this.layout, this.repeatPick.startBar, hit);
+    else if (this.repeatPick) this.previewRepeat(this.ghost, this.layout, this.repeatPick.startBar, this.repeatBarAt(p));
   }
 
   /** A waiting tie or slur (ft_1_02d.AC25): its first note ringed, and the curve to the note under the pointer or to the pointer. */
@@ -603,11 +609,18 @@ export class EditorScene extends PixelScene {
     }
   }
 
+  /** The key's name (C, Em) over the key signature while the pointer is on it (ft_1_02d.AC32). */
+  private showKeyName(system: number): void {
+    const spot = this.layout ? keyNameSpot(this.layout, system) : null;
+    if (!spot || !this.ghostLabel || this.layout?.systems[system]?.page !== this.page) return;
+    const name = keyLabel(this.piece.fifths, this.piece.mode, contextOf(this).profiles.noteNaming);
+    this.ghostLabel.setText(name).setPosition(this.staffLeft + spot.x, this.staffTop + spot.y).setVisible(true);
+  }
+
   /** The repeat item asking for its bars (ft_1_02d.AC27): the bars lit and the two signs where the click would put them. */
-  private previewRepeat(g: Phaser.GameObjects.Graphics, layout: StaffLayout, startBar: number | null, hit: Hit | null): void {
+  private previewRepeat(g: Phaser.GameObjects.Graphics, layout: StaffLayout, startBar: number | null, bar: number | null): void {
     const S = layout.staffSpace;
     const ink = DEFAULT_THEME.cursor;
-    const bar = hit ? this.barOf(hit) : null;
     if (bar === null) return;
     const { boxes, signs } = repeatPreview(layout, startBar, bar, this.page);
     for (const box of boxes) g.fillStyle(ink, 0.14).fillRect(box.x1, this.staffTop + box.y1, box.x2 - box.x1, box.y2 - box.y1);
@@ -621,6 +634,73 @@ export class EditorScene extends PixelScene {
     }
   }
 
+  /** The bar the repeat item's next click goes to: the one at the bar line nearest the pointer (ft_1_02d.AC31). */
+  private repeatBarAt(p: Phaser.Input.Pointer): number | null {
+    if (!this.layout || !this.repeatPick) return null;
+    const y = p.y - this.staffTop;
+    if (y < 0 || y > this.staffHeight) return null;
+    return snapBar(this.layout, this.page, { x: p.x - this.staffLeft, y }, this.repeatPick.startBar === null ? 'start' : 'end');
+  }
+
+  /** The ties, slurs and fingers an edit would add, faint in the cursor's blue on the page shown (d286). */
+  private drawMarks(g: Phaser.GameObjects.Graphics, layout: StaffLayout, marks: AddedMarks): void {
+    const S = layout.staffSpace;
+    const ink = DEFAULT_THEME.cursor;
+    const onPage = (system: number) => layout.systems[system]?.page === this.page;
+    const arcs = [...marks.ties.filter((m) => onPage(m.system)).map(tiePoints), ...marks.slurs.filter((m) => onPage(m.system)).map(slurPoints)];
+    for (const arc of arcs) strokePolyline(g.lineStyle(Math.max(2, S * 0.16), ink, 0.85), arc.map((pt) => ({ x: pt.x, y: this.staffTop + pt.y })));
+    // a finger as the staff's 3 x 5 digit, faint where its number will stand
+    const dot = Math.max(1, S * 0.2);
+    for (const f of marks.fingers) {
+      if (!onPage(f.system)) continue;
+      const rows = DIGITS[String(f.finger)] ?? [];
+      rows.forEach((row, ry) => [...row].forEach((c, rx) => {
+        if (c === '#') g.fillStyle(ink, 0.85).fillRect(f.x + (rx - 1.5) * dot, this.staffTop + f.y + (ry - 2.5) * dot, dot, dot);
+      }));
+    }
+  }
+
+  /**
+   * The preview of a menu item that acts at once (d286): while the pointer rests on it, what it would add is drawn faint on
+   * the staff; it goes when the pointer leaves or the menu closes.
+   */
+  private itemPreview(key: string, edit: () => Edit): (on: boolean) => void {
+    return (on) => {
+      const g = this.itemGhostGraphics();
+      g.clear();
+      if (on && this.layout) this.drawMarks(g, this.layout, this.marksOf(key, edit));
+    };
+  }
+
+  /** PASTE x1, x2 or x4 (ft_1_02d.AC28): the bars the pastes would take, outlined like the drag-repeat's ghost bars. */
+  private pastePreview(times: 1 | 2 | 4): (on: boolean) => void {
+    return (on) => {
+      const g = this.itemGhostGraphics();
+      g.clear();
+      if (!on || !this.layout || !this.barClip) return;
+      const fresh = !!this.barSel && !!this.clipRange && this.barSel.from === this.clipRange.from && this.barSel.to === this.clipRange.to;
+      const span = pasteSpan(this.piece, this.barSel, fresh, this.barAnchor, this.barClip, times);
+      if (!span) return;
+      const S = this.layout.staffSpace;
+      const ink = DEFAULT_THEME.cursor;
+      const boxes = barBoxes(this.layout, span);
+      for (const box of boxes) {
+        if (box.page !== this.page) continue;
+        g.fillStyle(ink, 0.12).fillRect(box.x1, this.staffTop + box.y1, box.x2 - box.x1, box.y2 - box.y1);
+        g.lineStyle(1, ink, 0.7).strokeRect(box.x1, this.staffTop + box.y1, box.x2 - box.x1, box.y2 - box.y1);
+      }
+      // where they go in: a thick line at the left of the first
+      const first = boxes[0];
+      if (first?.page === this.page) g.fillStyle(ink, 0.9).fillRect(first.x1 - S * 0.2, this.staffTop + first.y1, S * 0.4, first.y2 - first.y1);
+    };
+  }
+
+  /** The layer a menu item's preview is drawn on, over the staff and under the menu. */
+  private itemGhostGraphics(): Phaser.GameObjects.Graphics {
+    if (!this.itemGhost?.scene) this.itemGhost = this.add.graphics().setDepth(10);
+    return this.itemGhost.setX(this.staffLeft);
+  }
+
   /**
    * The marks an edit would add to the staff as it is drawn now (none when it is refused), laid out once per target: kept
    * while the pointer stays on the same note or pitch and the piece is unchanged, so a moving pointer lays out nothing.
@@ -628,7 +708,7 @@ export class EditorScene extends PixelScene {
   private marksOf(key: string, edit: () => Edit): AddedMarks {
     if (this.previewCache?.piece === this.piece && this.previewCache.key === key) return this.previewCache.marks;
     const made = edit();
-    const marks = made.ok && this.layout ? addedMarks(this.layout, editorStaff(made.piece, toChart(made.piece, { id: this.id ?? DRAFT_ID }), this.staffViewport())) : { ties: [], slurs: [], graces: [] };
+    const marks = made.ok && this.layout ? addedMarks(this.layout, editorStaff(made.piece, toChart(made.piece, { id: this.id ?? DRAFT_ID }), this.staffViewport())) : NO_MARKS;
     this.previewCache = { piece: this.piece, key, marks };
     return marks;
   }
@@ -665,7 +745,8 @@ export class EditorScene extends PixelScene {
     const hit = this.hit(p);
     if (!hit || action === 'none' || this.meterAsk !== null) return;
     if (this.repeatPick) {
-      const bar = this.barOf(hit);
+      // the bar the sign snaps to, as its preview shows (ft_1_02d.AC31)
+      const bar = this.repeatBarAt(p) ?? this.barOf(hit);
       if (bar === null) {
         this.disarm();
         return this.refreshStaff();
@@ -2251,7 +2332,8 @@ export class EditorScene extends PixelScene {
       const grip = repeatHandleBox(this.layout, this.barSel, this.page);
       if (grip) this.band.fillStyle(DEFAULT_THEME.cursor, 0.9).fillRect(grip.x1, this.staffTop + grip.y1, grip.x2 - grip.x1, grip.y2 - grip.y1);
     }
-    this.staffView = new StaffView(this, drawn, undefined, { noteNames: true, fingers: true, chordFingers: contextOf(this).profiles.chordFingers }, { x: this.staffLeft, y: this.staffTop }, numbers, { x: 0, width: this.scale.width });
+    // the author writes a finger for every note of a chord, so the piece maker shows them all (ft_1_02d.AC33)
+    this.staffView = new StaffView(this, drawn, undefined, { noteNames: true, fingers: true, chordFingers: true }, { x: this.staffLeft, y: this.staffTop }, numbers, { x: 0, width: this.scale.width });
     this.staffView.setHandShifts(handShiftMap(this.chart, LEVEL_TABLE.find((l) => l.level === contextOf(this).profiles.progress.level.level)));
     this.staffView.showPage(this.page, false);
     const index = this.selected ? this.indexOf(this.selected) : -1;
@@ -2457,7 +2539,7 @@ export class EditorScene extends PixelScene {
   private fingerItems(): MenuItem[] {
     return [
       ...([1, 2, 3, 4, 5] as const).map((finger) => ({ label: String(finger), keepCase: true, tooltip: t('editor.finger.tip'), onPick: () => this.setFingerTo(finger) })),
-      { label: t('editor.finger.auto'), keepCase: true, tooltip: t('editor.finger.auto.tip'), onPick: () => this.autoFillFingers() },
+      { label: t('editor.finger.auto'), keepCase: true, tooltip: t('editor.finger.auto.tip'), preview: this.itemPreview('auto', () => ({ ok: true, piece: autoFingers(this.piece, this.fingerLevel()).piece })), onPick: () => this.autoFillFingers() },
     ];
   }
 
@@ -2613,7 +2695,7 @@ export class EditorScene extends PixelScene {
    * a fresh copy). AX-3 provisional: x2 and x4 are that many pastes, each its own undo step.
    */
   private pasteItems(): MenuItem[] {
-    return ([1, 2, 4] as const).map((times) => ({ label: t(`editor.paste.${times}`), tooltip: t('editor.paste.tip'), keepCase: true, onPick: () => {
+    return ([1, 2, 4] as const).map((times) => ({ label: t(`editor.paste.${times}`), tooltip: t('editor.paste.tip'), keepCase: true, preview: this.pastePreview(times), onPick: () => {
       for (let i = 0; i < times; i++) this.pasteSelection();
     } }));
   }
@@ -2626,7 +2708,7 @@ export class EditorScene extends PixelScene {
     return [
       { label: t('editor.arc'), icon: itemPicture('tie'), fineIcon: true, tooltip: t('editor.arc.tip'), onPick: () => this.toggleArcOnSelected() },
       { label: t('editor.arc.pick.button'), icon: itemPicture('tieTo'), fineIcon: true, tooltip: t('editor.arc.pick.tip'), onPick: () => this.armArc() },
-      { label: t('editor.tie.all'), icon: TOOL_ICONS.tieAll, tooltip: t('editor.tie.all.tip'), onPick: () => this.tieEverything() },
+      { label: t('editor.tie.all'), icon: TOOL_ICONS.tieAll, tooltip: t('editor.tie.all.tip'), preview: this.itemPreview('tieAll', () => tieAll(this.piece)), onPick: () => this.tieEverything() },
     ];
   }
 
