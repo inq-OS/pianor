@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { strokePolyline } from './polyline';
 import type { NoteProgress, NoteTiming } from '../../../core/judge/types';
 import type { PlaySettings } from '../../../core/judge/playSettings';
 import type { BarNumber } from '../../../core/layout/barNumbers';
@@ -9,12 +10,14 @@ import { wordFits } from '../../../core/layout/dynamicWords';
 import type { PlayedMark } from '../../../core/layout/playedMark';
 import { accidentalKind, pageOfNotes, type BeamGlyph, type NoteGlyph, type NoteValue, type SlurGlyph, type StaffLayout, type TieGlyph, type TupletGlyph } from '../../../core/layout/staff';
 import type { GraceGlyph } from '../../../core/layout/staffTypes';
+import { slurPoints, tiePoints } from '../../../core/layout/preview';
 import { STAFF_LAYERS, type StaffLayer } from './layers';
 import { addSheet } from './sheetGround';
 import { PARCHMENT_PAPER } from '../pixel/paint/parchment';
 import { t } from '../../../core/text/strings';
 import type { Dynamic } from '../../../core/chart/dynamics';
 import { ACCIDENTAL_STROKES, BASS_CLEF_BALL, BASS_CLEF_DOTS, BASS_CLEF_STROKE, BRACE_PATH, DIGITS, QUARTER_REST_STROKE, TREBLE_CLEF_STROKE, type Pt } from './glyphs';
+import { STAFF_FONT } from './staffFont';
 
 export type NoteState = 'pending' | 'correct' | 'wrong';
 
@@ -80,7 +83,7 @@ type NoteSelection = number | readonly number[] | null;
 const toSet = (selection: NoteSelection): ReadonlySet<number> =>
   new Set(selection === null ? [] : typeof selection === 'number' ? [selection] : selection);
 
-/** How long a page turn takes to fade in: quick, and no movement, so the staff never slides like falling notes. */
+/** How long a page turn takes to fade in: quick, and no movement, so the eye stays on the notes. */
 const PAGE_FADE_MS = 160;
 /**
  * Tempo mode: the staff is passed by an invisible running line. Lines, bar lines and notes turn this grey the moment
@@ -96,6 +99,8 @@ const DURATION_GHOST_ALPHA = 0.28;
 const PLAYED_ALPHA = 0.55;
 const PLAYED_INK = '#d7263d';
 const PLAYED_NAME_GAP = 1.7;
+/** How much of the sheet's copy covers bars drawn very faint (ft_1_32.AC20): a little ink shows through. */
+const VEIL_ALPHA = 0.86;
 
 /**
  * Draws a `StaffLayout`: one staff, or a grand staff with a brace. It reads play state (note states, which notes are
@@ -104,7 +109,9 @@ const PLAYED_NAME_GAP = 1.7;
  */
 export class StaffView {
   /** The sheet of parchment the staff is written on (d119), under everything; it stays while a page turns. */
-  private readonly sheet: { release: () => void };
+  private readonly sheet: { image: Phaser.GameObjects.Image; release: () => void };
+  /** Copies of the sheet laid over the bars drawn very faint (`veil`), one per line, with the line they cover. */
+  private veils: { image: Phaser.GameObjects.Image; system: number }[] = [];
   /** The coloured bars on the sheet (a section being chosen), under the highlight boxes and the staff lines. */
   private readonly paperBg: Phaser.GameObjects.Graphics;
   private readonly paper: Phaser.GameObjects.Graphics;
@@ -152,6 +159,7 @@ export class StaffView {
   /** False until the first play state arrives: a view made mid-piece (after a resize or a hint toggle) jumps to its page without a fade. */
   private synced = false;
   private section: SectionMarks | null = null;
+  private veiled: readonly { from: number; to: number }[] = [];
   /** The A and B of a section, each with the system of its bar. */
   private readonly markTexts: { text: Phaser.GameObjects.Text; system: number }[] = [];
 
@@ -188,7 +196,7 @@ export class StaffView {
     const fits = wordFits(marked.map((n) => ({ system: n.system, staff: n.staff, column: n.column, word: t(DYNAMIC_WORD_KEY[n.dynamic!.text]) })), layout.staffSpace);
     let markIndex = 0;
     for (const n of layout.notes) {
-      const style = { fontFamily: 'monospace', fontStyle: 'bold', fontSize, color: theme.hint };
+      const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize, color: theme.hint };
       this.labels.push(scene.add.text(origin.x + n.column, origin.y + n.labelY, n.label, style).setOrigin(0.5));
       // a finger sits beside its head, level with it; the text is set by setHints
       this.fingerTexts.push(scene.add.text(origin.x + n.fingerX, origin.y + n.y, '', style).setOrigin(0.5));
@@ -200,13 +208,13 @@ export class StaffView {
       }
     }
     for (const g of layout.graces) {
-      const style = { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.max(8, Math.round(layout.staffSpace * 1.1 * g.scale))}px`, color: theme.hint };
+      const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.max(8, Math.round(layout.staffSpace * 1.1 * g.scale))}px`, color: theme.hint };
       this.graceLabels.push(scene.add.text(origin.x + g.x, origin.y + g.labelY, g.label, style).setOrigin(0.5));
     }
     // one word per slur, above the half that starts it (a slur across a line break has its word on the first line)
     for (const slur of layout.slurs) {
       if (slur.from === null) continue;
-      const word = scene.add.text(origin.x + slur.label.x, origin.y + slur.label.y, t('staff.legato'), { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.round(layout.staffSpace * 0.9)}px`, color: theme.hint }).setOrigin(0.5, 1);
+      const word = scene.add.text(origin.x + slur.label.x, origin.y + slur.label.y, t('staff.legato'), { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(layout.staffSpace * 0.9)}px`, color: theme.hint }).setOrigin(0.5, 1);
       this.slurTexts.push({ text: word, system: slur.system });
     }
     this.setHints(hints);
@@ -231,6 +239,61 @@ export class StaffView {
     }
     for (const mark of this.markTexts) mark.text.setVisible(this.onPage(mark.system));
     for (const slur of this.slurTexts) slur.text.setVisible(this.onPage(slur.system) && hints.noteNames);
+    for (const v of this.veils) v.image.setVisible(this.onPage(v.system));
+  }
+
+  /** The bars drawn very faint (`veil`), as inclusive ranges (read by the tests). */
+  get faintBars(): readonly { from: number; to: number }[] {
+    return this.veiled;
+  }
+
+  /**
+   * Draw the bars of `ranges` (inclusive) very faint (ft_1_32.AC20): a copy of the sheet, nearly opaque, laid over each run of
+   * them on a line. The bar lines that bound the bars played stay in ink; a line that starts faint is veiled from its clef,
+   * and one that ends faint to its end. Lay it before anything drawn over the staff that must stay clear (the prizes, the markers).
+   */
+  veil(ranges: readonly { from: number; to: number }[]): void {
+    for (const v of this.veils) v.image.destroy();
+    this.veils = [];
+    this.veiled = ranges;
+    const { layout } = this;
+    const S = layout.staffSpace;
+    const faint = (bar: number) => ranges.some((r) => bar >= r.from && bar <= r.to);
+    for (const here of layout.systems) {
+      const bars = layout.bars.filter((b) => b.system === here.index);
+      const lineRight = Math.max(...layout.staffLines.filter((l) => l.system === here.index).map((l) => l.x2)) + 0.3 * S;
+      let k = 0;
+      while (k < bars.length) {
+        if (!faint(bars[k]!.index)) {
+          k++;
+          continue;
+        }
+        let end = k;
+        while (end + 1 < bars.length && faint(bars[end + 1]!.index)) end++;
+        const left = k === 0 ? -0.2 * S : bars[k]!.x + 0.2 * S;
+        const right = end === bars.length - 1 ? lineRight : bars[end]!.x + bars[end]!.width - 0.2 * S;
+        this.veilOver(here.index, left, right);
+        k = end + 1;
+      }
+    }
+  }
+
+  /** One copy of the sheet over line `system` from `left` to `right` (layout x), between the middles of the gaps to its neighbours. */
+  private veilOver(system: number, left: number, right: number): void {
+    const { layout } = this;
+    const sheet = this.sheet.image;
+    const fine = sheet.scaleX;
+    const before = layout.systems[system - 1];
+    const after = layout.systems[system + 1];
+    const here = layout.systems[system]!;
+    const top = before && before.page === here.page ? (before.bottomLineY + here.topLineY) / 2 : 0;
+    const bottom = after && after.page === here.page ? (here.bottomLineY + after.topLineY) / 2 : layout.height;
+    const x0 = this.origin.x + left;
+    const crop = { x: Math.floor((x0 - sheet.x) / fine), y: Math.floor((this.origin.y + top - sheet.y) / fine) };
+    const image = this.scene.add.image(sheet.x, sheet.y, sheet.texture.key).setOrigin(0, 0).setScale(fine).setAlpha(VEIL_ALPHA)
+      .setCrop(crop.x, crop.y, Math.ceil((right - left) / fine) + 1, Math.ceil((bottom - top) / fine) + 1);
+    image.setVisible(this.onPage(system));
+    this.veils.push({ image, system });
   }
 
   /**
@@ -242,7 +305,7 @@ export class StaffView {
     for (const mark of this.markTexts) mark.text.destroy();
     this.markTexts.length = 0;
     const S = this.layout.staffSpace;
-    const style = { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: this.theme.sectionInk };
+    const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: this.theme.sectionInk };
     const used = new Map<number, number>();
     for (const { bar: index, text } of marks?.letters ?? []) {
       const bar = this.layout.bars[index];
@@ -505,6 +568,7 @@ export class StaffView {
   destroy(): void {
     [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
     this.playedName?.destroy();
+    for (const v of this.veils) v.image.destroy();
     this.sheet.release();
   }
 
@@ -660,8 +724,14 @@ export class StaffView {
     } else this.stroke(g, QUARTER_REST_STROKE, x - S * 0.5, y - S * 1.5, S * 0.28);
   }
 
+  /** Whether a staff of a system is a resting hand's, drawn to be read and not played (ft_1_32.AC18). */
+  private resting(system: number, staff: number): boolean {
+    return this.layout.systems[system]?.staves[staff]?.resting === true;
+  }
+
   private noteColor(slot: number): number {
     const note = this.layout.notes[slot]!;
+    if (this.resting(note.system, note.staff)) return PAST_GREY;
     if (this.wrong.has(note.index)) return this.theme.wrong;
     // a played or missed note keeps its timing colour (objective feedback); only the rest of the past goes grey
     const scored = this.scoreColours[slot];
@@ -721,7 +791,7 @@ export class StaffView {
     this.playedName = null;
     if (mark && this.onPage(mark.system)) {
       const S = this.layout.staffSpace;
-      const style = { fontFamily: 'monospace', fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: PLAYED_INK };
+      const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: PLAYED_INK };
       this.playedName = this.scene.add.text(this.origin.x + mark.x, this.origin.y + mark.y + PLAYED_NAME_GAP * S, name, style).setOrigin(0.5).setAlpha(PLAYED_ALPHA);
     }
     this.drawNotes();
@@ -800,35 +870,13 @@ export class StaffView {
   /** A tie: a quadratic curve that bows away from the heads (core_09.AC10), drawn as a polyline in the ink colour. */
   private drawTie(tie: TieGlyph): void {
     const S = this.layout.staffSpace;
-    const bow = (tie.up ? -1 : 1) * tie.height * 2;
-    const xm = (tie.x1 + tie.x2) / 2;
-    const ym = tie.y + bow;
-    const g = this.notesGfx;
-    g.lineStyle(Math.max(2, S * 0.13), this.theme.ink, 1).beginPath();
-    for (let i = 0; i <= 12; i++) {
-      const t = i / 12;
-      const x = (1 - t) * (1 - t) * tie.x1 + 2 * (1 - t) * t * xm + t * t * tie.x2;
-      const y = (1 - t) * (1 - t) * tie.y + 2 * (1 - t) * t * ym + t * t * tie.y;
-      if (i === 0) g.moveTo(x, y);
-      else g.lineTo(x, y);
-    }
-    g.strokePath();
+    strokePolyline(this.notesGfx.lineStyle(Math.max(2, S * 0.13), this.theme.ink, 1), tiePoints(tie));
   }
 
   /** A slur (core_09.AC27): a quadratic curve from the first head to the last, in the ink colour, bowing as the layout says. */
   private drawSlur(slur: SlurGlyph): void {
     const S = this.layout.staffSpace;
-    const xm = (slur.x1 + slur.x2) / 2;
-    const g = this.notesGfx;
-    g.lineStyle(Math.max(2, S * 0.1), this.theme.ink, 1).beginPath();
-    for (let i = 0; i <= 16; i++) {
-      const t = i / 16;
-      const x = (1 - t) * (1 - t) * slur.x1 + 2 * (1 - t) * t * xm + t * t * slur.x2;
-      const y = (1 - t) * (1 - t) * slur.y1 + 2 * (1 - t) * t * slur.controlY + t * t * slur.y2;
-      if (i === 0) g.moveTo(x, y);
-      else g.lineTo(x, y);
-    }
-    g.strokePath();
+    strokePolyline(this.notesGfx.lineStyle(Math.max(2, S * 0.1), this.theme.ink, 1), slurPoints(slur));
   }
 
   /** The beams of a run of eighths and sixteenths, in the colour of its notes once all are right. */
@@ -837,7 +885,7 @@ export class StaffView {
     const slots = beam.notes.map((index) => this.layout.notes.findIndex((n) => n.index === index));
     const wrong = beam.notes.some((index) => this.wrong.has(index));
     const correct = slots.every((slot) => this.states[slot] === 'correct');
-    const color = wrong ? this.theme.wrong : correct ? this.theme.correct : this.theme.ink;
+    const color = this.resting(beam.system, beam.staff) ? PAST_GREY : wrong ? this.theme.wrong : correct ? this.theme.correct : this.theme.ink;
     const half = Math.max(2, S * 0.13) / 2;
     const top = beam.up ? beam.y : beam.y - beam.thickness;
     this.notesGfx.fillStyle(color, 1).fillRect(beam.x1 - half, top, beam.x2 - beam.x1 + half * 2, beam.thickness);

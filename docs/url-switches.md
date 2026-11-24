@@ -15,10 +15,9 @@ false there.
 |---|---|---|---|
 | `device=virtual` | Uses the virtual EZ-220 (a fake Web MIDI device in `src/io/mock/`) instead of real MIDI, and plays the keys it receives through the game's piano | no | `src/config.ts` |
 | `monitor=1` | The game also sounds the keys of a real MIDI keyboard (by default it stays quiet, since the EZ-220 makes its own sound) | no | `src/config.ts` |
-| `keys=1` | Shows the on-screen keyboard from the start, with or without a piano (it starts hidden since d099; the switch on the settings screen's toolbar shows it too) | no | `src/main.ts` |
+| `keys=1` | Shows the on-screen keyboard from the start, with or without a piano (it starts hidden, d099; the switch on the settings screen's toolbar shows it too) | no | `src/main.ts` |
 | `lang=en` | Shows the English text instead of the default Estonian (ft_0_18); the end-to-end tests open the page with it | no | `src/config.ts` |
 | `motion=still` | Stands the scenery still on its first frame: the grass, sea, clouds, smoke and embers of the painted places, the room's screensaver, an aura's pulse. Without it the scenery moves, whatever the operating system's reduce-motion or animation-effects setting says (d127) | no | `src/config.ts` |
-| `beings=1` | Shows the beings in the scenes on Keri (ft_1_19.AC8); without it a scene is clean until the beings are overhauled | no | `src/config.ts` |
 | `actors=1` | Stands the demo cast (Kiur talking, a template villager, a labelled placeholder box) on the first standing places of each adventure scene (ft_1_24), and the characters on their scene (Puuvaim in the knoll tree; press one to talk, ft_1_22) | yes | `src/config.ts` |
 | `learn=0` | Opens every piece for practice as before, with no learning bar by bar first (ft_1_32); the end-to-end tests open the page with it unless a test asks for `learn=1`. Autoplay never learns | no | `src/config.ts` |
 | `editor=0` | Hides the piece editor (ft_1_02a) in the menu | no | `src/config.ts` |
@@ -37,7 +36,7 @@ false there.
 | `demo=analyse` | Score MusicXML files (`.musicxml`, `.xml`, `.mxl`) for difficulty, easiest first, with what the reader simplified and the difficulty panel per file; learned models from `private/models/` show as columns (ft_Y_04 slice 1, core_08) | yes | `src/main.ts` |
 | `demo=staff` | The staff renderer on its own, piece by piece (switches below) | yes | `src/game/BootScene.ts` |
 | `sky=dawn\|day\|dusk\|night` | Forces the hour of the sky (ft_1_14, d097) instead of the real sun over Keri: for the painted room, map of Keri and scenes, which each have one picture for every hour (d111) | yes | `src/config.ts` |
-| `wind=0..3` or `wind=calm\|waves\|restless\|stormy` | Forces the wind over Keri's scenery (ft_1_06 AC12): in the knoll the grass, the sea, the clouds and the smoke follow it, on the map the clouds; without it each day has its own wind | yes | `src/config.ts` |
+| `wind=0..3` or `wind=calm\|waves\|restless\|stormy` | Forces the wind over Keri's scenery (ft_1_14 AC9): in the knoll the grass, the sea, the clouds and the smoke follow it, on the map the clouds; without it each day has its own wind | yes | `src/config.ts` |
 | `now=<ISO time>` | Sets the instant the sky phase is worked out from (an ISO date and time in UTC), for screenshots and tests (ft_1_14); the room also takes today from it for Kiur's reminders and the teacher's check-up (ft_1_27) | yes | `src/config.ts` |
 | `demo=art` | The pixel font, Kiur, the icons, buttons and bars at this screen's zoom (`docs/sprites.md`) | yes | `src/game/BootScene.ts` |
 

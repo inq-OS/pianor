@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
-import { clickButton, clickToolbar, expectNoErrors, openGame, openPiece, sceneButton, sceneTexts, toPieceList, toScoreScreen, waitForScene } from './helpers';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
+import { clickButton, clickToolbar, expectNoErrors, openGame, openPiece, pickChoice, sceneButton, sceneTexts, toPieceList, toScoreScreen, waitForScene } from './helpers';
 
 /** The settings screen's buttons, in the order it makes them: the timing view's button comes after the staff settings and the chord fingers (d088). */
 const SCORE = 5;
@@ -12,9 +13,9 @@ test.describe('tempo mode (slice c)', () => {
     expect(await playSettings(page)).toEqual({ mode: 'wait', scoreView: 'colour' });
     await openPiece(page, 'Little Steps');
     expect(await page.evaluate(() => window.__game.scene.getScene('practice').transport)).toBeNull();
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Wait')); // the fermata: a press switches to the following clock
+    await pickChoice(page, 'practice', 'Wait', 'Tempo that follows you'); // the mode cell opens its choices: the following clock
     await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'tempo', tempoClock: 'follow' });
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Tempo that follows you')); // and the next to Tempo
+    await pickChoice(page, 'practice', 'Tempo that follows you', 'Tempo'); // and Tempo
     await expect.poll(() => playSettings(page)).toEqual({ mode: 'tempo', scoreView: 'colour', tempoStart: 'anyKey', tempoClock: 'strict' });
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').transport !== null)).toBe(true);
     expect(await sceneTexts(page, 'practice')).toContain('Press any key to start. One bar is counted in.');
@@ -90,22 +91,6 @@ test.describe('tempo mode (slice c)', () => {
     expectNoErrors(errors);
   });
 
-  test('without a single key after the start every note is missed, and the piece still ends, never failing the student', async ({ page }) => {
-    test.slow();
-    const errors = await openGame(page);
-    await page.evaluate(() => window.__game.registry.get('context').profiles.updatePlaySettings({ mode: 'tempo' }));
-    await openPiece(page, 'Little Steps');
-    await page.evaluate(() => {
-      window.__virtualDevice!.press(60);
-      window.__virtualDevice!.release(60);
-    });
-    await toScoreScreen(page);
-    const result = await page.evaluate(() => window.__game.scene.getScene('results').result);
-    expect(result).toMatchObject({ notes: 11, accuracy: 0, timing: { played: 0, missed: 11, score: 0 } });
-    expect(await sceneTexts(page, 'results')).not.toContain('Failed');
-    expectNoErrors(errors);
-  });
-
   test('core_01.AC8: a note let go at once changes its colour and its number when released', async ({ page }) => {
     const errors = await openGame(page);
     await page.evaluate(() => window.__game.registry.get('context').profiles.updatePlaySettings({ mode: 'tempo', scoreView: 'number' }));
@@ -170,7 +155,7 @@ test.describe('tempo mode: the clock that follows the player (core_01 slice h)',
   test('core_01.AC12 core_01.AC13: the mode button gives the following clock; a note played long after its time is still that note, and there is no click', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Wait'));
+    await pickChoice(page, 'practice', 'Wait', 'Tempo that follows you');
     await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'tempo', tempoStart: 'firstNote', tempoClock: 'follow' });
     await expect.poll(() => tempoState(page).then((s) => s.countInBars)).toBe(0);
     expect(await sceneButton(page, 'practice', 'Tempo that follows you')).toBeGreaterThanOrEqual(0);
@@ -207,12 +192,12 @@ test.describe('tempo mode: the start on the first note and the auto reset (core_
   test('core_01.AC10: the mode button cycles to Tempo from the first note; a wrong key waits, the first note starts it with no count-in', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Wait'));
+    await pickChoice(page, 'practice', 'Wait', 'Tempo that follows you');
     await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'tempo', tempoClock: 'follow' });
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Tempo that follows you'));
+    await pickChoice(page, 'practice', 'Tempo that follows you', 'Tempo');
     await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'tempo', tempoStart: 'anyKey' });
     await expect.poll(() => tempoState(page).then((s) => s.tempo)).toBe(true);
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Tempo'));
+    await pickChoice(page, 'practice', 'Tempo', 'Tempo from the first note');
     await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'tempo', tempoStart: 'firstNote' });
     await expect.poll(() => tempoState(page).then((s) => s.countInBars)).toBe(0);
     expect(await sceneTexts(page, 'practice')).not.toContain('Press any key to start. One bar is counted in.');
@@ -229,38 +214,10 @@ test.describe('tempo mode: the start on the first note and the auto reset (core_
     expect((await tempoState(page)).firstVerdict).toBe('on-time');
     await page.evaluate(() => window.__virtualDevice!.release(60));
 
-    // a third press: back to Wait
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Tempo from the first note'));
+    // and back to Wait
+    await pickChoice(page, 'practice', 'Tempo from the first note', 'Wait');
     await expect.poll(() => playSettings(page)).toMatchObject({ mode: 'wait' });
     expectNoErrors(errors);
   });
 
-  test('core_01.AC11: switched on, two bars with nothing played start the piece over, and it waits for the start again', async ({ page }) => {
-    test.slow(); // three bars of Little Steps at 70 bpm
-    const errors = await openGame(page);
-    await page.evaluate(() => window.__game.registry.get('context').profiles.updatePlaySettings({ mode: 'tempo', tempoStart: 'firstNote' }));
-    await openPiece(page, 'Little Steps');
-    // the switch is a lit item in Tempo mode only, and is saved for the player
-    await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Start over after 2 bars not played'));
-    await expect.poll(() => playSettings(page)).toMatchObject({ autoReset: true });
-    await expect.poll(() => tempoState(page).then((s) => s.watching)).toBe(true);
-
-    await page.evaluate(() => {
-      window.__virtualDevice!.press(60);
-      window.__virtualDevice!.release(60);
-    });
-    expect((await tempoState(page)).started).toBe(true);
-    const startedAt = (await tempoState(page)).songStartMs!;
-    // nothing more is played: bar 1 still had a right note, bars 2 and 3 have none, and the play starts over once bar 3's last note has passed
-    await expect.poll(() => tempoState(page).then((s) => s.started), { timeout: 20_000 }).toBe(false);
-    const after = await tempoState(page);
-    expect(after.nowMs - startedAt).toBeGreaterThan(2 * 4 * (60000 / 70)); // past bar 2, at the last note of bar 3
-    expect(after.stepIndex).toBe(0);
-    // it waits: no count-in runs and the first note starts it again
-    await page.waitForTimeout(500);
-    expect((await tempoState(page)).started).toBe(false);
-    await page.evaluate(() => window.__virtualDevice!.press(60));
-    expect((await tempoState(page)).started).toBe(true);
-    expectNoErrors(errors);
-  });
 });

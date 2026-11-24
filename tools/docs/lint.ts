@@ -6,6 +6,7 @@ import { lintLocalLinks } from './remarkLinks.ts';
 import { lintPrivacy } from './privacy.ts';
 import { lintTags } from './tags.ts';
 import { lintLedgerChecks } from './ledgerChecks.ts';
+import { lintOldWords } from './oldWords.ts';
 import { missingBlocks, expandAll, readItems } from './generate.ts';
 import type { Item } from './items.ts';
 import type { Repo } from './repo.ts';
@@ -50,7 +51,6 @@ export function lintItems(items: Item[]): Issue[] {
     }
     const refs: [string, unknown][] = [
       ['depends_on', item.meta.depends_on],
-      ['supersedes', item.meta.supersedes],
       ['features', item.kind === 'decision' ? item.meta.features : undefined],
     ];
     for (const [field, value] of refs) {
@@ -132,11 +132,10 @@ export function lintIds(repo: Repo, items: Item[]): Issue[] {
   return issues;
 }
 
-/** The numbering before d037 (`FT17`, `WP9`) may stay in the decision files, which keep history. */
+/** The numbering before d037 (`FT17`, `WP9`) is gone from every doc. */
 export function lintOldIds(repo: Repo): Issue[] {
   const issues: Issue[] = [];
   for (const [file, text] of repo.docs) {
-    if (file.startsWith('docs/decisions/')) continue;
     for (const line of linesOf(text)) {
       if (line.ignored) continue;
       for (const m of line.text.matchAll(/\b(?:FT\d\d[a-d]?|WP\d{1,2}[a-d]?)\b/g)) issues.push(error(file, `${m[0]} is the old numbering; use the id from docs/decisions/workflow.md#d037`, line.n));
@@ -145,7 +144,9 @@ export function lintOldIds(repo: Repo): Issue[] {
   return issues;
 }
 
-/** `npm run X` in the docs must be a real script, and CLAUDE.md must list every script. */
+const COMMANDS_DOC = 'docs/commands.md';
+
+/** `npm run X` in the docs must be a real script, and the command reference (`docs/commands.md`) must list every script. */
 export function lintScripts(repo: Repo): Issue[] {
   const issues: Issue[] = [];
   for (const [file, text] of repo.docs) {
@@ -156,11 +157,11 @@ export function lintScripts(repo: Repo): Issue[] {
       }
     }
   }
-  const claude = repo.docs.get('CLAUDE.md') ?? '';
+  const reference = repo.docs.get(COMMANDS_DOC) ?? '';
   for (const script of repo.scripts) {
-    const lifecycle = ['prepare', 'postinstall'].includes(script) && claude.includes(`\`${script}\``);
-    if (!lifecycle && !claude.includes(`npm run ${script}`) && !(script === 'test' && claude.includes('npm test'))) {
-      issues.push(error('CLAUDE.md', `the Commands list does not mention the script "${script}"`));
+    const lifecycle = ['prepare', 'postinstall'].includes(script) && reference.includes(`\`${script}\``);
+    if (!lifecycle && !reference.includes(`npm run ${script}`) && !(script === 'test' && reference.includes('npm test'))) {
+      issues.push(error(COMMANDS_DOC, `the command reference does not mention the script "${script}"`));
     }
   }
   return issues;
@@ -191,6 +192,7 @@ export async function lintDocs(repo: Repo): Promise<Issue[]> {
     ...lintGenerated(repo),
     ...lintPrivacy(repo),
     ...lintLedgerChecks(repo),
+    ...lintOldWords(repo),
     ...lintTags(repo),
   ];
 }

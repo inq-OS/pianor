@@ -10,7 +10,7 @@ export interface KeyLightHarness {
 
 /**
  * Behaviour every `KeyLightOutput` must have: the null output of the real keyboard (until the hardware spike), the on-screen
- * keyboard, and later a Web MIDI lighting output (ft_Y_06, ft_Y_08). A new output passes this suite before the game uses it.
+ * keyboard, and later a Web MIDI lighting output (ft_Y_06). A new output passes this suite before the game uses it.
  */
 export function keyLightContract(name: string, create: () => KeyLightHarness): void {
   describe(`KeyLightOutput contract: ${name}`, () => {

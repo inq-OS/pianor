@@ -5,3 +5,9 @@
 *.wav binary
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
+# Generated docs tables merge by their hand-written text only; the post-merge hook writes the tables again
+# (tools/docs/merge-driver-cli.ts, set up by `npm install`).
+docs/features/FEATURES.md merge=docs-index
+docs/decisions/DECISIONS.md merge=docs-index
+docs/authoring/AUTHORING.md merge=docs-index
+docs/playtests/PLAYTESTS.md merge=docs-index

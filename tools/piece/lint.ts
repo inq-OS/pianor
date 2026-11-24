@@ -39,5 +39,5 @@ for (const d of report.diagnostics.filter((x) => !report.linted.some((p) => p.di
 
 const errors = report.diagnostics.filter((d) => d.severity === 'error').length;
 const warnings = report.diagnostics.filter((d) => d.severity === 'warning').length;
-console.log(`${report.pieces} piece(s), ${errors} error(s), ${warnings} warning(s).`);
+console.log(`${report.pieces} piece(s), ${report.songs > 0 ? `${report.songs} song(s), ` : ""}${errors} error(s), ${warnings} warning(s).`);
 process.exit(errors > 0 || (strict && warnings > 0) ? 1 : 0);

@@ -107,7 +107,7 @@ describe('the clouds of Keri\'s pictures: one stroke that rolls up into a head (
     expect(new Set(sizes).size).toBe(sizes.length);
   });
 
-  it('ft_1_06.AC12 the head leads where the wind blows: the same cloud turned round for a wind to the left', () => {
+  it('ft_1_14.AC9 the head leads where the wind blows: the same cloud turned round for a wind to the left', () => {
     const turned = curlCloud(LONG, true);
     expect([turned.width, turned.height]).toEqual([long.width, long.height]);
     for (let y = 0; y < long.height; y++) for (let x = 0; x < long.width; x++) expect(at(turned, long.width - 1 - x, y)).toBe(at(long, x, y));

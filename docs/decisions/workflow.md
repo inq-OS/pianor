@@ -33,7 +33,7 @@ Check: `src/io/mock/VirtualEz220.test.ts` "exposes a connected input and output 
 
 **Code is MIT, original pieces are CC0 or CC-BY, dependencies must be permissive.** Features: ft_0_00.
 
-GPL projects (Neothesia, PianoBooster) are reference only, with local private use allowed under d026. Each piece records its own licence.
+GPL code may be used only privately, under d026. Each piece records its own licence.
 
 Check: untestable: licence choice, reviewed with docs/dependencies.md by the maintainer and reviewers
 
@@ -41,15 +41,15 @@ Check: untestable: licence choice, reviewed with docs/dependencies.md by the mai
 
 **End-to-end tests use Playwright on port 5180, driving the game like a student would.** Features: ft_0_09.
 
-Config in `playwright.config.ts`: own dev server, viewport 1366x768, 2 workers, traces on failure. Tests use computer keys, the virtual EZ-220 bytes, real clicks on Phaser buttons and on-screen keys via `window.__game` and `window.__virtualDevice`, read canvas text from scene text objects, and assert no page or console errors. Screenshot baselines are per OS (`*-chromium-win32.png`); a platform without a baseline skips. The staff rooms are computed from the notes in the piece so switching hints never moves the staff.
+Config in `playwright.config.ts`: own dev server, viewport 1366x768, 2 workers, traces on failure. Tests use computer keys, the virtual EZ-220 bytes, real clicks on Phaser buttons and on-screen keys via `window.__game` and `window.__virtualDevice`, read canvas text from scene text objects, and assert no page or console errors. Screenshot baselines are one file per screen for every machine (d289); a screen without a baseline skips. The staff rooms are computed from the notes in the piece so switching hints never moves the staff.
 
 Check: `playwright.config.ts` "Number(process.env.PW_PORT) || 5180"
 
 ## d024
 
-**Check prior art per work package; keep our own sampler and staff renderer for now.** Features: ft_0_11, core_09, ft_Y_04.
+**Before building a new subsystem, look briefly for permissively licensed code to use; the sampler and the staff renderer are our own.** Features: ft_0_11, core_09, ft_Y_04.
 
-Sightread is GPL-3.0 (reference only); VexFlow 5 (MIT) is to be re-evaluated when accidentals, key signatures, ties or beams are scheduled (done for beams: kept as a reference only, changed by [d155](notation.md#d155)). Before a package that builds a new subsystem, spend a short bounded search for permissively licensed prior art and record the verdict (`docs/dependencies.md`).
+The search is short and bounded; what is taken is recorded in `docs/dependencies.md`, and what is not taken is not written down.
 
 Check: untestable: process rule for agents (a bounded prior-art search before a new subsystem)
 
@@ -65,7 +65,7 @@ Check: `eslint.config.js` "Nothing outside private/ may import private/"
 
 **Feature ids are `core_XX` for core behaviour and `ft_Y_XX` for features, Y being the iteration.** Features: all.
 
-Iteration 0 is the MVP; an undecided iteration keeps the letter Y (`ft_Y_03`); parts keep a letter (`ft_1_02a`); files are `<id>-name.md`. Effort ratings (trivial, simple, medium, large, high friction) are a column in `FEATURES.md` for unbuilt features. Playing with key lighting disabled is a 1.10x XP modifier (core_07) and the confuser (ft_Y_08) lights random keys, both resting on key lighting verified in ft_0_01.
+Iteration 0 is the MVP; an undecided iteration keeps the letter Y (`ft_Y_04`); parts keep a letter (`ft_1_02a`); files are `<id>-name.md`. Effort ratings (trivial, simple, medium, large, high friction) are a column in `FEATURES.md` for unbuilt features. Playing with key lighting disabled is a 1.10x XP modifier (core_07), resting on key lighting verified in ft_0_01.
 
 Check: `tools/docs/lint.test.ts` "flags ids with no file in docs and in code"
 
@@ -81,7 +81,7 @@ Check: `tools/docs/lint.test.ts` "passes its own docs check"; `tools/docs/frontm
 
 **Trunk-based git on short branches with a fast `check` gate and a browser `e2e` job in CI.** Features: none.
 
-`main` is always releasable; short branches (`feature/<id>-name`, `fix/`, `docs/`, `claude/`) return by squash-merged pull request after `npm run check`; agents work in their own worktree. CI (GitHub Actions, Ubuntu, Node 22): `check` (typecheck, lint, tests with 90% coverage on `src/core` and `tools`, `docs:check`, `piece:build`, `piece:lint`, build) and `e2e` (Playwright Chromium) in parallel; a new push cancels the run; Dependabot weekly npm (two groups), monthly Actions. Changed by d062 (screenshot baselines are Windows only, no Linux baselines).
+`main` is always releasable; short branches (`feature/<id>-name`, `fix/`, `docs/`, `claude/`) return by squash-merged pull request after `npm run check`; agents work in their own worktree. CI (GitHub Actions, Ubuntu, Node 22): `check` (typecheck, lint, tests with 90% coverage on `src/core` and `tools`, `docs:check`, `piece:build`, `piece:lint`, build) and `e2e` (Playwright Chromium) in parallel; a new push cancels the run; Dependabot weekly npm (two groups), monthly Actions. Screenshot tests and baselines: d288, d289.
 
 Check: `tools/ci/workflows.test.ts` "runs check and art rules on Ubuntu with Node 22 on every pull request push, never on a push to main"
 
@@ -97,17 +97,9 @@ Check: `tools/docs/completeness.test.ts` "makes a done feature 100, and 100 only
 
 **End-to-end tests are split into areas; pull requests run the areas they touch and every run writes a log.** Features: none.
 
-`tools/e2e/areas.ts` puts every spec in one area (practice, staff, menu, battle, editor, preview, dev, visual), each a Playwright project with the source paths it guards; shared paths and unnamed paths run every area, docs and unit tests none. `npm run test:e2e:affected` runs the touched areas plus smoke; `main` runs every area. A reporter writes `test-logs/runs/<start>_<areas>/` and `test-logs/history.jsonl`; baselines keep `-chromium` names via `snapshotPathTemplate`.
+`tools/e2e/areas.ts` puts every spec in one area (practice, staff, menu, editor, preview, dev, visual), each a Playwright project with the source paths it guards; shared paths and unnamed paths run every area, docs and unit tests none. `npm run test:e2e:affected` runs the touched areas plus smoke; `main` runs every area. A reporter writes `test-logs/runs/<start>_<areas>/` and `test-logs/history.jsonl`; baselines keep `-chromium` names via `snapshotPathTemplate`.
 
 Check: `tools/e2e/areas.test.ts` "puts every spec file in exactly one area"; `tools/e2e/affected.test.ts` "runs the area whose source changed"; `tools/e2e/runLog.test.ts` "writes a summary with a table per area"
-
-## d062
-
-**Screenshot baselines are Windows only, checked by a Windows CI job and made by a Windows workflow.** Features: none.
-
-Only `-win32.png` baselines exist (hint letters use a `monospace` font that differs per OS); Linux CI and cloud sessions skip screenshot tests. The `visual (Windows)` job runs the visual area on `windows-latest` (software WebGL, one test at a time, 4-minute limit) on pull requests touching the visual area, on `main` pushes and weekly; the workflow "Update screenshot baselines (Windows)" (`update-snapshots.yml`) makes new ones, which the maintainer looks at before merge. Changes d042.
-
-Check: `tools/ci/workflows.test.ts` "are checked by a Windows job and made by a Windows workflow run by hand"
 
 ## d063
 
@@ -121,7 +113,7 @@ Check: `eslint.config.js` "complexity: ['error', 30], 'max-depth': ['error', 5]"
 
 **CI runs on GitHub's hosted runners: `check` and `art rules` on every pull request push, the browser jobs on a label or weekly.** Features: none.
 
-A pull request push runs `check` (with the changes and docs-touched steps folded in) and `art rules` on `ubuntu-latest`; Linux e2e runs only with the `ci:e2e` label and the Windows screenshot job (`windows-latest`) only with `ci:visual`. A push to `main` runs only the privacy workflow (d165); `check` runs on `main` daily, everything every week and by hand. Labels and description edits are handled in `.github/workflows/pr-events.yml`; the browser jobs are the reusable `.github/workflows/browser-tests.yml`. Changes the CI part of d062.
+A pull request push runs `check` (with the changes and docs-touched steps folded in) and `art rules` on `ubuntu-latest`; e2e runs only with the `ci:e2e` label and the screenshot job only with `ci:visual` (d289). A push to `main` runs only the privacy workflow (d165); `check` runs on `main` daily, everything every week and by hand. Labels and description edits are handled in `.github/workflows/pr-events.yml`; the browser jobs are the reusable `.github/workflows/browser-tests.yml`. Changes d042.
 
 Check: `tools/ci/workflows.test.ts` "runs check and art rules on Ubuntu with Node 22 on every pull request push, never on a push to main"; `tools/ci/workflows.test.ts` "runs the browser tests only on a label, by hand or on the schedule"
 
@@ -143,11 +135,11 @@ Check: `src/config.test.ts` "is off unless ?autoplay=1, also in a dev build"
 
 ## d151
 
-**An idea that is given up is deleted, not kept on hold; a rejected idea stays as one line.** Features: none.
+**Docs say only what is relevant: the current state, what is planned or partly built, and future or shelved ideas still wanted; anything else is deleted with no trace.** Features: none.
 
-When an idea is given up, its code, content, feature files, design pages and the decisions only about it are deleted in the same round by their owning projects. Frozen migration steps for old save fields stay (d064); a rejected idea (e.g. falling notes, ft_Y_05) stays as one line in `docs/features/FEATURES.md`'s "Rejected" list; decisions about live things are never rewritten. A ledger rule to keep something wins (the band's toolbar code stays behind its flag, d115).
+When a feature or idea is no longer part of the game or its plan, its code, content, feature file, design pages, the decisions only about it and every mention of it are deleted in the same round: no stub file, no rejected or retired line, no note that it was removed. Decisions about live things are rewritten to say only what is. Frozen migration steps for old save fields stay (d064), and `tools/docs/oldWords.ts` is the one list that names old words (d290). A ledger rule to keep something wins (the band's toolbar code stays behind its flag, d115).
 
-Check: untestable: process rule for agents (delete retired ideas)
+Check: untestable: process rule for agents (what a doc may say)
 
 ## d152
 
@@ -155,7 +147,7 @@ Check: untestable: process rule for agents (delete retired ideas)
 
 Ledgers give one coherent source of truth with no redundancy. An entry is `## dNNN`, a first line `**Title.** Features: ids.`, and one to four sentences of what holds today; `tools/docs` reads them as decision items (`readLedger`), so ids, the index and links (`ledger.md#dNNN`) are checked as before. Feature files stay one per feature.
 
-Check: `tools/docs/ledger.test.ts` "reads one item per entry with its id, title, features and supersedes"
+Check: `tools/docs/ledger.test.ts` "reads one item per entry with its id, title and features"
 
 ## d153
 
@@ -179,7 +171,7 @@ Check: untestable: character and tone rule in docs/axioms.md, judged by the main
 
 Every session loads CLAUDE.md, so the repo is the one place a rule reaches every thread without the maintainer repeating it. The agent turns what the maintainer said into a clear rule of one or two lines (no quotes, no conversation, nothing personal: no people's names, contact details, accounts, machines or private places; Keri and other public places are fine): a decision into its ledger, an idea or work item into a tag in its doc, a testable rule into a check, merged at once. A rule in memory that the repo lacks is written in the same way, not dropped; in a contradiction the newer one wins. `docs:check` fails on a quote of the maintainer, an age, a date or a time of day, a reference to the repository's history (an issue or pull request number, a commit, a branch), a binary file of a kind not allowed or one that carries text, and any entry (a word with its endings, or a `/pattern/`) of the gitignored `private/personal-words.txt` or the CI secret, which CI requires; the same rules read commit messages and the pull request's title and description (`tools/docs/privacy.ts`). CI runs them in `.github/workflows/privacy.yml` on every pull request, its edits and every push to `main`, as `pull_request_target`, so the workflow and the checker come from the base branch and the head's files are only read, and the private list goes only to a branch of this repository, never to a fork's pull request; the agent hooks before and after every write and the git hooks in `.githooks/` (every commit) fail closed, and the hook after a Bash command reports what it finds. Days in tests and fixtures are made up, in 2000 or before (`tools/test/fixtureTime.ts`; a test that needs real weekdays goes back 28 years, where the calendar repeats).
 
-Check: `tools/docs/privacy.test.ts` "reports an entry in any committed file without printing it"; `tools/docs/privacy.test.ts` "is an error in CI when missing, a warning elsewhere, and nothing when given"; `tools/docs/privacy.test.ts` "reads each message whole and names it, not a file"; `tests/content/fixtureDates.test.ts` "keeps every day in tests and fixtures in ${FIXTURE_LAST_YEAR} or before"; `tools/ci/workflows.test.ts` "runs the checker of the base commit on the files of the head, installs nothing and keeps no token in a checkout"; `tools/ci/workflows.test.ts` "check every write before and after it, and every commit or push through Bash, and stop on a finding"; `tools/docs/privacy.test.ts` "finds issue and pull request numbers, commit hashes, branch names and git history in prose, not in code, links or colours"; `tools/docs/privacy.test.ts` "fails text inside an allowed picture or sound, and leaves the tags of the encoder"; `tools/e2e/visualSpec.test.ts` "open every picture through one helper that fixes the clock and checks the test player"; `tools/docs/ledgerChecks.test.ts` "needs one Check line on a live entry, none on a retired or superseded one"; `tools/ci/workflows.test.ts` "gives the private list only to a branch of this repository, never to a pull request from a fork"
+Check: `tools/docs/privacy.test.ts` "reports an entry in any committed file without printing it"; `tools/docs/privacy.test.ts` "is an error in CI when missing, a warning elsewhere, and nothing when given"; `tools/docs/privacy.test.ts` "reads each message whole and names it, not a file"; `tests/content/fixtureDates.test.ts` "keeps every day in tests and fixtures in ${FIXTURE_LAST_YEAR} or before"; `tools/ci/workflows.test.ts` "runs the checker of the base commit on the files of the head, installs nothing and keeps no token in a checkout"; `tools/ci/workflows.test.ts` "check every write before and after it, and every commit or push through Bash, and stop on a finding"; `tools/docs/privacy.test.ts` "finds issue and pull request numbers, commit hashes, branch names and git history in prose, not in code, links or colours"; `tools/docs/privacy.test.ts` "fails text inside an allowed picture or sound, and leaves the tags of the encoder"; `tools/e2e/visualSpec.test.ts` "open every picture through one helper that fixes the clock and checks the test player"; `tools/docs/ledgerChecks.test.ts` "needs one Check line on every entry"; `tools/docs/ledgerChecks.test.ts` "refuses a retired or superseded entry, which is deleted instead (d151)"; `tools/ci/workflows.test.ts` "gives the private list only to a branch of this repository, never to a pull request from a fork"
 
 ## d166
 
@@ -271,9 +263,9 @@ Check: untestable: label discipline on GitHub, checked by the reviewer and the m
 
 ## d199
 
-**The architect writes one playable goal at the top of `docs/architect/roadmap.md` each week, deletes once a month what nobody read or used, and keeps the roadmap ordered by gates with no dates.** Features: none. The weekly goal and the weekly run superseded by d283; the monthly deletion and the gates still hold.
+**The architect deletes once a month what nobody read or used, and keeps the roadmap ordered by gates with no dates.** Features: none.
 
-The weekly run (retired by d283) wrote the goal in play terms with the two or three tags it needs, deletes one unused thing in the same docs-only pull request and asks the maintainer at most one question the axioms do not decide. Releases R1 to R5 and `Later pool` follow order and gates, a milestone and the roadmap change together, roadmap questions are the architect's, and when the week's goal and a maintainer's issue collide the goal wins (`docs/automation/work-model.md`, `docs/architect/roadmap.md`).
+Releases R1 to R5 and `Later pool` follow order and gates, a milestone and the roadmap change together, and roadmap questions are the architect's (`docs/automation/work-model.md`, `docs/architect/roadmap.md`). What to work on next is d283.
 
 Check: untestable: the architect's routine and roadmap upkeep, judged by the maintainer
 
@@ -363,23 +355,15 @@ Check: untestable: a rule for how tests are written, judged in review
 
 The number is the next free `dNNN` across the ledgers on `origin/main` and open pull requests, the entry goes at the end of its area's ledger, docs the decision changes (CLAUDE.md Stack, a feature file) point to it, then `npm run docs:index` and `npm run docs:check` (`log-decision` skill, `docs/decisions/DECISIONS.md`).
 
-Check: `tools/docs/ledger.test.ts` "reads one item per entry with its id, title, features and supersedes"
+Check: `tools/docs/ledger.test.ts` "reads one item per entry with its id, title and features"
 
 ## d211
 
 **Before a repeated job the agent loads the skill in `.claude/skills/` that fits it.** Features: none.
 
-The list and when each applies is in CLAUDE.md (Skills): `write-ui-text`, `use-free-art-packs`, `paint-a-scene`, `artists-notes`, `art-review`, `study-a-picture`, `axiom-call`, `log-decision`, `save-format-bump`, `before-pr`, `file-issue`, and the code-graph skills where the graph runs.
+The list and when each applies is in CLAUDE.md (Skills): `write-ui-text`, `use-free-art-packs`, `paint-a-scene`, `artists-notes`, `art-review`, `study-a-picture`, `axiom-call`, `log-decision`, `save-format-bump`, `before-pr`, `file-issue`.
 
 Check: untestable: which skill an agent loads is not observable by a test
-
-## d212
-
-**Where the code graph and the source disagree, the source wins, and an empty graph result may only mean not indexed.** Features: none.
-
-The code-review-graph tools narrow the scope only where they run; the source and its tests are read before anything is changed (CLAUDE.md, Code graph).
-
-Check: untestable: a reading rule for agents
 
 ## d213
 
@@ -415,9 +399,9 @@ Check: untestable: an order of authority applied by agents and reviewers
 
 ## d217
 
-**Before a push the branch is up to date with `main`, `npm run check:ci` passes, `npm run test:e2e:affected` ran if the game changed, and the pull request body says what was not verified.** Features: none.
+**Before a push the branch is up to date with `main`, `npm run check` passes, `npm run test:e2e:affected` ran if the game changed, and the pull request body says what was not verified; `npm run check:ci` is left to CI, which runs it on every push and must be green before a merge.** Features: none.
 
-The body follows `.github/pull_request_template.md`: `Closes #N` or `Part of #N`, every `AX-3 provisional:` choice, `[save]` in the title for a save bump, real EZ-220 behaviour as needs human, changed Windows baselines named, and a changed screen checked against the Windows baselines first (`before-pr` skill). A pull request changing `src/core`, `tools` or `content/curriculum` touches a doc or says `docs: n/a` and why.
+The body follows `.github/pull_request_template.md`: `Closes #N` or `Part of #N`, every `AX-3 provisional:` choice, `[save]` in the title for a save bump, real EZ-220 behaviour as needs human, changed screenshot baselines named, and a changed screen checked against the baselines first (`before-pr` skill). A pull request changing `src/core`, `tools` or `content/curriculum` touches a doc or says `docs: n/a` and why.
 
 Check: `tools/docs/misc.test.ts` "asks for a doc, or for"
 
@@ -497,17 +481,17 @@ Check: untestable: how a thread offers drafts; the build side is held by d025
 
 **All work happens in one Claude project; builder, painter and architect are roles its threads take, named by the work tag.** Features: none.
 
-The separate builder and painter projects are retired. A `TODO(builder|painter|architect, <release>)` tag names the kind of work, not a project: any thread here picks it up. Adds to d153; the architect's weekly goal and deletion stay.
+A `TODO(builder|painter|architect, <release>)` tag names the kind of work, not a project: any thread here picks it up. Adds to d153; the architect's monthly deletion stays (d199).
 
 Check: untestable: how the work is organised across Claude projects
 
 ## d275
 
-**A part of a feature is named by its feature id and slice; the work-package ids (WP-nn) are retired.** Features: none.
+**A part of a feature is named by its feature id and slice, never by a work-package id.** Features: none.
 
-Adds to d153 and d264: the parts table of the characters programme is gone, its three held parts are tags in ft_1_24, ft_1_22 and ft_1_26, and docs name a part by its feature (and slice). Code comments and test titles drop the old ids, since a feature id appears in code only as an acceptance-criteria tag (d041).
+Adds to d153 and d264: the characters programme's held parts are tags in ft_1_24, ft_1_22 and ft_1_26, and docs name a part by its feature (and slice). Code comments and test titles name no work package, since a feature id appears in code only as an acceptance-criteria tag (d041).
 
-Check: untestable: a naming rule for docs and comments; `git grep "WP-[0-9]"` finds none once the builder's clean-up is merged
+Check: untestable: a naming rule for docs and comments; `git grep "WP-[0-9]"` finds none
 
 ## d276
 
@@ -521,6 +505,30 @@ Check: untestable: a merge rule for threads and a repository setting
 
 **Work raises the shortest stave: every area of the game is kept at a similar level, and the next work is the area that lags most in play, chosen with the maintainer; there is no weekly goal.** Features: none.
 
-Changes d153 and d199. The top of `docs/architect/roadmap.md` lists each area of the game with its level (the mean `completeness` of its features, lowest first) and what holds it back; the maintainer may rank an area lower by how it feels in play. When the maintainer turns to another area the work follows it, and queued items are not pushed as the current focus. The weekly architect run is retired.
+Adds to d153 and d199. The top of `docs/architect/roadmap.md` lists each area of the game with its level (the mean `completeness` of its features, lowest first) and what holds it back; the maintainer may rank an area lower by how it feels in play. When the maintainer turns to another area the work follows it, and queued items are not pushed as the current focus.
 
 Check: untestable: how work is chosen
+
+## d288
+
+**No game text uses a font of the computer: the staff's text is JetBrains Mono Bold shipped with the game and every other text the pixel font, so one screenshot baseline per screen serves every machine.** Features: none.
+
+The staff's letters (note names, fingers, dynamics in the italic, section letters, the played key, the piece maker's ghost letter) use `STAFF_FONT` (`src/game/ui/staff/staffFont.ts`; SIL OFL, `public/assets/jetbrains-mono/`, upright and italic, Latin and Latin Extended for š and ž), loaded before the game starts. Baselines are named without the platform (`<name>-chromium.png`) and compared with the 2 percent tolerance; every run starts Chrome with `--font-render-hinting=none` and `--disable-lcd-text`.
+
+Check: `src/game/ui/staff/staffFont.test.ts` "every text of the game in a screen font uses the shipped staff font, never one of the computer"; `tools/ci/workflows.test.ts` "names a baseline without the platform, and the baseline workflow hands back those names"; `tests/e2e/visual.spec.ts` "the shipped staff font is loaded before the game draws, upright and italic (d288)"
+
+## d289
+
+**Screenshot tests and baselines make no difference between Windows and Linux: every job runs on Linux, a baseline is made by the baseline workflow or any local run, and the screenshot area always draws in software.** Features: none.
+
+The `visual` job (label `ci:visual`, weekly and by hand) and the workflow "Update screenshot baselines" (`update-snapshots.yml`, by hand, commits to the branch it ran on, never to main) run on `ubuntu-latest`; a cloud session may make baselines with `--update-snapshots` too. The Playwright project `visual` starts Chrome without GPU flags, so a local GPU run elsewhere makes the same pixels; the maintainer looks at new baselines in the pull request before it merges.
+
+Check: `tools/ci/workflows.test.ts` "runs every screenshot job on Linux, the baselines committed to the branch, never to main"; `tools/ci/workflows.test.ts` "draws the screenshot area without a GPU on every machine"
+
+## d293
+
+**Every change to how the game is controlled or used (input, keys, buttons, menus, where an action sits) gets an ergonomics review and analysis before it merges; art and look do not.** Features: none.
+
+A fresh reviewer agent, bounded in words, weighs how often each action is used against how far the hand travels, consistency with the keys and places already there, and discoverability for the student and the author; its findings are folded in or written as tags, and the pull request says what changed because of it.
+
+Check: untestable: a review step of the work

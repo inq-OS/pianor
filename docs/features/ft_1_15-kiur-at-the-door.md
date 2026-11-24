@@ -1,7 +1,7 @@
 ---
 id: "ft_1_15"
 title: "Kiur at the door (key bashing)"
-scope: "When more than ten keys are held at once on the practice screen, the piece pauses and Kiur flies in, stands firm and points a wing at the door; two picture buttons: back to the piece (where the cursor was) or out the door to the room; the bash keys are not judged or logged and nothing earned is taken away"
+scope: "When more than ten keys are held at once on the practice screen (whatever it is doing) or in a trainer, the piece pauses and Kiur flies in, stands firm and points a wing at the door; two picture buttons: back to the piece (where the cursor was) or out the door to the room; the bash keys are not judged or logged and nothing earned is taken away"
 effort: "medium"
 status: "built (in review); the maintainer's look and the real EZ-220 are open"
 completeness: 90
@@ -34,8 +34,15 @@ student back to reading (AX-0).
    pass again, as its clock cannot pause (AX-3 provisional).
 5. **The door.** Out to the player's room, after the pass being saved is saved. A draft preview goes back where it came
    from. Nothing earned is taken away and nothing is shown as a fail.
-6. **Only on the practice screen**, and not while the game plays the piece (Kuula) or a pass is ending.
-
+6. **Whenever the student bashes** ([d301](../decisions/game.md#d301)): on the practice screen whatever it is doing, while
+   the student plays, while the game plays the piece (Kuula, which stops; Back has the piece ready to play), while a pass's
+   score or Kiur's line after a learning run waits for the next run (Back lets it go on; the door goes out instead), and in
+   the trainers (note names, ear, chords, shapes: Back goes on, the door is the trainer's way out to the room; the keys of
+   a bash before the eleventh may be judged by the trainer, AX-3 provisional). Not while another overlay is up, or once
+   the screen is already on its way out with nothing waiting. In learning bar by bar the bash's first key often stops the
+   run as a wrong key; a bash in the moment before the same step starts again brings Kiur too, and Back starts that step.
+   - TODO(builder, R2): the tug and a character's teaching in the scenes (`tugView`, `teachView`): their clock runs on, so
+     Back must start the play again there.
 7. Not now: detecting random notes far from the awaited ones (needs a fair, tested threshold; could hit beginners).
 
 ## Acceptance criteria
@@ -45,4 +52,6 @@ student back to reading (AX-0).
 - **ft_1_15.AC3** The overlay goes through `openOverlay` (d070): the caller is paused, and resumed with the typed choice or `cancelled`.
 - **ft_1_15.AC4** Eleven keys at once pause the piece and show Kiur at the door; Back goes on where the cursor was.
 - **ft_1_15.AC5** The door leads to the room; Esc is back to the piece.
+- **ft_1_15.AC7** In learning bar by bar a bash brings Kiur to the door although its first key stopped the run; Back starts the same step again.
+- **ft_1_15.AC8** A bash brings Kiur whatever the practice screen is doing (the student playing, Kuula, a pass's score, a learning run's line) and in the trainers; Back goes on, the door leads to the room.
 - **ft_1_15.AC6** [human] The maintainer checks the look of Kiur's pose and how a bash on the real EZ-220 feels (key timing of palms is unverified).

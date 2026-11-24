@@ -7,7 +7,7 @@ These notes are what the agent saw on the reference pictures. They may be wrong,
 
 ## What it is
 
-The map of Keri is one painted picture of the island seen at a slant from the south, reached through the room's door ([ft_1_18.AC2](../features/ft_1_18-keri-island.md), [d111](../decisions/art.md#d111) points 8 and 11 to 14). It shows a painted place for every scene ([ft_1_19.AC2](../features/ft_1_19-scenes-of-beings.md), [d113](../decisions/game.md#d113)). Everything on it comes from the world model ([d108](../decisions/game.md#d108), `content/world/keri.json`) except the few things the picture adds for looks.
+The map of Keri is one painted picture of the island seen at a slant from the south, reached through the room's door ([ft_1_18.AC2](../features/ft_1_18-keri-island.md), [d111](../decisions/art.md#d111) points 8 and 11 to 14). It shows a painted place for every scene ([ft_1_19.AC2](../features/ft_1_19-scenes-on-keri.md), [d113](../decisions/game.md#d113)). Everything on it comes from the world model ([d108](../decisions/game.md#d108), `content/world/keri.json`) except the few things the picture adds for looks.
 
 ## The map as a caricature (d125)
 
@@ -74,4 +74,4 @@ State: `drawn` (it is in the map picture), `not drawn`, or `unsure`.
 
 ## Checked against the refined rules
 
-With the room, checked again ([art-direction.md](../art-direction.md) rules 19 to 25, d111). The map's runs had steps up to 16 L* (the sea at night, parchment, stone); they are made long (142 to 174 colours), which shows as a smoother sea. Three shallows colours that no hour ever used were removed. The clouds keep their ranges. The island's shape, grass and shore come from the world model and were left alone; rules 23 to 25 ask nothing more of a map at this size.
+With the room, checked again ([art-direction.md](../art-direction.md) rules 19 to 25, d111). The map's runs had steps up to 16 L* (the sea at night, parchment, stone); they are made long (142 to 174 colours), which shows as a smoother sea. The clouds keep their ranges. The island's shape, grass and shore come from the world model and were left alone; rules 23 to 25 ask nothing more of a map at this size.

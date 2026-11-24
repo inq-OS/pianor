@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { LITTLE_STEPS, buttonPoint, clickButton, expectNoErrors, letGameRun, openFromStand, openGame, pickUnderGear, playWithVirtualPiano, sceneButton, sceneTexts, waitForScene } from './helpers';
 
 /**
@@ -40,27 +41,23 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_18.AC2 ft_1_18.AC4 ft_1_19.AC6 the door opens the map of Keri, which has no trail dot (d117), and the warden\'s house returns to the room', async ({ page }) => {
+  test('ft_1_18.AC2 ft_1_18.AC4 the door opens the map of Keri, and the warden\'s house returns to the room', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
     // the island's name is painted into the picture; the map's source is named on the credits screen, not here
     expect(await sceneTexts(page, 'keriMap')).not.toContain(MAP_CREDIT);
-    expect(await sceneButton(page, 'keriMap', 'Monster trail')).toBe(-1);
     await clickButton(page, 'keriMap', await sceneButton(page, 'keriMap', "Warden's house"));
     await waitForScene(page, 'profile');
     expectNoErrors(errors);
   });
 
-  test('ft_1_19.AC2 ft_1_19.AC9 the knoll on the map opens the scene with the bonfire place: a clean picture with no beings in it, its grass, clouds, embers and smoke moving, and Back returns to the map', async ({ page }) => {
+  test('ft_1_19.AC2 ft_1_19.AC9 the knoll on the map opens the scene with the bonfire place, its grass, clouds, embers and smoke moving, and Back returns to the map', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
     await clickButton(page, 'keriMap', await sceneButton(page, 'keriMap', 'Grassy knoll'));
     await waitForScene(page, 'knoll');
-    // no being shows for now: neither its name nor its button
-    expect(await sceneTexts(page, 'knoll')).not.toContain('Locria');
-    expect(await sceneButton(page, 'knoll', 'Locria')).toBe(-1);
     // the grass and the sea (a gust in a loop of looks), the drifting clouds, the embers and the thread of smoke move
     const moving = await page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { animators: unknown[] }).animators.length);
     expect(moving).toBeGreaterThan(5);
@@ -80,7 +77,6 @@ test.describe('the player room', () => {
       window.__game.scene.start('crossroads');
     });
     await waitForScene(page, 'crossroads');
-    expect(await sceneButton(page, 'crossroads', 'Locria')).toBe(-1);
     // the grass and the sea (a gust in a loop of looks) and the drifting clouds move
     const moving = await page.evaluate(() => (window.__game.scene.getScene('crossroads') as unknown as { animators: unknown[] }).animators.length);
     expect(moving).toBeGreaterThan(3);
@@ -186,50 +182,6 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_19.AC8 with ?beings=1 the first being stands by the fire; its game is gone (d135), so it is not a button', async ({ page }) => {
-    const errors = await toRoom(page, 'en', '&beings=1');
-    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
-    await waitForScene(page, 'keriMap');
-    await clickButton(page, 'keriMap', await sceneButton(page, 'keriMap', 'Grassy knoll'));
-    await waitForScene(page, 'knoll');
-    // a new player has unlocked the ladder's first monster only, and the knoll is the one open scene: it is here
-    expect(await sceneTexts(page, 'knoll')).toContain('Locria');
-    expect(await sceneTexts(page, 'knoll')).not.toContain('Doria');
-    expect(await sceneButton(page, 'knoll', 'Locria')).toBe(-1);
-    expectNoErrors(errors);
-  });
-
-  test('ft_1_19.AC8 with ?beings=1 a tester sees the one unlocked being in exactly one open place, and every place keeps its Back (the docks have no spot to stand on)', async ({ page }) => {
-    // the tester has every place open, the docks among them; a being sent to the docks broke their redraw
-    const errors = await openGame(page, '?device=virtual&beings=1', 'en', 'profiles');
-    await clickButton(page, 'profiles', await sceneButton(page, 'profiles', 'New player'));
-    await waitForScene(page, 'name');
-    for (const letter of 'tester') await page.keyboard.press(letter);
-    await page.keyboard.press('Enter');
-    await waitForScene(page, 'profile');
-    // every open place in turn; the new player's profile settles a moment after its screen shows, so the round is
-    // repeated until the being is found (a being in two places still fails: the round never gives one)
-    const visitAll = async (): Promise<string[]> => {
-      const found: string[] = [];
-      for (const place of ['knoll', 'docks', 'port', 'crossroads']) {
-        await page.evaluate((key) => {
-          const g = window.__game;
-          for (const s of g.scene.getScenes(true)) g.scene.stop(s.scene.key);
-          g.scene.start(key);
-        }, place);
-        await waitForScene(page, place);
-        const back = await page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as { toolbarButtons: { back: unknown } }).toolbarButtons.back !== null, place);
-        expect(back, `${place} has its Back`).toBe(true);
-        if ((await sceneTexts(page, place)).includes('Locria')) found.push(place);
-      }
-      return found;
-    };
-    let found: string[] = [];
-    await expect.poll(async () => (found = await visitAll()).length, { timeout: 20_000 }).toBe(1);
-    expect(found).not.toContain('docks');
-    expectNoErrors(errors);
-  });
-
   test('ft_1_18.AC2 ft_1_18.AC4 the map of Keri is one painted picture with the sea in two looks, a lamp, three clouds and its painted name; the house and the open scene are its buttons, on the picture', async ({ page }) => {
     // by day, so the map's gulls fly (they rest at night, ft_1_19.AC13); the real hour made this test depend on the clock
     const errors = await toRoom(page, 'en', '&sky=day');
@@ -240,7 +192,7 @@ test.describe('the player room', () => {
         const scene = window.__game.scene.getScene('keriMap') as unknown as {
           px: { width: number; height: number };
           animators: unknown[];
-          buttons: { rect: { x: number; y: number; width: number; height: number } }[];
+          buttons: { rect: { x: number; y: number; width: number; height: number }; options: { label: string } }[];
           toolbarButtons: { back: unknown; settings: unknown };
           root: { list: { type: string; visible: boolean; x: number; y: number; width: number; height: number; scaleX: number }[] };
         };
@@ -252,8 +204,8 @@ test.describe('the player room', () => {
           // the clouds: wide, low pictures (under the band no toolbar beam stands above the map; a cloud's middle may lie above its top)
           clouds: fine.filter((o) => o.height < 70 && o.width > 80).map((o) => o.x),
           animators: scene.animators.length,
-          // on the picture: not the door and the gear over its corners, nor the band under it (ft_1_20)
-          buttons: scene.buttons.filter((b) => b !== scene.toolbarButtons.back && b !== scene.toolbarButtons.settings).map((b) => b.rect).filter((r) => r.y >= 0 && r.y < scene.px.height),
+          // on the picture: not the door, the gear and the backpack over its corners (ft_1_20)
+          buttons: scene.buttons.filter((b) => b !== scene.toolbarButtons.back && b !== scene.toolbarButtons.settings && b.options.label !== 'Backpack').map((b) => b.rect).filter((r) => r.y >= 0 && r.y < scene.px.height),
         };
       });
     const first = await seen();
@@ -263,7 +215,7 @@ test.describe('the player room', () => {
     expect(first.clouds).toHaveLength(3);
     // the sea, the lamp, the gulls' flock (ft_1_19.AC13) and three clouds move
     expect(first.animators).toBe(6);
-    // the warden's house and the knoll (ft_1_19.AC2: the one scene a new player has open); the trail's dot is gone (d117)
+    // the warden's house and the knoll (ft_1_19.AC2: the one scene a new player has open)
     expect(first.buttons).toHaveLength(2);
     for (const b of first.buttons) {
       expect(b.x).toBeGreaterThanOrEqual(0);
@@ -305,8 +257,6 @@ test.describe('the player room', () => {
     });
     await waitForScene(page, 'knoll');
     expect(await page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { visiting: boolean }).visiting)).toBe(true);
-    // a visit shows the scene as it is: no being, no text but the toolbar's
-    expect(await sceneTexts(page, 'knoll')).not.toContain('Locria');
     // a key does nothing in the scene but go home
     await letGameRun(page, 3, 50);
     await page.keyboard.press('KeyQ');
@@ -362,29 +312,32 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_18.AC3 the room is a painted picture that fills the main area above the band, and every object\'s button lies on the picture (ft_1_20)', async ({ page }) => {
+  test('ft_1_18.AC3 the room is a painted picture in the middle of the screen, and every object\'s button lies on the picture (ft_1_20)', async ({ page }) => {
     const errors = await toRoom(page);
-    const { looks, buttons, height } = await page.evaluate(() => {
+    const { looks, sky, buttons, height } = await page.evaluate(() => {
       const scene = window.__game.scene.getScene('profile') as unknown as {
-        px: { height: number };
-        buttons: { rect: { x: number; y: number; width: number; height: number } }[];
+        px: { width: number; height: number };
+        buttons: { rect: { x: number; y: number; width: number; height: number }; options: { label: string } }[];
         toolbarButtons: { back: unknown; settings: unknown };
         root: { list: { type: string; visible: boolean; x: number; y: number; width: number; height: number; scaleX: number }[] };
       };
-      const looks = scene.root.list.filter((o) => o.type === 'Image' && o.width === 640 && o.height === 248).map((o) => ({ shown: o.visible, x: o.x, y: o.y }));
-      // not the door and the gear over the picture's corners, nor the band under it (ft_1_20)
-      const own = scene.buttons.filter((b) => b !== scene.toolbarButtons.back && b !== scene.toolbarButtons.settings).map((b) => b.rect);
-      return { looks, buttons: own.filter((r) => r.y >= 0 && r.y < scene.px.height), height: scene.px.height };
+      const images = scene.root.list.filter((o) => o.type === 'Image');
+      const looks = images.filter((o) => o.width === 640 && o.height === 248).map((o) => ({ shown: o.visible, x: o.x, y: o.y }));
+      const sky = images.filter((o) => o.width === scene.px.width * 2 && o.height === scene.px.height * 2).length;
+      // not the door, the gear and the backpack over the picture's corners (ft_1_20)
+      const own = scene.buttons.filter((b) => b !== scene.toolbarButtons.back && b !== scene.toolbarButtons.settings && b.options.label !== 'Backpack').map((b) => b.rect);
+      return { looks, sky, buttons: own.filter((r) => r.y >= 0 && r.y < scene.px.height), height: scene.px.height };
     });
-    // the sky behind the main area (as large as it under the band), then one picture for each strength of the fire's light:
+    // the sky behind the whole screen, then one picture for each strength of the fire's light:
     // one of them shows, or two while the light dissolves from one strength into the next
-    expect(looks).toHaveLength(4);
-    const shown = looks.slice(1).filter((l) => l.shown).length;
+    expect(sky).toBe(1);
+    expect(looks).toHaveLength(3);
+    const shown = looks.filter((l) => l.shown).length;
     expect(shown).toBeGreaterThanOrEqual(1);
     expect(shown).toBeLessThanOrEqual(2);
-    const picture = { x: looks[1]!.x, y: looks[1]!.y, w: 320, h: 124 };
-    // no strip of empty felt under the picture: it is the whole main area above the band (ft_1_20, d111)
-    expect(picture.y + picture.h).toBe(height);
+    const picture = { x: looks[0]!.x, y: looks[0]!.y, w: 320, h: 124 };
+    // with no strip (nothing pinned, ft_1_20.AC21) the picture stands in the middle of the screen, the sky round it (d111)
+    expect(picture.y).toBe(Math.floor((height - picture.h) / 2));
     // piano, door, stand, the shield, which opens the player's card (ft_1_20.AC13), Kiur the trainer (ft_1_21.AC14) and
     // the wall telephone (ft_1_34); the window is no button since d117
     expect(buttons).toHaveLength(6);
@@ -622,8 +575,9 @@ test.describe("Kiur and the teacher speak in the room (ft_1_27, WP-15)", () => {
   });
 
   test('ft_1_26.AC9 a test ordered for a time: before it she is not there; at it she comes into the room while the student is there', async ({ page }) => {
-    // a Monday, five seconds before the test she ordered for the fixture's evening (the room's clock runs on from `now`)
-    const errors = await openGame(page, '?device=virtual&now=1998-11-23T16:59:55', 'en', 'profiles');
+    // a Monday, ten seconds before the test she ordered for the fixture's evening (the room's clock runs on from `now`):
+    // Kiur's reminder must be over by then, or she comes on the next visit
+    const errors = await openGame(page, '?device=virtual&now=1998-11-23T16:59:50', 'en', 'profiles');
     await page.evaluate(async () => {
       const { profiles } = window.__game.registry.get('context');
       const ok = await profiles.saveCurriculum(profiles.profiles[0].id, {

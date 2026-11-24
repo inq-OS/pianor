@@ -12,4 +12,4 @@ Rules: CLAUDE.md (string keys), [d081](../../../docs/decisions/game.md#d081), [d
 3. **Case:** write sentence case in both catalogs. `displayText` at the render boundary (`PixelText`) turns Estonian into small capitals (d086); do not type capitals yourself. `keepCase` needs a reason in code.
 4. **Wording for a young student (AX-2.1):** say what happened ("wrong octave in bar 4", "3 of 4 bars right"), short and concrete. No praise without a basis in what was played, no shaming words. A bigger moment only for a real milestone.
 5. **Fit:** labels are drawn in the pixel font on a canvas of 320 x 180 layout cells (640 x 360 fine pixels, d110); check the longer of the two languages fits (Estonian is often longer). Prefer an icon plus a short word over a long label.
-6. **Tests** run in English (`tools/test/englishText.ts`); a test of Estonian text sets the language itself. A screen change moves Windows screenshot baselines: say so in the PR.
+6. **Tests** run in English (`tools/test/englishText.ts`); a test of Estonian text sets the language itself. A screen change moves screenshot baselines: make them again and say so in the PR.

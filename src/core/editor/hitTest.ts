@@ -10,7 +10,7 @@ import { autoLength, chordOf, findNote, GRID, keyAlterOf, LENGTH_TICKS, noteAt, 
 export type Hit =
   | { kind: 'note'; noteIndex: number }
   /** The clef and key signature of a staff: a press there opens the key choice (core_09.AC8). */
-  | { kind: 'key'; staff: number }
+  | { kind: 'key'; staff: number; system: number }
   /** The time signature at the start of the first line: a press there opens the time choice. */
   | { kind: 'time' }
   | {
@@ -55,7 +55,7 @@ export function hitTest(layout: StaffLayout, chart: Chart, point: { x: number; y
   if (firstBar && point.x >= system.left && point.x < firstBar.x) {
     const time = layout.timeSignatures.find((ts) => ts.system === system.index);
     if (time && point.x >= time.x - S / 2) return { kind: 'time' };
-    return { kind: 'key', staff: staff.index };
+    return { kind: 'key', staff: staff.index, system: system.index };
   }
   if (!bar) return null;
   const chartBar = chart.bars[bar.index]!;

@@ -86,15 +86,6 @@ describe('the actors switch (ft_1_24.AC3)', () => {
   });
 });
 
-describe('the beings switch (ft_1_19.AC8)', () => {
-  it('ft_1_19.AC8 keeps the beings out of the scenes unless ?beings=1 asks for them, in any build', () => {
-    expect(createConfig('', true).flags.beings).toBe(false);
-    expect(createConfig('?beings=0', true).flags.beings).toBe(false);
-    expect(createConfig('?beings=1', true).flags.beings).toBe(true);
-    expect(createConfig('?beings=1', false).flags.beings).toBe(true);
-  });
-});
-
 describe('the band is the default (ft_1_20.AC10)', () => {
   it('ft_1_20.AC10 has no band switch any more: the band is drawn on every screen, whatever the URL says', () => {
     for (const query of ['', '?band=0', '?band=1']) expect('band' in createConfig(query, true).flags).toBe(false);
@@ -118,7 +109,7 @@ describe('the sky switches (ft_1_14 AC6, dev only)', () => {
     expect(createConfig('?sky=noon&now=yesterday', true).flags.sky).toEqual({ phase: null, now: null, wind: null });
   });
 
-  it('ft_1_06.AC12 reads ?wind= as a number or a sea state in a dev build, and never in a production build', () => {
+  it('ft_1_14.AC9 reads ?wind= as a number or a sea state in a dev build, and never in a production build', () => {
     expect(createConfig('?wind=3', true).flags.sky.wind).toBe(3);
     expect(createConfig('?wind=calm', true).flags.sky.wind).toBe(0);
     expect(createConfig('?wind=9', true).flags.sky.wind).toBeNull();

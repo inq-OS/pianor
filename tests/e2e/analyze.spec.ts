@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { LITTLE_STEPS, clickButton, expectNoErrors, openGame, openPiece, playWithVirtualPiano, pressPracticeButton as press, results, sceneTexts, toScoreScreen, waitForScene } from './helpers';
 
 /** The practice log (core_10) and the Analyze screen: where a piece is tricky and what to practise. */

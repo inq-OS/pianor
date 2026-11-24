@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { clickButton, expectNoErrors, openGame, playWithVirtualPiano, sceneButton, waitForScene, type PageErrors } from './helpers';
 
 /** What the intro's spotlight shows now (`IntroScene.showing`), or null while it is not up. */
@@ -18,12 +19,12 @@ const flags = (page: Page) => page.evaluate(async () => {
 
 /** Twinkle's first four bars: C C G G | A A G | F F E E | D D C. */
 const LESSON = [60, 60, 67, 67, 69, 69, 67, 65, 65, 64, 64, 62, 62, 60];
-/** The tug's line at level 1: the first half of the lesson (ft_1_06), its one line of two bars, played back each turn. */
+/** The tug's line at level 1: the first half of the lesson (ft_1_21.AC3), its one line of two bars, played back each turn. */
 const LINE = LESSON.slice(0, 7);
 
 /** A new player's first visit to the room, with the intro left to come by itself (the helper turns it off for other tests). */
 async function newPlayer(page: Page): Promise<PageErrors> {
-  const errors = await openGame(page, '?device=virtual&intro=auto', 'en', 'profiles');
+  const errors = await openGame(page, '?device=virtual&intro=auto&learn=1', 'en', 'profiles');
   await clickButton(page, 'profiles', 0);
   // the room runs, or is already paused under the tour's first spotlight (it can open before a poll sees the room running)
   await page.waitForFunction(() => window.__game.scene.getScenes(false).some((s) => s.scene.key === 'profile' && (s.sys.isActive() || s.sys.isPaused())));
@@ -79,6 +80,8 @@ async function expectIntroDone(page: Page): Promise<void> {
   await expect.poll(() => flags(page)).toContain('intro.done');
   await expect.poll(() => room(page, 'introState')).toBeNull();
   await expect.poll(() => showing(page)).toBeNull();
+  // the room is the player's again on this visit: Kiur on the bed can be pressed, the way into learning (ft_1_32 rule 14)
+  await expect.poll(() => sceneButton(page, 'profile', 'Kiur')).toBeGreaterThanOrEqual(0);
 }
 
 /** Reads the teacher's lines in the room to their end. */
@@ -108,9 +111,46 @@ async function playLesson(page: Page): Promise<void> {
   await playWithVirtualPiano(page, LESSON);
 }
 
+/**
+ * The lesson learned bar by bar (ft_1_31.AC8): each run of the learning plan played at an even pace, run after run, until
+ * the learned moment, then a key goes on to the room.
+ */
+async function learnLesson(page: Page): Promise<void> {
+  for (let run = 0; run < 24; run++) {
+    // a run that waits for its first note, the learned moment, or the room again
+    await page.waitForFunction(() => {
+      const keys = window.__game.scene.getScenes(true).map((s) => s.scene.key);
+      if (keys.includes('profile')) return true;
+      const practice = window.__game.scene.getScene('practice') as unknown as { leaving: boolean; learnedGoOn: unknown };
+      return keys.includes('practice') && !keys.includes('intro') && (!practice.leaving || practice.learnedGoOn !== null);
+    }, undefined, { timeout: 15_000 });
+    const state = await page.evaluate(() => {
+      if (!window.__game.scene.getScenes(true).some((s) => s.scene.key === 'practice')) return { room: true, learned: false, notes: [] as { tick: number; midi: number }[] };
+      const practice = window.__game.scene.getScene('practice') as unknown as { learnedGoOn: unknown; chart: { notes: { tick: number; midi: number; track: string }[]; tracks: { id: string; role: string }[] } };
+      const play = new Set(practice.chart.tracks.filter((t) => t.role === 'play').map((t) => t.id));
+      const notes = practice.chart.notes.filter((n) => play.has(n.track)).sort((a, b) => a.tick - b.tick).map((n) => ({ tick: n.tick, midi: n.midi }));
+      return { room: false, learned: practice.learnedGoOn !== null, notes };
+    });
+    if (state.room) return;
+    if (state.learned) {
+      await page.evaluate(() => { window.__virtualDevice!.press(60, 80); window.__virtualDevice!.release(60); });
+      return;
+    }
+    // every note at its own time, at an even pace, so a measured run is not asked again for its pace
+    let at = state.notes[0]!.tick;
+    for (const n of state.notes) {
+      if (n.tick > at) await page.waitForTimeout(((n.tick - at) / 480) * 450);
+      at = n.tick;
+      await page.evaluate((m) => { window.__virtualDevice!.press(m, 80); window.__virtualDevice!.release(m); }, n.midi);
+    }
+    await page.waitForFunction(() => (window.__game.scene.getScene('practice') as unknown as { leaving: boolean }).leaving || window.__game.scene.getScenes(true).some((s) => s.scene.key === 'profile'));
+  }
+  throw new Error('the lesson was not learned');
+}
+
 test.describe('the first-run intro (ft_1_31)', () => {
-  test('ft_1_31.AC1 ft_1_31.AC2 ft_1_31.AC3 ft_1_31.AC4 ft_1_31.AC6 a new player is shown the room and the map and walked through learn, practise and the tug on Twinkle', async ({ page }) => {
-    test.setTimeout(120_000);
+  test('ft_1_31.AC1 ft_1_31.AC2 ft_1_31.AC3 ft_1_31.AC4 ft_1_31.AC6 ft_1_31.AC8 a new player is shown the room and the map and walked through learning bar by bar, practise and the tug on Twinkle', async ({ page }) => {
+    test.setTimeout(240_000);
     const errors = await newPlayer(page);
     const spotlight = spotlights(page);
 
@@ -150,7 +190,9 @@ test.describe('the first-run intro (ft_1_31)', () => {
     });
     expect(asWritten).toEqual({ percent: 100, picking: null, intro: true, actions: 3, buttons: true });
     expect((await page.evaluate(() => window.__game.registry.get('context').profiles.playSettings.mode)) as string).toBe('wait');
-    await playLesson(page);
+    await learnLesson(page);
+    // the lesson was the intro's own: the piece itself is not counted as learned, nor played
+    expect(await page.evaluate(() => (window.__game.registry.get('context').profiles.learnProgressOf('twinkle-twinkle') as { step: number }).step)).toBe(0);
 
     // practise: back in the room the teacher asks for two more plays
     await waitForScene(page, 'profile');
@@ -192,6 +234,7 @@ test.describe('the first-run intro (ft_1_31)', () => {
     await page.keyboard.press('Escape');
     await expect.poll(() => flags(page)).toContain('intro.done');
     expect(await room(page, 'introState')).toBeNull();
+    await expect.poll(() => sceneButton(page, 'profile', 'Kiur')).toBeGreaterThanOrEqual(0);
     // a visit again: no intro
     await page.evaluate(() => { window.__game.scene.start('profile'); });
     await waitForScene(page, 'profile');
@@ -238,7 +281,7 @@ test.describe('the first-run intro (ft_1_31)', () => {
   });
 
   test('ft_1_31.AC5 the skip button over the tug ends the intro there, with no end stage after it', async ({ page }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(240_000);
     const errors = await newPlayer(page);
     const spotlight = spotlights(page);
     await toTheKnock(page, spotlight);
@@ -246,7 +289,7 @@ test.describe('the first-run intro (ft_1_31)', () => {
     await readTalk(page);
     await practiceUnderSpotlight(page);
     await spotlight();
-    await playLesson(page);
+    await learnLesson(page);
     await waitForScene(page, 'profile');
     await readTalk(page);
     await practiceUnderSpotlight(page);

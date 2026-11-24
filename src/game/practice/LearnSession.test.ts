@@ -83,6 +83,58 @@ describe('LearnSession', () => {
     expect(session()).toBeNull();
   });
 
+  it('the learned line names the pace of the run that learned the piece, not the baseline', async () => {
+    const { session } = open({ ...START_PROGRESS, step: 1, wholeStreak: 2, lastDay: '1998-11-22', bpm: [60, 60] });
+    const last = session();
+    const played = playRun(last, [0, 800, 1600, 2400]);
+    expect(played).toEqual({ outcome: 'perfect', bpm: 75 });
+    await last.finish(played.outcome, played.bpm);
+    expect(last.learned).toBe(true);
+    expect(last.endLine(played.outcome, played.bpm)).toBe('Learned: every note right, at an even 75');
+  });
+
+  it('ft_1_32.AC19 the prizes stay on the staff at the moment the piece is learned, the clef earned and nothing more aimed at', async () => {
+    const { session } = open({ ...START_PROGRESS, step: 1, wholeStreak: 2, lastDay: '1998-11-22' });
+    const last = session();
+    expect(last.prizeFocus(last.rewards()).clef).toBe(true);
+    const played = playRun(last, [0, 800, 1600, 2400]);
+    await last.finish(played.outcome, played.bpm);
+    const rewards = last.rewards();
+    expect(rewards.piece).not.toBeNull();
+    expect(last.prizeFocus(rewards)).toEqual({ chunk: 0, bars: [], chunks: [], clef: false });
+  });
+
+  it('a step played three times in a row says which play it is, so its line is never the same twice', async () => {
+    const { session } = open({ ...START_PROGRESS, step: 1, lastDay: '1998-11-22' });
+    const lines: string[] = [];
+    for (let run = 0; run < 3; run++) {
+      const now = session();
+      lines.push(now.startLine());
+      const played = playRun(now, [0, 1000, 2000, 3000]);
+      await now.finish(played.outcome, played.bpm);
+    }
+    expect(lines).toEqual(['Bar 1 once more, at an even pace (play 1 of 3)', 'Bar 1 once more, at an even pace (play 2 of 3)', 'Bar 1 once more, at an even pace (play 3 of 3)']);
+  });
+
+  it('ft_1_32.AC12 with hands apart, the step after each hand alone says both hands', async () => {
+    const notes = [0, 1].flatMap((bar) => [{ tick: bar * 1920, dur: 480, midi: 64, track: 'rh' }, { tick: bar * 1920, dur: 480, midi: 48, track: 'lh' }]);
+    notes.push({ tick: 1920, dur: 1920, midi: 52, track: 'bk' });
+    const twoHands = chartWith(notes);
+    const kept = { progress: START_PROGRESS };
+    const profileOf: LearnProfile = {
+      learnSettings: { ...DEFAULT_LEARN_SETTINGS, handsApart: true }, learnProgressOf: () => kept.progress, practiceFor: () => [], recordFor: () => undefined,
+      saveLearnProgress: (_, progress) => { kept.progress = progress; return Promise.resolve(true); },
+    };
+    const lines: string[] = [];
+    for (let run = 0; run < 3; run++) {
+      const now = LearnSession.open(profileOf, twoHands, '1998-11-22')!;
+      lines.push(now.startLine());
+      await now.finish('perfect');
+      if (run === 1) lines.push(now.nextLine());
+    }
+    expect(lines).toEqual(['Bar 1, right hand alone: every note right', 'Bar 1, left hand alone: every note right', 'Bar 1, both hands: every note right', 'Bar 1, both hands: every note right']);
+  });
+
   it('counts nothing with note names shown', () => {
     expect(open().session().outcomeOf(piece, true)).toEqual({ outcome: 'hinted' });
   });
@@ -144,20 +196,36 @@ describe('LearnSession', () => {
     expect(third.verdict).toEqual({ state: 'perfect' });
   });
 
+  it('ft_1_32.AC17 measures the run while it is played: no tempo before three notes, then the pace, spread and wobble so far', () => {
+    const run = open().session();
+    expect(run.liveTempo).toBeNull();
+    const mode = new WaitMode(run.chart);
+    const press = (i: number, timeMs: number) => run.push(mode.handle({ kind: 'on', midi: midis[i]!, velocity: 80, timeMs, source: 'test' }), run.chart);
+    press(0, 0);
+    press(1, 1000);
+    expect(run.liveTempo).toBeNull();
+    press(2, 2000);
+    expect(run.liveTempo).toMatchObject({ bpm: 60, spread: 0, robust: 0 });
+    press(3, 3600);
+    expect(run.liveTempo!.spread).toBeGreaterThan(0);
+  });
+
   it('ft_1_32.AC11 never stops for speed before a baseline tempo is measured', () => {
     expect(open().session().rushStops).toBe(false);
   });
 
-  it('ft_1_32.AC12 a new two-hand piece is learned hands apart: the right hand alone first, on its own staff', async () => {
+  it('ft_1_32.AC12 with hands apart chosen, a new two-hand piece starts with the right hand alone, on its own staff', async () => {
     const both = chartWith([{ tick: 0, dur: 480, midi: 64 }, { tick: 0, dur: 480, midi: 48, track: 'lh' }, { tick: 480, dur: 1440, midi: 65 }]);
     const kept = { progress: START_PROGRESS };
     const profileOf: LearnProfile = {
-      learnSettings: DEFAULT_LEARN_SETTINGS, learnProgressOf: () => kept.progress, practiceFor: () => [], recordFor: () => undefined,
+      learnSettings: { ...DEFAULT_LEARN_SETTINGS, handsApart: true }, learnProgressOf: () => kept.progress, practiceFor: () => [], recordFor: () => undefined,
       saveLearnProgress: (_, progress) => { kept.progress = progress; return Promise.resolve(true); },
     };
     const session = LearnSession.open(profileOf, both, '1998-11-22')!;
     expect(session.run.step.hand).toBe('RH');
     expect(session.chart.tracks.filter((t) => t.role === 'play').map((t) => t.hand)).toEqual(['RH']);
+    // ft_1_32.AC18 the left hand rests: its staff is drawn grey and not awaited
+    expect(session.restingTracks).toEqual(both.tracks.filter((t) => t.hand === 'LH').map((t) => t.id));
     expect(session.startLine()).toBe('Bar 1, right hand alone: every note right');
     await session.finish('perfect');
     expect(kept.progress.handsApart).toBe(true);

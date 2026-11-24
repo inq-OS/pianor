@@ -295,7 +295,7 @@ describe('ProfileService', () => {
 
   it('learning a piece (ft_1_32): progress per piece and the learning settings survive a restart; an older save reads as nothing started', async () => {
     const { service, repository } = await setup();
-    expect(service.learnSettings).toEqual({ stepBars: 1, markers: true, markersFrom: 2 });
+    expect(service.learnSettings).toEqual({ stepBars: 1, markers: true, markersFrom: 2, handsApart: false });
     expect(service.learnProgressOf('a')).toEqual({ step: 0, wholeStreak: 0, recall: false, confirm: false, misses: 0, medals: [], lastDay: null });
     const progress = { step: 3, wholeStreak: 0, recall: false, confirm: true, misses: 1, medals: ['gold', 'silver', 'gold'] as const, lastDay: '1998-11-22', bpm: [60, 72], unsteady: 1,
       tests: [{ day: '1998-11-22', step: 2, bpm: 60, sd: 12, mad: 9, drift: -4, halts: 0, steady: true }] };
@@ -304,7 +304,7 @@ describe('ProfileService', () => {
     const restarted = await ProfileService.create({ repository, config, catalogue: () => CATALOGUE, now: () => new Date('1998-10-05T12:00:00.000Z') });
     expect(restarted.learnProgressOf('a')).toEqual(progress);
     expect(restarted.learnProgressOf('b').step).toBe(0);
-    expect(restarted.learnSettings).toEqual({ stepBars: 2, markers: true, markersFrom: 1 });
+    expect(restarted.learnSettings).toEqual({ stepBars: 2, markers: true, markersFrom: 1, handsApart: false });
     await expect(restarted.updateLearnSettings({ markersFrom: 9 })).rejects.toThrow();
     // a save from before ft_1_32 has neither field
     const loaded = await repository.load(restarted.profile.id);
@@ -347,16 +347,16 @@ describe('ProfileService', () => {
     expect(restarted.durationHelp).toEqual({ RH: 'off', LH: 'off' });
   });
 
-  it('a finished battle adds its XP, is saved, and shows in progress after a restart', async () => {
+  it('ft_1_21.AC9 a finished tug adds its XP, is saved, and shows in progress after a restart', async () => {
     const store = new MemoryStore();
     const { service } = await setup(store);
-    const outcome = await service.completeBattle({ monsterId: 'wobble', pieceId: 'a', won: false, hpTaken: 10, maxHp: 20, potentialXp: 30, rounds: 1, playerHpLeft: 0, playerMaxHp: 100, xp: 8 });
+    const outcome = await service.completeTug({ characterId: 'puuvaim', pieceId: 'a', won: false, potentialXp: 30, exchanges: 1, xp: 8 });
     expect(outcome.saved).toBe(true);
-    expect(outcome.events.map((e) => e.type)).toEqual(['BattleFinished']);
+    expect(outcome.events.map((e) => e.type)).toEqual(['TugFinished']);
     expect(service.progress.totalXp).toBe(8);
     const restarted = (await setup(store)).service;
     expect(restarted.progress.totalXp).toBe(8);
-    expect(restarted.profile.battles).toHaveLength(1);
+    expect(restarted.profile.tugs).toHaveLength(1);
   });
 
   it('reports why an import failed and leaves the active player alone', async () => {
@@ -475,12 +475,7 @@ describe('ft_1_07.AC6: rename and delete a player (admin)', () => {
     expect(service.profile.id).toBe(first);
     expect(service.profiles.map((p) => p.name)).toEqual(['Player 1']);
   });
-  it('updateCampaign keeps the campaign state for the active player and reports it saved (ft_1_06 phase 1)', async () => {
-    const { service } = await setup();
-    const next = { ...service.campaign, phase: service.campaign.phase.map((p, i) => (i === 0 ? 'find-door' as const : p)) };
-    expect(await service.updateCampaign(next)).toBe(true);
-    expect(service.campaign).toEqual(next);
-  });
+
 });
 
 describe('ft_1_07.AC10: new players need a free name, at most 10 players', () => {

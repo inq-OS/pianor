@@ -1,0 +1,16 @@
+{
+  "id": "morning-song-intro",
+  "title": "Morning Song: Intro",
+  "level": 1,
+  "status": "draft",
+  "hands": ["RH"],
+  "phrases": [
+    { "name": "First half", "bars": [1, 6] },
+    { "name": "Second half", "bars": [7, 12] }
+  ],
+  "styles": ["original"],
+  "tags": ["c-position", "song-part"],
+  "source": "composed by an AI agent (Claude) for Pianor; original",
+  "license": "CC0-1.0",
+  "generator": { "kind": "manual" }
+}

@@ -2,7 +2,8 @@
 // The player's room opens the note-name trainer from the stand's panel (ft_1_08.AC11): one note on the staff with its name hidden, a wrong press costs a life
 // (a heart goes grey) and puts the name on the note, three lost lives end the round (a key or the toolbar's loop starts a new
 // one), and the B/H letter setting. Almost no text on the screen: hearts, not "Lives: 3"; no hints.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { clickAndRedraw, clickButton, expectNoErrors, openFromStand, openGame, profileButton, playWithVirtualPiano, sceneTexts, totalXp, waitForScene } from './helpers';
 
 const target = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('noteTrainer') as unknown as { round: { target: number } }).round.target);

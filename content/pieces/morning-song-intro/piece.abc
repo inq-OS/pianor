@@ -1,0 +1,10 @@
+X:1
+T:Morning Song: Intro
+M:4/4
+L:1/4
+Q:1/4=80
+K:C
+% The intro of the example song (ft_1_36): steps in C position.
+!1!C !2!D !3!E !4!F | !5!G2 !5!G2 | !4!F !3!E !2!D !1!C | !2!D4 |
+!3!E !4!F !5!G !4!F | !3!E2 !2!D2 | !1!C !2!D !3!E !2!D | !1!C4 |
+!2!D !3!E !4!F !3!E | !2!D2 !3!E2 | !4!F !3!E !2!D !2!D | !1!C4 |]

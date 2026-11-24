@@ -2,8 +2,9 @@
 // The main menu (who is playing, and free play), the player's room (the profile screen, with Settings and Quit), the book
 // (song list) and the admin page with its name picker. progress.spec.ts covers the first checks; these tests add the
 // buttons and the paths it did not reach.
-import { expect, test, type Page } from '@playwright/test';
-import { addPlayer, bandAction, clickButton, clickToolbar, expectNoErrors, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene } from './helpers';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
+import { addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene } from './helpers';
 
 /** The main menu: from the piece list, the room's Quit goes there (`goToMainMenu`). */
 const openProfiles = async (page: Page) => {
@@ -249,6 +250,50 @@ test.describe('admin page (ft_1_07.AC6)', () => {
     await waitForScene(page, 'admin');
     expect(await sceneTexts(page, 'admin')).not.toContain('Renamed.');
     expect(await playerName(page)).toBe('TUVI');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box', async ({ page }) => {
+    const errors = await openGame(page);
+    await openAdmin(page);
+    await clickButton(page, 'admin', 2); // Rename player
+    await waitForScene(page, 'name');
+    const labels = () => page.evaluate(() => (window.__game.scene.getScene('name').buttons as { options: { label: string } }[]).map((b) => b.options.label));
+    expect((await labels()).filter((l) => /^\p{Lu}$/u.test(l))).toEqual([]);
+    await page.keyboard.type('MA1');
+    // a key that is not a name letter is not taken
+    await expect.poll(() => sceneTexts(page, 'name')).toContain('MA');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type('ARI');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'admin');
+    expect(await playerName(page)).toBe('MARI');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_07.AC6 a tablet types into the see-through field over the name box: it is focused, keeps only name letters and its caret stays at the end', async ({ page }) => {
+    const errors = await openGame(page);
+    await openAdmin(page);
+    await clickButton(page, 'admin', 2); // Rename player
+    await waitForScene(page, 'name');
+    const field = page.locator('#name-field');
+    await expect(field).toBeFocused();
+    // the field lies over the canvas, so a tap on the box lands on it and brings up a tablet's keyboard
+    const box = (await field.boundingBox())!;
+    const canvas = (await page.locator('canvas').boundingBox())!;
+    expect(box.width).toBeGreaterThan(50);
+    expect(box.x).toBeGreaterThanOrEqual(canvas.x);
+    expect(box.x + box.width).toBeLessThanOrEqual(canvas.x + canvas.width);
+    // a tablet's keyboard writes text, not keys: what is no name letter goes, the rest in capitals
+    await field.fill('mõ1ri');
+    await expect.poll(() => sceneTexts(page, 'name')).toContain('MÕRI');
+    expect(await field.inputValue()).toBe('MÕRI');
+    // a tap anywhere on the box puts the field's own caret back at the end, where the game draws its red one
+    await field.click({ position: { x: 2, y: box.height / 2 } });
+    expect(await field.evaluate((f: HTMLInputElement) => [f.selectionStart, f.selectionEnd])).toEqual([4, 4]);
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'admin');
+    expect(await playerName(page)).toBe('MÕRI');
     expectNoErrors(errors);
   });
 
@@ -557,6 +602,53 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
     expectNoErrors(errors);
   });
 
+  test('ft_1_37.AC10 the teacher sets a character and sends a wanderer: every press shows on the page, Save keeps them', async ({ page }) => {
+    const errors = await openGame(page);
+    await openProfiles(page);
+    await clickButton(page, 'profiles', await profileButton(page, 'Teacher'));
+    await waitForScene(page, 'teacherGate');
+    await page.keyboard.type('pianor');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'teacher');
+    await expect.poll(() => sceneButton(page, 'teacher', 'Characters')).toBeGreaterThan(-1);
+    await clickButton(page, 'teacher', await sceneButton(page, 'teacher', 'Characters'));
+    await waitForScene(page, 'teacherCast');
+    // the defaults: on, every day, 50 per cent, its own piece, neediness 3 with the tug's level shares
+    await expect.poll(() => sceneTexts(page, 'teacherCast')).toEqual(expect.arrayContaining(['Comes', 'yes', 'Mo Tu We Th Fr Sa Su', '50%', 'its own', '3: 60 80 95%']));
+    const saved = () => page.evaluate(async () => {
+      const { profiles } = window.__game.registry.get('context');
+      return ((await profiles.curriculumOf(profiles.profile.id)) as { cast?: unknown }).cast;
+    });
+    const press = async (label: string) => clickButton(page, 'teacherCast', await sceneButton(page, 'teacherCast', label));
+    await press('Off');
+    await press('Su');
+    await press('+10%');
+    await press('+1');
+    // shown on the page, and nothing kept until Save (d286)
+    await expect.poll(() => sceneTexts(page, 'teacherCast')).toEqual(expect.arrayContaining(['no', 'Mo Tu We Th Fr Sa', '60%', '4: 70 90 100%', 'Not saved yet']));
+    expect(await saved()).toBeUndefined();
+    await press('Save');
+    await page.screenshot({ path: 'test-results/teacher-cast-character.png' });
+    const first = await page.evaluate(() => (window.__game.scene.getScene('teacherCast') as unknown as { chosen: string }).chosen);
+    await expect.poll(saved).toEqual({ characters: { [first]: { on: false, weekdays: [1, 2, 3, 4, 5, 6], chance: 0.6, neediness: 4 } } });
+    // the wanderer: sent for today
+    await press('Traveler');
+    await expect.poll(() => sceneTexts(page, 'teacherCast')).toEqual(expect.arrayContaining(['a learned piece', '3: 80%', 'not sent']));
+    await press('Send');
+    await expect.poll(() => sceneTexts(page, 'teacherCast')).toContain('sent');
+    await press('Save');
+    await expect.poll(async () => ((await saved()) as { sent?: { wanderer: string }[] }).sent?.map((s) => s.wanderer)).toEqual(['traveller']);
+    await page.screenshot({ path: 'test-results/teacher-cast.png' });
+    // Back with something not saved says so first, and leaves without saving on a second press
+    await press('+1');
+    await clickToolbar(page, 'back');
+    await expect.poll(() => sceneTexts(page, 'teacherCast')).toContain('Not saved. Back again leaves without saving.');
+    await clickToolbar(page, 'back');
+    await waitForScene(page, 'teacher');
+    expect(await saved()).not.toHaveProperty('characters.traveller');
+    expectNoErrors(errors);
+  });
+
   test("ft_1_26.AC8 a curriculum piece has the teacher's hat on its title line in the piece book; the others have none", async ({ page }) => {
     const errors = await openGame(page);
     const title: string = await page.evaluate(async () => {
@@ -570,31 +662,83 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
     const hats = () => page.evaluate((label) => {
       const scene = window.__game.scene.getScene('menu') as unknown as { root: { list: { name: string; x: number; y: number }[] }; buttons: { options: { label: string }; rect: { x: number; y: number; width: number; height: number } }[] };
       const card = scene.buttons.find((b) => b.options.label === label)!.rect;
-      return scene.root.list.filter((o) => o.name === 'curriculumHat').map((o) => o.x >= card.x + card.width && o.y >= card.y && o.y < card.y + card.height);
+      return scene.root.list.filter((o) => o.name === 'curriculumHat').map((o) => (o.x >= card.x + card.width || o.x < card.x) && o.y >= card.y && o.y < card.y + card.height);
     }, title);
-    // one hat, on the curriculum piece's title line right of its title, with the days left to its deadline beside it (nothing played yet)
+    // one hat, on the curriculum piece's title line just past its title (away from the spine), with the days left to its deadline beside it (nothing played yet)
     await expect.poll(hats).toEqual([true]);
     const days = await page.evaluate(() => (window.__game.scene.getScene('menu') as unknown as { root: { list: { name: string; text?: string }[] } }).root.list.filter((o) => o.name === 'curriculumDays').length);
     expect(days).toBe(1);
     expectNoErrors(errors);
   });
 
-  test("ft_1_12.AC10 the band's filter hides the teacher's pieces and shows them again", async ({ page }) => {
+  test('ft_1_12.AC10 every title in the book is lined up to the spine: right-aligned on the left page, left-aligned on the right', async ({ page }) => {
+    const errors = await openGame(page);
+    await waitForScene(page, 'menu');
+    const sides = await page.evaluate(() => {
+      const menu = window.__game.scene.getScene('menu') as unknown as { pieceButtons: { rect: { x: number; width: number }; textLines(): { x: number; width: number }[] }[] };
+      const rects = menu.pieceButtons.map((b) => b.rect);
+      const middle = (Math.min(...rects.map((r) => r.x)) + Math.max(...rects.map((r) => r.x + r.width))) / 2;
+      return menu.pieceButtons.flatMap((b) => b.textLines().slice(0, 1).map((line) => ({
+        left: b.rect.x + b.rect.width / 2 < middle,
+        gapLeft: line.x - b.rect.x,
+        gapRight: b.rect.x + b.rect.width - (line.x + line.width),
+      })));
+    });
+    expect(sides.some((s) => s.left)).toBe(true);
+    expect(sides.some((s) => !s.left)).toBe(true);
+    for (const s of sides) {
+      // the title starts at the button's edge by the spine
+      expect(s.left ? s.gapRight : s.gapLeft).toBeLessThanOrEqual(7);
+    }
+    expectNoErrors(errors);
+  });
+
+  test("ft_1_12.AC10 ft_1_12.AC11 the teacher's bookmark shows only the teacher's pieces; the order button puts the nearest deadline first", async ({ page }) => {
     const errors = await openGame(page);
     const title: string = await page.evaluate(async () => {
       const context = window.__game.registry.get('context');
-      const piece = context.pieces.list()[0];
+      const pieces = context.pieces.list();
+      // the last piece of the book, so that ordering by deadline visibly moves it to the front
+      const piece = pieces[pieces.length - 1];
       await context.profiles.saveCurriculum(context.profiles.profile.id, { base: 85, calendar: [], pieces: [{ piece: piece.chart.id, deadline: '1998-12-20', priority: 5 }] });
       (window.__game.scene.getScene('menu') as unknown as { scene: { restart(): void } }).scene.restart();
       return piece.chart.title as string;
     });
     await waitForScene(page, 'menu');
-    await expect.poll(() => menuButton(page, title)).toBeGreaterThanOrEqual(0);
-    // the band's switches: own, curriculum, character
-    await clickButton(page, 'menu', await bandAction(page, 'menu', 1));
-    await expect.poll(() => menuButton(page, title)).toBe(-1);
-    await clickButton(page, 'menu', await bandAction(page, 'menu', 1));
-    await expect.poll(() => menuButton(page, title)).toBeGreaterThanOrEqual(0);
+    const all = await allMenuTitles(page);
+    expect(all).toContain(title);
+    expect(all[0]).not.toBe(title);
+    /** Press a bookmark with the real mouse. */
+    const pressBookmark = async (mark: string) => {
+      const point = await page.evaluate((m) => {
+        const c = (window.__game.scene.getScene('menu').bookmarkButtons.get(m) as { screenCenter(): { x: number; y: number } }).screenCenter();
+        const canvas = document.querySelector('canvas')!;
+        const r = canvas.getBoundingClientRect();
+        return { x: r.left + (c.x / canvas.width) * r.width, y: r.top + (c.y / canvas.height) * r.height };
+      }, mark);
+      await page.mouse.click(point.x, point.y);
+      await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('menu').bookmark as string)).toBe(mark);
+    };
+    await pressBookmark('curriculum');
+    await expect.poll(() => allMenuTitles(page)).toEqual([title]);
+    await pressBookmark('character');
+    expect(await allMenuTitles(page)).not.toContain(title);
+    await pressBookmark('all');
+    await expect.poll(() => allMenuTitles(page)).toEqual(all);
+    // the order button opens its choices as pictures; the nearest deadline first brings the teacher's piece to the front
+    await showMenuPageWith(page, all[0]!);
+    await clickButton(page, 'menu', await bandAction(page, 'menu', 0));
+    // under the pointer a choice shows the titles it would put on the page, faintly, before it is picked (d286)
+    const choice = await lastButton(page, 'menu', 'Nearest deadline first');
+    const point = await buttonPoint(page, 'menu', choice);
+    await page.mouse.move(point.x, point.y);
+    const previewed = () => page.evaluate(() => (window.__game.scene.getScene('menu').children.list as unknown as { list?: { name: string; text?: string }[] }[])
+      .flatMap((o) => o.list ?? []).filter((o) => o.name === 'orderPreview').map((o) => o.text));
+    await expect.poll(async () => (await previewed())[0]).toBe(title);
+    expect(await page.evaluate(() => window.__game.scene.getScene('menu').order as string)).toBe('book');
+    await clickButton(page, 'menu', choice);
+    await expect.poll(async () => (await allMenuTitles(page))[0]).toBe(title);
     expectNoErrors(errors);
   });
+
 });

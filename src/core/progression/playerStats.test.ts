@@ -15,12 +15,12 @@ describe('the player\'s card (ft_1_20.AC13)', () => {
     expect(playerStats(profile, deriveProgress(profile, config))).toEqual({
       level: 1, xpIntoLevel: 0, xpForLevel: 100, totalXp: 0,
       piecesPlayed: 0, passes: 0, fiveStarPieces: 0,
-      campaignLevelsBeaten: 0,
+      tugsWon: 0,
       noteTrainerXp: 0, earPoints: 0,
     });
   });
 
-  it('ft_1_20.AC13 counts what the save holds: pieces, passes, five-star pieces, the campaign and the trainers', () => {
+  it('ft_1_20.AC13 counts what the save holds: pieces, passes, five-star pieces, the tugs won and the trainers', () => {
     const migrated = parseProfile(fixture, config);
     if (!migrated.ok) throw new Error(migrated.errors.join(', '));
     const profile = { ...migrated.profile, trainerXp: 12, earPoints: 7 };
@@ -31,7 +31,7 @@ describe('the player\'s card (ft_1_20.AC13)', () => {
     expect(stats.piecesPlayed).toBe(Object.keys(progress.pieces).length);
     expect(stats.passes).toBe(profile.attempts.length);
     expect(stats.fiveStarPieces).toBe(Object.values(progress.pieces).filter((p) => p.bestGrade === 5).length);
-    expect(stats.campaignLevelsBeaten).toBe(profile.campaign.beaten.flat().filter(Boolean).length);
+    expect(stats.tugsWon).toBe(3); // the fixture's five tugs: three won, two lost
     expect([stats.noteTrainerXp, stats.earPoints]).toEqual([12, 7]);
   });
 });

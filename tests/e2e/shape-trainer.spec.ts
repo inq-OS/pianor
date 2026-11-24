@@ -2,7 +2,8 @@
 // The stand's panel opens the scales and chords trainer (ft_1_29 slice A): the scale of the chosen key on the staff, played
 // in Wait mode with three lives; a wrong key costs a heart and says why, the names come on the notes, and the XP of the
 // right notes is kept after a lost round. The key comes from the circle of fifths, the shape and the hand from the toolbar.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { clickButton, expectNoErrors, openFromStand, openGame, playWithVirtualPiano, profileButton, sceneButton, sceneTexts, totalXp, waitForScene } from './helpers';
 
 const SCENE = 'shapeTrainer';

@@ -1,6 +1,6 @@
 import type { PlaySettings } from '../core/judge/playSettings';
-import type { LearnSettings } from '../core/learn/progress';
-import { BAR_NUMBER_MODES, barNumbersToShow, type BarNumberMode } from '../core/layout/barNumbers';
+import { learnLiveTempo, type LearnSettings } from '../core/learn/progress';
+import { BAR_NUMBER_MODES, type BarNumberMode } from '../core/layout/barNumbers';
 import type { DurationMark } from '../core/layout/durationHelp';
 import type { StaffSettings } from '../core/layout/staffSettings';
 import { bugReportUrl, screenFacts } from '../core/report/bugReportLink';
@@ -12,7 +12,7 @@ import type { Bitmap } from './ui/pixel/bitmap';
 import { C } from './ui/pixel/palette';
 import { Mascot } from './ui/pixel/PixelObjects';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
-import { SYMBOL_HEIGHT, SYMBOL_WIDTH, durationSymbol, linesSymbol, scoreSymbol, staffGapSymbol } from './ui/pixel/settingArt';
+import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, durationSymbol, fingersSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, liveTempoSymbol, markersFromSymbol, markersSymbol, namingSymbol, scoreSymbol, staffGapSymbol } from './ui/pixel/settingArt';
 import { freshData, startScene } from './scenes';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 
@@ -31,6 +31,8 @@ const OPTION_GAP = 4;
 const SETTING_WIDTH = SYMBOL_WIDTH + 6;
 const SETTING_HEIGHT = SYMBOL_HEIGHT + 4;
 const NAME_GAP = 6;
+/** The shaded fold down the middle of the open book: no name runs into it. */
+const FOLD_ROOM = 8;
 // AX-3 provisional (d110): a normal-size title and the rows and hint moved up, so the four rows, the hint and the bottom
 // corner vines fit the 320 x 157 main area
 const FIRST_ROW_Y = 39;
@@ -154,7 +156,8 @@ export class SettingsScene extends PixelScene {
       },
     });
     const nameX = x + SETTING_WIDTH + NAME_GAP;
-    const end = column === 0 ? columnX(1, this.px.width) - OPTION_GAP : this.px.width - MARGIN;
+    // a name on the left page wraps short of the book's fold
+    const end = column === 0 ? Math.floor(this.px.width / 2) - FOLD_ROOM : this.px.width - MARGIN;
     const text = this.label(nameX, y, name, C.white, { maxWidth: end - nameX });
     // the name's letters (tails left out) centred on the button
     text.y = Math.round(y - text.letterBox.bottom / 2);
@@ -206,17 +209,15 @@ export class SettingsScene extends PixelScene {
     const barNumberLabels: Record<BarNumberMode, string> = {
       off: t('settings.barNumbersOff'), first: t('settings.barNumbersFirst'), every: t('settings.barNumbersEvery'), every2: t('settings.barNumbersEvery2'), every4: t('settings.barNumbersEvery4'),
     };
-    // the first numbers the setting shows ("1 3 5" for every 2nd bar), blank for none
-    const barNumbers = BAR_NUMBER_MODES.map((mode) => ({ value: mode, label: barNumberLabels[mode], text: barNumbersToShow(mode, 9).slice(0, 3).map((b) => b.number).join(' ') }));
+    // five bars with the numbers the setting shows over them ("1 3 5" for every 2nd bar), none for off
+    const barNumbers = BAR_NUMBER_MODES.map((mode) => ({ value: mode, label: barNumberLabels[mode], symbol: barNumbersSymbol(mode) }));
     this.setting(1, 1, t('settings.barNumbers'), barNumbers, profiles.barNumberSettings.mode, (mode) => profiles.updateBarNumberSettings({ mode }));
     // the on-screen keyboard's switch is on this screen's toolbar (d099)
-    // every note of a chord shows its finger, or only the top one: the monster-count setting left the screen
-    // (the battle it was for is gone, ft_1_21); the saved choice stays, so the save format is unchanged
     // finger numbers: off, the top note of a chord, or every note of a chord; one button, so the grid keeps its size
     const fingerNumbers = [
-      { value: 'off' as const, label: t('settings.fingerNumbersOff'), text: t('settings.fingerNumbersOffShort') },
-      { value: 'top' as const, label: t('settings.chordFingersTop'), text: t('settings.chordFingersTopShort') },
-      { value: 'all' as const, label: t('settings.chordFingersAll'), text: t('settings.chordFingersAllShort') },
+      { value: 'off' as const, label: t('settings.fingerNumbersOff'), symbol: fingersSymbol('off') },
+      { value: 'top' as const, label: t('settings.chordFingersTop'), symbol: fingersSymbol('top') },
+      { value: 'all' as const, label: t('settings.chordFingersAll'), symbol: fingersSymbol('all') },
     ];
     this.setting(0, 2, t('settings.fingerNumbers'), fingerNumbers, profiles.fingerNumbers, (value) => profiles.updateFingerNumbers(value));
     const scores = ([['off', t('settings.scoreOff')], ['colour', t('settings.scoreColour')], ['number', t('settings.scoreNumber')]] as const)
@@ -234,16 +235,30 @@ export class SettingsScene extends PixelScene {
 
   /**
    * The second page: how a piece is learned bar by bar (ft_1_32 rules 2 and 6): the bars a step adds, which applies to the
-   * next piece begun (a piece in progress keeps its own, `learnStepBars`), and the mistake markers with the miss they come at.
+   * next piece begun (a piece in progress keeps its own, `learnStepBars`), the mistake markers with the miss they come at, and
+   * both hands together or hands apart for the next two-hand piece begun (`learnHandsApart`).
    */
   private learnPage(profiles: ProfileService): void {
     const learn = profiles.learnSettings;
-    const steps = ([1, 2] as const).map((value): Choice<LearnSettings['stepBars']> => ({ value, label: t(value === 1 ? 'settings.learnStepOne' : 'settings.learnStepTwo'), text: String(value) }));
+    // every choice is a picture, its words in the tooltip (d285)
+    const steps = ([1, 2] as const).map((value): Choice<LearnSettings['stepBars']> => ({ value, label: t(value === 1 ? 'settings.learnStepOne' : 'settings.learnStepTwo'), symbol: learnStepSymbol(value) }));
     this.setting(0, 0, t('settings.learnStep'), steps, learn.stepBars, (value) => profiles.updateLearnSettings({ stepBars: value }));
-    const markers = ([[true, t('settings.learnMarkersOn'), t('settings.learnMarkersOnShort')], [false, t('settings.learnMarkersOff'), t('settings.fingerNumbersOffShort')]] as const)
-      .map(([value, label, text]): Choice<boolean> => ({ value, label, text }));
+    const markers = ([[true, t('settings.learnMarkersOn')], [false, t('settings.learnMarkersOff')]] as const)
+      .map(([value, label]): Choice<boolean> => ({ value, label, symbol: markersSymbol(value) }));
     this.setting(1, 0, t('settings.learnMarkers'), markers, learn.markers, (value) => profiles.updateLearnSettings({ markers: value }));
-    const from = ([1, 2, 3, 4, 5] as const).map((n): Choice<number> => ({ value: n, label: t('settings.learnMarkersFromN', { n }), text: String(n) }));
+    const from = ([1, 2, 3, 4, 5] as const).map((n): Choice<number> => ({ value: n, label: t('settings.learnMarkersFromN', { n }), symbol: markersFromSymbol(n) }));
     this.setting(0, 1, t('settings.learnMarkersFrom'), from, learn.markersFrom, (value) => profiles.updateLearnSettings({ markersFrom: value }));
+    // a two-hand piece: both hands together (the default) or each step by one hand, then the other, then both (rule 13)
+    const hands = ([[false, t('settings.learnHandsTogether')], [true, t('settings.learnHandsApart')]] as const)
+      .map(([value, label]): Choice<boolean> => ({ value, label, symbol: learnHandsSymbol(value) }));
+    this.setting(1, 1, t('settings.learnHands'), hands, learn.handsApart ?? false, (value) => profiles.updateLearnSettings({ handsApart: value }));
+    // the run's live tempo in the top bar: a parent's or teacher's tool, off unless turned on (rule 18)
+    const live = ([[false, t('settings.learnLiveTempoOff')], [true, t('settings.learnLiveTempoOn')]] as const)
+      .map(([value, label]): Choice<boolean> => ({ value, label, symbol: liveTempoSymbol(value) }));
+    this.setting(1, 2, t('settings.learnLiveTempo'), live, learnLiveTempo(learn), (value) => profiles.updateLearnSettings({ liveTempo: value }));
+    // the letter naming, B or H (ft_0_17.AC4): the note names, the circle of fifths and the key names follow it
+    const namings = (['H', 'B'] as const).map((value): Choice<'B' | 'H'> => ({ value, label: t(value === 'H' ? 'settings.namingH' : 'settings.namingB'), symbol: namingSymbol(value) }));
+    this.setting(0, 2, t('settings.naming'), namings, profiles.noteNaming, (value) => profiles.updateNoteNaming(value));
   }
+
 }

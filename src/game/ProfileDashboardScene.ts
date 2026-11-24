@@ -12,7 +12,8 @@ import { drawnText, measure, renderText } from './ui/pixel/font';
 import { BAR_BUTTON_HEIGHT } from './ui/pixel/playBars';
 import { clipToWidth } from '../core/text/clip';
 import { playerStats } from '../core/progression/playerStats';
-import { PixelScene } from './ui/pixel/PixelScene';
+import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
+import { backpackOf } from './adventure/backpack';
 import { PAINTED } from './ui/pixel/keri/keriPictures';
 import { type Overlay } from './ui/pixel/pack';
 import { stripArt } from './ui/pixel/keri/stripArt';
@@ -231,6 +232,11 @@ export class ProfileDashboardScene extends PixelScene {
   private showKiur(open: boolean): void {
     this.kiurOpen = open;
     this.redraw();
+  }
+
+  /** The student's items, in the backpack in the top right corner (ft_1_21.AC15, ft_1_20, d282). */
+  protected override backpackItems(): ToolbarItem[] {
+    return backpackOf(this.world);
   }
 
   /** A scene object is reused on every visit: each visit to the room decides its sky again (ft_1_14 AC8). */
@@ -843,7 +849,7 @@ export class ProfileDashboardScene extends PixelScene {
       kind: 'practiceTug',
       level: 1,
       rules: trainerRules(TUG_RULES),
-      place: { area: { w: this.px.width, h: this.mainRows }, bandTop: this.bandTop, head: this.teacherHead ?? { x: Math.round(this.px.width / 2), y: 20 } },
+      place: { area: { w: this.px.width, h: this.mainRows }, head: this.teacherHead ?? { x: Math.round(this.px.width / 2), y: 20 } },
       devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome },
     }, {
       playing: () => undefined,
@@ -862,7 +868,10 @@ export class ProfileDashboardScene extends PixelScene {
     this.keepIntro(player, 'done');
     this.introStage = null;
     this.teacherHere = false;
+    // a skip in Kiur's spotlight ends the intro while the overlay still pauses the room: drawn again once it runs, so Kiur
+    // on the bed can be pressed on this visit (the way into learning, ft_1_32 rule 14)
     if (this.sys.isActive()) this.redraw();
+    else this.time.delayedCall(0, () => { if (this.sys.isActive() && !this.introStage) this.redraw(); });
   }
 
   /** The intro's stage running now, for the tests; null when none. */
@@ -886,7 +895,7 @@ export class ProfileDashboardScene extends PixelScene {
       kind: 'practiceTug',
       level,
       rules: trainerRules(TUG_RULES),
-      place: { area: { w: this.px.width, h: this.mainRows }, bandTop: this.bandTop, head },
+      place: { area: { w: this.px.width, h: this.mainRows }, head },
       devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome },
     }, {
       playing: () => undefined,
@@ -966,7 +975,7 @@ export class ProfileDashboardScene extends PixelScene {
       [t('card.pieces'), String(stats.piecesPlayed)],
       [t('card.passes'), String(stats.passes)],
       [t('card.fiveStars'), String(stats.fiveStarPieces)],
-      [t('card.campaign'), String(stats.campaignLevelsBeaten)],
+      [t('card.tugsWon'), String(stats.tugsWon)],
       [t('card.noteTrainer'), String(stats.noteTrainerXp)],
       [t('card.earPoints'), String(stats.earPoints)],
     ];

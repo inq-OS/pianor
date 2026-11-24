@@ -1,7 +1,7 @@
 import { solarElevation } from './sun';
 
 /**
- * The campaign sky's phase from the sun's height over a place (ft_1_14 scope item 2, d097). Thresholds and the place are
+ * The sky's phase from the sun's height over a place (ft_1_14 scope item 2, d097). Thresholds and the place are
  * options (AX-3 provisional): night below -6 degrees (end of civil twilight), dawn or dusk between, day above +3 degrees.
  */
 

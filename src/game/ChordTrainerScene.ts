@@ -10,6 +10,7 @@ import { heartRow } from './ui/pixel/hearts';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { startScene } from './scenes';
+import { watchKeyBash } from './practice/bashDoor';
 
 /** The chord's name: big, in the middle of the main area (art pixels: its top, and how many times the font size). */
 const NAME_Y = 40;
@@ -45,6 +46,8 @@ export class ChordTrainerScene extends PixelScene {
   override create(): void {
     this.input.keyboard?.on('keydown-ESC', () => this.leave());
     this.events.once('shutdown', () => this.stopListening());
+    // key bashing brings Kiur to the door here too (ft_1_15.AC8); the door is the way out
+    watchKeyBash(this, contextOf(this).keyboard, () => this.leave());
     this.input.on('pointerdown', (_pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
       if (over.length === 0) this.againIfOver();
     });
@@ -115,7 +118,7 @@ export class ChordTrainerScene extends PixelScene {
     const items: ToolbarItem[] = [
       { label: displayText(t('theory.step', { n: this.stepIndex + 1 })), icon: TOOL_ICONS.steps, tooltip: t('chords.stepTip'), onClick: () => this.startRound((this.stepIndex + 1) % content.steps.length) },
     ];
-    if (this.round.state().over) items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), onClick: () => this.startRound(this.stepIndex) });
+    if (this.round.state().over) items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), main: true, onClick: () => this.startRound(this.stepIndex) });
     return items;
   }
 

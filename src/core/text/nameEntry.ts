@@ -23,3 +23,11 @@ export function typeLetter(name: string, letter: string): string {
 export function deleteLetter(name: string): string {
   return Array.from(name).slice(0, -1).join('');
 }
+
+/**
+ * A name typed into a text field (the tablet's own keyboard, ft_1_07.AC6): in capitals, only the name letters, at most
+ * `NAME_MAX` of them; anything else typed is dropped.
+ */
+export function nameFrom(text: string): string {
+  return Array.from(text.toLocaleUpperCase('et')).filter((c) => NAME_LETTERS.includes(c)).slice(0, NAME_MAX).join('');
+}

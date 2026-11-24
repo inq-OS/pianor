@@ -1,6 +1,7 @@
-// Covers ft_1_02c.AC1, ft_1_02c.AC5, ft_1_02c.AC7, core_06.AC4.
-import { expect, test, type Page } from '@playwright/test';
-import { allMenuTitles, addPlayer, clickButton, expectNoErrors, goToMainMenu, menuButton, openGame, pickProfile, sceneButton, sceneTexts, showMenuPageWith, waitForScene, playerName } from './helpers';
+// Covers ft_1_02c.AC1, ft_1_02c.AC5, ft_1_02c.AC7, ft_1_02c.AC8, ft_1_02c.AC9, core_06.AC4.
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
+import { allMenuTitles, addPlayer, bandAction, clickButton, expectNoErrors, goToMainMenu, menuButton, openGame, pickProfile, sceneButton, sceneTexts, showMenuPageWith, waitForScene, playerName } from './helpers';
 
 const TWINKLE = 'Twinkle Twinkle Little Star';
 
@@ -46,7 +47,7 @@ async function leavePieces(page: Page): Promise<void> {
 }
 
 test.describe('turning pieces on and off', () => {
-  test('a piece turned off leaves the menu and fights, survives a reload, belongs to one player and comes back when turned on', async ({ page }) => {
+  test('a piece turned off leaves the menu, survives a reload, belongs to one player and comes back when turned on', async ({ page }) => {
     test.slow(); // the game loads twice
     const errors = await openGame(page);
     const all = await allMenuTitles(page);
@@ -89,6 +90,77 @@ test.describe('turning pieces on and off', () => {
     await clickButton(page, 'pieces', again);
     await expect.poll(() => hidden(page)).toEqual([]);
     await leavePieces(page);
+    expect(await allMenuTitles(page)).toEqual(all);
+    expectNoErrors(errors);
+  });
+});
+
+test.describe('taking a piece out of the book (ft_1_02c.AC8, AC9)', () => {
+  /** The on-screen point of a piece's hide button in the book, or null when it has none. */
+  const hidePoint = (page: Page, chartId: string) => page.evaluate((id) => {
+    const button = window.__game.scene.getScene('menu').hideButtons.get(id) as { screenCenter(): { x: number; y: number } } | undefined;
+    if (!button) return null;
+    const c = button.screenCenter();
+    const canvas = document.querySelector('canvas')!;
+    const r = canvas.getBoundingClientRect();
+    return { x: r.left + (c.x / canvas.width) * r.width, y: r.top + (c.y / canvas.height) * r.height };
+  }, chartId);
+  const armed = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('menu').armedHide as { piece: string } | null)?.piece ?? null);
+  /** The hide's stroke through a title shown now: 'armed', 'hint' (under the pointer) or null. */
+  const stroke = (page: Page) => page.evaluate(() => {
+    type Node = { name: string; visible: boolean; list?: Node[] };
+    const walk = (nodes: Node[]): Node[] => nodes.flatMap((o) => [o, ...walk(o.list ?? [])]);
+    const shown = walk(window.__game.scene.getScene('menu').children.list as unknown as Node[]).find((o) => o.name.startsWith('hideStroke') && o.visible);
+    return shown ? (shown.name.startsWith('hideStroke:armed') ? 'armed' : 'hint') : null;
+  });
+
+  test('ft_1_02c.AC8 the hide shows what it does, the first press only arms it, the second takes the piece out of the book; AC9 the book opens every piece and Back returns to it', async ({ page }) => {
+    const errors = await openGame(page);
+    const all = await allMenuTitles(page);
+    await showMenuPageWith(page, TWINKLE);
+    const point = await hidePoint(page, 'twinkle-twinkle');
+    expect(point, 'a piece in the book has a hide button').not.toBeNull();
+    // under the pointer: a faint stroke through its title (d286), nothing hidden
+    await page.mouse.move(point!.x, point!.y);
+    await expect.poll(() => stroke(page)).toBe('hint');
+    // the first press arms it: the card struck through, still in the book
+    await page.mouse.click(point!.x, point!.y);
+    await expect.poll(() => armed(page)).toBe('twinkle-twinkle');
+    expect(await stroke(page)).toBe('armed');
+    expect(await hidden(page)).toEqual([]);
+    // Esc puts it back to rest; a double click only arms it
+    await page.keyboard.press('Escape');
+    await expect.poll(() => armed(page)).toBeNull();
+    expect(await page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key))).toContain('menu');
+    await page.mouse.dblclick(point!.x, point!.y);
+    await expect.poll(() => armed(page)).toBe('twinkle-twinkle');
+    expect(await hidden(page)).toEqual([]);
+    // the second press, a moment later, takes it out
+    await page.waitForTimeout(600);
+    await page.mouse.click(point!.x, point!.y);
+    await expect.poll(() => hidden(page)).toEqual(['twinkle-twinkle']);
+    expect(await allMenuTitles(page)).toEqual(all.filter((title) => title !== TWINKLE));
+
+    // an armed hide that is not pressed again goes back to rest
+    const other = all.find((title) => title !== TWINKLE)!;
+    await showMenuPageWith(page, other);
+    const otherId = await page.evaluate((t) => (window.__game.registry.get('context').pieces.list() as { chart: { id: string; title: string } }[]).find((p) => p.chart.title === t)!.chart.id, other);
+    const otherPoint = (await hidePoint(page, otherId))!;
+    await page.mouse.click(otherPoint.x, otherPoint.y);
+    await expect.poll(() => armed(page)).toBe(otherId);
+    await expect.poll(() => armed(page), { timeout: 8000 }).toBeNull();
+    expect(await hidden(page)).toEqual(['twinkle-twinkle']);
+
+    // the book's strip opens every piece; the hidden one is put back, and Back goes to the book
+    await clickButton(page, 'menu', await bandAction(page, 'menu', 1));
+    await waitForScene(page, 'pieces');
+    const card = await openDrawerWith(page, TWINKLE);
+    expect(await sceneTexts(page, 'pieces')).toContain('Off');
+    await clickButton(page, 'pieces', card);
+    await expect.poll(() => hidden(page)).toEqual([]);
+    await page.keyboard.press('Escape');
+    await clickButton(page, 'pieces', await buttonIndex(page, 'pieces', 'Back'));
+    await waitForScene(page, 'menu');
     expect(await allMenuTitles(page)).toEqual(all);
     expectNoErrors(errors);
   });

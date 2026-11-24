@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 import { blit, createBitmap, recolor, toRgba, type Bitmap } from './bitmap';
 import { barBitmap, focusRingBitmap, inkBarBitmap, inkStar, labelOverflow, panelBitmap, tinted, trayBitmap, type BarColors, type PanelKind, type TrayKind } from './frames';
+import { BUBBLE_ALPHA, choicePatch, closePlate, OPTION_PLATE, OPTION_SIZE, optionFocus, optionPlate, type PlateLook } from './bubbleArt';
 import { C } from './palette';
-import { drawnText, letterBoxOf, renderText, type TextOptions } from './font';
+import { drawnText, letterBoxOf, LINE_GAP, LINE_HEIGHT, renderText, type TextOptions } from './font';
 import { MASCOT, STAR_EMPTY, STAR_FULL, type MascotFrame } from './sprites';
 import { ART_DETAIL } from '../../../core/layout/frame';
 import { TOOLTIP_DELAY_MS, tooltipBox } from '../../../core/layout/tooltip';
@@ -37,7 +38,7 @@ export class PixelImage extends Phaser.GameObjects.Image {
   private textureKey: string;
 
   /**
-   * `palette` colours the bitmap's indexes (the campaign sky's phase palette, ft_1_14); the base palette when not given.
+   * `palette` colours the bitmap's indexes (the sky's phase palette, ft_1_14); the base palette when not given.
    * Art already in colour (`RgbaArt`) is shown as it is.
    */
   constructor(scene: Phaser.Scene, x: number, y: number, bitmap: Bitmap | RgbaArt, palette?: readonly number[]) {
@@ -120,6 +121,8 @@ export class PixelText extends PixelImage {
   letterBox: { left: number; top: number; right: number; bottom: number };
 
   private options: TextOptions;
+  /** The letters as drawn last, kept so `lineBoxes` can find each line's ink. */
+  private drawn: Bitmap;
 
   constructor(scene: Phaser.Scene, x: number, y: number, text: string, options: TextOptions) {
     const { bitmap, letterBox } = PixelText.draw(text, options);
@@ -127,6 +130,29 @@ export class PixelText extends PixelImage {
     this.options = options;
     this.text = text;
     this.letterBox = letterBox;
+    this.drawn = bitmap;
+  }
+
+  /**
+   * Each line of the text as drawn, from its first to its last inked column and over its line's rows, in the scene's art
+   * pixels (scale and position applied); a line with no ink is left out. The menu strikes a title through by these (ft_1_02c.AC8).
+   */
+  lineBoxes(): { x: number; y: number; width: number; height: number }[] {
+    const { width, height, pixels } = this.drawn;
+    const scale = this.displayWidth / Math.max(1, width);
+    const boxes: { x: number; y: number; width: number; height: number }[] = [];
+    for (let top = 0; top < height; top += LINE_HEIGHT) {
+      let left = width, right = -1;
+      for (let y = top; y < Math.min(height, top + LINE_HEIGHT - LINE_GAP); y++) {
+        for (let x = 0; x < width; x++) {
+          if (pixels[y * width + x] === 0) continue;
+          left = Math.min(left, x);
+          right = Math.max(right, x);
+        }
+      }
+      if (right >= left) boxes.push({ x: this.x + left * scale, y: this.y + top * scale, width: (right - left + 1) * scale, height: (LINE_HEIGHT - LINE_GAP) * scale });
+    }
+    return boxes;
   }
 
   setText(text: string): this {
@@ -153,6 +179,7 @@ export class PixelText extends PixelImage {
   private show(text: string, options: TextOptions): this {
     const { bitmap, letterBox } = PixelText.draw(text, options);
     this.letterBox = letterBox;
+    this.drawn = bitmap;
     return this.setBitmap(bitmap);
   }
 
@@ -179,13 +206,13 @@ export interface PixelButtonOptions {
    * parchment (the main menu, ft_1_07): no panel at all, letters in dark ink that turn red under the pointer, with a red
    * line drawn under them; its icon is drawn in the same ink.
    */
-  look?: 'button' | 'card' | 'tab' | 'bandCell' | 'bandSlot' | 'ink';
+  look?: 'button' | 'card' | 'tab' | 'bandCell' | 'bandSlot' | 'ink' | 'bubble' | 'bubbleClose' | 'bubbleChoice';
   /** With the `ink` look: a box drawn round it by hand, so a small button written on paper reads as something to press (d130). */
   inkBox?: boolean;
   /** Letters twice as big, for headings. */
   big?: boolean;
-  /** `left` puts the label at the left edge (cards); the default centres it. */
-  align?: 'center' | 'left';
+  /** `left` puts the label at the left edge (cards), `right` at the right edge (a card on a book's left page); the default centres it. */
+  align?: 'center' | 'left' | 'right';
   /** Width available to the label in art pixels; the panel width less a margin by default. */
   labelWidth?: number;
   /** A locked button looks dim and does nothing. */
@@ -243,7 +270,10 @@ export class PixelButton {
     const left = Math.floor(options.x - width / 2);
     const top = Math.floor(options.y - height / 2);
     this.box = { x: left, y: top, width, height };
-    this.panel = new PixelImage(scene, left, top, this.face());
+    // a plate of the bubble is drawn larger than its box, centred on it, and see-through; a press counts in the box only
+    const over = this.overhang();
+    this.panel = new PixelImage(scene, left - over, top - over, this.face());
+    if (this.isBubble()) this.panel.setAlpha(BUBBLE_ALPHA);
     const big = options.big === true;
     const iconScale = options.fineIcon ? 1 / ART_DETAIL : 1;
     const iconRoom = options.icon && !options.iconOnly ? options.icon.width * iconScale + ICON_PAD : 0;
@@ -262,7 +292,8 @@ export class PixelButton {
     this.layout();
 
     // A disabled button takes no press and no hover look; its tooltip still explains why it is off (when it has one).
-    this.panel.setInteractive({ useHandCursor: !this.disabled });
+    if (over > 0) this.panel.setInteractive({ hitArea: new Phaser.Geom.Rectangle(over, over, width, height), hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: !this.disabled });
+    else this.panel.setInteractive({ useHandCursor: !this.disabled });
     this.panel.on('pointerover', () => {
       if (!this.disabled) this.set({ hover: true });
       options.onHover?.(true);
@@ -318,7 +349,8 @@ export class PixelButton {
       return;
     }
     const { x, y, width, height } = this.box;
-    this.ring = new PixelImage(this.panel.scene, x - 2, y - 2, focusRingBitmap(width, height));
+    const over = this.overhang();
+    this.ring = this.isBubble() ? new PixelImage(this.panel.scene, x - over - 2, y - over - 2, optionFocus(width + 2 * over)) : new PixelImage(this.panel.scene, x - 2, y - 2, focusRingBitmap(width, height));
     this.panel.parentContainer?.add(this.ring);
     // a picture has no label on it: the keyboard shows its name at once
     if (this.options.picture) {
@@ -400,6 +432,11 @@ export class PixelButton {
     this.objects.forEach((o) => o.destroy());
   }
 
+  /** Each line of the label as drawn, in art pixels (`PixelText.lineBoxes`); none for a button that draws no label. */
+  textLines(): { x: number; y: number; width: number; height: number }[] {
+    return this.options.iconOnly || this.options.picture ? [] : this.label.lineBoxes();
+  }
+
   /** The label and sublabel as drawn, with how far their letters reach past the frame (`labelOverflow`); tests read it. */
   labelFit(): { label: string; overflow: number } {
     const reach = (text: PixelText, scale: number) => {
@@ -415,9 +452,9 @@ export class PixelButton {
 
   /** Letters in white with a shadow; dark on the gold of a switched-on button; dim on a locked one. */
   private labelStyle(): TextOptions {
-    const align = this.options.align === 'left' ? 'left' : 'center';
+    const align = this.options.align ?? 'center';
     const base = { maxWidth: this.maxLabelWidth, align, ...(this.options.keepCase ? { keepCase: true } : {}) } as const;
-    if (this.look === 'bandCell' || this.look === 'bandSlot') return { color: this.disabled ? C.honeyDark : this.active ? C.goldLight : this.hover ? C.cream : C.honey, ...base };
+    if (this.look === 'bandCell' || this.look === 'bandSlot' || this.isBubble()) return { color: this.disabled ? C.honeyDark : this.active ? C.goldLight : this.hover ? C.cream : C.honey, ...base };
     if (this.look === 'ink') return { color: this.inkColour(), ...base };
     if (this.disabled) return { color: C.dim, ...base };
     if (this.active && this.look === 'tab') return { color: C.gold, shadow: C.groove, ...base };
@@ -427,7 +464,7 @@ export class PixelButton {
 
   private subStyle(): TextOptions {
     const maxWidth = this.options.labelWidth ?? this.box.width - 8;
-    const align = this.options.align === 'left' ? 'left' : 'center';
+    const align = this.options.align ?? 'center';
     if (this.disabled) return { color: C.lock, maxWidth, align };
     if (this.active) return { color: C.ink, maxWidth, align };
     return { color: C.dim, maxWidth, align };
@@ -466,6 +503,14 @@ export class PixelButton {
     const { width, height } = this.box;
     const picture = this.options.picture;
     if (!picture && this.look === 'ink') return this.inkFace();
+    const plate = width + 2 * this.overhang();
+    if (!picture && this.look === 'bubble') return optionPlate(this.plateLook(), plate);
+    if (!picture && this.look === 'bubbleClose') return closePlate(this.hover || this.down ? 'hover' : 'plain', plate, false);
+    // a choice lies on the sausage the scene draws under the row: only a patch under the one in use or the pointer
+    if (!picture && this.look === 'bubbleChoice') {
+      const look = this.plateLook();
+      return look === 'plain' || look === 'off' ? createBitmap(width, height) : choicePatch(look);
+    }
     if (!picture && (this.look === 'bandCell' || this.look === 'bandSlot')) return trayBitmap(width, height, this.trayKind());
     if (!picture) return panelBitmap(width, height, this.panelKind());
     const face = createBitmap(width, height);
@@ -479,14 +524,33 @@ export class PixelButton {
     // a drawing on its own slip of paper (the settings' pictures): the slip goes, the drawing is inked onto the page, its colours kept
     if (this.look === 'ink' && this.options.inkBox && icon.pixels.includes(C.cream)) return recolor(icon, { [C.cream]: 0, [C.ink]: this.inkColour() });
     if (this.look === 'ink') return icon.pixels.includes(C.ink) ? tinted(icon, C.buffLight, this.inkColour()) : tinted(icon, this.inkColour());
-    return this.look === 'bandCell' ? tinted(icon, this.labelStyle().color ?? C.honey) : icon;
+    return this.look === 'bandCell' || this.isBubble() ? tinted(icon, this.labelStyle().color ?? C.honey) : icon;
+  }
+
+  /** Whether this is a plate of the bubble (ft_1_20, d282): drawn by `bubbleArt.ts`, see-through. */
+  private isBubble(): boolean {
+    return this.look === 'bubble' || this.look === 'bubbleClose' || this.look === 'bubbleChoice';
+  }
+
+  /** How far a bubble's round plate reaches past its box on each side: 2 cells (24 over a 20-cell box); a choice none. */
+  private overhang(): number {
+    return this.look === 'bubble' || this.look === 'bubbleClose' ? (OPTION_PLATE - OPTION_SIZE) >> 1 : 0;
+  }
+
+  /** The look of a bubble's plate for the button's state. */
+  private plateLook(): PlateLook {
+    if (this.disabled) return 'off';
+    if (this.armed || this.active) return 'on';
+    if (this.down) return 'down';
+    return this.hover ? 'hover' : 'plain';
   }
 
   /** The band's trays (ft_1_20): a cell or a slot, lit under the pointer, darker while pressed, marked when switched on. */
   private trayKind(): TrayKind {
     const slot = this.look === 'bandSlot';
     if (this.disabled) return slot ? 'slotEmpty' : 'cellOff';
-    if (slot && this.armed) return 'slotArmed';
+    // the piece maker's writer (a slot, or a cell of the strip) is on purple while a click writes with it
+    if (this.armed) return 'slotArmed';
     if (this.active) return slot ? 'slotOn' : 'cellOn';
     if (this.down) return 'cellDown';
     if (this.hover) return slot ? 'slotHover' : 'cellHover';
@@ -508,7 +572,7 @@ export class PixelButton {
 
   private paint(): void {
     this.panel.setBitmap(this.face());
-    if (this.icon && this.iconArt && (this.look === 'bandCell' || this.look === 'ink')) this.icon.setBitmap(this.iconShown(this.iconArt));
+    if (this.icon && this.iconArt && (this.look === 'bandCell' || this.isBubble() || this.look === 'ink')) this.icon.setBitmap(this.iconShown(this.iconArt));
     this.label.setOptions(this.labelStyle());
     this.sublabel?.setOptions(this.subStyle());
     this.layout();
@@ -573,17 +637,18 @@ export class PixelButton {
     }
     // with an icon the label is centred in the room right of it
     const cx = x + iconWidth + (width - iconWidth) / 2;
-    const left = this.options.align === 'left';
-    this.label.x = left ? x + 6 + iconWidth : Math.floor(cx - (this.label.width * big) / 2);
+    const align = this.options.align ?? 'center';
+    const placed = (w: number, inset: number): number => (align === 'left' ? x + 6 + inset : align === 'right' ? x + width - 6 - w : Math.floor(cx - w / 2));
+    this.label.x = placed(this.label.width * big, iconWidth);
     this.label.y = top;
     if (this.sublabel) {
-      this.sublabel.x = left ? x + 6 : Math.floor(cx - this.sublabel.width / 2);
+      this.sublabel.x = placed(this.sublabel.width, 0);
       this.sublabel.y = top + labelHeight + 2;
     }
   }
 }
 
-/** A bar (XP, HP): a trough with a fill (gold unless `colors` say otherwise) of `fraction` of it. Call `set` when the fraction changes. */
+/** A bar (XP): a trough with a fill (gold unless `colors` say otherwise) of `fraction` of it. Call `set` when the fraction changes. */
 export class PixelBar extends PixelImage {
   private shown: number;
 

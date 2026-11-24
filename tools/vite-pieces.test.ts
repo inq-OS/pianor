@@ -7,9 +7,9 @@ import { piecesPlugin } from './vite-pieces.ts';
 type Hook = (this: unknown, ...args: unknown[]) => unknown;
 
 /** Runs the plugin's `load` of `virtual:pieces` as a dev server or a production build would, and reads back what it exports. */
-function loadVirtualPieces(command: 'serve' | 'build'): { pieces: { meta: { id: string; status: string } }[]; omittedIds: string[] } {
+function loadVirtualPieces(command: 'serve' | 'build', mode = command === 'build' ? 'production' : 'development'): { pieces: { meta: { id: string; status: string } }[]; omittedIds: string[] } {
   const plugin = piecesPlugin();
-  (plugin.configResolved as Hook)({ command });
+  (plugin.configResolved as Hook)({ command, mode });
   const resolved = (plugin.resolveId as Hook)('virtual:pieces') as string;
   const context = { error: (text: string) => { throw new Error(text); }, warn: () => {}, addWatchFile: () => {} };
   const code = (plugin.load as Hook).call(context, resolved) as string;
@@ -28,6 +28,34 @@ describe('virtual:pieces', () => {
     expect(build.pieces.every((p) => p.meta.status === 'approved')).toBe(true);
     expect(build.omittedIds.sort()).toEqual(drafts.sort());
     expect(build.pieces.length + build.omittedIds.length).toBe(dev.pieces.length);
+  });
+
+  it('a build in mode development (the end-to-end tests\' bundle) keeps the drafts, as the dev server does', () => {
+    const dev = loadVirtualPieces('serve');
+    const bundle = loadVirtualPieces('build', 'development');
+    expect(bundle.omittedIds).toEqual([]);
+    expect(bundle.pieces.map((p) => p.meta.id)).toEqual(dev.pieces.map((p) => p.meta.id));
+  });
+});
+
+describe('the preview tool\'s requests on the preview server', () => {
+  const handlers = (env: string | undefined): unknown[] => {
+    const before = process.env['PIANOR_E2E'];
+    if (env === undefined) delete process.env['PIANOR_E2E'];
+    else process.env['PIANOR_E2E'] = env;
+    try {
+      const used: unknown[] = [];
+      (piecesPlugin().configurePreviewServer as Hook)({ middlewares: { use: (h: unknown) => void used.push(h) } });
+      return used;
+    } finally {
+      if (before === undefined) delete process.env['PIANOR_E2E'];
+      else process.env['PIANOR_E2E'] = before;
+    }
+  };
+
+  it('are answered only for the end-to-end tests, so a student\'s own build (start:local) can never change a piece', () => {
+    expect(handlers(undefined)).toHaveLength(0);
+    expect(handlers('1')).toHaveLength(1);
   });
 });
 
@@ -64,5 +92,27 @@ describe('virtual:pieces with the private folder (ft_Y_04.AC14)', () => {
     expect(build.pieces.map((p) => p.meta.id)).toContain('wish-chords');
     expect(build.omittedIds).toContain('wish-draft');
     rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe('a piece with an error', () => {
+  it('fails a production build, and only warns in the end-to-end tests\' bundle as on the dev server', () => {
+    const root = mkdtempSync(join(tmpdir(), 'pianor-pieces-'));
+    mkdirSync(join(root, 'broken'));
+    writeFileSync(join(root, 'broken', 'piece.abc'), 'X:1\nT:broken\nM:4/4\nL:1/4\nK:C\nC4 | D3 |]\n');
+    writeFileSync(join(root, 'broken', 'piece.meta.json'), JSON.stringify({ id: 'broken', title: 'broken', level: 1, unlockLevel: 1, status: 'draft', hands: ['RH'], phrases: [], source: 'synthetic', license: 'CC0-1.0', generator: { kind: 'import' } }));
+    const load = (command: 'serve' | 'build', mode: string) => {
+      const plugin = piecesPlugin(root, 'content/curriculum/levels.json', null);
+      (plugin.configResolved as Hook)({ command, mode });
+      const context = { error: (text: string) => { throw new Error(text); }, warn: () => {}, addWatchFile: () => {} };
+      return () => (plugin.load as Hook).call(context, (plugin.resolveId as Hook)('virtual:pieces'));
+    };
+    try {
+      expect(load('build', 'production')).toThrow();
+      expect(load('build', 'development')).not.toThrow();
+      expect(load('serve', 'development')).not.toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

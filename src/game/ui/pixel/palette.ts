@@ -30,7 +30,7 @@ export const C = {
   purple: 22,
   purpleLight: 23,
   leafDark: 24,
-  leaf: 25, // the battle stage's ground
+  leaf: 25, // leaves and low ground
   leafLight: 26,
   orangeDark: 27,
   orange: 28,
@@ -83,7 +83,7 @@ export const C = {
   panelLit: 71,
   honey: 72,
   honeyDark: 73,
-  // the dusk behind the battle stage and in the room's shadows: what `night` and the panels were until the screens went warm
+  // the dusk in the room's shadows
   duskDeep: 74,
   duskDark: 75,
   dusk: 76,

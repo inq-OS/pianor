@@ -1,6 +1,6 @@
 # Labels and merge rules
 
-Since d153: no dispatch labels, no triage, no release labels. The builder takes the maintainer's issues directly; milestones R1 to R5 and `Later pool` stay as the maintainer sets them ([roadmap.md](roadmap.md)).
+No dispatch labels (d153), no triage, no release labels. The builder takes the maintainer's issues directly; milestones R1 to R5 and `Later pool` stay as the maintainer sets them ([roadmap.md](roadmap.md)).
 
 ## Labels
 
@@ -8,7 +8,7 @@ Since d153: no dispatch labels, no triage, no release labels. The builder takes 
 |---|---|
 | `architect:blocker` | Stop: continuing would lock in something hard to undo; a comment says why. No agent works on, pushes to or merges the item until the **maintainer** removes the label |
 | `needs:maintainer` | The pull request waits on the maintainer's look or answer; whoever added it takes it off after |
-| `ci:e2e`, `ci:visual` | Run the Linux end-to-end tests or the Windows screenshot tests on the pull request |
+| `ci:e2e`, `ci:visual` | Run the end-to-end tests of the affected areas or the screenshot tests on the pull request |
 
 ## Merging
 

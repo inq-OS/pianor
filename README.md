@@ -8,7 +8,7 @@
 
 Pianor is built on one rule: every part of the game has to make the student read and play more, or better. The game is there to bring the student back to the piano, not to replace practice.
 
-- **You read real notes.** The staff is the main view, with big, clear notes. There are no falling blocks to follow, because those let you play without reading.
+- **You read real notes.** The staff is the main view, with big, clear notes.
 - **The music waits for you.** In Wait mode the cursor waits on each note until you press the right key, so a beginner is never rushed. Tempo mode, where the music keeps the beat, comes when you are ready.
 - **Mistakes tell you something.** A wrong key shows on the staff by name, beside the note you should have played, and the game tells apart the right letter in the wrong octave, a neighbouring key and another letter.
 - **Honest feedback.** The game says what happened ("91% right the first time", "wrong keys: 1"), never empty praise and never shaming. Stars, XP and levels all come from what you actually played.

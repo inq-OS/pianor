@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { blit, createBitmap, flipX, fromAscii, inkBounds, inkCount, recolor, scale2x, toRgba } from './bitmap';
+import { blit, createBitmap, flipX, flipY, fromAscii, inkBounds, inkCount, recolor, scale2x, toRgba } from './bitmap';
 import { CAP_HEIGHT, TAIL, letterBoxOf, renderText } from './font';
-import { HEALTH_BAR, barBitmap, focusRingBitmap, labelOverflow, panelBitmap, skyStars, type PanelKind } from './frames';
+import { barBitmap, focusRingBitmap, labelOverflow, panelBitmap, skyStars, type PanelKind } from './frames';
 import { C, PALETTE, RAMPS, css } from './palette';
 import { LOCK, SPARKLE, STAR_EMPTY, STAR_FULL } from './sprites';
 
@@ -42,7 +42,7 @@ describe('palette', () => {
 
   // The night sky's ramps are deliberately dark (sky and sea, clouds, moon halo): they sit
   // behind the scene, not on the ink outline or the panels, so the contrast checks below do not hold for them.
-  // The wood of the screens and the dusk of the battle stage (ft_1_20) are what the others are drawn on.
+  // The wood of the screens and the dusk (ft_1_20) are what the others are drawn on.
   const NIGHT_RAMPS = ['sky', 'cloud', 'moon', 'halo', 'wood', 'dusk'];
 
   it('sets every mid shade off from the ink outline, the stage backdrop and the ground, and from the wood of the screens', () => {
@@ -75,6 +75,11 @@ describe('bitmap', () => {
     expect(at(target, 2, 2)).toBe(7);
     blit(target, fromAscii(['a'], { a: 8 }), -1, 0);
     expect(at(target, 0, 0)).toBe(9);
+  });
+
+  it('mirrors a picture top to bottom', () => {
+    const b = fromAscii(['ab', 'cd', 'ef'], { a: 1, b: 2, c: 3, d: 4, e: 5, f: 6 });
+    expect([...flipY(b).pixels]).toEqual([5, 6, 3, 4, 1, 2]);
   });
 
   it('flips left to right, swaps colours, counts ink, and makes RGBA bytes', () => {
@@ -184,16 +189,6 @@ describe('barBitmap', () => {
     expect(gold(barBitmap(60, 9, 0.001))).toBeGreaterThan(0);
     expect(gold(barBitmap(60, 9, 7))).toBe(gold(barBitmap(60, 9, 1)));
     expect(gold(barBitmap(60, 9, -3))).toBe(0);
-  });
-
-  it('the health bar is green, not gold, and fills the same way', () => {
-    const mint = (b: { pixels: Uint8Array }) => [...b.pixels].filter((p) => p === HEALTH_BAR.light || p === HEALTH_BAR.mid || p === HEALTH_BAR.dark).length;
-    const green = (fraction: number) => barBitmap(60, 7, fraction, HEALTH_BAR);
-    expect([...green(1).pixels]).toContain(C.green);
-    expect(gold(green(1))).toBe(0);
-    expect(mint(green(0.5))).toBeLessThan(mint(green(1)));
-    expect(mint(green(0.001))).toBeGreaterThan(0);
-    expect(mint(green(0))).toBe(0);
   });
 
   it('has a light top and a dark bottom on the gold, and refuses a tiny size', () => {

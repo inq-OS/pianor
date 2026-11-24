@@ -99,7 +99,7 @@ describe('core_07 difficulty factor table (content/curriculum/modifiers.json)', 
   });
 
   it('rejects an unknown help id', () => {
-    expect(() => loadModifierTable(table({ helps: helps({ confuser: entry(0.9) }) }))).toThrow();
+    expect(() => loadModifierTable(table({ helps: helps({ unknown: entry(0.9) }) }))).toThrow();
   });
 
   it('rejects a missing help', () => {

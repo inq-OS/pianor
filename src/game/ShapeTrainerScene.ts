@@ -17,6 +17,7 @@ import { heartRow } from './ui/pixel/hearts';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { StaffView } from './ui/staff/StaffView';
+import { watchKeyBash } from './practice/bashDoor';
 
 /** The words under the hearts: the switcher's key, a wrong octave, or the round played through. */
 const WORDS_Y = 26;
@@ -65,6 +66,8 @@ export class ShapeTrainerScene extends PixelScene {
   override create(): void {
     this.input.keyboard?.on('keydown-ESC', () => this.leave());
     this.events.once('shutdown', () => this.stopListening());
+    // key bashing brings Kiur to the door here too (ft_1_15.AC8); the door is the way out
+    watchKeyBash(this, contextOf(this).keyboard, () => this.leave());
     this.input.on('pointerdown', (_pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
       if (over.length === 0) this.againIfOver();
     });
@@ -189,7 +192,7 @@ export class ShapeTrainerScene extends PixelScene {
       { label: displayText(t(shapeLabel)), tooltip: t('shapes.shapeTip'), onClick: nextShape },
       { label: displayText(t(choice.hand === 'RH' ? 'shapes.rh' : 'shapes.lh')), tooltip: t('shapes.handTip'), onClick: () => this.choose({ hand: choice.hand === 'RH' ? 'LH' : 'RH' }) },
     ];
-    if (this.round.state().outcome !== 'playing') items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), onClick: () => this.startRound() });
+    if (this.round.state().outcome !== 'playing') items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), main: true, onClick: () => this.startRound() });
     return items;
   }
 

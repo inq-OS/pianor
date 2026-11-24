@@ -195,6 +195,8 @@ export class TeacherScene extends PixelScene {
       { label: t('teacher.add'), disabled: this.curriculum === null, onClick: () => startScene(this, 'teacherPiece', { player: this.player }) },
       // when she comes to test: the weekly days, the time, a test ordered for later (ft_1_26.AC9)
       { label: t('teacher.tests'), disabled: this.curriculum === null, onClick: () => startScene(this, 'teacherTests', { player: this.player }) },
+      // the characters for this player: on, days, how often, piece, neediness; the wanderers sent (ft_1_37)
+      { label: t('teacher.cast'), disabled: this.curriculum === null, onClick: () => startScene(this, 'teacherCast', { player: this.player }) },
       { label: t('teacher.password'), onClick: () => startScene(this, 'teacherPassword') },
       { label: t('admin.lock'), icon: LOCK, iconOnly: true, tooltip: t('admin.lock'), onClick: () => { teacher.lock.lock(); startScene(this, 'profiles'); } },
     ];

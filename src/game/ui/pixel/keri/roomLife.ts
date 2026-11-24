@@ -7,7 +7,7 @@ import type { RoomArt } from './roomPicture';
 /**
  * The sprites laid into the painted warden's room (ft_1_18.AC3, `roomPicture.ts`): the portrait over the piano, Kiur asleep
  * on the bed, the mug of tea and its steam, the metronome and the note plant. Original art in the game's own palette,
- * drawn here pixel by pixel on the layout cells before d110; `roomArt` brings each onto the fine grid. Kiur is on the
+ * drawn here pixel by pixel on the layout cells; `roomArt` brings each onto the fine grid. Kiur is on the
  * fine grid already (his model, d114).
  */
 
@@ -185,7 +185,7 @@ export function metronomeFrame(frame: number): Bitmap {
   return b;
 }
 
-/** A plant in a clay pot whose two leaves are note heads on their stems, as on the corner vine (ft_1_08.AC1). */
+/** A plant in a clay pot whose two leaves are note heads on their stems. */
 export const NOTE_PLANT: Bitmap = fromAscii(
   [
     '.......kkk..',

@@ -1,4 +1,4 @@
-import { KNOLL_CLEARING, KNOLL_FIRE, KNOLL_MOON, KNOLL_PLATEAU, KNOLL_SPOTS, knollCrest, knollShore, type KnollPlan, type KnollShore } from '../../../../core/layout/knoll';
+import { KNOLL_CLEARING, KNOLL_FIRE, KNOLL_MOON, KNOLL_PLATEAU, knollCrest, knollShore, type KnollPlan, type KnollShore } from '../../../../core/layout/knoll';
 import type { SkyPhase } from '../../../../core/sky/skyPhase';
 import type { World } from '../../../../core/world/world';
 import { createBitmap, type Bitmap } from '../bitmap';
@@ -153,7 +153,7 @@ const ROCKY = { from: 360, wide: 60 } as const;
  * sawn end, that they looked as if made in a factory). Each is a found trunk, no two alike: from its butt `a` to
  * its tip `b` in fine pixels, bent sideways by `bend` pixels at its middle, `r` thick at the butt and `taper` of that
  * at the tip, with the stub of a branch at `stub` of its length (none when left out), and whether it lies behind the
- * fire (on the hill's top, against the sea). They keep clear of the places where the beings stand (`KNOLL_SPOTS`).
+ * fire (on the hill's top, against the sea).
  */
 export interface KnollLog {
   a: readonly [number, number];
@@ -662,9 +662,9 @@ class KnollPainter {
   }
 
 
-  /** Whether a place on the plateau must stay clear for the fire place or a being. */
+  /** Whether a place on the plateau must stay clear for the fire place. */
   private kept(x: number, y: number): boolean {
-    return this.clearing(x, y).earth < 1.25 || KNOLL_SPOTS.some((s) => Math.abs(x - s.x) < 16 && Math.abs(y - s.y) < 8);
+    return this.clearing(x, y).earth < 1.25;
   }
 
   /**

@@ -36,14 +36,14 @@ describe('lintItems', () => {
     expect(issues).toEqual(['id ft_0_01 is also used by docs/features/ft_0_01-a.md']);
   });
 
-  it('checks depends_on, supersedes and a decision\'s features', () => {
+  it('checks depends_on and a decision\'s features', () => {
     const issues = messages(
       lint({
         'docs/features/ft_0_01-a.md': feature('ft_0_01', { extra: { depends_on: ['ft_0_09'] } }),
-        'docs/decisions/d001-a.md': decision('d001', ['ft_0_77', 'all'], { supersedes: ['d009'] }),
+        'docs/decisions/d001-a.md': decision('d001', ['ft_0_77', 'all']),
       }),
     );
-    expect(issues).toEqual(['depends_on names ft_0_09, which has no file', 'supersedes names d009, which has no file', 'features names ft_0_77, which has no file']);
+    expect(issues).toEqual(['depends_on names ft_0_09, which has no file', 'features names ft_0_77, which has no file']);
   });
 
   it('lets a part id refer to its feature', () => {
@@ -83,14 +83,14 @@ describe('lintIds', () => {
 });
 
 describe('lintScripts', () => {
-  it('flags unknown scripts and scripts CLAUDE.md does not mention', () => {
-    const repo = makeRepo({ 'docs/a.md': 'run `npm run nope` or `npm run build`', 'CLAUDE.md': 'Use npm run build and npm test.' }, ['build', 'test', 'extra']);
-    expect(messages(lintScripts(repo))).toEqual(['npm run nope is not a script in package.json', 'the Commands list does not mention the script "extra"']);
+  it('flags unknown scripts and scripts the command reference does not mention', () => {
+    const repo = makeRepo({ 'docs/a.md': 'run `npm run nope` or `npm run build`', 'docs/commands.md': 'Use npm run build and npm test.', 'CLAUDE.md': 'npm run extra' }, ['build', 'test', 'extra']);
+    expect(messages(lintScripts(repo))).toEqual(['npm run nope is not a script in package.json', 'the command reference does not mention the script "extra"']);
   });
 
   it('takes the install hook named in backticks', () => {
-    expect(messages(lintScripts(makeRepo({ 'CLAUDE.md': 'npm install runs `prepare`' }, ['prepare'])))).toEqual([]);
-    expect(messages(lintScripts(makeRepo({ 'CLAUDE.md': 'nothing' }, ['prepare'])))).toEqual(['the Commands list does not mention the script "prepare"']);
+    expect(messages(lintScripts(makeRepo({ 'docs/commands.md': 'npm install runs `prepare`' }, ['prepare'])))).toEqual([]);
+    expect(messages(lintScripts(makeRepo({ 'docs/commands.md': 'nothing' }, ['prepare'])))).toEqual(['the command reference does not mention the script "prepare"']);
   });
 });
 
@@ -125,11 +125,12 @@ describe('docs:ignore, planned paths and old numbering', () => {
     expect(messages(lintLinks(repo))).toEqual(['`tools/other/` does not exist']);
   });
 
-  it('flags the old numbering outside the decision files', () => {
+  it('flags the old numbering in every doc', () => {
     const repo = makeRepo({ 'docs/a.md': 'Was FT17 and WP9a.\n', 'docs/decisions/d001-x.md': 'History: FT17.\n' });
     expect(messages(lintOldIds(repo))).toEqual([
       'FT17 is the old numbering; use the id from docs/decisions/workflow.md#d037',
       'WP9a is the old numbering; use the id from docs/decisions/workflow.md#d037',
+      'FT17 is the old numbering; use the id from docs/decisions/workflow.md#d037',
     ]);
   });
 });

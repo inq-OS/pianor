@@ -3,7 +3,7 @@ import { hash2, noise2 } from '../paint/noise';
 
 /**
  * The wonders under the southern port's quay (ft_1_19, `portPicture.ts`): what no real sea has: the 1991
- * game's quirk, most of all underwater, a locked treasure chest, coral beings that exist in no real sea. Painted over the reef, in the tall picture's own rows.
+ * game's quirk, most of all underwater, a locked treasure chest, coral creatures that exist in no real sea. Painted over the reef, in the tall picture's own rows.
  *
  * The cast, back to front: the shy one behind a pier, the organ-pipe coral that blows bubbles in turn, the candy canes,
  * the locked chest with its chain and padlock (the star), the horn sponges, the amphora an octopus lives in, the
@@ -388,7 +388,7 @@ function chest(c: Sea, cx: number, base: number): void {
   }
 }
 
-// ---- the beings
+// ---- the creatures
 
 /**
  * The amphora an octopus lives in: an old jar lying over in the sand, a painted band round its belly; out of its mouth

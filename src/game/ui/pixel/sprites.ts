@@ -76,7 +76,7 @@ const HEART_ROWS = [
   '....k....',
 ];
 
-/** The heart beside the player's health bar in a battle: it says the bar is theirs without a word. */
+/** A heart: a life in the note trainer, and the credits icon. */
 export const HEART: Bitmap = fromAscii(HEART_ROWS, { k: C.ink, f: C.red, w: C.pink });
 /** A lost life in the note trainer: the heart in the locked grey, like an unearned star. */
 export const HEART_EMPTY: Bitmap = fromAscii(HEART_ROWS, { k: C.ink, f: C.lock, w: C.lock });

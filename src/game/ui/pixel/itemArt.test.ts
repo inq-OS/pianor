@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { STAFF_INK } from '../../../core/layout/scoreColour';
-import { bandLayout } from '../../../core/layout/band';
-import { ART_DETAIL } from '../../../core/layout/frame';
 import type { Bitmap } from './bitmap';
-import { ITEM_INK, ITEM_SIGNS, ITEM_SIZE, ITEM_SKIN, itemPicture } from './itemArt';
+import { ITEM_INK, ITEM_SIGNS, ITEM_SIZE, ITEM_SKIN, itemPicture, signOnly } from './itemArt';
 import { contrast } from './paint/lab';
 import { C, PALETTE } from './palette';
 
@@ -11,11 +9,13 @@ const at = (b: Bitmap, x: number, y: number): number => (x < 0 || y < 0 || x >= 
 const skin = new Set<number>(ITEM_SKIN);
 
 describe('the piece maker\'s items: parchment scraps written in the staff\'s ink (ft_1_20, pick B)', () => {
-  it('fits every picture inside a slot of the band, on the fine grid', () => {
-    const slot = bandLayout(320).slots[0]!;
-    // the slot's groove and ridge take two cells on each side
-    expect(ITEM_SIZE.width).toBeLessThanOrEqual((slot.w - 4) * ART_DETAIL);
-    expect(ITEM_SIZE.height).toBeLessThanOrEqual((slot.h - 4) * ART_DETAIL);
+  it('ft_1_20.AC19 a sign alone, without its scrap, fits a round option of the bubble', () => {
+    for (const name of ITEM_SIGNS) {
+      const sign = signOnly(itemPicture(name), 24, 24);
+      expect(sign.width).toBeLessThanOrEqual(24);
+      expect(sign.height).toBeLessThanOrEqual(24);
+    }
+    expect(signOnly(itemPicture('note.quarter'), 24, 24).pixels.some((p) => p !== 0)).toBe(true);
   });
 
   it.each(ITEM_SIGNS)('%s: a scrap of skin with its sign in ink, the whole sign on the scrap', (name) => {

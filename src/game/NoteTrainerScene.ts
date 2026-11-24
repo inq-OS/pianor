@@ -13,6 +13,7 @@ import { StaffView } from './ui/staff/StaffView';
 import { openOverlay, startScene } from './scenes';
 import { circleItem } from './CircleOfFifthsScene';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
+import { watchKeyBash } from './practice/bashDoor';
 
 /** The one miss said in words, "right letter, wrong octave", under the hearts. */
 const WRONG_OCTAVE_Y = 26;
@@ -56,6 +57,8 @@ export class NoteTrainerScene extends PixelScene {
   override create(): void {
     this.input.keyboard?.on('keydown-ESC', () => this.leave());
     this.events.once('shutdown', () => this.stopListening());
+    // key bashing brings Kiur to the door here too (ft_1_15.AC8); the door is the way out
+    watchKeyBash(this, contextOf(this).keyboard, () => this.leave());
     // a click or touch on the screen (not on a button) after the round is over starts a new one, for a mouse or a tablet
     this.input.on('pointerdown', (_pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
       if (over.length === 0) this.againIfOver();
@@ -128,7 +131,7 @@ export class NoteTrainerScene extends PixelScene {
       // the circle of fifths, with no key marked (ft_1_28 rule 3)
       circleItem(() => void openOverlay(this, 'circle', { key: null }).then(() => this.redraw())),
     ];
-    if (this.round.over) items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), onClick: () => this.startRound(this.stepIndex) });
+    if (this.round.over) items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), main: true, onClick: () => this.startRound(this.stepIndex) });
     return items;
   }
 
