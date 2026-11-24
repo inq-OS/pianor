@@ -17,6 +17,7 @@ The pipeline: write or generate `piece.abc` and `piece.meta.json`, run `npm run 
 | [au08](au08-approval.md) | The human approval gate |
 | [au09](au09-preview-tool.md) | The preview tool (`piece:preview`) |
 | [au10](au10-review-board.md) | The review board (`piece:board`): look, listen and approve drafts from a phone |
+| [au11](au11-songs.md) | Song files (`content/songs/<id>/song.json`): a tree of pieces, groups, links and blanks with the song's tempo, key and meter |
 <!-- /docs:index -->
 
 ## Ways to create pieces

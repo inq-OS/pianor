@@ -7,6 +7,7 @@ Add an entry before adding any dependency: what it is for, licence, and why the 
 | phaser | ^4.2.1 | MIT | Game framework: scenes, sprites, pixel-art scaling. See decision log: v4 chosen over v3 (latest stable line) |
 | zod | ^4.6.5 | MIT | Schemas for chart, meta, save data and content |
 | typescript | ^6.0.3 (dev) | Apache-2.0 | Strict typing |
+| typescript-native (npm alias of typescript 7) | ^7.0.2 (dev) | Apache-2.0 | `npm run typecheck`: the native compiler checks the project in about 4 seconds instead of 19 on four cores. TypeScript 6 stays for ESLint (typescript-eslint) and knip, which use its library. Both ship a `tsc` command, so the script names the native one by path |
 | vite | ^8.3.3 (dev) | MIT | Dev server and bundler |
 | vitest | ^5.0.3 (dev) | MIT | Unit, golden and replay tests |
 | @vitest/coverage-v8 | ^5.0.3 (dev) | MIT | Coverage report and 90% gate on src/core and tools/ |
@@ -22,7 +23,6 @@ Add an entry before adding any dependency: what it is for, licence, and why the 
 | fast-png | ^8.0.0 (dev) | MIT | Reads a scanned PNG and writes the cleaned picture Audiveris reads (same use as jpeg-js) |
 | Audiveris (Java program, optional, not in package.json; installed separately by hand) | 5.11 | AGPL-3.0 | Optical music recognition for `npm run piece:photo` (ft_Y_04 slice 3): a separate program the menu starts and whose MusicXML it reads; never bundled, linked or copied, so the AGPL does not reach this repo. |
 | abcjs (not in package.json; loaded by the review board page from the jsdelivr CDN, pinned) | 6.7.2 | MIT | Draws a draft piece's ABC as a sheet on the phone review board (`npm run piece:board`, au10); the game's own staff needs Phaser and a build, too much for a page in the Claude app. Never used by the game |
-| code-review-graph (Python, optional, not in package.json) | 2.3.9 | MIT | Local code knowledge graph served over MCP (`.mcp.json`) for agents wherever it is installed, for example by a setup script that runs `pip install --user code-review-graph==2.3.9` and `code-review-graph build`; the hooks in `.claude/settings.json` skip it where it is not installed. Its index `.code-review-graph/` is gitignored |
 
 Assets (not packages): the piano samples are CC BY 3.0, listed with credit in `docs/assets.md`. No new npm packages were added for sound; it uses the Web Audio API directly.
 

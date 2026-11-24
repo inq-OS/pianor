@@ -1,5 +1,6 @@
 // Covers core_09.AC32, core_09.AC33.
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { expectNoErrors, letGameRun, openGame, openPiece, playWithVirtualPiano, results, toScoreScreen } from './helpers';
 
 /**

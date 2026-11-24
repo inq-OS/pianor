@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 /**
  * The hardware spike page against the simulated EZ-220: proves the page works before a person takes it to the real

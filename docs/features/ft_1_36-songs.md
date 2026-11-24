@@ -3,8 +3,8 @@ id: "ft_1_36"
 title: "Songs made of pieces"
 scope: "A song is a tree like a folder of folders: groups, pieces, links to a piece that repeats, and blanks not written yet; the song's tempo, key and meter pass down to every part that does not set its own, an own value shown beside the crossed-out default; each player turns parts on and off; a piece plays alone, a group or the whole song plays as one staff the student pages through, with a map of the song's parts; songs listed behind a bookmark of the piece book and each song a page of the same book; one page for a song's tree and a piece's parts"
 effort: "large"
-status: "design; nothing built"
-completeness: 0
+status: "slice 1 done: the song schema, the resolved tree, songChart, the song checks in piece:lint and the example song Morning Song (au11). Slices 2 to 4 open"
+completeness: 15
 depends_on: ["core_06", "core_03", "ft_1_02a", "ft_1_12"]
 ---
 # ft_1_36: Songs made of pieces
@@ -86,7 +86,7 @@ Slice 4:
 
 ## TODO
 
-- TODO(builder, R2): slice 1, then slice 2; the song page and the song map get the ergonomics review with previews before they merge (d293).
+- TODO(builder, R2): slice 2; the song page and the song map get the ergonomics review with previews before they merge (d293).
 - TODO(painter, R2): the song bookmark, the marks of a link and a blank on the song page, and the song map's blocks.
 - IDEA(builder, Later): play any song transposed at play time into a key the player picks, from its written key; the song and its pieces keep their own key, nothing is rewritten.
 - TODO(architect, R2): the provisional numbers and choices of rules 1, 5, 9, 12 and 16 (four levels, on and off per player, the song's stars only with every part on, the new song's defaults, the label list) after the first songs are written and played.

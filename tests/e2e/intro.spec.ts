@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { clickButton, expectNoErrors, openGame, playWithVirtualPiano, sceneButton, waitForScene, type PageErrors } from './helpers';
 
 /** What the intro's spotlight shows now (`IntroScene.showing`), or null while it is not up. */

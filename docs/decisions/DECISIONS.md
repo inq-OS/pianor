@@ -195,7 +195,6 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d209](workflow.md#d209) | A test of a screen asserts what is drawn and runs the reporter's exact flow, not only the model data or a shorter path |  |
 | [d210](workflow.md#d210) | A change to anything in `docs/futureproofing.md`, the maintainer's answer to a product question, or a choice a later reader would ask why about gets a ledger entry with the next free number |  |
 | [d211](workflow.md#d211) | Before a repeated job the agent loads the skill in `.claude/skills/` that fits it |  |
-| [d212](workflow.md#d212) | Where the code graph and the source disagree, the source wins, and an empty graph result may only mean not indexed |  |
 | [d213](workflow.md#d213) | A docs-only pull request is merged by the agent driving it once `npm run docs:check` passes, and a pull request touching a sensitive path is merged only by the maintainer |  |
 | [d214](workflow.md#d214) | A work tag lives once, in the doc closest to the work, and is taken in a fixed order: `ASAP` first, `TODO` in release order after the issues of that release, `NEEDS-HUMAN` never by an agent, `IDEA` only once it is made a `TODO` |  |
 | [d215](workflow.md#d215) | A flaky test is fixed or quarantined with a `TODO` tag in `docs/testing.md`; an end-to-end test that passed only on its retry is not a pass |  |
