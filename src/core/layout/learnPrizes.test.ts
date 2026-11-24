@@ -13,7 +13,9 @@ const column = (rewards: LearnRewards, f: PrizeFocus) => prizeColumn(S, RIGHT, r
 describe('prizeColumn', () => {
   it('ft_1_32.AC19 one narrow column at the top right: the clef on top, the quarters of the chunk on one stem, a whole note per chunk under them', () => {
     const { glyphs, stem } = column(fresh, focus());
-    expect(glyphs.map((g) => g.kind)).toEqual(['clef', 'quarter', 'quarter', 'quarter', 'quarter', 'whole', 'whole', 'whole']);
+    // a chunk is either its quarters or its whole note: the chunk being learned has no whole note yet
+    expect(glyphs.map((g) => g.kind)).toEqual(['clef', 'quarter', 'quarter', 'quarter', 'quarter', 'whole', 'whole']);
+    expect(glyphs.filter((g) => g.role === 'chunk').map((g) => g.index)).toEqual([1, 2]);
     // inside the room the staff leaves at the right
     for (const g of glyphs) {
       expect(g.box.x).toBeGreaterThanOrEqual(RIGHT - PRIZE.room * S - 1);
@@ -55,15 +57,15 @@ describe('prizeColumn', () => {
       piece: null,
     };
     const { glyphs, stem } = column(some, focus({ chunk: 1, bars: [1] }));
-    expect(glyphs.map((g) => g.medal)).toEqual([null, 'bronze', null, null, null, 'silver', null, null]);
-    expect(glyphs.map((g) => g.lit)).toEqual([false, false, true, false, false, false, false, false]);
+    expect(glyphs.map((g) => g.medal)).toEqual([null, 'bronze', null, null, null, 'silver', null]);
+    expect(glyphs.map((g) => g.lit)).toEqual([false, false, true, false, false, false, false]);
     expect(stem!.earned).toBe(true);
     expect(column({ ...some, piece: 'gold' }, focus({ clef: true })).glyphs[0]).toMatchObject({ kind: 'clef', medal: 'gold', lit: true });
   });
 
-  it('draws a short chunk with its own count of quarters and its own note value', () => {
+  it('draws a short chunk with its own count of quarters', () => {
     const six: LearnRewards = { chunks: [{ quarters: [], units: 4, merged: null }, { quarters: [], units: 2, merged: null }], piece: null };
-    expect(column(six, focus({ chunk: 1 })).glyphs.map((g) => g.kind)).toEqual(['clef', 'quarter', 'quarter', 'whole', 'half']);
+    expect(column(six, focus({ chunk: 1 })).glyphs.map((g) => g.kind)).toEqual(['clef', 'quarter', 'quarter', 'whole']);
   });
 
   it('draws nothing for a piece with nothing to learn', () => {

@@ -79,12 +79,12 @@ async function startGame(): Promise<void> {
   const { service: profiles, persistent } = autoplay
     ? { service: await createMemoryProfileService(), persistent: false }
     : await createProfileService(pieces, appConfig.flags.testPlayers);
-  const { actors, beings, editor, learn, demo, staffDemo, sky } = appConfig.flags;
+  const { actors, editor, learn, demo, staffDemo, sky } = appConfig.flags;
   // the keyboard switch's state, made before the context that hands it to the scenes (the switch rule is further down)
   let keysShown = params.get('keys') === '1';
   const switchListeners = new Set<() => void>();
   const context: GameContext = {
-    keyboard: inputs.keyboard, lights: inputs.lights, midi: null, audio, profiles, flags: { actors, beings, editor, learn, demo, staffDemo, sky, devTools: import.meta.env.DEV, autoplay: autoplay !== null, draftsShown: appConfig.flags.showDraftContent, pageBase: window.location.href, intro: appConfig.flags.intro }, pieces, ownPieces, files: browserTextFiles, savesPersist: persistent, admin, teacher: createTeacherDesk(store), adminSettings,
+    keyboard: inputs.keyboard, lights: inputs.lights, midi: null, audio, profiles, flags: { actors, editor, learn, demo, staffDemo, sky, devTools: import.meta.env.DEV, autoplay: autoplay !== null, draftsShown: appConfig.flags.showDraftContent, pageBase: window.location.href, intro: appConfig.flags.intro }, pieces, ownPieces, files: browserTextFiles, savesPersist: persistent, admin, teacher: createTeacherDesk(store), adminSettings,
     keyboardSwitch: {
       shown: () => keyboardHost.style.display !== 'none',
       toggle: () => toggleKeyboard(),

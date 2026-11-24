@@ -4,7 +4,7 @@ import type { PrizeFocus } from '../learn/view';
 /**
  * Where the prizes of learning a piece stand on the staff's sheet (ft_1_32.AC19, d287): one narrow column at the top right,
  * the piece's treble clef at its top; under it the bars of the chunk being learned as quarter notes on one stem, stacked a
- * step apart and staggered like the heads of a chord of seconds; under them one whole note per chunk, stacked the same way.
+ * step apart and staggered like the heads of a chord of seconds; under them one whole note per other chunk, stacked the same way.
  * A chunk whose bars are all secured shows no quarters: they have become its whole note, which its confirmation play paints. Pure: the view only draws it. Sizes in staff spaces.
  */
 export const PRIZE = {
@@ -81,6 +81,8 @@ export function prizeColumn(staffSpace: number, right: number, rewards: LearnRew
   const rx = PRIZE.wholeRx * S;
   const lowest = y + PRIZE.headRy * S + (rewards.chunks.length - 1) * PRIZE.step * S;
   stack(rewards.chunks.length, rx, lowest).forEach((head, c) => {
+    // a chunk is either its quarters (while its bars are learned) or its note: the one whose quarters show leaves its place empty
+    if (stem && c === focus.chunk) return;
     const merged = rewards.chunks[c]!.merged;
     glyphs.push({ kind: merged?.note ?? chunkNoteOf(rewards.chunks[c]!.units), role: 'chunk', index: c, medal: merged?.medal ?? null, lit: focus.chunks.includes(c), ...head, box: headBox(head.x, head.y, rx) });
   });

@@ -3,7 +3,7 @@ id: "core_10"
 title: "Practice analysis"
 scope: "A per-bar practice log, the Analyze screen: bar heat gradient, progress graph, the 3 weakest sections with a start tempo and ramp"
 effort: "large"
-status: "built: log (v16), recorder, pure analysis, recording and the Analyze screen; numbers provisional; battle casts not logged yet"
+status: "built: log (v16), recorder, pure analysis, recording and the Analyze screen; numbers provisional"
 completeness: 85
 ---
 # core_10: Practice analysis
@@ -32,4 +32,4 @@ The practice screen's **Analyze** button shows, for the piece being practised, w
 
 ## TODO
 
-- TODO(builder, R2): Analyze follow-ups: a long piece opens on the page of the chosen section with a "page N of M" label; Back keeps the section and tempo the student had set; the Estonian wording of the `analyze.*` strings goes to the maintainer through the `write-ui-text` skill. Battle casts in the practice log come with ft_Y_01.
+- TODO(builder, R2): Analyze follow-ups: a long piece opens on the page of the chosen section with a "page N of M" label; Back keeps the section and tempo the student had set; the Estonian wording of the `analyze.*` strings goes to the maintainer through the `write-ui-text` skill.

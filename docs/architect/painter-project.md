@@ -31,7 +31,7 @@ A change on the right side goes to the builder or the architect as a tag in the 
 
 ## 4. Rules of work
 
-1. **Scaffold and wait.** Scaffold and wait for the maintainer's input, and never invent information that must come from the maintainer (maps, pictures). What a place looks like, what a being looks like, where a thing stands on Keri: asked, never invented. Write `KERI-TODO` where the answer is missing.
+1. **Scaffold and wait.** Scaffold and wait for the maintainer's input, and never invent information that must come from the maintainer (maps, pictures). What a place looks like, what a character looks like, where a thing stands on Keri: asked, never invented. Write `KERI-TODO` where the answer is missing.
 2. **Every picture goes to the maintainer's eye** before it counts as done. Show it at 1920 x 1080, at each hour of the day it has, next to the picture it replaces. Write each verdict as a plain rule (no date, no quote, d165) into the decision it belongs to and into art-direction.md section 8.
 3. **One screen, one pull request.** A screen's behaviour, buttons and text do not change in a repaint. A wish to change them is a separate question for the maintainer.
 4. **The staff stays plain** where a piece is read and played. A frame round it may be painted; nothing behind or over the notes.
@@ -71,11 +71,11 @@ The next work is to overhaul all existing screens to the agreed MI2-like style. 
 | Group | Scenes | Today | What a repaint must settle |
 |---|---|---|---|
 | Painted places | `profile` (the warden's room), `keriMap`, `knoll`, `docks`, `crossroads` | done in the manner, on the painter's kit (d124) | nothing; they are the models |
-| Places still to paint | `kiurDoor` | flat pixel art on the game's 53 colours | which become scenes on Keri (the battle screens are gone, d129; the trail and the walk are removed, d117; the room's screensaver shows the painted scenes, ft_1_17) |
+| Places still to paint | `kiurDoor` | flat pixel art on the game's 53 colours | which become scenes on Keri (the room's screensaver shows the painted scenes, ft_1_17) |
 | Screens with a staff | `practice`, `noteTrainer`, `earTrainer`, `analyze`, `results`, `editor`, `preview` | a plain staff, toolbars, panels | how much picture a staff screen may carry at all (rule 4 above) |
 | Lists and forms | `boot`, `profiles`, `name`, `menu`, `pieces`, `parts`, `settings`, `credits` | panels and buttons on a plain ground | one painted ground behind them, or each its own place (the menu as a place on Keri?) |
 | Admin | `admin`, `adminGate`, `adminPages`, `adminPassword`, `adminDelete` | plain | probably none: a parent's tool, not the student's world |
-| Dev only | `staff-demo`, `art-demo`, `battle-art-demo` | plain | none |
+| Dev only | `staff-demo`, `art-demo` | plain | none |
 
 The groups are the architect's reading of the code, not a decision. **The painter's first step is its own inventory:** a screenshot of every screen as it is today, in one sheet, with a proposal per group, for the maintainer to mark.
 
@@ -83,7 +83,7 @@ The groups are the architect's reading of the code, not a decision. **The painte
 
 Question 3 (the band) is answered: [ft_1_20](../features/ft_1_20-action-and-inventory-strip.md), [d115](../decisions/game.md#d115); the painter draws the band and its pictures, the builder its functions. Question 5 is being answered scene by scene (the docks, the crossroads, the garden). Since then the painter's time went to new scenes and their kit; the staff screens and the lists have only the warm wood (d118).
 
-- TODO(painter, R2): the inventory sheet (a screenshot of every screen as it is today, with a proposal per group), then the maintainer's answers to: (1) which groups get a painted picture and which only a painted frame, ground and buttons; (2) the manner of the next interior (one small trial of each side by side, art-direction.md section 3); (4) what the beings look like (off until then, `?beings=1`); (6) the order. The architect's proposal for the order: the kit every screen shares on one trial screen (the menu); then the screens the student sees most, by play order (profiles, menu, pieces, practice's frame, results); then places; then the rest.
+- TODO(painter, R2): the inventory sheet (a screenshot of every screen as it is today, with a proposal per group), then the maintainer's answers to: (1) which groups get a painted picture and which only a painted frame, ground and buttons; (2) the manner of the next interior (one small trial of each side by side, art-direction.md section 3); (6) the order. The architect's proposal for the order: the kit every screen shares on one trial screen (the menu); then the screens the student sees most, by play order (profiles, menu, pieces, practice's frame, results); then places; then the rest.
 
 ### What the code needs before many screens are painted
 

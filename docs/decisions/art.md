@@ -13,14 +13,6 @@ The kit in `src/game/ui/pixel/` holds the palette, a pixel font (capitals 7 px, 
 
 Check: `src/game/ui/pixel/font.test.ts` "cover every letter, digit and mark the game writes"; `src/core/layout/pixelView.test.ts` "picks the whole-number zoom"; `src/game/ui/pixel/art.test.ts` "has a colour for every index"
 
-## d051
-
-**Sprites are text-row JSON composed by a pure core composer from colour slots, on Phaser.** Features: ft_Y_11, ft_Y_02.
-
-Bases and parts are JSON with letter rows (PNGs are build output), filled from three-shade colour ramps; sockets are paths with hand overrides; the composer is pure in core (the sprite code) and packs one RGBA texture per sprite for Phaser. Tools are our own and small (PNG writer on Node `zlib`, no image library); no AI image generators or third-party packs for these; art carries no approval `status`; monster format version 2 takes a recipe or a fixed picture (migration from 1) and the palette grows from 21 to about 32 colours.
-
-Check: untestable: sprite composer and tools are not held by a test of their own; monster art only in `src/game/ui/pixel/beings/monsterArt.test.ts`
-
 ## d084
 
 **Free third-party assets are welcome and preferred over redrawing standard symbols.** Features: ft_0_13. Supersedes the "all art is original" part of d028.
@@ -81,7 +73,7 @@ Check: `src/game/ui/pixel/kiur/kiurModel.test.ts` "never frowns"; `src/game/ui/p
 
 **The band and every screen are warm wood; the cold tones stay in the palette as paints.** Features: ft_1_20.
 
-The palette names `night`, `panel`, `panelLight`, `panelDark`, `dim` and `lock` become warm browns (new names `groove`, `panelLit`, `honey`, `honeyDark`), so every screen turns warm in one place; the cold tones stay as `dusk` (four shades: battle backdrop, room portrait, room palette) and `silver` (two shades). The band is one board with plates and slots cut into it (`trayBitmap` in `src/game/ui/pixel/frames.ts`): a dark line all round and a lighter line inside the top-left of a plate or the bottom-right of a slot or pressed plate; hover and held items a tone lighter, a switched-on slot has gold corner marks; a cell shows its picture tinted (`tinted`: pale honey, cream on hover, gold when on), or its word if it has no picture. The palette has 79 colours; no sprite or painted picture changes, and the staff keeps its paper, ink and blue pointer (AX-0).
+The palette names `night`, `panel`, `panelLight`, `panelDark`, `dim` and `lock` become warm browns (new names `groove`, `panelLit`, `honey`, `honeyDark`), so every screen turns warm in one place; the cold tones stay as `dusk` (four shades: room portrait, room palette) and `silver` (two shades). The band is one board with plates and slots cut into it (`trayBitmap` in `src/game/ui/pixel/frames.ts`): a dark line all round and a lighter line inside the top-left of a plate or the bottom-right of a slot or pressed plate; hover and held items a tone lighter, a switched-on slot has gold corner marks; a cell shows its picture tinted (`tinted`: pale honey, cream on hover, gold when on), or its word if it has no picture. The palette has 79 colours; no sprite or painted picture changes, and the staff keeps its paper, ink and blue pointer (AX-0).
 
 Check: `src/game/ui/pixel/frames.test.ts` "cuts a plate into the board"; `src/game/ui/pixel/frames.test.ts` "marks a switched-on slot with gold in its four corners"; `src/game/ui/pixel/art.test.ts` "has 79 colours"
 

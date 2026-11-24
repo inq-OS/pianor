@@ -187,17 +187,25 @@ test('ft_1_32.AC16 a half-learned piece opened again asks to go on or start over
   expectNoErrors(errors);
 });
 
-test('ft_1_32.AC17 the stats pane shows the run measured while it is played: tempo, spread and wobble', async ({ page }) => {
+test('ft_1_32.AC17 the live tempo is off by default; turned on in the settings, the top bar shows the run measured while it is played', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
+  const live = async () => (await sceneTexts(page, 'practice')).filter((text) => /^(Tempo|Spread) /.test(text));
   await learnPiece(page, 'Little Steps');
-  await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { toggleStatsPane: () => void }).toggleStatsPane());
-  const live = async () => (await sceneTexts(page, 'practice')).filter((text) => /^(Tempo|Spread|Wobble) /.test(text));
-  await expect.poll(live).toEqual(['Tempo -', 'Spread -', 'Wobble -']);
+  expect(await live()).toEqual([]); // off unless turned on: nothing over the student's staff
+  // turned on (the Learning page of the settings saves the same): the screen draws it from then on
+  await page.evaluate(async () => {
+    await window.__game.registry.get('context').profiles.updateLearnSettings({ liveTempo: true });
+    (window.__game.scene.getScene('practice') as unknown as { redraw: () => void }).redraw();
+  });
+  await expect.poll(live).toEqual(['Tempo -', 'Spread - Wobble -']);
   const { midis } = await shown(page);
   expect(midis.length).toBeGreaterThan(3);
   await playWithKeys(page, midis.slice(0, 3));
   await expect.poll(async () => (await live())[0]).toMatch(/^Tempo \d+$/);
-  expect((await live())[1]).toMatch(/^Spread \d+%$/);
+  expect((await live())[1]).toMatch(/^Spread \d+% Wobble \d+%$/);
+  // the stats pane no longer holds it
+  await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { toggleStatsPane: () => void }).toggleStatsPane());
+  await expect.poll(async () => (await live()).length).toBe(2);
   expectNoErrors(errors);
 });
 

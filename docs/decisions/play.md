@@ -95,9 +95,9 @@ Check: `src/core/judge/tempo.hold.test.ts` "core_01.AC6: the press score is mult
 
 ## d100
 
-**The campaign challenge is played from memory with no staff, harder at each level.** Features: ft_1_06, core_01. Changed by d129.
+**The tug is played from memory with no staff, harder at each level.** Features: ft_1_21, core_01.
 
-The campaign's third phase never draws the staff; the piece was met on the staff earlier. Level 1 is Wait mode with `moveOnWrong` (`src/core/judge/wait.ts`: a wrong key is judged wrong with its reason, unpressed notes of the step are missed, the cursor moves on; no click, no count-in); level 2 is Tempo at 100 per cent with the click through count-in and piece; level 3 is Tempo at 100 per cent with only the count-in bar heard (`Transport.metronome({ countInOnly: true })`, `beats`). The levels are one pure function, `campaignBattleMode` (src/core/campaign/battleMode.ts); `TempoFrame` takes a click of `none`, `all` or `count-in`. d129 applies the levels to the student's phrases of a challenge, where a wrong key costs the exchange.
+The tug never draws the staff; the piece was met on the staff earlier. Level 1 is Wait mode with `moveOnWrong` (`src/core/judge/wait.ts`: a wrong key is judged wrong with its reason, unpressed notes of the step are missed, the cursor moves on; no click, no count-in); level 2 is Tempo at 100 per cent with the click through count-in and piece; level 3 is Tempo at 100 per cent with only the count-in bar heard (`Transport.metronome({ countInOnly: true })`, `beats`). Each level's mode is in `content/challenge/rules.json`; a wrong key costs the exchange (d129).
 
 Check: `src/core/judge/wait.test.ts` "a wrong key is judged wrong with its reason, the note is missed and the cursor moves on"; `src/core/judge/wait.test.ts` "a wrong key in a chord ends the chord: keys already pressed stay right, the rest are missed"; `src/core/transport/transport.test.ts` "the plan stops after the count-in beats"
 

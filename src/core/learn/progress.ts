@@ -129,7 +129,17 @@ export const learnSettingsSchema = z.object({
    * Absent (saved before it) or false: both hands together, the default. An optional field, no version bump (d069.3).
    */
   handsApart: z.boolean().optional(),
+  /**
+   * The run's live tempo, spread and wobble in the top bar while a piece is learned (ft_1_32 rule 18): a parent's or
+   * teacher's tool, off unless turned on. Absent or false: off. An optional field, no version bump (d069.3).
+   */
+  liveTempo: z.boolean().optional(),
 });
+
+/** Whether a learning run shows its live tempo in the top bar: only when the player turned it on (rule 18). */
+export function learnLiveTempo(settings: LearnSettings): boolean {
+  return settings.liveTempo === true;
+}
 
 export type LearnSettings = z.infer<typeof learnSettingsSchema>;
 

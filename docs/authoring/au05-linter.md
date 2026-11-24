@@ -12,7 +12,7 @@ Hard errors (a piece fails; the rule code is in brackets):
 - Each bar's total duration equals the meter; no incomplete bars except an optional pickup.
 - All pitches inside the level's allowed range and note set; note values only from the level's rhythm set.
 - Maximum melodic leap per level (levels 1 and 2: repeated note or a step only; thirds from level 3), read from `levels.json`.
-- Bars per phrase between 2 and 8; whole piece 4 to 32 bars at every level (raised from 16 at levels 1-3, so a monster campaign song of up to 32 bars fits a beginner level).
+- Bars per phrase between 2 and 8; whole piece 4 to 32 bars at every level (raised from 16 at levels 1-3, so a character's song of up to 32 bars fits a beginner level).
 - Fingering, if present, is consistent with the hand position (RH C position: C1 D2 E3 F4 G5; LH C position runs the other way: C5 D4 E3 F2 G1, defined per hand in `levels.json`) and has no impossible jumps.
 - Meta file validates against its schema; `source` and `license` present.
 

@@ -65,7 +65,7 @@ Check: `eslint.config.js` "Nothing outside private/ may import private/"
 
 **Feature ids are `core_XX` for core behaviour and `ft_Y_XX` for features, Y being the iteration.** Features: all.
 
-Iteration 0 is the MVP; an undecided iteration keeps the letter Y (`ft_Y_03`); parts keep a letter (`ft_1_02a`); files are `<id>-name.md`. Effort ratings (trivial, simple, medium, large, high friction) are a column in `FEATURES.md` for unbuilt features. Playing with key lighting disabled is a 1.10x XP modifier (core_07) and the confuser (ft_Y_08) lights random keys, both resting on key lighting verified in ft_0_01.
+Iteration 0 is the MVP; an undecided iteration keeps the letter Y (`ft_Y_04`); parts keep a letter (`ft_1_02a`); files are `<id>-name.md`. Effort ratings (trivial, simple, medium, large, high friction) are a column in `FEATURES.md` for unbuilt features. Playing with key lighting disabled is a 1.10x XP modifier (core_07), resting on key lighting verified in ft_0_01.
 
 Check: `tools/docs/lint.test.ts` "flags ids with no file in docs and in code"
 
@@ -97,7 +97,7 @@ Check: `tools/docs/completeness.test.ts` "makes a done feature 100, and 100 only
 
 **End-to-end tests are split into areas; pull requests run the areas they touch and every run writes a log.** Features: none.
 
-`tools/e2e/areas.ts` puts every spec in one area (practice, staff, menu, battle, editor, preview, dev, visual), each a Playwright project with the source paths it guards; shared paths and unnamed paths run every area, docs and unit tests none. `npm run test:e2e:affected` runs the touched areas plus smoke; `main` runs every area. A reporter writes `test-logs/runs/<start>_<areas>/` and `test-logs/history.jsonl`; baselines keep `-chromium` names via `snapshotPathTemplate`.
+`tools/e2e/areas.ts` puts every spec in one area (practice, staff, menu, editor, preview, dev, visual), each a Playwright project with the source paths it guards; shared paths and unnamed paths run every area, docs and unit tests none. `npm run test:e2e:affected` runs the touched areas plus smoke; `main` runs every area. A reporter writes `test-logs/runs/<start>_<areas>/` and `test-logs/history.jsonl`; baselines keep `-chromium` names via `snapshotPathTemplate`.
 
 Check: `tools/e2e/areas.test.ts` "puts every spec file in exactly one area"; `tools/e2e/affected.test.ts` "runs the area whose source changed"; `tools/e2e/runLog.test.ts` "writes a summary with a table per area"
 
@@ -139,11 +139,11 @@ Check: `src/config.test.ts` "is off unless ?autoplay=1, also in a dev build"
 
 ## d151
 
-**An idea that is given up is deleted, not kept on hold; a rejected idea stays as one line.** Features: none.
+**Docs say only what is relevant: the current state, what is planned or partly built, and future or shelved ideas still wanted; anything else is deleted with no trace.** Features: none.
 
-When an idea is given up, its code, content, feature files, design pages and the decisions only about it are deleted in the same round by their owning projects. Frozen migration steps for old save fields stay (d064); a rejected idea (e.g. falling notes, ft_Y_05) stays as one line in `docs/features/FEATURES.md`'s "Rejected" list; decisions about live things are never rewritten. A ledger rule to keep something wins (the band's toolbar code stays behind its flag, d115).
+When a feature or idea is no longer part of the game or its plan, its code, content, feature file, design pages, the decisions only about it and every mention of it are deleted in the same round: no stub file, no rejected or retired line, no note that it was removed. Decisions about live things are rewritten to say only what is. Frozen migration steps for old save fields stay (d064), and the banned words of `docs/glossary.md` are the one list that names old words (d290). A ledger rule to keep something wins (the band's toolbar code stays behind its flag, d115).
 
-Check: untestable: process rule for agents (delete retired ideas)
+Check: untestable: process rule for agents (what a doc may say)
 
 ## d152
 

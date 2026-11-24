@@ -1,6 +1,4 @@
-import keriJson from '../../../content/world/keri.json';
-import { campaignMapView } from '../../core/campaign/mapView';
-import { beingsInScenes, isTester, localDay, openScenes } from '../../core/campaign/sceneBeings';
+import { isTester } from '../../core/world/openScenes';
 import { ART_DETAIL } from '../../core/layout/frame';
 import { rectCentre, type Rect } from '../../core/layout/rect';
 import { STRIP_ROWS } from '../../core/layout/room';
@@ -10,20 +8,16 @@ import type { SceneData, StandingPlace } from '../../core/scene/scene';
 import type { ItemId, ScriptId } from '../../core/contracts';
 import type { SceneLook } from '../../core/sky/sceneLook';
 import { t, type StringKey } from '../../core/text/strings';
-import { loadWorld, type World } from '../../core/world/world';
-import { LADDER } from '../campaign/ladder';
 import { contextOf } from '../context';
 import { motionAllowed } from '../motion';
 import { startScene } from '../scenes';
 import { SCENE_SCREENS, watchVisit, type VisitData } from '../visit/islandVisit';
-import { MONSTER_BLINK_FRAMES, MONSTER_FRAMES } from '../ui/pixel/beings/monsterArt';
 import { blit, createBitmap, type Bitmap } from '../ui/pixel/bitmap';
 import { stripArt } from '../ui/pixel/keri/stripArt';
 import { C, PALETTE } from '../ui/pixel/palette';
-import { PixelImage, PixelText, pixelStars, type RgbaArt } from '../ui/pixel/PixelObjects';
+import { PixelImage, PixelText, type RgbaArt } from '../ui/pixel/PixelObjects';
 import { SCHOOL, bubblesAt, fishAt, jellyAt, schoolAt, type SwimPlace } from '../ui/pixel/swimMotion';
 import { PixelScene } from '../ui/pixel/PixelScene';
-import { STAR_FULL } from '../ui/pixel/sprites';
 import { currentLook } from '../ui/pixel/sky/skyLooks';
 import { GUST_MS, cloudCourses, daySky, lookMs } from '../ui/pixel/windMotion';
 import { blownAt, blownBox } from '../ui/pixel/sway';
@@ -37,7 +31,7 @@ import { lineSpot, TALK } from '../../core/layout/talk';
 import { readingMs } from '../../core/scene/scriptRunner';
 import { scriptInk, spokenLine, spokenPages, talkColour } from '../ui/pixel/talkArt';
 import type { ScriptView } from '../../core/scene/scriptRunner';
-import { ACTORS, CHARACTERS, CONVERSATIONS, ITEMS, SCENES, SCRIPTS, TUG_RULES } from './scenesData';
+import { ACTORS, CHARACTERS, CONVERSATIONS, ITEMS, SCRIPTS, TUG_RULES } from './scenesData';
 import type { ToolbarItem } from '../ui/pixel/PixelScene';
 import { TalkView } from './talkView';
 import { TugView } from './tugView';
@@ -58,16 +52,12 @@ import { applyTalkEffects, talkFactsOf } from '../../core/dialogue/talkWorld';
 import { meetCharacter } from '../../core/island/presenceRules';
 import type { WorldState } from '../../core/island/worldState';
 import { dayString } from '../../io/teacher/teacherDesk';
-import { SCENE_LIVES, type LifeLayer, type PictureFigure, type SceneDive, type SceneLife, type ScenePicture } from './sceneLife';
-
-/** The island as shipped (content/world/keri.json, d108), validated once. */
-const KERI: World = loadWorld(keriJson);
+import { type LifeLayer, type PictureFigure, type SceneDive, type SceneLife, type ScenePicture } from './sceneLife';
 
 /** How long the view takes to pan down into a place's second view, or up out of it (ft_1_19). */
 const PAN_MS = 900;
 
 const NAME_ABOVE = 9;
-const STARS_ABOVE = 18;
 
 /** The demo cast (`?actors=1`, dev only): who stands on the scene's first places, and in which state. AX-3 provisional. */
 /** What opens a scene: a visit from the screensaver, and a script to run in it (ft_1_24.AC6, WP-07). */
@@ -89,8 +79,8 @@ const DEMO_CAST: readonly { actor: string; state: ActorState }[] = [
  * and its picture's life (`sceneLife.ts`) make the screen; no place has a class of its own. The picture, its clouds and
  * what moves over it are laid once per drawing and move by the scene's animators, and the actors stand on the scene's
  * places as sprites stepped every frame, never by drawing the scene again. Back returns to the map of Keri; the
- * screensaver (ft_1_17.AC4) shows a scene too, and then any input returns to the room. With `?beings=1` the beings that
- * are here today stand on the life's spots; with `?actors=1` (dev) the demo cast stands.
+ * screensaver (ft_1_17.AC4) shows a scene too, and then any input returns to the room. With `?actors=1` (dev) the demo
+ * cast stands.
  */
 export class AdventureScene extends PixelScene {
   protected override keyboardNavigation = true;
@@ -248,7 +238,6 @@ export class AdventureScene extends PixelScene {
       this.swim(dive, picture, origin, palette, daySky(now, wind).seed);
       if (strip.h > 0) this.root.add(new PixelImage(this, strip.x, strip.y, stripArt(strip.w, strip.h)));
       this.hotspot(at, dive.riseAt, t('scene.rise'), () => this.pan(false));
-      if (context.flags.beings) this.beings(at, now, dive.spots);
       return;
     }
 
@@ -282,8 +271,6 @@ export class AdventureScene extends PixelScene {
       this.tug?.redrawIn(this.talkLayer);
       this.teach?.redrawIn(this.talkLayer);
     }
-    // the scenes are clean for now: no beings in them until they are overhauled; `?beings=1` shows them
-    if (context.flags.beings) this.beings(at, now, this.life.spots);
     if (dive) this.hotspot(at, dive.diveAt, t('scene.dive'), () => this.pan(true));
   }
 
@@ -961,47 +948,6 @@ export class AdventureScene extends PixelScene {
     if (!def || !spot) return Promise.resolve(false);
     return this.openTalk(def, spot.head);
   }
-
-  /** The beings that are here today (ft_1_19.AC8), each on its spot. */
-  private beings(at: Rect, now: number, spots: SceneLife['spots']): void {
-    const context = contextOf(this);
-    const state = context.profiles.campaign;
-    const map = campaignMapView(LADDER, state);
-    // only a place with somewhere to stand takes beings: the docks has no spots yet, and a being sent there made the redraw
-    // throw, which left the scene without its band, Back or gear (found by the break-the-game testers)
-    const open = openScenes(KERI.scenes ?? [], context.profiles.progress.level.level, isTester(context.profiles.profile.name)).filter(hasStandingSpots);
-    const day = localDay(now, new Date(now).getTimezoneOffset());
-    const here = beingsInScenes(map.filter((m) => m.unlocked).map((m) => m.index), open, context.profiles.profile.id, day)[this.sceneData.id] ?? [];
-    if (spots.length === 0) return;
-    here.forEach((index, n) => {
-      const monster = map[index]!;
-      const spot = spots[n % spots.length]!;
-      const feet = { x: at.x + Math.round(spot.feet.x / ART_DETAIL), y: at.y + Math.round(spot.feet.y / ART_DETAIL) };
-      // its game (find the key, find the door) is gone (d135): a being only stands here until the beings' overhaul
-      this.being(feet, monster.name, monster.levels.filter((l) => l.beaten).length, monster.levels.length);
-    });
-  }
-
-  /** A being in the scene: it bobs and blinks, its name over it and a star for each of its levels beaten. */
-  private being(feet: { x: number; y: number }, name: string, stars: number, levels: number): void {
-    const frame = MONSTER_FRAMES[0]!;
-    const x = feet.x - Math.round(frame.width / 2), y = feet.y - frame.height + 1;
-    const body = MONSTER_FRAMES.map((f) => new PixelImage(this, x, y, f));
-    const blink = MONSTER_BLINK_FRAMES.map((f) => new PixelImage(this, x, y, f));
-    this.root.add([...body, ...blink]);
-    const show = (time: number): void => {
-      const bob = Math.floor(time / 700) % 2;
-      const closed = time % 3400 < 160;
-      body.forEach((b, i) => b.setVisible(!closed && i === bob));
-      blink.forEach((b, i) => b.setVisible(closed && i === bob));
-    };
-    show(1000);
-    if (motionAllowed()) this.animators.push(show);
-    this.root.add(new PixelText(this, 0, y - NAME_ABOVE, name, { color: C.white, shadow: C.ink }).centerAt(feet.x));
-    // one star per level beaten: a count of the being's levels, not a grade
-    const width = levels * STAR_FULL.width + (levels - 1) * 3;
-    pixelStars(this, this.root, feet.x - Math.round(width / 2), y - STARS_ABOVE, stars, { gap: 3, total: levels });
-  }
 }
 
 /** A scene an exit can lead to: one of the adventure scenes the game registers. */
@@ -1021,11 +967,4 @@ function boxOf(def: ActorDef): Bitmap {
   for (let x = 0; x < w; x++) { box.pixels[x] = C.gold; box.pixels[(h - 1) * w + x] = C.gold; }
   for (let y = 0; y < h; y++) { box.pixels[y * w] = C.gold; box.pixels[y * w + w - 1] = C.gold; }
   return box;
-}
-
-/** Whether the scene `id` has a spot where a being can stand, on its picture or in its deep view (ft_1_19.AC8). */
-export function hasStandingSpots(id: string): boolean {
-  const scene = SCENES.get(id);
-  const life = scene ? SCENE_LIVES[scene.picture] : undefined;
-  return life !== undefined && (life.spots.length > 0 || (life.dive?.spots.length ?? 0) > 0);
 }
