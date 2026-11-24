@@ -3,6 +3,7 @@
  * parent set, with deadlines and priorities, and the calendar. WP-01 delivers the types only.
  */
 import type { DayString, PieceId } from '../contracts';
+import type { Cast } from '../island/cast';
 
 export interface Curriculum {
   /** The expected level before priority, default 85. */
@@ -20,6 +21,11 @@ export interface Curriculum {
    * (ft_1_26.AC9). Absent in older saves and by default: from the start of the day.
    */
   readonly testTime?: string;
+  /**
+   * The teacher's settings of the cast for this player (ft_1_37): each character on or off, its weekdays, its chance, its
+   * piece and neediness, and the wanderers sent. Absent in older saves and by default: every character as before.
+   */
+  readonly cast?: Cast;
 }
 export interface CurriculumPiece {
   readonly piece: PieceId;

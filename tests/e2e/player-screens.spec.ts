@@ -602,6 +602,53 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
     expectNoErrors(errors);
   });
 
+  test('ft_1_37.AC10 the teacher sets a character and sends a wanderer: every press shows on the page, Save keeps them', async ({ page }) => {
+    const errors = await openGame(page);
+    await openProfiles(page);
+    await clickButton(page, 'profiles', await profileButton(page, 'Teacher'));
+    await waitForScene(page, 'teacherGate');
+    await page.keyboard.type('pianor');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'teacher');
+    await expect.poll(() => sceneButton(page, 'teacher', 'Characters')).toBeGreaterThan(-1);
+    await clickButton(page, 'teacher', await sceneButton(page, 'teacher', 'Characters'));
+    await waitForScene(page, 'teacherCast');
+    // the defaults: on, every day, 50 per cent, its own piece, neediness 3 with the tug's level shares
+    await expect.poll(() => sceneTexts(page, 'teacherCast')).toEqual(expect.arrayContaining(['Comes', 'yes', 'Mo Tu We Th Fr Sa Su', '50%', 'its own', '3: 60 80 95%']));
+    const saved = () => page.evaluate(async () => {
+      const { profiles } = window.__game.registry.get('context');
+      return ((await profiles.curriculumOf(profiles.profile.id)) as { cast?: unknown }).cast;
+    });
+    const press = async (label: string) => clickButton(page, 'teacherCast', await sceneButton(page, 'teacherCast', label));
+    await press('Off');
+    await press('Su');
+    await press('+10%');
+    await press('+1');
+    // shown on the page, and nothing kept until Save (d286)
+    await expect.poll(() => sceneTexts(page, 'teacherCast')).toEqual(expect.arrayContaining(['no', 'Mo Tu We Th Fr Sa', '60%', '4: 70 90 100%', 'Not saved yet']));
+    expect(await saved()).toBeUndefined();
+    await press('Save');
+    await page.screenshot({ path: 'test-results/teacher-cast-character.png' });
+    const first = await page.evaluate(() => (window.__game.scene.getScene('teacherCast') as unknown as { chosen: string }).chosen);
+    await expect.poll(saved).toEqual({ characters: { [first]: { on: false, weekdays: [1, 2, 3, 4, 5, 6], chance: 0.6, neediness: 4 } } });
+    // the wanderer: sent for today
+    await press('Traveler');
+    await expect.poll(() => sceneTexts(page, 'teacherCast')).toEqual(expect.arrayContaining(['a learned piece', '3: 80%', 'not sent']));
+    await press('Send');
+    await expect.poll(() => sceneTexts(page, 'teacherCast')).toContain('sent');
+    await press('Save');
+    await expect.poll(async () => ((await saved()) as { sent?: { wanderer: string }[] }).sent?.map((s) => s.wanderer)).toEqual(['traveller']);
+    await page.screenshot({ path: 'test-results/teacher-cast.png' });
+    // Back with something not saved says so first, and leaves without saving on a second press
+    await press('+1');
+    await clickToolbar(page, 'back');
+    await expect.poll(() => sceneTexts(page, 'teacherCast')).toContain('Not saved. Back again leaves without saving.');
+    await clickToolbar(page, 'back');
+    await waitForScene(page, 'teacher');
+    expect(await saved()).not.toHaveProperty('characters.traveller');
+    expectNoErrors(errors);
+  });
+
   test("ft_1_26.AC8 a curriculum piece has the teacher's hat on its title line in the piece book; the others have none", async ({ page }) => {
     const errors = await openGame(page);
     const title: string = await page.evaluate(async () => {

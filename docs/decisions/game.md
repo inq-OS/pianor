@@ -532,3 +532,11 @@ Check: `src/core/layout/clefFlight.test.ts` "ft_1_32.AC22 starts in the book whe
 The lesson (Twinkle's first four bars) is learned by the same plan as any piece, its progress kept only for the intro, so the piece itself is neither counted as learned nor as played. At the learned moment Kiur's line stays until a key, which goes on to the room's practise stage; the clef does not fly to the book in the intro.
 
 Check: `src/game/practice/introLearning.test.ts` "ft_1_31.AC8 starts from the beginning, keeps its steps for the next run only, and never saves the piece"; `tests/e2e/intro.spec.ts` "ft_1_31.AC1 ft_1_31.AC2 ft_1_31.AC3 ft_1_31.AC4 ft_1_31.AC6 ft_1_31.AC8 a new player is shown the room and the map and walked through learning bar by bar, practise and the tug on Twinkle"
+
+## d298
+
+**The teacher sets each character per player (on, weekdays, chance, piece, neediness) and sends wanderers, who ask for one piece and give a plain keepsake.** Features: ft_1_37, ft_1_25, ft_1_21.
+
+The settings live in the player's `curriculum` document as the optional `cast`, absent reading as before. Neediness 1 to 5 holds for every character: 3 keeps a tug level's share, each step moves it 10 points, never past all the notes; a wanderer counts from 80 per cent. A wanderer comes only on a day it was sent, plays one whole pass with the staff in Wait mode, and gives one keepsake a day when the play reaches its share, nothing taken away otherwise.
+
+Check: `src/core/island/cast.test.ts` "ft_1_37.AC8 neediness moves the share a play needs by 10 points a step from 3, never past all the notes"; `src/core/island/wanderer.test.ts` "ft_1_37.AC7 ft_1_37.AC8 keeps a keepsake when the play reaches the share its neediness needs, never takes anything"
