@@ -8,7 +8,7 @@ const CHORD_STEPS: number[][] = [
   [60], [60, 64], [62], [62, 65], [64], [64, 67], [65], [62, 65], [64, 67], [62, 65], [60, 64, 67],
 ];
 
-/** Evening Chords (level 5): a tune over left-hand chords, with the half-diminished C Eb Gb Bb in bar 7. */
+/** Evening Chords (level 6): a tune over left-hand chords, with the half-diminished C Eb Gb Bb in bar 7. */
 const EVENING_CHORDS: number[][] = [
   [64, 48, 52, 55], [67], [65, 50, 53, 57], [64], [62], [64, 48, 53, 57], [69], [67, 50, 55, 59],
   [69, 48, 53, 57], [67], [65], [64, 48, 52, 55], [62], [60], [63, 48, 51, 54, 58], [62], [60, 48, 52, 55],
