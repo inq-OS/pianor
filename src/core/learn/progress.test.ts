@@ -318,6 +318,13 @@ describe('tuned beat lanes', () => {
     expect(() => learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLanes: [...two, ...two] })).toThrow();
     expect(() => learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLanes: [{ ...two[0]!, offset: 99 }] })).toThrow();
   });
+
+  it('core_13.AC9 a lane may follow the click, kept as an optional field; an old record follows the pace', () => {
+    const clicked = [{ ...defaultLaneLook('between'), follow: 'click' as const }];
+    expect(learnBeatLanes(learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLanes: clicked }))[0]!.follow).toBe('click');
+    expect(learnBeatLanes(learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLanes: [defaultLaneLook('above')] }))[0]!.follow).toBeUndefined();
+    expect(() => learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLanes: [{ ...defaultLaneLook('above'), follow: 'drum' }] })).toThrow();
+  });
 });
 
 describe('hands apart in a piece begun', () => {

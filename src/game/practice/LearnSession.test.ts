@@ -1,4 +1,4 @@
-// Covers ft_1_32.AC5 (the markers the practice screen draws), ft_1_32.AC7 (the confirmation play is measured).
+// Covers ft_1_32.AC5 (the markers the practice screen draws), ft_1_32.AC7 (the confirmation play is measured), core_13.AC5 (the pace carried between runs).
 import { TEMPO_RULES } from '../../core/learn/tempo';
 import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
@@ -48,6 +48,20 @@ describe('LearnSession', () => {
     times.forEach((timeMs, i) => session.push(mode.handle({ kind: 'on', midi: midis[i]!, velocity: 80, timeMs, source: 'test' }), session.chart));
     return session.outcomeOf(session.chart, false);
   }
+
+  it('core_13.AC5 starts a run from the pace carried over before it has three keys, and carries its own pace on', () => {
+    const { session } = open();
+    const run = session();
+    expect(run.paceToCarry).toBeNull();
+    run.carriedBpm = 75;
+    playRun(run, [0]);
+    expect(run.pace?.beatMs).toBe(800); // 75 BPM: before the run has a pace of its own
+    expect(run.paceToCarry).toBe(75);
+    const next = session();
+    next.carriedBpm = 75;
+    playRun(next, [0, 500, 1000]);
+    expect(next.paceToCarry).toBe(120); // its own pace, three keys a half second apart
+  });
 
   it('does not measure a growing step, measures the confirmation play, and asks an uneven one again', async () => {
     const { kept, session } = open();

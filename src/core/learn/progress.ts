@@ -156,6 +156,7 @@ export const learnSettingsSchema = z.object({
     dots: z.object({ ghost: z.number().min(0).max(1), beat: z.number().min(0).max(1), top: z.number().min(0).max(1), bottom: z.number().min(0).max(1) }),
     wave: z.object({ height: z.number().min(0).max(LANE_LIMITS.height), reach: z.number().min(0).max(LANE_LIMITS.reach) }),
     blink: z.boolean().optional(),
+    follow: z.literal('click').optional(),
   })).max(LANE_LIMITS.lanes).optional(),
   /**
    * A click at the student's own pace in a learning run (core_13 rule 6), started afresh at every key. Absent or false: off,

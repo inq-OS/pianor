@@ -97,6 +97,8 @@ export class BeatLanesScene extends PixelScene {
   init(data?: BeatLanesData): void {
     this.returnTo = data?.returnTo ?? { page: 1 };
     this.overlay = data?.overlay === true;
+    // over the practice screen the page has no settings corner: Back is the only way, back to the piece
+    this.toolbarPlayer = !this.overlay;
     this.lanes = learnBeatLanes(contextOf(this).profiles.learnSettings).map((l) => structuredClone(l));
     this.selected = 0;
     this.saveFailed = false;
@@ -334,6 +336,15 @@ export class BeatLanesScene extends PixelScene {
       label: t('lanes.blink'), icon: LANE_ICONS.blink, active: blinking, preview: tryLook({ ...look, blink: !blinking }),
       onClick: () => this.keep(i, { ...look, blink: !blinking }),
     };
+    // what the wave follows: the student's own pace, or the metronome's beats while it clicks (core_13.AC9)
+    const followItem = (follow: LaneLook['follow'], key: StringKey, icon: keyof typeof TOOL_ICONS): MenuItem => ({
+      label: t(key), icon: TOOL_ICONS[icon], active: look.follow === follow, preview: tryLook({ ...look, follow }),
+      onPick: () => this.keep(i, { ...look, follow }),
+    });
+    const follow: ToolbarItem = {
+      label: t('lanes.follow'), icon: TOOL_ICONS[look.follow === 'click' ? 'click' : 'fingers'], onClick: () => undefined,
+      menu: { items: () => [followItem(undefined, 'lanes.followPace', 'fingers'), followItem('click', 'lanes.followClick', 'click')], cell: { w: 18, h: 18 }, columns: 2 },
+    };
     const [ghost, beat, top, bottom, height, reach, move] = sliders;
     // from More or the keyboard (no lane under a pointer): a new lane, and the next lane to tune
     const keyboard: (ToolbarItem | null)[] = fromMore
@@ -342,7 +353,7 @@ export class BeatLanesScene extends PixelScene {
           this.lanes.length > 1 ? { label: t('lanes.next'), icon: LANE_ICONS.next, onClick: () => this.nextLane() } : null,
         ]
       : [];
-    return [place, ghost!, beat!, top!, bottom!, height!, blink, reach!, move!, ...keyboard].filter((o, k) => o !== null || k < 7);
+    return [place, ghost!, beat!, top!, bottom!, height!, blink, reach!, move!, follow, ...keyboard].filter((o, k) => o !== null || k < 7);
   }
 
   /** Tune the next lane: the bubble opens again for it (from More or the keyboard). */
