@@ -57,7 +57,6 @@ const TRIM = colour(0xe9dcc0);
 const WINDOW_WOOD = colour(0x6a3a20);
 const FLOOR = colour(0x7a4426);
 const DARK_WOOD = colour(0x5a3120);
-const WALNUT = colour(0x7a4423);
 const HONEY = colour(0xc98848);
 const IRON = colour(0x2b2a36);
 const BRICK = colour(0xb8502e);
@@ -1049,10 +1048,20 @@ function foreground(b: Builder, pages: number): void {
   const timber = plain(colour(0x4a2818), 0.35, 140);
   b.rod([-2.7, 1.29, 3.6], [-0.9, 2.33, 3.6], 0.1, 0.1, timber, FOREGROUND);
   b.rod([2.7, 1.35, 3.6], [1.2, 2.3, 3.6], 0.095, 0.095, timber, FOREGROUND + 100);
+  // over each brace the roof's near boards, in the dark and plain: a calm field under the door, the backpack and the gear
+  const roof = plain(colour(0x3a2418), 0.08, 144);
+  b.rod([-3.4, 1.5, 3.52], [-0.7, 3.05, 3.52], 0.42, 0.42, roof, FOREGROUND + 102);
+  b.rod([3.4, 1.62, 3.52], [0.4, 3.05, 3.52], 0.46, 0.46, roof, FOREGROUND + 103);
 
   // the sea chest, its front turned to the viewer
   const chest = { x: -1.2, z: 4.02, turn: 38 };
-  const oak = wood(WALNUT, 141, 'u'), strap = plain(IRON, 0.2, 142);
+  // its front of broad boards laid level, each its own tone with a dark seam, a lock plate in the middle (rule 25: worn, not made in a factory)
+  const boards = planks(colour(0x8a5230), 0.13, 141, 'u'), strap = plain(IRON, 0.2, 142);
+  const oak: Material = (d) => {
+    boards(d);
+    if (d.face === 0 && Math.abs(d.u) < 0.05 && d.v > 0.42 && d.v < 0.56) tint(d, colour(0x6a6470));
+    if (d.face === 0 && Math.abs(d.u) < 0.012 && d.v > 0.44 && d.v < 0.5) tint(d, colour(0x1c1820));
+  };
   b.box(chest.x, chest.z, 0.95, 0.5, 0, 0.62, chest.turn, oak, FOREGROUND + 101);
   b.box(chest.x, chest.z, 0.99, 0.54, 0.62, 0.68, chest.turn, oak, FOREGROUND + 101);
   for (const lx of [-0.3, 0.3]) {
@@ -1205,6 +1214,9 @@ function towards(x: number, y: number, z: number): V3 {
 
 /** How much of a window's daylight comes back from the room's near end. */
 const FILL = 0.3;
+/** How much of it reaches the near things' faces from behind the viewer, and by night the moon's cool light there instead. */
+const NEAR_FILL = 0.35;
+const NEAR_MOON = [0.75, 0.9, 1.6] as const;
 
 const HOURS: Record<SkyPhase, Hour> = {
   day: { ambient: [0.34, 0.3, 0.38], toSun: towards(-0.22, 0.72, -1), sun: [1.2, 1.1, 0.9], windows: 0.9, tint: [1.12, 1.02, 0.84], lamps: 0, fire: false, pages: 0.22 },
@@ -1275,6 +1287,11 @@ export function roomSet(hour: RoomHour, awake: RoomAwake = {}): RoomSet {
   // what the daylight throws back from the room's near end onto the things that face the viewer: without it the piano,
   // between two bright windows, is a dark shape, and a painted room keeps its main thing readable
   lamps.push({ x: 0.2, y: 1.9, z: 3.4, far: false, r: day[0] * FILL, g: day[1] * FILL, b: day[2] * FILL, reach: 3.4, size: 0.5, flickers: false });
+  // and the same from behind the viewer onto the near things' faces (the sea chest, its basket and books, the bed's
+  // foot): without it the picture's lower left is one dark mass with nothing drawn in it; by night it is the moon's,
+  // a cool low light, so the near things stand as shapes the eye can read and not as a black slab
+  const near = hour.phase === 'night' ? NEAR_MOON : [day[0] * NEAR_FILL, day[1] * NEAR_FILL, day[2] * NEAR_FILL];
+  lamps.push({ x: -1.1, y: 1.7, z: 5.9, far: false, r: near[0], g: near[1], b: near[2], reach: 2.6, size: 0.5, flickers: false });
   if (awake.door) {
     // the hallway's own light, from its far end: by day a window that is out of sight, after dark a small lamp
     const at = wallTool('right').p((ROOM.door.a0 + ROOM.door.a1) / 2, 1.8, -ROOM.wall - HALL.length * 0.5);

@@ -181,3 +181,57 @@ export function twoFingersSlid(start: readonly { x: number; y: number }[], now: 
     return n !== undefined && Math.hypot(n.x - s.x, n.y - s.y) > PINCH_SLIDE;
   });
 }
+
+/**
+ * A slider in the bubble (ft_1_20.AC26): an option that sets a value in a range opens a track along the outer ring, where
+ * `SLIDER_CELLS` choices would stand, its least at the first and its most at the last, with a knob dragged along it.
+ */
+export const SLIDER_CELLS = 5;
+
+/** The slider's track: the ring's centre and radius and the turns (radians) of its least and its most. */
+export interface SliderArc {
+  centre: { x: number; y: number };
+  radius: number;
+  from: number;
+  to: number;
+}
+
+/** A turn between -π and π. */
+const turn = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+
+/** The track through the open option's choices (the layout opened with `SLIDER_CELLS` of them), or null with none. */
+export function sliderArc(layout: BubbleLayout): SliderArc | null {
+  const first = layout.choices[0];
+  const last = layout.choices.at(-1);
+  if (!first || !last || layout.choices.length < 2) return null;
+  const { centre } = layout;
+  const at = (r: Rect) => ({ x: r.x + r.w / 2 - centre.x, y: r.y + r.h / 2 - centre.y });
+  const radius = layout.choices.reduce((sum, r) => sum + Math.hypot(at(r).x, at(r).y), 0) / layout.choices.length;
+  const from = Math.atan2(at(first).y, at(first).x);
+  return { centre, radius, from, to: from + turn(Math.atan2(at(last).y, at(last).x) - from) };
+}
+
+/** Where on the track the knob stands for `fraction` (0 the least, 1 the most). */
+export function sliderPoint(arc: SliderArc, fraction: number): { x: number; y: number } {
+  const a = arc.from + Math.min(1, Math.max(0, fraction)) * (arc.to - arc.from);
+  return { x: arc.centre.x + arc.radius * Math.cos(a), y: arc.centre.y + arc.radius * Math.sin(a) };
+}
+
+/** How far along the track (0 to 1) a pointer at `point` is: by its turn round the centre, the nearer end past either end. */
+export function sliderFraction(arc: SliderArc, point: { x: number; y: number }): number {
+  const span = arc.to - arc.from;
+  if (span === 0) return 0;
+  const f = turn(Math.atan2(point.y - arc.centre.y, point.x - arc.centre.x) - arc.from) / span;
+  if (f >= 0 && f <= 1) return f;
+  // past an end: the end nearer round the ring
+  const toFrom = Math.abs(turn(f * span));
+  const toEnd = Math.abs(turn(f * span - span));
+  return toFrom <= toEnd ? 0 : 1;
+}
+
+/** The value at `fraction` of a range, on its steps. */
+export function sliderStep(fraction: number, range: { min: number; max: number; step: number }): number {
+  const raw = range.min + Math.min(1, Math.max(0, fraction)) * (range.max - range.min);
+  const stepped = range.min + Math.round((raw - range.min) / range.step) * range.step;
+  return Math.min(range.max, Math.max(range.min, Number(stepped.toFixed(6))));
+}

@@ -194,11 +194,10 @@ describe('each kind does what it says', () => {
     expect([...new Set(midis)].sort((a, b) => a - b)).toEqual([60, 62, 64, 65, 67]);
   });
 
-  it('reading-drill visits most of the notes and has rests only where the level allows them', () => {
+  it('reading-drill visits most of the notes and has rests now and then (every level allows them)', () => {
     for (let seed = 1; seed <= 20; seed++) {
       const l1 = chartOf({ kind: 'reading-drill', level: 1, seed });
       expect(new Set(l1.notes.map((n) => n.midi)).size).toBeGreaterThanOrEqual(4);
-      expect(l1.rests).toHaveLength(0);
     }
     const withRests = Array.from({ length: 30 }, (_, seed) => chartOf({ kind: 'reading-drill', level: 3, seed })).filter((c) => c.rests.length > 0);
     expect(withRests.length).toBeGreaterThan(5);

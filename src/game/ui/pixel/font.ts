@@ -197,7 +197,17 @@ function smallCaps(text: string): string {
  */
 export function drawnText(text: string, keepCase = false): string {
   const letterCase = keepCase ? 'normal' : defaultLetterCase(language());
-  return letterCase === 'smallCaps' ? smallCaps(text) : displayText(text, letterCase);
+  return letterCase === 'smallCaps' ? smallCaps(text) : markedAsOne(displayText(text, letterCase));
+}
+
+/** Õ Ä Ö Ü Š Ž have one glyph for both cases, so a lowercase one (a German title in English) draws as that glyph. */
+function markedAsOne(text: string): string {
+  let out = '';
+  for (const ch of text) {
+    const upper = ch.toLocaleUpperCase('et');
+    out += MARKED.has(upper) ? upper : ch;
+  }
+  return out;
 }
 
 export interface Glyph {

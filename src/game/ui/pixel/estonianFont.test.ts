@@ -50,4 +50,11 @@ describe('the pixel font for Estonian letters (ft_0_18, d086)', () => {
   it('ft_0_18.AC3 English keeps its lowercase letters', () => {
     expect(drawnText('Back')).toBe('Back');
   });
+
+  it('draws a title with ä, ö, ü or õ in English with the marked letter, never a missing-glyph block', () => {
+    for (const title of ['Ständchen', 'Flüsternd schlanke Wipfel', 'Vahemäng', 'Hörst', 'õhtu', 'šokk', 'žürii']) {
+      for (const keepCase of [false, true]) expect([...drawnText(title, keepCase)].filter((ch) => !hasGlyph(ch)), title).toEqual([]);
+    }
+    expect(drawnText('Ständchen')).toBe('StÄndchen');
+  });
 });

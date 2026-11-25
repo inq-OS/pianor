@@ -8,7 +8,7 @@ import { spawn } from 'node:child_process';
 import { createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
 import { cleanImageFile, type Cleaned } from './clean';
-import { audiverisArgs, audiverisCandidates, audiverisHint, exportOf, pickAudiveris, staleScores, type Recognised } from './photo';
+import { audiverisArgs, audiverisBookArgs, audiverisCandidates, audiverisHint, exportOf, exportsOf, pickAudiveris, staleScores, type Recognised } from './photo';
 
 /** Where the lines about the run go: the terminal, or the server's log. */
 type Say = (line: string) => void;
@@ -76,3 +76,46 @@ export function recognise(original: string, outDir: string, say: Say = console.l
   });
 }
 
+
+/** A book being read: its end (the MusicXML of each movement, or why none) and a way to stop it. */
+export interface BookRun {
+  readonly done: Promise<{ ok: true; scores: string[] } | { ok: false; reason: string }>;
+  stop(): void;
+}
+
+/**
+ * Runs Audiveris on the chosen sheets of a PDF as one book (ft_Y_04 slice 6), the results in `outDir`; each line of its
+ * output goes to `line`, from which the server tells the person which page is being read.
+ */
+export function readBook(pdf: string, sheets: readonly number[], outDir: string, line: (text: string) => void): BookRun {
+  mkdirSync(outDir, { recursive: true });
+  for (const old of staleScores(filesUnder(outDir))) rmSync(old);
+  const picked = audiverisFound();
+  if (!picked.ok) return { done: Promise.resolve(picked), stop: () => undefined };
+  const exe = picked.exe;
+  const log = join(outDir, 'audiveris.log');
+  const out = createWriteStream(log);
+  const child = spawn(exe, audiverisBookArgs(pdf, outDir, sheets), { stdio: ['ignore', 'pipe', 'pipe'] });
+  let stopped = false;
+  const said: string[] = [];
+  const take = (d: Buffer) => {
+    out.write(d);
+    const text = d.toString();
+    said.push(text);
+    for (const l of text.split(/\r?\n/)) if (l.trim()) line(l);
+  };
+  child.stdout.on('data', take);
+  child.stderr.on('data', take);
+  const done = new Promise<{ ok: true; scores: string[] } | { ok: false; reason: string }>((resolve) => {
+    child.on('error', (e) => { out.end(); resolve({ ok: false, reason: `${exe} did not start (${e.message}). Install Audiveris, or set AUDIVERIS to its program file, Audiveris.exe on Windows.` }); });
+    child.on('close', (code) => {
+      out.end();
+      if (stopped) return resolve({ ok: false, reason: 'stopped' });
+      const scores = exportsOf(pdf, filesUnder(outDir));
+      if (scores.length > 0) return resolve({ ok: true, scores });
+      const hint = audiverisHint(said.join(''));
+      resolve({ ok: false, reason: `no MusicXML was written (Audiveris ended with code ${code}); its log: ${log}${hint ? `\n${hint}` : ''}` });
+    });
+  });
+  return { done, stop: () => { stopped = true; child.kill(); } };
+}

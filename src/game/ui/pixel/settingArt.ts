@@ -276,3 +276,52 @@ export function liveTempoSymbol(on: boolean): Bitmap {
   note(b, 20, 13);
   return b;
 }
+
+/** A red cross over a box from (x0, y0), `size` wide: the thing under it is off. */
+const struck = (b: Canvas, x0: number, y0: number, size: number) => {
+  for (let d = 0; d < size; d++) {
+    put(b, x0 + d, y0 + d, C.red);
+    put(b, x0 + size - 1 - d, y0 + d, C.red);
+  }
+};
+
+/**
+ * Where the beat lane runs (core_13 rule 2): a grand staff with the row of dots above it or between its staves, a beat dot
+ * bigger every few, the one the wave is on lifted; off, the row between the staves struck out in red.
+ */
+export function beatLaneSymbol(place: 'above' | 'between' | 'off'): Bitmap {
+  const b = paper();
+  const thin = { x0: 2, x1: SYMBOL_WIDTH - 3, gap: 2, lines: 4 };
+  staff(b, 4, thin);
+  staff(b, 15, thin);
+  // the dots as in play: grey, a beat dot bigger and darker, the one under the wave lifted; off, the row struck out
+  const y = place === 'above' ? 1 : 12;
+  for (let x = 3; x <= SYMBOL_WIDTH - 4; x += 2) {
+    const beat = (x - 3) % 8 === 0;
+    const wave = place !== 'off' && x === 19;
+    const colour = beat || wave ? INK : C.dim;
+    const top = y - (wave ? 1 : 0);
+    put(b, x, top, colour);
+    if (beat || wave) {
+      put(b, x + 1, top, colour);
+      put(b, x, top + 1, colour);
+      put(b, x + 1, top + 1, colour);
+    }
+  }
+  if (place === 'off') for (let x = 1; x <= SYMBOL_WIDTH - 2; x++) put(b, x, y + (x % 4 < 2 ? 0 : 1), C.red);
+  return b;
+}
+
+/** The click at the student's pace in learning (core_13 rule 6): a loudspeaker with sound waves going out; off, struck through with no waves. */
+export function paceClickSymbol(on: boolean): Bitmap {
+  const b = paper();
+  // the loudspeaker: a small box and its cone
+  for (let y = 9; y <= 13; y++) hline(b, 8, 10, y);
+  for (let x = 11; x <= 15; x++) vline(b, x, 11 - (x - 10), 11 + (x - 10));
+  if (on) {
+    for (const r of [3, 6, 9]) for (let y = -r; y <= r; y++) put(b, 17 + r - Math.round(Math.abs(y) / 2), 11 + y, C.blue);
+  } else struck(b, 6, 3, 17);
+  return b;
+}
+
+/** A kind of dot of a tuned beat lane (core_13 rule 10): the dotted line, the click's beats, the top staff's notes, the bottom staff's. */

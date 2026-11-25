@@ -70,6 +70,10 @@ import type { Bitmap } from './ui/pixel/bitmap';
 import { DEFAULT_THEME, StaffView } from './ui/staff/StaffView';
 import { PhotoOverlay, barsToFill, photoServer, sendPhoto, type PhotoReply } from './editor/photoImport';
 import { PhotoTool } from './editor/photoTool';
+import { BookTool } from './editor/bookTool';
+import { sendParts } from './editor/bookImport';
+import { bookSong, type BookPart } from '../core/import/book';
+import { ownIdFor } from '../core/editor/pieceFile';
 import { CANCELLED, openOverlay, startScene } from './scenes';
 import { addNode, freeNodeId, valuesAt, writeBlank, type Place } from '../core/song/edit';
 import type { SongValues } from '../core/song/schema';
@@ -220,7 +224,7 @@ export class EditorScene extends PixelScene {
   /** The game's server here reads photos (a PC with Audiveris): Import then takes a photo as well as a piece file. */
   private photoReady = false;
   /** The photo tool, while it is open over the piece maker (ft_Y_04.AC18). */
-  private photoTool: PhotoTool | null = null;
+  private photoTool: PhotoTool | BookTool | null = null;
   /** Which create the photo being loaded belongs to. */
   private photoToken = 0;
 
@@ -2834,8 +2838,9 @@ export class EditorScene extends PixelScene {
     let text: string | null;
     if (this.photoReady) {
       // on a computer with Audiveris, Import takes a photo or scan of a sheet too (ft_Y_04 slice 4)
-      const file = await context.files.pickFile({ accept: '.json,application/json,image/jpeg,image/png', id: 'editor-import-file' });
+      const file = await context.files.pickFile({ accept: '.json,application/json,image/jpeg,image/png,application/pdf,.pdf', id: 'editor-import-file' });
       if (file && /\.(jpe?g|png)$/i.test(file.name)) return this.importPhoto(file.name, file.bytes);
+      if (file && /\.pdf$/i.test(file.name)) return this.importBook(file.name, file.bytes);
       text = file ? new TextDecoder().decode(file.bytes) : null;
     } else text = await context.files.pick({ accept: '.json,application/json', id: 'editor-import-file' });
     if (text === null) return this.say(t('editor.importEmpty'), MESSAGE_MS);
@@ -2873,6 +2878,76 @@ export class EditorScene extends PixelScene {
         void this.openRead(piece, author, reply);
       },
     }, { name, bytes });
+  }
+
+  /**
+   * The PDF import (ft_Y_04 slice 6): the pages chosen, read on the computer as one score, cut into parts checked over the
+   * pages; then each part is saved as an own piece and the song that holds them opens. The piece being written is left alone.
+   */
+  private importBook(name: string, bytes: Uint8Array): void {
+    if (this.photoTool) return;
+    if (this.dirty()) return this.say(t('editor.photo.saveFirst'), MESSAGE_MS * 2);
+    const context = contextOf(this);
+    this.scene.pause();
+    const back = () => {
+      this.photoTool = null;
+      this.scene.resume();
+    };
+    this.photoTool = new BookTool({
+      pick: () => context.files.pickFile({ accept: 'application/pdf,.pdf', id: 'book-tool-file' }),
+      naming: context.profiles.noteNaming,
+      closed: back,
+      make: async (result) => {
+        const saved = await this.saveBook(result.title, result.book, result.parts);
+        if (typeof saved === 'string') return saved;
+        back();
+        saved();
+        return null;
+      },
+    }, { name, bytes });
+  }
+
+  /**
+   * Saves a read book: each part an own piece under an id of its own (its strip of the pages waits under that id), then the
+   * song, or the piece alone when there is one part, which then opens. All or nothing: a part that cannot be saved removes
+   * the parts saved before it, and the error is said. A part with no notes stays a blank of the song.
+   */
+  private async saveBook(title: string, book: string, parts: readonly BookPart[]): Promise<string | (() => void)> {
+    const { ownPieces, ownSongs, profiles } = contextOf(this);
+    const author = profiles.profile.name;
+    const base = ownIdFor(title).slice(0, 24).replace(/-+$/, '');
+    const ids: (string | undefined)[] = [];
+    const saved: string[] = [];
+    const undo = async () => { for (const id of saved) await ownPieces.remove(id); };
+    for (const [i, part] of parts.entries()) {
+      if (!('piece' in part)) { ids.push(undefined); continue; }
+      let wanted = `${base}-p${String(i + 1).padStart(2, '0')}`;
+      for (let n = 2; ownPieces.has(wanted); n++) wanted = `${base}-p${String(i + 1).padStart(2, '0')}-${n}`;
+      const result = await ownPieces.save(ownPieces.withFreeTitle(part.piece, this.takenTitles()), { author, newId: wanted });
+      if (!result.ok && result.reason === 'empty') { ids.push(undefined); continue; }
+      if (!result.ok) {
+        await undo();
+        return t('editor.book.cannotSave', { part: part.name, problem: result.message });
+      }
+      ids.push(result.id);
+      saved.push(result.id);
+    }
+    // the strips are a help, not the piece: a failure to write them leaves the parts and the song as they are
+    await sendParts(book, parts.flatMap((p, i) => { const id = ids[i]; return id ? [{ id, movement: p.movement, firstBar: p.firstBar, lastBar: p.lastBar }] : []; }));
+    const only = ids[0];
+    if (parts.length === 1 && only) {
+      const part = parts[0]!;
+      const bars = 'piece' in part ? barsToFill(part.problems) : [];
+      EditorScene.photoNote = bars.length === 0 ? t('editor.photo.done') : t('editor.photo.fill', { bars: bars.join(', ') });
+      return () => this.scene.restart({ id: only });
+    }
+    const made = await ownSongs.createFrom(title, (id) => bookSong(id, title, parts, ids, (n) => t('editor.book.movement', { n })));
+    if (!made.saved) {
+      await undo();
+      await ownSongs.remove(made.song.id);
+      return t('editor.book.cannotSave', { part: title, problem: t('editor.book.storage') });
+    }
+    return () => startScene(this, 'song', { songId: made.song.id });
   }
 
   /** A piece read from a photo and checked in the photo tool, saved as a new own piece and opened. */

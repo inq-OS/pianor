@@ -140,3 +140,11 @@ Check: untestable: a rule about what agents may claim; real hardware needs a hum
 `TEMPO_RULES` in `src/core/learn/tempo.ts`: a gap is even within 50% of the run's own pace, a stop is a gap three times as long as written at that pace or longer, a run is even with no stop and at least 60% of its gaps even, and an uneven measured run is asked again at most once before the next run with every note right counts.
 
 Check: `src/core/learn/tempo.test.ts` "ft_1_32.AC7 counts a slightly uneven run of a beginner as even: gaps a third off its pace, one pause of twice the gap"; `src/core/learn/progress.test.ts` "ft_1_32.AC7 asks an uneven run again once at most: the student is never held at a step for the pace"
+
+## d299
+
+**A beat lane shows the beat: a row of dots along the staff where a wave runs at the tempo, nudging each beat and note dot it passes; in a learning run each key's dot is coloured against the student's own pace; a click at that pace is a setting, off by default.** Features: core_13, ft_1_32.
+
+The lane runs between the two staves or above the staff, as the player sets it (`learn.beatLane`, between by default, or off), with a dotted line of ghost dots, a bigger dot on every beat and a dot under every note; a circle beside the staff does not fit the reading. In Tempo mode the wave runs with the piece's clock; in Wait mode it runs on from the latest right key at the click's tempo. Learning has no given tempo (ft_1_32 rule 8), so there the wave runs at the run's own pace (the baseline before three keys) and each key's dot turns green within 20% of the gap that pace asks, orange beyond, red beyond 50%, so the student sees a deviation as it happens. The learning click is off unless turned on (`learn.paceClick`). Both are optional fields with no save bump, each a picture on the settings' learning page.
+
+Check: `src/core/layout/beatLane.test.ts` "core_13.AC5 colours a key green in step, orange a little off and red far off"; `tests/e2e/beat-lane.spec.ts` "core_13.AC2 turned off in the settings, the lane is not drawn"

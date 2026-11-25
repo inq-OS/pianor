@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "impromptu-c-minor",
+  "title": "Impromptu in C minor",
+  "titles": {
+    "et": "Impromptu c-moll"
+  },
+  "status": "draft",
+  "source": "Franz Schubert, Impromptu in C minor, Op. 90 No. 1, D 899 No. 1 (1827), public domain; its opening theme (bars 1 to 33) arranged for Pianor (the top line in the right hand, the bass in the left) from the Mutopia Project edition (public domain) of the Breitkopf & Härtel complete works",
+  "license": "CC0-1.0",
+  "bpm": 88,
+  "key": {
+    "fifths": -3,
+    "mode": "minor"
+  },
+  "meter": {
+    "num": 4,
+    "den": 4
+  },
+  "nodes": [
+    {
+      "kind": "group",
+      "id": "theme",
+      "name": "Theme",
+      "nodes": [
+        {
+          "kind": "piece",
+          "id": "call-1",
+          "piece": "impromptu-c-minor-call-1",
+          "name": "Call 1",
+          "labels": [
+            "verse"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "answer-1",
+          "piece": "impromptu-c-minor-answer-1",
+          "name": "Answer 1",
+          "labels": [
+            "chorus"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "call-2",
+          "piece": "impromptu-c-minor-call-2",
+          "name": "Call 2",
+          "labels": [
+            "verse"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "answer-2",
+          "piece": "impromptu-c-minor-answer-2",
+          "name": "Answer 2",
+          "labels": [
+            "chorus"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "group",
+      "id": "theme-bass",
+      "name": "Theme with the bass",
+      "nodes": [
+        {
+          "kind": "piece",
+          "id": "call-3",
+          "piece": "impromptu-c-minor-call-3",
+          "name": "Call 3",
+          "labels": [
+            "verse"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "answer-3",
+          "piece": "impromptu-c-minor-answer-3",
+          "name": "Answer 3",
+          "labels": [
+            "chorus"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "call-4",
+          "piece": "impromptu-c-minor-call-4",
+          "name": "Call 4",
+          "labels": [
+            "verse"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "answer-4",
+          "piece": "impromptu-c-minor-answer-4",
+          "name": "Answer 4",
+          "labels": [
+            "chorus"
+          ]
+        }
+      ]
+    }
+  ]
+}

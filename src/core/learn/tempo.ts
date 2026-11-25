@@ -98,17 +98,18 @@ export function runTempo(chart: Chart, events: readonly JudgeEvent[]): RunTempo 
   };
 }
 
-interface Onset { writtenMs: number; timeMs: number; bar: number; hands: readonly ('RH' | 'LH')[] }
+/** A step played: its written tick and time, its time on the clock, its bar and hands. */
+export interface Onset { tick: number; writtenMs: number; timeMs: number; bar: number; hands: readonly ('RH' | 'LH')[] }
 
 /** The first right key of each step played, with the step's written time, in written order. */
-function onsetsOf(chart: Chart, events: readonly JudgeEvent[]): Onset[] {
+export function onsetsOf(chart: Chart, events: readonly JudgeEvent[]): Onset[] {
   const steps = buildSteps(chart);
   const onsets = new Map<number, number>();
   for (const e of events) {
     if (e.type === 'NoteJudged' && e.verdict === 'correct' && !onsets.has(e.stepIndex)) onsets.set(e.stepIndex, e.timeMs);
   }
   return [...onsets]
-    .map(([index, timeMs]) => ({ writtenMs: tickToMs(chart.tempoMap, steps[index]!.tick, chart.ppq), timeMs, bar: steps[index]!.bar, hands: steps[index]!.hands }))
+    .map(([index, timeMs]) => ({ tick: steps[index]!.tick, writtenMs: tickToMs(chart.tempoMap, steps[index]!.tick, chart.ppq), timeMs, bar: steps[index]!.bar, hands: steps[index]!.hands }))
     .sort((a, b) => a.writtenMs - b.writtenMs);
 }
 

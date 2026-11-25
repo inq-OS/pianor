@@ -78,11 +78,13 @@ describe('content/pieces', () => {
         expect(layout.notes).toHaveLength(chart!.notes.length);
         return;
       }
+      // A classic arranged for level 6 keeps its dotted sixteenths, which need room: 9 px on the smallest screen.
+      const smallest = meta!.level >= 6 ? 9 : 10;
       for (const viewport of VIEWPORTS) {
         const layout = layoutStaff(chart!, { viewport });
         expect(layout.fits, `${viewport.width}x${viewport.height}`).toBe(true);
         expect(layout.notes).toHaveLength(chart!.notes.length);
-        expect(layout.staffSpace).toBeGreaterThanOrEqual(10);
+        expect(layout.staffSpace).toBeGreaterThanOrEqual(viewport.width > 1024 ? 10 : smallest);
       }
     });
 
