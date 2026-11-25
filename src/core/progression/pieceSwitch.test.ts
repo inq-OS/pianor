@@ -1,7 +1,7 @@
 // Covers ft_1_02c.AC3.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PIECES_SETTINGS, canTurnOff, isPieceOn, piecesSettingsSchema, pressHide, HIDE_SECOND_PRESS_MS, setPieceOn, songPartsOff, withSongPartsOff, type PiecesSettings } from './pieceSwitch';
+import { DEFAULT_PIECES_SETTINGS, canTurnOff, isPieceOn, piecesSettingsSchema, pressHide, HIDE_SECOND_PRESS_MS, bookPieces, setPieceOn, songPartsOff, withSongPartsOff, type PiecesSettings } from './pieceSwitch';
 
 const hiding = (hidden: string[]): PiecesSettings => ({ hidden });
 const OFFERED = ['a', 'b', 'c'];
@@ -114,5 +114,18 @@ describe('song parts that are off (ft_1_36 rule 5)', () => {
     expect(withSongPartsOff(one, 'morning-song', [])).toEqual({ hidden: ['x'], songs: {} });
     // turning a piece on or off keeps the songs' switches
     expect(setPieceOn(one, 'x', true, ['x', 'y']).songs).toEqual({ 'morning-song': ['middle'] });
+  });
+});
+
+describe('songs in the library (ft_1_36 rules 10 and 13)', () => {
+  it('ft_1_36.AC6 the last piece of the book outside songs cannot be turned off while a song\'s pieces are on', () => {
+    const offered = bookPieces(['solo', 'song-intro', 'song-outro'], new Set(['song-intro', 'song-outro']));
+    expect(offered).toEqual(['solo']);
+    expect(canTurnOff(DEFAULT_PIECES_SETTINGS, 'solo', offered)).toBe(false);
+  });
+
+  it('ft_1_36.AC11 a save from before the tick hint reads as not yet told, and a told one keeps it', () => {
+    expect(piecesSettingsSchema.parse({ hidden: [] }).songTickTold).toBeUndefined();
+    expect(piecesSettingsSchema.parse({ hidden: [], songTickTold: true }).songTickTold).toBe(true);
   });
 });

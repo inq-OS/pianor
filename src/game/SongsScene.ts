@@ -104,7 +104,7 @@ export class SongsScene extends PixelScene {
     }
     this.infoClose = null;
     const open = this.infoId === null ? undefined : songs.pieceFor(songChartId(this.infoId));
-    if (open) this.infoClose = this.own(drawPieceInfo({ scene: this, root: this.root, width, height, close: () => this.showInfo(null) }, open));
+    if (open) this.infoClose = this.own(drawPieceInfo({ scene: this, root: this.root, width, height, close: () => this.showInfo(null) }, open, 'song'));
   }
 
   /** One song: its title (opens the song page) with its tempo and key, and under it the stars, the bars written of planned, the parts and the buttons. */

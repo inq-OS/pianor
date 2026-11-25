@@ -182,14 +182,21 @@ test.describe('songs made of pieces', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_36.AC11 a player\'s first song page says once what a tick does', async ({ page }) => {
+  test('ft_1_36.AC11 a player\'s first song page says once what a tick does, until a switch is pressed, and never again after a reload', async ({ page }) => {
     const errors = await openGame(page);
     await openSongPage(page);
     expect(await sceneTexts(page, 'song')).toContain('Ticked parts are played.');
+    // a press on a switch: the hint has done its work and goes
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'In the song'));
+    await expect.poll(() => sceneTexts(page, 'song')).not.toContain('Ticked parts are played.');
     await page.keyboard.press('Escape');
     await waitForScene(page, 'songs');
     await clickButton(page, 'songs', await sceneButton(page, 'songs', 'Morning Song'));
     await waitForScene(page, 'song');
+    expect(await sceneTexts(page, 'song')).not.toContain('Ticked parts are played.');
+    // told is kept: after a reload the hint does not come back
+    await openGame(page);
+    await openSongPage(page);
     expect(await sceneTexts(page, 'song')).not.toContain('Ticked parts are played.');
     expectNoErrors(errors);
   });

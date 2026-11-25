@@ -1,3 +1,4 @@
+import { bookPieces } from './core/progression/pieceSwitch';
 import progressionJson from '../content/curriculum/progression.json';
 import { ProfileRepository, TEST_PLAYER_NAMES, parseProgressionConfig } from './core/progression';
 import type { PieceCatalogue } from './game/pieceCatalogue';
@@ -56,7 +57,7 @@ export async function createProfileService(pieces: PieceCatalogue, testPlayers =
     askFirstPlayer: !testPlayers,
     config: progressionConfig,
     // a song's pieces are not in the piece book, so they never count as the piece that keeps it from going empty
-    catalogue: () => pieces.list().filter((p) => !inSongs().has(p.chart.id)).map((p) => ({ id: p.chart.id })),
+    catalogue: () => bookPieces(pieces.list().map((p) => p.chart.id), inSongs()).map((id) => ({ id })),
     // one player in one window at a time: a second tab cannot write over the first one's progress (d159)
     lock: webPlayerLock(),
   });

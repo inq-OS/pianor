@@ -66,6 +66,14 @@ export function songPartsOff(settings: PiecesSettings, songId: string): readonly
   return settings.songs?.[songId] ?? [];
 }
 
+/**
+ * The pieces the piece book can show, of `ids`: all but a song's own pieces (ft_1_36 rule 13), which are filed under their
+ * song. These are the ones the guard "keep one piece on" counts.
+ */
+export function bookPieces(ids: readonly string[], inSongs: ReadonlySet<string>): string[] {
+  return ids.filter((id) => !inSongs.has(id));
+}
+
 /** The settings with a song's parts that are off replaced by `off`. */
 export function withSongPartsOff(settings: PiecesSettings, songId: string, off: readonly string[]): PiecesSettings {
   const songs = { ...settings.songs, [songId]: [...off] };

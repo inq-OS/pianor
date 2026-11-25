@@ -713,6 +713,7 @@ export const stringsEt: Record<StringKey, string> = {
   'tag.stepwise': 'sammud',
   'tag.own': 'minu lugu',
   'info.features': 'Selles loos:',
+  'info.songFeatures': 'Selles laulus:',
   'stats.button': 'S',
   'stats.playsOne': 'Mängitud üks kord',
   'stats.plays': 'Mängitud {count} korda',

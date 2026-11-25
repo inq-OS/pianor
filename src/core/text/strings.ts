@@ -719,6 +719,7 @@ export const strings = {
   'tag.stepwise': 'steps',
   'tag.own': 'my piece',
   'info.features': 'In this piece:',
+  'info.songFeatures': 'In this song:',
   'stats.button': 'S',
   'stats.playsOne': 'Played once',
   'stats.plays': 'Played {count} times',
