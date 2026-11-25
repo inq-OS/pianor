@@ -1525,21 +1525,21 @@ export class PracticeScene extends PixelScene {
       { label: t('ui.hint.names'), icon: TOOL_ICONS[this.hints.noteNames ? 'noteNamesOn' : 'noteNames'], active: this.hints.noteNames, worn: true, shortcut: HOTKEYS.noteNames.letter, tooltip: hotkeyLabel(t('ui.hint.names'), 'noteNames'), onClick: () => this.toggle('noteNames') },
       { label: t('ui.hint.fingers'), icon: TOOL_ICONS.fingers, active: this.hints.fingers, worn: true, shortcut: HOTKEYS.fingers.letter, tooltip: hotkeyLabel(t('ui.hint.fingers'), 'fingers'), onClick: () => this.toggle('fingers') },
     ];
-    // the beat dots' tuning keeps the second slot everywhere; a section's tempo steps go after the rest, on the bubble's next
-    // page (`AX-3 provisional:` the slots)
+    // the beat dots' tuning has the second slot, which a section gives to its tempo ramp: there the beat dots go after the
+    // rest, on the bubble's next page (`AX-3 provisional:` the slots)
     if (this.locked) return [null, this.asWritten ? null : this.laneItem(), null, null, null, null, ...worn];
     const section = this.startData.section;
     const sectionName = t(section ? 'practice.whole' : 'practice.section');
     return [
       { label: sectionName, icon: TOOL_ICONS.section, tooltip: hotkeyLabel(sectionName, 'section'), active: this.picking !== null || section !== undefined, onClick: () => (section ? this.backToWhole() : this.startPicking()) },
-      this.laneItem(),
+      this.rampShown ? { label: t('practice.ramp'), icon: TOOL_ICONS.steps, active: this.rampOpen, onClick: () => this.toggleRamp() } : this.laneItem(),
       { label: t('practice.click'), icon: TOOL_ICONS.click, active: this.clickOn, tooltip: hotkeyLabel(t('practice.click'), 'click'), onClick: () => this.toggleClick() },
       { ...circleItem(() => this.openCircle()), disabled: this.listening },
       this.preview ? null : { label: t('practice.statsPane'), icon: TOOL_ICONS.statsPane, active: this.paneShown, onClick: () => this.toggleStatsPane() },
       // the analysis of the whole piece: where it is tricky and what to practise (core_10)
       this.preview ? null : { label: t('analyze.button'), icon: TOOL_ICONS.analyse, onClick: () => this.openAnalysis() },
       ...worn,
-      ...(this.rampShown ? [{ label: t('practice.ramp'), icon: TOOL_ICONS.steps, active: this.rampOpen, onClick: () => this.toggleRamp() }] : []),
+      ...(this.rampShown ? [this.laneItem()] : []),
     ];
   }
 
