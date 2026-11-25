@@ -1,6 +1,6 @@
 import { OWN_PIECE_LICENSE, PPQ, pickupTicks, ticksPerBar, noteLengthOf, tupletOf, writtenDurOf, diatonicIndex, midiToSpelling, noteName, type Chart, type ChartNote, type ChartRest, type LevelDefinition, type PieceMeta } from '../chart';
 import type { StyleList } from '../properties/styles';
-import { keyAlters } from '../chart/key';
+import { keyAlters, tonicStep } from '../chart/key';
 import type { SourceLocation } from './compile';
 import type { Diagnostic } from './diagnostics';
 import { costlyFingers, searchedFingerAt } from '../fingering/chart';
@@ -287,9 +287,11 @@ function checkMeta({ input, meta, metaFile, error, warn }: LintContext): void {
 
 /** Warnings for a human to review: the ending, repeated bars, one rhythm throughout. */
 function checkMusicality({ chart, playTracks, playNotes, warn }: LintContext): void {
+  const key = chart.keyMap.at(-1)!;
+  const tonic = tonicStep(key.fifths, key.mode);
   for (const track of playTracks.values()) {
     const last = playNotes.filter((e) => e.note.track === track.id).sort((a, b) => a.note.tick - b.note.tick || a.note.midi - b.note.midi).at(-1);
-    if (last && last.note.spelling.step !== 'C') warn('no-cadence', `the ${track.id.toUpperCase()} part ends on ${name(last.note)}, not on the tonic C`, at(last));
+    if (last && last.note.spelling.step !== tonic) warn('no-cadence', `the ${track.id.toUpperCase()} part ends on ${name(last.note)}, not on the tonic ${tonic}`, at(last));
   }
   const signatures = chart.bars.map((bar) =>
     [...chart.notes, ...chart.rests]

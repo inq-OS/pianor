@@ -1,0 +1,19 @@
+X:1
+T:Ständchen: In des Mondes Licht
+M:3/4
+L:1/8
+Q:1/4=66
+K:Dm
+V:RH clef=treble
+V:LH clef=bass
+% Franz Schubert, Ständchen (Schwanengesang D 957 No. 4), arranged for beginners: the voice in the right hand, the bass in the left.
+V:RH
+(3 G ^F G B3 G |
+F6 |
+A3/2 ^c/2 f3 e |
+d3/2 A/2 ^F3 D |]
+V:LH
+C,6 |
+F,6 |
+A,6 |
+D,6 |]

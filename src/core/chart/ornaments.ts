@@ -3,8 +3,8 @@ import { PPQ } from './time.ts';
 
 /**
  * Ornament signs on a note (core_09.AC60, d303): a trill, an upper mordent (pralltriller), a lower mordent and a turn.
- * The chart keeps the sign and the neighbour notes it uses; computer playback (and, once the maintainer decides how a
- * student plays one, the judge) reads the notes it sounds from `ornamentNotes`.
+ * The chart keeps the sign and the neighbour notes it uses; computer playback reads the notes it sounds from
+ * `ornamentNotes`, and the judge ignores a press of those pitches around the note (optional for the student).
  */
 export const ORNAMENT_KINDS = ['trill', 'upperMordent', 'lowerMordent', 'turn'] as const;
 export type OrnamentKind = (typeof ORNAMENT_KINDS)[number];

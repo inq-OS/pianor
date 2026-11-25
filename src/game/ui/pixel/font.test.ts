@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { strings } from '../../../core/text/strings';
 import { C } from './palette';
-import { CAP_HEIGHT, CELL_HEIGHT, LINE_HEIGHT, fitLine, glyphFor, hasGlyph, measure, renderText, wrap } from './font';
+import { drawnText, CAP_HEIGHT, CELL_HEIGHT, LINE_HEIGHT, fitLine, glyphFor, hasGlyph, measure, renderText, wrap } from './font';
 
 const dump = (text: string, options = { color: C.white }) => {
   const b = renderText(text, options);
@@ -157,7 +157,7 @@ describe('renderText', () => {
 });
 
 describe('every text the game shows can be drawn without a stand-in block', () => {
-  const missing = (text: string) => [...text].filter((ch) => !hasGlyph(ch));
+  const missing = (text: string) => [...drawnText(text)].filter((ch) => !hasGlyph(ch));
 
   it('in the string table (placeholders filled in)', () => {
     for (const [key, value] of Object.entries(strings)) {

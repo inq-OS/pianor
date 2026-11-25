@@ -720,10 +720,16 @@ class MusicLine {
     if (this.voice.pendingTie) return void this.error(mark.column, 'an ornament cannot go on the second note of a tie');
     const main = notes[0]!;
     const near = (dir: 1 | -1): AbcNote => this.host.spellNote(this.voice, { midi: 0, spelling: { ...neighbourLetter(main.spelling, dir), alter: 0 } }, undefined);
+    // a neighbour must sound above (below) the note: a B sharp's C above is the same key, so the sign cannot be played
+    const upper = near(1);
+    const lower = near(-1);
+    if ((usesUpper(mark.kind) && upper.midi <= main.midi) || (usesLower(mark.kind) && lower.midi >= main.midi)) {
+      return void this.error(mark.column, 'an ornament needs a neighbour note that sounds above (or below) its note; here the key gives the same key');
+    }
     return {
       kind: mark.kind,
-      ...(usesUpper(mark.kind) ? { upper: near(1) } : {}),
-      ...(usesLower(mark.kind) ? { lower: near(-1) } : {}),
+      ...(usesUpper(mark.kind) ? { upper } : {}),
+      ...(usesLower(mark.kind) ? { lower } : {}),
     };
   }
 }

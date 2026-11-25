@@ -21,7 +21,7 @@ The southern port, at the slipway south of the lighthouse: the wider stone dock 
 The first art review of the port found everything ruler-straight (the waterline, the parapet, the courses, the plumb head, the boats), no dark foreground, props as perfect boxes, the reef's fans as grids and its tubes as bars, no reflection under the quay, a weak lamp and no moonlit water at night. Pass 2 answers it:
 
 - **Bent:** the courses rise and fall (`settle`), the quay's foot is lumpy (`footAt`), the face and the head lean back (`batter`), the parapet's blocks are lumpy, the bollards lean, the crates are skewed and the barrel leans.
-- **Closed below:** the quay's dark reflection under its foot, broken into level dashes, a foam line where the water laps, and a dark band of near water along the picture's foot, as the 1991 rooms close below.
+- **Closed below:** the quay's dark reflection under its foot, broken into level dashes, a foam line where the water laps, and below it the near water in the swell's long bands (`nearWater`): each a stroke of the trough's tone with now and then a pale crest, thicker and wider toward the foot, so the sea is strokes all over. By day the troughs are the sea's darkest and close the picture below; at night the near water is one moonlit plane a step over the far water, lighter again under the moon, its troughs a step under it. The two near piles are old trunks (`nearPile`): each leans its own way and bends, swells toward its foot, its sides wander, its top is cut askew and chipped, one iron band bent with the wood with rust running under it, ragged weed at the water line; flat dark shapes the grain leaves alone.
 - **Props off the box:** a real coil of rope; two fat old mooring piles (one at the far left, one off the head) standing to the bed.
 - **The reef organic:** the fans' ribs wobble and their hoops break, the tubes bend and flare, the kelp's blades come off one side at a time.
 - **Night:** the moon stands high over the open water between the boats and lights a broad plane of it, and the beacon's lantern glows over the far sea, its warm dashes on the water under it.
@@ -67,6 +67,7 @@ The landing:
 ## Open
 
 - TODO(builder, R3): moor the boat of each visitor who is here today (the teacher's galleon, the fisherman's rowing boat, the border guard's patrol boat), from presence (ft_1_25), and nothing at a berth nobody came to (`PORT_MOORED` in `port.ts`).
+- NEEDS-HUMAN: the port's view may be moved to another place on the quay; its picture is not refined further until the maintainer decides where it looks from.
 - TODO(painter, R3): a berth at the low landing for the small boats (the rowing boat, the motorboat), lying in the near water before the quay; the boats' pictures are made to lie behind it today, their waterlines hidden.
 - TODO(painter, R2): the smooth sky and the grain kept to the things in the other outdoor scenes (the docks' sky is grained in strokes today), once the maintainer has seen it here.
 - IDEA: underwater characters on the bed's two open patches (future underwater characters).

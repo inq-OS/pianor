@@ -1,7 +1,11 @@
 import { firstPrintedBar, isSection, sectionHasNotes, sliceChart, writtenNotes, type Chart } from '../core/chart';
 import { pieceTitle } from '../core/text/pieceTitle';
 import { MissedBars, type Hints, type JudgeEvent, type NoteJudged, type PieceResult, type PlayState, type WrongNoteJudged } from '../core/judge';
-import { learnLiveTempo, type LearnProgress, type LearnRewards } from '../core/learn/progress';
+import { learnBeatLanes, learnLiveTempo, learnPaceClick, type LearnProgress, type LearnRewards } from '../core/learn/progress';
+import { paceClick } from '../core/learn/livePace';
+import type { PaceMark } from '../core/layout/beat';
+import type { LaneLook } from '../core/layout/beatLane';
+import { msPerBeat } from '../core/chart/time';
 import { learnsOnOpen } from '../core/learn/route';
 import { baselinePercent } from '../core/learn/tempo';
 import { CHARACTER_PIECES } from './adventure/scenesData';
@@ -291,6 +295,10 @@ export class PracticeScene extends PixelScene {
   protected paneData: StatsPane | null = null;
   /** The live tempo lines of a learning run in the stats pane (ft_1_32.AC17), while it is shown. */
   private liveLabels: PixelText[] | null = null;
+  /** The colour of each key of a learning run against the student's own pace, by its tick on the staff (core_13.AC5). */
+  private paceMarks = new Map<number, Pick<PaceMark, 'side' | 'far'>>();
+  /** The time of the latest key the learning click was started from (core_13.AC6). */
+  private paceClickFrom: number | null = null;
   /** Turns the judge's events into the practice log's bar plays; null for a draft preview. */
   private barRecorder: BarRecorder | null = null;
   private session: FreePlaySession = emptyFreePlay();
@@ -581,6 +589,8 @@ export class PracticeScene extends PixelScene {
       else this.turnPage(dy > 0 ? 1 : -1);
     });
     this.onWindowKey((e) => this.onHotkey(e));
+    this.paceMarks = new Map();
+    this.paceClickFrom = null;
     this.events.once('shutdown', () => {
       this.game.events.off(MIDI_CHANGED, midiChanged);
       offBubbleKey();
@@ -954,6 +964,7 @@ export class PracticeScene extends PixelScene {
 
   /** Every frame in Tempo mode: let the judge's clock run, start the metronome with the count-in, move the playhead. */
   override update(): void {
+    this.moveLane(contextOf(this).audio.clock.nowMs());
     if (this.listening) {
       const lit = this.listenAlong?.changed();
       if (lit !== undefined) this.playSession.staffView?.setCursor(writtenNotes(this.playSession.play, lit)); // Kuula plays the play chart
@@ -1016,6 +1027,10 @@ export class PracticeScene extends PixelScene {
     this.showLiveTempo();
     if (verdict.state === 'stopped') this.stopLearnRun(verdict.wrong);
     else if (verdict.state === 'rushed') this.stopRushedRun();
+    else {
+      this.markPace();
+      this.followPaceClick();
+    }
   }
 
   /**
@@ -1308,6 +1323,7 @@ export class PracticeScene extends PixelScene {
     // A section is drawn at the size of the whole piece, and marking one keeps the player's own view, page by page: the
     // clef and the notes never change size when a section is chosen.
     this.staffOrigin = staffTop;
+    this.playSession.setLanes(this.laneLooks());
     const staffView = this.playSession.drawStaff({ top: staffTop, width: this.scale.width, height: staffHeight }, contextOf(this).profiles);
     staffView.setMarkers(this.markers);
     this.drawPrizes();
@@ -1378,6 +1394,7 @@ export class PracticeScene extends PixelScene {
     const mapGap = this.songMap ? Math.max(0, Math.ceil(BAND_STRIP_DROP + MASCOT_SIZE.h + 1) - strip.rows) : 0;
     const mapRows = this.songMap ? MAP_ROWS + mapGap : 0;
     this.staffOrigin = this.mainTop + (strip.rows + mapRows) * scale;
+    this.playSession.setLanes(this.laneLooks());
     const staffView = this.playSession.drawStaff({ top: this.staffOrigin, width: this.scale.width, height: Math.max(1, (foot - strip.rows - mapRows) * scale) }, contextOf(this).profiles);
     this.drawSongMap(staffView, this.mainTopRows + strip.rows + mapGap);
     staffView.setMarkers(this.markers);
@@ -1576,6 +1593,47 @@ export class PracticeScene extends PixelScene {
     const top = free.top + Math.max(1, Math.floor((free.rows - 2 * LIVE_TEMPO_LINE) / 2));
     this.liveLabels = [0, 1].map((line) => this.label(left, top + line * LIVE_TEMPO_LINE, '', C.dim).setScale(0.5));
     this.showLiveTempo();
+  }
+
+  /** The beat lanes (core_13 rules 2 and 10): as the player tuned them, and none in a draft preview and while Kuula plays. */
+  private laneLooks(): LaneLook[] {
+    return this.preview || this.listening ? [] : learnBeatLanes(contextOf(this).profiles.learnSettings);
+  }
+
+  /**
+   * Run the lane's wave (core_13.AC1): with the piece's clock in Tempo mode; in a learning run at the student's own pace once
+   * it is known (AC5); in Wait mode at the click's tempo while it clicks. `AX-3 provisional:` no wave in Wait mode without
+   * the click.
+   */
+  private moveLane(nowMs: number): void {
+    if (this.listening) return;
+    const pace = this.learn?.pace;
+    const msPerQuarter = pace ? pace.beatMs : this.metronomeOn ? msPerBeat(clickPlan(this.chart, this.percent, this.clickOffset).bpm) : null;
+    this.playSession.moveLane(nowMs, msPerQuarter, this.paceMarks);
+  }
+
+  /** Keep the latest key's colour against the student's own pace (core_13.AC5): it stays on its dot for the run. */
+  private markPace(): void {
+    const press = this.learn?.pace?.press;
+    if (!press?.mark) return;
+    const tick = this.playSession.staffTick(press.tick);
+    if (!this.paceMarks.has(tick)) this.paceMarks.set(tick, { side: press.mark.side, far: press.mark.far });
+  }
+
+  /**
+   * The click at the student's own pace in a learning run, when the player turned it on (core_13.AC6): started afresh from
+   * each new key, on the next beat of its bar, once the pace is known.
+   */
+  private followPaceClick(): void {
+    const learn = this.learn;
+    if (!learn || !learnPaceClick(contextOf(this).profiles.learnSettings)) return;
+    const pace = learn.pace;
+    if (!pace?.press || pace.press.atMs === this.paceClickFrom) return;
+    const plan = paceClick(pace);
+    if (!plan) return;
+    this.paceClickFrom = pace.press.atMs;
+    contextOf(this).audio.metronome.start(plan);
+    this.metronomeOn = true;
   }
 
   /**

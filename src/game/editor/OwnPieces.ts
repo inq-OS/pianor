@@ -123,11 +123,14 @@ export class OwnPieces {
       chart ? [{ chart, status: 'approved' as const, level, unlockLevel: 1, source: `own: ${record.author}`, own: true }] : []);
   }
 
-  /** Save a new piece (no `id`) or a new version of one. Refused when it has no notes or cannot be drawn. */
-  async save(piece: EditorPiece, options: { id?: string | undefined; author: string }): Promise<SaveResult> {
+  /**
+   * Saves a piece: `id` an own piece to save again, else a new one, under `newId` (a part of an imported book, whose strip of
+   * the pages waits under that id) or an id from its title, numbered when taken.
+   */
+  async save(piece: EditorPiece, options: { id?: string | undefined; newId?: string | undefined; author: string }): Promise<SaveResult> {
     if (piece.notes.length === 0) return { ok: false, reason: 'empty', message: 'no notes' };
     const previous = options.id ? this.records.get(options.id)?.record : undefined;
-    const id = previous?.id ?? this.freeId(piece.title);
+    const id = previous?.id ?? this.freeId(piece.title, options.newId);
     const contentVersion = (previous?.contentVersion ?? 0) + 1;
     const compiled = compileOwn(piece, { id, author: options.author, contentVersion });
     if (!compiled.chart) return { ok: false, reason: 'not-drawable', message: compiled.problems[0]?.message ?? 'it does not compile' };
@@ -183,8 +186,13 @@ export class OwnPieces {
     this.records.set(record.id, { record, chart: compiled.chart, level: compiled.level });
   }
 
-  private freeId(title: string): string {
-    const base = ownIdFor(title);
+  /** True when an own piece has this id. */
+  has(id: string): boolean {
+    return this.records.has(id);
+  }
+
+  private freeId(title: string, wanted?: string): string {
+    const base = wanted && /^own-[a-z0-9]+(-[a-z0-9]+)*$/.test(wanted) ? wanted : ownIdFor(title);
     let id = base;
     for (let n = 2; this.records.has(id); n++) id = `${base}-${n}`;
     return id;

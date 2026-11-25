@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { BOAT_KINDS, PORT, PORT_MOORED, portPlan } from '../../../../core/layout/port';
 import { SKY_PHASES } from '../../../../core/sky/skyPhase';
 import { PALETTE } from '../palette';
+import { lchOf } from '../paint/lab';
 import { packPort, unpackPort } from './portPack';
 import { PORT_ARCHES, PORT_CLOUDS, PORT_DEEP_FRAMES, PORT_FRAMES, PORT_LANDING, paintPort, portBoats, portDeepStill, portMoorings, portPalette, portRuns, portStill, type PortPicture } from './portPicture';
 
@@ -32,6 +33,23 @@ describe('the painted harbour (ft_1_19.AC10)', () => {
       expect([frame.width, frame.height]).toEqual([W, H]);
       expect(frame.pixels.every((p) => p >= PALETTE.length && p < pictures.day.palette.length)).toBe(true);
     }
+  });
+
+  it('ft_1_20.AC2 the near water under the quay is strokes all over by day: no smooth patch in the rows the tall cut added', () => {
+    const { pixels } = pictures.day.frames[0]!;
+    for (let y = PORT.water + 40; y + 16 <= H; y += 16) for (let x = 0; x + 32 <= W; x += 32) {
+      const seen = new Set<number>();
+      for (let dy = 0; dy < 16; dy++) for (let dx = 0; dx < 32; dx++) seen.add(pixels[(y + dy) * W + x + dx]!);
+      expect(seen.size, `block at ${x}, ${y}`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('ft_1_20.AC2 at night the foot of the picture is a moonlit plane, not near black', () => {
+    const { pixels } = pictures.night.frames[0]!;
+    const palette = pictures.night.palette;
+    let dark = 0, all = 0;
+    for (let y = Math.round((H * 2) / 3); y < H; y++) for (let x = 0; x < W; x++, all++) if (lchOf(palette[pixels[y * W + x]!]!).l < 25) dark++;
+    expect(dark / all).toBeLessThan(0.7);
   });
 
   it('ft_1_19.AC10 the two views meet: above the water the view under it is the view on top as it stands', () => {

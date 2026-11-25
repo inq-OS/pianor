@@ -28,13 +28,15 @@ interface Options {
   meta?: Record<string, unknown>;
   meter?: string;
   header?: string;
+  /** The ABC key, C if left out. */
+  key?: string;
   privatePiece?: boolean;
 }
 
 /** Compile an ABC body (right hand unless the meta says otherwise) and lint it. */
 function lint(body: string, options: Options = {}): { diagnostics: Diagnostic[]; chart: Chart } {
   const meta = { ...META, ...options.meta };
-  const abc = `X:1\nT:Test Piece\nM:${options.meter ?? '4/4'}\nL:1/4\nQ:1/4=80\nK:C\n${options.header ?? ''}${body}\n`;
+  const abc = `X:1\nT:Test Piece\nM:${options.meter ?? '4/4'}\nL:1/4\nQ:1/4=80\nK:${options.key ?? 'C'}\n${options.header ?? ''}${body}\n`;
   const compiled = compilePiece({ abc, meta: JSON.stringify(meta) });
   expect(compiled.diagnostics.filter((d) => d.severity === 'error').map(formatDiagnostic), 'the test piece must compile').toEqual([]);
   const lv = typeof options.level === 'object' ? options.level : level(options.level ?? (meta.level));
@@ -51,15 +53,21 @@ describe('levels.json', () => {
   it('loads the provisional starter table without problems, in order', () => {
     const loaded = loadLevelsFile(LEVELS_PATH);
     expect(loaded.diagnostics).toEqual([]);
-    expect(loaded.levels.map((l) => l.level)).toEqual([1, 2, 3, 4, 5]);
+    expect(loaded.levels.map((l) => l.level)).toEqual([1, 2, 3, 4, 5, 6]);
     expect(JSON.parse(readFileSync(LEVELS_PATH, 'utf-8')).note).toMatch(/PROVISIONAL/);
   });
 
+  it('switches all notation on at every level: chords, rests, ties, triplets, ornaments, two voices a hand and hands together', () => {
+    for (const l of loadLevelsFile(LEVELS_PATH).levels) {
+      expect({ chords: l.chords, rests: l.rests, ties: l.ties, tuplets: l.tuplets, ornaments: l.ornaments, voices: l.voices, handsTogether: l.handsTogether }, `level ${l.level}`).toEqual({ chords: true, rests: true, ties: true, tuplets: true, ornaments: true, voices: 2, handsTogether: true });
+    }
+  });
+
   it('matches the starter table in docs/authoring/au04-levels.md', () => {
-    expect(level(1)).toMatchObject({ hands: ['RH'], clefs: ['treble'], range: { low: 60, high: 67 }, rests: false, maxLeapSteps: 1 });
+    expect(level(1)).toMatchObject({ hands: ['RH'], clefs: ['treble'], range: { low: 60, high: 67 }, rests: true, maxLeapSteps: 1 });
     expect(level(2)).toMatchObject({ hands: ['LH'], clefs: ['bass'], range: { low: 48, high: 55 } });
     expect(level(3)).toMatchObject({ rests: true, maxLeapSteps: 2, meters: [{ num: 4, den: 4 }, { num: 3, den: 4 }] });
-    expect(level(4)).toMatchObject({ hands: ['RH', 'LH'], handsTogether: false });
+    expect(level(4)).toMatchObject({ hands: ['RH', 'LH'], handsTogether: true });
     expect(level(5)).toMatchObject({ handsTogether: true, noteValues: ['whole', 'dottedHalf', 'half', 'dottedQuarter', 'quarter', 'dottedEighth', 'eighth', 'sixteenth'] });
   });
 
@@ -89,10 +97,10 @@ describe('every hard rule has a failing and a passing piece', () => {
     { rule: 'hand', fail: ['C, D, E, F, | G,2 F,2 | F, E, D, C, | C,4 |]', { level: 1, meta: { hands: ['LH'] } }], pass: ['C, D, E, F, | G,2 F,2 | F, E, D, C, | C,4 |]', { level: 2, meta: { hands: ['LH'], level: 2 } }] },
     { rule: 'range', fail: ['C D E F | G A G F | F E D C | C4 |]', { level: 1 }], pass: [GOOD, { level: 1 }] },
     { rule: 'note-value', fail: ['C/2 D/2 E F G | G2 F2 | F E D C | C4 |]', { level: 1 }], pass: ['C/2 D/2 E F G | G2 F2 | F E D C | C4 |]', { level: 5 }] },
-    { rule: 'rest', fail: ['z D E F | G2 F2 | F E D C | C4 |]', { level: 1 }], pass: ['z D E F | G2 F2 | F E D C | C4 |]', { level: 3 }] },
+    { rule: 'rest', fail: ['z D E F | G2 F2 | F E D C | C4 |]', { level: { ...level(1), rests: false } }], pass: ['z D E F | G2 F2 | F E D C | C4 |]', { level: 3 }] },
     { rule: 'rest-value', fail: ['C D E z/2 z/2 | G2 F2 | F E D C | C4 |]', { level: 3 }], pass: ['C D E z/2 z/2 | G2 F2 | F E D C | C4 |]', { level: 5 }] },
-    { rule: 'chord', fail: ['[CE]4 | G2 F2 | F E D C | C4 |]', { level: 1 }], pass: ['[CE]4 | G2 F2 | F E D C | C4 |]', { level: { ...level(1), chords: true } }] },
-    { rule: 'voices', fail: ['E2 F2 & C4 | G2 F2 | F E D C | C4 |]', { level: 4 }], pass: ['E2 F2 & C4 | G2 F2 | F E D C | C4 |]', { level: 5 }] },
+    { rule: 'chord', fail: ['[CE]4 | G2 F2 | F E D C | C4 |]', { level: { ...level(1), chords: false } }], pass: ['[CE]4 | G2 F2 | F E D C | C4 |]', { level: { ...level(1), chords: true } }] },
+    { rule: 'voices', fail: ['E2 F2 & C4 | G2 F2 | F E D C | C4 |]', { level: { ...level(4), voices: 1 } }], pass: ['E2 F2 & C4 | G2 F2 | F E D C | C4 |]', { level: 5 }] },
     { rule: 'tie', fail: ['C D E F- | F2 E2 | F E D C | C4 |]', { level: { ...level(1), ties: false } }], pass: ['C D E F- | F2 E2 | F E D C | C4 |]', { level: { ...level(1), ties: true } }] },
     { rule: 'leap', fail: ['C E G E | G2 F2 | F E D C | C4 |]', { level: 1 }], pass: ['C E D F | G2 F2 | F E D C | C4 |]', { level: 3 }] },
     { rule: 'piece-length', fail: ['C D E F | G2 F2 | C4 |]', { level: 1, meta: { phrases: [{ name: 'All', bars: [1, 3] }] } }], pass: [GOOD, { level: 1 }] },
@@ -122,24 +130,22 @@ describe('every hard rule has a failing and a passing piece', () => {
     expect(early.diagnostics.map((d) => d.message).join('\n')).toMatch(/sixteenth notes are not allowed at level 4/);
   });
 
-  it('core_09.AC51 eighth and quarter triplets pass at level 5, which has the tuplets switch, and fail with note-value before it', () => {
+  it('core_09.AC51 eighth and quarter triplets pass at a level with the tuplets switch, and fail with note-value at one without it', () => {
     const piece = 'C (3D/E/F/ G E | (3zGF E2 | (3E/D/C/ D E D | C4 |]';
     expect(level(5).tuplets).toBe(true);
-    expect(level(4).tuplets).toBe(false);
     expect(errors(lint(piece, { level: 5 }).diagnostics).map(formatDiagnostic)).toEqual([]);
-    const early = lint(piece, { level: 4 });
+    const early = lint(piece, { level: { ...level(4), tuplets: false } });
     expect(rules(early.diagnostics)).toContain('note-value');
     expect(early.diagnostics.map((d) => d.message).join('\n')).toMatch(/triplets are not allowed at level 4/);
     expect(errors(early.diagnostics).filter((d) => d.rule === 'note-value')).toHaveLength(9); // eight notes and a rest
   });
 
-  it('core_09.AC64 an ornament sign fails with ornament at every level while the switch is off; a grace group passes where graces do', () => {
-    for (const n of [1, 5]) expect(level(n).ornaments).toBe(false);
-    const signed = lint('!trill!C D E F | G4 | E D C D | C4 |]', { level: 5 });
-    expect(rules(signed.diagnostics)).toContain('ornament');
-    expect(signed.diagnostics.map((d) => d.message).join('\n')).toMatch(/ornaments \(a trill, mordent or turn\) are not allowed at level 5/);
-    expect(errors(lint('!trill!C D E F | G4 | E D C D | C4 |]', { level: { ...level(5), ornaments: true } }).diagnostics).map(formatDiagnostic)).toEqual([]);
-    expect(errors(lint('{/ed}C D E F | G4 | E D C D | C4 |]', { level: 5 }).diagnostics).map(formatDiagnostic)).toEqual([]);
+  it('core_09.AC64 an ornament sign passes where the level switch is on (every level) and fails with ornament where a teacher turns it off; a grace group passes', () => {
+    expect(errors(lint('!trill!C D E F | G4 | E D C D | C4 |]', { level: 1 }).diagnostics).map(formatDiagnostic)).toEqual([]);
+    const off = lint('!trill!C D E F | G4 | E D C D | C4 |]', { level: { ...level(1), ornaments: false } });
+    expect(rules(off.diagnostics)).toContain('ornament');
+    expect(off.diagnostics.map((d) => d.message).join('\n')).toMatch(/ornaments \(a trill, mordent or turn\) are not allowed at level 1/);
+    expect(errors(lint('{/ed}C D E F | G4 | E D C D | C4 |]', { level: 1 }).diagnostics).map(formatDiagnostic)).toEqual([]);
   });
 
   it('core_09.AC51 a triplet length outside a triplet fails note-value at every level, and an eighth triplet needs eighths in the level', () => {
@@ -282,7 +288,7 @@ describe('every hard rule has a failing and a passing piece', () => {
       meta: readFileSync(join(root, 'tests/fixtures/pieces/hands-together/piece.meta.json'), 'utf-8'),
     });
     const at = (l: LevelDefinition) => lintPiece({ styles: contentStyles, chart: compiled.chart!, meta: compiled.meta!, level: l, sources: compiled.sources });
-    expect(rules(at(level(4)))).toContain('hands-together');
+    expect(rules(at({ ...level(4), handsTogether: false }))).toContain('hands-together');
     expect(errors(at(level(5))).map(formatDiagnostic)).toEqual([]);
   });
 
@@ -375,6 +381,12 @@ describe('warnings for a human to review', () => {
 
   it('no cadence on the tonic', () => {
     expect(warnings('C D E F | G2 F2 | F E D C | D4 |]')).toContain('no-cadence');
+  });
+
+  it("the tonic is the key's own: D in D minor, A in A minor", () => {
+    expect(warnings('C D E F | G2 F2 | F E D C | D4 |]', { level: 1, key: 'Dm' })).not.toContain('no-cadence');
+    const inA = lint('C D E F | G2 F2 | F E D C | C4 |]', { level: 1, key: 'Am' }).diagnostics.find((d) => d.rule === 'no-cadence');
+    expect(inA?.message).toContain('not on the tonic A');
   });
 
   it('a bar repeated three or more times in a row', () => {
@@ -477,10 +489,10 @@ describe('linting folders of pieces', () => {
   it('lints against the meta level, scores difficulty and lists the levels the piece fits', () => {
     const report = lintPieces(join(root, 'tests/fixtures/pieces'), levels);
     const little = report.linted.find((p) => p.id === 'little-steps')!;
-    expect(little).toMatchObject({ level: 1, fitsLevels: [1, 3, 4, 5], diagnostics: [] });
+    expect(little).toMatchObject({ level: 1, fitsLevels: [1, 3, 4, 5, 6], diagnostics: [] });
     expect(little.difficulty.scale).toBe(1);
     const hands = report.linted.find((p) => p.id === 'hands-together')!;
-    expect(hands.fitsLevels).toEqual([5]);
+    expect(hands.fitsLevels).toEqual([5, 6]);
     expect(report.diagnostics).toEqual([]);
   });
 

@@ -55,7 +55,7 @@ test.describe('menu', () => {
     const errors = await openGame(page, '?device=virtual');
     const bookPage = () => page.evaluate(() => window.__game.scene.getScene('menu').page as number);
     // the book's pages are numbered at their feet (1 and 2 on the first spread), with no words
-    const numbers = () => page.evaluate(() => (window.__game.scene.getScene('menu').children.list as unknown as { list?: { name: string; text?: string }[] }[]).flatMap((o) => o.list ?? []).filter((o) => o.name.startsWith('pageNumber')).map((o) => o.text));
+    const numbers = () => page.evaluate(() => (window.__game.scene.getScene('menu').children.list as unknown as { list?: { name: string; text?: string }[] }[]).flatMap((o) => o.list ?? []).filter((o) => o.name.startsWith('pageNumber:')).map((o) => o.name.slice('pageNumber:'.length)));
     expect(await numbers()).toEqual(['1', '2']);
     expect(await bookPage()).toBe(0);
     expect(await menuButton(page, 'Next')).toBeGreaterThanOrEqual(0);

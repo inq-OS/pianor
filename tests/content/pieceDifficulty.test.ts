@@ -30,7 +30,13 @@ describe('difficulty of the real pieces', () => {
     expect(proposed('ode-to-joy')).toBeLessThan(proposed('gen-echo-l4-both-s1'));
   });
 
-  it('keeps the first set of pieces in the lower half of the scale: none of them is a real classic in full', () => {
-    for (const { folder, check } of checks) expect(check.difficulty?.scale ?? 0, folder).toBeLessThanOrEqual(6);
+  it('keeps the pieces of levels 1 to 5 in the lower half of the scale: none of them is a real classic in full', () => {
+    const first = checks.filter((c) => (c.check.compiled?.meta?.level ?? 0) <= 5);
+    expect(first.length).toBeGreaterThan(0);
+    for (const { folder, check } of first) expect(check.difficulty?.scale ?? 0, folder).toBeLessThanOrEqual(6);
+  });
+
+  it('keeps the classics arranged for level 6 at early intermediate at most: a beginner arrangement, never the full score', () => {
+    for (const { folder, check } of checks.filter((c) => c.check.compiled?.meta?.level === 6)) expect(check.difficulty?.scale ?? 0, folder).toBeLessThanOrEqual(12);
   });
 });

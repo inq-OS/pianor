@@ -602,6 +602,7 @@ describe('ornament signs (core_09.AC60, d303)', () => {
     expect(only('C-!trill!C D E |]')).toMatchObject({ line: 7, column: 3, message: expect.stringContaining('second note of a tie') });
     expect(only('C D E F !trill!| G A B C |]')).toMatchObject({ line: 7, column: 9, message: expect.stringContaining('needs a note after it') });
     expect(only('!trill!!turn!C D E F |]')).toMatchObject({ line: 7, column: 8, message: expect.stringContaining('one ornament') });
+    expect(only('!trill!^B, D E F |]')).toMatchObject({ line: 7, column: 1, message: expect.stringContaining('neighbour note that sounds above') });
   });
 });
 

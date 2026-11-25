@@ -24,6 +24,12 @@ export function keyAlters(fifths: number): Record<Step, Alter> {
   return out;
 }
 
+/** The letter of a key's tonic, by the MusicXML `fifths` count and the mode: F for one flat major, D for one flat minor. */
+export function tonicStep(fifths: number, mode: 'major' | 'minor'): Step {
+  const major = (((fifths * 4) % 7) + 7) % 7; // each fifth up is four letters up
+  return STEPS[(major + (mode === 'minor' ? 5 : 0)) % 7]!;
+}
+
 export interface PrintableNote {
   step: Step;
   octave: number;

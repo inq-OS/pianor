@@ -1,0 +1,230 @@
+{
+  "schemaVersion": 1,
+  "id": "standchen",
+  "title": "Ständchen",
+  "titles": {
+    "et": "Serenaad"
+  },
+  "status": "draft",
+  "source": "Franz Schubert, Ständchen, Schwanengesang D 957 No. 4 (1828), public domain; arranged for Pianor (the voice in the right hand, the bass in the left) from the OpenScore Lieder transcription (CC0) of the first edition",
+  "license": "CC0-1.0",
+  "bpm": 66,
+  "key": {
+    "fifths": -1,
+    "mode": "minor"
+  },
+  "meter": {
+    "num": 3,
+    "den": 4
+  },
+  "nodes": [
+    {
+      "kind": "piece",
+      "id": "intro",
+      "piece": "standchen-intro",
+      "name": "Intro",
+      "labels": [
+        "intro"
+      ]
+    },
+    {
+      "kind": "group",
+      "id": "verse-1",
+      "name": "Verse 1",
+      "nodes": [
+        {
+          "kind": "piece",
+          "id": "leise-flehen",
+          "piece": "standchen-leise-flehen",
+          "name": "Leise flehen",
+          "labels": [
+            "verse"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "stillen-hain",
+          "piece": "standchen-stillen-hain",
+          "name": "In den stillen Hain",
+          "labels": [
+            "verse"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "komm-zu-mir",
+          "piece": "standchen-komm-zu-mir",
+          "name": "Liebchen, komm zu mir",
+          "labels": [
+            "verse"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "fluesternd",
+          "piece": "standchen-fluesternd",
+          "name": "Flüsternd schlanke Wipfel",
+          "labels": [
+            "verse"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "mondes-licht",
+          "piece": "standchen-mondes-licht",
+          "name": "In des Mondes Licht",
+          "labels": [
+            "verse"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "fuerchte",
+          "piece": "standchen-fuerchte",
+          "name": "Fürchte, Holde, nicht",
+          "labels": [
+            "verse"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "group",
+      "id": "interlude",
+      "name": "Interlude",
+      "nodes": [
+        {
+          "kind": "piece",
+          "id": "interlude-1",
+          "piece": "standchen-interlude-1",
+          "name": "Interlude 1",
+          "labels": [
+            "bridge"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "interlude-2",
+          "piece": "standchen-interlude-2",
+          "name": "Interlude 2",
+          "labels": [
+            "bridge"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "group",
+      "id": "verse-2",
+      "name": "Verse 2",
+      "nodes": [
+        {
+          "kind": "link",
+          "id": "nachtigallen",
+          "to": "leise-flehen",
+          "name": "Hörst die Nachtigallen",
+          "labels": [
+            "verse"
+          ]
+        },
+        {
+          "kind": "link",
+          "id": "toene",
+          "to": "stillen-hain",
+          "name": "Mit der Töne süßen Klagen",
+          "labels": [
+            "verse"
+          ]
+        },
+        {
+          "kind": "link",
+          "id": "fuer-mich",
+          "to": "komm-zu-mir",
+          "name": "Flehen sie für mich",
+          "labels": [
+            "verse"
+          ]
+        },
+        {
+          "kind": "link",
+          "id": "verstehn",
+          "to": "fluesternd",
+          "name": "Sie verstehn des Busens Sehnen",
+          "labels": [
+            "verse"
+          ]
+        },
+        {
+          "kind": "link",
+          "id": "liebesschmerz",
+          "to": "mondes-licht",
+          "name": "Kennen Liebesschmerz",
+          "labels": [
+            "verse"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "weiche-herz",
+          "piece": "standchen-weiche-herz",
+          "name": "Jedes weiche Herz",
+          "labels": [
+            "verse"
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "group",
+      "id": "last-verse",
+      "name": "Last verse",
+      "nodes": [
+        {
+          "kind": "piece",
+          "id": "lass-auch-dir",
+          "piece": "standchen-lass-auch-dir",
+          "name": "Lass auch dir",
+          "labels": [
+            "outro"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "bebend",
+          "piece": "standchen-bebend",
+          "name": "Bebend harr ich",
+          "labels": [
+            "outro"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "begluecke",
+          "piece": "standchen-begluecke",
+          "name": "Komm, beglücke mich",
+          "labels": [
+            "outro"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "ending",
+          "piece": "standchen-ending",
+          "name": "Beglücke mich",
+          "labels": [
+            "outro"
+          ]
+        },
+        {
+          "kind": "piece",
+          "id": "postlude",
+          "piece": "standchen-postlude",
+          "name": "Postlude",
+          "labels": [
+            "outro"
+          ]
+        }
+      ]
+    }
+  ]
+}

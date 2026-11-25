@@ -16,7 +16,19 @@ import { isDynamic } from '../chart/dynamics';
 import { child, childAt, childrenOf, parseXml, textOf, XmlError, type XmlElement } from './xml';
 import type { ZipEntry } from './zip';
 
-export type MusicXmlResult = { ok: true; chart: Chart; warnings: string[] } | { ok: false; reason: string };
+/**
+ * Where the printed score breaks and marks its sections, by bar (0-based, as the chart's bars), from the first part: the bars
+ * that start a page and a system (the first bar always does), the bars a double bar line, a final bar line or a repeat
+ * sign ends a section after, and the rehearsal marks. The PDF import cuts a long score into song parts by them (slice 6).
+ */
+export interface ScoreMarks {
+  readonly pageStarts: number[];
+  readonly systemStarts: number[];
+  readonly sectionEnds: number[];
+  readonly rehearsals: { bar: number; text: string }[];
+}
+
+export type MusicXmlResult = { ok: true; chart: Chart; warnings: string[]; marks: ScoreMarks } | { ok: false; reason: string };
 
 /**
  * Tempo words to quarter notes per minute, for a score that gives no number. AX-3 provisional: about the middle of the
@@ -134,6 +146,10 @@ class ScoreReader {
   /** Slurs started and not yet stopped, by part and slur number (MusicXML pairs them so, across voices and staves). */
   readonly openSlurs = new Map<string, number>();
   endings = false;
+  readonly pageStarts = new Set<number>([0]);
+  readonly systemStarts = new Set<number>([0]);
+  readonly sectionEnds = new Set<number>();
+  readonly rehearsals: { bar: number; text: string }[] = [];
   readonly clefs = new Map<string, 'treble' | 'bass'>();
   readonly trackOrder: string[] = [];
   readonly staves = new Map<number, number>();
@@ -179,6 +195,7 @@ class ScoreReader {
       else if (el.name === 'backup' || el.name === 'forward') this.move(el);
       else if (el.name === 'direction' || el.name === 'sound') this.readDirection(el);
       else if (el.name === 'barline') this.readBarline(el);
+      else if (el.name === 'print') this.readPrint(el);
       else if (el.name === 'note') this.readNote(el);
     }
     this.contentLength[m] = Math.max(this.contentLength[m]!, this.reach);
@@ -246,6 +263,8 @@ class ScoreReader {
     const track = `${this.part}:${textOf(child(el, 'staff')) || '1'}`;
     for (const type of childrenOf(el, 'direction-type')) {
       for (const marks of childrenOf(type, 'dynamics')) this.addDynamics(marks, track, at);
+      const rehearsal = textOf(child(type, 'rehearsal')).trim();
+      if (rehearsal && this.part === 0 && !this.rehearsals.some((r) => r.bar === this.measure)) this.rehearsals.push({ bar: this.measure, text: rehearsal });
       const metronome = child(type, 'metronome');
       const perMinute = num(child(metronome, 'per-minute'));
       const unit = BEAT_UNITS[textOf(child(metronome, 'beat-unit'))];
@@ -257,8 +276,22 @@ class ScoreReader {
     }
   }
 
+  /** A page or system break (Audiveris writes one where each printed page and system starts). */
+  private readPrint(el: XmlElement): void {
+    if (this.part !== 0) return;
+    if (el.attrs['new-page'] === 'yes') this.pageStarts.add(this.measure);
+    if (el.attrs['new-page'] === 'yes' || el.attrs['new-system'] === 'yes') this.systemStarts.add(this.measure);
+  }
+
   private readBarline(el: XmlElement): void {
     const direction = child(el, 'repeat')?.attrs.direction;
+    if (this.part === 0) {
+      const style = textOf(child(el, 'bar-style'));
+      const sectionLine = direction !== undefined || style === 'light-light' || style === 'light-heavy' || style === 'heavy-light' || style === 'heavy-heavy';
+      // a line at a measure's left end closes the section before it
+      const after = (el.attrs.location ?? 'right') === 'left' ? this.measure - 1 : this.measure;
+      if (sectionLine && after >= 0) this.sectionEnds.add(after);
+    }
     if (direction === 'forward') this.repeatStarts.push(this.measure);
     if (direction === 'backward') this.repeatEnds.push(this.measure);
     if (child(el, 'ending')) this.endings = true;
@@ -555,7 +588,9 @@ export function musicXmlToChart(text: string, id: string): MusicXmlResult {
     const issue = parsed.error.issues[0]!;
     return { ok: false, reason: `the reading broke a chart rule: ${issue.message} at ${issue.path.join('.')}` };
   }
-  return { ok: true, chart: parsed.data, warnings: r.warn.list() };
+  const sorted = (set: Set<number>) => [...set].sort((a, b) => a - b);
+  const marks = { pageStarts: sorted(r.pageStarts), systemStarts: sorted(r.systemStarts), sectionEnds: sorted(r.sectionEnds), rehearsals: r.rehearsals };
+  return { ok: true, chart: parsed.data, warnings: r.warn.list(), marks };
 }
 
 /** The score inside a compressed `.mxl`: the one `META-INF/container.xml` names, else the first `.xml` outside META-INF. */

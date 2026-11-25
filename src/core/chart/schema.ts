@@ -325,7 +325,7 @@ export const levelSchema = z.object({
   tuplets: z.boolean().default(false),
   /**
    * Ornament signs (core_09.AC64, d303): a trill, mordent or turn is allowed only with this switch on. Absent means off;
-   * off at every level until the judge gives its bonus (slice 2 of d303). Grace groups need no switch, as grace notes.
+   * on at every level (a level never switches notation off), kept for a teacher's own curriculum. Grace groups need no switch.
    */
   ornaments: z.boolean().default(false),
   /** Allowed number of bars in a whole piece. */

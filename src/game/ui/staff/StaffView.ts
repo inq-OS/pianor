@@ -8,6 +8,8 @@ import type { DurationMarks } from '../../../core/layout/durationHelp';
 import { SCORE_COLOURS, STAFF_INK, scoreColour } from '../../../core/layout/scoreColour';
 import { wordFits } from '../../../core/layout/dynamicWords';
 import type { PlayedMark } from '../../../core/layout/playedMark';
+import { dotLook, laneLift, paceColour, type LaneDot, type LaneLook } from '../../../core/layout/beatLane';
+import type { PaceMark } from '../../../core/layout/beat';
 import { accidentalKind, pageOfNotes, type BeamGlyph, type NoteGlyph, type NoteValue, type SlurGlyph, type StaffLayout, type TieGlyph, type TupletGlyph } from '../../../core/layout/staff';
 import type { GraceGlyph, OrnamentGlyph } from '../../../core/layout/staffTypes';
 import { slurPoints, tiePoints } from '../../../core/layout/preview';
@@ -36,6 +38,9 @@ export interface StaffTheme {
   foldInk: number;
   foldText: string;
 }
+
+/** The light of a note's head as a blinking lane's wave passes it (core_13 rule 10): a warm gold. */
+const LANE_BLINK = 0xf5b700;
 
 /** High-contrast defaults for a small student on a laptop screen. */
 export const DEFAULT_THEME: StaffTheme = {
@@ -130,6 +135,16 @@ export class StaffView {
   /** The note duration helper (ft_1_11), under the lines; empty unless `setDurationMarks` gave it marks. */
   private readonly durationGfx: Phaser.GameObjects.Graphics;
   private durationMarks: DurationMarks = { bands: [], ghosts: [] };
+  /** The beat lanes (core_13 rules 2 and 10), under the lines; none unless `setLanes` gave them, each with its look. */
+  private readonly laneGfx: Phaser.GameObjects.Graphics;
+  private readonly blinkGfx: Phaser.GameObjects.Graphics;
+  private lanes: readonly { dots: readonly LaneDot[]; look: LaneLook }[] = [];
+  /** The heads a blinking lane lights as its wave passes (core_13 rule 10): by tick and line, with the lane's wave reach. */
+  private blinkHeads: { tick: number; system: number; reach: number; heads: { x: number; y: number; rx: number; ry: number }[] }[] = [];
+  private laneWave: number | null = null;
+  private laneMarks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>> = new Map();
+  private laneDrawn = '';
+  private lanePpq = 480;
   private readonly playheadGfx: Phaser.GameObjects.Graphics;
   private readonly notesGfx: Phaser.GameObjects.Graphics;
   private readonly labels: Phaser.GameObjects.Text[] = [];
@@ -203,10 +218,12 @@ export class StaffView {
     this.paperBg = layers.paper;
     this.cursorGfx = layers.highlight;
     this.durationGfx = layers.duration;
+    this.laneGfx = layers.lane;
+    this.blinkGfx = layers.blink;
     this.paper = layers.lines;
     this.notesGfx = layers.notes;
     this.playheadGfx = layers.playhead;
-    for (const g of [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.notesGfx, this.playheadGfx]) g.setPosition(origin.x, origin.y);
+    for (const g of [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.blinkGfx, this.playheadGfx]) g.setPosition(origin.x, origin.y);
     this.drawStaff();
     const fontSize = `${Math.round(layout.staffSpace * 1.1)}px`;
     // a word that would run into the next mark of its staff is not drawn (core_09.AC15)
@@ -519,6 +536,90 @@ export class StaffView {
     return { bands: this.durationMarks.bands.filter((b) => this.onPage(b.system)).length, ghosts: this.durationMarks.ghosts.filter((g) => this.onPage(g.system)).length };
   }
 
+  /** The beat lanes (`laneDots`, each with its look) and the drawn chart's ticks a quarter; none hides them. */
+  setLanes(lanes: readonly { dots: readonly LaneDot[]; look: LaneLook }[], ppq: number): void {
+    this.lanes = lanes;
+    this.lanePpq = ppq;
+    // a note stands over its dot: the heads at the dot's column on its line
+    const seen = new Set<string>();
+    this.blinkHeads = [];
+    for (const { dots, look } of lanes) {
+      if (!look.blink) continue;
+      for (const d of dots) {
+        const key = `${d.system}:${d.tick}`;
+        if (!d.note || seen.has(key)) continue;
+        seen.add(key);
+        const heads = this.layout.notes.filter((n) => n.system === d.system && Math.abs(n.column - d.x) < 0.5).map((n) => ({ x: n.x, y: n.y, rx: n.headRx, ry: n.headRy }));
+        if (heads.length > 0) this.blinkHeads.push({ tick: d.tick, system: d.system, reach: look.wave.reach, heads });
+      }
+    }
+    this.drawLane(true);
+  }
+
+  /**
+   * Where the lanes' wave is (a tick of the chart drawn; null for none) and the colour of each key played against the
+   * student's pace, by its tick (core_13.AC5). Repainted only when what it shows changed.
+   */
+  moveLane(wave: number | null, marks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>>): void {
+    this.laneWave = wave;
+    this.laneMarks = marks;
+    this.drawLane(false);
+  }
+
+  /** How many lane dots this page shows, how many the wave lifts now and how many keys are coloured (end-to-end tests). */
+  laneShown(): { lanes: number; dots: number; lifted: number; coloured: number; blinking: number } {
+    const here = this.lanes.flatMap((lane) => lane.dots.filter((d) => this.onPage(d.system) && dotLook(d, lane.look).strength > 0).map((d) => ({ d, look: lane.look })));
+    return {
+      lanes: this.lanes.length,
+      dots: here.length,
+      lifted: here.filter(({ d, look }) => this.liftOf(d, look) > 0).length,
+      coloured: here.filter(({ d }) => d.note && this.laneMarks.has(d.tick)).length,
+      blinking: this.blinkHeads.filter((b) => this.onPage(b.system) && laneLift(b.tick, this.laneWave, this.lanePpq, b.reach) > 0).reduce((n, b) => n + b.heads.length, 0),
+    };
+  }
+
+  private liftOf(dot: LaneDot, look: LaneLook): number {
+    return laneLift(dot.tick, this.laneWave, this.lanePpq, look.wave.reach);
+  }
+
+  /**
+   * The lanes: faint ghost dots, a beat dot a little bigger and darker, the bar's first bigger still, a note's dot under its
+   * column, each as strong as its lane's look sets it; the wave lifts each dot it passes by the lane's wave height, the beat
+   * and note dots most (`AX-3 provisional:` sizes and shades).
+   */
+  private drawLane(force: boolean): void {
+    const shows = `${this.page}|${this.laneWave === null ? '' : Math.round(this.laneWave)}|${this.laneMarks.size}`;
+    if (!force && shows === this.laneDrawn) return;
+    this.laneDrawn = shows;
+    const g = this.laneGfx;
+    g.clear();
+    const S = this.layout.staffSpace;
+    for (const { dots, look } of this.lanes) {
+      for (const dot of dots) {
+        if (!this.onPage(dot.system)) continue;
+        const { role, strength } = dotLook(dot, look);
+        if (strength <= 0) continue;
+        const lift = this.liftOf(dot, look);
+        const mark = role === 'note' ? this.laneMarks.get(dot.tick) : undefined;
+        const size = role === 'downbeat' ? 0.3 : role === 'ghost' ? 0.09 : 0.22;
+        const rise = (role === 'ghost' ? 0.55 : 1) * look.wave.height;
+        const alpha = mark ? 1 : (role === 'downbeat' ? 0.55 : role === 'ghost' ? 0.22 : 0.4) * strength;
+        g.fillStyle(mark ? paceColour(mark) : this.theme.ink, Math.min(1, alpha + lift * 0.4 * strength));
+        g.fillCircle(dot.x, dot.y - lift * rise * S, size * S * (1 + 0.35 * lift));
+      }
+    }
+    // a blinking lane lights each head the wave passes, most at the crest (`AX-3 provisional:` the colour and strength)
+    const b = this.blinkGfx;
+    b.clear();
+    for (const blink of this.blinkHeads) {
+      if (!this.onPage(blink.system)) continue;
+      const lift = laneLift(blink.tick, this.laneWave, this.lanePpq, blink.reach);
+      if (lift <= 0) continue;
+      b.fillStyle(LANE_BLINK, 0.85 * lift);
+      for (const h of blink.heads) b.fillEllipse(h.x, h.y, h.rx * 2.3, h.ry * 2.3);
+    }
+  }
+
   /** The band and the ghost heads, in the cursor's blue and faint, so they read as help and not as notes to play. */
   private drawDuration(): void {
     const g = this.durationGfx;
@@ -540,11 +641,12 @@ export class StaffView {
     this.onPageShown?.(target);
     this.drawStaff();
     this.drawDuration();
+    this.drawLane(true);
     this.setHints(this.hints);
     this.drawNotes();
     this.drawPlayhead();
     if (!fade) return;
-    const targets = [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)];
+    const targets = [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)];
     this.scene.tweens.killTweensOf(targets);
     this.scene.tweens.add({ targets, alpha: { from: 0.2, to: 1 }, duration: PAGE_FADE_MS });
   }
@@ -666,7 +768,7 @@ export class StaffView {
   }
 
   destroy(): void {
-    [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
+    [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
     this.playedName?.destroy();
     for (const v of this.veils) v.image.destroy();
     this.sheet.release();

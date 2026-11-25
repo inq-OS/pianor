@@ -48,6 +48,7 @@
     "spike": "vite --open /spike.html"
   },
   "dependencies": {
+    "pdfjs-dist": "^6.5.438",
     "phaser": "^4.2.1",
     "zod": "^4.6.7"
   },
