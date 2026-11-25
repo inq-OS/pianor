@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import littleSteps from '../../../tests/fixtures/charts/little-steps.v2.json';
 import { chartWith } from '../../../tests/helpers/charts';
 import { chartSchema } from '../chart';
-import { defaultLaneLook, dotLook, laneDots, laneLift, laneY, PACE_COLOURS, paceColour, waveTick, WAVE_REACH, type LaneDot } from './beatLane';
+import { defaultLaneLook, dotLook, LANE_LIMITS, LANE_STEPS, laneAt, laneDots, laneLift, laneY, PACE_COLOURS, paceColour, waveTick, WAVE_REACH, type LaneDot } from './beatLane';
 import { layoutStaff } from './staff';
 
 const chart = chartSchema.parse(littleSteps); // four bars of 4/4, one hand: quarters, halves and a whole note
@@ -107,17 +107,14 @@ describe('paceColour', () => {
 });
 
 describe('laneDots near the notes', () => {
-  it('core_13.AC7 leaves out every dot that would touch a note head or its ledger line, such as middle C between the staves', () => {
+  it('core_13.AC7 keeps a dot that touches a note head, such as middle C between the staves', () => {
     // middle C in the right hand sits between the staves, on the lane
     const middle = chartWith([{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 64 }, { tick: 0, dur: 960, midi: 48, track: 'lh' }]);
     const layout = layoutStaff(middle, { viewport: { width: 1366, height: 700 }, staffGap: 'short' });
     const dots = laneDots(layout, middle, 'between');
     const c = layout.notes.find((n) => middle.notes[n.index]!.midi === 60)!;
-    for (const d of dots) {
-      const inHead = Math.abs(d.x - c.x) <= c.headRx && Math.abs(d.y - c.y) <= c.headRy;
-      expect(inHead).toBe(false);
-    }
-    expect(dots.length).toBeGreaterThan(20); // the rest of the lane stays
+    expect(dots.some((d) => d.note && d.tick === 0 && Math.abs(d.x - c.column) < 0.01)).toBe(true);
+    expect(dots.filter((d) => d.tick < 1920)).toHaveLength(32);
   });
 });
 
@@ -157,5 +154,26 @@ describe('a tuned lane', () => {
     expect(laneLift(960, 960 + 240, 480, 1)).toBeCloseTo(0.75);
     expect(laneLift(960, 960 + 240, 480)).toBe(0);
     expect(laneLift(960, 960, 480, 0)).toBe(0);
+  });
+
+  it('core_13.AC8 puts a lane added by a click where the click was, from the nearer of above and between', () => {
+    const S = grand.staffSpace;
+    const between = laneY(grand, 0, 'between');
+    const above = laneY(grand, 0, 'above');
+    expect(laneAt(grand, 0, between + 0.6 * S)).toEqual({ place: 'between', offset: 0.5 });
+    expect(laneAt(grand, 0, above - 0.3 * S)).toEqual({ place: 'above', offset: -0.25 });
+    // never further than the player could move it
+    expect(laneAt(grand, 0, between + 100 * S).offset).toBe(LANE_LIMITS.offset);
+    // a single staff has only the lane above
+    expect(laneAt(single, 0, laneY(single, 0, 'above') + S).place).toBe('above');
+  });
+
+  it('core_13.AC8 offers each tuning in steps from the most to the least, every step within the limits', () => {
+    expect(LANE_STEPS.strength[0]).toBe(1);
+    expect(LANE_STEPS.strength.at(-1)).toBe(0);
+    for (const h of LANE_STEPS.height) expect(h).toBeLessThanOrEqual(LANE_LIMITS.height);
+    for (const r of LANE_STEPS.reach) expect(r).toBeLessThanOrEqual(LANE_LIMITS.reach);
+    expect(LANE_STEPS.height).toContain(defaultLaneLook().wave.height);
+    expect(LANE_STEPS.reach).toContain(defaultLaneLook().wave.reach);
   });
 });

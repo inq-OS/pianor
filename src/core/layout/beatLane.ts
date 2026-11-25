@@ -43,8 +43,6 @@ const ABOVE_INK = 1;
 /** The lane above a staff never goes nearer the top of the staff's area than this, in staff spaces: it stays on the sheet. */
 const ABOVE_EDGE = 0.9;
 const MERGE = 1.5;
-/** `AX-3 provisional:` a dot keeps this many staff spaces clear of a note head and a ledger line. */
-const INK_CLEAR = 0.35;
 
 /** The x of `tick` in `bar` (the drawn chart's ticks), as the notes are placed (`xAt` in staff.ts). */
 function tickX(layout: StaffLayout, chart: Chart, bar: BarLayout, tick: number): number {
@@ -134,18 +132,9 @@ export function laneDots(layout: StaffLayout, chart: Chart, place: LanePlace, of
       dots.push({ system: bar.system, x: column, y, tick, kind: 'ghost', note: true, staves: stavesOf(bar.index, tick), grid: false });
     }
   }
-  // no dot touches a note head or its ledger line (middle C between the staves): next to a head it would read as a dot
-  // of the note or a staccato
-  const ink = layout.notes.flatMap((n) => [
-    { system: n.system, x1: n.x - n.headRx, x2: n.x + n.headRx, y1: n.y - n.headRy, y2: n.y + n.headRy },
-    ...n.ledgerLines.map((l) => ({ system: n.system, x1: l.x1, x2: l.x2, y1: l.y, y2: l.y })),
-  ]);
-  const clear = INK_CLEAR * S;
-  const touches = (d: LaneDot) => ink.some((b) => b.system === d.system && d.x >= b.x1 - clear && d.x <= b.x2 + clear && d.y >= b.y1 - clear && d.y <= b.y2 + clear);
   // a note dot that landed on a ghost's place takes it
   return dots
     .filter((d) => d.note || !dots.some((o) => o !== d && o.note && o.system === d.system && Math.abs(o.tick - d.tick) < step && Math.abs(o.x - d.x) < 0.5 * S))
-    .filter((d) => !touches(d))
     .sort((a, b) => a.system - b.system || a.x - b.x);
 }
 
@@ -180,13 +169,15 @@ export function paceColour(mark: Pick<PaceMark, 'side' | 'far'>): number {
 /**
  * How one lane looks, as the player tunes it (core_13 rule 10): where it runs (`place`, moved `offset` staff spaces down,
  * up when negative), how strong each kind of dot is (0 hides it, 1 full), and the wave's height in staff spaces and its
- * reach either side of the crest in quarters.
+ * reach either side of the crest in quarters, and whether the notes blink as the wave passes.
  */
 export interface LaneLook {
   place: Exclude<LanePlace, 'off'>;
   offset: number;
   dots: { ghost: number; beat: number; top: number; bottom: number };
   wave: { height: number; reach: number };
+  /** Opt-in: each note the lane has a dot for lights up as the wave's crest passes it (core_13 rule 10). */
+  blink?: boolean | undefined;
 }
 
 /** `AX-3 provisional:` at most this many lanes, and the ranges a player can tune within. */
@@ -208,4 +199,35 @@ export function dotLook(dot: LaneDot, look: LaneLook): { role: LaneDotKind | 'no
   // a beat keeps its size when it is the stronger, so the click's dots stay a row of their own
   if (note > grid) return { role: 'note', strength: note };
   return { role: dot.kind, strength: grid };
+}
+
+/** `AX-3 provisional:` the lane is moved in quarter staff spaces. */
+export const LANE_OFFSET_STEP = 0.25;
+
+/**
+ * The steps a player picks from in the lane's bubble (core_13 rule 10), from the most to the least: how strong a kind of
+ * dot is (0 hides it), how high the wave lifts and how wide it is. `AX-3 provisional:` the steps.
+ */
+export const LANE_STEPS = {
+  strength: [1, 0.6, 0.3, 0],
+  height: [1.5, 1.2, 0.8, 0.4],
+  reach: [1, 0.5, WAVE_REACH, 0.15],
+} as const;
+
+/** `offset` in the lane's steps and within the limits a player can move it. */
+export function clampLaneOffset(offset: number): number {
+  return Math.max(-LANE_LIMITS.offset, Math.min(LANE_LIMITS.offset, Math.round(offset / LANE_OFFSET_STEP) * LANE_OFFSET_STEP));
+}
+
+/**
+ * Where a lane added by a click at `y` (layout pixels) on `system` runs: from the nearer of its places (between the two
+ * staves, or above), moved to the click.
+ */
+export function laneAt(layout: StaffLayout, system: number, y: number): { place: Exclude<LanePlace, 'off'>; offset: number } {
+  const S = layout.staffSpace;
+  const two = (layout.systems[system]?.staves.length ?? 0) > 1;
+  const places: Exclude<LanePlace, 'off'>[] = two ? ['between', 'above'] : ['above'];
+  let best = places[0]!;
+  for (const place of places) if (Math.abs(y - laneY(layout, system, place)) < Math.abs(y - laneY(layout, system, best))) best = place;
+  return { place: best, offset: clampLaneOffset((y - laneY(layout, system, best)) / S) + 0 };
 }
