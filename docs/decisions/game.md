@@ -580,3 +580,11 @@ Check: untestable: the book that shows the list is not built yet; ft_1_39.AC1 te
 The teacher assigns lessons and holds checks, as with pieces. A line names a thing while an arrow points at it, and a thing that does several things gets one short label at each part; the picture carries the rest. Half and whole steps lead into the scale and chord trainers the student already uses.
 
 Check: untestable: lesson wording and order are content; ft_1_39's lesson linter checks the word limit once slice 1 is built.
+
+## d305
+
+**The theory lessons' order is a skill tree of prerequisites over the catalog ids, cut into stages, with nothing locked.** Features: ft_1_39.
+
+A lesson is ready once every lesson it needs has a medal, and the suggested next lesson is the ready one in the lowest stage; the book stays sorted by area as the map of everything. A tree gives a curriculum that mixes subjects in a sensible order while the student may still open any lesson.
+
+Check: untestable: the tree becomes data with slice 2 of ft_1_39, whose loop check and ready rule get their tests then.
