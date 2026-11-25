@@ -123,7 +123,6 @@ export class OwnPieces {
       chart ? [{ chart, status: 'approved' as const, level, unlockLevel: 1, source: `own: ${record.author}`, own: true }] : []);
   }
 
-  /** Save a new piece (no `id`) or a new version of one. Refused when it has no notes or cannot be drawn. */
   /**
    * Saves a piece: `id` an own piece to save again, else a new one, under `newId` (a part of an imported book, whose strip of
    * the pages waits under that id) or an id from its title, numbered when taken.
