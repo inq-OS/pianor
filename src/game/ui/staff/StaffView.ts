@@ -799,6 +799,10 @@ export class StaffView {
       if (bar.kind === 'final') {
         g.lineStyle(this.lineWidth(), theme.ink, 1).lineBetween(bar.x - S * 0.35, bar.y1, bar.x - S * 0.35, bar.y2);
         g.lineStyle(S * 0.3, theme.ink, 1).lineBetween(bar.x - S * 0.1, bar.y1, bar.x - S * 0.1, bar.y2);
+      } else if (bar.kind === 'double') {
+        // two thin lines before a key change (core_09.AC57)
+        g.lineStyle(this.lineWidth(), theme.ink, 1).lineBetween(bar.x - S * 0.35, bar.y1, bar.x - S * 0.35, bar.y2);
+        g.lineBetween(bar.x, bar.y1, bar.x, bar.y2);
       } else {
         g.lineStyle(bar.kind === 'start' ? S * 0.12 : this.lineWidth(), theme.ink, 1).lineBetween(bar.x, bar.y1, bar.x, bar.y2);
       }

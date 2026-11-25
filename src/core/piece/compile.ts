@@ -168,7 +168,7 @@ export function compilePiece(input: CompileInput): CompileResult {
     ppq: PPQ,
     tempoMap: [{ tick: 0, bpm: parsed.bpm ?? DEFAULT_BPM }],
     meterMap,
-    keyMap: [{ tick: 0, fifths: parsed.key.fifths, mode: parsed.key.mode }],
+    keyMap: [{ tick: 0, fifths: parsed.key.fifths, mode: parsed.key.mode }, ...(parsed.keyChanges ?? [])],
     tracks: voices.map((v) => v.track),
     notes,
     rests,

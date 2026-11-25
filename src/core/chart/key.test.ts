@@ -1,6 +1,6 @@
 // Covers core_09.AC2.
 import { describe, expect, it } from 'vitest';
-import { keyAlters, printedAccidentals, tonicStep } from './key';
+import { keyAlters, keyAt, printedAccidentals, tonicStep } from './key';
 
 const NATURAL = { C: 0, D: 0, E: 0, F: 0, G: 0, A: 0, B: 0 };
 
@@ -89,6 +89,29 @@ describe('core_09.AC3 printed accidentals', () => {
 
   it('core_09.AC3 returns an empty list for no notes', () => {
     expect(printedAccidentals([], 0)).toEqual([]);
+  });
+});
+
+// Covers core_09.AC56.
+describe('core_09.AC56 the key of each bar', () => {
+  const keyMap = [{ tick: 0, fifths: -3 }, { tick: 3840, fifths: -4 }];
+  const n = (step: 'D' | 'F', alter: number, tick: number, bar: number) => ({ step, octave: 4, alter, tick, bar });
+
+  it('core_09.AC56 keyAt gives the entry in force at a tick', () => {
+    expect(keyAt(keyMap, 0).fifths).toBe(-3);
+    expect(keyAt(keyMap, 3839).fifths).toBe(-3);
+    expect(keyAt(keyMap, 3840).fifths).toBe(-4);
+    expect(keyAt(keyMap, 99999).fifths).toBe(-4);
+  });
+
+  it('core_09.AC56 a note follows the signature of its own bar', () => {
+    // C minor has D natural; from the change A-flat major flats D, so a D flat prints nothing and a D natural prints its sign
+    const notes = [n('D', 0, 0, 0), n('D', -1, 3840, 2), n('D', 0, 5760, 3)];
+    expect(printedAccidentals(notes, keyMap)).toEqual([null, null, 0]);
+  });
+
+  it('core_09.AC56 one fifths number is a key for the whole staff, as before', () => {
+    expect(printedAccidentals([n('D', -1, 0, 0)], -4)).toEqual(printedAccidentals([n('D', -1, 0, 0)], [{ tick: 0, fifths: -4 }]));
   });
 });
 

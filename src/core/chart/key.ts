@@ -24,6 +24,19 @@ export function keyAlters(fifths: number): Record<Step, Alter> {
   return out;
 }
 
+/** An entry of a chart's key map: the key from `tick` on (core_09.AC56). */
+export interface KeyEntry {
+  tick: number;
+  fifths: number;
+}
+
+/** The entry of `keyMap` in force at `tick`: the last one at or before it (the first when the tick comes before all). */
+export function keyAt<T extends KeyEntry>(keyMap: readonly T[], tick: number): T {
+  let found = keyMap[0]!;
+  for (const entry of keyMap) if (entry.tick <= tick) found = entry;
+  return found;
+}
+
 /** The letter of a key's tonic, by the MusicXML `fifths` count and the mode: F for one flat major, D for one flat minor. */
 export function tonicStep(fifths: number, mode: 'major' | 'minor'): Step {
   const major = (((fifths * 4) % 7) + 7) % 7; // each fifth up is four letters up
@@ -44,10 +57,12 @@ export interface PrintableNote {
 /**
  * Which accidental to print for each note of one staff, in time order (docs/notation.md section 4).
  * A number (-2..2, 0 = natural) is printed; null prints nothing because the signature or an earlier
- * accidental on the same pitch (step and octave) in the same bar already gives that alter.
+ * accidental on the same pitch (step and octave) in the same bar already gives that alter. The key is one `fifths` for
+ * the whole staff, or a key map whose entry at each note's tick gives its signature (core_09.AC56).
  */
-export function printedAccidentals(notes: readonly PrintableNote[], fifths: number): (number | null)[] {
-  const signature = keyAlters(fifths);
+export function printedAccidentals(notes: readonly PrintableNote[], keyOrMap: number | readonly KeyEntry[]): (number | null)[] {
+  const keyMap = typeof keyOrMap === 'number' ? [{ tick: 0, fifths: keyOrMap }] : keyOrMap;
+  const signatures = new Map(keyMap.map((entry) => [entry.fifths, keyAlters(entry.fifths)]));
   let seen = new Map<string, number>();
   /** Pitches whose latest note is tied on: their accidental holds across the bar line into the tied-to note. */
   const tiedOut = new Set<string>();
@@ -60,7 +75,7 @@ export function printedAccidentals(notes: readonly PrintableNote[], fifths: numb
       seen = carried;
     }
     bar = note.bar;
-    const current = seen.get(key) ?? signature[note.step];
+    const current = seen.get(key) ?? signatures.get(keyAt(keyMap, note.tick).fifths)![note.step];
     if (note.tieNext) tiedOut.add(key);
     else tiedOut.delete(key);
     if (note.alter === current) return null;

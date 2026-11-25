@@ -40,7 +40,7 @@ Chord and key names in Estonian follow the way Estonian music teaching writes th
 ## Slice C as built
 
 - The scale switcher is the third choice of slice A's shape button (`switcherChart` in `src/core/trainer/scaleSwitcher.ts`, judged by `ShapeRound`): twelve bars of eighths, each the major scale of its key, up in one bar and down in the next. The first six keys go round the circle from C (C, G, D, A, E, B), the rest are seeded at random within six signs, never the same key twice in a row. The name of the cursor's bar's key stands above the staff.
-- `AX-3 provisional:` the staff stays in C major and each note carries its own sign, because a key change inside a piece is not drawn yet (`layout/staff.ts`); major keys only; twelve bars. TODO(architect, R2): ask the maintainer after a week of use whether the switcher should draw the new signature each bar once key changes are drawn, and whether minor keys belong in it.
+- `AX-3 provisional:` the staff stays in C major and each note carries its own sign, (a key change at a bar line is drawn since core_09.AC57, so the switcher could draw each bar's signature); major keys only; twelve bars. TODO(architect, R2): ask the maintainer after a week of use whether the switcher should draw the new signature each bar once key changes are drawn, and whether minor keys belong in it.
 
 ## Slice D as built
 

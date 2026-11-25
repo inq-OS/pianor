@@ -1,6 +1,6 @@
 import { OWN_PIECE_LICENSE, PPQ, pickupTicks, ticksPerBar, noteLengthOf, tupletOf, writtenDurOf, diatonicIndex, midiToSpelling, noteName, type Chart, type ChartNote, type ChartRest, type LevelDefinition, type PieceMeta } from '../chart';
 import type { StyleList } from '../properties/styles';
-import { keyAlters, tonicStep } from '../chart/key';
+import { keyAlters, keyAt, tonicStep } from '../chart/key';
 import type { SourceLocation } from './compile';
 import type { Diagnostic } from './diagnostics';
 import { costlyFingers, searchedFingerAt } from '../fingering/chart';
@@ -128,7 +128,7 @@ function checkKeyAndNotes({ chart, level, playNotes, error }: LintContext): void
     if (tuplet && !level.tuplets) error('note-value', `triplets are not allowed at level ${level.level}`, at(e));
     else if (!value) error('note-value', `a note of ${n.dur} ticks is not a whole, dotted half, half, dotted quarter, quarter, dotted eighth, eighth or sixteenth note (other dotted and shorter notes, and triplet lengths outside a triplet, are not allowed)`, at(e));
     else if (!level.noteValues.includes(value)) error('note-value', `${value} notes are not allowed at level ${level.level} (allowed: ${level.noteValues.join(', ')})`, at(e));
-    const inKey = keyAlters(chart.keyMap[0]!.fifths)[n.spelling.step];
+    const inKey = keyAlters(keyAt(chart.keyMap, n.tick).fifths)[n.spelling.step];
     if (n.spelling.alter !== inKey && !level.accidentals) error('accidental', `${name(n)} needs an accidental, which level ${level.level} does not use`, at(e));
     if (n.tieNext && !level.ties) error('tie', `ties are not allowed at level ${level.level}`, at(e));
   }

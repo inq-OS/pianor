@@ -5,7 +5,7 @@
  * Pure: the practice view only draws it.
  */
 import { ledgerLinePositions, midiToSpelling, staffPosition, type Chart, type Spelling } from '../chart';
-import { keyAlters } from '../chart/key';
+import { keyAlters, keyAt } from '../chart/key';
 import type { StaffLayout } from './staffTypes';
 
 export interface PlayedMark {
@@ -36,7 +36,7 @@ export function playedMark(layout: StaffLayout, chart: Chart, awaited: readonly 
   }, null);
   if (!nearest) return null;
   const staff = layout.systems[nearest.system]!.staves[nearest.staff]!;
-  const fifths = chart.keyMap[0]?.fifths ?? 0;
+  const fifths = keyAt(chart.keyMap, chart.notes[nearest.index]!.tick).fifths;
   const spelling = midiToSpelling(midi, fifths < 0);
   const position = staffPosition(spelling, staff.clef);
   const S = layout.staffSpace;

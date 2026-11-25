@@ -4,13 +4,13 @@
  *
  * One staff for a one-handed piece, a grand staff (treble above bass, joined by a brace, sharing bar lines and one time axis)
  * for a piece with two played tracks. Supported subset: one or two voices per track (d164: in a bar of two, voice 1 stems up, voice 2 down), whole to sixteenth notes and rests, dotted halves, quarters and eighths (eighths
- * and sixteenths are beamed per beat, `beams.ts`; a lone one has its flags), triplets drawn at their written value with a 3 (core_09.AC50), one key for the whole piece and its key signature, one meter, sharps,
+ * and sixteenths are beamed per beat, `beams.ts`; a lone one has its flags), triplets drawn at their written value with a 3 (core_09.AC50), key signatures and key changes at bar lines (core_09.AC57), one meter, sharps,
  * flats and naturals (docs/notation.md sections 4 and 5). Notes of one track that start together and have one length are a chord: one column of heads
  * (a second is drawn with its upper or lower head on the other side of the stem), one stem and its flags or beams, and its accidentals stacked in columns
- * to the left. Anything else throws `UnsupportedNotationError` (double sharps and flats, ties, key changes), so a piece the renderer
+ * to the left. Anything else throws `UnsupportedNotationError` (double sharps and flats, a key change inside a bar), so a piece the renderer
  * cannot show faithfully never shows wrongly; the piece linter keeps such pieces out of levels.
  */
-import { printedAccidentals } from '../chart/key.ts';
+import { keyAt, printedAccidentals } from '../chart/key.ts';
 import { ledgerLinePositions, staffPosition, type Clef } from '../chart/pitch.ts';
 import type { Chart, ChartGrace, ChartNote, ChartRest, ChartTrack, ChartTuplet } from '../chart/schema.ts';
 import { tupletOf, writtenDurOf } from '../chart/tuplets.ts';
@@ -18,7 +18,7 @@ import { NOTE_TICKS, PPQ, fullBarTicks, noteLengthOf } from '../chart/time.ts';
 import { tieLinks } from '../chart/ties.ts';
 import { beatTicksOf, planBeams, type BeamInput, type BeamRun } from './beams.ts';
 import { noteLabel, type NoteNaming } from '../text/noteName.ts';
-import { ACCIDENTAL_BOX, accidentalColumns, accidentalKind, keyRooms, keySignaturePositions } from './accidentals.ts';
+import { ACCIDENTAL_BOX, accidentalColumns, accidentalKind, keyChangeSigns, keySignaturePositions, signRooms } from './accidentals.ts';
 import type { NoteValue, StaffLayoutOptions, BarSpacing, StaffReserve, NoteGlyph, GraceGlyph, RestGlyph, BeamGlyph, TieGlyph, SlurGlyph, TupletGlyph, EndingGlyph, KeyAccidentalGlyph, StaffInfo, SystemLayout, BarLayout, BarRoom, TimeSignatureLayout, StaffLayout } from './staffTypes.ts';
 
 export type { NoteValue, StaffLayoutOptions, BarSpacing, NoteGlyph, BeamGlyph, TieGlyph, SlurGlyph, TupletGlyph, BarLayout, StaffLayout } from './staffTypes.ts';
@@ -57,6 +57,10 @@ const MARGIN_Y = 1;
 const KEY_START = 3.6;
 const KEY_HALF = 0.6;
 const KEY_STEP = 1.15;
+/** The signs of a key change inside a line (core_09.AC57) start this far right of the double bar line, in staff spaces. */
+const KEY_CHANGE_LEFT = 0.6;
+/** More room a key change leaves when a repeat starts in its bar, for the repeat sign after the signs. */
+const KEY_CHANGE_REPEAT = 1.2;
 /** The time signature follows the key signature after this gap; without a key it starts at 5 spaces, as before. */
 const KEY_TIME_GAP = 0.5;
 /** From the time signature to the first bar's inner edge (7 spaces in all with no key, as before). */
@@ -183,7 +187,7 @@ function graceSides(alter: number | null, slash: boolean, position: number): { l
   return { left: Math.max(right, accidentalLeft), right, reach };
 }
 
-function planAccidentals(chart: Chart, staves: readonly StaffSpec[], fifths: number): AccidentalPlan {
+function planAccidentals(chart: Chart, staves: readonly StaffSpec[]): AccidentalPlan {
   const bars = chart.bars;
   const alterOf = new Map<number, number>();
   const columnOf = new Map<number, number>();
@@ -204,7 +208,7 @@ function planAccidentals(chart: Chart, staves: readonly StaffSpec[], fifths: num
     ].sort((a, b) => a.tick - b.tick || Number(b.grace) - Number(a.grace) || a.midi - b.midi);
     const printed = printedAccidentals(items.map((item) => ({
       step: item.spelling.step, octave: item.spelling.octave, alter: item.spelling.alter, tick: item.tick, bar: item.bar, tieNext: item.tieNext,
-    })), fifths);
+    })), chart.keyMap);
     const printedOf = new Map<number, number | null>();
     items.forEach((item, i) => {
       const alter = printed[i] ?? null;
@@ -513,6 +517,9 @@ interface Frame {
   chartBars: Chart['bars'];
   accidentalPlan: AccidentalPlan;
   spacing: readonly BarSpacing[] | undefined;
+  keys: KeyPlan;
+  /** Per bar with a key change: the room its signs take at the start of the bar when it is inside a line, in staff spaces. */
+  keyRoomOf: Map<number, number>;
 }
 
 /** Everything placed per system: staves, clefs, key signatures, bar lines and the bars' x. */
@@ -525,6 +532,33 @@ interface Systems {
   clefs: StaffLayout['clefs'];
   keySignature: KeyAccidentalGlyph[];
   staffLeft: number;
+}
+
+/** The keys the staff draws (core_09.AC57): the first, and each change of signature with the bar it starts. */
+interface KeyPlan {
+  first: number;
+  /** Per bar where the signature changes: the signature before and after. */
+  changes: Map<number, { from: number; to: number }>;
+  /** Every signature the piece uses. */
+  all: number[];
+  /** The signature in force in a bar. */
+  atBar(bar: number): number;
+}
+
+/** A change of mode alone (C major to A minor) keeps the signature, so the staff draws nothing for it. */
+function keyPlanOf(chart: Chart): KeyPlan {
+  const first = chart.keyMap[0]!.fifths;
+  const changes = new Map<number, { from: number; to: number }>();
+  let now = first;
+  for (const entry of chart.keyMap.slice(1)) {
+    if (entry.fifths === now) continue;
+    const bar = chart.bars.find((b) => b.startTick === entry.tick);
+    if (!bar) throw new UnsupportedNotationError('a key change inside a bar is not drawn (a key changes at a bar line)');
+    changes.set(bar.index, { from: now, to: entry.fifths });
+    now = entry.fifths;
+  }
+  const atBar = (bar: number) => keyAt(chart.keyMap, chart.bars[bar]?.startTick ?? 0).fifths;
+  return { first, changes, all: [...new Set([first, ...[...changes.values()].map((c) => c.to)])], atBar };
 }
 
 function staffSpecs(chart: Chart, tracks: readonly ChartTrack[]): StaffSpec[] {
@@ -556,7 +590,7 @@ function reserveGroups(reserve: StaffReserve): { low: number; high: number; size
 }
 
 /** Rooms per staff and the staff size: the largest that fits the viewport, or the one asked for. */
-function planFrame(chart: Chart, staves: readonly StaffSpec[], fifths: number, options: StaffLayoutOptions): Frame {
+function planFrame(chart: Chart, staves: readonly StaffSpec[], keys: KeyPlan, options: StaffLayoutOptions): Frame {
   const barCount = chart.bars.length;
   const barTicks = fullBarTicks(chart.meterMap, chart.ppq); // not bars[0]: a pick-up is short (core_09.AC22)
   const reserve = options.reserve;
@@ -588,7 +622,12 @@ function planFrame(chart: Chart, staves: readonly StaffSpec[], fifths: number, o
       }).concat(reserved, graceGroups),
       // the treble clef curls further out than the bass clef, so a staff of either clef plans for it
       reserve?.anyClef === true ? 'treble' : s.track.clef, reserve !== undefined && reserve.shortestTicks < PPQ, options.scoreRoom === true);
-    const keys = reserve?.anyClef === true ? [keyRooms(fifths, 'treble'), keyRooms(fifths, 'bass')] : [keyRooms(fifths, s.track.clef)];
+    // every signature and key change of the piece, on the clefs this staff may have
+    const clefs: Clef[] = reserve?.anyClef === true ? ['treble', 'bass'] : [s.track.clef];
+    const signRoom = clefs.flatMap((clef) => [
+      ...keys.all.map((f) => signRooms(keySignaturePositions(f, clef))),
+      ...[...keys.changes.values()].map((c) => signRooms(keyChangeSigns(c.from, c.to, clef))),
+    ]);
     // a rest moved out of the staff by the other voice (d164) keeps its ink, and a name under it, on the paper
     const restsOut = s.rests.filter((e) => s.twoVoiceBars.has(e.rest.bar)).map(({ rest }) => {
       const value = rest.dur === barTicks ? 'whole' as const : noteShapeOf(writtenDurOf(chart, rest)).value;
@@ -597,9 +636,16 @@ function planFrame(chart: Chart, staves: readonly StaffSpec[], fifths: number, o
     });
     const restAbove = Math.max(0, ...restsOut.map((r) => (r.high > 8 ? r.high / 2 - 4 + 0.5 : 0)));
     const restBelow = Math.max(0, ...restsOut.map((r) => (r.low < 0 ? -r.low / 2 + 0.5 + GLYPH.hintGap + 2 * LABEL_HALF : 0)));
-    return { above: Math.max(own.above, restAbove, ...keys.map((k) => k.above)), below: Math.max(own.below, restBelow, ...keys.map((k) => k.below)) };
+    return { above: Math.max(own.above, restAbove, ...signRoom.map((k) => k.above)), below: Math.max(own.below, restBelow, ...signRoom.map((k) => k.below)) };
   });
-  const accidentalPlan = planAccidentals(chart, staves, fifths);
+  const accidentalPlan = planAccidentals(chart, staves);
+  // A key change's signs stand at the start of its bar, before its notes (core_09.AC57); a repeat that starts there follows them.
+  const keyRoomOf = new Map<number, number>();
+  for (const [bar, c] of keys.changes) {
+    const repeat = chart.repeats?.some((r) => r.startBar === bar) === true;
+    keyRoomOf.set(bar, KEY_CHANGE_LEFT + keyChangeSigns(c.from, c.to, 'treble').length * KEY_STEP + (repeat ? KEY_CHANGE_REPEAT : 0));
+  }
+  const roomWithKey = (bar: number) => (accidentalPlan.roomTotalOf.get(bar) ?? 0) + (keyRoomOf.get(bar) ?? 0);
   const last = staves.length - 1;
   const above = rooms.map((r, i) => r.above + (grand && i === 0 ? ARROW_ROOM : 0));
   // the bracket and the 1. of an ending stand over the top staff (core_09.AC47): room for both over what it already keeps
@@ -617,14 +663,16 @@ function planFrame(chart: Chart, staves: readonly StaffSpec[], fifths: number, o
   const minS = options.minStaffSpace ?? MIN_STAFF_SPACE;
   const request: Request = {
     barCount, barTicks, shortestTicks: shortest, systemUnits,
-    preamble: timeSignatureX(fifths) + TIME_TO_BARS, accidentalRoom: accidentalPlan.maxRoomTotal,
+    // a line may start in any key of the piece, so every line keeps room for the widest
+    preamble: Math.max(...keys.all.map(timeSignatureX)) + TIME_TO_BARS,
+    accidentalRoom: Math.max(0, ...Array.from({ length: barCount }, (_, i) => roomWithKey(i))),
     barsPerLine: options.barsPerLine === undefined ? undefined : Math.max(1, Math.floor(options.barsPerLine)),
     keepBarWidth: options.keepBarWidth === true,
     linesPerPage: options.linesPerPage === undefined ? undefined : Math.max(1, Math.floor(options.linesPerPage)),
   };
   let plan: Plan;
   if (options.spacing) {
-    const roomTotals = Array.from({ length: barCount }, (_, i) => accidentalPlan.roomTotalOf.get(i) ?? 0);
+    const roomTotals = Array.from({ length: barCount }, (_, i) => roomWithKey(i));
     plan = planSpaced(typeof options.staffSpace === 'number' ? options.staffSpace : minS, request, options.spacing, roomTotals, vp);
   } else if (typeof options.staffSpace === 'number') {
     plan = planAt(options.staffSpace, request, vp);
@@ -638,7 +686,7 @@ function planFrame(chart: Chart, staves: readonly StaffSpec[], fifths: number, o
       }
     }
   }
-  return { plan, request, above, below, systemUnits, barTicks, chartBars: chart.bars, accidentalPlan, spacing: options.spacing };
+  return { plan, request, above, below, systemUnits, barTicks, chartBars: chart.bars, accidentalPlan, spacing: options.spacing, keys, keyRoomOf };
 }
 
 /** The staves of one system, top to bottom from `top`, with their lines, clefs and key signatures. */
@@ -670,7 +718,7 @@ function layoutSystemStaves(staves: readonly StaffSpec[], frame: Frame, fifths: 
 }
 
 /** Systems (lines) and pages: where each staff, bar and bar line goes. */
-function layoutSystems(staves: readonly StaffSpec[], frame: Frame, fifths: number, vp: StaffLayoutOptions['viewport']): Systems {
+function layoutSystems(staves: readonly StaffSpec[], frame: Frame, vp: StaffLayoutOptions['viewport']): Systems {
   const { plan, request, systemUnits, accidentalPlan } = frame;
   const S = plan.staffSpace;
   const barCount = request.barCount;
@@ -680,8 +728,6 @@ function layoutSystems(staves: readonly StaffSpec[], frame: Frame, fifths: numbe
   const offsetY = Math.max(0, (vp.height - totalHeight) / 2) + MARGIN_Y * S;
   const staffLeft = MARGIN_X * S;
   const staffRight = vp.width - MARGIN_X * S;
-  const contentLeft = staffLeft + request.preamble * S;
-  const barWidth = (staffRight - contentLeft) / plan.barsPerSystem;
   // A bar's share of a line: 1 for a whole bar, less for a pick-up and the short last bar after it (d120, core_09.AC24).
   const shareOf = (index: number) => Math.min(1, (frame.chartBars[index]!.endTick - frame.chartBars[index]!.startTick) / frame.barTicks);
   // A bar's width: the same for every whole bar, or (with `spacing`) its own. A short bar is as wide as its share of a whole
@@ -696,13 +742,18 @@ function layoutSystems(staves: readonly StaffSpec[], frame: Frame, fifths: numbe
     const count = plan.spaced ? (plan.spaced.lineStarts[s + 1] ?? barCount) - firstBar : Math.min(plan.barsPerSystem, barCount - firstBar);
     const page = Math.floor(s / plan.perPage);
     const top = offsetY + (s % plan.perPage) * (systemHeight + SYSTEM_GAP * S);
+    // A line shows the key it starts in, and its bars start after that key's own room (core_09.AC57): the plan kept room
+    // for the widest key of the piece, so a line in a smaller key gives its bars what it leaves.
+    const lineKey = frame.keys.atBar(firstBar);
+    const contentLeft = staffLeft + (timeSignatureX(lineKey) + TIME_TO_BARS) * S;
+    const barWidth = (staffRight - contentLeft) / plan.barsPerSystem;
     let shares = 0;
     for (let k = 0; k < count; k++) shares += shareOf(firstBar + k);
     const unit = (barWidth * count) / shares;
     let right = contentLeft;
     for (let k = 0; k < count; k++) right += widthOf(firstBar + k, unit);
 
-    const infos = layoutSystemStaves(staves, frame, fifths, { system: s, top, left: staffLeft, right }, out);
+    const infos = layoutSystemStaves(staves, frame, lineKey, { system: s, top, left: staffLeft, right }, out);
     const topLineY = infos[0]!.topLineY;
     const bottomLineY = infos[last]!.bottomLineY;
     out.systems.push({ index: s, page, firstBar, barCount: count, staves: infos, topLineY, bottomLineY, cursorTipY: infos[last]!.arrow.tipY, left: staffLeft, right });
@@ -713,10 +764,23 @@ function layoutSystems(staves: readonly StaffSpec[], frame: Frame, fifths: numbe
     for (let k = 0; k < count; k++) {
       const index = firstBar + k;
       const width = widthOf(index, unit);
-      out.bars.push({ index, system: s, x, width, rooms: accidentalPlan.roomsOf.get(index) ?? [], roomTotal: accidentalPlan.roomTotalOf.get(index) ?? 0 });
+      const rooms = accidentalPlan.roomsOf.get(index) ?? [];
+      const roomTotal = accidentalPlan.roomTotalOf.get(index) ?? 0;
+      // A key change inside a line draws its signs after the bar line and moves the bar's notes past them; at a line start
+      // the line's own signature shows the key, and the bar keeps its room for the notes.
+      const change = k > 0 ? frame.keys.changes.get(index) : undefined;
+      const keyRoom = change ? frame.keyRoomOf.get(index)! : 0;
+      const start = frame.chartBars[index]!.startTick;
+      out.bars.push({ index, system: s, x, width, rooms: keyRoom > 0 ? [{ from: start, at: start, room: keyRoom }, ...rooms] : rooms, roomTotal: roomTotal + keyRoom });
+      if (change) {
+        infos.forEach((st, i) => keyChangeSigns(change.from, change.to, st.clef).forEach(({ alter, position }, j) => out.keySignature.push({
+          system: s, staff: i, alter, x: x + (KEY_CHANGE_LEFT + KEY_HALF + j * KEY_STEP) * S, y: st.bottomLineY - (position * S) / 2, bar: index,
+        })));
+      }
       x += width;
       const isLast = index === barCount - 1;
-      out.barlines.push({ system: s, x, y1: topLineY, y2: bottomLineY, kind: isLast ? 'final' : 'single' });
+      // a double bar line closes the bar before a key change (docs/notation.md section 5)
+      out.barlines.push({ system: s, x, y1: topLineY, y2: bottomLineY, kind: isLast ? 'final' : frame.keys.changes.has(index + 1) ? 'double' : 'single' });
     }
   }
   return out;
@@ -1339,15 +1403,15 @@ export function layoutStaff(chart: Chart, options: StaffLayoutOptions): StaffLay
   const vp = options.viewport;
   const tracks = pickTracks(chart, options.trackId, options.allPlayTracks, options.restingTracks);
   if (chart.meterMap.length !== 1) throw new UnsupportedNotationError('meter changes are not drawn yet');
-  if (chart.keyMap.length !== 1) throw new UnsupportedNotationError('key changes inside a piece are not drawn yet');
-  const fifths = chart.keyMap[0]!.fifths;
+  const keys = keyPlanOf(chart);
+  const fifths = keys.first;
   const meter = chart.meterMap[0]!;
 
   const staves = staffSpecs(chart, tracks);
-  const frame = planFrame(chart, staves, fifths, options);
+  const frame = planFrame(chart, staves, keys, options);
   const { plan } = frame;
   const S = plan.staffSpace;
-  const placed = layoutSystems(staves, frame, fifths, vp);
+  const placed = layoutSystems(staves, frame, vp);
 
   const timeSignatures: TimeSignatureLayout[] = placed.systems[0]!.staves.map((st) => ({
     system: 0, staff: st.index, num: meter.num, den: meter.den,
@@ -1390,7 +1454,7 @@ export function layoutStaff(chart: Chart, options: StaffLayoutOptions): StaffLay
   const tuplets = perStaff.flatMap((st) => st.tuplets).sort((a, b) => a.index - b.index);
 
   const { systems, bars, staffLines, barlines, braces, clefs, keySignature } = placed;
-  const repeatSigns = repeatSignsOf(chart, systems, bars, S);
+  const repeatSigns = repeatSignsOf(chart, systems, bars, keySignature, S);
   const endings = endingsOf(chart, systems, bars, noteGlyphs, S);
   return {
     ...(repeatSigns.length > 0 ? { repeatSigns } : {}),
@@ -1428,13 +1492,16 @@ function endingsOf(chart: Chart, systems: readonly SystemLayout[], bars: readonl
 }
 
 /** Where the repeat signs go (core_09.AC19): a start at its first bar's left edge (after the clef and key at a line start), an end at its last bar's right edge. */
-function repeatSignsOf(chart: Chart, systems: readonly SystemLayout[], bars: readonly BarLayout[], S: number): NonNullable<StaffLayout['repeatSigns']> {
+function repeatSignsOf(chart: Chart, systems: readonly SystemLayout[], bars: readonly BarLayout[], keySignature: readonly KeyAccidentalGlyph[], S: number): NonNullable<StaffLayout['repeatSigns']> {
   const out: NonNullable<StaffLayout['repeatSigns']> = [];
   const sign = (bar: BarLayout | undefined, side: 'start' | 'end') => {
     if (!bar) return;
     const system = systems[bar.system]!;
     const dotYs = system.staves.flatMap((st) => [st.topLineY + 1.5 * S, st.topLineY + 2.5 * S]);
-    out.push({ system: bar.system, x: side === 'start' ? bar.x : bar.x + bar.width, y1: system.topLineY, y2: system.bottomLineY, side, dotYs });
+    // a repeat that starts at a key change inside a line follows the change's signs (core_09.AC57)
+    const signs = keySignature.filter((k) => k.bar === bar.index).map((k) => k.x);
+    const start = signs.length > 0 ? Math.max(...signs) + (KEY_STEP / 2 + 0.2) * S : bar.x;
+    out.push({ system: bar.system, x: side === 'start' ? start : bar.x + bar.width, y1: system.topLineY, y2: system.bottomLineY, side, dotYs });
   };
   for (const r of chart.repeats ?? []) {
     if (r.startBar > 0) sign(bars.find((b) => b.index === r.startBar), 'start');
