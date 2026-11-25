@@ -11,7 +11,8 @@ import { startScene } from './scenes';
 import { C } from './ui/pixel/palette';
 import { drawnText, measure } from './ui/pixel/font';
 import { createBitmap } from './ui/pixel/bitmap';
-import { PixelImage, PixelText, pixelStars } from './ui/pixel/PixelObjects';
+import { PixelImage, PixelText, pixelStars, type PixelButton } from './ui/pixel/PixelObjects';
+import { drawPieceInfo } from './menu/PieceInfoCard';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 
@@ -29,10 +30,14 @@ const SMALL_GAP = 3;
 /**
  * The songs list (ft_1_36 rule 13), behind the piece book's song bookmark: the same open book, one row a song with what to
  * know before opening it (title, tempo and key; best stars of the whole song, bars written of bars planned, its parts)
- * and its buttons (play the whole song, its stats). A press on a song's title opens its song page.
+ * and its buttons (play the whole song, its stats, its info card). A press on a song's title opens its song page. A song
+ * turned off in the library's drawers is not listed.
  */
 export class SongsScene extends PixelScene {
   private page = 0;
+  /** The song whose info card is open, or null. */
+  private infoId: string | null = null;
+  private infoClose: PixelButton | null = null;
 
   protected override keyboardNavigation = true;
 
@@ -42,10 +47,27 @@ export class SongsScene extends PixelScene {
 
   init(): void {
     this.page = 0;
+    this.infoId = null;
   }
 
+  /** Esc and Back: close an open info card, else back to the piece book. */
   protected override back(): void {
+    if (this.infoId !== null) {
+      this.showInfo(null);
+      return;
+    }
     startScene(this, 'menu');
+  }
+
+  /** While the info card is open only its Close button is reachable. */
+  protected override focusables(): PixelButton[] {
+    if (this.infoId !== null) return this.infoClose ? [this.infoClose] : [];
+    return super.focusables();
+  }
+
+  private showInfo(songId: string | null): void {
+    this.infoId = songId;
+    this.redraw();
   }
 
   /** The bookmark back to the pieces, where the song bookmark stood in the piece book. */
@@ -55,13 +77,14 @@ export class SongsScene extends PixelScene {
 
   protected draw(): void {
     const { width, height } = this.px;
-    const { songs } = contextOf(this);
-    const list = songs.list();
+    const { songs, profiles } = contextOf(this);
+    const all = songs.list();
+    const list = all.filter((song) => profiles.isPieceOn(songChartId(song.id)));
     this.sky();
     this.openBook({ x: BOOK_SIDE, y: LIST_TOP - 2, w: width - 2 * BOOK_SIDE, h: height - LIST_TOP + 1 });
     this.inkWriting = true;
     if (list.length === 0) {
-      this.label(BOOK_MARGIN, LIST_TOP + 16, t('songs.none'), C.umberDark, { shadow: false });
+      this.label(BOOK_MARGIN, LIST_TOP + 16, all.length > 0 ? t('songs.allOff') : t('songs.none'), C.umberDark, { shadow: false });
       return;
     }
     const row = CARD_HEIGHT;
@@ -79,6 +102,9 @@ export class SongsScene extends PixelScene {
         this.redraw();
       });
     }
+    this.infoClose = null;
+    const open = this.infoId === null ? undefined : songs.pieceFor(songChartId(this.infoId));
+    if (open) this.infoClose = this.own(drawPieceInfo({ scene: this, root: this.root, width, height, close: () => this.showInfo(null) }, open, 'song'));
   }
 
   /** One song: its title (opens the song page) with its tempo and key, and under it the stars, the bars written of planned, the parts and the buttons. */
@@ -109,13 +135,19 @@ export class SongsScene extends PixelScene {
     this.root.add(written);
     button.attach(factsText, written, ...stars);
     this.button({
-      x: right - SMALL / 2 - SMALL - SMALL_GAP, y: top + 23, width: SMALL, height: SMALL, label: t('song.play', { name: song.title }), look: 'ink', inkBox: true, icon: TOOL_ICONS.play, iconOnly: true,
+      x: right - SMALL / 2 - 2 * (SMALL + SMALL_GAP), y: top + 23, width: SMALL, height: SMALL, label: t('song.play', { name: song.title }), look: 'ink', inkBox: true, icon: TOOL_ICONS.play, iconOnly: true,
       disabled: songs.joinedChart(song) === null,
       onClick: () => startScene(this, 'practice', { chartId: songChartId(song.id), fromSong: 'songs' }),
     });
     this.button({
-      x: right - SMALL / 2, y: top + 23, width: SMALL, height: SMALL, label: t('stats.button'), look: 'ink', inkBox: true,
+      x: right - SMALL / 2 - SMALL - SMALL_GAP, y: top + 23, width: SMALL, height: SMALL, label: t('stats.button'), look: 'ink', inkBox: true,
       onClick: () => startScene(this, 'results', { chartId: songChartId(song.id), fromSong: 'songs' }),
+    });
+    // the song's info card, as a piece's (rule 13): tempo and what its written parts hold; none before a part is written
+    this.button({
+      x: right - SMALL / 2, y: top + 23, width: SMALL, height: SMALL, label: t('info.button'), look: 'ink', inkBox: true,
+      disabled: songs.joinedChart(song) === null,
+      onClick: () => this.showInfo(song.id),
     });
   }
 }

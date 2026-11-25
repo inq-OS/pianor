@@ -64,6 +64,8 @@ export class SongScene extends PixelScene {
   private selected: string | null = null;
   private page = 0;
   private notice: string | null = null;
+  /** The notice is the first visit's hint on the tick (rule 10): in plain ink, as it reports no mistake, until a switch is pressed. */
+  private tickHint = false;
   /** The row the notice stands on (null: the whole song's row). */
   private noticeRow: string | null = null;
   /** The keys walk the rows only after a first key has shown where the selection is, so no key plays by surprise. */
@@ -87,7 +89,17 @@ export class SongScene extends PixelScene {
     this.noticeRow = null;
     this.keysShown = false;
     this.noticeTimer = null;
+    this.tickHint = false;
     this.folded = startFolded(this.outline()?.rows ?? []);
+    // a player's first song page says once what a tick does (rule 10): on the first part's row, beside its box, until a switch is pressed
+    const profiles = contextOf(this).profiles;
+    const first = 'songId' in data && !profiles.songTickTold ? this.outline()?.rows[0] : undefined;
+    if (first) {
+      this.notice = t('song.tickHint');
+      this.noticeRow = first.id;
+      this.tickHint = true;
+      void profiles.markSongTickTold();
+    }
   }
 
   protected override back(): void {
@@ -202,6 +214,8 @@ export class SongScene extends PixelScene {
 
   private saveOff(off: readonly string[]): void {
     if (!('songId' in this.opened)) return;
+    if (this.tickHint) this.notice = null;
+    this.tickHint = false;
     void contextOf(this).profiles.setSongPartsOff(this.opened.songId, off).then(() => {
       if (this.scene.isActive()) this.redraw();
     });
@@ -210,6 +224,7 @@ export class SongScene extends PixelScene {
 
   private say(notice: string, row: string | null): void {
     this.notice = notice;
+    this.tickHint = false;
     this.noticeRow = row;
     this.noticeTimer?.remove();
     this.noticeTimer = this.time.delayedCall(NOTICE_MS, () => {
@@ -316,6 +331,11 @@ export class SongScene extends PixelScene {
     pixelStars(this, this.root, left + width - 2 - STARS, line, profiles.recordFor(chartId)?.bestGrade ?? 0, { gap: 1, ink: true });
   }
 
+  /** A notice on a row, from under its switch so a whole sentence fits the row. */
+  private rowNotice(notice: string, line: number, left: number, width: number): void {
+    this.root.add(new PixelText(this, left + 4, line, clipToWidth(notice, width - 6, fits), { color: this.tickHint ? C.umberDark : C.redDark }).setName('songNotice'));
+  }
+
   /** One row of the outline (rule 10). */
   private nodeRow(outline: ResolvedSong, item: ShownRow, left: number, top: number, width: number): void {
     const { row } = item;
@@ -372,7 +392,7 @@ export class SongScene extends PixelScene {
     const line = top + 19;
     if (this.notice && this.noticeRow === row.id) {
       // the notice stands on the row it is about, in place of its values
-      this.root.add(new PixelText(this, x + 4, line, this.notice, { color: C.redDark }).setName('songNotice'));
+      this.rowNotice(this.notice, line, left, width);
       if (!row.on) faded.forEach((o) => o.setAlpha(OFF_FADE));
       return;
     }

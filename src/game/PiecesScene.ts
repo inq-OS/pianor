@@ -4,12 +4,13 @@ import { pageOf } from '../core/layout/paging';
 import { rectCentre } from '../core/layout/rect';
 import { t } from '../core/text/strings';
 import { contextOf } from './context';
-import type { Piece } from './content';
+import { songChartId } from './songCatalogue';
 import { C } from './ui/pixel/palette';
 import { drawnText, LINE_GAP, LINE_HEIGHT, wrap } from './ui/pixel/font';
-import { createBitmap } from './ui/pixel/bitmap';
+import { createBitmap, recolor } from './ui/pixel/bitmap';
 import { ART_DETAIL } from '../core/layout/frame';
-import type { PixelImage } from './ui/pixel/PixelObjects';
+import { PixelImage } from './ui/pixel/PixelObjects';
+import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { PixelScene } from './ui/pixel/PixelScene';
 import { CABINET_PALETTE, drawerLabelBox, paintCabinet, paintDrawerFront, paintDrawerInside, paintIndexCard } from './ui/pixel/paint/cabinet';
 import { paintedOnce } from './ui/pixel/paintedOnce';
@@ -31,8 +32,8 @@ export interface PiecesData {
   back?: MenuData;
 }
 
-/** A piece in the catalogue: its title as the menu shows it. */
-interface Filed { id: string; title: string; piece: Piece }
+/** One index card: a piece, or a whole song filed by its title and turned on and off as one (ft_1_36 rule 13). */
+interface Filed { id: string; title: string; song?: true }
 
 /**
  * Every piece (hand-written, generated and own), where the active player turns each one on or off, as a library's card
@@ -88,7 +89,11 @@ export class PiecesScene extends PixelScene {
   }
 
   private drawers(): Drawer<Filed>[] {
-    return libraryDrawers(contextOf(this).pieces.list().map((piece) => ({ id: piece.chart.id, title: pieceTitle(piece.chart), piece })));
+    const { pieces, songs } = contextOf(this);
+    // a song's pieces are not filed on their own: the song is, by its title
+    const inSongs = songs.pieceIds();
+    const filed: Filed[] = pieces.list().filter((piece) => !inSongs.has(piece.chart.id)).map((piece) => ({ id: piece.chart.id, title: pieceTitle(piece.chart) }));
+    return libraryDrawers([...filed, ...songs.list().map((song): Filed => ({ id: songChartId(song.id), title: song.title, song: true }))]);
   }
 
   protected draw(): void {
@@ -171,7 +176,11 @@ export class PiecesScene extends PixelScene {
       this.inkWriting = true;
       const state = this.label(0, 0, on ? t('pieces.on') : t('pieces.off'), on ? C.gold : C.lock);
       state.setPosition(card.x + card.w - STATE_INSET - state.width, card.y + Math.max(1, Math.round(card.h * 0.62) - state.height - 1));
-      const name = this.label(card.x + STATE_INSET, state.y, filed.title, C.white, { maxWidth: card.w - 3 * STATE_INSET - state.width });
+      // a song's card carries the songs bookmark's picture, so it is not taken for one piece (ft_1_36 rule 13)
+      const mark = filed.song ? new PixelImage(this, card.x + STATE_INSET, state.y, recolor(TOOL_ICONS.songs, { [C.white]: C.umberDark })).setName('songMark') : null;
+      if (mark) this.root.add(mark);
+      const nameX = card.x + STATE_INSET + (mark ? mark.width + 3 : 0);
+      const name = this.label(nameX, state.y, filed.title, C.white, { maxWidth: card.x + card.w - 2 * STATE_INSET - state.width - nameX });
       this.inkWriting = false;
       const button = this.button({
         ...rectCentre(card), width: card.w, height: card.h, label: filed.title, keepCase: true, picture: createBitmap(card.w, card.h),
@@ -184,6 +193,7 @@ export class PiecesScene extends PixelScene {
       });
       button.attach(state);
       button.attach(name);
+      if (mark) button.attach(mark);
     });
   }
 }
