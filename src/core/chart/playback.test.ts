@@ -127,7 +127,7 @@ describe('grace notes (core_09.AC34, d121)', () => {
   });
 });
 
-describe('grace groups and ornament signs (core_09.AC61, d303)', () => {
+describe('grace groups and ornament signs (core_09.AC61, d305)', () => {
   // 120 bpm: a quarter is 500 ms, a thirty-second 62.5 ms
   const notes3 = [{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 62 }, { tick: 960, dur: 960, midi: 64 }];
   const pitch = (midi: number) => graceAt(0, midi).pitch;

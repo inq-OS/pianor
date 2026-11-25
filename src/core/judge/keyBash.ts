@@ -32,7 +32,7 @@ export interface KeyBashOutput {
  * How many keys may be down before the next one is held back: twice the piece's largest chord (the keys of a step and of
  * the step before, still held while the next is pressed, legato), one more when the piece has grace notes (the grace is
  * still down when its main note comes, d121) and one more when it has ornament signs (a trill played legato holds the
- * note while the neighbour sounds, d303), at most `KEY_BASH_LIMIT`. A right play never waits.
+ * note while the neighbour sounds, d305), at most `KEY_BASH_LIMIT`. A right play never waits.
  */
 export function passHeldFor(chart: Chart): number {
   const largest = Math.max(1, ...buildSteps(chart).map((step) => step.noteIndices.length));

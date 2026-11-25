@@ -147,7 +147,7 @@ describe('chart graces (core_09.AC31)', () => {
   });
 });
 
-describe('chart ornaments (core_09.AC60, d303)', () => {
+describe('chart ornaments (core_09.AC60, d305)', () => {
   // The fixture's first note is C4 at tick 0 in the right hand.
   const D4 = { midi: 62, spelling: { step: 'D', alter: 0, octave: 4 } };
   const B3 = { midi: 59, spelling: { step: 'B', alter: 0, octave: 3 } };

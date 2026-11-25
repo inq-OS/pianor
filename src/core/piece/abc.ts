@@ -55,7 +55,7 @@ export interface AbcGrace {
   column: number;
 }
 
-/** An ornament sign on a note (`!trill!C`, core_09.AC60, d303), with the neighbour notes it uses, spelled in the key and bar. */
+/** An ornament sign on a note (`!trill!C`, core_09.AC60, d305), with the neighbour notes it uses, spelled in the key and bar. */
 export interface AbcOrnament {
   kind: OrnamentKind;
   upper?: AbcNote;
@@ -711,7 +711,7 @@ class MusicLine {
   }
 
   /**
-   * The sign on a single note with its neighbours (core_09.AC60, d303): the letter a step above or below, with the alter
+   * The sign on a single note with its neighbours (core_09.AC60, d305): the letter a step above or below, with the alter
    * the key and the bar's accidentals give it. Refused on the second note of a tie. AX-3 provisional: TODO(architect, R2) in core_09:
    * an accidental written over the sign (a turn with a sharp below) is not in the subset yet.
    */

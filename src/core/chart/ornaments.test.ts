@@ -1,4 +1,4 @@
-// Covers core_09.AC62: the notes each ornament sign sounds (d303).
+// Covers core_09.AC62: the notes each ornament sign sounds (d305).
 import { describe, expect, it } from 'vitest';
 import { PPQ } from './time';
 import { neighbourLetter, ornamentNotes } from './ornaments';

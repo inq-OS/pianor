@@ -88,7 +88,7 @@ export class TempoMode implements PlayMode {
   private readonly steps: PlayStep[];
   /** Per step, the grace pitches a press may give just before it without being wrong (d121). */
   private readonly graces: ReadonlySet<number>[];
-  /** Per step, the pitches its ornament signs use (d303). */
+  /** Per step, the pitches its ornament signs use (d305). */
   private readonly ornaments: ReadonlySet<number>[];
   private readonly tracker: ResultTracker;
   private readonly progress: NoteProgress[];
@@ -308,7 +308,7 @@ export class TempoMode implements PlayMode {
     if (match === undefined) {
       if (step.noteIndices.some((i) => this.chart.notes[i]!.midi === event.midi)) return events; // a repeat of a note already played
       if (this.isGracePress(event.midi, event.timeMs)) return events; // played or not as the student likes (d121)
-      if (this.isOrnamentPress(event.midi, event.timeMs)) return events; // an ornament is optional too (d303)
+      if (this.isOrnamentPress(event.midi, event.timeMs)) return events; // an ornament is optional too (d305)
       const diagnosis = classifyWrongNote(event.midi, awaiting.map((i) => this.chart.notes[i]!.midi));
       this.wrongsInStep++;
       this.tracker.recordMistake(step.index);
@@ -372,7 +372,7 @@ export class TempoMode implements PlayMode {
   }
 
   /**
-   * A press of `midi` at `timeMs` is a note of an ornament sign (core_09.AC65, d303): a pitch the sign uses, from
+   * A press of `midi` at `timeMs` is a note of an ornament sign (core_09.AC65, d305): a pitch the sign uses, from
    * `GRACE_EARLY_MS` before its note's time to the next step's time, on the step before the open one or the open one.
    */
   private isOrnamentPress(midi: number, timeMs: number): boolean {

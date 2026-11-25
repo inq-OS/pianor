@@ -2,7 +2,7 @@ import { STEPS, spellingToMidi, type Spelling } from './pitch.ts';
 import { PPQ } from './time.ts';
 
 /**
- * Ornament signs on a note (core_09.AC60, d303): a trill, an upper mordent (pralltriller), a lower mordent and a turn.
+ * Ornament signs on a note (core_09.AC60, d305): a trill, an upper mordent (pralltriller), a lower mordent and a turn.
  * The chart keeps the sign and the neighbour notes it uses; computer playback reads the notes it sounds from
  * `ornamentNotes`, and the judge ignores a press of those pitches around the note (optional for the student).
  */
@@ -57,7 +57,7 @@ export interface OrnamentNote {
 }
 
 /**
- * The notes a sign on a note of `dur` ticks sounds, in order, filling the note's length (AX-3 provisional, d303):
+ * The notes a sign on a note of `dur` ticks sounds, in order, filling the note's length (AX-3 provisional, d305):
  * - upper mordent: main, upper, main (held); lower mordent: main, lower, main; each quick note a thirty-second;
  * - turn: upper, main, lower, main (held), each a sixteenth (a quarter of a shorter note);
  * - trill: main and upper in thirty-seconds through the note, starting and ending on the main note (the student's

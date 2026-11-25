@@ -156,7 +156,7 @@ export function compilePiece(input: CompileInput): CompileResult {
       ),
     )
     .sort((a, b) => a.tick - b.tick);
-  // Ornament signs (core_09.AC60, d303), on the start of their note.
+  // Ornament signs (core_09.AC60, d305), on the start of their note.
   const ornaments = voices
     .flatMap(({ voice, track }) =>
       voice.items.flatMap((item) => {

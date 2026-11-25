@@ -50,7 +50,7 @@ export const restSchema = z.object({
 
 /**
  * A grace note (core_09.AC31, d121): no length, so it is not a chart note; `tick` is the start of the main note it goes before.
- * Several on one note are a grace group (core_09.AC60, d303), in the order they are played, as they stand in `graces`.
+ * Several on one note are a grace group (core_09.AC60, d305), in the order they are played, as they stand in `graces`.
  */
 export const graceSchema = z.object({
   track: z.string().min(1),
@@ -62,7 +62,7 @@ export const graceSchema = z.object({
 });
 
 /**
- * An ornament sign on a note (core_09.AC60, d303): `tick` is the start of its note in its track and voice. `upper` and
+ * An ornament sign on a note (core_09.AC60, d305): `tick` is the start of its note in its track and voice. `upper` and
  * `lower` are the neighbour notes the sign uses (a trill, an upper mordent and a turn the upper one; a lower mordent and
  * a turn the lower one), spelled in the key with the bar's accidentals.
  */
@@ -133,7 +133,7 @@ export const chartSchema = z
     slurs: z.array(slurSchema).optional(),
     /** Grace notes (core_09.AC31, d121). Absent means none; no schema version change. */
     graces: z.array(graceSchema).optional(),
-    /** Ornament signs (core_09.AC60, d303). Absent means none; no schema version change. */
+    /** Ornament signs (core_09.AC60, d305). Absent means none; no schema version change. */
     ornaments: z.array(ornamentSchema).optional(),
     /** Tuplets (core_09.AC49, d163). Absent means none; no schema version change. */
     tuplets: z.array(tupletSchema).optional(),
@@ -324,7 +324,7 @@ export const levelSchema = z.object({
   /** Triplets (core_09.AC51, d163): a note value inside a triplet is allowed only with this switch on. Absent means off. */
   tuplets: z.boolean().default(false),
   /**
-   * Ornament signs (core_09.AC64, d303): a trill, mordent or turn is allowed only with this switch on. Absent means off;
+   * Ornament signs (core_09.AC64, d305): a trill, mordent or turn is allowed only with this switch on. Absent means off;
    * on at every level (a level never switches notation off), kept for a teacher's own curriculum. Grace groups need no switch.
    */
   ornaments: z.boolean().default(false),

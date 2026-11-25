@@ -197,7 +197,7 @@ export interface GraceGlyph {
 }
 
 /**
- * An ornament sign over a note (core_09.AC60, d303): centred over the head, above the staff and above the note's head, stem
+ * An ornament sign over a note (core_09.AC60, d305): centred over the head, above the staff and above the note's head, stem
  * and beam, whichever is higher. `width` and `height` are its box in logical pixels, so a view or a test keeps clear of it.
  */
 export interface OrnamentGlyph {
@@ -419,7 +419,7 @@ export interface StaffLayout {
   notes: NoteGlyph[];
   /** Grace notes in chart order (core_09.AC32, d121). They are not notes: bars, beats and `notes` do not count them. */
   graces: GraceGlyph[];
-  /** Ornament signs in chart order (core_09.AC60, d303); absent when the chart has none. */
+  /** Ornament signs in chart order (core_09.AC60, d305); absent when the chart has none. */
   ornaments?: OrnamentGlyph[];
   rests: RestGlyph[];
   beams: BeamGlyph[];

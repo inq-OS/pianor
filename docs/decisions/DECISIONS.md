@@ -278,8 +278,10 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d296](game.md#d296) | A learned piece's clef grows to twice its size on the practice screen, then the book opens at the piece and the clef drops onto the piece's clef sign | ft_1_32 |
 | [d297](game.md#d297) | The intro's learn stage learns the lesson's bars bar by bar and ends at the learned moment, with no extra whole play | ft_1_31, ft_1_32 |
 | [d298](game.md#d298) | The teacher sets each character per player (on, weekdays, chance, piece, neediness) and sends wanderers, who ask for one piece and give a plain keepsake | ft_1_37, ft_1_25, ft_1_21 |
+| [d299](play.md#d299) | A beat lane shows the beat: a row of dots along the staff where a wave runs at the tempo, nudging each beat and note dot it passes; in a learning run each key's dot is coloured against the student's own pace; a click at that pace is a setting, off by default | core_13, ft_1_32 |
 | [d300](game.md#d300) | The whole piece is learned in three plays: the first two go on past a wrong key and count, the third must be perfect | ft_1_32 |
 | [d301](game.md#d301) | Key bashing brings Kiur to the door whenever it happens on a screen the student plays on | ft_1_15 |
 | [d302](game.md#d302) | Keri's places become close-ups whose painted lines are the staff, each hosting a built trainer as a job that changes the island for good | ft_1_38, ft_Y_16, ft_1_19, ft_1_18 |
-| [d303](notation.md#d303) | Trills, mordents, turns and grace groups are read, drawn and heard, and stay optional for the student: playing their notes is never wrong and never needed | core_09 |
+| [d303](game.md#d303) | The theory lesson book lists everything there is to learn, built or not: a topic with no lesson yet stands in it as a ghosted placeholder with its name only | ft_1_39 |
+| [d305](notation.md#d305) | Trills, mordents, turns and grace groups are read, drawn and heard, and stay optional for the student: playing their notes is never wrong and never needed | core_09 |
 <!-- /docs:index -->

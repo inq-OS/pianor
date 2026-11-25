@@ -141,7 +141,7 @@ function checkChords({ level, playNotes, error }: LintContext): void {
   }
 }
 
-/** Ornament signs (core_09.AC64, d303) only where the level allows them. */
+/** Ornament signs (core_09.AC64, d305) only where the level allows them. */
 function checkOrnaments({ chart, level, playTracks, error }: LintContext): void {
   if (level.ornaments) return;
   for (const o of chart.ornaments ?? []) {
