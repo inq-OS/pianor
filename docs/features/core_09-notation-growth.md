@@ -112,5 +112,6 @@ Work tags ([todo-tags.md](../automation/todo-tags.md)); the closed issue in brac
 - TODO(builder, R2): a whole-bar rest can sit on a mid-bar voice-2 note head (ABC `Z & E2 f2`); it needs a staff test that places the rest clear of the head.
 - TODO(builder, R2): `restBelow` in `planFrame` needs a unit test.
 - TODO(builder, R2): key changes in the importers and the piece maker (core_09.AC56): the game importer writes a `K:` line in every voice at each change (`src/core/import/toAbc.ts`), and the piece maker sets a key from a bar (`src/core/editor/fromChart.ts` refuses one today).
+- TODO(builder, R2): after a key change, the practice screen's circle-of-fifths door still opens on the first key (`keyMap[0]` in `src/game/PracticeScene.ts`); open it on the key of the bar being played. An inline `[K:G]` is refused with a message about a chord; point it to the `K:` line on its own line (`src/core/piece/abc.ts`).
 - NEEDS-HUMAN: look at a key change on the laptop (a song whose part sets its own key, or a piece with a `K:` line in its music): the double bar line, the cancelling naturals and the new signature at the start of the bar.
 - TODO(architect): watch the time budget of the generator property test (`tools/generate/generate.test.ts`) in CI; it once timed out at 120 s and passed on a re-run.
