@@ -178,7 +178,15 @@ test.describe('songs made of pieces', () => {
     // the songs list no longer shows it
     await page.evaluate(() => { window.__game.scene.stop('pieces'); window.__game.scene.start('songs'); });
     await waitForScene(page, 'songs');
-    expect(await sceneTexts(page, 'songs')).toContain('All songs are off. Turn some on in Settings.');
+    // the other songs stay (the classics); the one turned off is gone
+    expect(await sceneTexts(page, 'songs')).not.toContain('Morning Song');
+    // with every song off, the list says so
+    await page.evaluate(async () => {
+      const context = window.__game.registry.get('context');
+      for (const song of context.songs.list() as { id: string }[]) await context.profiles.setPieceOn(`song:${song.id}`, false);
+      window.__game.scene.getScene('songs').scene.restart();
+    });
+    await expect.poll(() => sceneTexts(page, 'songs')).toContain('All songs are off. Turn some on in Settings.');
     expectNoErrors(errors);
   });
 
