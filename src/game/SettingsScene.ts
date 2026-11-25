@@ -1,5 +1,5 @@
 import type { PlaySettings } from '../core/judge/playSettings';
-import { learnBeatLane, learnLiveTempo, learnPaceClick, type LearnSettings } from '../core/learn/progress';
+import { learnBeatLanes, learnLiveTempo, learnPaceClick, type LearnSettings } from '../core/learn/progress';
 import { BAR_NUMBER_MODES, type BarNumberMode } from '../core/layout/barNumbers';
 import type { DurationMark } from '../core/layout/durationHelp';
 import type { StaffSettings } from '../core/layout/staffSettings';
@@ -65,6 +65,8 @@ interface Choice<T> {
 /** Where Back goes: the screen the toolbar's settings button was pressed on (d088), with its data; the piece list by default. */
 export interface SettingsData {
   returnTo?: { key: string; data?: object };
+  /** The page to open at: 0 how the staff looks (the default), 1 how a piece is learned. */
+  page?: 0 | 1;
 }
 
 export class SettingsScene extends PixelScene {
@@ -94,7 +96,7 @@ export class SettingsScene extends PixelScene {
   init(data?: SettingsData): void {
     this.saveFailed = false;
     this.gapTapped = false;
-    this.page = 0;
+    this.page = data?.page ?? 0;
     this.returnTo = data?.returnTo ?? { key: 'menu' };
   }
 
@@ -191,6 +193,21 @@ export class SettingsScene extends PixelScene {
     if (strip) hintLabel.y = Math.max(0, Math.min(STRIP_TEXT_Y, this.firstRowY - this.settingHeight / 2 - hintLabel.height - 1));
   }
 
+  /** The beat lanes' button: the first lane's picture, and a press opens their own page (`BeatLanesScene`). */
+  private laneButton(column: 0 | 1, row: number, place: 'above' | 'between' | 'off'): void {
+    const x = columnX(column, this.px.width);
+    const y = this.firstRowY + row * this.rowStep;
+    this.button({
+      x: x + SETTING_WIDTH / 2, y, width: SETTING_WIDTH, height: this.settingHeight, look: 'ink', inkBox: true,
+      label: t('settings.beatLanesTune'), icon: beatLaneSymbol(place), iconOnly: true,
+      onClick: () => this.scene.start('beat-lanes', freshData({ returnTo: { returnTo: this.returnTo, page: 1 } })),
+    });
+    const nameX = x + SETTING_WIDTH + NAME_GAP;
+    const end = column === 0 ? Math.floor(this.px.width / 2) - FOLD_ROOM : this.px.width - MARGIN;
+    const text = this.label(nameX, y, t('settings.beatLane'), C.white, { maxWidth: end - nameX });
+    text.y = Math.round(y - text.letterBox.bottom / 2);
+  }
+
   /** The first page: how the staff looks. */
   private staffPage(profiles: ProfileService): void {
     const staff = profiles.staffSettings;
@@ -259,11 +276,10 @@ export class SettingsScene extends PixelScene {
     // the letter naming, B or H (ft_0_17.AC4): the note names, the circle of fifths and the key names follow it
     const namings = (['H', 'B'] as const).map((value): Choice<'B' | 'H'> => ({ value, label: t(value === 'H' ? 'settings.namingH' : 'settings.namingB'), symbol: namingSymbol(value) }));
     this.setting(0, 2, t('settings.naming'), namings, profiles.noteNaming, (value) => profiles.updateNoteNaming(value));
-    // the beat lane on the staff (core_13 rule 2), between the staves unless moved or turned off, and the click at the
-    // student's own pace while learning (rule 6), off unless turned on, so the pace measured stays the student's own (ft_1_32 rule 8)
-    const lane = ([['between', t('settings.beatLaneBetween')], ['above', t('settings.beatLaneAbove')], ['off', t('settings.beatLaneOff')]] as const)
-      .map(([value, label]): Choice<'above' | 'between' | 'off'> => ({ value, label, symbol: beatLaneSymbol(value) }));
-    this.setting(0, 3, t('settings.beatLane'), lane, learnBeatLane(learn), (value) => profiles.updateLearnSettings({ beatLane: value }));
+    // the beat lanes on the staff (core_13 rules 2 and 10): the button shows the first lane's place, or off, and opens the
+    // page where the lanes are tuned with a preview; the click at the student's own pace while learning (rule 6), off unless
+    // turned on, so the pace measured stays the student's own (ft_1_32 rule 8)
+    this.laneButton(0, 3, learnBeatLanes(learn)[0]?.place ?? 'off');
     const click = ([[false, t('settings.paceClickOff')], [true, t('settings.paceClickOn')]] as const)
       .map(([value, label]): Choice<boolean> => ({ value, label, symbol: paceClickSymbol(value) }));
     this.setting(1, 3, t('settings.paceClick'), click, learnPaceClick(learn), (value) => profiles.updateLearnSettings({ paceClick: value }));

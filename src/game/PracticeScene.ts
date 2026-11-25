@@ -1,10 +1,10 @@
 import { firstPrintedBar, isSection, sectionHasNotes, sliceChart, writtenNotes, type Chart } from '../core/chart';
 import { pieceTitle } from '../core/text/pieceTitle';
 import { MissedBars, type Hints, type JudgeEvent, type NoteJudged, type PieceResult, type PlayState, type WrongNoteJudged } from '../core/judge';
-import { learnBeatLane, learnLiveTempo, learnPaceClick, type LearnProgress, type LearnRewards } from '../core/learn/progress';
+import { learnBeatLanes, learnLiveTempo, learnPaceClick, type LearnProgress, type LearnRewards } from '../core/learn/progress';
 import { paceClick } from '../core/learn/livePace';
 import type { PaceMark } from '../core/layout/beat';
-import type { LanePlace } from '../core/layout/beatLane';
+import type { LaneLook } from '../core/layout/beatLane';
 import { msPerBeat } from '../core/chart/time';
 import { learnsOnOpen } from '../core/learn/route';
 import { baselinePercent } from '../core/learn/tempo';
@@ -1323,7 +1323,7 @@ export class PracticeScene extends PixelScene {
     // A section is drawn at the size of the whole piece, and marking one keeps the player's own view, page by page: the
     // clef and the notes never change size when a section is chosen.
     this.staffOrigin = staffTop;
-    this.playSession.setLanePlace(this.lanePlace());
+    this.playSession.setLanes(this.laneLooks());
     const staffView = this.playSession.drawStaff({ top: staffTop, width: this.scale.width, height: staffHeight }, contextOf(this).profiles);
     staffView.setMarkers(this.markers);
     this.drawPrizes();
@@ -1394,7 +1394,7 @@ export class PracticeScene extends PixelScene {
     const mapGap = this.songMap ? Math.max(0, Math.ceil(BAND_STRIP_DROP + MASCOT_SIZE.h + 1) - strip.rows) : 0;
     const mapRows = this.songMap ? MAP_ROWS + mapGap : 0;
     this.staffOrigin = this.mainTop + (strip.rows + mapRows) * scale;
-    this.playSession.setLanePlace(this.lanePlace());
+    this.playSession.setLanes(this.laneLooks());
     const staffView = this.playSession.drawStaff({ top: this.staffOrigin, width: this.scale.width, height: Math.max(1, (foot - strip.rows - mapRows) * scale) }, contextOf(this).profiles);
     this.drawSongMap(staffView, this.mainTopRows + strip.rows + mapGap);
     staffView.setMarkers(this.markers);
@@ -1595,9 +1595,9 @@ export class PracticeScene extends PixelScene {
     this.showLiveTempo();
   }
 
-  /** Where the beat lane runs (core_13 rule 2): as the player set it, and off in a draft preview and while Kuula plays. */
-  private lanePlace(): LanePlace {
-    return this.preview || this.listening ? 'off' : learnBeatLane(contextOf(this).profiles.learnSettings);
+  /** The beat lanes (core_13 rules 2 and 10): as the player tuned them, and none in a draft preview and while Kuula plays. */
+  private laneLooks(): LaneLook[] {
+    return this.preview || this.listening ? [] : learnBeatLanes(contextOf(this).profiles.learnSettings);
   }
 
   /**

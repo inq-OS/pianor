@@ -8,7 +8,7 @@ import type { DurationMarks } from '../../../core/layout/durationHelp';
 import { SCORE_COLOURS, STAFF_INK, scoreColour } from '../../../core/layout/scoreColour';
 import { wordFits } from '../../../core/layout/dynamicWords';
 import type { PlayedMark } from '../../../core/layout/playedMark';
-import { laneLift, paceColour, type LaneDot } from '../../../core/layout/beatLane';
+import { dotLook, laneLift, paceColour, type LaneDot, type LaneLook } from '../../../core/layout/beatLane';
 import type { PaceMark } from '../../../core/layout/beat';
 import { accidentalKind, pageOfNotes, type BeamGlyph, type NoteGlyph, type NoteValue, type SlurGlyph, type StaffLayout, type TieGlyph, type TupletGlyph } from '../../../core/layout/staff';
 import type { GraceGlyph } from '../../../core/layout/staffTypes';
@@ -132,9 +132,9 @@ export class StaffView {
   /** The note duration helper (ft_1_11), under the lines; empty unless `setDurationMarks` gave it marks. */
   private readonly durationGfx: Phaser.GameObjects.Graphics;
   private durationMarks: DurationMarks = { bands: [], ghosts: [] };
-  /** The beat lane (core_13 rule 2), under the lines; empty unless `setLane` gave it dots. */
+  /** The beat lanes (core_13 rules 2 and 10), under the lines; none unless `setLanes` gave them, each with its look. */
   private readonly laneGfx: Phaser.GameObjects.Graphics;
-  private lane: readonly LaneDot[] = [];
+  private lanes: readonly { dots: readonly LaneDot[]; look: LaneLook }[] = [];
   private laneWave: number | null = null;
   private laneMarks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>> = new Map();
   private laneDrawn = '';
@@ -527,15 +527,15 @@ export class StaffView {
     return { bands: this.durationMarks.bands.filter((b) => this.onPage(b.system)).length, ghosts: this.durationMarks.ghosts.filter((g) => this.onPage(g.system)).length };
   }
 
-  /** The beat lane's dots (`laneDots`) and the drawn chart's ticks a quarter; no dots hide it. */
-  setLane(dots: readonly LaneDot[], ppq: number): void {
-    this.lane = dots;
+  /** The beat lanes (`laneDots`, each with its look) and the drawn chart's ticks a quarter; none hides them. */
+  setLanes(lanes: readonly { dots: readonly LaneDot[]; look: LaneLook }[], ppq: number): void {
+    this.lanes = lanes;
     this.lanePpq = ppq;
     this.drawLane(true);
   }
 
   /**
-   * Where the lane's wave is (a tick of the chart drawn; null for none) and the colour of each key played against the
+   * Where the lanes' wave is (a tick of the chart drawn; null for none) and the colour of each key played against the
    * student's pace, by its tick (core_13.AC5). Repainted only when what it shows changed.
    */
   moveLane(wave: number | null, marks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>>): void {
@@ -544,19 +544,25 @@ export class StaffView {
     this.drawLane(false);
   }
 
-  /** How many lane dots this page shows, and how many the wave lifts now (end-to-end tests). */
-  laneShown(): { dots: number; lifted: number; coloured: number } {
-    const here = this.lane.filter((d) => this.onPage(d.system));
-    return { dots: here.length, lifted: here.filter((d) => this.liftOf(d) > 0).length, coloured: here.filter((d) => d.note && this.laneMarks.has(d.tick)).length };
+  /** How many lane dots this page shows, how many the wave lifts now and how many keys are coloured (end-to-end tests). */
+  laneShown(): { lanes: number; dots: number; lifted: number; coloured: number } {
+    const here = this.lanes.flatMap((lane) => lane.dots.filter((d) => this.onPage(d.system) && dotLook(d, lane.look).strength > 0).map((d) => ({ d, look: lane.look })));
+    return {
+      lanes: this.lanes.length,
+      dots: here.length,
+      lifted: here.filter(({ d, look }) => this.liftOf(d, look) > 0).length,
+      coloured: here.filter(({ d }) => d.note && this.laneMarks.has(d.tick)).length,
+    };
   }
 
-  private liftOf(dot: LaneDot): number {
-    return laneLift(dot.tick, this.laneWave, this.lanePpq);
+  private liftOf(dot: LaneDot, look: LaneLook): number {
+    return laneLift(dot.tick, this.laneWave, this.lanePpq, look.wave.reach);
   }
 
   /**
-   * The lane: faint ghost dots, a beat dot a little bigger and darker, the bar's first bigger still, a note's dot under its
-   * column; the wave lifts each dot it passes, the beat and note dots most (`AX-3 provisional:` sizes and shades).
+   * The lanes: faint ghost dots, a beat dot a little bigger and darker, the bar's first bigger still, a note's dot under its
+   * column, each as strong as its lane's look sets it; the wave lifts each dot it passes by the lane's wave height, the beat
+   * and note dots most (`AX-3 provisional:` sizes and shades).
    */
   private drawLane(force: boolean): void {
     const shows = `${this.page}|${this.laneWave === null ? '' : Math.round(this.laneWave)}|${this.laneMarks.size}`;
@@ -565,15 +571,19 @@ export class StaffView {
     const g = this.laneGfx;
     g.clear();
     const S = this.layout.staffSpace;
-    for (const dot of this.lane) {
-      if (!this.onPage(dot.system)) continue;
-      const lift = this.liftOf(dot);
-      const mark = dot.note ? this.laneMarks.get(dot.tick) : undefined;
-      const size = dot.kind === 'downbeat' ? 0.3 : dot.kind === 'beat' || dot.note ? 0.22 : 0.09;
-      const rise = dot.kind === 'ghost' && !dot.note ? 0.45 : 0.8;
-      const alpha = mark ? 1 : dot.kind === 'downbeat' ? 0.55 : dot.kind === 'beat' || dot.note ? 0.4 : 0.22;
-      g.fillStyle(mark ? paceColour(mark) : this.theme.ink, Math.min(1, alpha + lift * 0.4));
-      g.fillCircle(dot.x, dot.y - lift * rise * S, size * S * (1 + 0.35 * lift));
+    for (const { dots, look } of this.lanes) {
+      for (const dot of dots) {
+        if (!this.onPage(dot.system)) continue;
+        const { role, strength } = dotLook(dot, look);
+        if (strength <= 0) continue;
+        const lift = this.liftOf(dot, look);
+        const mark = role === 'note' ? this.laneMarks.get(dot.tick) : undefined;
+        const size = role === 'downbeat' ? 0.3 : role === 'ghost' ? 0.09 : 0.22;
+        const rise = (role === 'ghost' ? 0.55 : 1) * look.wave.height;
+        const alpha = mark ? 1 : (role === 'downbeat' ? 0.55 : role === 'ghost' ? 0.22 : 0.4) * strength;
+        g.fillStyle(mark ? paceColour(mark) : this.theme.ink, Math.min(1, alpha + lift * 0.4 * strength));
+        g.fillCircle(dot.x, dot.y - lift * rise * S, size * S * (1 + 0.35 * lift));
+      }
     }
   }
 

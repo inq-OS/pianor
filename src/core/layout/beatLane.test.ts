@@ -1,9 +1,9 @@
-// Covers core_13.AC1, core_13.AC5.
+// Covers core_13.AC1, core_13.AC5, core_13.AC8.
 import { describe, expect, it } from 'vitest';
 import littleSteps from '../../../tests/fixtures/charts/little-steps.v2.json';
 import { chartWith } from '../../../tests/helpers/charts';
 import { chartSchema } from '../chart';
-import { laneDots, laneLift, laneY, PACE_COLOURS, paceColour, waveTick, WAVE_REACH } from './beatLane';
+import { defaultLaneLook, dotLook, laneDots, laneLift, laneY, PACE_COLOURS, paceColour, waveTick, WAVE_REACH, type LaneDot } from './beatLane';
 import { layoutStaff } from './staff';
 
 const chart = chartSchema.parse(littleSteps); // four bars of 4/4, one hand: quarters, halves and a whole note
@@ -118,5 +118,44 @@ describe('laneDots near the notes', () => {
       expect(inHead).toBe(false);
     }
     expect(dots.length).toBeGreaterThan(20); // the rest of the lane stays
+  });
+});
+
+describe('a tuned lane', () => {
+  it('core_13.AC8 moves the lane down or up by the staff spaces the player set, never off the sheet', () => {
+    const S = grand.staffSpace;
+    const at = (offset: number) => laneDots(grand, hands, 'between', offset)[0]!.y;
+    expect(at(1) - at(0)).toBeCloseTo(S);
+    expect(at(-1) - at(0)).toBeCloseTo(-S);
+    expect(at(-100)).toBeGreaterThan(0);
+  });
+
+  it('core_13.AC8 knows which staves a note dot stands for', () => {
+    const first = laneDots(grand, hands, 'above').find((d) => d.tick === 0)!;
+    expect(first.staves).toEqual([0, 1]);
+    const second = laneDots(grand, hands, 'above').find((d) => d.tick === 480)!;
+    expect(second.staves).toEqual([0]); // the left hand holds its half note
+  });
+
+  it('core_13.AC8 draws each kind of dot as strong as the player set it, a hidden one not at all', () => {
+    const look = defaultLaneLook();
+    const ghost: LaneDot = { system: 0, x: 0, y: 0, tick: 60, kind: 'ghost', note: false, staves: [], grid: true };
+    const beat: LaneDot = { ...ghost, tick: 480, kind: 'beat' };
+    const bass: LaneDot = { ...beat, note: true, staves: [1] };
+    expect(dotLook(ghost, look)).toEqual({ role: 'ghost', strength: 1 });
+    const tuned = { ...look, dots: { ghost: 0, beat: 0.5, top: 1, bottom: 0 } };
+    expect(dotLook(ghost, tuned).strength).toBe(0);
+    expect(dotLook(beat, tuned)).toEqual({ role: 'beat', strength: 0.5 });
+    // a bass note hidden: its dot falls back to the beat it stands on
+    expect(dotLook(bass, tuned)).toEqual({ role: 'beat', strength: 0.5 });
+    expect(dotLook({ ...bass, staves: [0, 1] }, tuned)).toEqual({ role: 'note', strength: 1 });
+    // a note off the grid has nothing to fall back to
+    expect(dotLook({ ...bass, grid: false, kind: 'ghost' }, tuned).strength).toBe(0);
+  });
+
+  it('core_13.AC8 a wider wave reaches further, and one of no width lifts nothing', () => {
+    expect(laneLift(960, 960 + 240, 480, 1)).toBeCloseTo(0.75);
+    expect(laneLift(960, 960 + 240, 480)).toBe(0);
+    expect(laneLift(960, 960, 480, 0)).toBe(0);
   });
 });

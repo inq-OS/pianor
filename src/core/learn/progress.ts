@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { Chart } from '../chart';
 import { LEARN_RULES, learnUnits, type LearnStep, type LearnStepKind, type LearnStepSize } from './plan';
 import { TEMPO_RULES, type RunTempo } from './tempo';
+import { defaultLaneLook, LANE_LIMITS, type LaneLook } from '../layout/beatLane';
 
 /**
  * Where a player is in learning one piece (ft_1_32.AC2), and what that has earned (AC4). Pure. Saved per player and piece
@@ -140,6 +141,16 @@ export const learnSettingsSchema = z.object({
    */
   beatLane: z.enum(['above', 'between', 'off']).optional(),
   /**
+   * The beat lanes as the player tuned them (core_13 rule 10), up to `LANE_LIMITS.lanes`; an empty list shows none. Absent:
+   * the one lane of `beatLane`. An optional field, no version bump (d069.3).
+   */
+  beatLanes: z.array(z.object({
+    place: z.enum(['above', 'between']),
+    offset: z.number().min(-LANE_LIMITS.offset).max(LANE_LIMITS.offset),
+    dots: z.object({ ghost: z.number().min(0).max(1), beat: z.number().min(0).max(1), top: z.number().min(0).max(1), bottom: z.number().min(0).max(1) }),
+    wave: z.object({ height: z.number().min(0).max(LANE_LIMITS.height), reach: z.number().min(0).max(LANE_LIMITS.reach) }),
+  })).max(LANE_LIMITS.lanes).optional(),
+  /**
    * A click at the student's own pace in a learning run (core_13 rule 6), started afresh at every key. Absent or false: off,
    * so the pace measured is the student's own (ft_1_32 rule 8). An optional field, no version bump (d069.3).
    */
@@ -154,6 +165,13 @@ export function learnLiveTempo(settings: LearnSettings): boolean {
 /** Where the beat lane runs: between the staves unless the player chose otherwise (core_13.AC2). */
 export function learnBeatLane(settings: LearnSettings): 'above' | 'between' | 'off' {
   return settings.beatLane ?? 'between';
+}
+
+/** The lanes drawn (core_13.AC8): as the player tuned them, else the one lane of `learnBeatLane` (none when it is off). */
+export function learnBeatLanes(settings: LearnSettings): LaneLook[] {
+  if (settings.beatLanes) return settings.beatLanes;
+  const place = learnBeatLane(settings);
+  return place === 'off' ? [] : [defaultLaneLook(place)];
 }
 
 /** Whether a learning run clicks at the student's own pace: only when the player turned it on (core_13.AC6). */

@@ -1,4 +1,4 @@
-// Covers core_13.AC1, core_13.AC2, core_13.AC5, core_13.AC6, core_13.AC7.
+// Covers core_13.AC1, core_13.AC2, core_13.AC5, core_13.AC6, core_13.AC7, core_13.AC8.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { clickButton, expectNoErrors, openGame, openPiece, pressPracticeButton as press, sceneButton, waitForScene } from './helpers';
@@ -82,6 +82,40 @@ test.describe('the beat lane (core_13)', () => {
     await press(page, 'Click');
     await expect.poll(() => running(page)).toBe(true);
     expect((await lane(page)).dots).toBe(0);
+    expectNoErrors(errors);
+  });
+});
+
+test.describe('tuning the beat lanes (core_13 rule 10)', () => {
+  const lanesScene = (page: Page) => page.evaluate(() => {
+    const scene = window.__game.scene.getScene('beat-lanes') as unknown as { view: { laneShown(): { lanes: number; dots: number; lifted: number } } | null; laneYs(): number[] };
+    return { shown: scene.view?.laneShown() ?? null, ys: scene.laneYs() };
+  });
+  const saved = (page: Page) => page.evaluate(() => window.__game.registry.get('context').profiles.learnSettings.beatLanes as { place: string; offset: number }[] | undefined);
+
+  test('core_13.AC8 the beat dots button opens a page with a running preview; a row added is saved and shown, and a row dragged on the preview stays where it is dropped', async ({ page }) => {
+    const errors = await openGame(page);
+    await page.evaluate(() => { window.__game.scene.stop('menu'); window.__game.scene.start('settings', { page: 1 }); });
+    await waitForScene(page, 'settings');
+    await clickButton(page, 'settings', await sceneButton(page, 'settings', 'Tune the beat dots: which dots, the wave, and where they run'));
+    await waitForScene(page, 'beat-lanes');
+    await expect.poll(async () => (await lanesScene(page)).shown?.lanes).toBe(1);
+    await expect.poll(async () => (await lanesScene(page)).shown?.lifted ?? 0).toBeGreaterThan(0); // the wave runs on the preview
+    await clickButton(page, 'beat-lanes', await sceneButton(page, 'beat-lanes', 'Add a row of dots'));
+    await expect.poll(async () => (await saved(page))?.length).toBe(2);
+    await expect.poll(async () => (await lanesScene(page)).shown?.lanes).toBe(2);
+    // drag the second row (above the staff) down a little on the preview
+    const [, above] = (await lanesScene(page)).ys;
+    // game pixels to the page's: the canvas may be drawn at another size than the game's
+    const box = (await page.locator('canvas').first().boundingBox())!;
+    const k = await page.evaluate((w) => w / (window.__game as unknown as { scale: { width: number } }).scale.width, box.width);
+    const y = box.y + above! * k;
+    await page.mouse.move(box.x + 400 * k, y);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 400 * k, y + 30, { steps: 5 });
+    await page.mouse.up();
+    await expect.poll(async () => (await saved(page))?.[1]?.offset ?? 0).toBeGreaterThan(0);
+    expect((await lanesScene(page)).ys[1]).toBeGreaterThan(above!);
     expectNoErrors(errors);
   });
 });

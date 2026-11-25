@@ -6,7 +6,7 @@ import { firstPrintedBar, fullBarTicks, unrollRepeats, writtenTick, writtenView,
 import { DEFAULT_FOLLOW_RULES, TempoMode, WaitMode, type Hints, type TempoStart, type JudgeEvent, type NoteJudged, type PieceResult, type PlaySettings, type PlayState } from '../../core/judge';
 import { barNumbersToShow, type BarNumberSettings } from '../../core/layout/barNumbers';
 import type { PaceMark } from '../../core/layout/beat';
-import { laneDots, waveTick, type LanePlace } from '../../core/layout/beatLane';
+import { laneDots, waveTick, type LaneLook } from '../../core/layout/beatLane';
 import { PRIZE, prizeColumn, type PrizeColumn, type PrizeGlyph } from '../../core/layout/learnPrizes';
 import { CLEF_FLIGHT, grownBox } from '../../core/layout/clefFlight';
 import type { LearnRewards } from '../../core/learn/progress';
@@ -122,8 +122,8 @@ export class PlaySession {
   private readonly scoreView: PlaySettings['scoreView'];
   private view: StaffView | null = null;
   private layoutNow: StaffLayout | null = null;
-  /** Where the beat lane runs (core_13 rule 2), and the latest right key: its tick on the staff and its time. */
-  private lanePlace: LanePlace = 'off';
+  /** The beat lanes as the player tuned them (core_13 rules 2 and 10), and the latest right key: its tick on the staff and its time. */
+  private laneLooks: readonly LaneLook[] = [];
   private laneAnchor: { tick: number; atMs: number } | null = null;
   /** The score of the pass just finished, drawn past the last bar (ft_1_12); empty when none is shown. */
   private passScore: Phaser.GameObjects.GameObject[] = [];
@@ -230,9 +230,9 @@ export class PlaySession {
     return writtenTick(this.play, playTick) + (this.options.shown?.offset ?? 0);
   }
 
-  /** Where the beat lane runs, from the next `drawStaff` on. */
-  setLanePlace(place: LanePlace): void {
-    this.lanePlace = place;
+  /** The beat lanes drawn from the next `drawStaff` on; none hides them. */
+  setLanes(looks: readonly LaneLook[]): void {
+    this.laneLooks = looks;
   }
 
   /** The latest right key anchors the lane's wave in Wait mode: it runs on from there. */
@@ -251,7 +251,7 @@ export class PlaySession {
    * at most a bar on, where it waits for the next key; none with no pace. `marks` colour the keys played, by staff tick.
    */
   moveLane(nowMs: number, msPerQuarter: number | null, marks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>>): void {
-    if (!this.view || this.lanePlace === 'off') return;
+    if (!this.view || this.laneLooks.length === 0) return;
     const drawn = this.drawn;
     const playTick = this.transport?.tickAt(nowMs) ?? null;
     const wave = playTick !== null
@@ -304,7 +304,7 @@ export class PlaySession {
     // the parchment runs the whole width of the area, also past a staff that leaves room at its right
     this.view = new StaffView(this.scene, layout, undefined, { ...this.hints, chordFingers: this.options.chordFingers === true }, { x: 0, y: area.top }, numbers, room > 0 ? { x: 0, width: area.width } : undefined);
     this.view.setDurationMarks(durationMarks(layout, drawn, prefs.durationHelp));
-    this.view.setLane(laneDots(layout, drawn, this.lanePlace), drawn.ppq);
+    this.view.setLanes(this.laneLooks.map((look) => ({ dots: laneDots(layout, drawn, look.place, look.offset), look })), drawn.ppq);
     // where the hand moves, shown with the finger numbers (ft_1_30.AC10)
     this.view.setHandShifts(handShiftMap(drawn, LEVELS.find((l) => l.level === drawn.level)));
     this.view.veil(this.options.shown?.faint ?? []);

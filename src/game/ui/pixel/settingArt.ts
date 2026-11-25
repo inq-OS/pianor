@@ -323,3 +323,63 @@ export function paceClickSymbol(on: boolean): Bitmap {
   } else struck(b, 6, 3, 17);
   return b;
 }
+
+/** A kind of dot of a tuned beat lane (core_13 rule 10): the dotted line, the click's beats, the top staff's notes, the bottom staff's. */
+export type LaneDotPart = 'ghost' | 'beat' | 'top' | 'bottom';
+
+/**
+ * How strong one kind of a lane's dots is drawn (core_13 rule 10): a row of the lane with that kind marked, full in ink,
+ * faint in grey, or struck out in red when hidden. A note's kind has a scrap of its staff above (top) or below (bottom)
+ * the row, with the note over its dot.
+ */
+export function laneDotsSymbol(part: LaneDotPart, strength: number): Bitmap {
+  const b = paper();
+  const y = 11;
+  const colour = strength >= 1 ? INK : strength > 0 ? C.lock : C.dim;
+  const square = (x: number, top: number, c: number) => {
+    put(b, x, top, c);
+    put(b, x + 1, top, c);
+    put(b, x, top + 1, c);
+    put(b, x + 1, top + 1, c);
+  };
+  if (part === 'top') staff(b, 1, { x0: 2, x1: SYMBOL_WIDTH - 3, gap: 2, lines: 3 });
+  if (part === 'bottom') staff(b, 17, { x0: 2, x1: SYMBOL_WIDTH - 3, gap: 2, lines: 3 });
+  for (let x = 3; x <= SYMBOL_WIDTH - 4; x += 2) {
+    const beat = (x - 3) % 8 === 0;
+    if (part === 'ghost') put(b, x, y, beat ? C.dim : colour);
+    else if (part === 'beat') {
+      if (beat) square(x, y, colour);
+      else put(b, x, y, C.dim);
+    }
+    else put(b, x, y, C.dim);
+  }
+  if (part === 'top' || part === 'bottom') {
+    for (const x of [8, 22]) {
+      square(x, y, colour);
+      // the note the dot stands for, on its staff
+      const head = part === 'top' ? 5 : 17;
+      for (const [dx, dy] of [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1]] as const) put(b, x - 1 + dx, head + dy, INK);
+    }
+  }
+  if (strength <= 0) for (let x = 1; x <= SYMBOL_WIDTH - 2; x++) put(b, x, y + (x % 4 < 2 ? -1 : 0), C.red);
+  return b;
+}
+
+/**
+ * The wave of a tuned lane (core_13 rule 10): the lane with its crest lifting the dots, `height` 0 to 2 (low to high) or,
+ * for `reach`, the crest narrow to wide at a middle height.
+ */
+export function laneWaveSymbol(part: 'height' | 'reach', level: 0 | 1 | 2): Bitmap {
+  const b = paper();
+  const base = 16;
+  const crest = 17;
+  const high = part === 'height' ? [3, 7, 11][level]! : 7;
+  const half = part === 'reach' ? [3, 7, 12][level]! : 6;
+  for (let x = 2; x <= SYMBOL_WIDTH - 3; x += 2) {
+    const d = Math.abs(x - crest) / half;
+    const lift = d >= 1 ? 0 : Math.round(high * (1 - d * d));
+    put(b, x, base - lift, lift > 0 ? INK : C.dim);
+    if (lift > 0) put(b, x + 1, base - lift, INK);
+  }
+  return b;
+}

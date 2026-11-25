@@ -24,6 +24,10 @@ export interface LaneDot {
   kind: LaneDotKind;
   /** A note (or chord) starts here: the dot stands under its column. */
   note: boolean;
+  /** The staves (0 the top one) with a note starting here; empty for a dot with no note. */
+  staves: number[];
+  /** It stands on the lane's grid (every thirty-second); a note off it has a dot of its own. */
+  grid: boolean;
 }
 
 /** Dots a quarter: a ghost every thirty-second, close enough to read as a dotted line. */
@@ -84,18 +88,24 @@ export function laneY(layout: StaffLayout, system: number, place: Exclude<LanePl
  * The lane's dots for `chart` (the chart the staff draws) laid out as `layout`, at `place`; none when it is off. Beats are
  * counted in quarters from the bar's start, as the click counts them; a short first bar (a pick-up) counts back from its end.
  */
-export function laneDots(layout: StaffLayout, chart: Chart, place: LanePlace): LaneDot[] {
+export function laneDots(layout: StaffLayout, chart: Chart, place: LanePlace, offset = 0): LaneDot[] {
   if (place === 'off') return [];
   const S = layout.staffSpace;
   const step = chart.ppq / GHOSTS_PER_BEAT;
   const full = fullBarTicks(chart.meterMap, chart.ppq);
-  const ys = layout.systems.map((s) => laneY(layout, s.index, place));
-  // the columns of the notes, one a tick and bar
+  // moved by the player `offset` staff spaces down (up when negative), and never off the sheet's top
+  const ys = layout.systems.map((s) => Math.max(ABOVE_EDGE * S, laneY(layout, s.index, place) + offset * S));
+  // the columns of the notes, one a tick and bar, and the staves they are on
   const columns = new Map<string, number>();
+  const stavesAt = new Map<string, Set<number>>();
   for (const n of layout.notes) {
     const note = chart.notes[n.index];
-    if (note) columns.set(`${n.bar}:${note.tick}`, n.column);
+    if (!note) continue;
+    const key = `${n.bar}:${note.tick}`;
+    columns.set(key, n.column);
+    stavesAt.set(key, (stavesAt.get(key) ?? new Set()).add(n.staff));
   }
+  const stavesOf = (bar: number, tick: number) => [...(stavesAt.get(`${bar}:${tick}`) ?? [])].sort();
   const dots: LaneDot[] = [];
   for (const bar of layout.bars) {
     const span = chart.bars[bar.index];
@@ -112,16 +122,16 @@ export function laneDots(layout: StaffLayout, chart: Chart, place: LanePlace): L
       const x = tickX(layout, chart, bar, tick);
       const column = columns.get(`${bar.index}:${tick}`);
       if (column !== undefined && Math.abs(column - x) < MERGE * S) {
-        dots.push({ system: bar.system, x: column, y, tick, kind, note: true });
+        dots.push({ system: bar.system, x: column, y, tick, kind, note: true, staves: stavesOf(bar.index, tick), grid: true });
         own.add(tick);
-      } else dots.push({ system: bar.system, x, y, tick, kind, note: false });
+      } else dots.push({ system: bar.system, x, y, tick, kind, note: false, staves: [], grid: true });
     }
     // notes off the grid (a triplet, a whole note centred in its bar) get a dot of their own
     for (const [key, column] of columns) {
       const [barIndex, tickText] = key.split(':');
       const tick = Number(tickText);
       if (Number(barIndex) !== bar.index || own.has(tick)) continue;
-      dots.push({ system: bar.system, x: column, y, tick, kind: 'ghost', note: true });
+      dots.push({ system: bar.system, x: column, y, tick, kind: 'ghost', note: true, staves: stavesOf(bar.index, tick), grid: false });
     }
   }
   // no dot touches a note head or its ledger line (middle C between the staves): next to a head it would read as a dot
@@ -143,9 +153,9 @@ export function laneDots(layout: StaffLayout, chart: Chart, place: LanePlace): L
 export const WAVE_REACH = 0.25;
 
 /** How much the wave at `waveTick` lifts a dot at `dotTick`, 0 to 1: fully at the crest, falling off as a parabola to none `WAVE_REACH` away. */
-export function laneLift(dotTick: number, waveTick: number | null, ppq: number): number {
-  if (waveTick === null) return 0;
-  const d = Math.abs(dotTick - waveTick) / (WAVE_REACH * ppq);
+export function laneLift(dotTick: number, waveTick: number | null, ppq: number, reach = WAVE_REACH): number {
+  if (waveTick === null || !(reach > 0)) return 0;
+  const d = Math.abs(dotTick - waveTick) / (reach * ppq);
   return d >= 1 ? 0 : 1 - d * d;
 }
 
@@ -165,4 +175,37 @@ export const PACE_COLOURS = { even: 0x1f9d55, near: 0xff7a00, far: SCORE_COLOURS
 export function paceColour(mark: Pick<PaceMark, 'side' | 'far'>): number {
   if (mark.side === 'even') return PACE_COLOURS.even;
   return mark.far ? PACE_COLOURS.far : PACE_COLOURS.near;
+}
+
+/**
+ * How one lane looks, as the player tunes it (core_13 rule 10): where it runs (`place`, moved `offset` staff spaces down,
+ * up when negative), how strong each kind of dot is (0 hides it, 1 full), and the wave's height in staff spaces and its
+ * reach either side of the crest in quarters.
+ */
+export interface LaneLook {
+  place: Exclude<LanePlace, 'off'>;
+  offset: number;
+  dots: { ghost: number; beat: number; top: number; bottom: number };
+  wave: { height: number; reach: number };
+}
+
+/** `AX-3 provisional:` at most this many lanes, and the ranges a player can tune within. */
+export const LANE_LIMITS = { lanes: 3, offset: 6, height: 1.5, reach: 1 } as const;
+
+/** The lane every player has until they tune it: every dot at full strength, the wave as the first slice drew it. */
+export function defaultLaneLook(place: Exclude<LanePlace, 'off'> = 'between'): LaneLook {
+  return { place, offset: 0, dots: { ghost: 1, beat: 1, top: 1, bottom: 1 }, wave: { height: 0.8, reach: WAVE_REACH } };
+}
+
+/**
+ * How `dot` is drawn in `look`: as a note dot as strong as the strongest staff it stands for, else as its beat (the bar's
+ * first: `downbeat`) or ghost, whichever is stronger; `strength` 0 to 1, 0 leaves it out. A note dot off the grid (a
+ * triplet, a whole note centred in its bar) has no beat or ghost to fall back to.
+ */
+export function dotLook(dot: LaneDot, look: LaneLook): { role: LaneDotKind | 'note'; strength: number } {
+  const grid = dot.grid ? (dot.kind === 'ghost' ? look.dots.ghost : look.dots.beat) : 0;
+  const note = dot.note ? Math.max(0, ...dot.staves.map((s) => (s === 0 ? look.dots.top : look.dots.bottom))) : 0;
+  // a beat keeps its size when it is the stronger, so the click's dots stay a row of their own
+  if (note > grid) return { role: 'note', strength: note };
+  return { role: dot.kind, strength: grid };
 }

@@ -1,10 +1,11 @@
-// Covers ft_1_32.AC2, ft_1_32.AC4, core_13.AC2.
+// Covers ft_1_32.AC2, ft_1_32.AC4, core_13.AC2, core_13.AC8.
 import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
 import type { BarPlay } from '../progression/practiceLog';
 import { learnPlan } from './plan';
+import { defaultLaneLook } from '../layout/beatLane';
 import {
-  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnBeatLane, learnHandsApart, learnLiveTempo, learnPaceClick, learnStepBars, measuredOutcome, medalOf, playsOn, sitDown, START_PROGRESS, withTest,
+  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnBeatLane, learnBeatLanes, learnHandsApart, learnLiveTempo, learnPaceClick, learnStepBars, measuredOutcome, medalOf, playsOn, sitDown, START_PROGRESS, withTest,
   type LearnProgress, type RunOutcome,
 } from './progress';
 
@@ -304,6 +305,18 @@ describe('the beat lane and the click at the student\'s pace', () => {
     const changed = learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLane: 'above', paceClick: true });
     expect([learnBeatLane(changed), learnPaceClick(changed)]).toEqual(['above', true]);
     expect(learnBeatLane(learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLane: 'off' }))).toBe('off');
+  });
+});
+
+describe('tuned beat lanes', () => {
+  it('core_13.AC8 a player with no tuned lanes has the one lane of the lane setting, and tuned lanes replace it, at most three', () => {
+    expect(learnBeatLanes(DEFAULT_LEARN_SETTINGS)).toEqual([defaultLaneLook('between')]);
+    expect(learnBeatLanes({ ...DEFAULT_LEARN_SETTINGS, beatLane: 'above' })).toEqual([defaultLaneLook('above')]);
+    expect(learnBeatLanes({ ...DEFAULT_LEARN_SETTINGS, beatLane: 'off' })).toEqual([]);
+    const two = [defaultLaneLook('above'), { ...defaultLaneLook('between'), offset: 1.5, dots: { ghost: 0, beat: 1, top: 0, bottom: 1 } }];
+    expect(learnBeatLanes(learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLanes: two }))).toEqual(two);
+    expect(() => learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLanes: [...two, ...two] })).toThrow();
+    expect(() => learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLanes: [{ ...two[0]!, offset: 99 }] })).toThrow();
   });
 });
 

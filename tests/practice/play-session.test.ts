@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import littleSteps from '../fixtures/charts/little-steps.v2.json';
 import { chartSchema, sliceChart } from '../../src/core/chart';
+import { defaultLaneLook } from '../../src/core/layout/beatLane';
 import type { NoteJudged, PieceResult } from '../../src/core/judge';
 import { composePerformance } from '../../src/io/mock/performance';
 import { ScriptedKeyboard } from '../../src/io/mock/ScriptedKeyboard';
@@ -34,7 +35,7 @@ class FakeStaff {
   veil(ranges: unknown) { this.veiled.push(ranges); }
   lane: unknown[] = [];
   waves: (number | null)[] = [];
-  setLane(dots: unknown[]) { this.lane = dots; }
+  setLanes(lanes: { dots: unknown[] }[]) { this.lane = lanes.flatMap((l) => l.dots); }
   moveLane(wave: number | null) { this.waves.push(wave); }
   destroy() { this.destroyed = true; }
 }
@@ -200,7 +201,7 @@ describe('PlaySession', () => {
   it('core_13.AC1 core_13.AC5 the beat lane: its dots where the player set it, and in Wait mode a wave running on from the latest right key', () => {
     const { session, keyboard, judged } = setup();
     expect((session.drawStaff(area, prefs) as unknown as FakeStaff).lane).toEqual([]); // off until set
-    session.setLanePlace('above');
+    session.setLanes([defaultLaneLook('above')]);
     const view = session.drawStaff(area, prefs) as unknown as FakeStaff;
     expect(view.lane.length).toBeGreaterThan(16);
     session.moveLane(0, 500, new Map());
