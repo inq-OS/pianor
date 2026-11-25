@@ -44,7 +44,7 @@
     },
     {
       "level": 3,
-      "name": "Right hand, rests and thirds",
+      "name": "Right hand, thirds and 3/4",
       "hands": ["RH"],
       "clefs": ["treble"],
       "range": { "low": 60, "high": 67 },
@@ -64,7 +64,7 @@
     },
     {
       "level": 4,
-      "name": "Both hands, one at a time",
+      "name": "Both hands",
       "hands": ["RH", "LH"],
       "clefs": ["treble", "bass"],
       "range": { "low": 48, "high": 67 },

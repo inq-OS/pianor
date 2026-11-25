@@ -21,8 +21,8 @@ The table as the linter reads it (generated from `content/curriculum/levels.json
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | Right hand, C position, steps | RH | treble | C4 to G4 | whole, dottedHalf, half, quarter | yes | 4/4 | 1 | yes | 4 to 32 |
 | 2 | Left hand, C position, steps | LH | bass | C3 to G3 | whole, dottedHalf, half, quarter | yes | 4/4 | 1 | yes | 4 to 32 |
-| 3 | Right hand, rests and thirds | RH | treble | C4 to G4 | whole, dottedHalf, half, quarter | yes | 4/4, 3/4 | 2 | yes | 4 to 32 |
-| 4 | Both hands, one at a time | RH, LH | treble, bass | C3 to G4 | whole, dottedHalf, half, quarter | yes | 4/4, 3/4 | 2 | yes | 4 to 32 |
+| 3 | Right hand, thirds and 3/4 | RH | treble | C4 to G4 | whole, dottedHalf, half, quarter | yes | 4/4, 3/4 | 2 | yes | 4 to 32 |
+| 4 | Both hands | RH, LH | treble, bass | C3 to G4 | whole, dottedHalf, half, quarter | yes | 4/4, 3/4 | 2 | yes | 4 to 32 |
 | 5 | Both hands together, eighth notes | RH, LH | treble, bass | C3 to C5 | whole, dottedHalf, half, dottedQuarter, quarter, dottedEighth, eighth, sixteenth | yes | 4/4, 3/4, 2/4 | 4 | yes | 4 to 32 |
 | 6 | Classics arranged: wider range and leaps | RH, LH | treble, bass | C3 to C6 | whole, dottedHalf, half, dottedQuarter, quarter, dottedEighth, eighth, sixteenth | yes | 4/4, 3/4, 2/4 | 7 | yes | 4 to 32 |
 <!-- /docs:levels -->
