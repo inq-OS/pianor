@@ -22,6 +22,9 @@ const RESOLVED_ID = `\0${VIRTUAL_ID}`;
  * lint problems only reported, never failing a build; one with the id of a piece above is left out.
  * The page reloads when a piece file changes. The dev server also answers the preview tool's requests (`previewApi.ts`).
  */
+/** The end-to-end tests' own pieces, in their bundle only. */
+export const E2E_PIECES = 'tests/fixtures/e2e/pieces';
+
 export function piecesPlugin(piecesDir = 'content/pieces', levelsPath = 'content/curriculum/levels.json', privateDir: string | null = 'private/pieces'): Plugin {
   const dir = resolve(piecesDir);
   // the end-to-end tests run without it, so a machine's own pieces never change what they see
@@ -49,7 +52,20 @@ export function piecesPlugin(piecesDir = 'content/pieces', levelsPath = 'content
         pieces.push({ meta: check.compiled.meta, chart: check.compiled.chart, ...(check.difficulty ? { difficulty: shownPoints(check.compiled.meta.difficulty, check.difficulty) } : {}) });
       }
     }
-    const taken = new Set(listPieceFolders(dir));
+    // The end-to-end tests' own pieces (tests/fixtures/e2e/pieces: a grace-note drill, a song's parts), held to the same
+    // rules and shown only in the tests' bundle, never in the game (PIANOR_E2E, playwright.config.ts)
+    const testDir = process.env['PIANOR_E2E'] === '1' ? resolve(E2E_PIECES) : null;
+    for (const folder of testDir === null ? [] : listPieceFolders(testDir)) {
+      const check = checkPieceFolder(testDir!, folder, levels);
+      diagnostics.push(...check.diagnostics.map((d) => ({ ...d, file: `${E2E_PIECES}/${d.file}` })));
+      if (!check.ok || !check.compiled?.chart || !check.compiled.meta) continue;
+      if (approvedOnly && check.compiled.meta.status !== 'approved') {
+        omittedIds.push(check.compiled.meta.id);
+        continue;
+      }
+      pieces.push({ meta: check.compiled.meta, chart: check.compiled.chart });
+    }
+    const taken = new Set([...listPieceFolders(dir), ...(testDir === null ? [] : listPieceFolders(testDir))]);
     const free = unlimitedLevels(levels);
     for (const folder of ownDir === null ? [] : listPieceFolders(ownDir)) {
       const check = checkPieceFolder(ownDir!, folder, free);

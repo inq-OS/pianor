@@ -7,7 +7,7 @@ export function clipToWidth(text: string, maxWidth: number, measure: (text: stri
   if (measure(text) <= maxWidth) return text;
   const letters = Array.from(text);
   for (let n = letters.length - 1; n > 0; n--) {
-    const clipped = `${letters.slice(0, n).join('')}.`;
+    const clipped = `${letters.slice(0, n).join('').trimEnd()}.`;
     if (measure(clipped) <= maxWidth) return clipped;
   }
   return '';

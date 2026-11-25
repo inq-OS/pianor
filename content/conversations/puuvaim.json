@@ -9,7 +9,7 @@
       "when": {
         "all": [
           {
-            "taught": "puuvaim-1"
+            "taught": "both-hands"
           },
           {
             "notFlag": "puuvaim-taught-said"
@@ -86,7 +86,7 @@
           "text": "talk.puuvaim.askTug",
           "next": "tug",
           "when": {
-            "taught": "puuvaim-1"
+            "taught": "both-hands"
           }
         },
         {
@@ -107,7 +107,7 @@
           "text": "talk.puuvaim.askTug",
           "next": "tug",
           "when": {
-            "taught": "puuvaim-1"
+            "taught": "both-hands"
           }
         },
         {
@@ -118,10 +118,10 @@
     },
     "teach": {
       "speaker": "character",
-      "line": "piece.puuvaim-1.about",
+      "line": "piece.both-hands.about",
       "effects": [
         {
-          "teach": "puuvaim-1"
+          "teach": "both-hands"
         }
       ]
     },

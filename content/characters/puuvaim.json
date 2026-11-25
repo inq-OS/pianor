@@ -7,7 +7,7 @@
   "musicTie": "character.puuvaim.music",
   "actor": "puuvaim",
   "conversation": "puuvaim",
-  "phrases": { "1": ["puuvaim-1"], "2": ["puuvaim-2"], "3": ["puuvaim-3"] },
+  "phrases": { "1": ["both-hands"], "2": ["puuvaim-3"] },
   "prizes": ["oak-leaf", "acorn", "golden-leaf", "singing-branch", "seed-of-life"],
   "lessons": ["character.puuvaim.music"],
   "meet": { "practiceMinutes": 30, "cooldownCleanPlays": 3 },

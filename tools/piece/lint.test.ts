@@ -221,16 +221,25 @@ describe('every hard rule has a failing and a passing piece', () => {
       expect(found.filter((r) => r === 'key' || r === 'accidental')).toEqual([]);
     });
 
-    it('the bundled draft pieces in G and F major lint with no key or accidental error, and their key signatures are one sharp and one flat', () => {
-      const report = lintPieces(join(root, 'content/pieces'), levels);
+    it('the anchor pieces in G and F major lint with no key or accidental error, and their key signatures are one sharp and one flat', () => {
+      const report = lintPieces(join(root, 'tests/fixtures/anchors'), levels);
       for (const id of ['g-major-walk', 'f-major-song']) {
         const piece = report.linted.find((p) => p.id === id);
         expect(piece, id).toBeDefined();
         expect(piece!.diagnostics.filter((d) => d.severity === 'error' && (d.rule === 'key' || d.rule === 'accidental')).map(formatDiagnostic)).toEqual([]);
       }
-      const keyOf = (id: string) => compilePiece({ abc: readFileSync(join(root, `content/pieces/${id}/piece.abc`), 'utf-8'), meta: readFileSync(join(root, `content/pieces/${id}/piece.meta.json`), 'utf-8') }).chart!.keyMap[0]!.fifths;
+      const keyOf = (id: string) => compilePiece({ abc: readFileSync(join(root, `tests/fixtures/anchors/${id}/piece.abc`), 'utf-8'), meta: readFileSync(join(root, `tests/fixtures/anchors/${id}/piece.meta.json`), 'utf-8') }).chart!.keyMap[0]!.fifths;
       expect(keyOf('g-major-walk')).toBe(1);
       expect(keyOf('f-major-song')).toBe(-1);
+    });
+
+    it('the anchor pieces with a dotted quarter and with two voices lint with no error and build', () => {
+      const report = lintPieces(join(root, 'tests/fixtures/anchors'), levels);
+      for (const id of ['rocking-boat', 'two-voices']) {
+        const piece = report.linted.find((p) => p.id === id);
+        expect(piece, id).toBeDefined();
+        expect(piece!.diagnostics.filter((d) => d.severity === 'error').map(formatDiagnostic), id).toEqual([]);
+      }
     });
 
     it.each(levels.map((l) => [l.level]))('an F-major piece (B flat) has no key or accidental error at level %i', (n) => {

@@ -6,11 +6,11 @@ import { pieceFactsOf, resolveSong, type PieceFacts } from './resolve.ts';
 import { piecesInTwoSongs, songSchema, type Song, type SongNode } from './schema.ts';
 import { songChart, songChartId, songIdOfChart, songStaffMarks } from './songChart.ts';
 
-import exampleSong from '../../../content/songs/morning-song/song.json';
-import introMeta from '../../../content/pieces/morning-song-intro/piece.meta.json';
-import outroMeta from '../../../content/pieces/morning-song-outro/piece.meta.json';
-import introAbc from '../../../content/pieces/morning-song-intro/piece.abc?raw';
-import outroAbc from '../../../content/pieces/morning-song-outro/piece.abc?raw';
+import exampleSong from '../../../tests/fixtures/e2e/songs/morning-song/song.json';
+import introMeta from '../../../tests/fixtures/e2e/pieces/morning-song-intro/piece.meta.json';
+import outroMeta from '../../../tests/fixtures/e2e/pieces/morning-song-outro/piece.meta.json';
+import introAbc from '../../../tests/fixtures/e2e/pieces/morning-song-intro/piece.abc?raw';
+import outroAbc from '../../../tests/fixtures/e2e/pieces/morning-song-outro/piece.abc?raw';
 
 /** A right-hand piece of `bars` bars, compiled. */
 function piece(id: string, bars: number, opts: { bpm?: number; key?: string; meter?: string; phrases?: [number, number][] } = {}): Chart {

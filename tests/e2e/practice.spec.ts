@@ -15,8 +15,8 @@ test.describe('menu', () => {
     // The pieces come in pages of six; every one of them is on some page.
     expect(await allMenuTitles(page)).toEqual(
       expect.arrayContaining([
-        'Bass Steps', 'High and Low', 'Little Steps', 'Rest Waltz', 'Twinkle Twinkle Little Star', 'Take Turns', 'Both Hands',
-        'Hot Cross Buns', 'Ode to Joy', 'Stair Steps', 'Ode to Joy, Left Hand', 'Low Walk', 'Mary Had a Little Lamb', 'Au Clair de la Lune', 'Quiet Pond',
+        'Bass Steps', 'High and Low', 'Little Steps', 'Rest Waltz', 'Take Turns', 'Both Hands', 'Grace Steps', 'Skipping Stones',
+        'Au Clair de la Lune', 'Pebble Hop', 'Cave Rumble', 'Echo Giant', 'Mist Waltz',
       ]),
     );
 
@@ -169,6 +169,7 @@ test.describe('other pieces', () => {
     expectNoErrors(errors);
   });
 
+  // Skipping Stones is one of the tests' own pieces (tests/fixtures/e2e/pieces)
   test('a piece with eighth notes is drawn with beams and can be played to the end', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await openPiece(page, 'Skipping Stones');

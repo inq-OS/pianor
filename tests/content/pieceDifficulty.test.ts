@@ -1,4 +1,5 @@
 // Covers core_08.AC2, core_08.AC4.
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { checkPieceFolder, listPieceFolders } from '../../tools/piece/folder';
@@ -8,16 +9,27 @@ import { loadLevelsFile } from '../../tools/piece/levels';
 const root = join(__dirname, '../..');
 const dir = join(root, 'content/pieces');
 const { levels } = loadLevelsFile(join(root, 'content/curriculum/levels.json'));
-const checks = listPieceFolders(dir).map((folder) => ({ folder, check: checkPieceFolder(dir, folder, levels) }));
+/** Frozen copies of pieces once in the game (tests/fixtures/anchors): the anchors stay when the game's own pieces change. */
+const anchors = join(root, 'tests/fixtures/anchors');
+const checks = [
+  ...listPieceFolders(dir).map((folder) => ({ folder, check: checkPieceFolder(dir, folder, levels) })),
+  ...listPieceFolders(anchors).map((folder) => ({ folder, check: checkPieceFolder(anchors, folder, levels) })),
+];
+/** A character's phrase carries its tug level as its difficulty (d138), not a reading of the estimator's scale. */
+const phrases = new Set(
+  readdirSync(join(root, 'content/characters')).filter((f) => f.endsWith('.json')).flatMap((f) =>
+    Object.values((JSON.parse(readFileSync(join(root, 'content/characters', f), 'utf-8')) as { phrases: Record<string, string[]> }).phrases).flat(),
+  ),
+);
 const proposed = (folder: string) => {
-  const found = checks.find((c) => c.folder === folder)?.check.difficulty;
-  if (!found) throw new Error(`content/pieces/${folder} is gone or does not compile: pick another anchor piece for this test`);
+  const found = checkPieceFolder(anchors, folder, levels).difficulty;
+  if (!found) throw new Error(`tests/fixtures/anchors/${folder} is gone or does not compile: pick another anchor piece for this test`);
   return found.scale;
 };
 
 describe('difficulty of the real pieces', () => {
   it('proposes the number a person confirmed, within one step, for every piece that has one', () => {
-    const confirmed = checks.filter((c) => c.check.compiled?.meta?.difficulty !== undefined);
+    const confirmed = checks.filter((c) => c.check.compiled?.meta?.difficulty !== undefined && !phrases.has(c.folder));
     expect(confirmed.length).toBeGreaterThan(0);
     for (const { folder, check } of confirmed) expect(Math.abs(check.compiled!.meta!.difficulty! - check.difficulty!.scale), folder).toBeLessThanOrEqual(1);
   });

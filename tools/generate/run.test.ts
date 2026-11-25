@@ -41,7 +41,7 @@ describe('writeGenerated', () => {
 
 describe('loadAvoid', () => {
   it('collects the runs of eight notes of the pieces people wrote, and skips a piece a generator made', () => {
-    cpSync(join(root, 'content/pieces/ode-to-joy'), join(dir, 'ode-to-joy'), { recursive: true });
+    cpSync(join(root, 'tests/fixtures/anchors/ode-to-joy'), join(dir, 'ode-to-joy'), { recursive: true });
     const withTune = loadAvoid(dir, levels);
     expect(withTune.size).toBeGreaterThan(10);
     writeGenerated(dir, generatePiece({ kind: 'reading-drill', level: 1, seed: 2 }, { levels }), {});

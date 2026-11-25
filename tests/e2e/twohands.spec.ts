@@ -19,7 +19,7 @@ const BOTH_HANDS: number[][] = [
 const BOTH_HANDS_NOTES = 26;
 const BOTH_HANDS_TWO_HAND_NOTES = 20;
 
-/** Take Turns: RH C D E F | G2 E2 | F E D C | rest x3, then the left hand answers an octave down. */
+/** Take Turns (`tests/fixtures/e2e/pieces/take-turns`, made for these tests): RH C D E F | G2 E2 | F E D C | rest x3, then the left hand answers an octave down. */
 const TAKE_TURNS: number[][] = [
   [60], [62], [64], [65], [67], [64], [65], [64], [62], [60],
   [48], [50], [52], [53], [55], [52], [53], [52], [50], [48],

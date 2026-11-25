@@ -74,7 +74,8 @@ describe('the teacher sets each character per player (ft_1_37)', () => {
 
   it('ft_1_37.AC4 a piece the teacher picks replaces the character\'s own at every level it teaches', () => {
     const given = castCharacter(puuvaim, setCast(plain, 'puuvaim', { piece: 'twinkle' }));
-    expect(given.phrases).toEqual({ 1: ['twinkle'], 2: ['twinkle'], 3: ['twinkle'] });
+    expect(given.phrases).toEqual(Object.fromEntries(Object.keys(puuvaim.phrases).map((level) => [level, ['twinkle']])));
+    expect(Object.keys(given.phrases).length).toBeGreaterThan(1);
     expect({ ...given, phrases: puuvaim.phrases }).toEqual(puuvaim);
   });
 

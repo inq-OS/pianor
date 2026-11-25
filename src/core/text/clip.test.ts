@@ -22,6 +22,11 @@ describe('clipToWidth', () => {
     expect(clipToWidth('😀😀😀😀😀', 13, measure)).toBe('😀😀.');
   });
 
+  it('puts the dot on the last letter, never after a space', () => {
+    const cut = clipToWidth('AB CDEF', measure('AB C.') - 1, measure);
+    expect(cut).toBe('AB.');
+  });
+
   it('gives an empty text when not even one letter and the dot fit', () => {
     expect(clipToWidth('TUVI', 3, measure)).toBe('');
   });

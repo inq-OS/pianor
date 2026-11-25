@@ -27,7 +27,7 @@ player (it asks for the first name, ft_1_07.AC1), and the default passwords are 
 the teacher, each its own record), written in the zip's `README.txt`.
 
 - TODO(builder, R2): a release build hides the settings' bug-report button.
-- NEEDS-HUMAN: approve Puuvaim's three phrases (`puuvaim-1` to `puuvaim-3`) in the piece preview. A release build leaves out every draft piece, so without them the tug on the knoll has nothing to play. More approved pieces give the student more to learn (6 of 39 approved; Twinkle, which the intro needs, is one).
+- NEEDS-HUMAN: approve the fisherman's level 1 phrase (`fisherman-1`, Row, Row, Row Your Boat) on the review board. A release build leaves out every draft piece, so until then the fisherman has no level 1 to teach.
 - TODO(architect, R2): once Puuvaim's phrases are approved and the week's learning goal is on `main`, run `bash tools/release/pack.sh 0.1b` from a clean clone and hand the zip to the maintainer.
 - NEEDS-HUMAN: run that zip once on a Windows PC with a keyboard attached (step 2 above).
 - TODO(architect, R2): after that run, make the 0.1b draft release with the zip attached.

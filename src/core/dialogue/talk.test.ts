@@ -252,7 +252,7 @@ describe('Puuvaim\'s conversation: learn before show (ft_1_22.AC3, d135)', async
   });
 
   it('ft_1_22.AC3 the first talk after teaching sends the student to practise and ends; from the next one he offers the tug', () => {
-    const taught = { ...facts, flags: ['met-puuvaim', 'known-puuvaim'], taught: ['puuvaim-1'] };
+    const taught = { ...facts, flags: ['met-puuvaim', 'known-puuvaim'], taught: ['both-hands'] };
     const first = startTalk(puuvaim, taught)!;
     expect(first).toMatchObject({ node: 'taught', end: true, outcome: { leave: true } });
     expect(first.facts.flags).toContain('puuvaim-taught-said');

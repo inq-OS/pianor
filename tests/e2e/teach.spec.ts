@@ -23,10 +23,10 @@ const taught = (page: Page) => page.evaluate(async () => {
   return world.met['puuvaim']?.taught ?? null;
 });
 
-/** The oak spirit's runo song, `puuvaim-1`: E E F E | D D C | D E F E | D D C. */
-const TUNE = [64, 64, 65, 64, 62, 62, 60, 62, 64, 65, 64, 62, 62, 60];
-/** Seven notes right first try of fourteen (under level 1's 60 per cent): the first seven each a wrong key, then the right one. */
-const MISSED = [...TUNE.slice(0, 7).flatMap((n) => [61, n]), ...TUNE.slice(7)];
+/** The oak spirit's first piece, `both-hands`, its keys in order (a chord as the right hand's key, then the left's). */
+const TUNE = [60, 48, 64, 67, 52, 55, 65, 55, 62, 60, 48, 64, 48, 67, 55, 67, 52, 64, 48, 65, 55, 64, 62, 60, 60, 48];
+/** Thirteen notes right first try of twenty-six (under level 1's 60 per cent): the first thirteen each after a wrong key. */
+const MISSED = [...TUNE.slice(0, 13).flatMap((n) => [61, n]), ...TUNE.slice(13)];
 
 /** The knoll with Puuvaim standing (`?actors=1`), his talk opened and "Teach me a tune!" picked. */
 async function openTeach(page: Page, learn = false): Promise<PageErrors> {
@@ -58,16 +58,16 @@ async function tryIt(page: Page, notes: number[]): Promise<Teach> {
 test.describe('Puuvaim teaches his phrase in the knoll (ft_1_22.AC3, WP-12)', () => {
   test('ft_1_22.AC3 he plays it with the staff shown; a missed try, then one that passes: the phrase is heard and kept with him', async ({ page }) => {
     const errors = await openTeach(page);
-    expect(await teach(page)).toMatchObject({ who: 'character', piece: 'puuvaim-1', level: 1, tries: [], staff: true });
-    expect(await tryIt(page, MISSED)).toMatchObject({ tries: [false], saying: '7 of 14 notes right' });
-    expect(await tryIt(page, TUNE)).toMatchObject({ tries: [false, true], outcome: 'heard', saying: '14 of 14 notes right' });
+    expect(await teach(page)).toMatchObject({ who: 'character', piece: 'both-hands', level: 1, tries: [], staff: true });
+    expect(await tryIt(page, MISSED)).toMatchObject({ tries: [false], saying: '13 of 26 notes right' });
+    expect(await tryIt(page, TUNE)).toMatchObject({ tries: [false, true], outcome: 'heard', saying: '26 of 26 notes right' });
     await expect.poll(async () => (await teach(page))?.saying).toContain('You played my tune');
     expect((await teach(page))!.staff).toBe(false);
     await page.keyboard.press('Space');
     await expect.poll(() => teach(page)).toBeNull();
-    await expect.poll(() => taught(page)).toEqual(['puuvaim-1']);
+    await expect.poll(() => taught(page)).toEqual(['both-hands']);
     // the day it was taught is kept: heard becomes mine on a later day (ft_1_22.AC5)
-    expect(Object.keys((await taughtOn(page)) ?? {})).toEqual(['puuvaim-1']);
+    expect(Object.keys((await taughtOn(page)) ?? {})).toEqual(['both-hands']);
     expect(await activeScenes(page)).toContain(knoll);
     expectNoErrors(errors);
   });
@@ -76,7 +76,7 @@ test.describe('Puuvaim teaches his phrase in the knoll (ft_1_22.AC3, WP-12)', ()
     const errors = await openTeach(page);
     for (let i = 0; i < 3; i++) await tryIt(page, MISSED);
     await expect.poll(async () => (await teach(page))?.outcome).toBe('notYet');
-    await expect.poll(async () => (await teach(page))?.saying).toBe('Not yet: 7 of 14 notes right. Practice it in your room, then come back.');
+    await expect.poll(async () => (await teach(page))?.saying).toBe('Not yet: 13 of 26 notes right. Practice it in your room, then come back.');
     await page.keyboard.press('Space');
     await expect.poll(() => teach(page)).toBeNull();
     expect(await taught(page)).toEqual([]);
@@ -103,7 +103,7 @@ test.describe('Puuvaim teaches his phrase bar by bar (ft_1_32.AC15)', () => {
   test('ft_1_32.AC15 "Teach me" opens his piece in learning bar by bar, and Back returns to the knoll', async ({ page }) => {
     const errors = await openTeach(page, true);
     await waitForScene(page, 'practice');
-    expect(await learning(page)).toEqual({ piece: 'puuvaim-1#bars-1-1', first: 0 });
+    expect(await learning(page)).toEqual({ piece: 'both-hands#bars-1-1', first: 0 });
     await page.keyboard.press('Escape');
     await waitForScene(page, knoll);
     expect(await activeScenes(page)).not.toContain('practice');
@@ -114,12 +114,12 @@ test.describe('Puuvaim teaches his phrase bar by bar (ft_1_32.AC15)', () => {
   test('ft_1_32.AC15 his piece once learned is kept as taught when the knoll opens again', async ({ page }) => {
     const errors = await openTeach(page, true);
     await waitForScene(page, 'practice');
-    await page.evaluate(() => window.__game.registry.get('context').profiles.saveLearnProgress('puuvaim-1', {
+    await page.evaluate(() => window.__game.registry.get('context').profiles.saveLearnProgress('both-hands', {
       step: 999, wholeStreak: 0, recall: false, confirm: false, misses: 0, medals: [], lastDay: '1998-11-21', stepBars: 1, handsApart: true,
     }));
     await page.keyboard.press('Escape');
     await waitForScene(page, knoll);
-    await expect.poll(() => taught(page)).toEqual(['puuvaim-1']);
+    await expect.poll(() => taught(page)).toEqual(['both-hands']);
     expectNoErrors(errors);
   });
 });
