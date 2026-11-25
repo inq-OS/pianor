@@ -71,7 +71,8 @@ import { DEFAULT_THEME, StaffView } from './ui/staff/StaffView';
 import { PhotoOverlay, barsToFill, photoServer, sendPhoto, type PhotoReply } from './editor/photoImport';
 import { PhotoTool } from './editor/photoTool';
 import { CANCELLED, openOverlay, startScene } from './scenes';
-import { writeBlank } from '../core/song/edit';
+import { addNode, freeNodeId, writeBlank, type Place } from '../core/song/edit';
+import type { SongValues } from '../core/song/schema';
 import { circleItem } from './CircleOfFifthsScene';
 import { STAFF_FONT } from './ui/staff/staffFont';
 
@@ -177,6 +178,9 @@ const KEY_LENGTHS: Readonly<Record<string, EditorLength>> = {
   Numpad1: 'whole', Numpad3: 'dottedHalf', Numpad2: 'half', Numpad5: 'dottedQuarter', Numpad4: 'quarter', Numpad9: 'dottedEighth', Numpad8: 'eighth', Numpad6: 'sixteenth',
 };
 
+/** A choice of Save's question where a new piece goes (ft_1_36 rule 17): wide enough for a song's title. */
+const WHERE_CELL_WIDTH = 120;
+
 interface Session {
   id: string | null;
   song: SongPlace | null;
@@ -186,15 +190,18 @@ interface Session {
   meterAuto: boolean;
 }
 
-/** The row of an own song the piece maker writes (ft_1_36 rule 11): a blank, which the saved piece takes the place of. */
-export interface SongPlace {
-  songId: string;
-  nodeId: string;
-}
+/**
+ * Where in an own song the piece maker's piece stands (ft_1_36 rules 11 and 17): a row (a blank, which the saved piece
+ * takes the place of, or the piece's own row once placed), or a place a new piece is added at when it is first saved.
+ */
+export type SongPlace = { songId: string; nodeId: string } | { songId: string; at: Place };
 
 export interface EditorData {
   id?: string;
-  /** Write a song's blank: a new piece of its bars in the tempo, key and meter it takes; Back returns to the song page. */
+  /**
+   * Write a song's blank (a new piece of its bars in the tempo, key and meter it takes), or a new piece for a place in the
+   * song (in the values it takes there); Back returns to the song page.
+   */
   song?: SongPlace;
 }
 
@@ -301,6 +308,8 @@ export class EditorScene extends PixelScene {
   private titleInput: HTMLInputElement | null = null;
   /** Save asked for a title (a new piece without a name of its own): Enter in the title field saves once it has one. */
   private titleAsked = false;
+  /** Where a new piece goes was asked and answered (rule 17): it is asked once. */
+  private whereChosen = false;
   /** Save found the title taken by another piece (ft_1_02a.AC15): the field stays ringed red until the title is changed. */
   private titleTaken = false;
   private player: ChartPlayer | null = null;
@@ -395,6 +404,7 @@ export class EditorScene extends PixelScene {
     this.meterAsk = null;
     this.meterDismissed = false;
     this.titleAsked = false;
+    this.whereChosen = false;
     this.titleTaken = false;
     this.page = 0;
     this.follow = null;
@@ -2612,29 +2622,80 @@ export class EditorScene extends PixelScene {
   }
 
   /**
-   * A new piece for a song's blank (rule 11): the blank's bars, all empty, in the tempo, key and meter it takes, titled with
-   * the song and the blank's name. Null when the song or the blank is gone. A meter the piece maker cannot write (not
-   * 2/4, 3/4 or 4/4) starts in 4/4.
+   * A new piece for a song (rules 11 and 17): for a blank its bars, all empty, in the tempo, key and meter it takes, titled
+   * with the song and the blank's name; for a place, the usual new piece in the values it takes there. Null when the song or
+   * the blank is gone. A meter the piece maker cannot write (not 2/4, 3/4 or 4/4) starts in 4/4.
    */
   private blankPiece(place: SongPlace): EditorPiece | null {
     const { ownSongs, songs } = contextOf(this);
     const song = ownSongs.get(place.songId);
-    const row = song ? songs.resolved(song).rows.find((r) => r.id === place.nodeId) : undefined;
-    if (!song || !row || row.kind !== 'blank') return null;
-    const meter = row.meter.value;
+    if (!song) return null;
+    const rows = songs.resolved(song).rows;
+    let values: SongValues = { bpm: song.bpm, key: song.key, meter: song.meter };
+    let title = t('editor.untitled');
+    let bars = BARS_DEFAULT;
+    if ('nodeId' in place) {
+      const row = rows.find((r) => r.id === place.nodeId);
+      if (!row || row.kind !== 'blank') return null;
+      values = { bpm: row.bpm.value, key: row.key.value, meter: row.meter.value };
+      title = `${song.title}: ${row.name}`;
+      bars = row.bars;
+    } else if (place.at !== 'end') {
+      // after a row it takes what that row would follow; inside a group, the group's values
+      const at = place.at;
+      const after = 'after' in at;
+      const row = rows.find((r) => r.id === (after ? at.after : at.inside));
+      if (row) values = after ? { bpm: row.bpm.parent, key: row.key.parent, meter: row.meter.parent } : { bpm: row.bpm.value, key: row.key.value, meter: row.meter.value };
+    }
+    const { meter } = values;
     const beats = meter.den === 4 && (meter.num === 2 || meter.num === 3 || meter.num === 4) ? meter.num : 4;
-    const empty = emptyPiece({ title: `${song.title}: ${row.name}`, hands: 'both', beats, bars: row.bars });
-    return setBpm(setKey(empty, row.key.value.fifths, row.key.value.mode), row.bpm.value);
+    const empty = emptyPiece({ title, hands: 'both', beats, bars });
+    return setBpm(setKey(empty, values.key.fifths, values.key.mode), values.bpm);
   }
 
-  /** The saved piece takes its blank's place in the song (rule 11), once; the song keeps the row's id, name and labels. */
+  /**
+   * The saved piece takes its place in the song, once (rules 11 and 17): a blank becomes it (keeping the row's id, name and
+   * labels), or it is added at its place; from then on the piece's row is its place, so a later save changes no song.
+   */
   private placeInSong(pieceId: string): void {
     const place = this.song;
     const { ownSongs } = contextOf(this);
     const song = place ? ownSongs.get(place.songId) : undefined;
     if (!place || !song) return;
-    const written = writeBlank(song, place.nodeId, pieceId);
-    if (written !== song) void ownSongs.save(written);
+    if ('nodeId' in place) {
+      const written = writeBlank(song, place.nodeId, pieceId);
+      if (written !== song) void ownSongs.save(written);
+      return;
+    }
+    const nodeId = freeNodeId(song, this.piece.title);
+    void ownSongs.save(addNode(song, place.at, { kind: 'piece', id: nodeId, piece: pieceId }));
+    this.song = { songId: song.id, nodeId };
+  }
+
+  /**
+   * A new piece of its own, saved for the first time while the player has own songs: Save asks once, under its button,
+   * where the piece goes (rule 17): on its own in the piece book, or into a song, whose page then asks for its place.
+   * False when there is nothing to ask.
+   */
+  private askWhere(): boolean {
+    const songs = contextOf(this).ownSongs.list();
+    const anchor = this.saveButton;
+    if (this.id || this.song || this.whereChosen || songs.length === 0 || !anchor) return false;
+    const items: MenuItem[] = [
+      { label: t('editor.saveAlone'), onPick: () => this.saveWhere(null) },
+      ...songs.map((song): MenuItem => ({ label: t('editor.saveInto', { title: song.title }), keepCase: true, onPick: () => this.saveWhere(song.id) })),
+    ];
+    this.openMenu(anchor, items, { cell: { w: WHERE_CELL_WIDTH, h: BAR_BUTTON_HEIGHT }, columns: 1, open: 'below' });
+    return true;
+  }
+
+  /** Saves the new piece after the question of where it goes: on its own (null), or into the song, picking the place there. */
+  private saveWhere(songId: string | null): void {
+    this.whereChosen = true;
+    void this.save().then(() => {
+      if (songId === null || !this.id || !this.scene.isActive() || this.dirty()) return;
+      startScene(this, 'song', { songId, placing: this.id });
+    });
   }
 
   private dirty(): boolean {
@@ -2737,6 +2798,7 @@ export class EditorScene extends PixelScene {
       this.askTitle(true);
       return Promise.resolve();
     }
+    if (this.askWhere()) return Promise.resolve();
     this.saving = this.saving.catch(() => undefined).then(() => this.saveNow());
     return this.saving;
   }
@@ -2751,7 +2813,8 @@ export class EditorScene extends PixelScene {
     this.id = result.id;
     this.saved = piece;
     this.placeInSong(result.id);
-    this.say(result.saved ? t('editor.saved') : t('editor.savedHere'), MESSAGE_MS);
+    const song = this.song ? context.ownSongs.get(this.song.songId) : undefined;
+    this.say(!result.saved ? t('editor.savedHere') : song ? t('editor.savedSong', { title: song.title }) : t('editor.saved'), MESSAGE_MS);
   }
 
   /** Save the piece if it has changes, then offer it as a file to take to another device. */
