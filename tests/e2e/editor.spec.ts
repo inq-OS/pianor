@@ -1,5 +1,6 @@
-// Covers ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_02e.AC8, ft_1_02d.AC25, ft_1_02d.AC34, ft_1_02d.AC35, ft_1_02d.AC36, ft_1_02d.AC37, ft_1_02d.AC38, ft_1_02d.AC39, ft_1_02d.AC31, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
+// Covers ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_02e.AC8, ft_1_02d.AC25, ft_1_02d.AC34, ft_1_02d.AC35, ft_1_02d.AC36, ft_1_02d.AC37, ft_1_02d.AC38, ft_1_02d.AC39, ft_1_02d.AC31, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_Y_04.AC26, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
 import { readFileSync } from 'node:fs';
+import { musicXmlToChart } from '../../src/core/import/musicxml';
 import { encode as encodePng } from 'fast-png';
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
@@ -669,6 +670,99 @@ test.describe('piece editor (preliminary)', () => {
     await (await refused).setFiles({ name: 'oops.json', mimeType: 'application/json', buffer: Buffer.from('{ nope') });
     await expect.poll(() => status(page)).toContain('That file is not a piece file.');
     expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list())).toHaveLength(2);
+    expectNoErrors(errors);
+  });
+});
+
+/** synthetic: a PDF of `pages` pages, each with two piano systems drawn as lines, made by the browser itself. */
+async function syntheticPdf(page: Page, pages: number): Promise<Buffer> {
+  const sheet = await page.context().newPage();
+  const system = (top: number) => [0, 1].map((k) => [0, 1, 2, 3, 4].map((l) => `<line x1="40" x2="760" y1="${top + k * 90 + l * 10}" y2="${top + k * 90 + l * 10}" stroke="black"/>`).join('')).join('');
+  const html = Array.from({ length: pages }, () => `<div style="width:210mm;height:296mm;page-break-after:always"><svg viewBox="0 0 800 1130" width="100%">${system(100)}${system(400)}</svg></div>`).join('');
+  await sheet.setContent(`<html><body style="margin:0">${html}</body></html>`);
+  const pdf = await sheet.pdf({ format: 'A4', margin: { top: 0, bottom: 0, left: 0, right: 0 } });
+  await sheet.close();
+  return pdf;
+}
+
+/** synthetic: what the computer answers after reading pages 1 and 2: 20 bars, a new page at bar 13, the bars' places on the pages. */
+function readBook(): unknown {
+  const measures = Array.from({ length: 20 }, (_, i) => `<measure number="${i + 1}">${i === 12 ? '<print new-page="yes"/>' : i % 4 === 0 && i > 0 ? '<print new-system="yes"/>' : ''}${i === 0 ? '<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><sound tempo="90"/>' : ''}<note><pitch><step>${'CDEFGAB'[i % 7]}</step><octave>4</octave></pitch><duration>4</duration></note></measure>`);
+  const read = musicXmlToChart(`<score-partwise><part-list/><part id="P1">${measures.join('')}</part></score-partwise>`, 'book');
+  if (!read.ok) throw new Error(read.reason);
+  const layout = { width: 2480, height: 3508, systems: [0, 1, 2].map((s) => ({ staves: [{ top: 300 + s * 900, bottom: 400 + s * 900 }, { top: 600 + s * 900, bottom: 700 + s * 900 }], bars: [0, 1, 2, 3].map((b) => ({ x1: 200 + b * 500, x2: 700 + b * 500 })) })) };
+  const places = Array.from({ length: 20 }, (_, bar) => {
+    const page = bar < 12 ? 0 : 1;
+    const inPage = page === 0 ? bar : bar - 12;
+    return { page, system: Math.floor(inPage / 4), x1: 200 + (inPage % 4) * 500, x2: 700 + (inPage % 4) * 500 };
+  });
+  return { state: 'done', movements: [{ chart: read.chart, marks: read.marks, warnings: [] }], pages: [1, 2], uneven: [], layouts: [layout, layout], places: [places] };
+}
+
+test.describe('piece maker: a PDF of many pages into a song (ft_Y_04 slice 6)', () => {
+  test('ft_Y_04.AC26 Import takes a PDF: pages left out, the rest read, the parts checked over the pages, Split and Join, Make the song', async ({ page }) => {
+    const asked: string[] = [];
+    let statusCalls = 0;
+    let partsAsked: unknown = null;
+    await page.route('**/__pianor/photo**', async (route) => {
+      const url = new URL(route.request().url());
+      const path = url.pathname;
+      if (path === '/__pianor/photo') return route.fulfill({ json: { ok: true } });
+      asked.push(`${route.request().method()} ${path}${url.search}`);
+      if (path === '/__pianor/photo/book') return route.fulfill({ json: { ok: true, book: 'book-old-waltz' } });
+      if (path.endsWith('/status')) return route.fulfill({ json: ++statusCalls === 1 ? { state: 'reading', page: 1, pages: [1, 2], seconds: 65 } : readBook() });
+      if (path.endsWith('/parts')) {
+        partsAsked = route.request().postDataJSON();
+        return route.fulfill({ json: { ok: true, written: 2 } });
+      }
+      return route.fulfill({ json: { ok: true } });
+    });
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { photoReady: boolean }).photoReady)).toBe(true);
+    const chooser = page.waitForEvent('filechooser');
+    await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
+    await (await chooser).setFiles({ name: 'Old_Waltz.pdf', mimeType: 'application/pdf', buffer: await syntheticPdf(page, 3) });
+    // every page shown and in; a click leaves page 3 out
+    await expect(page.locator('#book-tool-read')).toHaveText('Read 3 pages');
+    await expect(page.locator('#book-tool-name')).toHaveValue('Old Waltz');
+    await page.locator('#book-tool-page-3').click();
+    await expect(page.locator('#book-tool-page-3')).toHaveAttribute('aria-pressed', 'false');
+    await page.locator('#book-tool-read').click();
+    // the PDF, a picture of each chosen page, then the reading of those pages only
+    await expect.poll(() => asked.filter((a) => a.startsWith('POST'))).toEqual([
+      'POST /__pianor/photo/book?name=Old_Waltz.pdf&title=Old%20Waltz',
+      'POST /__pianor/photo/book/book-old-waltz/page/1',
+      'POST /__pianor/photo/book/book-old-waltz/page/2',
+      'POST /__pianor/photo/book/book-old-waltz/read?pages=1,2',
+    ]);
+    // the parts over the pages: cut at the page start, 12 and 8 bars
+    await expect(page.locator('.book-tool-part')).toHaveCount(2);
+    await expect(page.locator('.book-tool-part').first()).toContainText('1. Part 1 bars 1 to 12, page 1.');
+    await expect(page.locator('#book-tool-split canvas')).toHaveCount(2);
+    // Esc asks before throwing the reading away; no keeps it
+    page.once('dialog', (d) => void d.dismiss());
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#book-tool')).toHaveCount(1);
+    await page.locator('#book-tool-split-1').click();
+    await expect(page.locator('.book-tool-part')).toHaveCount(3);
+    await expect(page.locator('.book-tool-part').first()).toContainText('bars 1 to 4');
+    await page.locator('#book-tool-join-1').click();
+    await expect(page.locator('.book-tool-part')).toHaveCount(2);
+    // a page looked at closely, and back
+    await page.locator('#book-tool-show-2').click();
+    await expect(page.locator('#book-tool-page-view')).toBeVisible();
+    await page.locator('#book-tool-to-parts').click();
+    // back to the pages keeps the reading while the same pages are chosen
+    await page.locator('#book-tool-back').click();
+    await page.locator('#book-tool-to-check').click();
+    await expect(page.locator('#book-tool-make')).toHaveText('Make the song (2 parts)');
+    await page.locator('#book-tool-make').click();
+    await waitForScene(page, 'song');
+    const song = await page.evaluate(() => (window.__game.registry.get('context') as { ownSongs: { list(): { title: string; nodes: { kind: string; piece?: string; name?: string }[] }[] } }).ownSongs.list()[0]);
+    expect(song?.title).toBe('Old Waltz');
+    expect(song?.nodes.map((n) => [n.kind, n.piece, n.name])).toEqual([['piece', 'own-old-waltz-p01', 'Part 1'], ['piece', 'own-old-waltz-p02', 'Part 2']]);
+    expect(partsAsked).toEqual([{ id: 'own-old-waltz-p01', movement: 0, firstBar: 0, lastBar: 11 }, { id: 'own-old-waltz-p02', movement: 0, firstBar: 12, lastBar: 19 }]);
     expectNoErrors(errors);
   });
 });

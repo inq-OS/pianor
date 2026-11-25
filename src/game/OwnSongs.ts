@@ -58,6 +58,12 @@ export class OwnSongs {
     return song;
   }
 
+  /** A new song made by `make` with a free id from its title (an imported book's song, ft_Y_04 slice 6), saved at once. */
+  async createFrom(title: string, make: (id: string) => Song): Promise<{ song: Song; saved: boolean }> {
+    const song = make(this.freeId(title));
+    return { song, saved: await this.save(song) };
+  }
+
   /** Keep a new version of a song; false when the storage refused it (it still holds for this session). */
   async save(song: Song): Promise<boolean> {
     this.songs.set(song.id, song);

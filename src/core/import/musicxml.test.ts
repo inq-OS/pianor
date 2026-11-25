@@ -298,6 +298,36 @@ describe('MusicXML to a chart (ft_Y_04.AC3)', () => {
     expect(bad).toEqual({ ok: false, reason: expect.stringContaining('broke a chart rule') });
   });
 
+  it('ft_Y_04.AC19 says where pages and systems start, and where double bar lines, repeat signs and rehearsal marks stand', () => {
+    const q = n('C', 4, 4);
+    const upper = [
+      `${attrs()}${q}`,
+      `<print new-system="yes"/>${q}<barline location="right"><bar-style>light-light</bar-style></barline>`,
+      `<barline location="left"><repeat direction="forward"/></barline><direction><direction-type><rehearsal>Trio</rehearsal></direction-type></direction>${q}`,
+      `<print new-page="yes"/>${q}<barline location="right"><bar-style>light-heavy</bar-style><repeat direction="backward"/></barline>`,
+      `${q}<barline location="right"><bar-style>light-heavy</bar-style></barline>`,
+    ];
+    // a second part's own words are not the score's
+    const lower = [`${attrs()}${q}`, `<print new-system="yes"/>${q}`, `<direction><direction-type><rehearsal>X</rehearsal></direction-type></direction>${q}`, q, q];
+    const result = musicXmlToChart(
+      score(upper, { parts: [upper, lower] }),
+      'test',
+    );
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.marks).toEqual({
+      pageStarts: [0, 3],
+      systemStarts: [0, 1, 3],
+      sectionEnds: [1, 3, 4],
+      rehearsals: [{ bar: 2, text: 'Trio' }],
+    });
+  });
+
+  it('a score without layout marks starts one page and one system at its first bar', () => {
+    const result = musicXmlToChart(score([`${attrs()}${n('C', 4, 4)}`, n('D', 4, 4)]), 'test');
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.marks).toEqual({ pageStarts: [0], systemStarts: [0], sectionEnds: [], rehearsals: [] });
+  });
+
   it('a movement title stands in for a missing work title, then the id', () => {
     expect(read(score([`${attrs()}${n('C', 4, 4)}`], { head: '<movement-title>Menuet</movement-title>' })).chart.title).toBe('Menuet');
     expect(read(score([`${attrs()}${n('C', 4, 4)}`])).chart.title).toBe('test');

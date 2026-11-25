@@ -10,7 +10,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import type { Plugin } from 'vite';
 import { readMusicXmlFile } from './analysis/scoreFile.ts';
-import { audiverisFound, recognise } from './import/audiveris.ts';
+import { audiverisFound, readBook, recognise } from './import/audiveris.ts';
+import { BOOK_PATH, BookServer, type Answer, type BookIo, type PartAsk } from './import/bookServer.ts';
+import { decodeJpegGray, decodePngGray, encodePngGray } from './import/clean.ts';
 import { PHOTO_IN, PHOTO_MAP, PHOTO_OUT, readSheet, sheetKind, titleOf, type PhotoMap, type SheetResult } from './import/photo.ts';
 
 /** Where the piece maker asks. */
@@ -91,19 +93,58 @@ export function sameOrigin(req: IncomingMessage): boolean {
   }
 }
 
-/** The server's answers: whether it can read photos, a photo read into a piece, and a piece's cleaned picture and bar map. */
-export function photoHandler(server: PhotoServer): (req: IncomingMessage, res: ServerResponse, next: () => void) => void {
+/** A JSON body, or undefined when it is not JSON. */
+function jsonOf(bytes: Buffer | null): unknown {
+  try {
+    return bytes ? JSON.parse(bytes.toString('utf8')) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** The book requests (ft_Y_04 slice 6, `bookServer.ts`): `rest` is the path after `/__pianor/photo/book`. */
+async function bookRequest(book: BookServer, req: IncomingMessage, url: URL, rest: string, photoBusy: boolean): Promise<Answer> {
+  const [, id = '', what = '', n = ''] = rest.split('/');
+  if (req.method === 'GET' && what === 'status') return book.status(id);
+  if (req.method !== 'POST') return { status: 404, body: { ok: false, reason: 'no such request' } };
+  if (!sameOrigin(req)) return { status: 403, body: { ok: false, reason: 'only the game itself may send a book' } };
+  if (id === '') {
+    const bytes = await bodyOf(req);
+    if (!bytes || bytes.length === 0) return { status: 200, body: { ok: false, reason: 'the PDF did not arrive' } };
+    return book.create(url.searchParams.get('title')?.trim() || titleOf(url.searchParams.get('name') ?? 'book.pdf'), bytes);
+  }
+  if (what === 'page') {
+    const bytes = await bodyOf(req);
+    return bytes ? book.page(id, Number(n), bytes) : { status: 200, body: { ok: false, reason: 'the page did not arrive' } };
+  }
+  if (what === 'read') return book.read(id, (url.searchParams.get('pages') ?? '').split(',').filter(Boolean).map(Number), photoBusy);
+  if (what === 'stop') return book.stop(id);
+  if (what === 'parts') {
+    const asks = jsonOf(await bodyOf(req));
+    if (!Array.isArray(asks)) return { status: 200, body: { ok: false, reason: 'the parts did not arrive' } };
+    return book.parts(id, asks as PartAsk[]);
+  }
+  return { status: 404, body: { ok: false, reason: 'no such request' } };
+}
+
+/** The server's answers: whether it can read photos, a photo read into a piece, a piece's cleaned picture and bar map, and books. */
+export function photoHandler(server: PhotoServer, book: BookServer = new BookServer(nodeBookIo(server))): (req: IncomingMessage, res: ServerResponse, next: () => void) => void {
   let busy = false;
   return (req, res, next) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
     if (url.pathname !== PHOTO_API && !url.pathname.startsWith(`${PHOTO_API}/`)) return next();
+    const bookAt = `${PHOTO_API}${BOOK_PATH}`;
+    if (url.pathname === bookAt || url.pathname.startsWith(`${bookAt}/`)) {
+      void bookRequest(book, req, url, url.pathname.slice(bookAt.length), busy).then((answer) => send(res, answer.status, answer.body));
+      return;
+    }
     void (async () => {
       if (url.pathname === PHOTO_API && req.method === 'GET') return send(res, 200, server.available());
       if (url.pathname === PHOTO_API && req.method === 'POST') {
         const name = safeName(url.searchParams.get('name') ?? '');
         if (sheetKind(name) !== 'image') return send(res, 200, { ok: false, reason: `${name} is not a photo or scan` });
         if (!sameOrigin(req)) return send(res, 403, { ok: false, reason: 'only the game itself may send a photo' });
-        if (busy) return send(res, 200, { ok: false, reason: 'another photo is being read: wait for it' });
+        if (busy || book.busy()) return send(res, 200, { ok: false, reason: 'another photo is being read: wait for it' });
         const ready = server.available();
         if (!ready.ok) return send(res, 200, ready);
         // taken before the upload is read, so two photos sent at once never run two Audiveris in one folder
@@ -166,6 +207,32 @@ export function nodePhotoServer(inDir = PHOTO_IN, outDir = PHOTO_OUT): PhotoServ
       mkdirSync(dirname(path), { recursive: true });
       writeFileSync(path, bytes);
     },
+  };
+}
+
+/** The real book io: files under `private/photo/`, Audiveris from `audiveris.ts`, pictures through jpeg-js and fast-png. */
+export function nodeBookIo(server: PhotoServer): BookIo {
+  return {
+    inDir: server.inDir,
+    outDir: server.outDir,
+    available: () => server.available(),
+    writeFile: (path, bytes) => server.writeFile(path, bytes),
+    read: (pdf, sheets, out, line) => readBook(pdf, sheets, out, (text) => {
+      console.log(`[book] ${text}`);
+      line(text);
+    }),
+    readScore: readMusicXmlFile,
+    decode: (path) => {
+      const bytes = server.readFile(path);
+      if (!bytes) return null;
+      try {
+        return path.toLowerCase().endsWith('.png') ? decodePngGray(bytes) : decodeJpegGray(bytes);
+      } catch {
+        return null;
+      }
+    },
+    encodePng: encodePngGray,
+    now: () => Date.now(),
   };
 }
 

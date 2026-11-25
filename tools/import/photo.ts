@@ -69,6 +69,24 @@ export function exportOf(input: string, files: readonly string[]): string | unde
   return scores[0];
 }
 
+/** Audiveris's command line for a book: the chosen sheets (pages, from 1) of a PDF read as one score, exported as MusicXML. */
+export function audiverisBookArgs(input: string, outDir: string, sheets: readonly number[]): string[] {
+  return ['-batch', '-export', '-output', outDir, '-sheets', ...sheets.map(String), '--', input];
+}
+
+/** Every MusicXML Audiveris wrote for a book, in movement order (`<name>.mxl`, or `<name>.mvt1.mxl`, `.mvt2.mxl`, ...). */
+export function exportsOf(input: string, files: readonly string[]): string[] {
+  const base = basename(input, extname(input)).toLowerCase();
+  const movement = (f: string): number => Number(/\.mvt(\d+)\.[^.]+$/i.exec(f)?.[1] ?? 0);
+  return files.filter((f) => sheetKind(f) === 'score' && basename(f).toLowerCase().startsWith(base)).sort((a, b) => movement(a) - movement(b) || a.localeCompare(b));
+}
+
+/** The sheet (page) Audiveris says it is working on in a line of its log, if it names one (the word sheet, a hash sign, its number). */
+export function sheetOfLine(line: string): number | undefined {
+  const m = /sheet\s*#\s*(\d+)/i.exec(line);
+  return m ? Number(m[1]) : undefined;
+}
+
 /** The scores of an earlier run in an output folder: removed before Audiveris runs, so a failed run never reports an old result. */
 export function staleScores(files: readonly string[]): string[] {
   return files.filter((f) => sheetKind(f) === 'score');
