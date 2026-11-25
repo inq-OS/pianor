@@ -172,10 +172,10 @@ test.describe('tuning the beat lanes (core_13 rule 10)', () => {
     await page.keyboard.press('ArrowLeft');
     await expect.poll(async () => (await saved(page))?.[0]?.wave.height).toBe(1.4);
     await page.keyboard.press('Escape');
-    // the blink is on the bubble's second page
+    await expect.poll(() => bubbleOpen(page, 'beat-lanes')).toBe(false);
+    // the blink, on the lane's bubble
     await page.mouse.click(lane.x, lane.y, { button: 'right' });
     await expect.poll(() => bubbleOpen(page, 'beat-lanes')).toBe(true);
-    await clickButton(page, 'beat-lanes', await lastButton(page, 'beat-lanes', 'More'));
     await expect.poll(() => lastButton(page, 'beat-lanes', 'Notes light up as the wave passes')).toBeGreaterThanOrEqual(0);
     await clickButton(page, 'beat-lanes', await lastButton(page, 'beat-lanes', 'Notes light up as the wave passes'));
     await expect.poll(async () => (await saved(page))?.[0]?.blink).toBe(true);

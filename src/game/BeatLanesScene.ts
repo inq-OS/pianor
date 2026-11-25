@@ -111,6 +111,7 @@ export class BeatLanesScene extends PixelScene {
   }
 
   protected override back(): void {
+    this.game.canvas.style.cursor = '';
     this.scene.start('settings', freshData(this.returnTo));
   }
 
@@ -222,6 +223,9 @@ export class BeatLanesScene extends PixelScene {
       return;
     }
     this.press = { x: p.x, y: p.y };
+    // a finger has no hover: the lane a lift would add shows while it is down (d286)
+    this.hover = { x: p.x, y: p.y };
+    this.showLanes();
   }
 
   /** While held, the lane follows the pointer up and down; otherwise the faint lane a click would add follows it. */
@@ -237,6 +241,8 @@ export class BeatLanesScene extends PixelScene {
       this.showLanes();
       return;
     }
+    // a lane under the pointer can be dragged up and down
+    this.game.canvas.style.cursor = this.drag || (this.onPreview(p) && !this.menuOpen && this.laneNear(p.y) >= 0) ? 'ns-resize' : '';
     const before = this.addAt();
     this.hover = { x: p.x, y: p.y };
     const after = this.addAt();
@@ -272,7 +278,7 @@ export class BeatLanesScene extends PixelScene {
   }
 
   protected override bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
-    if (at === null) return this.lanes[this.selected] ? this.laneOptions(this.selected) : [this.addOption(null)];
+    if (at === null) return this.lanes[this.selected] ? this.laneOptions(this.selected, true) : [this.addOption(null)];
     const screen = { x: this.root.x + at.x * this.px.scale, y: this.root.y + at.y * this.px.scale };
     // asked again with the bubble open (an option opening its slider), its own buttons are over the place
     if (!this.onPreview(screen, false)) return null;
@@ -290,9 +296,10 @@ export class BeatLanesScene extends PixelScene {
 
   /**
    * The bubble of lane `i` (core_13 rule 10): 0 where it runs (above, between, or taken away), 1 to 4 a slider for each kind
-   * of dot, 5 and 6 the wave's height and width; More turns to its place and the blink.
+   * of dot, 5 the wave's height, 6 the blink; More turns to the wave's width and the lane's place up or down, and (from More
+   * or the keyboard) a new lane and the next lane to tune.
    */
-  private laneOptions(i: number): (ToolbarItem | null)[] {
+  private laneOptions(i: number, fromMore = false): (ToolbarItem | null)[] {
     const look = this.lanes[i]!;
     const tryLook = (next: LaneLook | null) => (on: boolean) => this.tryOut(i, on ? next : undefined);
     const placeItem = (place: LaneLook['place'], key: StringKey): MenuItem => ({
@@ -309,14 +316,31 @@ export class BeatLanesScene extends PixelScene {
     const sliders = SLIDERS.map((s): ToolbarItem => ({
       label: t(s.label), icon: LANE_ICONS[s.icon], onClick: () => undefined,
       // the lane as it is when the knob moves: a slider kept stays open for another try
-      slider: { value: s.get(look), min: s.min, max: s.max, step: s.step, change: (v) => this.tryOut(i, s.set(this.lanes[i] ?? look, v)), commit: (v) => this.keep(i, s.set(this.lanes[i] ?? look, v), false) },
+      slider: {
+        value: s.get(look), min: s.min, max: s.max, step: s.step,
+        change: (v) => this.tryOut(i, s.set(this.lanes[i] ?? look, v)), commit: (v) => this.keep(i, s.set(this.lanes[i] ?? look, v), false), cancel: () => this.tryOut(i, undefined),
+      },
     }));
     const blinking = look.blink === true;
     const blink: ToolbarItem = {
       label: t('lanes.blink'), icon: LANE_ICONS.blink, active: blinking, preview: tryLook({ ...look, blink: !blinking }),
       onClick: () => this.keep(i, { ...look, blink: !blinking }),
     };
-    return [place, ...sliders, blink];
+    const [ghost, beat, top, bottom, height, reach, move] = sliders;
+    // from More or the keyboard (no lane under a pointer): a new lane, and the next lane to tune
+    const keyboard: (ToolbarItem | null)[] = fromMore
+      ? [
+          this.lanes.length < LANE_LIMITS.lanes ? this.addOption(null) : null,
+          this.lanes.length > 1 ? { label: t('lanes.next'), icon: LANE_ICONS.next, onClick: () => this.nextLane() } : null,
+        ]
+      : [];
+    return [place, ghost!, beat!, top!, bottom!, height!, blink, reach!, move!, ...keyboard].filter((o, k) => o !== null || k < 7);
+  }
+
+  /** Tune the next lane: the bubble opens again for it (from More or the keyboard). */
+  private nextLane(): void {
+    this.selected = (this.selected + 1) % Math.max(1, this.lanes.length);
+    this.time.delayedCall(0, () => this.openBubble(null, { page: 0 }));
   }
 
   /** Show lane `i` as `look` would draw it (null: without it) while the bubble tries it; undefined shows it as it is again. */

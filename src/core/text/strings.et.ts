@@ -631,6 +631,7 @@ export const stringsEt: Record<StringKey, string> = {
   'lanes.place': 'Kus rida jookseb',
   'lanes.move': 'Liiguta rida üles või alla',
   'lanes.blink': 'Noodid süttivad, kui laine neist üle läheb',
+  'lanes.next': 'Häälesta järgmist rida',
   'lanes.reach': 'Kui lai laine on',
   'settings.paceClick': 'Klõps õppimise ajal',
   'settings.paceClickOn': 'Klõpsab sinu enda tempos, kui kolm klahvi on mängitud',

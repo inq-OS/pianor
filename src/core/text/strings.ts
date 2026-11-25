@@ -636,6 +636,7 @@ export const strings = {
   'lanes.place': 'Where the row runs',
   'lanes.move': 'Move the row up or down',
   'lanes.blink': 'Notes light up as the wave passes',
+  'lanes.next': 'Tune the next row',
   'lanes.reach': 'How wide the wave is',
   'settings.paceClick': 'Click while learning',
   'settings.paceClickOn': 'Clicks at your own pace once three keys are played',

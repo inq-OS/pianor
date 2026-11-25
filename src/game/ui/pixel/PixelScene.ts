@@ -91,6 +91,8 @@ interface OpenSlider {
   /** Its track, in art pixels. */
   arc: SliderArc;
   value: number;
+  /** The value kept last (the one a drag given up goes back to). */
+  kept: number;
   dragging: boolean;
   set: (value: number, keep: boolean) => void;
 }
@@ -103,6 +105,8 @@ export interface BubbleSlider {
   step: number;
   change: (value: number) => void;
   commit: (value: number) => void;
+  /** A drag given up (Esc, or the bubble closed while the knob is held): the screen takes its preview away. */
+  cancel?: () => void;
 }
 
 /** A layer drawn over the staff (which draws at depth 8 to 10) and under a drop-down menu: Kiur, his bubble, an open panel. */
@@ -707,7 +711,10 @@ export abstract class PixelScene extends Phaser.Scene {
     if (!menu) return;
     this.menu = null;
     // a drag given up shows the value it started from again
-    if (menu.slider?.dragging) menu.slider.item.change(menu.slider.item.value);
+    if (menu.slider?.dragging) {
+      menu.slider.item.change(menu.slider.kept);
+      menu.slider.item.cancel?.();
+    }
     for (const preview of menu.previews ?? []) preview(false);
     this.buttons = this.buttons.filter((b) => !menu.buttons.includes(b));
     menu.buttons.forEach((b) => b.destroy());
@@ -1408,6 +1415,12 @@ export abstract class PixelScene extends Phaser.Scene {
         slider.set(slider.value, true);
         return;
       }
+      // a press that just misses the open slider's track leaves the bubble open
+      if (slider) {
+        const a = this.artPoint(p);
+        const d = Math.hypot(a.x - slider.arc.centre.x, a.y - slider.arc.centre.y);
+        if (d > layout.area.w / 2 && d <= slider.arc.radius + CHOICE_SIZE) return;
+      }
       if (this.bubbleFreshTouch) {
         this.bubbleFreshTouch = false;
         return;
@@ -1538,7 +1551,7 @@ export abstract class PixelScene extends Phaser.Scene {
     const span = Math.abs(arc.to - arc.from) * arc.radius;
     const range = item.max - item.min;
     const state: OpenSlider = {
-      item, arc, value: item.value, dragging: false,
+      item, arc, value: item.value, kept: item.value, dragging: false,
       set: (value, keep) => {
         state.value = value;
         const f = range > 0 ? (value - item.min) / range : 0;
@@ -1550,7 +1563,10 @@ export abstract class PixelScene extends Phaser.Scene {
         const k = sliderPoint(arc, f);
         knob.setPosition(Math.round(k.x - CHOICE_SIZE / 2), Math.round(k.y - CHOICE_SIZE / 2));
         item.change(value);
-        if (keep) item.commit(value);
+        if (keep) {
+          state.kept = value;
+          item.commit(value);
+        }
       },
     };
     state.set(item.value, false);
