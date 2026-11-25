@@ -284,4 +284,5 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d302](game.md#d302) | Keri's places become close-ups whose painted lines are the staff, each hosting a built trainer as a job that changes the island for good | ft_1_38, ft_Y_16, ft_1_19, ft_1_18 |
 | [d303](game.md#d303) | The theory lesson book lists everything there is to learn, built or not: a topic with no lesson yet stands in it as a ghosted placeholder with its name only | ft_1_39 |
 | [d304](game.md#d304) | Kiur teaches the theory lessons in at most twelve stoic words a step, naming and pointing rather than describing; the first lessons are half steps, whole steps and the major scale | ft_1_39 |
+| [d305](game.md#d305) | The theory lessons' order is a skill tree of prerequisites over the catalog ids, cut into stages, with nothing locked | ft_1_39 |
 <!-- /docs:index -->

@@ -33,6 +33,23 @@ AX-0: every step ends with the student playing; no page is only read, and every 
 10. **Who teaches** ([d304](../decisions/game.md#d304)). Kiur shows and explains every lesson (AX-4); the teacher only assigns lessons and holds checks, as with pieces.
 11. **Stoic, pointing words** (d304). At most twelve words per step; the picture carries the rest. A line does not describe a thing: it names the thing and an arrow points at it, and a thing that does several things gets one short label pointing at each part. No praise (AX-2.1).
 12. **First lessons** are areas D and E of the catalog: half step, whole step, the major scale (slice 1).
+13. **The path is a skill tree** ([d305](../decisions/game.md#d305)). Each lesson names the catalog ids it needs; the ids and these links form a tree with no loops. Nothing is locked: a lesson is *ready* once every lesson it needs has a medal, and the suggested next lesson is the ready lesson in the lowest stage. The book stays sorted by area (the map); the tree and its stages give the order. The teacher can move a lesson to another stage. The tree is drawn from the data, so a new lesson needs no picture of its own.
+
+## The path (draft stages)
+
+`AX-3 provisional:` the stages and links below are a first draft, ordered like the graded theory syllabi; they become data with slice 2.
+
+| Stage | Topics (catalog ids) | Needs |
+|---|---|---|
+| 1 First steps | A1, A2, A4, A5, B1, B2, C1, C2 | A2 needs A1; B2 needs B1; C2 needs C1 |
+| 2 Both hands, first rhythms | B3, B4, C3, C8, D1, D2, D3, K1 | B4 needs B2, B3; D1 needs A1, A2; D2 needs D1; D3 needs D2; C8 needs C2 |
+| 3 The major scale | E1, C4, C6, C12, B5, D4, F1, I1 | E1 needs D2, D3; F1 needs B4; C6 needs C8; I1 needs C6 |
+| 4 First chords | G1, E6, E2, E3, E4, F2, F3, M1, M2 | G1 needs E1, F1; E2 needs E1; E3, E4 need E2; F2 needs F1, D2 |
+| 5 Keys and harmony | E5, G3, H2, H3, C14, J1, N1, N2 | E5 needs E3, E4; H2 needs G1, E6; H3 needs H2 |
+| 6 Minor and sevenths | E7, E9, E10, E11, G5, G6, G7, G8, G9, G2, F4 | E7 needs E5; G5 needs G1, F2; G6 to G9 need G5 |
+| 7 and on | the rest of the catalog, each after what it needs | |
+
+Open projects that order learning this way: Exercism names each exercise's concepts and prerequisites in one checked config; Kwan joins learning goals by prerequisite links with mastery per goal; Skill Compass turns mastered topics into a list of what is next. Exercism locks; Pianor does not.
 
 ## Slices
 
@@ -40,7 +57,7 @@ AX-0: every step ends with the student playing; no page is only read, and every 
 |---|---|---|
 | 0 | Previews of a lesson's screens and the book; the ergonomics review of them (d293) | simple |
 | 1 | The book with every catalog row (ghosted where no lesson), the lesson runner's six steps, the picture layout and its preview tool, lessons for D1, D2 and E1 (half step, whole step, the major scale) | large |
-| 2 | Medals, reviews on later days, the suggested next lesson, a lesson assigned by the teacher | medium |
+| 2 | Medals, reviews on later days, the skill tree as data with its loop check, the suggested next lesson, a lesson assigned by the teacher | medium |
 | 3 | Play-alongs found in the player's own approved pieces | medium |
 | 4 | Lessons for the rest of the catalog, one or two areas a pull request, content only | large |
 
@@ -57,5 +74,6 @@ Lessons are content (a new folder under content, zod-validated, `schemaVersion`)
 
 ## TODO
 
-- TODO(builder, R2): slice 0, previews and the ergonomics review, before slice 1.
+- TODO(builder, R2): slice 0's previews and ergonomics review are done (second pass after the review). Still open from the review, for slice 1: Left and Right keys turn the book's pages, Enter opens the suggested lesson, Esc leaves; a press on a placeholder shows a short "not yet"; the "?" of a Try item pulses while it waits; a wrong note visibly empties the clean-run counter; the door uses the game's door picture.
+- TODO(builder, R2): with slice 2, `piece:lint`-style checking of the tree: every needed id exists in the catalog and there is no loop; test first.
 - NEEDS-HUMAN: the EZ-220 silent-light test (ft_Y_06) decides whether Try can light the real keyboard.
