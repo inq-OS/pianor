@@ -57,7 +57,7 @@ describe('headers', () => {
     expect(only('C4 |]', HEADER.replace('M:4/4', 'M:6/8'))).toMatchObject({ line: 3, message: expect.stringContaining('meter "6/8" is not supported yet') });
     expect(only('C4 |]', HEADER.replace('K:C', 'K:Dor'))).toMatchObject({ line: 6, message: expect.stringContaining('key "Dor" is not supported yet') });
     expect(only('C4 |]\nM:3/4\n')).toMatchObject({ line: 8, message: expect.stringContaining('meter changes') });
-    expect(only('C4 |]\nK:G\n')).toMatchObject({ line: 8, message: expect.stringContaining('key changes') });
+    expect(only('C4 |]\nK:G\n')).toMatchObject({ line: 8, message: expect.stringContaining('needs music after it') }); // core_09.AC56
     expect(only('C4 |]\nQ:1/4=90\n')).toMatchObject({ line: 8, message: expect.stringContaining('tempo changes') });
     expect(only('C4 |]\nL:1/8\n')).toMatchObject({ line: 8 });
   });

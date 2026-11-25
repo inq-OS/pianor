@@ -43,6 +43,14 @@ describe('the key that was played, on the staff (ft_1_12.AC7)', () => {
     expect(flat.accidental).toBeNull(); // the key signature already flattens B
   });
 
+  it('core_09.AC57: after a key change the mark is spelled and signed in the key of the awaited note', () => {
+    const changed = { ...chart, keyMap: [{ tick: 0, fifths: 0, mode: 'major' as const }, { tick: 960, fifths: -1, mode: 'major' as const }] };
+    expect(playedMark(layout, changed, [1], 70)!.accidental).toBe(1); // C major: A sharp
+    const after = playedMark(layout, changed, [2], 70)!; // the A4 at tick 960 stands in F major
+    expect(after.spelling).toEqual({ step: 'B', alter: -1, octave: 4 });
+    expect(after.accidental).toBeNull();
+  });
+
   it('ft_1_12.AC7: is null when nothing is awaited or the note is not on the shown layout', () => {
     expect(playedMark(layout, chart, [], 60)).toBeNull();
     expect(playedMark(layout, chart, [99], 60)).toBeNull();

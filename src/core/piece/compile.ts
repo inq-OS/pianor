@@ -145,28 +145,7 @@ export function compilePiece(input: CompileInput): CompileResult {
   const slurs = voices.flatMap(({ voice, track }) => voice.slurs.map((s) => ({ track: track.id, voice: s.voice ?? 1, startTick: s.startTick, endTick: s.endTick })));
   // Triplets (core_09.AC49, d163): three in the time of two, from the first member's start to the last's.
   const tuplets = voices.flatMap(({ voice, track }) => voice.tuplets.map((t) => ({ track: track.id, voice: t.voice ?? 1, startTick: t.startTick, endTick: t.endTick, actual: 3, normal: 2 })));
-  // Grace notes (core_09.AC31, d121): each sits on the start of its main note, in the voice's track; a group keeps its
-  // written order (core_09.AC60), which the stable sort leaves alone.
-  const graces = voices
-    .flatMap(({ voice, track }) =>
-      voice.items.flatMap((item) =>
-        item.kind === 'notes' && item.graces
-          ? item.graces.map((g) => ({ track: track.id, voice: item.voice ?? 1, tick: item.tick, pitch: { midi: g.note.midi, spelling: g.note.spelling }, slash: g.slash }))
-          : [],
-      ),
-    )
-    .sort((a, b) => a.tick - b.tick);
-  // Ornament signs (core_09.AC60, d305), on the start of their note.
-  const ornaments = voices
-    .flatMap(({ voice, track }) =>
-      voice.items.flatMap((item) => {
-        const o = item.kind === 'notes' ? item.ornament : undefined;
-        if (!o) return [];
-        const pitch = (n: { midi: number; spelling: Spelling }) => ({ midi: n.midi, spelling: n.spelling });
-        return [{ track: track.id, voice: item.voice ?? 1, tick: item.tick, kind: o.kind, ...(o.upper ? { upper: pitch(o.upper) } : {}), ...(o.lower ? { lower: pitch(o.lower) } : {}) }];
-      }),
-    )
-    .sort((a, b) => a.tick - b.tick);
+  const marks = marksOf(voices);
 
   const midis = notes.map((n) => n.midi);
   const meterMap = [{ tick: 0, num: meter.num, den: meter.den }];
@@ -180,7 +159,7 @@ export function compilePiece(input: CompileInput): CompileResult {
     ppq: PPQ,
     tempoMap: [{ tick: 0, bpm: parsed.bpm ?? DEFAULT_BPM }],
     meterMap,
-    keyMap: [{ tick: 0, fifths: parsed.key.fifths, mode: parsed.key.mode }],
+    keyMap: [{ tick: 0, fifths: parsed.key.fifths, mode: parsed.key.mode }, ...(parsed.keyChanges ?? [])],
     tracks: voices.map((v) => v.track),
     notes,
     rests,
@@ -188,8 +167,7 @@ export function compilePiece(input: CompileInput): CompileResult {
     phrases: meta.phrases.map((p) => ({ name: p.name, startBar: p.bars[0] - firstPrinted, endBar: p.bars[1] - firstPrinted })),
     ...(repeats.length > 0 ? { repeats } : {}),
     ...(slurs.length > 0 ? { slurs } : {}),
-    ...(graces.length > 0 ? { graces } : {}),
-    ...(ornaments.length > 0 ? { ornaments } : {}),
+    ...marks,
     ...(tuplets.length > 0 ? { tuplets } : {}),
     range: { low: Math.min(...midis), high: Math.max(...midis) },
   };
@@ -285,4 +263,30 @@ function resolveVoices(
     if (!named.some((v) => v.id === hand)) error(metaFile, `hands lists ${hand}, but the piece has no V:${hand} voice`);
   }
   return out;
+}
+
+/**
+ * Grace notes (core_09.AC31, d121), each on the start of its main note in the voice's track, a group in its written order
+ * (core_09.AC60), which the stable sort leaves alone; and ornament signs (core_09.AC60, d305) on the start of their note.
+ */
+function marksOf(voices: readonly { voice: AbcVoice; track: Chart['tracks'][number] }[]): Pick<Chart, 'graces' | 'ornaments'> {
+  const pitch = (n: { midi: number; spelling: Spelling }) => ({ midi: n.midi, spelling: n.spelling });
+  const graces = voices
+    .flatMap(({ voice, track }) =>
+      voice.items.flatMap((item) =>
+        item.kind === 'notes' && item.graces ? item.graces.map((g) => ({ track: track.id, voice: item.voice ?? 1, tick: item.tick, pitch: pitch(g.note), slash: g.slash })) : [],
+      ),
+    )
+    .sort((a, b) => a.tick - b.tick);
+  const ornaments = voices
+    .flatMap(({ voice, track }) =>
+      voice.items.flatMap((item) => {
+        const o = item.kind === 'notes' ? item.ornament : undefined;
+        if (!o) return [];
+        return [{ track: track.id, voice: item.voice ?? 1, tick: item.tick, kind: o.kind, ...(o.upper ? { upper: pitch(o.upper) } : {}), ...(o.lower ? { lower: pitch(o.lower) } : {}) }];
+      }),
+    )
+    .sort((a, b) => a.tick - b.tick);
+  // absent when there are none, as the chart format says
+  return { ...(graces.length > 0 ? { graces } : {}), ...(ornaments.length > 0 ? { ornaments } : {}) };
 }

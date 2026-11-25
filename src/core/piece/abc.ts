@@ -108,6 +108,8 @@ export interface ParsedAbc {
   bpm?: number;
   /** The K: signature; C major when the piece has none yet. */
   key: { fifths: number; mode: 'major' | 'minor' };
+  /** The keys a K: line in the music changes to, each from a bar line, in time order (core_09.AC56); absent when the key never changes. */
+  keyChanges?: { tick: number; fifths: number; mode: 'major' | 'minor' }[];
   voices: AbcVoice[];
   diagnostics: Diagnostic[];
 }
@@ -164,6 +166,18 @@ interface VoiceState extends AbcVoice, Layer {
    */
   /** Each triplet read, where it starts in its bar, to check once the pick-up is known that it starts on a beat. */
   tupletStarts: { bar: number; offset: number; line: number; column: number }[];
+  /** The key changes this voice wrote, each at a bar line (core_09.AC56), with the K: name and where it was written. */
+  keyChanges: KeyChange[];
+}
+
+interface KeyChange {
+  tick: number;
+  bar: number;
+  fifths: number;
+  mode: 'major' | 'minor';
+  name: string;
+  line: number;
+  column: number;
 }
 
 /** The written lengths a triplet's members may have: eighths (one beat for three) and quarters (two beats), AX-3 provisional (d163). */
@@ -765,7 +779,7 @@ export function parseAbc(text: string, file = 'piece.abc'): ParsedAbc {
 
   const voices = new Map<string, VoiceState>();
   const newVoice = (id: string, line: number): VoiceState => ({
-    id, items: [], bars: 0, pickup: 0, endTick: 0, shortBars: [], lastBar: null, repeats: [], repeatOpen: null, ending: null, awaitSecond: null, openSlur: null, slurs: [], tuplets: [], openTuplet: null, tupletStarts: [], line, tick: 0, barStart: 0, barErrored: false, pendingTie: null, accidentals: new Map(),
+    id, items: [], bars: 0, pickup: 0, endTick: 0, shortBars: [], lastBar: null, repeats: [], repeatOpen: null, ending: null, awaitSecond: null, openSlur: null, slurs: [], tuplets: [], openTuplet: null, tupletStarts: [], line, tick: 0, barStart: 0, barErrored: false, pendingTie: null, accidentals: new Map(), keyChanges: [],
     layer: 1, other: newLayer(), overlaid: false, mainFilled: 0,
   });
 
@@ -827,9 +841,29 @@ export function parseAbc(text: string, file = 'piece.abc'): ParsedAbc {
     unit = { num: Number(m[1]), den: Number(m[2]) };
   };
 
+  /** The key in force for `voice` where it stands: its latest change, or the header's. */
+  const keyNowOf = (voice: VoiceState): { fifths: number; mode: 'major' | 'minor' } => voice.keyChanges[voice.keyChanges.length - 1] ?? keyInfo;
+
+  /**
+   * A K: line in the music (core_09.AC56): the key changes from the bar line the voice stands at. Every voice writes it at
+   * the same bar (checked at the end), so each hand reads its own notes in the key it is in, as a written score does.
+   */
+  const readKeyChange = (value: string, line: number, column: number): void => {
+    const [key, ...rest] = value.split(/\s+/);
+    if (rest.length > 0) return error(line, column, `"${rest[0]}": a clef or other setting is not supported in a key change (write only the key, e.g. K:G)`);
+    const named = readKey(key ?? '');
+    if (!named) return error(line, column, `key "${key ?? ''}" is not supported yet (use a major or minor key such as C, G, F#m or Bb)`);
+    const voice = current;
+    if (!voice || voice.tick === 0) return error(line, column, 'the first key goes in the header: write it in the K: line before the music');
+    if (voice.tick !== voice.barStart || voice.layer === 2) return error(line, column, 'a key change must stand at a bar line: write the K: line on its own line after a |');
+    const now = keyNowOf(voice);
+    if (now.fifths === named.fifths && now.mode === named.mode) return;
+    voice.keyChanges.push({ tick: voice.tick, bar: voice.bars, ...named, name: key!, line, column });
+  };
+
   /** K: ends the header: the key, an optional clef, and from the meter the bar length and default note length. */
   const readKeyField = (value: string, line: number, column: number): void => {
-    if (keySeen) return error(line, column, 'key changes are not supported');
+    if (keySeen) return readKeyChange(value, line, column);
     const [key, ...rest] = value.split(/\s+/);
     const named = readKey(key ?? '');
     if (named) {
@@ -1000,7 +1034,7 @@ export function parseAbc(text: string, file = 'piece.abc'): ParsedAbc {
     const { step, octave } = note.spelling;
     const pitch = `${step}${octave}`;
     if (written !== undefined) voice.accidentals.set(pitch, written);
-    const alter = written ?? voice.accidentals.get(pitch) ?? signature[step];
+    const alter = written ?? voice.accidentals.get(pitch) ?? (voice.keyChanges.length > 0 ? keyAlters(keyNowOf(voice).fifths) : signature)[step];
     const spelling: Spelling = { step, alter, octave };
     return { ...note, midi: spellingToMidi(spelling), spelling };
   };
@@ -1100,12 +1134,39 @@ export function parseAbc(text: string, file = 'piece.abc'): ParsedAbc {
     if (voice.items.length === 0 && voice.id !== '') warn(voice.line, 1, `voice ${voice.id} has no music`);
     if (clefFromKey) voice.clef ??= clefFromKey;
   }
+  const keyChanges = checkKeyChanges([...voices.values()], error);
 
-  const result: ParsedAbc = { voices: [...voices.values()].map(({ id, clef, items, bars, pickup, endTick, repeats, slurs, tuplets, line }) => ({ id, ...(clef ? { clef } : {}), items, bars, pickup, endTick, repeats, slurs, tuplets, line })), key: keyInfo, diagnostics };
+  const result: ParsedAbc = { voices: [...voices.values()].map(({ id, clef, items, bars, pickup, endTick, repeats, slurs, tuplets, line }) => ({ id, ...(clef ? { clef } : {}), items, bars, pickup, endTick, repeats, slurs, tuplets, line })), key: keyInfo, ...keyChanges, diagnostics };
   if (title !== undefined) result.title = title;
   if (meter) result.meter = meter;
   if (bpm !== undefined) result.bpm = bpm;
   return result;
+}
+
+/**
+ * Every voice changes key at the same bars (core_09.AC56): the key is the piece's, so a voice that leaves one out is
+ * refused, named with the bar and the K: line it lacks, and a change needs music after it. The changes of the piece,
+ * when they agree, as the parse result's `keyChanges`.
+ */
+function checkKeyChanges(written: readonly VoiceState[], error: (line: number, column: number, message: string) => void): Pick<ParsedAbc, 'keyChanges'> {
+  for (const voice of written) {
+    for (const change of voice.keyChanges) if (change.tick >= voice.tick) error(change.line, change.column, 'a key change needs music after it');
+  }
+  const voices = written.filter((v) => v.items.length > 0);
+  const all = new Map<number, KeyChange>();
+  for (const voice of voices) for (const change of voice.keyChanges) if (!all.has(change.tick)) all.set(change.tick, change);
+  let agree = true;
+  for (const change of [...all.values()].sort((a, b) => a.tick - b.tick)) {
+    for (const voice of voices) {
+      const own = voice.keyChanges.find((c) => c.tick === change.tick);
+      if (own && own.fifths === change.fifths && own.mode === change.mode) continue;
+      agree = false;
+      const where = own ?? change;
+      error(where.line, where.column, `every voice changes key at the same bar: voice ${voice.id} has no K:${change.name} at bar ${change.bar + 1}`);
+    }
+  }
+  if (!agree || all.size === 0) return {};
+  return { keyChanges: [...all.values()].sort((a, b) => a.tick - b.tick).map(({ tick, fifths, mode }) => ({ tick, fifths, mode })) };
 }
 
 /** AX-3 provisional (d164): one key cannot be held and pressed again, so a pitch the other voice still holds (or starts on the same tick) is refused. */
