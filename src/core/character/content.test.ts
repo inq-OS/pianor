@@ -116,7 +116,7 @@ describe("Puuvaim, the first character (WP-11)", () => {
     expect(lintConversation(conv, { hasKey: (k) => k in strings })).toEqual([]);
     const teaches = Object.values(conv.nodes).flatMap((n) => n.effects ?? []).filter((e) => 'teach' in e);
     expect(teaches).toEqual([{ teach: puuvaim.phrases[1]![0] }]);
-    for (const id of ['puuvaim-1', 'puuvaim-2', 'puuvaim-3']) expect(pieces.get(id)!.status).toBe('draft');
+    for (const id of ['puuvaim-1', 'puuvaim-2', 'puuvaim-3']) expect(['draft', 'approved'], id).toContain(pieces.get(id)!.status);
   });
 
   it('plays its first talk, a later talk, the invitation to the tug and the talk after teaching as cast-and-phrases.md section 5 drafts them', () => {

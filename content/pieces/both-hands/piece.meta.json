@@ -4,7 +4,7 @@
   "titles": { "et": "Mõlemad käed" },
   "level": 5,
   "unlockLevel": 5,
-  "status": "draft",
+  "status": "approved",
   "hands": ["RH", "LH"],
   "phrases": [
     { "name": "Up", "bars": [1, 4] },
