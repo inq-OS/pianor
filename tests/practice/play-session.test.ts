@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import littleSteps from '../fixtures/charts/little-steps.v2.json';
 import { chartSchema, sliceChart } from '../../src/core/chart';
+import { defaultLaneLook } from '../../src/core/layout/beatLane';
 import type { NoteJudged, PieceResult } from '../../src/core/judge';
 import { composePerformance } from '../../src/io/mock/performance';
 import { ScriptedKeyboard } from '../../src/io/mock/ScriptedKeyboard';
@@ -32,6 +33,10 @@ class FakeStaff {
   setHandShifts(shifts: ReadonlyMap<number, 'up' | 'down'>) { this.handShifts.push(shifts); }
   veiled: unknown[] = [];
   veil(ranges: unknown) { this.veiled.push(ranges); }
+  lane: unknown[] = [];
+  waves: (number | null)[] = [];
+  setLanes(lanes: { dots: unknown[] }[]) { this.lane = lanes.flatMap((l) => l.dots); }
+  moveLane(wave: number | null) { this.waves.push(wave); }
   destroy() { this.destroyed = true; }
 }
 class FakeBubble {
@@ -191,6 +196,24 @@ describe('PlaySession', () => {
     session.restart();
     expect(session.controller).not.toBe(first);
     expect(session.getState().stepIndex).toBe(0);
+  });
+
+  it('core_13.AC1 core_13.AC5 the beat lane: its dots where the player set it, and in Wait mode a wave running on from the latest right key', () => {
+    const { session, keyboard, judged } = setup();
+    expect((session.drawStaff(area, prefs) as unknown as FakeStaff).lane).toEqual([]); // off until set
+    session.setLanes([defaultLaneLook('above')]);
+    const view = session.drawStaff(area, prefs) as unknown as FakeStaff;
+    expect(view.lane.length).toBeGreaterThan(16);
+    session.moveLane(0, 500, new Map());
+    expect(view.waves.at(-1)).toBeNull(); // no key yet
+    keyboard.step();
+    const at = judged[0]!.timeMs;
+    session.moveLane(at + 250, 500, new Map()); // half a quarter at 500 ms a quarter
+    expect(view.waves.at(-1)).toBeCloseTo(240);
+    session.moveLane(at + 60_000, 500, new Map());
+    expect(view.waves.at(-1)).toBe(1920); // a bar on, waiting for the next key
+    session.moveLane(at + 250, null, new Map());
+    expect(view.waves.at(-1)).toBeNull(); // no tempo: no wave
   });
 
   it('Tempo mode: a transport, timings on the staff, the playhead follows the clock, and no restart', () => {

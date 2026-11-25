@@ -6,6 +6,7 @@ import type { PracticeData } from './PracticeScene';
 import type { PreviewData } from './PreviewScene';
 import type { ResultsData } from './ResultsScene';
 import type { SettingsData } from './SettingsScene';
+import type { BeatLanesData } from './BeatLanesScene';
 import type { PiecesData } from './PiecesScene';
 import type { AnalyzeData } from './AnalyzeScene';
 import type { LearnStatsData } from './LearnStatsScene';
@@ -50,6 +51,7 @@ export interface SceneData {
   'songs': undefined;
   'credits': undefined;
   'settings': SettingsData | undefined;
+  'beat-lanes': BeatLanesData | undefined;
   'pieces': PiecesData | undefined;
   'menu': MenuData | undefined;
   'practice': PracticeData;

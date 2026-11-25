@@ -18,7 +18,7 @@ export interface E2eArea {
 export const E2E_AREAS: E2eArea[] = [
   {
     name: 'practice',
-    specs: ['practice', 'practice-tools', 'onscreen-keyboard', 'tempo', 'play-loop', 'analyze', 'kiur-door', 'learn', 'learn-stats'],
+    specs: ['practice', 'practice-tools', 'beat-lane', 'onscreen-keyboard', 'tempo', 'play-loop', 'analyze', 'kiur-door', 'learn', 'learn-stats'],
     sources: [
       'src/game/PracticeScene.ts', 'src/game/KiurDoorScene.ts', 'src/game/AnalyzeScene.ts', 'src/core/analysis/', 'src/game/ResultsScene.ts', 'src/game/practice/',
       'src/game/ui/staff/', 'src/core/judge/', 'src/core/scoring/', 'src/core/transport/', 'src/core/layout/',

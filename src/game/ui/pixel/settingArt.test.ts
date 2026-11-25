@@ -1,9 +1,9 @@
-// Covers ft_1_11.AC1, ft_1_32.AC12.
+// Covers ft_1_11.AC1, ft_1_32.AC12, core_13.AC2.
 import { describe, expect, it } from 'vitest';
 import type { Bitmap } from './bitmap';
 import { C } from './palette';
 import { BAR_NUMBER_MODES } from '../../../core/layout/barNumbers';
-import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, durationSymbol, fingersSymbol, liveTempoSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, resumeSymbol, scoreSymbol, staffGapSymbol } from './settingArt';
+import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, beatLaneSymbol, durationSymbol, fingersSymbol, liveTempoSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, paceClickSymbol, resumeSymbol, scoreSymbol, staffGapSymbol } from './settingArt';
 
 const same = (a: Bitmap, b: Bitmap) => a.pixels.every((p, i) => p === b.pixels[i]);
 const count = (b: Bitmap, colour: number) => b.pixels.filter((p) => p === colour).length;
@@ -23,12 +23,22 @@ const SETTINGS: Record<string, Bitmap[]> = {
   fingers: (['off', 'top', 'all'] as const).map(fingersSymbol),
   barNumbers: BAR_NUMBER_MODES.map(barNumbersSymbol),
   liveTempo: [false, true].map(liveTempoSymbol),
+  beatLane: (['above', 'between', 'off'] as const).map(beatLaneSymbol),
+  paceClick: [false, true].map(paceClickSymbol),
 };
 
 describe('settings button pictures', () => {
   it.each(Object.entries(SETTINGS))('every choice of %s has a picture of the same size, and no two choices look alike', (_name, pictures) => {
     for (const p of pictures) expect([p.width, p.height]).toEqual([SYMBOL_WIDTH, SYMBOL_HEIGHT]);
     for (let i = 0; i < pictures.length; i++) for (let j = i + 1; j < pictures.length; j++) expect(same(pictures[i]!, pictures[j]!), `choices ${i} and ${j}`).toBe(false);
+  });
+
+  it('core_13.AC2 the beat lane\'s picture has its dots where the lane runs, the click\'s picture its sound waves only when on, and each off picture is struck through', () => {
+    expect(count(beatLaneSymbol('off'), C.red)).toBeGreaterThan(0); // the row struck out
+    expect(count(paceClickSymbol(false), C.red)).toBeGreaterThan(0);
+    for (const place of ['above', 'between'] as const) expect(count(beatLaneSymbol(place), C.red)).toBe(0);
+    expect(count(paceClickSymbol(false), C.blue)).toBe(0);
+    expect(count(paceClickSymbol(true), C.blue)).toBeGreaterThan(0);
   });
 
   it('the timing view looks like play: off is all black notes, colours adds the gold and red of mistimed and missed notes', () => {

@@ -10,6 +10,7 @@ import {
 import { LearnRunJudge, type LearnRunVerdict } from '../../core/learn/run';
 import { prizeFocus, shownWithPiece, type PrizeFocus } from '../../core/learn/view';
 import { baselineBpm, runTempo, TEMPO_RULES, type RunTempo } from '../../core/learn/tempo';
+import { learnPace, type LearnPace } from '../../core/learn/livePace';
 import type { BarPlay } from '../../core/progression/practiceLog';
 
 /** What the practice screen needs of the player's profile to learn a piece. */
@@ -82,7 +83,7 @@ export class LearnSession {
    * What the staff draws (ft_1_32.AC20): the whole piece, the bars outside the run very faint; the run's notes come first, so
    * the judge's note indexes are the staff's.
    */
-  get shown(): { chart: Chart; faint: { from: number; to: number }[] } {
+  get shown(): { chart: Chart; faint: { from: number; to: number }[]; offset: number } {
     return shownWithPiece(this.piece, this.run.step);
   }
 
@@ -156,6 +157,18 @@ export class LearnSession {
   get liveTempo(): RunTempo | null {
     return this.played ? runTempo(this.played, this.events) : null;
   }
+
+  /**
+   * The live pace (core_13.AC5): the latest key against the student's own pace so far, or the piece's baseline before
+   * the run has one; null before the run's first events.
+   */
+  get pace(): LearnPace | null {
+    if (!this.played) return null;
+    // read every frame by the beat lane: measured again only when a new event came
+    if (this.paceAt?.events !== this.events.length) this.paceAt = { events: this.events.length, pace: learnPace(this.played, this.events, this.baseline) };
+    return this.paceAt.pace;
+  }
+  private paceAt: { events: number; pace: LearnPace } | null = null;
 
   get verdict(): LearnRunVerdict {
     return this.judge?.verdict ?? { state: 'going' };
