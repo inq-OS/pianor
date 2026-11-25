@@ -61,11 +61,28 @@ export function accidentalColumns(heads: readonly { position: number; alter: num
   return columns;
 }
 
+/**
+ * The signs a key change draws at the start of its bar (core_09.AC57, docs/notation.md section 5): a natural for each
+ * sign of the old key the new one drops (all of them when sharps turn to flats or back), then the new key's signature.
+ * `AX-3 provisional:` the cancelling naturals are always drawn, so the student sees which signs no longer hold.
+ */
+export function keyChangeSigns(from: number, to: number, clef: Clef): { alter: 1 | -1 | 0; position: number }[] {
+  const old = keySignaturePositions(from, clef);
+  const sameWay = Math.sign(from) === Math.sign(to);
+  const dropped = sameWay ? old.slice(Math.abs(to)) : old;
+  return [...dropped.map(({ position }) => ({ alter: 0 as const, position })), ...keySignaturePositions(to, clef)];
+}
+
 /** The room a key signature needs above the top line and below the bottom line of a staff, in staff spaces. */
 export function keyRooms(fifths: number, clef: Clef): { above: number; below: number } {
+  return signRooms(keySignaturePositions(fifths, clef));
+}
+
+/** The room signs at these staff positions need above the top line and below the bottom line, in staff spaces. */
+export function signRooms(signs: readonly { alter: number; position: number }[]): { above: number; below: number } {
   let above = 0;
   let below = 0;
-  for (const { alter, position } of keySignaturePositions(fifths, clef)) {
+  for (const { alter, position } of signs) {
     const box = ACCIDENTAL_BOX[accidentalKind(alter)];
     above = Math.max(above, position / 2 + box.up - 4);
     below = Math.max(below, box.down - position / 2);

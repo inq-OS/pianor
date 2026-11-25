@@ -284,9 +284,12 @@ export interface TupletGlyph {
 export interface KeyAccidentalGlyph {
   system: number;
   staff: number;
-  alter: 1 | -1;
+  /** A sharp or flat of the signature, or a natural that cancels one at a key change (core_09.AC57). */
+  alter: 1 | -1 | 0;
   x: number;
   y: number;
+  /** Set on the signs of a key change drawn at the start of this bar inside a line (core_09.AC57); absent after the clef. */
+  bar?: number;
 }
 
 /** One staff inside a system. */
@@ -374,7 +377,7 @@ export interface StaffLayout {
   bars: BarLayout[];
   staffLines: { system: number; staff: number; y: number; x1: number; x2: number }[];
   /** Bar lines run through all staves of a system. */
-  barlines: { system: number; x: number; y1: number; y2: number; kind: 'start' | 'single' | 'final' }[];
+  barlines: { system: number; x: number; y1: number; y2: number; kind: 'start' | 'single' | 'double' | 'final' }[];
   /** Repeat signs at bar lines (core_09.AC19): `start` (thick, thin, dots after) or `end` (dots, thin, thick); `dotYs` per staff. */
   repeatSigns?: { system: number; x: number; y1: number; y2: number; side: 'start' | 'end'; dotYs: number[] }[];
   /**

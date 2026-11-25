@@ -486,13 +486,13 @@ describe('unsupported notation', () => {
     expect(() => lay(parse(c))).toThrow(message);
   };
 
-  it('rejects double sharps, chords of different lengths, ties, extra voices, meter changes and key changes with a clear message', () => {
+  it('rejects double sharps, chords of different lengths, ties, extra voices, meter changes and a key change inside a bar with a clear message', () => {
     rejects((c) => { c.notes[0].midi = 62; c.notes[0].spelling.alter = 2; }, /double/i);
     rejects((c) => { c.notes[1].tick = 0; c.notes[1].bar = 0; c.notes[1].dur = 960; }, /different lengths/i);
     rejects((c) => { c.notes[1].tick = 0; c.notes[1].bar = 0; c.notes[1].dur = c.notes[0].dur; c.notes[1].spelling = { ...c.notes[0].spelling }; c.notes[1].midi = c.notes[0].midi; }, /same pitch/i);
     rejects((c) => { c.notes[0].voice = 3; }, /voice/i);
     rejects((c) => { c.meterMap.push({ tick: 1920, num: 3, den: 4 }); }, /meter/i);
-    rejects((c) => { c.keyMap.push({ tick: 1920, fifths: 1, mode: 'major' }); }, /key change/i);
+    rejects((c) => { c.keyMap.push({ tick: 480, fifths: 1, mode: 'major' }); }, /key change inside a bar/i); // core_09.AC57: at a bar line it is drawn
   });
 
   it('rejects an unknown track', () => {

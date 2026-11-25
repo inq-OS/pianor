@@ -48,7 +48,8 @@ A staff has five lines and four spaces. Positions count up in diatonic steps: 0 
 - Sharps on the treble staff sit on F5, C5, G5, D5, A4, E5, B4. Flats sit on B4, E5, A4, D5, G4, C5, F4.
 - Sharps on the bass staff sit on F3, C3, G3, D3, A2, E3, B2. Flats sit on B2, E3, A2, D3, G2, C3, F2.
 - A key signature is drawn after the clef on every staff. It changes only at a bar line. A natural sign cancels it for that staff position until the end of the bar, like any other accidental (section 4).
-- Drawn since `core_09.AC5`: the key signature sits after the clef, at the positions above, and the time signature and the first note move right by its width. A key change inside a piece is still refused.
+- Drawn since `core_09.AC5`: the key signature sits after the clef, at the positions above, and the time signature and the first note move right by its width.
+- A key change (`core_09.AC57`): a double bar line closes the bar before it; inside a line, the bar starts with a natural for each sign of the old key that the new key drops (every one when sharps turn to flats or back), then the new signature, and its notes move right past them. A line that starts in the new key shows it after the clef, and every line keeps the room of the widest signature of the piece. A change of mode alone draws nothing. `AX-3 provisional:` the cancelling naturals are always drawn, and no courtesy signature closes the line before a change at a line start.
 
 ## 6. Grand staff
 
