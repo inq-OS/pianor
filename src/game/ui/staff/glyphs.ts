@@ -1,4 +1,5 @@
 import type { AccidentalKind } from '../../../core/layout/staff';
+import type { OrnamentKind } from '../../../core/chart/ornaments';
 
 /**
  * Notation shapes drawn by the staff view, as plain data (no Phaser). All original, drawn from simple
@@ -105,5 +106,36 @@ export const ACCIDENTAL_STROKES: Record<AccidentalKind, readonly AccidentalStrok
     { points: [{ x: 0.22, y: -0.6 }, { x: 0.22, y: 1.5 }], width: 0.12 },
     { points: [{ x: -0.4, y: -0.1 }, { x: 0.4, y: -0.45 }], width: 0.22 },
     { points: [{ x: -0.4, y: 0.45 }, { x: 0.4, y: 0.1 }], width: 0.22 },
+  ],
+};
+
+/**
+ * The ornament signs (core_09.AC60, d303), in staff spaces from the sign's centre, inside the box `ORNAMENT_BOX`
+ * (core/layout/staff.ts) gives: the trill's letters t and r with a short wave, the mordent's zigzag (the lower mordent
+ * with a stroke through it), and the turn lying on its side. Plain strokes like the accidentals.
+ */
+export const ORNAMENT_STROKES: Record<OrnamentKind, readonly AccidentalStroke[]> = {
+  trill: [
+    { points: [{ x: -0.75, y: -0.55 }, { x: -0.75, y: 0.4 }, { x: -0.55, y: 0.5 }], width: 0.16 },
+    { points: [{ x: -0.95, y: -0.2 }, { x: -0.5, y: -0.2 }], width: 0.12 },
+    { points: [{ x: -0.25, y: 0.5 }, { x: -0.25, y: -0.2 }], width: 0.16 },
+    { points: smoothPath([{ x: -0.25, y: 0.05 }, { x: -0.05, y: -0.2 }, { x: 0.15, y: -0.2 }], 3), width: 0.12 },
+    { points: [{ x: 0.3, y: 0.15 }, { x: 0.5, y: -0.05 }, { x: 0.7, y: 0.15 }, { x: 0.9, y: -0.05 }], width: 0.1 },
+  ],
+  upperMordent: [
+    { points: [{ x: -0.8, y: 0.2 }, { x: -0.45, y: -0.3 }, { x: -0.15, y: 0.25 }, { x: 0.15, y: -0.3 }, { x: 0.45, y: 0.25 }, { x: 0.8, y: -0.2 }], width: 0.16 },
+  ],
+  lowerMordent: [
+    { points: [{ x: -0.8, y: 0.2 }, { x: -0.45, y: -0.3 }, { x: -0.15, y: 0.25 }, { x: 0.15, y: -0.3 }, { x: 0.45, y: 0.25 }, { x: 0.8, y: -0.2 }], width: 0.16 },
+    { points: [{ x: 0, y: -0.55 }, { x: 0, y: 0.55 }], width: 0.12 },
+  ],
+  turn: [
+    // point-symmetric like the printed sign: a bold wave lying on its side, each tip curled back toward the middle
+    {
+      points: smoothPath([{ x: -0.8, y: -0.1 }, { x: -0.55, y: 0.25 }, { x: -0.25, y: 0.2 }, { x: 0, y: 0 }, { x: 0.25, y: -0.2 }, { x: 0.55, y: -0.25 }, { x: 0.8, y: 0.1 }], 4),
+      width: 0.22,
+    },
+    { points: smoothPath([{ x: -0.8, y: -0.1 }, { x: -0.7, y: -0.32 }, { x: -0.48, y: -0.3 }, { x: -0.45, y: -0.12 }], 3), width: 0.12 },
+    { points: smoothPath([{ x: 0.8, y: 0.1 }, { x: 0.7, y: 0.32 }, { x: 0.48, y: 0.3 }, { x: 0.45, y: 0.12 }], 3), width: 0.12 },
   ],
 };

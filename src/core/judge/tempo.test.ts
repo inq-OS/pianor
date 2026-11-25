@@ -378,6 +378,17 @@ describe('TempoMode: grace notes are never required and never wrong (core_09.AC3
     expect(piece(events)!.result.timing).toMatchObject({ played: 3, onTime: 3, missed: 0, score: 100 });
   });
 
+  it('core_09.AC65 an ornament is optional: its notes inside its note are ignored, the main note scored as usual', () => {
+    const pitch = (midi: number) => graceAt(0, midi).pitch;
+    const mordent = chartSchema.parse({ ...slow([]), graces: undefined, ornaments: [{ track: 'rh', voice: 1, tick: 480, kind: 'upperMordent', upper: pitch(64) }] });
+    const s = started(mordent);
+    s.mode.handle(on(60, s.at(0)));
+    const played = [...s.mode.handle(on(62, s.at(1))), ...s.mode.handle(on(64, s.at(1) + 100)), ...s.mode.handle(on(62, s.at(1) + 200))];
+    expect(judged(played).map((e) => [e.midi, e.verdict])).toEqual([[62, 'correct']]);
+    const events = [...s.mode.handle(on(64, s.at(2))), ...s.mode.advance(s.at(2) + 5000)];
+    expect(piece(events)!.result).toMatchObject({ notes: 3, mistakes: 0 });
+  });
+
   it('core_09.AC33 up to 250 ms before the onset is ignored; earlier in the window, or after the onset, the key is wrong (AX-3 provisional: 250 ms)', () => {
     const at250 = toTheE(graced);
     expect(at250.mode.handle(on(65, at250.at(2) - 250))).toEqual([]);

@@ -1122,6 +1122,38 @@ describe('grace notes (core_09.AC32)', () => {
     expectClear(layout, 0, 1);
   });
 
+  it('core_09.AC63 draws a grace group side by side in its order, clear of the notes around it, stems up on one beam, the slash on the first', () => {
+    const layout = layoutStaff(withGraces(quarters(), [grace(480, pitch('G', 4)), grace(480, pitch('F', 4)), grace(480, pitch('B', 4))]), view);
+    const [a, b, c] = layout.graces;
+    expect([a!.index, b!.index, c!.index]).toEqual([0, 1, 2]);
+    expect(a!.right).toBeLessThan(b!.left);
+    expect(b!.right).toBeLessThan(c!.left);
+    expectClear(layout, 0, 1);
+    for (const g of layout.graces) {
+      expect(g.stem.up).toBe(true);
+      expect(g.flag).toBe(false);
+      expect(g.stem.y2).toBeCloseTo(a!.stem.y2);
+    }
+    expect(a!.beam).toMatchObject({ x1: a!.stem.x, x2: c!.stem.x, y: a!.stem.y2 });
+    expect(a!.beam!.second).toBeGreaterThan(a!.beam!.y);
+    expect(a!.slash).not.toBeNull();
+    expect([b!.slash, c!.slash, b!.beam, c!.beam]).toEqual([null, null, undefined, undefined]);
+    // the group takes more room than a single grace, so the main note moves right
+    expect(note(layout, 1).column).toBeGreaterThan(note(layoutStaff(withGraces(quarters(), [grace(480, pitch('B', 4))]), view), 1).column);
+  });
+
+  it('core_09.AC63 draws an ornament sign over its note, above the top line and above an up stem', () => {
+    const low = chartSchema.parse({ ...quarters(), ornaments: [{ track: 't', voice: 1, tick: 480, kind: 'trill', upper: pitch('F', 4) }] });
+    const layout = layoutStaff(low, view);
+    const sign = layout.ornaments![0]!;
+    const main = note(layout, 1);
+    const top = layout.systems[0]!.staves[0]!.topLineY;
+    expect(sign).toMatchObject({ index: 0, main: 1, kind: 'trill', x: main.x });
+    expect(sign.y + sign.height / 2).toBeLessThan(top);
+    expect(sign.y + sign.height / 2).toBeLessThan(main.stem!.y2);
+    expect(layoutStaff(quarters(), view).ornaments).toBeUndefined();
+  });
+
   it('places a grace head on the line or space of its pitch, with small ledger lines (core_09.AC32)', () => {
     const bottom = (layout: StaffLayout) => layout.systems[0]!.staves[0]!.bottomLineY;
     const at = (p: ReturnType<typeof pitch>) => layoutStaff(withGraces(quarters(), [grace(480, p, false)]), view);

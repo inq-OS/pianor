@@ -209,10 +209,17 @@ class Taker {
   }
 
   graces(): void {
-    for (const g of this.chart.graces ?? []) {
+    const all = this.chart.graces ?? [];
+    for (const g of all) {
       const hand = this.frame.handOf.get(g.track);
       const bar = this.barAt(g.tick);
       if (!hand || bar >= this.frame.bars) continue;
+      // the piece maker writes one grace a note: a group (core_09.AC60) is reported once, on its first grace, and not taken
+      const group = all.filter((o) => o.track === g.track && o.voice === g.voice && o.tick === g.tick);
+      if (group.length > 1) {
+        if (group[0] === g) this.problem(hand, bar, g.tick, 'a group of grace notes');
+        continue;
+      }
       const start = this.startIn(bar, g.tick);
       const main = this.piece.notes.find((x) => x.hand === hand && x.bar === bar && x.start === start);
       const alter = g.pitch.spelling.alter;
@@ -221,6 +228,15 @@ class Taker {
       const edit = setGrace(this.piece, refOf(main), { step: g.pitch.spelling.step, octave: g.pitch.spelling.octave, alter, slash: g.slash });
       if (edit.ok) this.piece = edit.piece;
       else this.problem(hand, bar, g.tick, REFUSAL_WORDS[edit.reason] ?? edit.reason);
+    }
+  }
+
+  /** The piece maker cannot write an ornament sign yet (core_09.AC66): each is reported, its note taken plain. */
+  ornaments(): void {
+    for (const o of this.chart.ornaments ?? []) {
+      const hand = this.frame.handOf.get(o.track);
+      const bar = this.barAt(o.tick);
+      if (hand && bar < this.frame.bars) this.problem(hand, bar, o.tick, 'an ornament sign (trill, mordent or turn)');
     }
   }
 
@@ -253,6 +269,7 @@ export function fromChart(chart: Chart, options: { title?: string } = {}): FromC
   taker.shortFirstBar();
   taker.ties();
   taker.graces();
+  taker.ornaments();
   taker.slurs();
   taker.repeats();
   const problems = [...taker.problems].sort((a, b) => a.bar - b.bar || a.beat - b.beat || a.hand.localeCompare(b.hand));

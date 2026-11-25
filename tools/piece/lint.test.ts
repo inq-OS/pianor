@@ -133,6 +133,15 @@ describe('every hard rule has a failing and a passing piece', () => {
     expect(errors(early.diagnostics).filter((d) => d.rule === 'note-value')).toHaveLength(9); // eight notes and a rest
   });
 
+  it('core_09.AC64 an ornament sign fails with ornament at every level while the switch is off; a grace group passes where graces do', () => {
+    for (const n of [1, 5]) expect(level(n).ornaments).toBe(false);
+    const signed = lint('!trill!C D E F | G4 | E D C D | C4 |]', { level: 5 });
+    expect(rules(signed.diagnostics)).toContain('ornament');
+    expect(signed.diagnostics.map((d) => d.message).join('\n')).toMatch(/ornaments \(a trill, mordent or turn\) are not allowed at level 5/);
+    expect(errors(lint('!trill!C D E F | G4 | E D C D | C4 |]', { level: { ...level(5), ornaments: true } }).diagnostics).map(formatDiagnostic)).toEqual([]);
+    expect(errors(lint('{/ed}C D E F | G4 | E D C D | C4 |]', { level: 5 }).diagnostics).map(formatDiagnostic)).toEqual([]);
+  });
+
   it('core_09.AC51 a triplet length outside a triplet fails note-value at every level, and an eighth triplet needs eighths in the level', () => {
     const { chart } = lint('C (3D/E/F/ G E | G2 F2 | F E D C | C4 |]', { level: 5 });
     const bare = { ...chart, tuplets: undefined };

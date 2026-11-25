@@ -117,15 +117,58 @@ describe('chart graces (core_09.AC31)', () => {
     expect(chartSchema.parse(plain).graces).toBeUndefined();
   });
 
+  // A natural pitch of the C major scale.
+  const pitchOf = (m: number) => {
+    const spelling: Spelling = { step: (['C', 'D', 'E', 'F', 'G', 'A', 'B'] as const)[[0, 2, 4, 5, 7, 9, 11].indexOf(m % 12)]!, alter: 0, octave: Math.floor(m / 12) - 1 };
+    return { midi: m, spelling };
+  };
+
+  it('core_09.AC60 accepts a grace group in playing order whose last grace differs from the main note, the first may share it', () => {
+    const c = clone();
+    c.graces = [grace(c, { pitch: pitchOf(60) }), grace(c, { pitch: pitchOf(62) })];
+    expect(chartSchema.safeParse(c).success).toBe(true);
+  });
+
   // Covers core_09.AC31.
   const bad: [string, (c: Json) => void, RegExp][] = [
     ['a grace whose tick is not a note start', (c) => { c.graces = [grace(c, { tick: 100 })]; }, /note start/],
     ['a grace on a track that has no note there', (c) => { c.graces = [grace(c, { track: 'nope' })]; }, /note start/],
-    ['a second grace on one note', (c) => { c.graces = [grace(c), grace(c, { slash: false })]; }, /one grace/],
+    ['two graces of one pitch in a row (core_09.AC60)', (c) => { c.graces = [grace(c), grace(c, { slash: false })]; }, /in a row/],
+    ['a grace group of five (core_09.AC60)', (c) => { c.graces = [64, 62, 64, 62, 64].map((m) => grace(c, { pitch: pitchOf(m) })); }, /at most 4/],
     ['a grace with the main note pitch', (c) => { c.graces = [grace(c, { pitch: { midi: 60, spelling: { step: 'C', alter: 0, octave: 4 } } })]; }, /same pitch/],
     ['a grace midi that disagrees with its spelling', (c) => { c.graces = [grace(c, { pitch: { midi: 70, spelling: { step: 'D', alter: 0, octave: 4 } } })]; }, /midi does not match/],
   ];
   it.each(bad)('rejects %s', (_name, mutate, message) => {
+    const c = clone();
+    mutate(c);
+    const result = chartSchema.safeParse(c);
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues.map((i) => i.message).join('|')).toMatch(message);
+  });
+});
+
+describe('chart ornaments (core_09.AC60, d303)', () => {
+  // The fixture's first note is C4 at tick 0 in the right hand.
+  const D4 = { midi: 62, spelling: { step: 'D', alter: 0, octave: 4 } };
+  const B3 = { midi: 59, spelling: { step: 'B', alter: 0, octave: 3 } };
+  const sign = (c: Json, patch: Json = {}) => ({ track: c.notes[0].track, voice: c.notes[0].voice, tick: c.notes[0].tick, kind: 'turn', upper: D4, lower: B3, ...patch });
+
+  it('core_09.AC60 accepts a sign on a note with the neighbours it uses, and no schema version change', () => {
+    const c = clone();
+    c.ornaments = [sign(c)];
+    expect(c.schemaVersion).toBe(2);
+    expect(chartSchema.safeParse(c).success).toBe(true);
+    expect(chartSchema.parse(clone()).ornaments).toBeUndefined();
+  });
+
+  const bad: [string, (c: Json) => void, RegExp][] = [
+    ['a sign off a note start', (c) => { c.ornaments = [sign(c, { tick: 100 })]; }, /single note/],
+    ['a trill without its upper note', (c) => { c.ornaments = [sign(c, { kind: 'trill', upper: undefined, lower: undefined })]; }, /needs its upper/],
+    ['a lower mordent with an upper note', (c) => { c.ornaments = [sign(c, { kind: 'lowerMordent' })]; }, /has no upper/],
+    ['an upper note below the main note', (c) => { c.ornaments = [sign(c, { upper: B3 })]; }, /above the main note/],
+    ['two signs on one note', (c) => { c.ornaments = [sign(c), sign(c)]; }, /one ornament/],
+  ];
+  it.each(bad)('core_09.AC60 rejects %s', (_name, mutate, message) => {
     const c = clone();
     mutate(c);
     const result = chartSchema.safeParse(c);

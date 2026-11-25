@@ -1,4 +1,4 @@
-import { PPQ, barIndexAtTick, chartSchema, crossingParts, ticksPerBar, pieceMetaSchema, type BarSpan, type Chart, type PieceMeta } from '../chart';
+import { PPQ, barIndexAtTick, chartSchema, crossingParts, ticksPerBar, pieceMetaSchema, type BarSpan, type Chart, type PieceMeta, type Spelling } from '../chart';
 import { formatIssues } from '../issues';
 import { parseAbc, type AbcVoice } from './abc';
 import { hasErrors, type Diagnostic } from './diagnostics';
@@ -145,14 +145,26 @@ export function compilePiece(input: CompileInput): CompileResult {
   const slurs = voices.flatMap(({ voice, track }) => voice.slurs.map((s) => ({ track: track.id, voice: s.voice ?? 1, startTick: s.startTick, endTick: s.endTick })));
   // Triplets (core_09.AC49, d163): three in the time of two, from the first member's start to the last's.
   const tuplets = voices.flatMap(({ voice, track }) => voice.tuplets.map((t) => ({ track: track.id, voice: t.voice ?? 1, startTick: t.startTick, endTick: t.endTick, actual: 3, normal: 2 })));
-  // Grace notes (core_09.AC31, d121): each sits on the start of its main note, in the voice's track.
+  // Grace notes (core_09.AC31, d121): each sits on the start of its main note, in the voice's track; a group keeps its
+  // written order (core_09.AC60), which the stable sort leaves alone.
   const graces = voices
     .flatMap(({ voice, track }) =>
       voice.items.flatMap((item) =>
-        item.kind === 'notes' && item.grace
-          ? [{ track: track.id, voice: item.voice ?? 1, tick: item.tick, pitch: { midi: item.grace.note.midi, spelling: item.grace.note.spelling }, slash: item.grace.slash }]
+        item.kind === 'notes' && item.graces
+          ? item.graces.map((g) => ({ track: track.id, voice: item.voice ?? 1, tick: item.tick, pitch: { midi: g.note.midi, spelling: g.note.spelling }, slash: g.slash }))
           : [],
       ),
+    )
+    .sort((a, b) => a.tick - b.tick);
+  // Ornament signs (core_09.AC60, d303), on the start of their note.
+  const ornaments = voices
+    .flatMap(({ voice, track }) =>
+      voice.items.flatMap((item) => {
+        const o = item.kind === 'notes' ? item.ornament : undefined;
+        if (!o) return [];
+        const pitch = (n: { midi: number; spelling: Spelling }) => ({ midi: n.midi, spelling: n.spelling });
+        return [{ track: track.id, voice: item.voice ?? 1, tick: item.tick, kind: o.kind, ...(o.upper ? { upper: pitch(o.upper) } : {}), ...(o.lower ? { lower: pitch(o.lower) } : {}) }];
+      }),
     )
     .sort((a, b) => a.tick - b.tick);
 
@@ -177,6 +189,7 @@ export function compilePiece(input: CompileInput): CompileResult {
     ...(repeats.length > 0 ? { repeats } : {}),
     ...(slurs.length > 0 ? { slurs } : {}),
     ...(graces.length > 0 ? { graces } : {}),
+    ...(ornaments.length > 0 ? { ornaments } : {}),
     ...(tuplets.length > 0 ? { tuplets } : {}),
     range: { low: Math.min(...midis), high: Math.max(...midis) },
   };

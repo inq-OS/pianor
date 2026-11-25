@@ -5,6 +5,7 @@ import type { Dynamic } from '../chart/dynamics';
  */
 import type { Clef } from '../chart/pitch.ts';
 import type { NoteNaming } from '../text/noteName.ts';
+import type { OrnamentKind } from '../chart/ornaments.ts';
 
 export type NoteValue = 'whole' | 'half' | 'quarter' | 'eighth' | 'sixteenth';
 
@@ -188,6 +189,29 @@ export interface GraceGlyph {
   /** Note name hint letter, drawn small under the head when the note-name hints are on. */
   label: string;
   labelY: number;
+  /**
+   * On the first grace of a group of two or more (core_09.AC60): the flat beam its stems (all up) end on, from the first
+   * stem to the last; `y` is its top edge, `second` the top edge of the second beam under it.
+   */
+  beam?: { x1: number; x2: number; y: number; thickness: number; second: number };
+}
+
+/**
+ * An ornament sign over a note (core_09.AC60, d303): centred over the head, above the staff and above the note's head, stem
+ * and beam, whichever is higher. `width` and `height` are its box in logical pixels, so a view or a test keeps clear of it.
+ */
+export interface OrnamentGlyph {
+  /** Index into `chart.ornaments`. */
+  index: number;
+  /** Index into `chart.notes` of the note it stands over. */
+  main: number;
+  system: number;
+  staff: number;
+  kind: OrnamentKind;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 /** The beam over a pair of eighths: a horizontal bar of `thickness` between the two stems, hanging from the tips (stems up) or rising to them (stems down). */
@@ -395,6 +419,8 @@ export interface StaffLayout {
   notes: NoteGlyph[];
   /** Grace notes in chart order (core_09.AC32, d121). They are not notes: bars, beats and `notes` do not count them. */
   graces: GraceGlyph[];
+  /** Ornament signs in chart order (core_09.AC60, d303); absent when the chart has none. */
+  ornaments?: OrnamentGlyph[];
   rests: RestGlyph[];
   beams: BeamGlyph[];
 }

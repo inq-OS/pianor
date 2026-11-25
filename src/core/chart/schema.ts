@@ -4,6 +4,7 @@ import { spellingToMidi } from './pitch.ts';
 import { MIDI_MAX } from './midi.ts';
 import { crossingParts } from './parts.ts';
 import { DYNAMICS } from './dynamics.ts';
+import { ORNAMENT_KINDS, usesLower, usesUpper } from './ornaments.ts';
 
 /** Canonical format: docs/authoring/au03-chart-format.md. Bars, notes and phrases are 0-based. */
 export const CHART_SCHEMA_VERSION = 2;
@@ -47,7 +48,10 @@ export const restSchema = z.object({
   bar: z.int().nonnegative(),
 });
 
-/** A grace note (core_09.AC31, d121): no length, so it is not a chart note; `tick` is the start of the main note it goes before. */
+/**
+ * A grace note (core_09.AC31, d121): no length, so it is not a chart note; `tick` is the start of the main note it goes before.
+ * Several on one note are a grace group (core_09.AC60, d303), in the order they are played, as they stand in `graces`.
+ */
 export const graceSchema = z.object({
   track: z.string().min(1),
   voice: z.int().min(1).max(4),
@@ -56,6 +60,23 @@ export const graceSchema = z.object({
   /** An acciaccatura: a slash through its stem. */
   slash: z.boolean(),
 });
+
+/**
+ * An ornament sign on a note (core_09.AC60, d303): `tick` is the start of its note in its track and voice. `upper` and
+ * `lower` are the neighbour notes the sign uses (a trill, an upper mordent and a turn the upper one; a lower mordent and
+ * a turn the lower one), spelled in the key with the bar's accidentals.
+ */
+export const ornamentSchema = z.object({
+  track: z.string().min(1),
+  voice: z.int().min(1).max(4),
+  tick,
+  kind: z.enum(ORNAMENT_KINDS),
+  upper: z.object({ midi, spelling: spellingSchema }).optional(),
+  lower: z.object({ midi, spelling: spellingSchema }).optional(),
+});
+
+/** The most grace notes before one note (core_09.AC60). AX-3 provisional: TODO(architect, R2) in core_09. */
+export const MAX_GRACE_GROUP = 4;
 
 export const barSchema = z.object({ index: z.int().nonnegative(), startTick: tick, endTick: tick });
 
@@ -112,6 +133,8 @@ export const chartSchema = z
     slurs: z.array(slurSchema).optional(),
     /** Grace notes (core_09.AC31, d121). Absent means none; no schema version change. */
     graces: z.array(graceSchema).optional(),
+    /** Ornament signs (core_09.AC60, d303). Absent means none; no schema version change. */
+    ornaments: z.array(ornamentSchema).optional(),
     /** Tuplets (core_09.AC49, d163). Absent means none; no schema version change. */
     tuplets: z.array(tupletSchema).optional(),
     range: z.object({ low: midi, high: midi }),
@@ -183,10 +206,28 @@ export const chartSchema = z
       if (!trackIds.has(g.track)) issue(`unknown track "${g.track}"`, at('track'));
       if (spellingToMidi(g.pitch.spelling) !== g.pitch.midi) issue('midi does not match spelling', at('pitch'));
       const main = chart.notes.find((n) => n.track === g.track && n.voice === g.voice && n.tick === g.tick);
+      const group = chart.graces!.filter((o) => o.track === g.track && o.voice === g.voice && o.tick === g.tick);
+      const next = group[group.indexOf(g) + 1];
       if (!main) issue('a grace tick must be a note start in its track and voice', at('tick'));
-      else if (main.midi === g.pitch.midi) issue('a grace cannot have the same pitch as its main note', at('pitch'));
-      const first = chart.graces!.findIndex((o) => o.track === g.track && o.voice === g.voice && o.tick === g.tick);
-      if (first !== i) issue('a note takes one grace note', at('tick'));
+      else if (!next && main.midi === g.pitch.midi) issue('a grace cannot have the same pitch as its main note', at('pitch'));
+      if (next && next.pitch.midi === g.pitch.midi) issue('two graces in a row cannot have one pitch', at('pitch'));
+      if (group.length > MAX_GRACE_GROUP && group[0] === g) issue(`a note takes at most ${MAX_GRACE_GROUP} grace notes`, at('tick'));
+    });
+    (chart.ornaments ?? []).forEach((o, i) => {
+      const at = (field: string) => ['ornaments', i, field];
+      if (!trackIds.has(o.track)) issue(`unknown track "${o.track}"`, at('track'));
+      const mains = chart.notes.filter((n) => n.track === o.track && n.voice === o.voice && n.tick === o.tick);
+      if (mains.length !== 1) issue('an ornament goes on a single note: its tick must be the start of one note in its track and voice', at('tick'));
+      const main = mains[0];
+      for (const side of ['upper', 'lower'] as const) {
+        const aux = o[side];
+        const wanted = side === 'upper' ? usesUpper(o.kind) : usesLower(o.kind);
+        if (wanted !== (aux !== undefined)) issue(wanted ? `a ${o.kind} needs its ${side} note` : `a ${o.kind} has no ${side} note`, at(side));
+        if (!aux) continue;
+        if (spellingToMidi(aux.spelling) !== aux.midi) issue('midi does not match spelling', at(side));
+        if (main && (side === 'upper' ? aux.midi <= main.midi : aux.midi >= main.midi)) issue(`the ${side} note must be ${side === 'upper' ? 'above' : 'below'} the main note`, at(side));
+      }
+      if (chart.ornaments!.findIndex((p) => p.track === o.track && p.voice === o.voice && p.tick === o.tick) !== i) issue('a note takes one ornament', at('tick'));
     });
     const tuplets = chart.tuplets ?? [];
     tuplets.forEach((t, i) => {
@@ -210,6 +251,7 @@ export type ChartRest = z.infer<typeof restSchema>;
 /** @public A grace note; read by the staff layout from slice 2 of d121 on. */
 export type ChartGrace = z.infer<typeof graceSchema>;
 export type ChartTuplet = z.infer<typeof tupletSchema>;
+export type ChartOrnament = z.infer<typeof ornamentSchema>;
 /** @public Part of the chart model, for readers of chart files. */
 export type ChartBar = z.infer<typeof barSchema>;
 /** @public */
@@ -281,6 +323,11 @@ export const levelSchema = z.object({
   voices: z.int().min(1).max(2).default(1),
   /** Triplets (core_09.AC51, d163): a note value inside a triplet is allowed only with this switch on. Absent means off. */
   tuplets: z.boolean().default(false),
+  /**
+   * Ornament signs (core_09.AC64, d303): a trill, mordent or turn is allowed only with this switch on. Absent means off;
+   * off at every level until the judge gives its bonus (slice 2 of d303). Grace groups need no switch, as grace notes.
+   */
+  ornaments: z.boolean().default(false),
   /** Allowed number of bars in a whole piece. */
   bars: z.object({ min: z.int().positive(), max: z.int().positive() }).default({ min: 4, max: 16 }),
   /** Finger for each note name, per hand, e.g. RH C position: C4 1, D4 2, E4 3, F4 4, G4 5. Notes not listed are unchecked. */

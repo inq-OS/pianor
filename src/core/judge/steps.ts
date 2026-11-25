@@ -49,3 +49,22 @@ export function stepGraces(chart: Chart, steps: readonly PlayStep[]): ReadonlySe
     return new Set(graces.map((g) => g.pitch.midi));
   });
 }
+
+/**
+ * Per step, the pitches an ornament sign on its notes uses, the note's own and its neighbours (core_09.AC65, d303): the
+ * ornament is optional, so a press of one of them while the step or the step after it is awaited is ignored, never wrong.
+ */
+export function stepOrnaments(chart: Chart, steps: readonly PlayStep[]): ReadonlySet<number>[] {
+  return steps.map((step) => {
+    const pitches = new Set<number>();
+    for (const i of step.noteIndices) {
+      const n = chart.notes[i]!;
+      const sign = (chart.ornaments ?? []).find((o) => o.track === n.track && o.voice === n.voice && o.tick === n.tick);
+      if (!sign) continue;
+      pitches.add(n.midi);
+      if (sign.upper) pitches.add(sign.upper.midi);
+      if (sign.lower) pitches.add(sign.lower.midi);
+    }
+    return pitches;
+  });
+}

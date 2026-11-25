@@ -1,6 +1,8 @@
 import { PPQ, spellingToMidi, type Spelling } from '../chart';
 import { keyAlters } from '../chart/key';
 import { isDynamic, type Dynamic } from '../chart/dynamics';
+import { ABC_ORNAMENTS, neighbourLetter, usesLower, usesUpper, type OrnamentKind } from '../chart/ornaments';
+import { MAX_GRACE_GROUP } from '../chart/schema';
 
 /** Key signatures by name, for K: lines. Major keys: C G D A E B F# C# F Bb Eb Ab Db Gb Cb. */
 const MAJOR_KEYS: Record<string, number> = { C: 0, G: 1, D: 2, A: 3, E: 4, B: 5, 'F#': 6, 'C#': 7, F: -1, Bb: -2, Eb: -3, Ab: -4, Db: -5, Gb: -6, Cb: -7 };
@@ -28,7 +30,7 @@ import type { Diagnostic } from './diagnostics';
 /**
  * A strict reader for the beginner subset of ABC notation (docs/authoring/au02-abc-subset.md).
  * Anything outside the subset is an error with a line and column, never silently accepted:
- * endings, tuplets other than triplets, chord symbols, other decorations, key changes.
+ * tuplets other than triplets, chord symbols, other decorations, key changes.
  * It turns text into notes and rests on a tick timeline; checking against a level is the linter's job.
  */
 
@@ -45,7 +47,7 @@ export interface AbcNote {
   dynamic?: Dynamic;
 }
 
-/** A grace note written before a note: one note, no length (core_09.AC31, d121). `slash` is `{/g}`. */
+/** A grace note written before a note: no length (core_09.AC31, d121); `{gab}C` writes a group of them (core_09.AC60). `slash` is `{/g}`. */
 export interface AbcGrace {
   note: AbcNote;
   slash: boolean;
@@ -53,8 +55,15 @@ export interface AbcGrace {
   column: number;
 }
 
+/** An ornament sign on a note (`!trill!C`, core_09.AC60, d303), with the neighbour notes it uses, spelled in the key and bar. */
+export interface AbcOrnament {
+  kind: OrnamentKind;
+  upper?: AbcNote;
+  lower?: AbcNote;
+}
+
 export type AbcItem =
-  | { kind: 'notes'; tick: number; dur: number; notes: AbcNote[]; line: number; column: number; grace?: AbcGrace; voice?: 2 }
+  | { kind: 'notes'; tick: number; dur: number; notes: AbcNote[]; line: number; column: number; graces?: AbcGrace[]; ornament?: AbcOrnament; voice?: 2 }
   | { kind: 'rest'; tick: number; dur: number; line: number; column: number; voice?: 2 };
 
 export interface AbcVoice {
@@ -164,7 +173,8 @@ const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
 
 type Finger = { value: number; column: number };
 type DynamicMark = { value: Dynamic; column: number };
-type GraceMark = { note: AbcNote; slash: boolean; column: number };
+type GraceMark = { notes: AbcNote[]; slash: boolean; column: number };
+type OrnamentMark = { kind: OrnamentKind; column: number };
 
 /** What a line of music needs from the parser around it: error reports, and the helpers that keep a voice on its bar grid. */
 interface MusicHost {
@@ -181,8 +191,10 @@ class MusicLine {
   private i = 0;
   private finger: Finger | undefined;
   private dynamic: DynamicMark | undefined;
-  /** A grace note read, waiting for the note it goes before. */
+  /** A grace note (or group) read, waiting for the note it goes before. */
   private grace: GraceMark | undefined;
+  /** An ornament sign read, waiting for its note. */
+  private ornament: OrnamentMark | undefined;
 
   constructor(
     private readonly host: MusicHost,
@@ -223,6 +235,15 @@ class MusicLine {
   private flushGrace(): void {
     if (this.grace) this.error(this.grace.column, 'a grace note needs a note after it');
     this.grace = undefined;
+    if (this.ornament) this.error(this.ornament.column, 'an ornament needs a note after it');
+    this.ornament = undefined;
+  }
+
+  /** The ornament sign waiting for the next note, if any; it is taken by that note or refused. */
+  private takeOrnament(): OrnamentMark | undefined {
+    const o = this.ornament;
+    this.ornament = undefined;
+    return o;
   }
 
   /** The grace note waiting for the next note, if any; it is taken by that note or refused. */
@@ -233,8 +254,9 @@ class MusicLine {
   }
 
   /**
-   * `{g}C` (plain) or `{/g}C` (slashed): one note in the braces, before the main note (core_09.AC31, d121).
-   * The letters are notes, so `g` is G5. Anything else in the braces, and a second grace on one note, is refused.
+   * `{g}C` (plain) or `{/g}C` (slashed): a note in the braces, before the main note (core_09.AC31, d121); `{gfg}C` is a
+   * group of up to `MAX_GRACE_GROUP`, played in the order written (core_09.AC60). The letters are notes, so `g` is G5.
+   * Anything else in the braces, two of one pitch in a row, and a second pair of braces on one note, are refused.
    */
   private readGrace(): void {
     const { s } = this;
@@ -262,21 +284,25 @@ class MusicLine {
       const acc = readAccidental(body, k);
       const p = readPitch(body, acc.next);
       if (!p) {
-        this.error(column, `"${body[k]}" is not allowed in a grace note (write one note in the braces)`);
+        this.error(column, `"${body[k]}" is not allowed in a grace note (write notes in the braces)`);
         return;
       }
       notes.push(this.host.spellNote(this.voice, p.note, acc.alter));
       k = p.next;
     }
-    if (notes.length !== 1) {
-      this.error(column, notes.length === 0 ? 'a grace note needs one note in the braces' : 'a grace note takes one note: two notes in braces are not supported');
+    if (notes.length === 0 || notes.length > MAX_GRACE_GROUP) {
+      this.error(column, notes.length === 0 ? 'a grace note needs a note in the braces' : `a grace group takes at most ${MAX_GRACE_GROUP} notes`);
+      return;
+    }
+    if (notes.some((n, j) => j > 0 && n.midi === notes[j - 1]!.midi)) {
+      this.error(column, 'two grace notes in a row cannot have one pitch');
       return;
     }
     if (this.grace) {
-      this.error(column, 'a note takes one grace note');
+      this.error(column, 'a note takes one grace group: write its notes in one pair of braces');
       return;
     }
-    this.grace = { note: notes[0]!, slash, column };
+    this.grace = { notes, slash, column };
   }
 
   /** The dynamic written before the next note or chord, if any. */
@@ -426,9 +452,12 @@ class MusicLine {
       return false;
     }
     const name = this.s.slice(this.i + 1, close);
+    const ornament = ABC_ORNAMENTS[name];
     if (/^[1-5]$/.test(name)) this.finger = { value: Number(name), column: this.i + 1 };
     else if (isDynamic(name)) this.dynamic = { value: name, column: this.i + 1 };
-    else this.unsupported(this.i + 1, `the decoration !${name}! (only fingerings !1! to !5!)`);
+    else if (ornament && this.ornament) this.error(this.i + 1, 'a note takes one ornament');
+    else if (ornament) this.ornament = { kind: ornament, column: this.i + 1 };
+    else this.unsupported(this.i + 1, `the decoration !${name}! (only fingerings !1! to !5!, dynamics and !trill!, !mordent!, !uppermordent!, !turn!)`);
     this.i = close + 1;
     return true;
   }
@@ -461,6 +490,8 @@ class MusicLine {
     const column = this.i + 1;
     const grace = this.takeGrace();
     if (grace) this.error(grace.column, 'a grace note cannot come before a chord');
+    const ornament = this.takeOrnament();
+    if (ornament) this.error(ornament.column, 'an ornament goes on a single note, not on a chord');
     this.flushFinger('put fingerings inside the chord brackets, before each note');
     let close = this.i + 1;
     while (close < s.length && s[close] !== ']' && s[close] !== '|') close++; // a chord never holds a bar line
@@ -512,6 +543,8 @@ class MusicLine {
     const whole = s[this.i] === 'Z';
     const grace = this.takeGrace();
     if (grace) this.error(grace.column, 'a grace note cannot come before a rest');
+    const ornament = this.takeOrnament();
+    if (ornament) this.error(ornament.column, 'an ornament cannot go on a rest');
     this.flushFinger('a rest cannot have a fingering');
     this.flushDynamic();
     this.i++;
@@ -651,6 +684,7 @@ class MusicLine {
   private commitNotes(notes: AbcNote[], column: number): void {
     const { s, voice, line } = this;
     const grace = this.takeGrace();
+    const ornamentMark = this.takeOrnament();
     const { dur, next } = this.host.readLength(s, this.i, line);
     this.i = next;
     let tie: { midis: number[]; pitches: string[]; line: number; column: number } | null = null;
@@ -666,13 +700,31 @@ class MusicLine {
     // A chord carries its dynamic on its lowest note only, so the mark is drawn once.
     const dynamic = this.takeDynamic();
     if (dynamic !== undefined && notes[0]) notes[0].dynamic = dynamic;
-    // A grace note sits before this note: not on a tie's second note, and never with the same pitch (core_09.AC31).
-    let before: AbcGrace | undefined;
+    // A grace note sits before this note: not on a tie's second note, and the last never with the same pitch (core_09.AC31).
+    let before: AbcGrace[] | undefined;
     if (grace && voice.pendingTie) this.error(grace.column, 'a grace note cannot come before the second note of a tie');
-    else if (grace && notes[0] && grace.note.midi === notes[0].midi) this.error(grace.column, 'a grace note cannot have the same pitch as its main note');
-    else if (grace) before = { note: grace.note, slash: grace.slash, line, column: grace.column };
-    this.host.addItem(voice, { kind: 'notes', tick: voice.tick, dur, notes, line, column, ...(before ? { grace: before } : {}) }, line, column);
+    else if (grace && notes[0] && grace.notes.at(-1)!.midi === notes[0].midi) this.error(grace.column, 'a grace note cannot have the same pitch as its main note');
+    else if (grace) before = grace.notes.map((note) => ({ note, slash: grace.slash, line, column: grace.column }));
+    const ornament = ornamentMark ? this.ornamentOn(ornamentMark, notes) : undefined;
+    this.host.addItem(voice, { kind: 'notes', tick: voice.tick, dur, notes, line, column, ...(before ? { graces: before } : {}), ...(ornament ? { ornament } : {}) }, line, column);
     if (tie) voice.pendingTie = tie;
+  }
+
+  /**
+   * The sign on a single note with its neighbours (core_09.AC60, d303): the letter a step above or below, with the alter
+   * the key and the bar's accidentals give it. Refused on the second note of a tie. AX-3 provisional: TODO(architect, R2) in core_09:
+   * an accidental written over the sign (a turn with a sharp below) is not in the subset yet.
+   */
+  private ornamentOn(mark: OrnamentMark, notes: AbcNote[]): AbcOrnament | undefined {
+    if (notes.length !== 1) return void this.error(mark.column, 'an ornament goes on a single note, not on a chord');
+    if (this.voice.pendingTie) return void this.error(mark.column, 'an ornament cannot go on the second note of a tie');
+    const main = notes[0]!;
+    const near = (dir: 1 | -1): AbcNote => this.host.spellNote(this.voice, { midi: 0, spelling: { ...neighbourLetter(main.spelling, dir), alter: 0 } }, undefined);
+    return {
+      kind: mark.kind,
+      ...(usesUpper(mark.kind) ? { upper: near(1) } : {}),
+      ...(usesLower(mark.kind) ? { lower: near(-1) } : {}),
+    };
   }
 }
 

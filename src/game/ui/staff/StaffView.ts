@@ -9,14 +9,14 @@ import { SCORE_COLOURS, STAFF_INK, scoreColour } from '../../../core/layout/scor
 import { wordFits } from '../../../core/layout/dynamicWords';
 import type { PlayedMark } from '../../../core/layout/playedMark';
 import { accidentalKind, pageOfNotes, type BeamGlyph, type NoteGlyph, type NoteValue, type SlurGlyph, type StaffLayout, type TieGlyph, type TupletGlyph } from '../../../core/layout/staff';
-import type { GraceGlyph } from '../../../core/layout/staffTypes';
+import type { GraceGlyph, OrnamentGlyph } from '../../../core/layout/staffTypes';
 import { slurPoints, tiePoints } from '../../../core/layout/preview';
 import { STAFF_LAYERS, type StaffLayer } from './layers';
 import { addSheet } from './sheetGround';
 import { PARCHMENT_PAPER } from '../pixel/paint/parchment';
 import { t } from '../../../core/text/strings';
 import type { Dynamic } from '../../../core/chart/dynamics';
-import { ACCIDENTAL_STROKES, BASS_CLEF_BALL, BASS_CLEF_DOTS, BASS_CLEF_STROKE, BRACE_PATH, DIGITS, QUARTER_REST_STROKE, TREBLE_CLEF_STROKE, type Pt } from './glyphs';
+import { ACCIDENTAL_STROKES, ORNAMENT_STROKES, BASS_CLEF_BALL, BASS_CLEF_DOTS, BASS_CLEF_STROKE, BRACE_PATH, DIGITS, QUARTER_REST_STROKE, TREBLE_CLEF_STROKE, type Pt } from './glyphs';
 import { STAFF_FONT } from './staffFont';
 
 export type NoteState = 'pending' | 'correct' | 'wrong';
@@ -137,6 +137,8 @@ export class StaffView {
   private readonly graceLabels: Phaser.GameObjects.Text[] = [];
   /** The graces drawn on the page shown, with the head centre each was drawn at (for tests: what is drawn, not only the layout). */
   private gracesDrawn: { index: number; x: number; y: number; slash: boolean }[] = [];
+  /** The ornament signs drawn on the page shown (core_09.AC60). */
+  private ornamentsDrawn: { index: number; x: number; y: number; kind: string }[] = [];
   private readonly fingerTexts: Phaser.GameObjects.Text[] = [];
   /** Where the hand moves along the keyboard (ft_1_30.AC10): an arrow above the staff over the note, shown with the finger numbers. */
   private shifts: { x: number; y: number; direction: 'up' | 'down'; system: number }[] = [];
@@ -872,7 +874,9 @@ export class StaffView {
       if (n.stem) for (let k = 0; k < n.flags; k++) this.drawFlagAt({ ...n.stem, y2: n.stem.y2 + (n.stem.up ? 1 : -1) * k * S * 0.8 }, color);
     });
     this.gracesDrawn = [];
+    this.ornamentsDrawn = [];
     for (const grace of layout.graces) if (this.onPage(grace.system)) this.drawGrace(grace);
+    for (const sign of layout.ornaments ?? []) if (this.onPage(sign.system)) this.drawOrnament(sign);
     for (const beam of layout.beams) if (this.onPage(beam.system)) this.drawBeam(beam);
     for (const tuplet of layout.tuplets) if (this.onPage(tuplet.system)) this.drawTuplet(tuplet);
     for (const tie of layout.ties) if (this.onPage(tie.system)) this.drawTie(tie);
@@ -940,7 +944,32 @@ export class StaffView {
     g.lineStyle(thin, color, 1).lineBetween(stem.x, stem.y1, stem.x, stem.y2);
     if (grace.flag) this.drawFlagAt(stem, color, k);
     if (grace.slash) g.lineStyle(thin, color, 1).lineBetween(grace.slash.x1, grace.slash.y1, grace.slash.x2, grace.slash.y2);
+    // a grace group's two beams (core_09.AC60), hung from its stem tips
+    if (grace.beam) {
+      const { x1, x2, y, thickness, second } = grace.beam;
+      const half = thin / 2;
+      g.fillStyle(color, 1).fillRect(x1 - half, y, x2 - x1 + half * 2, thickness);
+      g.fillRect(x1 - half, second, x2 - x1 + half * 2, thickness);
+    }
     this.gracesDrawn.push({ index: grace.index, x: grace.x, y: grace.y, slash: grace.slash !== null });
+  }
+
+  /** An ornament sign over its note (core_09.AC60), from its strokes (`ORNAMENT_STROKES`), in the ink colour, grey once passed. */
+  private drawOrnament(sign: OrnamentGlyph): void {
+    const S = this.layout.staffSpace;
+    const color = this.isPast(sign.system, sign.x) ? PAST_GREY : this.theme.ink;
+    const g = this.notesGfx;
+    for (const stroke of ORNAMENT_STROKES[sign.kind]) {
+      g.lineStyle(Math.max(1.5, stroke.width * S), color, 1).beginPath();
+      stroke.points.forEach((p, i) => (i === 0 ? g.moveTo(sign.x + p.x * S, sign.y + p.y * S) : g.lineTo(sign.x + p.x * S, sign.y + p.y * S)));
+      g.strokePath();
+    }
+    this.ornamentsDrawn.push({ index: sign.index, x: sign.x, y: sign.y, kind: sign.kind });
+  }
+
+  /** The ornament signs drawn on the page shown (for tests: what is drawn, not only the layout). */
+  get ornamentsShown(): readonly { index: number; x: number; y: number; kind: string }[] {
+    return this.ornamentsDrawn;
   }
 
   /** A sharp, flat or natural centred on (cx, cy), drawn from its strokes (`ACCIDENTAL_STROKES`), at `scale` of its size (a grace's is smaller). */

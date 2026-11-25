@@ -1,6 +1,7 @@
 import type { Chart } from './schema.ts';
 import { tieChain, tieLinks } from './ties.ts';
 import { tickToMs } from './time.ts';
+import { ornamentNotes } from './ornaments.ts';
 
 /** One sounding note of a chart, with tied notes joined into one. Times are song time from the first tick, in ms. */
 export interface PlaybackNote {
@@ -12,6 +13,8 @@ export interface PlaybackNote {
   noteIndexes: number[];
   /** A grace note (d121): it is no chart note, so nothing on the staff lights for it. */
   grace?: true;
+  /** A note of an ornament after its first (core_09.AC61): the staff already lit its note at the first. */
+  ornament?: true;
 }
 
 /** Computer playback sounds a grace note this long (ms, whatever the tempo) before its main note, up to that note's onset (d121). */
@@ -30,7 +33,8 @@ export interface PlaybackOptions {
 /**
  * What a listener hears: every note of every track except click tracks, with ties joined, in time order.
  * Used to play a piece back (the preview tool now, accompaniment and demos later); it has no rules of its own.
- * Each grace note sounds `GRACE_LEAD_MS` before its main note and stops at that note's onset; the main note's time is as written.
+ * Each grace note sounds `GRACE_LEAD_MS` before its main note and stops at that note's onset (a group of them one after
+ * another); the main note's time is as written. A note with an ornament sign sounds the sign's notes (`ornamentNotes`).
  */
 export function playbackNotes(chart: Chart, options: PlaybackOptions = {}): PlaybackNote[] {
   const { velocity = PLAYBACK_VELOCITY, tempoScale = 1 } = options;
@@ -38,6 +42,7 @@ export function playbackNotes(chart: Chart, options: PlaybackOptions = {}): Play
   const links = tieLinks(chart, heard);
   const candidates = chart.notes.flatMap((note, index) => (heard.has(note.track) ? [{ note, index }] : []));
   const holds = slurHolds(chart);
+  const ornamentOf = new Map((chart.ornaments ?? []).map((o) => [`${o.track}/${o.voice}/${o.tick}`, o]));
 
   const ms = (tick: number) => tickToMs(chart.tempoMap, tick, chart.ppq) / tempoScale;
   const notes: PlaybackNote[] = candidates
@@ -46,11 +51,30 @@ export function playbackNotes(chart: Chart, options: PlaybackOptions = {}): Play
       const noteIndexes = [index, ...tieChain(links, index)];
       const last = chart.notes[noteIndexes.at(-1)!]!;
       const endTick = Math.max(last.tick + last.dur, ...noteIndexes.map((i) => holds.get(i) ?? 0));
-      return { midi: note.midi, startMs: ms(note.tick), endMs: ms(endTick), velocity, noteIndexes };
-    });
-  const graces: PlaybackNote[] = (chart.graces ?? [])
-    .filter((g) => heard.has(g.track))
-    .map((g) => ({ midi: g.pitch.midi, startMs: ms(g.tick) - GRACE_LEAD_MS, endMs: ms(g.tick), velocity, noteIndexes: [], grace: true }));
+      const sound: PlaybackNote = { midi: note.midi, startMs: ms(note.tick), endMs: ms(endTick), velocity, noteIndexes };
+      const sign = ornamentOf.get(`${note.track}/${note.voice}/${note.tick}`);
+      if (!sign) return [sound];
+      // An ornament (core_09.AC61) sounds its notes through the written length, ties included; the last is held as the note
+      // is. The first carries the chart notes, so the staff lights the note at its onset.
+      const parts = ornamentNotes(sign.kind, note.midi, { ...(sign.upper ? { upper: sign.upper.midi } : {}), ...(sign.lower ? { lower: sign.lower.midi } : {}) }, last.tick + last.dur - note.tick);
+      return parts.map((p, k): PlaybackNote => ({
+        midi: p.midi,
+        startMs: ms(note.tick + p.offset),
+        endMs: k === parts.length - 1 ? ms(endTick) : ms(note.tick + p.offset + p.dur),
+        velocity,
+        noteIndexes: k === 0 ? noteIndexes : [],
+        ...(k === 0 ? {} : { ornament: true as const }),
+      }));
+    })
+    .flat();
+  // A grace group (core_09.AC61) plays one grace after another, each GRACE_LEAD_MS, the last ending at the main note.
+  const graceList = (chart.graces ?? []).filter((g) => heard.has(g.track));
+  const graces: PlaybackNote[] = graceList.map((g) => {
+    const group = graceList.filter((o) => o.track === g.track && o.voice === g.voice && o.tick === g.tick);
+    const before = group.length - group.indexOf(g);
+    const startMs = ms(g.tick) - before * GRACE_LEAD_MS;
+    return { midi: g.pitch.midi, startMs, endMs: startMs + GRACE_LEAD_MS, velocity, noteIndexes: [], grace: true };
+  });
   return [...notes, ...graces].sort((a, b) => a.startMs - b.startMs || a.midi - b.midi);
 }
 

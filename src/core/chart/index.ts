@@ -9,3 +9,4 @@ export * from './parts.ts';
 export * from './ties.ts';
 export * from './repeats.ts';
 export * from './tuplets.ts';
+export * from './ornaments.ts';

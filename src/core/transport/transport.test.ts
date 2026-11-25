@@ -205,6 +205,12 @@ describe('Transport: a click for the count-in only (a level-3 tug)', () => {
 });
 
 describe('Transport: a grace note on the first note is part of the count-in (core_09.AC34, d121)', () => {
+  it('core_09.AC61 a grace group on the first note shares the last count-in beat out in its written order', () => {
+    const transport = new Transport(chartWith([{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 64 }], { graces: [graceAt(0, 64), graceAt(0, 62)] }));
+    transport.start(1000);
+    expect(transport.countInGraces()).toEqual([{ midi: 64, atMs: 2500, endMs: 2750 }, { midi: 62, atMs: 2750, endMs: 3000 }]);
+  });
+
   // 4/4 at 120 bpm: a beat is 500 ms; C first, with a grace D (62)
   const first = (graces: unknown[], extra: Record<string, unknown> = {}) =>
     chartWith([{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 64 }], { graces, ...extra });

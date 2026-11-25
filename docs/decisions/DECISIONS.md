@@ -281,4 +281,5 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d300](game.md#d300) | The whole piece is learned in three plays: the first two go on past a wrong key and count, the third must be perfect | ft_1_32 |
 | [d301](game.md#d301) | Key bashing brings Kiur to the door whenever it happens on a screen the student plays on | ft_1_15 |
 | [d302](game.md#d302) | Keri's places become close-ups whose painted lines are the staff, each hosting a built trainer as a job that changes the island for good | ft_1_38, ft_Y_16, ft_1_19, ft_1_18 |
+| [d303](notation.md#d303) | Trills, mordents, turns and grace groups are read, drawn and heard, and stay optional for the student: playing their notes is never wrong and never needed | core_09 |
 <!-- /docs:index -->

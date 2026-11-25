@@ -108,6 +108,14 @@ describe('passHeldFor', () => {
   });
 });
 
+describe('passHeldFor: ornament signs (core_09.AC65, d303)', () => {
+  it('core_09.AC65 an ornament adds one key: the note held while its neighbour is played', () => {
+    const notes = [{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 64 }];
+    const signed = chartWith(notes, { ornaments: [{ track: 'rh', voice: 1, tick: 0, kind: 'trill', upper: graceAt(0, 62).pitch }] });
+    expect(passHeldFor(signed)).toBe(passHeldFor(chartWith(notes)) + 1);
+  });
+});
+
 describe('passHeldFor: grace notes (core_09.AC33, d121)', () => {
   // C, then E with a grace D: legato, C is still down while the grace and E come
   const graced = chartWith([{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 64 }], { graces: [graceAt(480, 62)] });

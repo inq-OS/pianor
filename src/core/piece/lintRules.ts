@@ -141,6 +141,16 @@ function checkChords({ level, playNotes, error }: LintContext): void {
   }
 }
 
+/** Ornament signs (core_09.AC64, d303) only where the level allows them. */
+function checkOrnaments({ chart, level, playTracks, error }: LintContext): void {
+  if (level.ornaments) return;
+  for (const o of chart.ornaments ?? []) {
+    if (!playTracks.has(o.track)) continue;
+    const note = chart.notes.findIndex((n) => n.track === o.track && n.voice === o.voice && n.tick === o.tick);
+    error('ornament', `ornaments (a trill, mordent or turn) are not allowed at level ${level.level}`, { note });
+  }
+}
+
 /** Two voices in one hand (core_09.AC54, d164) only where the level allows them. */
 function checkVoices({ level, playNotes, error }: LintContext): void {
   for (const e of playNotes) {
@@ -305,7 +315,7 @@ function checkMusicality({ chart, playTracks, playNotes, warn }: LintContext): v
 
 /** The rules in the order their reports are listed. */
 const RULES: readonly ((context: LintContext) => void)[] = [
-  checkMeterHandsClefs, checkBarsFilled, checkKeyAndNotes, checkChords, checkVoices, checkRests, checkLeaps, checkHandsTogether,
+  checkMeterHandsClefs, checkBarsFilled, checkKeyAndNotes, checkChords, checkOrnaments, checkVoices, checkRests, checkLeaps, checkHandsTogether,
   checkLengths, checkFingerings, checkChordFingers, checkCostlyFingers, checkMeta, checkMusicality,
 ];
 
