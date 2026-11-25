@@ -13,18 +13,31 @@ export interface WrongNoteDiagnosis {
   direction: 'higher' | 'lower';
 }
 
+/** The awaited note closest to `played`; the lower one on a tie. */
+function closest(played: number, awaiting: readonly number[]): number {
+  return awaiting.reduce((best, m) => {
+    const d = Math.abs(played - m);
+    const bestD = Math.abs(played - best);
+    return d < bestD || (d === bestD && m < best) ? m : best;
+  });
+}
+
 /**
  * Explain a wrong key against the awaited notes (the closest one is used; the lower one on a tie).
  * - wrong-octave: right letter, other octave
  * - neighbour-key: the key right next to it, black or white
  * - wrong-letter: anything else
+ * In a chord, a key that would be a wrong letter for the closest note but has the letter of another awaited note is
+ * that note's wrong octave: the student found the letter (core_09.AC58).
  */
 export function classifyWrongNote(played: number, awaiting: readonly number[]): WrongNoteDiagnosis {
-  const expectedMidi = awaiting.reduce((best, m) => {
-    const d = Math.abs(played - m);
-    const bestD = Math.abs(played - best);
-    return d < bestD || (d === bestD && m < best) ? m : best;
-  });
+  const nearest = diagnose(played, closest(played, awaiting));
+  if (nearest.reason !== 'wrong-letter') return nearest;
+  const sameLetter = awaiting.filter((m) => (played - m) % 12 === 0);
+  return sameLetter.length > 0 ? diagnose(played, closest(played, sameLetter)) : nearest;
+}
+
+function diagnose(played: number, expectedMidi: number): WrongNoteDiagnosis {
   const diff = played - expectedMidi;
   const direction = diff > 0 ? 'higher' : 'lower';
   let reason: WrongReason;

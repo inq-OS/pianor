@@ -390,6 +390,13 @@ describe('warnings for a human to review', () => {
     expect(inA?.message).toContain('not on the tonic A');
   });
 
+  it('core_09.AC58 a part that ends on a chord holding the tonic has its cadence, wherever the tonic is in the chord', () => {
+    const chords = { level: 1 };
+    expect(warnings('C D E F | G2 F2 | F E D C | [CEG]4 |]', chords)).not.toContain('no-cadence');
+    expect(warnings('C D E F | G2 F2 | F E D C | [EGc]4 |]', { level: 5 })).not.toContain('no-cadence');
+    expect(warnings('C D E F | G2 F2 | F E D C | [DF]4 |]', chords)).toContain('no-cadence');
+  });
+
   it('a bar repeated three or more times in a row', () => {
     expect(warnings('C D E F | C D E F | C D E F | C4 |]')).toContain('identical-bars');
     expect(warnings('C D E F | C D E F | G2 F2 | C4 |]')).not.toContain('identical-bars');

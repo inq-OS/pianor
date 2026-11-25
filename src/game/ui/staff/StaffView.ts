@@ -10,7 +10,7 @@ import { wordFits } from '../../../core/layout/dynamicWords';
 import type { PlayedMark } from '../../../core/layout/playedMark';
 import { dotLook, laneLift, paceColour, type LaneDot, type LaneLook } from '../../../core/layout/beatLane';
 import type { PaceMark } from '../../../core/layout/beat';
-import { accidentalKind, pageOfNotes, type BeamGlyph, type NoteGlyph, type NoteValue, type SlurGlyph, type StaffLayout, type TieGlyph, type TupletGlyph } from '../../../core/layout/staff';
+import { LABEL_LINE, accidentalKind, pageOfNotes, type BeamGlyph, type NoteGlyph, type NoteValue, type SlurGlyph, type StaffLayout, type TieGlyph, type TupletGlyph } from '../../../core/layout/staff';
 import type { GraceGlyph } from '../../../core/layout/staffTypes';
 import { slurPoints, tiePoints } from '../../../core/layout/preview';
 import { STAFF_LAYERS, type StaffLayer } from './layers';
@@ -31,6 +31,8 @@ export interface StaffTheme {
   cursor: number;
   cursorFill: number;
   hint: string;
+  /** A chord's name on the second line of its label (core_09.AC59): darker than the note names, so the two lines read apart. */
+  chordName: string;
   /** The soft background of a section's bars while it is chosen, and the colour of its A and B. */
   sectionFill: number;
   sectionInk: string;
@@ -54,6 +56,7 @@ export const DEFAULT_THEME: StaffTheme = {
   cursorFill: 0xeceff1,
   // slightly grey, so the note names and finger numbers do not muddy the notes
   hint: '#6e6e7a',
+  chordName: '#3a3a44',
   // a highlighter's pale yellow, a quarter of the way from the paper to gold: soft, and unlike the grey cursor box
   sectionFill: 0xfbebbc,
   sectionInk: '#8a5a00',
@@ -148,6 +151,8 @@ export class StaffView {
   private readonly playheadGfx: Phaser.GameObjects.Graphics;
   private readonly notesGfx: Phaser.GameObjects.Graphics;
   private readonly labels: Phaser.GameObjects.Text[] = [];
+  /** The second label line of a chord named under its notes (core_09.AC59), by the same slot as `labels`; null where there is none. */
+  private readonly nameLabels: (Phaser.GameObjects.Text | null)[] = [];
   /** The note-name hint of each grace note (core_09.AC32), small, under its head; in the order of `layout.graces`. */
   private readonly graceLabels: Phaser.GameObjects.Text[] = [];
   /** The graces drawn on the page shown, with the head centre each was drawn at (for tests: what is drawn, not only the layout). */
@@ -230,7 +235,10 @@ export class StaffView {
     let markIndex = 0;
     for (const n of layout.notes) {
       const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize, color: theme.hint };
-      this.labels.push(scene.add.text(origin.x + n.column, origin.y + n.labelY, n.label, style).setOrigin(0.5));
+      // a chord's name stands on a second line under its notes (core_09.AC59), one text per line so each sits on its own line
+      const [notes, name] = n.label.split('\n');
+      this.labels.push(scene.add.text(origin.x + n.column, origin.y + n.labelY, notes ?? '', style).setOrigin(0.5));
+      this.nameLabels.push(name === undefined ? null : scene.add.text(origin.x + n.column, origin.y + n.labelY + LABEL_LINE * layout.staffSpace, name, { ...style, color: theme.chordName }).setOrigin(0.5));
       // a finger sits beside its head, level with it; the text is set by setHints
       this.fingerTexts.push(scene.add.text(origin.x + n.fingerX, origin.y + n.y, '', style).setOrigin(0.5));
       this.scoreTexts.push(scene.add.text(origin.x + n.column, origin.y + n.scoreY, '', { ...style, color: '#1b1b2f' }).setOrigin(0.5).setVisible(false));
@@ -259,6 +267,7 @@ export class StaffView {
     this.layout.notes.forEach((n, slot) => {
       const shown = this.onPage(n.system);
       this.labels[slot]!.setVisible(shown && hints.noteNames);
+      this.nameLabels[slot]?.setVisible(shown && hints.noteNames);
       const digit = hints.chordFingers ? n.headFinger : n.finger;
       this.fingerTexts[slot]!.setText(digit === null ? '' : String(digit));
       this.fingerTexts[slot]!.setVisible(shown && hints.fingers);
@@ -644,7 +653,7 @@ export class StaffView {
     this.drawNotes();
     this.drawPlayhead();
     if (!fade) return;
-    const targets = [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)];
+    const targets = [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.nameLabels.filter((l) => l !== null), ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)];
     this.scene.tweens.killTweensOf(targets);
     this.scene.tweens.add({ targets, alpha: { from: 0.2, to: 1 }, duration: PAGE_FADE_MS });
   }
@@ -766,7 +775,7 @@ export class StaffView {
   }
 
   destroy(): void {
-    [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
+    [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.nameLabels.filter((l) => l !== null), ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
     this.playedName?.destroy();
     for (const v of this.veils) v.image.destroy();
     this.sheet.release();

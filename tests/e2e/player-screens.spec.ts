@@ -696,15 +696,15 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
 
   test("ft_1_12.AC10 ft_1_12.AC11 the teacher's bookmark shows only the teacher's pieces; the order button puts the nearest deadline first", async ({ page }) => {
     const errors = await openGame(page);
-    const title: string = await page.evaluate(async () => {
+    // the last piece of the book, so that ordering by deadline visibly moves it to the front (a song's part is in no book page)
+    const before = await allMenuTitles(page);
+    const title = before.at(-1)!;
+    await page.evaluate(async (last) => {
       const context = window.__game.registry.get('context');
-      const pieces = context.pieces.list();
-      // the last piece of the book, so that ordering by deadline visibly moves it to the front
-      const piece = pieces[pieces.length - 1];
+      const piece = context.pieces.list().find((p: { chart: { title: string } }) => p.chart.title === last);
       await context.profiles.saveCurriculum(context.profiles.profile.id, { base: 85, calendar: [], pieces: [{ piece: piece.chart.id, deadline: '1998-12-20', priority: 5 }] });
       (window.__game.scene.getScene('menu') as unknown as { scene: { restart(): void } }).scene.restart();
-      return piece.chart.title as string;
-    });
+    }, title);
     await waitForScene(page, 'menu');
     const all = await allMenuTitles(page);
     expect(all).toContain(title);

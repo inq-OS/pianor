@@ -572,3 +572,19 @@ Check: untestable: a direction for the vision; each slice of ft_1_38 brings its 
 The list is `docs/theory/learning-catalog.md`, one row per topic with a fixed id and a status (trained, drawn, needs drawing, needs a feature, idea); a topic is added as a row and never deleted for not being built. Seeing the whole map shows what the game covers and keeps wanted topics from being forgotten.
 
 Check: untestable: the book that shows the list is not built yet; ft_1_39.AC1 tests it with slice 1.
+
+## d304
+
+**Kiur teaches the theory lessons in at most twelve stoic words a step, naming and pointing rather than describing; the first lessons are half steps, whole steps and the major scale.** Features: ft_1_39.
+
+The teacher assigns lessons and holds checks, as with pieces. A line names a thing while an arrow points at it, and a thing that does several things gets one short label at each part; the picture carries the rest. Half and whole steps lead into the scale and chord trainers the student already uses.
+
+Check: untestable: lesson wording and order are content; ft_1_39's lesson linter checks the word limit once slice 1 is built.
+
+## d305
+
+**The theory lessons' order is a skill tree of prerequisites over the catalog ids, cut into stages, with nothing locked.** Features: ft_1_39.
+
+A lesson is ready once every lesson it needs has a medal, and the suggested next lesson is the ready one in the lowest stage; the book stays sorted by area as the map of everything. A tree gives a curriculum that mixes subjects in a sensible order while the student may still open any lesson.
+
+Check: untestable: the tree becomes data with slice 2 of ft_1_39, whose loop check and ready rule get their tests then.
