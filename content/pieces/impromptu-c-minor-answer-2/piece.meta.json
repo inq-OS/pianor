@@ -1,0 +1,34 @@
+{
+  "id": "impromptu-c-minor-answer-2",
+  "title": "Impromptu in C minor: Answer 2",
+  "titles": {
+    "et": "Impromptu c-moll: Vastus 2"
+  },
+  "level": 6,
+  "status": "draft",
+  "hands": [
+    "RH",
+    "LH"
+  ],
+  "phrases": [
+    {
+      "name": "Phrase 1",
+      "bars": [
+        1,
+        4
+      ]
+    }
+  ],
+  "styles": [
+    "classical"
+  ],
+  "tags": [
+    "song-part",
+    "arrangement"
+  ],
+  "source": "Franz Schubert, Impromptu in C minor, Op. 90 No. 1, D 899 No. 1 (1827), public domain; its opening theme (bars 1 to 33) arranged for Pianor (the top line in the right hand, the bass in the left) from the Mutopia Project edition (public domain) of the Breitkopf & Härtel complete works",
+  "license": "CC0-1.0",
+  "generator": {
+    "kind": "manual"
+  }
+}

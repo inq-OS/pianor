@@ -1,0 +1,41 @@
+{
+  "id": "standchen-begluecke",
+  "title": "Ständchen: Komm, beglücke mich",
+  "titles": {
+    "et": "Serenaad: Komm, beglücke mich"
+  },
+  "level": 6,
+  "status": "draft",
+  "hands": [
+    "RH",
+    "LH"
+  ],
+  "phrases": [
+    {
+      "name": "Phrase 1",
+      "bars": [
+        1,
+        4
+      ]
+    },
+    {
+      "name": "Phrase 2",
+      "bars": [
+        5,
+        6
+      ]
+    }
+  ],
+  "styles": [
+    "classical"
+  ],
+  "tags": [
+    "song-part",
+    "arrangement"
+  ],
+  "source": "Franz Schubert, Ständchen, Schwanengesang D 957 No. 4 (1828), public domain; arranged for Pianor (the voice in the right hand, the bass in the left) from the OpenScore Lieder transcription (CC0) of the first edition",
+  "license": "CC0-1.0",
+  "generator": {
+    "kind": "manual"
+  }
+}

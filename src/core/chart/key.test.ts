@@ -1,6 +1,6 @@
 // Covers core_09.AC2.
 import { describe, expect, it } from 'vitest';
-import { keyAlters, printedAccidentals } from './key';
+import { keyAlters, printedAccidentals, tonicStep } from './key';
 
 const NATURAL = { C: 0, D: 0, E: 0, F: 0, G: 0, A: 0, B: 0 };
 
@@ -89,5 +89,15 @@ describe('core_09.AC3 printed accidentals', () => {
 
   it('core_09.AC3 returns an empty list for no notes', () => {
     expect(printedAccidentals([], 0)).toEqual([]);
+  });
+});
+
+describe('the tonic of a key', () => {
+  it('is the letter of the major or minor key the signature names', () => {
+    expect([tonicStep(0, 'major'), tonicStep(0, 'minor')]).toEqual(['C', 'A']);
+    expect([tonicStep(-1, 'major'), tonicStep(-1, 'minor')]).toEqual(['F', 'D']);
+    expect([tonicStep(-3, 'major'), tonicStep(-3, 'minor')]).toEqual(['E', 'C']);
+    expect([tonicStep(2, 'major'), tonicStep(2, 'minor')]).toEqual(['D', 'B']);
+    expect([tonicStep(7, 'major'), tonicStep(-7, 'minor')]).toEqual(['C', 'A']);
   });
 });
