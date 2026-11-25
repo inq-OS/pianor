@@ -28,13 +28,15 @@ interface Options {
   meta?: Record<string, unknown>;
   meter?: string;
   header?: string;
+  /** The ABC key, C if left out. */
+  key?: string;
   privatePiece?: boolean;
 }
 
 /** Compile an ABC body (right hand unless the meta says otherwise) and lint it. */
 function lint(body: string, options: Options = {}): { diagnostics: Diagnostic[]; chart: Chart } {
   const meta = { ...META, ...options.meta };
-  const abc = `X:1\nT:Test Piece\nM:${options.meter ?? '4/4'}\nL:1/4\nQ:1/4=80\nK:C\n${options.header ?? ''}${body}\n`;
+  const abc = `X:1\nT:Test Piece\nM:${options.meter ?? '4/4'}\nL:1/4\nQ:1/4=80\nK:${options.key ?? 'C'}\n${options.header ?? ''}${body}\n`;
   const compiled = compilePiece({ abc, meta: JSON.stringify(meta) });
   expect(compiled.diagnostics.filter((d) => d.severity === 'error').map(formatDiagnostic), 'the test piece must compile').toEqual([]);
   const lv = typeof options.level === 'object' ? options.level : level(options.level ?? (meta.level));
@@ -51,7 +53,7 @@ describe('levels.json', () => {
   it('loads the provisional starter table without problems, in order', () => {
     const loaded = loadLevelsFile(LEVELS_PATH);
     expect(loaded.diagnostics).toEqual([]);
-    expect(loaded.levels.map((l) => l.level)).toEqual([1, 2, 3, 4, 5]);
+    expect(loaded.levels.map((l) => l.level)).toEqual([1, 2, 3, 4, 5, 6]);
     expect(JSON.parse(readFileSync(LEVELS_PATH, 'utf-8')).note).toMatch(/PROVISIONAL/);
   });
 
@@ -368,6 +370,12 @@ describe('warnings for a human to review', () => {
     expect(warnings('C D E F | G2 F2 | F E D C | D4 |]')).toContain('no-cadence');
   });
 
+  it("the tonic is the key's own: D in D minor, A in A minor", () => {
+    expect(warnings('C D E F | G2 F2 | F E D C | D4 |]', { level: 1, key: 'Dm' })).not.toContain('no-cadence');
+    const inA = lint('C D E F | G2 F2 | F E D C | C4 |]', { level: 1, key: 'Am' }).diagnostics.find((d) => d.rule === 'no-cadence');
+    expect(inA?.message).toContain('not on the tonic A');
+  });
+
   it('a bar repeated three or more times in a row', () => {
     expect(warnings('C D E F | C D E F | C D E F | C4 |]')).toContain('identical-bars');
     expect(warnings('C D E F | C D E F | G2 F2 | C4 |]')).not.toContain('identical-bars');
@@ -468,10 +476,10 @@ describe('linting folders of pieces', () => {
   it('lints against the meta level, scores difficulty and lists the levels the piece fits', () => {
     const report = lintPieces(join(root, 'tests/fixtures/pieces'), levels);
     const little = report.linted.find((p) => p.id === 'little-steps')!;
-    expect(little).toMatchObject({ level: 1, fitsLevels: [1, 3, 4, 5], diagnostics: [] });
+    expect(little).toMatchObject({ level: 1, fitsLevels: [1, 3, 4, 5, 6], diagnostics: [] });
     expect(little.difficulty.scale).toBe(1);
     const hands = report.linted.find((p) => p.id === 'hands-together')!;
-    expect(hands.fitsLevels).toEqual([5]);
+    expect(hands.fitsLevels).toEqual([5, 6]);
     expect(report.diagnostics).toEqual([]);
   });
 
