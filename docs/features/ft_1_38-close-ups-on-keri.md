@@ -30,14 +30,16 @@ AX-0: every job is reading and playing from a staff; the picture paints the line
 7. **Never stuck.** Kiur's hint ladder: idle in a scene, a line about place and sense; then the spot glints; then he names the spot; then he names the job. A hint changes what to look at, never how much to play. Glints show only after practice today.
 8. **No part of the memorial.** The Kaleva memorial and the sunken tractor hold no close-up and no job.
 9. **Real Keri first.** A close-up of a real interior or a thing not in [keri.md](../keri.md) waits for the maintainer's photo or word (`KERI-TODO`); a fiction (a clockwork lens, a bird tower, an oak sapling) is a departure the maintainer decides (keri.md section 9).
+10. **Lore in layers.** The island opens in layers, each a deeper layer of its real past, and each opened by the player's level (d113), never by a puzzle: the wardens' present first, then the old wardens, then the gas years 1906 to 1912, then the iron tower and its Paris lens of 1858, then the stone tower of 1803 and the first fires of 1719. Characters, logbook pages and bottles tell the lore of the layers already open and only hint at the ones above. Each layer brings its own era's public-domain tunes.
+11. **The lighthouse is the pinnacle.** The climb up the tower is the game's long arc and the lantern its summit, reached last: a student early in the game sees the tower from below, its door shut and its beam turning at night as a promise. The climb goes floor by floor, each floor a close-up and a deeper layer of the lore: the door and the stone drum's five iron hoops, the stair inside the stone, the iron column, the gallery, the lantern. `AX-3 provisional:` the floors open at player levels 5, 8, 12, 16 and 20 (the last rank); reaching the lantern and turning its light is the biggest moment the game gives (AX-2.1, a real milestone).
 
 ## The jobs (the catalogue; the maintainer picks the order)
 
 | Place | The picture's staff | Job | Built on | Lasting change |
 |---|---|---|---|---|
-| Lighthouse lantern | the gallery's rails or the lens's prism rings | loop A to B, faster each clean lap; the generator rescues | core_03, core_01 | the beam sweeps the map and every night picture, at the best clean tempo |
+| Lighthouse lantern (the summit, rule 11) | the gallery's rails or the lens's prism rings | loop A to B, faster each clean lap; the generator rescues | core_03, core_01 | the beam sweeps the map and every night picture, at the best clean tempo |
 | Sauna | log gaps as lines, the corner notches as bar lines | rhythm on the middle gap, each hand on its half of the keys; later the knots become notes to read | rhythm practice (core_01 TODO), core_13, ft_1_11 | Saturday smoke and a lit window; a mark for the longest run of even bars |
-| Lighthouse's five iron hoops | the five hoops round the stone | a scale from the staff tightens a hoop, key by key | ft_1_29 | a hoop shines per key held |
+| Lighthouse's five iron hoops (the first floor of the climb) | the five hoops round the stone | a scale from the staff tightens a hoop, key by key | ft_1_29 | a hoop shines per key held |
 | Generator house | the engine's belt as one line | a steady beat where the click drops out for one bar, then two | core_02, core_13 | the warden's windows lit at night; the longest gap held |
 | Well house | the shaft's stone rings | a pebble's echo is a note or two found by ear, then written on the rim and played from it | ft_1_10 | water in the blue barrels |
 | Woodshed | the woodpile's rows | a scale stacked log by log; triads lay the fire | ft_1_29 | the stack grows; it fires the sauna and the room's stove |
@@ -74,12 +76,12 @@ AX-0: every job is reading and playing from a staff; the picture paints the line
 
 ## Slices
 
-1. **A. The seam and the lantern.** The close-up runtime, `pacing.ts` with the struggle rule and the rescue, the lantern's close-up, the beam at night on the map and in scenes. Nearly all reuse (core_03, core_10, core_13).
-2. **B. The sauna.** Rhythm practice (its own feature file first, as core_01's TODO says) and the log wall; proves the painted staff.
-3. **C. The island remembers.** `islandState`, the warden's logbook, night windows.
-4. **D. Storm stones.** The routing table and the day's jobs on the map.
-5. **E. The chain.** The well, the woodshed and the generator house, feeding the sauna and the lantern.
-6. **F. The rest of the catalogue,** one place at a time, in step with the other areas of the game.
+1. **A. The seam and the sauna.** The close-up runtime, `pacing.ts` with the struggle rule and the rescue, rhythm practice (its own feature file first, as core_01's TODO says) and the log wall; proves the painted staff at the bottom of the lore.
+2. **B. The island remembers.** `islandState`, the warden's logbook, night windows, and the lore layers (rule 10) with the tower seen from below.
+3. **C. Storm stones.** The routing table and the day's jobs on the map.
+4. **D. The chain.** The well, the woodshed and the generator house, feeding the sauna and later the lantern.
+5. **E. The rest of the catalogue,** one place at a time, in step with the other areas of the game.
+6. **F. The climb.** The lighthouse floor by floor (rule 11), its lantern last: the A-to-B loop that turns the light, the generator's rescue, the beam at night on the map and in scenes.
 
 ## Acceptance criteria
 
@@ -87,8 +89,8 @@ Written per slice when it is planned.
 
 ## TODO
 
-- TODO(architect, R2): turn slice A into acceptance criteria and a `TODO(builder)` once the maintainer picks the first place.
-- NEEDS-HUMAN: which place first; whether a job may mint player XP (today it does not, rule 5); whether daily looks such as the sauna's smoke may follow the day while best marks and built things stay.
+- TODO(architect, R2): turn slice A into acceptance criteria and a `TODO(builder)`.
+- NEEDS-HUMAN: the levels at which the tower's floors open (rule 11); whether a job may mint player XP (today it does not, rule 5); whether daily looks such as the sauna's smoke may follow the day while best marks and built things stay.
 - NEEDS-HUMAN: the departures this vision proposes (a clockwork lens turned by hand, the oak's sapling, a renovated side building, the pier that grows) are the maintainer's to accept or refuse.
 - KERI-TODO: photos or words for the inside of the sauna, the well house, the woodshed, the boat shed, the cinema house and the side building, and which building is the generator house.
 - IDEA(architect, Later): check whether the student's tug answer ever has no staff in view, against AX-0.1, when the tug is next touched.
