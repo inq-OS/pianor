@@ -556,3 +556,11 @@ Check: `src/core/learn/progress.test.ts` "ft_1_32.AC2 the third play must be per
 On the practice screen in every state but the way out (playing, Kuula, a pass's score, a learning run's line) and in the four trainers; Back goes on where the screen was, the door goes to the room. A bash is a boundary, so it is never ignored because the screen was between two runs.
 
 Check: `tests/e2e/kiur-door.spec.ts` "ft_1_15.AC8 a bash while the score of a pass shows brings Kiur, Back goes on to the next pass and the door to the room"
+
+## d302
+
+**Keri's places become close-ups whose painted lines are the staff, each hosting a built trainer as a job that changes the island for good.** Features: ft_1_38, ft_Y_16, ft_1_19, ft_1_18.
+
+A hint leads to a place, a press opens its close-up, a trainer runs there with one pacing shape (rounds that rise, a struggle rule, a rescue in the story, a best mark), and what was played leaves a lasting change derived from the logs and never taken back. A scene may hold such a job, so the island is where practice happens rather than a wrapper around it; nothing on the island must be solved before the student may play.
+
+Check: untestable: a direction for the vision; each slice of ft_1_38 brings its own tests.

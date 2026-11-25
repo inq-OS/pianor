@@ -13,7 +13,7 @@ The game takes place on Keri, a small island off Estonia's north coast with a mi
 
 ## Rules
 
-1. **Axioms.** AX-0: the island is a reason to come to the piano; nothing on the map stands between the student and the staff for longer than one tap. AX-2: the map and the room are attraction and give no reward of their own.
+1. **Axioms.** AX-0: the island is a reason to come to the piano; nothing on the map stands between the student and the staff for longer than one tap. AX-2: the map and the room are attraction and give no reward of their own; the close-ups of the island's places are where practice happens (ft_1_38, d302).
 2. **Method.** The maintainer supplies the facts (a map, satellite images, photos with their viewpoint). The agent documents them in `docs/keri.md` and never invents the island's layout, the buildings' places, the coastline or the warden's room; what is not given stays `KERI-TODO`. History may come from public sources, cited.
 3. **Geography.** The sun follows Keri's real position (59.6987 N, 25.0227 E, the lighthouse; the sky follows it, ft_1_14). Art is tied to geography by the world model (d108). Weather from Keri's station belongs with ft_Y_14; the game runs offline (d068).
 4. **Docs:** concept, method and sources are this file and `docs/keri.md`.
