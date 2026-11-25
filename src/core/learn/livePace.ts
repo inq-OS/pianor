@@ -74,3 +74,12 @@ export function paceClick(pace: LearnPace): { bpm: number; beatsPerBar: number; 
   // beats a minute from ms a beat
   return { bpm: Math.round((MS_PER_MINUTE / pace.beatMs) * 100) / 100, beatsPerBar: pace.beats, startAtMs: press.atMs + (next - press.place) * pace.beatMs, firstBeat: next % pace.beats };
 }
+
+/**
+ * How long a quarter is for the lane's wave in Wait mode and in learning (core_13 rules 2 and 9): the click's tempo while it
+ * clicks (`clickBpm`), else the student's own pace (the run's, else the fallback `pace` was measured with); null with neither.
+ */
+export function waveQuarterMs(clickBpm: number | null, pace: LearnPace | null): number | null {
+  if (clickBpm !== null && clickBpm > 0) return msPerBeat(clickBpm);
+  return pace?.beatMs ?? null;
+}

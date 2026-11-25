@@ -580,9 +580,14 @@ export class StaffView {
       lanes: this.lanes.length,
       dots: here.length,
       lifted: here.filter(({ d, look }) => this.liftOf(d, look) > 0).length,
-      coloured: here.filter(({ d }) => d.note && this.laneMarks.has(d.tick)).length,
+      coloured: here.filter(({ d }) => this.markOf(d) !== undefined).length,
       blinking: this.blinkHeads.filter((b) => this.onPage(b.system) && laneLift(b.tick, this.laneWave, this.lanePpq, b.reach) > 0).reduce((n, b) => n + b.heads.length, 0),
     };
+  }
+
+  /** A played key's colour on its dot (core_13.AC5): on every dot that stands under a note, also one drawn as its beat. */
+  private markOf(dot: LaneDot): Pick<PaceMark, 'side' | 'far'> | undefined {
+    return dot.note ? this.laneMarks.get(dot.tick) : undefined;
   }
 
   private liftOf(dot: LaneDot, look: LaneLook): number {
@@ -607,7 +612,7 @@ export class StaffView {
         const { role, strength } = dotLook(dot, look);
         if (strength <= 0) continue;
         const lift = this.liftOf(dot, look);
-        const mark = role === 'note' ? this.laneMarks.get(dot.tick) : undefined;
+        const mark = this.markOf(dot);
         const size = role === 'downbeat' ? 0.3 : role === 'ghost' ? 0.09 : 0.22;
         const rise = (role === 'ghost' ? 0.55 : 1) * look.wave.height;
         const alpha = mark ? 1 : (role === 'downbeat' ? 0.55 : role === 'ghost' ? 0.22 : 0.4) * strength;
