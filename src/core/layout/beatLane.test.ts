@@ -105,3 +105,18 @@ describe('paceColour', () => {
     expect(paceColour({ side: 'early', far: true })).toBe(PACE_COLOURS.far);
   });
 });
+
+describe('laneDots near the notes', () => {
+  it('core_13.AC7 leaves out every dot that would touch a note head or its ledger line, such as middle C between the staves', () => {
+    // middle C in the right hand sits between the staves, on the lane
+    const middle = chartWith([{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 64 }, { tick: 0, dur: 960, midi: 48, track: 'lh' }]);
+    const layout = layoutStaff(middle, { viewport: { width: 1366, height: 700 }, staffGap: 'short' });
+    const dots = laneDots(layout, middle, 'between');
+    const c = layout.notes.find((n) => middle.notes[n.index]!.midi === 60)!;
+    for (const d of dots) {
+      const inHead = Math.abs(d.x - c.x) <= c.headRx && Math.abs(d.y - c.y) <= c.headRy;
+      expect(inHead).toBe(false);
+    }
+    expect(dots.length).toBeGreaterThan(20); // the rest of the lane stays
+  });
+});

@@ -527,7 +527,6 @@ export class StaffView {
     return { bands: this.durationMarks.bands.filter((b) => this.onPage(b.system)).length, ghosts: this.durationMarks.ghosts.filter((g) => this.onPage(g.system)).length };
   }
 
-  /** The band and the ghost heads, in the cursor's blue and faint, so they read as help and not as notes to play. */
   /** The beat lane's dots (`laneDots`) and the drawn chart's ticks a quarter; no dots hide it. */
   setLane(dots: readonly LaneDot[], ppq: number): void {
     this.lane = dots;
@@ -578,6 +577,7 @@ export class StaffView {
     }
   }
 
+  /** The band and the ghost heads, in the cursor's blue and faint, so they read as help and not as notes to play. */
   private drawDuration(): void {
     const g = this.durationGfx;
     g.clear();

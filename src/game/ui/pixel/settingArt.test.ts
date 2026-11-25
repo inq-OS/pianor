@@ -34,10 +34,9 @@ describe('settings button pictures', () => {
   });
 
   it('core_13.AC2 the beat lane\'s picture has its dots where the lane runs, the click\'s picture its sound waves only when on, and each off picture is struck through', () => {
-    expect(count(beatLaneSymbol('off'), C.blue)).toBe(0);
-    expect(count(beatLaneSymbol('off'), C.red)).toBeGreaterThan(0); // struck through
+    expect(count(beatLaneSymbol('off'), C.red)).toBeGreaterThan(0); // the row struck out
     expect(count(paceClickSymbol(false), C.red)).toBeGreaterThan(0);
-    for (const place of ['above', 'between'] as const) expect(count(beatLaneSymbol(place), C.blue)).toBeGreaterThan(0);
+    for (const place of ['above', 'between'] as const) expect(count(beatLaneSymbol(place), C.red)).toBe(0);
     expect(count(paceClickSymbol(false), C.blue)).toBe(0);
     expect(count(paceClickSymbol(true), C.blue)).toBeGreaterThan(0);
   });

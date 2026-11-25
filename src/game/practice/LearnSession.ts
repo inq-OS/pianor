@@ -163,8 +163,12 @@ export class LearnSession {
    * the run has one; null before the run's first events.
    */
   get pace(): LearnPace | null {
-    return this.played ? learnPace(this.played, this.events, this.baseline) : null;
+    if (!this.played) return null;
+    // read every frame by the beat lane: measured again only when a new event came
+    if (this.paceAt?.events !== this.events.length) this.paceAt = { events: this.events.length, pace: learnPace(this.played, this.events, this.baseline) };
+    return this.paceAt.pace;
   }
+  private paceAt: { events: number; pace: LearnPace } | null = null;
 
   get verdict(): LearnRunVerdict {
     return this.judge?.verdict ?? { state: 'going' };

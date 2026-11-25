@@ -287,22 +287,19 @@ const struck = (b: Canvas, x0: number, y0: number, size: number) => {
 
 /**
  * Where the beat lane runs (core_13 rule 2): a grand staff with the row of dots above it or between its staves, a beat dot
- * bigger every few, the one the wave is on lifted and blue; off, no dots and the staff struck through.
+ * bigger every few, the one the wave is on lifted; off, the row between the staves struck out in red.
  */
 export function beatLaneSymbol(place: 'above' | 'between' | 'off'): Bitmap {
   const b = paper();
   const thin = { x0: 2, x1: SYMBOL_WIDTH - 3, gap: 2, lines: 4 };
-  staff(b, 5, thin);
+  staff(b, 4, thin);
   staff(b, 15, thin);
-  if (place === 'off') {
-    struck(b, 6, 0, 22);
-    return b;
-  }
-  const y = place === 'above' ? 2 : 13;
+  // the dots as in play: grey, a beat dot bigger and darker, the one under the wave lifted; off, the row struck out
+  const y = place === 'above' ? 1 : 12;
   for (let x = 3; x <= SYMBOL_WIDTH - 4; x += 2) {
     const beat = (x - 3) % 8 === 0;
-    const wave = x === 19;
-    const colour = wave ? C.blue : beat ? INK : C.dim;
+    const wave = place !== 'off' && x === 19;
+    const colour = beat || wave ? INK : C.dim;
     const top = y - (wave ? 1 : 0);
     put(b, x, top, colour);
     if (beat || wave) {
@@ -311,6 +308,7 @@ export function beatLaneSymbol(place: 'above' | 'between' | 'off'): Bitmap {
       put(b, x + 1, top + 1, colour);
     }
   }
+  if (place === 'off') for (let x = 1; x <= SYMBOL_WIDTH - 2; x++) put(b, x, y + (x % 4 < 2 ? 0 : 1), C.red);
   return b;
 }
 

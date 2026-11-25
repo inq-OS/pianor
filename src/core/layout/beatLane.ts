@@ -39,6 +39,8 @@ const ABOVE_INK = 1;
 /** The lane above a staff never goes nearer the top of the staff's area than this, in staff spaces: it stays on the sheet. */
 const ABOVE_EDGE = 0.9;
 const MERGE = 1.5;
+/** `AX-3 provisional:` a dot keeps this many staff spaces clear of a note head and a ledger line. */
+const INK_CLEAR = 0.35;
 
 /** The x of `tick` in `bar` (the drawn chart's ticks), as the notes are placed (`xAt` in staff.ts). */
 function tickX(layout: StaffLayout, chart: Chart, bar: BarLayout, tick: number): number {
@@ -122,9 +124,18 @@ export function laneDots(layout: StaffLayout, chart: Chart, place: LanePlace): L
       dots.push({ system: bar.system, x: column, y, tick, kind: 'ghost', note: true });
     }
   }
+  // no dot touches a note head or its ledger line (middle C between the staves): next to a head it would read as a dot
+  // of the note or a staccato
+  const ink = layout.notes.flatMap((n) => [
+    { system: n.system, x1: n.x - n.headRx, x2: n.x + n.headRx, y1: n.y - n.headRy, y2: n.y + n.headRy },
+    ...n.ledgerLines.map((l) => ({ system: n.system, x1: l.x1, x2: l.x2, y1: l.y, y2: l.y })),
+  ]);
+  const clear = INK_CLEAR * S;
+  const touches = (d: LaneDot) => ink.some((b) => b.system === d.system && d.x >= b.x1 - clear && d.x <= b.x2 + clear && d.y >= b.y1 - clear && d.y <= b.y2 + clear);
   // a note dot that landed on a ghost's place takes it
   return dots
     .filter((d) => d.note || !dots.some((o) => o !== d && o.note && o.system === d.system && Math.abs(o.tick - d.tick) < step && Math.abs(o.x - d.x) < 0.5 * S))
+    .filter((d) => !touches(d))
     .sort((a, b) => a.system - b.system || a.x - b.x);
 }
 
