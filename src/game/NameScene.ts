@@ -5,14 +5,14 @@ import { t } from '../core/text/strings';
 import { createBitmap } from './ui/pixel/bitmap';
 import { drawnText, measure } from './ui/pixel/font';
 import { C } from './ui/pixel/palette';
-import { inkField } from './ui/pixel/paint/register';
+import { BOOK_PALETTE, paintCover } from './ui/pixel/paint/book';
+import { paintedOnce } from './ui/pixel/paintedOnce';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 
 const MARGIN = 20;
 /** The card the name is written on: its left and top, and the room under it, in cells. */
 const SHEET = { x: 8, y: 4, foot: 4 } as const;
-const TITLE_Y = 10;
 /** The box the name is typed into (ft_1_07.AC6): wide enough for the longest name in big letters, its height in cells. */
 const FIELD_PAD = 5;
 const FIELD_HEIGHT = 24;
@@ -24,6 +24,10 @@ const BOTTOM_HEIGHT = 16;
 /** The bottom row's centre sits this far above the main area's foot (d110: 320 x 157 on the target screen). */
 const BOTTOM_FROM_FOOT = BOTTOM_HEIGHT / 2 + 13;
 const ACTION_WIDTH = 40;
+/** The closed book's left edge (its spine) from the screen's side, in cells; it is as far in on the right. */
+const COVER_X = 6;
+/** Room on the plate under the name for why a name was refused, in cells. */
+const REASON_ROOM = 10;
 
 /** What the picker asks, and what happens to the typed name. */
 export interface NameData {
@@ -159,25 +163,28 @@ export class NameScene extends PixelScene {
     const { width, height } = this.px;
     const bottomY = height - BOTTOM_FROM_FOOT;
     this.sky();
-    // the name is written on a card of parchment on the desk, the letters as keys drawn in ink on it
-    this.parchmentCard({ x: SHEET.x, y: SHEET.y, w: width - 2 * SHEET.x, h: height - SHEET.y - (this.bandShown ? 1 : SHEET.foot) }, 1);
-    this.inkWriting = true;
-    // with the band the door stands in the top left corner: the title starts right of it
-    this.label(this.titleX(MARGIN), TITLE_Y, this.request?.title ?? '', C.gold);
-    // the box the name is typed into, big and red while it waits for letters, with the caret where the next one goes
-    // in the middle of the card, so the one thing to do there is plain to see
+    // the name is written on the song book's cover (ft_1_07), on its blank name plate, the letters in ink: the same book
+    // the piano holds, closed
     const fieldW = Math.min(width - 2 * MARGIN, NAME_MAX * BIG_LETTER + 2 * FIELD_PAD);
     const left = Math.round((width - fieldW) / 2) + FIELD_PAD;
     const fieldY = Math.round((height - FIELD_HEIGHT) / 2) - FIELD_PAD;
     const fine = (v: number) => v * ART_DETAIL;
-    this.fineImage(fine(left - FIELD_PAD), fine(fieldY - FIELD_PAD), inkField(fine(fieldW), fine(FIELD_HEIGHT), true));
+    // a massive book, too big for the desk: its foot runs off the bottom of the screen
+    const cover = { x: COVER_X, y: SHEET.y, w: width - 2 * COVER_X, h: height - SHEET.y };
+    const plate = { x: fine(left - FIELD_PAD - cover.x), y: fine(fieldY - FIELD_PAD - cover.y), w: fine(fieldW), h: fine(FIELD_HEIGHT + REASON_ROOM) };
+    this.fineImage(fine(cover.x), fine(cover.y), paintedOnce(`cover:${fine(cover.w)}x${fine(cover.h)}:${plate.x},${plate.y},${plate.w},${plate.h}`, () => paintCover(fine(cover.w), fine(cover.h), plate)), BOOK_PALETTE);
     this.placeField(left - FIELD_PAD, fieldY - FIELD_PAD, fieldW, FIELD_HEIGHT);
-    if (this.typed) this.label(left, fieldY, this.typed, C.white, { big: true });
+    this.inkWriting = true;
+    // the name stands in the middle of the plate, as a name on a book's label does; raised when a reason is written under it
+    const typedW = this.typed ? measure(drawnText(this.typed)) * 2 : 0;
+    const nameX = Math.round(width / 2 - typedW / 2);
+    const nameY = this.refused ? fieldY : fieldY - FIELD_PAD + Math.round((FIELD_HEIGHT + REASON_ROOM - BIG_CAPS) / 2);
+    if (this.typed) this.label(nameX, nameY, this.typed, C.white, { big: true });
     const caret = createBitmap(fine(1), fine(BIG_CAPS));
     caret.pixels.fill(C.redDark);
-    // the caret blinks, so the empty box asks for letters without a word of instruction
+    // the caret blinks, so the empty plate asks for letters without a word of instruction
     this.blink?.remove();
-    const shown = this.fineImage(fine(left + (this.typed ? measure(drawnText(this.typed)) * 2 + 2 : 0)), fine(fieldY), caret);
+    const shown = this.fineImage(fine(nameX + (this.typed ? typedW + 2 : 0)), fine(nameY), caret);
     this.blink = this.time.addEvent({ delay: CARET_BLINK_MS, loop: true, callback: () => shown.setVisible(!shown.visible) });
 
     const band = this.bandShown;
@@ -185,7 +192,7 @@ export class NameScene extends PixelScene {
     const [del, done] = this.actions();
     if (!band) this.button({ x: MARGIN + ACTION_WIDTH / 2, y: bottomY, width: ACTION_WIDTH, height: BOTTOM_HEIGHT, look: 'ink', inkBox: true, iconOnly: true, ...del! });
     // why the name was refused stands under the box
-    if (this.refused) this.label(left - FIELD_PAD, fieldY + FIELD_HEIGHT, this.refused, C.dim, { maxWidth: fieldW });
+    if (this.refused) this.label(left, fieldY + FIELD_HEIGHT - 2, this.refused, C.dim, { maxWidth: fieldW - 2 * FIELD_PAD });
     if (!band) this.button({ x: width - MARGIN - ACTION_WIDTH / 2, y: bottomY, width: ACTION_WIDTH, height: BOTTOM_HEIGHT, look: 'ink', inkBox: true, iconOnly: true, ...done! });
   }
 
