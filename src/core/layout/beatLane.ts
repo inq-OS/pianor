@@ -158,6 +158,17 @@ export function waveTick(anchor: { tick: number; atMs: number } | null, msPerTic
   return anchor.tick + Math.min(reachTicks, run);
 }
 
+/**
+ * Where a lane that follows the click has its wave (core_13 rule 2, AC9): on the beat dot of the click heard last
+ * (`beat`, counted 0 up in its bar, at `atMs`) in `bar`, the bar the student is at, running on toward the next beat at
+ * `msPerQuarter` and never past the bar's end; null with no bar or no click heard.
+ */
+export function clickWaveTick(bar: { startTick: number; endTick: number } | null, beat: { beatInBar: number; atMs: number } | null, msPerQuarter: number, nowMs: number, ppq: number): number | null {
+  if (!bar || !beat || !(msPerQuarter > 0)) return null;
+  const quarters = beat.beatInBar + Math.max(0, nowMs - beat.atMs) / msPerQuarter;
+  return Math.max(bar.startTick, Math.min(bar.endTick, bar.startTick + quarters * ppq));
+}
+
 /** The colours of a played note's dot against the student's own pace (core_13.AC5): green in step, orange a little off, red far off. */
 export const PACE_COLOURS = { even: 0x1f9d55, near: 0xff7a00, far: SCORE_COLOURS.missed } as const;
 
@@ -178,6 +189,8 @@ export interface LaneLook {
   wave: { height: number; reach: number };
   /** Opt-in: each note the lane has a dot for lights up as the wave's crest passes it (core_13 rule 10). */
   blink?: boolean | undefined;
+  /** What the wave follows (core_13 rule 10): absent, the student's own pace; `click`, the metronome's beats while it clicks. */
+  follow?: 'click' | undefined;
 }
 
 /** `AX-3 provisional:` at most this many lanes, and the ranges a player can tune within. */

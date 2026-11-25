@@ -7,16 +7,17 @@ import { layoutStaff, type StaffLayout } from '../core/layout/staff';
 import { t, type StringKey } from '../core/text/strings';
 import { contextOf } from './context';
 import type { SettingsData } from './SettingsScene';
-import { freshData } from './scenes';
+import { CANCELLED, closeOverlay, freshData, settleOverlay } from './scenes';
 import { LANE_ICONS, type LaneIconId } from './ui/pixel/laneArt';
 import { C } from './ui/pixel/palette';
 import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { StaffView } from './ui/staff/StaffView';
 
-/** Where Back goes: the settings' learning page, or the screen it was opened from. */
+/** Where Back goes: the settings' learning page, or (`overlay`, opened over the practice screen) back to the piece. */
 export interface BeatLanesData {
   returnTo?: SettingsData;
+  overlay?: boolean;
 }
 
 /** The piece the preview plays: two bars of a two-hand piece, so both staves and the space between them show. */
@@ -69,6 +70,7 @@ const SLIDERS: readonly LaneSlider[] = [
  */
 export class BeatLanesScene extends PixelScene {
   private returnTo: SettingsData = { page: 1 };
+  private overlay = false;
   private lanes: LaneLook[] = [];
   /** The lane the bubble from More or the keyboard tunes: the last one touched. */
   private selected = 0;
@@ -94,6 +96,9 @@ export class BeatLanesScene extends PixelScene {
 
   init(data?: BeatLanesData): void {
     this.returnTo = data?.returnTo ?? { page: 1 };
+    this.overlay = data?.overlay === true;
+    // over the practice screen the page has no settings corner: Back is the only way, back to the piece
+    this.toolbarPlayer = !this.overlay;
     this.lanes = learnBeatLanes(contextOf(this).profiles.learnSettings).map((l) => structuredClone(l));
     this.selected = 0;
     this.saveFailed = false;
@@ -104,6 +109,10 @@ export class BeatLanesScene extends PixelScene {
   }
 
   override create(): void {
+    if (this.overlay) {
+      this.scene.bringToTop();
+      this.events.once('shutdown', () => settleOverlay('beat-lanes', CANCELLED, this));
+    }
     super.create();
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.down(p));
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.moved(p));
@@ -112,7 +121,8 @@ export class BeatLanesScene extends PixelScene {
 
   protected override back(): void {
     this.game.canvas.style.cursor = '';
-    this.scene.start('settings', freshData(this.returnTo));
+    if (this.overlay) closeOverlay(this, 'beat-lanes', 'closed');
+    else this.scene.start('settings', freshData(this.returnTo));
   }
 
   override update(): void {
@@ -326,6 +336,15 @@ export class BeatLanesScene extends PixelScene {
       label: t('lanes.blink'), icon: LANE_ICONS.blink, active: blinking, preview: tryLook({ ...look, blink: !blinking }),
       onClick: () => this.keep(i, { ...look, blink: !blinking }),
     };
+    // what the wave follows: the student's own pace, or the metronome's beats while it clicks (core_13.AC9)
+    const followItem = (follow: LaneLook['follow'], key: StringKey, icon: keyof typeof TOOL_ICONS): MenuItem => ({
+      label: t(key), icon: TOOL_ICONS[icon], active: look.follow === follow, preview: tryLook({ ...look, follow }),
+      onPick: () => this.keep(i, { ...look, follow }),
+    });
+    const follow: ToolbarItem = {
+      label: t('lanes.follow'), icon: TOOL_ICONS[look.follow === 'click' ? 'click' : 'fingers'], onClick: () => undefined,
+      menu: { items: () => [followItem(undefined, 'lanes.followPace', 'fingers'), followItem('click', 'lanes.followClick', 'click')], cell: { w: 18, h: 18 }, columns: 2 },
+    };
     const [ghost, beat, top, bottom, height, reach, move] = sliders;
     // from More or the keyboard (no lane under a pointer): a new lane, and the next lane to tune
     const keyboard: (ToolbarItem | null)[] = fromMore
@@ -334,7 +353,7 @@ export class BeatLanesScene extends PixelScene {
           this.lanes.length > 1 ? { label: t('lanes.next'), icon: LANE_ICONS.next, onClick: () => this.nextLane() } : null,
         ]
       : [];
-    return [place, ghost!, beat!, top!, bottom!, height!, blink, reach!, move!, ...keyboard].filter((o, k) => o !== null || k < 7);
+    return [place, ghost!, beat!, top!, bottom!, height!, blink, reach!, move!, follow, ...keyboard].filter((o, k) => o !== null || k < 7);
   }
 
   /** Tune the next lane: the bubble opens again for it (from More or the keyboard). */

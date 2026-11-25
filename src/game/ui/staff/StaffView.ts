@@ -143,8 +143,10 @@ export class StaffView {
   private readonly blinkGfx: Phaser.GameObjects.Graphics;
   private lanes: readonly { dots: readonly LaneDot[]; look: LaneLook }[] = [];
   /** The heads a blinking lane lights as its wave passes (core_13 rule 10): by tick and line, with the lane's wave reach. */
-  private blinkHeads: { tick: number; system: number; reach: number; heads: { x: number; y: number; rx: number; ry: number }[] }[] = [];
+  private blinkHeads: { tick: number; system: number; reach: number; follow: LaneLook['follow']; heads: { x: number; y: number; rx: number; ry: number }[] }[] = [];
   private laneWave: number | null = null;
+  /** Where the wave of a lane that follows the click is (core_13.AC9); undefined: as the other lanes' wave. */
+  private clickWave: number | null | undefined = undefined;
   private laneMarks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>> = new Map();
   private laneDrawn = '';
   private lanePpq = 480;
@@ -557,7 +559,7 @@ export class StaffView {
         if (!d.note || seen.has(key)) continue;
         seen.add(key);
         const heads = this.layout.notes.filter((n) => n.system === d.system && Math.abs(n.column - d.x) < 0.5).map((n) => ({ x: n.x, y: n.y, rx: n.headRx, ry: n.headRy }));
-        if (heads.length > 0) this.blinkHeads.push({ tick: d.tick, system: d.system, reach: look.wave.reach, heads });
+        if (heads.length > 0) this.blinkHeads.push({ tick: d.tick, system: d.system, reach: look.wave.reach, follow: look.follow, heads });
       }
     }
     this.drawLane(true);
@@ -567,8 +569,9 @@ export class StaffView {
    * Where the lanes' wave is (a tick of the chart drawn; null for none) and the colour of each key played against the
    * student's pace, by its tick (core_13.AC5). Repainted only when what it shows changed.
    */
-  moveLane(wave: number | null, marks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>>): void {
+  moveLane(wave: number | null, marks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>>, clickWave?: number | null): void {
     this.laneWave = wave;
+    this.clickWave = clickWave;
     this.laneMarks = marks;
     this.drawLane(false);
   }
@@ -580,13 +583,23 @@ export class StaffView {
       lanes: this.lanes.length,
       dots: here.length,
       lifted: here.filter(({ d, look }) => this.liftOf(d, look) > 0).length,
-      coloured: here.filter(({ d }) => d.note && this.laneMarks.has(d.tick)).length,
-      blinking: this.blinkHeads.filter((b) => this.onPage(b.system) && laneLift(b.tick, this.laneWave, this.lanePpq, b.reach) > 0).reduce((n, b) => n + b.heads.length, 0),
+      coloured: here.filter(({ d }) => this.markOf(d) !== undefined).length,
+      blinking: this.blinkHeads.filter((b) => this.onPage(b.system) && laneLift(b.tick, this.waveFor(b.follow), this.lanePpq, b.reach) > 0).reduce((n, b) => n + b.heads.length, 0),
     };
   }
 
+  /** A played key's colour on its dot (core_13.AC5): on every dot that stands under a note, also one drawn as its beat. */
+  private markOf(dot: LaneDot): Pick<PaceMark, 'side' | 'far'> | undefined {
+    return dot.note ? this.laneMarks.get(dot.tick) : undefined;
+  }
+
   private liftOf(dot: LaneDot, look: LaneLook): number {
-    return laneLift(dot.tick, this.laneWave, this.lanePpq, look.wave.reach);
+    return laneLift(dot.tick, this.waveFor(look.follow), this.lanePpq, look.wave.reach);
+  }
+
+  /** The wave a lane follows: the click's when it follows the click and one is given, else the student's (core_13.AC9). */
+  private waveFor(follow: LaneLook['follow']): number | null {
+    return follow === 'click' && this.clickWave !== undefined ? this.clickWave : this.laneWave;
   }
 
   /**
@@ -595,7 +608,8 @@ export class StaffView {
    * and note dots most (`AX-3 provisional:` sizes and shades).
    */
   private drawLane(force: boolean): void {
-    const shows = `${this.page}|${this.laneWave === null ? '' : Math.round(this.laneWave)}|${this.laneMarks.size}`;
+    const round = (w: number | null | undefined) => (w === null || w === undefined ? '' : Math.round(w));
+    const shows = `${this.page}|${round(this.laneWave)}|${round(this.clickWave)}|${this.laneMarks.size}`;
     if (!force && shows === this.laneDrawn) return;
     this.laneDrawn = shows;
     const g = this.laneGfx;
@@ -607,7 +621,7 @@ export class StaffView {
         const { role, strength } = dotLook(dot, look);
         if (strength <= 0) continue;
         const lift = this.liftOf(dot, look);
-        const mark = role === 'note' ? this.laneMarks.get(dot.tick) : undefined;
+        const mark = this.markOf(dot);
         const size = role === 'downbeat' ? 0.3 : role === 'ghost' ? 0.09 : 0.22;
         const rise = (role === 'ghost' ? 0.55 : 1) * look.wave.height;
         const alpha = mark ? 1 : (role === 'downbeat' ? 0.55 : role === 'ghost' ? 0.22 : 0.4) * strength;
@@ -620,7 +634,7 @@ export class StaffView {
     b.clear();
     for (const blink of this.blinkHeads) {
       if (!this.onPage(blink.system)) continue;
-      const lift = laneLift(blink.tick, this.laneWave, this.lanePpq, blink.reach);
+      const lift = laneLift(blink.tick, this.waveFor(blink.follow), this.lanePpq, blink.reach);
       if (lift <= 0) continue;
       b.fillStyle(LANE_BLINK, 0.85 * lift);
       for (const h of blink.heads) b.fillEllipse(h.x, h.y, h.rx * 2.3, h.ry * 2.3);

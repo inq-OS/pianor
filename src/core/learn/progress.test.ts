@@ -5,7 +5,7 @@ import type { BarPlay } from '../progression/practiceLog';
 import { learnPlan } from './plan';
 import { defaultLaneLook } from '../layout/beatLane';
 import {
-  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnBeatLane, learnBeatLanes, learnHandsApart, learnLiveTempo, learnPaceClick, learnStepBars, measuredOutcome, medalOf, playsOn, sitDown, START_PROGRESS, withTest,
+  afterRun, currentRun, DEFAULT_LEARN_SETTINGS, halfLearned, relearn, startOver, goldenBars, isLearned, learnProgressSchema, learnRewards, learnSettingsSchema, MAX_LEARN_TESTS, learnBeatLane, learnBeatLanes, learnHandsApart, learnLiveTempo, learnPaceClick, learnStepBars, measuredOutcome, medalOf, playsOn, sitDown, START_PROGRESS, withTest,
   type LearnProgress, type RunOutcome,
 } from './progress';
 
@@ -318,6 +318,13 @@ describe('tuned beat lanes', () => {
     expect(() => learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLanes: [...two, ...two] })).toThrow();
     expect(() => learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLanes: [{ ...two[0]!, offset: 99 }] })).toThrow();
   });
+
+  it('core_13.AC9 a lane may follow the click, kept as an optional field; an old record follows the pace', () => {
+    const clicked = [{ ...defaultLaneLook('between'), follow: 'click' as const }];
+    expect(learnBeatLanes(learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLanes: clicked }))[0]!.follow).toBe('click');
+    expect(learnBeatLanes(learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLanes: [defaultLaneLook('above')] }))[0]!.follow).toBeUndefined();
+    expect(() => learnSettingsSchema.parse({ ...DEFAULT_LEARN_SETTINGS, beatLanes: [{ ...defaultLaneLook('above'), follow: 'drum' }] })).toThrow();
+  });
 });
 
 describe('hands apart in a piece begun', () => {
@@ -347,5 +354,29 @@ describe('starting a half-learned piece over (ft_1_32.AC16)', () => {
     expect(halfLearned(begun)).toBe(true);
     expect(halfLearned(over)).toBe(false);
     expect(halfLearned(START_PROGRESS)).toBe(false);
+  });
+});
+
+describe('learning a learned piece again (ft_1_32.AC24)', () => {
+  const learned = { ...play(START_PROGRESS, all(plan.length)), learnedAt: '1998-11-22T10:00:00.000Z', stepBars: 1 as const, handsApart: false };
+
+  it('ft_1_32.AC24 begins at the first step on the settings now, and the piece stays learned with its clef', () => {
+    expect(isLearned(plan, learned)).toBe(true);
+    const again = relearn(learned, 'silver', { ...DEFAULT_LEARN_SETTINGS, stepBars: 2, handsApart: true }, '1998-11-23');
+    expect(again).toMatchObject({ step: 0, medals: [], lastDay: '1998-11-23', stepBars: 2, handsApart: true, learnedAt: learned.learnedAt, clef: 'silver' });
+    expect(isLearned(plan, again)).toBe(false);
+    expect(halfLearned(again)).toBe(false);
+    expect(learnProgressSchema.parse(again).clef).toBe('silver');
+  });
+
+  it('ft_1_32.AC24 a piece learned before the learned time was kept takes the day of its last run', () => {
+    const old: LearnProgress = { ...learned };
+    delete old.learnedAt;
+    expect(relearn(old, 'gold', DEFAULT_LEARN_SETTINGS, '1998-11-23').learnedAt).toBe(old.lastDay);
+  });
+
+  it('ft_1_32.AC24 starting the new learning over keeps the piece learned with its clef', () => {
+    const again = play(relearn(learned, 'gold', DEFAULT_LEARN_SETTINGS, '1998-11-23'), all(3), '1998-11-23');
+    expect(startOver(again, DEFAULT_LEARN_SETTINGS, '1998-11-24')).toMatchObject({ step: 0, learnedAt: learned.learnedAt, clef: 'gold' });
   });
 });

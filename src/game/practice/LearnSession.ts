@@ -1,11 +1,11 @@
-import type { Chart } from '../../core/chart';
+import { MS_PER_MINUTE, type Chart } from '../../core/chart';
 import { sliceChart } from '../../core/chart/section';
 import type { JudgeEvent } from '../../core/judge';
 import { markersByNote, mistakeMarkers } from '../../core/learn/markers';
 import { PRIZE } from '../../core/layout/learnPrizes';
 import { handChart, learnPlan, type LearnStep } from '../../core/learn/plan';
 import {
-  afterRun, currentRun, goldenBars, halfLearned, isLearned, isMeasured, learnHandsApart, learnRewards, learnStepBars, measuredOutcome, playsOn, sitDown, startOver, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
+  afterRun, best, currentRun, goldenBars, halfLearned, isLearned, isMeasured, learnHandsApart, learnRewards, learnStepBars, measuredOutcome, playsOn, relearn, sitDown, startOver, withTest, type LearnProgress, type LearnRewards, type LearnRun, type LearnSettings, type RunOutcome,
 } from '../../core/learn/progress';
 import { LearnRunJudge, type LearnRunVerdict } from '../../core/learn/run';
 import { prizeFocus, shownWithPiece, type PrizeFocus } from '../../core/learn/view';
@@ -58,7 +58,14 @@ export class LearnSession {
    * `asked` for its learning, from Kiur). A piece in progress keeps the step size its learning began with (`learnStepBars`).
    */
   static open(profile: LearnProfile, piece: Chart, today: string, now: () => Date = () => new Date(), asked = false): LearnSession | null {
-    const kept = profile.learnProgressOf(piece.id);
+    let kept = profile.learnProgressOf(piece.id);
+    const learnedPlan = learnPlan(piece, learnStepBars(kept, profile.learnSettings), learnHandsApart(kept, profile.learnSettings));
+    if (learnedPlan.length > 0 && isLearned(learnedPlan, kept)) {
+      // a learned piece Kiur is asked for is learned again from the first step, and stays learned (ft_1_32.AC24)
+      if (!asked) return null;
+      const clef = learnRewards(learnedPlan, kept, piece, goldenBars(profile.practiceFor(piece.id), piece.id, kept.learnedAt ?? null)).piece ?? 'bronze';
+      kept = relearn(kept, clef, profile.learnSettings, today);
+    }
     const stepBars = learnStepBars(kept, profile.learnSettings);
     const handsApart = learnHandsApart(kept, profile.learnSettings);
     const plan = learnPlan(piece, stepBars, handsApart);
@@ -159,16 +166,28 @@ export class LearnSession {
   }
 
   /**
-   * The live pace (core_13.AC5): the latest key against the student's own pace so far, or the piece's baseline before
-   * the run has one; null before the run's first events.
+   * The live pace (core_13.AC5): the latest key against the student's own pace so far, or the pace carried from the runs
+   * before it in this sitting, or the piece's baseline before the run has one; null before the run's first events.
    */
   get pace(): LearnPace | null {
     if (!this.played) return null;
     // read every frame by the beat lane: measured again only when a new event came
-    if (this.paceAt?.events !== this.events.length) this.paceAt = { events: this.events.length, pace: learnPace(this.played, this.events, this.baseline) };
+    if (this.paceAt?.events !== this.events.length) this.paceAt = { events: this.events.length, pace: learnPace(this.played, this.events, this.carriedBpm ?? this.baseline) };
     return this.paceAt.pace;
   }
   private paceAt: { events: number; pace: LearnPace } | null = null;
+
+  /**
+   * The student's pace carried over from the runs before this one in the same sitting (BPM a quarter; core_13 rule 9), so the
+   * lane's wave runs from the first key of every step, not only once a short step has three keys; before the baseline.
+   */
+  carriedBpm: number | null = null;
+
+  /** The pace to carry to the next run: this run's own, else what it was carried, else none (BPM a quarter). */
+  get paceToCarry(): number | null {
+    const beatMs = this.pace?.beatMs ?? null;
+    return beatMs !== null && beatMs > 0 ? Math.round((MS_PER_MINUTE / beatMs) * 100) / 100 : this.carriedBpm;
+  }
 
   get verdict(): LearnRunVerdict {
     return this.judge?.verdict ?? { state: 'going' };
@@ -216,7 +235,10 @@ export class LearnSession {
 
   /** The notes earned so far, each in its medal (ft_1_32.AC4). */
   rewards(): LearnRewards {
-    return learnRewards(this.plan, this.progress, this.piece, goldenBars(this.profile.practiceFor(this.piece.id), this.piece.id, this.progress.learnedAt ?? null));
+    const rewards = learnRewards(this.plan, this.progress, this.piece, goldenBars(this.profile.practiceFor(this.piece.id), this.piece.id, this.progress.learnedAt ?? null));
+    // a piece learned again keeps the better of its clefs, as the book does (ft_1_32.AC24)
+    const kept = this.progress.clef;
+    return rewards.piece && kept ? { ...rewards, piece: best(rewards.piece, kept) } : rewards;
   }
 }
 

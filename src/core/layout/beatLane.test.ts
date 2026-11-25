@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import littleSteps from '../../../tests/fixtures/charts/little-steps.v2.json';
 import { chartWith } from '../../../tests/helpers/charts';
 import { chartSchema } from '../chart';
-import { defaultLaneLook, dotLook, LANE_LIMITS, LANE_STEPS, laneAt, laneDots, laneLift, laneY, PACE_COLOURS, paceColour, waveTick, WAVE_REACH, type LaneDot } from './beatLane';
+import { defaultLaneLook, dotLook, LANE_LIMITS, LANE_STEPS, laneAt, laneDots, laneLift, laneY, PACE_COLOURS, paceColour, clickWaveTick, waveTick, WAVE_REACH, type LaneDot } from './beatLane';
 import { layoutStaff } from './staff';
 
 const chart = chartSchema.parse(littleSteps); // four bars of 4/4, one hand: quarters, halves and a whole note
@@ -175,5 +175,26 @@ describe('a tuned lane', () => {
     for (const r of LANE_STEPS.reach) expect(r).toBeLessThanOrEqual(LANE_LIMITS.reach);
     expect(LANE_STEPS.height).toContain(defaultLaneLook().wave.height);
     expect(LANE_STEPS.reach).toContain(defaultLaneLook().wave.reach);
+  });
+});
+
+describe('clickWaveTick', () => {
+  // a 4/4 bar from tick 1920, a click at 120 BPM (500 ms a quarter) whose beat 2 (0-based 1) sounded at 10000 ms
+  const bar = { startTick: 1920, endTick: 3840 };
+  const beat = { beatInBar: 1, atMs: 10000 };
+
+  it('core_13.AC9 stands on the beat dot of the click just heard, in the bar the student is at', () => {
+    expect(clickWaveTick(bar, beat, 500, 10000, 480)).toBe(2400);
+  });
+
+  it('core_13.AC9 runs on toward the next beat at the click\'s tempo, reaching it as it sounds', () => {
+    expect(clickWaveTick(bar, beat, 500, 10250, 480)).toBe(2640);
+    expect(clickWaveTick(bar, beat, 500, 10500, 480)).toBe(2880);
+  });
+
+  it('core_13.AC9 never runs past the bar, and has no place without a click heard', () => {
+    expect(clickWaveTick(bar, { beatInBar: 3, atMs: 10000 }, 500, 11000, 480)).toBe(3840);
+    expect(clickWaveTick(bar, null, 500, 10000, 480)).toBeNull();
+    expect(clickWaveTick(null, beat, 500, 10000, 480)).toBeNull();
   });
 });

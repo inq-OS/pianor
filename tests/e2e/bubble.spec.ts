@@ -95,10 +95,13 @@ test.describe('the bubble and the strip (ft_1_20, d282)', () => {
       const s = window.__game.scene.getScene('practice') as unknown as { focusedButton?: { options: { label: string } } };
       return s.focusedButton?.options.label ?? null;
     });
-    // the first slot is the section; clockwise from it the click (slot 1, the ramp, shows only while a section plays)
+    // the first slot is the section; clockwise from it the beat dots (core_13 rule 10), then the click
     expect(await focused()).toBe('Section');
     await page.keyboard.press('ArrowRight');
+    expect(await focused()).toBe('Beat dots');
+    await page.keyboard.press('ArrowRight');
     expect(await focused()).toBe('Click');
+    await page.keyboard.press('ArrowLeft');
     await page.keyboard.press('ArrowLeft');
     await page.keyboard.press('ArrowLeft');
     expect(await focused()).toBe('Fingers');

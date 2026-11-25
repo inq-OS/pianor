@@ -105,6 +105,8 @@ export interface SceneResult {
   'intro': 'read' | 'skip';
   /** The circle of fifths (ft_1_28): it closed, or (opened to choose, from the piece maker) the key chosen. */
   'circle': 'closed' | CircleKey;
+  /** Tuning the beat lanes over the practice screen (core_13 rule 10): it closed, whatever was kept is saved. */
+  'beat-lanes': 'closed';
 }
 
 export type OverlayKey = keyof SceneResult;
