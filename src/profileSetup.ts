@@ -47,15 +47,16 @@ async function askToKeepSaves(): Promise<void> {
 
 /**
  * Composition root for saves: the profile service on top of the chosen store. `testPlayers` (dev only, `?players=test`): a new install gets the four test players; else it makes none and the game asks for
- * the first player's name (ft_1_07.AC1).
+ * the first player's name (ft_1_07.AC1). `inSongs` names the pieces that belong to a song (ft_1_36 rule 13).
  */
-export async function createProfileService(pieces: PieceCatalogue, testPlayers = false): Promise<{ service: ProfileService; persistent: boolean }> {
+export async function createProfileService(pieces: PieceCatalogue, testPlayers = false, inSongs: () => ReadonlySet<string> = () => new Set()): Promise<{ service: ProfileService; persistent: boolean }> {
   const { store, persistent } = await chooseStore();
   const service = await ProfileService.create({
     repository: new ProfileRepository(store, progressionConfig, { seedNames: testPlayers ? TEST_PLAYER_NAMES : [] }),
     askFirstPlayer: !testPlayers,
     config: progressionConfig,
-    catalogue: () => pieces.list().map((p) => ({ id: p.chart.id })),
+    // a song's pieces are not in the piece book, so they never count as the piece that keeps it from going empty
+    catalogue: () => pieces.list().filter((p) => !inSongs().has(p.chart.id)).map((p) => ({ id: p.chart.id })),
     // one player in one window at a time: a second tab cannot write over the first one's progress (d159)
     lock: webPlayerLock(),
   });

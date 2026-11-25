@@ -84,7 +84,7 @@ async function startGame(): Promise<void> {
   const pieces = new PieceCatalogue({ ...bundledPieceSources(), ownPieces: () => ownPieces.pieces(), showDrafts, songPiece: (id) => songs?.pieceFor(id) });
   const { service: profiles, persistent } = autoplay
     ? { service: await createMemoryProfileService(), persistent: false }
-    : await createProfileService(pieces, appConfig.flags.testPlayers);
+    : await createProfileService(pieces, appConfig.flags.testPlayers, () => songs?.pieceIds() ?? new Set());
   songs = new SongCatalogue({ files: bundledSongFiles(), showDrafts, piece: (id) => pieces.find(id), partsOff: (id) => profiles.songPartsOff(id) });
   const { actors, editor, learn, demo, staffDemo, sky } = appConfig.flags;
   // the keyboard switch's state, made before the context that hands it to the scenes (the switch rule is further down)

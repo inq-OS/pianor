@@ -4,7 +4,7 @@ import { pageOf } from '../core/layout/paging';
 import { rectCentre } from '../core/layout/rect';
 import { t } from '../core/text/strings';
 import { contextOf } from './context';
-import type { Piece } from './content';
+import { songChartId } from './songCatalogue';
 import { C } from './ui/pixel/palette';
 import { drawnText, LINE_GAP, LINE_HEIGHT, wrap } from './ui/pixel/font';
 import { createBitmap } from './ui/pixel/bitmap';
@@ -32,7 +32,8 @@ export interface PiecesData {
 }
 
 /** A piece in the catalogue: its title as the menu shows it. */
-interface Filed { id: string; title: string; piece: Piece }
+/** One index card: a piece, or a whole song filed by its title and turned on and off as one (ft_1_36 rule 13). */
+interface Filed { id: string; title: string }
 
 /**
  * Every piece (hand-written, generated and own), where the active player turns each one on or off, as a library's card
@@ -88,7 +89,11 @@ export class PiecesScene extends PixelScene {
   }
 
   private drawers(): Drawer<Filed>[] {
-    return libraryDrawers(contextOf(this).pieces.list().map((piece) => ({ id: piece.chart.id, title: pieceTitle(piece.chart), piece })));
+    const { pieces, songs } = contextOf(this);
+    // a song's pieces are not filed on their own: the song is, by its title
+    const inSongs = songs.pieceIds();
+    const filed: Filed[] = pieces.list().filter((piece) => !inSongs.has(piece.chart.id)).map((piece) => ({ id: piece.chart.id, title: pieceTitle(piece.chart) }));
+    return libraryDrawers([...filed, ...songs.list().map((song) => ({ id: songChartId(song.id), title: song.title }))]);
   }
 
   protected draw(): void {

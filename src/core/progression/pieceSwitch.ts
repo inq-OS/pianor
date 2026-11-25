@@ -13,6 +13,8 @@ export const piecesSettingsSchema = z.object({
    * optional, so older saves read as they are (d069.3). Ids of songs or nodes that no longer exist are ignored.
    */
   songs: z.record(z.string(), z.array(z.string().min(1))).optional(),
+  /** Whether the player was told, on a first visit to a song page, what a tick does (ft_1_36 rule 10). Optional, no version bump (d069.3): absent reads as not yet. */
+  songTickTold: z.boolean().optional(),
 });
 
 export type PiecesSettings = z.infer<typeof piecesSettingsSchema>;

@@ -1,7 +1,7 @@
 // Covers ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { allMenuTitles, clickButton, expectNoErrors, openGame, sceneButton, sceneTexts, waitForScene } from './helpers';
+import { allMenuTitles, clickButton, expectNoErrors, menuButton, openGame, sceneButton, sceneTexts, waitForScene } from './helpers';
 
 const partsOff = (page: Page) => page.evaluate(() => [...window.__game.registry.get('context').profiles.songPartsOff('morning-song')] as string[]);
 const rowLabels = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('song').buttons as { options: { label: string; align?: string } }[]).filter((b) => b.options.align === 'left').map((b) => b.options.label));
@@ -149,6 +149,48 @@ test.describe('songs made of pieces', () => {
     expect(turned.page).toBeGreaterThan(0);
     expect(turned.lit).toEqual(['Intro']);
     expect(turned.framed).toBe(true);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC6 the library files a song by its title, never its pieces, and turns it off as one; the songs list then leaves it out; its i button opens its info card', async ({ page }) => {
+    const errors = await openGame(page);
+    // the info card from the songs list: the song's title, closed by Escape
+    await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', 'i'));
+    await expect.poll(() => sceneTexts(page, 'songs')).toContain('Close');
+    await page.keyboard.press('Escape');
+    await expect.poll(() => sceneTexts(page, 'songs')).not.toContain('Close');
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'menu');
+    // the library: one card for the song, none for its pieces
+    await clickButton(page, 'menu', await menuButton(page, 'Settings'));
+    await waitForScene(page, 'settings');
+    await clickButton(page, 'settings', await sceneButton(page, 'settings', 'Choose pieces'));
+    await waitForScene(page, 'pieces');
+    const drawerOf = (title: string) => page.evaluate((x) => (window.__game.scene.getScene('pieces') as unknown as { drawerOf(t: string): { label: string } | null }).drawerOf(x), title);
+    expect(await drawerOf('Morning Song: Intro')).toBeNull();
+    const drawer = await drawerOf('Morning Song');
+    expect(drawer).not.toBeNull();
+    await clickButton(page, 'pieces', await sceneButton(page, 'pieces', drawer!.label));
+    await clickButton(page, 'pieces', await sceneButton(page, 'pieces', 'Morning Song'));
+    await expect.poll(() => page.evaluate(() => [...window.__game.registry.get('context').profiles.hiddenPieces] as string[])).toContain('song:morning-song');
+    // the songs list no longer shows it
+    await page.evaluate(() => { window.__game.scene.stop('pieces'); window.__game.scene.start('songs'); });
+    await waitForScene(page, 'songs');
+    expect(await sceneTexts(page, 'songs')).toContain('All songs are off. Turn some on in Settings.');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC11 a player\'s first song page says once what a tick does', async ({ page }) => {
+    const errors = await openGame(page);
+    await openSongPage(page);
+    expect(await sceneTexts(page, 'song')).toContain('Ticked parts are played.');
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', 'Morning Song'));
+    await waitForScene(page, 'song');
+    expect(await sceneTexts(page, 'song')).not.toContain('Ticked parts are played.');
     expectNoErrors(errors);
   });
 

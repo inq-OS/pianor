@@ -88,6 +88,14 @@ export class SongScene extends PixelScene {
     this.keysShown = false;
     this.noticeTimer = null;
     this.folded = startFolded(this.outline()?.rows ?? []);
+    // a player's first song page says once what a tick does (rule 10): on the first part's row, beside its box, until a switch is pressed
+    const profiles = contextOf(this).profiles;
+    const first = 'songId' in data && !profiles.songTickTold ? this.outline()?.rows[0] : undefined;
+    if (first) {
+      this.notice = t('song.tickHint');
+      this.noticeRow = first.id;
+      void profiles.markSongTickTold();
+    }
   }
 
   protected override back(): void {
@@ -202,6 +210,7 @@ export class SongScene extends PixelScene {
 
   private saveOff(off: readonly string[]): void {
     if (!('songId' in this.opened)) return;
+    if (this.notice === t('song.tickHint')) this.notice = null;
     void contextOf(this).profiles.setSongPartsOff(this.opened.songId, off).then(() => {
       if (this.scene.isActive()) this.redraw();
     });
@@ -316,6 +325,12 @@ export class SongScene extends PixelScene {
     pixelStars(this, this.root, left + width - 2 - STARS, line, profiles.recordFor(chartId)?.bestGrade ?? 0, { gap: 1, ink: true });
   }
 
+  /** A notice on a row: the first visit's hint under the box it is about, any other under the row's name (`x`). */
+  private rowNotice(notice: string, line: number, left: number, width: number, x: number): void {
+    const at = notice === t('song.tickHint') ? left + 4 : x + 4;
+    this.root.add(new PixelText(this, at, line, clipToWidth(notice, left + width - at - 2, fits), { color: C.redDark }).setName('songNotice'));
+  }
+
   /** One row of the outline (rule 10). */
   private nodeRow(outline: ResolvedSong, item: ShownRow, left: number, top: number, width: number): void {
     const { row } = item;
@@ -372,7 +387,7 @@ export class SongScene extends PixelScene {
     const line = top + 19;
     if (this.notice && this.noticeRow === row.id) {
       // the notice stands on the row it is about, in place of its values
-      this.root.add(new PixelText(this, x + 4, line, this.notice, { color: C.redDark }).setName('songNotice'));
+      this.rowNotice(this.notice, line, left, width, x);
       if (!row.on) faded.forEach((o) => o.setAlpha(OFF_FADE));
       return;
     }
