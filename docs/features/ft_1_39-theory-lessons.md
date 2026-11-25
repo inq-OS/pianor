@@ -27,9 +27,12 @@ AX-0: every step ends with the student playing; no page is only read, and every 
 4. **Pictures.** One pure layout draws a staff beside a keyboard from the lesson's data (notes, lit keys, brackets, arrows, numbers), painted at build time like the other pictures; labels are string keys over it, never text in the art; each colour has one meaning in every lesson. A preview tool shows a lesson's pictures before they are committed (d286).
 5. **Key lights.** Show and Copy light both keyboards. Try lights only the on-screen keyboard until the EZ-220 is known to light a key without sounding it (`docs/hardware-notes.md`). Colours exist only on the on-screen keyboard.
 6. **Medal, review and XP.** A medal per lesson, gold, silver or bronze by the check's first-try share as in ft_1_32, raised and never lowered. `AX-3 provisional:` a finished lesson comes back as a three-question review after 1, 3, 7 and 21 days, mixed with others, in the trainers' own screens; a missed review sends the lesson's Try step again, nothing taken away. A right note earns the theory XP of ft_0_17 (10, as in ft_1_29); Show earns none.
-7. **Names** follow the B or H setting (H in Estonian), letter names only. Lesson text goes through string keys with Estonian (`write-ui-text`); `AX-3 provisional:` one line of at most about twelve words per step.
+7. **Names** follow the B or H setting (H in Estonian), letter names only. Lesson text goes through string keys with Estonian (`write-ui-text`).
 8. **A sign the staff cannot draw** has no lesson until core_09 draws it; its catalog row says `needs drawing`.
 9. **After a lesson** the matching trainer opens on the same setting (the triad lesson opens the chord trainer on triads).
+10. **Who teaches** ([d304](../decisions/game.md#d304)). Kiur shows and explains every lesson (AX-4); the teacher only assigns lessons and holds checks, as with pieces.
+11. **Stoic, pointing words** (d304). At most twelve words per step; the picture carries the rest. A line does not describe a thing: it names the thing and an arrow points at it, and a thing that does several things gets one short label pointing at each part. No praise (AX-2.1).
+12. **First lessons** are areas D and E of the catalog: half step, whole step, the major scale (slice 1).
 
 ## Slices
 
@@ -54,6 +57,5 @@ Lessons are content (a new folder under content, zod-validated, `schemaVersion`)
 
 ## TODO
 
-- TODO(architect, R2): the maintainer's answers on who teaches (proposed: Kiur shows, the teacher assigns and checks), how much reading per step (proposed: one line), and which area comes first (proposed: D and E, half steps to the major scale).
 - TODO(builder, R2): slice 0, previews and the ergonomics review, before slice 1.
 - NEEDS-HUMAN: the EZ-220 silent-light test (ft_Y_06) decides whether Try can light the real keyboard.
