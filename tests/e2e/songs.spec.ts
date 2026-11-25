@@ -1,7 +1,7 @@
-// Covers ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20.
+// Covers ft_1_36.AC14, ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { allMenuTitles, clickButton, expectNoErrors, menuButton, openGame, sceneButton, sceneTexts, waitForScene } from './helpers';
+import { allMenuTitles, clickButton, expectNoErrors, menuButton, openGame, pressInBubble, sceneButton, sceneTexts, waitForScene } from './helpers';
 
 const partsOff = (page: Page) => page.evaluate(() => [...window.__game.registry.get('context').profiles.songPartsOff('morning-song')] as string[]);
 const rowLabels = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('song').buttons as { options: { label: string; align?: string } }[]).filter((b) => b.options.align === 'left').map((b) => b.options.label));
@@ -198,6 +198,51 @@ test.describe('songs made of pieces', () => {
     await openGame(page);
     await openSongPage(page);
     expect(await sceneTexts(page, 'song')).not.toContain('Ticked parts are played.');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC14 a new song takes its title and one blank; rows are added, moved, renamed and removed through the bubble, each undoable, and kept after a reload', async ({ page }) => {
+    const errors = await openGame(page);
+    await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', '+ New song'));
+    await expect(page.locator('#text-field')).toBeFocused();
+    await page.keyboard.type('Evening Tune');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'song');
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1']);
+    // a group after the first part, holding a new blank
+    await clickButton(page, 'song', await sceneButton(page, 'song', '1 Part 1'));
+    await pressInBubble(page, 'song', 'Add');
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'New group'));
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1', '2 Group 1', '2.1 Part 2']);
+    // out of its group, then back by Undo
+    await clickButton(page, 'song', await sceneButton(page, 'song', '2.1 Part 2'));
+    await pressInBubble(page, 'song', 'Move');
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'Out of group'));
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1', '2 Group 1', '3 Part 2']);
+    await page.keyboard.press('Control+z');
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1', '2 Group 1', '2.1 Part 2']);
+    // a name typed in the row's field
+    await clickButton(page, 'song', await sceneButton(page, 'song', '1 Part 1'));
+    await pressInBubble(page, 'song', 'Name');
+    await expect(page.locator('#text-field')).toBeFocused();
+    await page.keyboard.press('Control+a');
+    await page.keyboard.type('Verse');
+    await page.keyboard.press('Enter');
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Verse', '2 Group 1', '2.1 Part 2']);
+    // removed at once, and said
+    await clickButton(page, 'song', await sceneButton(page, 'song', '2 Group 1'));
+    await pressInBubble(page, 'song', 'Remove');
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Verse']);
+    expect(await sceneTexts(page, 'song')).toContain('Removed Group 1.');
+    // kept on this device
+    await openGame(page);
+    await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', 'Evening Tune'));
+    await waitForScene(page, 'song');
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Verse']);
     expectNoErrors(errors);
   });
 

@@ -5,6 +5,7 @@ import type { TeacherDesk } from '../io/teacher/teacherDesk';
 import type { TextFiles } from '../io/files';
 import type { KeyboardInput, KeyLightOutput } from '../io/keyboard';
 import type { OwnPieces } from './editor/OwnPieces';
+import type { OwnSongs } from './OwnSongs';
 import type { PieceCatalogue } from './pieceCatalogue';
 import type { SongCatalogue } from './songCatalogue';
 import type { ProfileService } from './profile/ProfileService';
@@ -83,6 +84,8 @@ export interface GameContext {
   songs: SongCatalogue;
   /** Pieces written in the editor on this device. */
   ownPieces: OwnPieces;
+  /** Songs made on this device (ft_1_36 rule 12). */
+  ownSongs: OwnSongs;
   /** Checks the admin password; scenes never read the stored record. */
   admin: AdminAccess;
   /** The teacher's desk behind the academic hat (ft_1_26, d140): her own password, the curricula and their statuses. */

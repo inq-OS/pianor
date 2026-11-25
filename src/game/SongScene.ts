@@ -3,7 +3,10 @@ import { pageOf } from '../core/layout/paging';
 import { rectCentre } from '../core/layout/rect';
 import { keyName, meterName, pieceOutline, rowPlay, shownRows, startFolded, type ShownRow } from '../core/song/outline';
 import { pieceFactsOf, type ResolvedSong, type RowValue, type SongRow } from '../core/song/resolve';
-import type { Song } from '../core/song/schema';
+import { walkSong, type Song, type SongNode } from '../core/song/schema';
+import { addNode, freeNodeId, moveNode, removeNode, renameNode, NEW_BLANK_BARS, type MoveKind } from '../core/song/edit';
+import { canRedo, canUndo, push, redo, startHistory, undo, type History } from '../core/editor/history';
+import { openTextField } from './ui/textField';
 import { keepsLastPartOn, labelOn, setLabelOn, setPartOn } from '../core/song/switches';
 import { clipToWidth } from '../core/text/clip';
 import { pieceTitle } from '../core/text/pieceTitle';
@@ -15,7 +18,7 @@ import { createBitmap, type Bitmap } from './ui/pixel/bitmap';
 import { drawnText, measure } from './ui/pixel/font';
 import { C } from './ui/pixel/palette';
 import { PixelImage, PixelText, pixelStars, type PixelButton } from './ui/pixel/PixelObjects';
-import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
+import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { STAR_FULL } from './ui/pixel/sprites';
 import { GRADE_STARS } from '../core/scoring/stars';
@@ -43,6 +46,8 @@ const OFF_FADE = 0.45;
 const STARS = GRADE_STARS * (STAR_FULL.width + 1) - 1;
 /** How long "One part must stay on." stays. */
 const NOTICE_MS = 3000;
+/** A choice of the bubble's Add and Move, in layout cells. */
+const CHOICE_CELL = { w: 74, h: 12 };
 
 /** What the song page is opened with: a song, or a piece with parts and no song (its phrases as the rows, ft_1_36.AC13). */
 export type SongData = { songId: string } | { chartId: string };
@@ -73,6 +78,14 @@ export class SongScene extends PixelScene {
   private noticeTimer: Phaser.Time.TimerEvent | null = null;
   /** The items of the page, as last drawn, in order: what Up and Down walk. */
   private items: PageItem[] = [];
+  /** Where each row on the page was drawn, by its id ('' for the whole song's): for a press, a field and a landing line. */
+  private rowRects = new Map<string, { left: number; top: number; width: number; depth: number }>();
+  /** An own song's edits on this visit (rule 12), for Undo and Redo; null for a bundled song or a lone piece. */
+  private history: History<Song> | null = null;
+  /** The faint line where a move would put the row (d286), while the pointer rests on the choice. */
+  private landing: PixelImage | null = null;
+  /** The open title or name field's closer, while one is open. */
+  private closeField: (() => void) | null = null;
   private perPage = 6;
 
   protected override keyboardNavigation = true;
@@ -91,6 +104,10 @@ export class SongScene extends PixelScene {
     this.noticeTimer = null;
     this.tickHint = false;
     this.folded = startFolded(this.outline()?.rows ?? []);
+    const own = 'songId' in data ? contextOf(this).ownSongs.get(data.songId) : undefined;
+    this.history = own ? startHistory(own) : null;
+    this.closeField = null;
+    this.landing = null;
     // a player's first song page says once what a tick does (rule 10): on the first part's row, beside its box, until a switch is pressed
     const profiles = contextOf(this).profiles;
     const first = 'songId' in data && !profiles.songTickTold ? this.outline()?.rows[0] : undefined;
@@ -133,6 +150,7 @@ export class SongScene extends PixelScene {
    */
   protected override screenKey(e: KeyboardEvent): boolean {
     const outline = this.outline();
+    if (this.undoKey(e)) return true;
     if (!outline || this.focusedButton) return false;
     const ours = ['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', ' ', 'Enter', 'PageUp', 'PageDown'];
     if (!ours.includes(e.key)) return false;
@@ -256,6 +274,202 @@ export class SongScene extends PixelScene {
   }
 
   /** The labels of the song's parts, in the order of the ready-made list first: a switch each in the strip (rule 16). */
+  /** The own song being edited (rule 12), or null: a bundled song, and a piece's own parts, are read only. */
+  private get ownSong(): Song | null {
+    return this.history?.present ?? null;
+  }
+
+  /** The selected row's node in the own song, or undefined for the whole song. */
+  private selectedNode(song: Song): SongNode | undefined {
+    return this.selected === null ? undefined : walkSong(song.nodes).find(({ node }) => node.id === this.selected)?.node;
+  }
+
+  /** Keep an edit: one step to undo, saved on this device at once, the page drawn again. */
+  private commit(next: Song): void {
+    if (!this.history) return;
+    this.history = push(this.history, next);
+    this.keep();
+  }
+
+  private keep(): void {
+    if (!this.history) return;
+    const song = this.history.present;
+    void contextOf(this).ownSongs.save(song);
+    if (this.selected !== null && !walkSong(song.nodes).some(({ node }) => node.id === this.selected)) this.selected = null;
+    this.redraw();
+  }
+
+  /** Ctrl+Z undoes an edit of an own song, Ctrl+Y and Ctrl+Shift+Z redo it; false for any other key. */
+  private undoKey(e: KeyboardEvent): boolean {
+    if (!this.history || !(e.ctrlKey || e.metaKey) || !['z', 'Z', 'y'].includes(e.key)) return false;
+    if (e.key === 'y' || e.shiftKey) this.redoEdit();
+    else this.undoEdit();
+    return true;
+  }
+
+  private undoEdit(): void {
+    if (!this.history || !canUndo(this.history)) return;
+    this.history = undo(this.history);
+    this.keep();
+  }
+
+  private redoEdit(): void {
+    if (!this.history || !canRedo(this.history)) return;
+    this.history = redo(this.history);
+    this.keep();
+  }
+
+  /** The row under a press (art pixels): its id, '' mapped to null for the whole song; undefined over no row. */
+  private rowAt(at: { x: number; y: number }): string | null | undefined {
+    for (const [id, r] of this.rowRects) {
+      if (at.x >= r.left && at.x < r.left + r.width && at.y >= r.top && at.y < r.top + CARD_HEIGHT) return id === '' ? null : id;
+    }
+    return undefined;
+  }
+
+  protected override hasBubbleAt(): boolean {
+    return this.history !== null;
+  }
+
+  /**
+   * An own song's editing in the bubble, in fixed slots (rule 12): 0 add, 1 name, 6 move, 7 remove; slots 2 to 5 (tempo,
+   * key, meter, write) come with the next part of the slice. A press on a row selects it first; on empty paper the whole
+   * song is selected, so Add puts a part at the end. A bundled song has no bubble. An option's choices open in a row under
+   * the selected row, never over other rows' names.
+   */
+  protected override bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
+    const song = this.ownSong;
+    if (!song) return null;
+    if (at) {
+      const hit = this.rowAt(at);
+      const id = hit === undefined ? null : hit;
+      if (id !== this.selected) {
+        this.selected = id;
+        this.redraw();
+      }
+    }
+    const node = this.selectedNode(song);
+    const moves = node ? this.moveChoices(song, node) : [];
+    return [
+      { label: t('song.add'), icon: TOOL_ICONS.add, onClick: () => this.choicesUnderRow(this.addChoices(song, node)) },
+      { label: t('song.rename'), icon: TOOL_ICONS.rename, onClick: () => this.rename(song, node) },
+      null,
+      null,
+      null,
+      null,
+      { label: t('song.move'), icon: TOOL_ICONS.move, disabled: moves.every((m) => m.disabled), onClick: () => this.choicesUnderRow(moves) },
+      { label: t('song.remove'), icon: TOOL_ICONS.trash, disabled: !node, onClick: () => node && this.remove(song, node) },
+    ];
+  }
+
+  /** An option's choices in one row under the selected row (rule 12). */
+  private choicesUnderRow(items: MenuItem[]): void {
+    const r = this.rowRects.get(this.selected ?? '');
+    if (!r) return;
+    this.openMenu({ rect: { x: r.left, y: r.top, width: r.width, height: CARD_HEIGHT - 4 } }, items, { cell: CHOICE_CELL, columns: Math.min(2, items.length), open: 'below' });
+  }
+
+  /** Slot 0's choices: a new part or group after the selected row (at the end with none), and into a selected group. */
+  private addChoices(song: Song, node: SongNode | undefined): MenuItem[] {
+    const place = node ? { after: node.id } : ('end' as const);
+    const blank = (): SongNode => {
+      const name = t('song.newPart', { n: walkSong(song.nodes).filter(({ node: n }) => n.kind === 'blank').length + 1 });
+      return { kind: 'blank', id: freeNodeId(song, name), name, bars: NEW_BLANK_BARS };
+    };
+    const group = (): SongNode => {
+      const name = t('song.newGroup', { n: walkSong(song.nodes).filter(({ node: n }) => n.kind === 'group').length + 1 });
+      return { kind: 'group', id: freeNodeId(song, name), name, nodes: [blank()] };
+    };
+    const add = (at: Parameters<typeof addNode>[1], made: SongNode) => {
+      this.selected = made.id;
+      this.commit(addNode(song, at, made));
+    };
+    return [
+      { label: t('song.addPart'), onPick: () => add(place, blank()) },
+      { label: t('song.addGroup'), onPick: () => add(place, group()) },
+      ...(node?.kind === 'group' ? [{ label: t('song.addInside'), onPick: () => add({ inside: node.id }, blank()) }] : []),
+    ];
+  }
+
+  /** Slot 6's choices: each move, shown as a faint line where the row would land while the pointer rests on it (d286). */
+  private moveChoices(song: Song, node: SongNode): MenuItem[] {
+    const kinds: { kind: MoveKind; key: StringKey }[] = [
+      { kind: 'up', key: 'song.moveUp' }, { kind: 'down', key: 'song.moveDown' }, { kind: 'into', key: 'song.moveInto' }, { kind: 'out', key: 'song.moveOut' },
+    ];
+    return kinds.map(({ kind, key }) => {
+      const moved = moveNode(song, node.id, kind);
+      return {
+        label: t(key), disabled: moved === null,
+        preview: (on: boolean) => this.showLanding(on && moved ? moved : null, node.id),
+        onPick: () => moved && this.commit(moved),
+      };
+    });
+  }
+
+  /**
+   * The faint line where a moved row lands: under the row it will follow in the moved song (the whole song's row when it
+   * goes first), set in to its new depth. Nothing when that row is not on this page.
+   */
+  private showLanding(moved: Song | null, id: string): void {
+    this.landing?.destroy();
+    this.landing = null;
+    if (!moved) return;
+    const rows = shownRows(contextOf(this).songs.resolved(moved).rows, this.folded).map((r) => r.row);
+    const at = rows.findIndex((r) => r.id === id);
+    if (at < 0) return;
+    // the row it follows: the nearest one above it that is not inside it
+    const inside = new Set([id]);
+    for (const r of rows) if (r.parent !== null && inside.has(r.parent)) inside.add(r.id);
+    const before = rows.slice(0, at).reverse().find((r) => !inside.has(r.id));
+    const anchor = this.rowRects.get(before?.id ?? '');
+    if (!anchor) return;
+    const depth = rows[at]!.depth;
+    const x = anchor.left + 2 + depth * INDENT;
+    const line = createBitmap(Math.max(4, anchor.left + anchor.width - 4 - x), 2);
+    line.pixels.fill(C.redDark);
+    this.landing = new PixelImage(this, x, anchor.top + CARD_HEIGHT - 4, line).setName('landingLine').setAlpha(0.7);
+    this.root.add(this.landing);
+  }
+
+  /** Slot 1: a field over the row's name (the song's title with no row selected); Enter keeps it, Esc does not. */
+  private rename(song: Song, node: SongNode | undefined): void {
+    const rect = this.rowRects.get(node?.id ?? '');
+    if (!rect) return;
+    this.closeField?.();
+    const current = node ? ('name' in node && node.name ? node.name : this.selectedRowName()) : song.title;
+    this.closeField = openTextField(
+      { scene: this, root: this.root, scale: this.px.scale, x: rect.left + 2, y: rect.top + 1, w: rect.width - SMALL - 6, h: CARD_HEIGHT / 2 - 2 },
+      {
+        value: current, label: t(node ? 'song.partName' : 'song.titleLabel'), maxLength: 60,
+        onDone: (value) => {
+          this.closeField = null;
+          if (value === '' || value === current) return;
+          this.commit(node ? renameNode(song, node.id, value) : { ...song, title: value });
+        },
+        onCancel: () => {
+          this.closeField = null;
+        },
+      },
+    );
+  }
+
+  private selectedRowName(): string {
+    const outline = this.outline();
+    return (outline && this.selectedRow(outline)?.name) ?? '';
+  }
+
+  /** Slot 7: the row leaves the song at once (no question: Undo is in the strip), and the page says so (rule 12). */
+  private remove(song: Song, node: SongNode): void {
+    const next = removeNode(song, node.id);
+    const name = 'name' in node && node.name ? node.name : this.selectedRowName();
+    if (!next) {
+      this.say(t('song.lastRow'), null);
+      return;
+    }
+    this.commit(next);
+    this.say(t('song.removed', { name }), null);
+  }
+
   private labels(outline: ResolvedSong): string[] {
     const words = [...new Set(outline.rows.flatMap((r) => r.labels))];
     return words;
@@ -268,7 +482,15 @@ export class SongScene extends PixelScene {
     const name = clipToWidth(row ? row.name : (this.song?.title ?? outline.title), STRIP_NAME, fits);
     const playable = row ? rowPlay(row, outline.rows) !== null : true;
     const labels = 'songId' in this.opened ? this.labels(outline) : [];
+    const history = this.history;
+    const edits: ToolbarItem[] = history
+      ? [
+        { label: t('editor.undo'), icon: TOOL_ICONS.undo, disabled: !canUndo(history), onClick: () => this.undoEdit() },
+        { label: t('editor.redo'), icon: TOOL_ICONS.redo, disabled: !canRedo(history), onClick: () => this.redoEdit() },
+      ]
+      : [];
     return [
+      ...edits,
       ...labels.map((label): ToolbarItem => ({
         label: labelText(label), active: labelOn(outline.rows, this.off, label), onClick: () => this.toggleLabel(outline, label),
       })),
@@ -287,6 +509,8 @@ export class SongScene extends PixelScene {
     const rowHeight = this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT;
     const grid = cardGrid({ width, height, top: LIST_TOP + 4, margin: BOOK_MARGIN, rowHeight, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
     this.items = [null, ...shownRows(outline.rows, this.folded)];
+    this.rowRects.clear();
+    this.landing = null;
     // as many rows a page as the piece book shows, so the two read alike
     const slice = pageOf(this.items.length, this.page, { singlePageMax: grid.perPage, perPage: grid.perPage });
     this.page = slice.page;
@@ -295,6 +519,7 @@ export class SongScene extends PixelScene {
       const { x, y } = rectCentre(grid.pageCell(i, this.perPage));
       const left = x - grid.cardWidth / 2;
       const top = y - rowHeight / 2;
+      this.rowRects.set(item === null ? '' : item.row.id, { left, top, width: grid.cardWidth, depth: item === null ? -1 : item.row.depth });
       if (item === null) this.wholeRow(outline, left, top, grid.cardWidth);
       else this.nodeRow(outline, item, left, top, grid.cardWidth);
     });

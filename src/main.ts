@@ -34,6 +34,7 @@ import { startDebug } from './debugSetup';
 import { chooseStore, createMemoryProfileService, createProfileService } from './profileSetup';
 import { MemoryStore } from './io/storage/MemoryStore';
 import { OwnPieces } from './game/editor/OwnPieces';
+import { OwnSongs } from './game/OwnSongs';
 import { bundledPieceSources, bundledSongFiles } from './game/content';
 import { PieceCatalogue } from './game/pieceCatalogue';
 import { SongCatalogue } from './game/songCatalogue';
@@ -73,6 +74,7 @@ async function startGame(): Promise<void> {
   const autoplay = import.meta.env.DEV ? appConfig.flags.autoplay : null;
   const store = autoplay ? new MemoryStore() : (await chooseStore()).store;
   const ownPieces = await OwnPieces.load(store);
+  const ownSongs = await OwnSongs.load(store);
   // Drafts: on in a dev server (not `npm run start`), and in `npm run start` only when the admin page turned them on.
   const admin = createAdminAccess(store);
   const adminSettings = await admin.settings();
@@ -85,13 +87,13 @@ async function startGame(): Promise<void> {
   const { service: profiles, persistent } = autoplay
     ? { service: await createMemoryProfileService(), persistent: false }
     : await createProfileService(pieces, appConfig.flags.testPlayers, () => songs?.pieceIds() ?? new Set());
-  songs = new SongCatalogue({ files: bundledSongFiles(), showDrafts, piece: (id) => pieces.find(id), partsOff: (id) => profiles.songPartsOff(id) });
+  songs = new SongCatalogue({ files: bundledSongFiles(), showDrafts, piece: (id) => pieces.find(id), partsOff: (id) => profiles.songPartsOff(id), own: () => ownSongs.list() });
   const { actors, editor, learn, demo, staffDemo, sky } = appConfig.flags;
   // the keyboard switch's state, made before the context that hands it to the scenes (the switch rule is further down)
   let keysShown = params.get('keys') === '1';
   const switchListeners = new Set<() => void>();
   const context: GameContext = {
-    keyboard: inputs.keyboard, lights: inputs.lights, midi: null, audio, profiles, flags: { actors, editor, learn, demo, staffDemo, sky, devTools: import.meta.env.DEV, autoplay: autoplay !== null, draftsShown: appConfig.flags.showDraftContent, pageBase: window.location.href, intro: appConfig.flags.intro }, pieces, songs, ownPieces, files: browserTextFiles, savesPersist: persistent, admin, teacher: createTeacherDesk(store), adminSettings,
+    keyboard: inputs.keyboard, lights: inputs.lights, midi: null, audio, profiles, flags: { actors, editor, learn, demo, staffDemo, sky, devTools: import.meta.env.DEV, autoplay: autoplay !== null, draftsShown: appConfig.flags.showDraftContent, pageBase: window.location.href, intro: appConfig.flags.intro }, pieces, songs, ownPieces, ownSongs, files: browserTextFiles, savesPersist: persistent, admin, teacher: createTeacherDesk(store), adminSettings,
     keyboardSwitch: {
       shown: () => keyboardHost.style.display !== 'none',
       toggle: () => toggleKeyboard(),
