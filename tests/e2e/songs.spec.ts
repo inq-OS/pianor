@@ -1,4 +1,4 @@
-// Covers ft_1_36.AC14, ft_1_36.AC15, ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20.
+// Covers ft_1_36.AC14, ft_1_36.AC15, ft_1_36.AC21, ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { allMenuTitles, clickButton, expectNoErrors, lastButton, menuButton, openBubbleFromMore, openGame, pressInBubble, sceneButton, sceneTexts, waitForScene } from './helpers';
@@ -302,6 +302,91 @@ test.describe('songs made of pieces', () => {
     await waitForScene(page, 'song');
     await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1']);
     expect(await sceneButton(page, 'song', 'Play Part 1')).toBeGreaterThanOrEqual(0);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC21 saving a new piece asks where it goes: into an own song at a picked place, in a new group, or on its own and added later from the song page', async ({ page }) => {
+    const errors = await openGame(page);
+    await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', '+ New song'));
+    await expect(page.locator('#text-field')).toBeFocused();
+    await page.keyboard.type('Evening Tune');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'song');
+    // own pieces standing in a song (the bundled songs' pieces left out)
+    const inSongs = () => page.evaluate(() => {
+      const context = window.__game.registry.get('context');
+      const ids = context.songs.pieceIds() as Set<string>;
+      return (context.ownPieces.list() as { id: string }[]).filter((r) => ids.has(r.id)).length;
+    });
+    /** Writes a piece with one note in the piece maker and presses Save. */
+    const writeAndSave = async (title: string) => {
+      await waitForScene(page, 'editor');
+      await page.fill('#editor-title', title);
+      const point = await page.evaluate(() => {
+        const at = window.__game.scene.getScene('editor').pointForNote({ hand: 'RH', octave: 4, bar: 0, start: 0, step: 'C' }) as { x: number; y: number };
+        const canvas = document.querySelector('canvas')!;
+        const rect = canvas.getBoundingClientRect();
+        return { x: rect.left + (at.x / canvas.width) * rect.width, y: rect.top + (at.y / canvas.height) * rect.height };
+      });
+      await page.mouse.click(point.x, point.y, { button: 'middle' });
+      let save = await lastButton(page, 'editor', 'Save');
+      if (save < 0 && (await openBubbleFromMore(page, 'editor'))) save = await lastButton(page, 'editor', 'Save');
+      await clickButton(page, 'editor', save);
+    };
+    // from the piece book's piece maker: Save asks, the song page asks the place, a new group is made on the way
+    await page.evaluate(() => {
+      window.__game.scene.stop('song');
+      window.__game.scene.start('editor', {});
+    });
+    await writeAndSave('Bells');
+    await expect.poll(() => lastButton(page, 'editor', 'Into Evening Tune')).toBeGreaterThanOrEqual(0);
+    await clickButton(page, 'editor', await lastButton(page, 'editor', 'Into Evening Tune'));
+    await waitForScene(page, 'song');
+    expect(await sceneTexts(page, 'song')).toContain('Pick where Bells goes.');
+    await clickButton(page, 'song', await sceneButton(page, 'song', '1 Part 1'));
+    await clickButton(page, 'song', await lastButton(page, 'song', 'In a new group'));
+    // the piece maker has it again; Back returns to the song page, the piece in its new group
+    await waitForScene(page, 'editor');
+    expect(await inSongs()).toBe(1);
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'song');
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1', '2 Group 1', '2.1 Bells']);
+    // a piece saved on its own is added from the song page's Add, as a piece of mine
+    await page.evaluate(() => {
+      window.__game.scene.stop('song');
+      window.__game.scene.start('editor', {});
+    });
+    await writeAndSave('Drums');
+    await clickButton(page, 'editor', await lastButton(page, 'editor', 'On its own'));
+    await expect.poll(() => page.evaluate(() => (window.__game.registry.get('context').ownPieces.list() as unknown[]).length)).toBe(2);
+    expect(await inSongs()).toBe(1);
+    await page.evaluate(() => {
+      window.__game.scene.stop('editor');
+      window.__game.scene.start('song', { songId: window.__game.registry.get('context').ownSongs.list()[0].id });
+    });
+    await waitForScene(page, 'song');
+    await clickButton(page, 'song', await sceneButton(page, 'song', '1 Part 1'));
+    await pressInBubble(page, 'song', 'Add');
+    await clickButton(page, 'song', await lastButton(page, 'song', 'A piece of mine'));
+    await expect.poll(() => lastButton(page, 'song', 'Drums')).toBeGreaterThanOrEqual(0);
+    await clickButton(page, 'song', await lastButton(page, 'song', 'Drums'));
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1', '2 Drums', '3 Group 1', '3.1 Bells']);
+    expect(await inSongs()).toBe(2);
+    // removed from the song, it stands on its own again
+    await pressInBubble(page, 'song', 'Remove');
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1', '2 Group 1', '2.1 Bells']);
+    expect(await inSongs()).toBe(1);
+    // a new piece from the song page's Add is saved straight to its place, with no question
+    await clickButton(page, 'song', await sceneButton(page, 'song', '1 Part 1'));
+    await pressInBubble(page, 'song', 'Add');
+    await clickButton(page, 'song', await lastButton(page, 'song', 'New piece'));
+    await writeAndSave('Flute');
+    await expect.poll(() => inSongs()).toBe(2);
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'song');
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1', '2 Flute', '3 Group 1', '3.1 Bells']);
     expectNoErrors(errors);
   });
 

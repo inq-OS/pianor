@@ -4,7 +4,7 @@ import { rectCentre } from '../core/layout/rect';
 import { keyName, meterName, pieceOutline, rowPlay, shownRows, startFolded, type ShownRow } from '../core/song/outline';
 import { pieceFactsOf, type ResolvedSong, type RowValue, type SongRow } from '../core/song/resolve';
 import { walkSong, type Song, type SongNode, type SongValues } from '../core/song/schema';
-import { addNode, freeNodeId, moveNode, removeNode, renameNode, setValue, NEW_BLANK_BARS, type MoveKind } from '../core/song/edit';
+import { addNode, freeNodeId, moveNode, removeNode, renameNode, setValue, linkTargets, NEW_BLANK_BARS, type MoveKind, type Place } from '../core/song/edit';
 import { canRedo, canUndo, push, redo, startHistory, undo, type History } from '../core/editor/history';
 import { openTextField } from './ui/textField';
 import { keepsLastPartOn, labelOn, setLabelOn, setPartOn } from '../core/song/switches';
@@ -48,7 +48,7 @@ const STARS = GRADE_STARS * (STAR_FULL.width + 1) - 1;
 const NOTICE_MS = 3000;
 /** A choice of the bubble's Add and Move, in layout cells. */
 const CHOICE_CELL = { w: 64, h: 12 };
-/** A value's choice: wide enough for Follow the song on one line. */
+/** A choice with words (a value's, a place's, a piece's title): wide enough for Follow the song on one line. */
 const VALUE_CELL = { w: 112, h: 12 };
 /**
  * The values slots 2 to 4 offer (rule 12), beside Follow the song: `AX-3 provisional:` a short list of the tempos, keys and
@@ -59,10 +59,15 @@ const KEYS: readonly SongValues['key'][] = [
   { fifths: 0, mode: 'major' }, { fifths: 1, mode: 'major' }, { fifths: 2, mode: 'major' }, { fifths: -1, mode: 'major' }, { fifths: -2, mode: 'major' },
   { fifths: 0, mode: 'minor' }, { fifths: 1, mode: 'minor' }, { fifths: -1, mode: 'minor' },
 ];
+/** How many own pieces slot 0 offers to add (rule 18). */
+const OWN_PIECES_SHOWN = 12;
 const METERS: readonly SongValues['meter'][] = [{ num: 2, den: 4 }, { num: 3, den: 4 }, { num: 4, den: 4 }];
 
-/** What the song page is opened with: a song, or a piece with parts and no song (its phrases as the rows, ft_1_36.AC13). */
-export type SongData = { songId: string } | { chartId: string };
+/**
+ * What the song page is opened with: a song, or a piece with parts and no song (its phrases as the rows, ft_1_36.AC13).
+ * `placing` is an own piece just saved from the piece maker to go into this own song: the page asks where (rule 17).
+ */
+export type SongData = { songId: string; placing?: string } | { chartId: string };
 
 /** A row of the page: the whole song (or piece) first, then the outline's rows. */
 type PageItem = ShownRow | null;
@@ -98,6 +103,8 @@ export class SongScene extends PixelScene {
   private landing: PixelImage | null = null;
   /** The open title or name field's closer, while one is open. */
   private closeField: (() => void) | null = null;
+  /** The own piece the page is placing (rule 17), or null. */
+  private placing: string | null = null;
   private perPage = 6;
 
   protected override keyboardNavigation = true;
@@ -120,6 +127,13 @@ export class SongScene extends PixelScene {
     this.history = own ? startHistory(own) : null;
     this.closeField = null;
     this.landing = null;
+    this.placing = own && 'placing' in data ? data.placing ?? null : null;
+    if (this.placing !== null) {
+      // the page asks where the piece goes, on the whole song's row, until it is placed or kept on its own
+      this.notice = t('song.placeHint', { name: this.pieceName(this.placing) });
+      this.noticeRow = null;
+      return;
+    }
     // a player's first song page says once what a tick does (rule 10): on the first part's row, beside its box, until a switch is pressed
     const profiles = contextOf(this).profiles;
     const first = 'songId' in data && !profiles.songTickTold ? this.outline()?.rows[0] : undefined;
@@ -132,6 +146,8 @@ export class SongScene extends PixelScene {
   }
 
   protected override back(): void {
+    // placing a piece: Back keeps it on its own and returns to the piece maker
+    if (this.placing !== null) return startScene(this, 'editor', { id: this.placing });
     startScene(this, 'songId' in this.opened ? 'songs' : 'menu');
   }
 
@@ -199,7 +215,9 @@ export class SongScene extends PixelScene {
         if (row && !e.repeat) this.toggle(outline, row);
         return true;
       case 'Enter':
-        if (!e.repeat) this.play(outline, row);
+        // placing a piece, Enter asks where by the selected row instead of playing it
+        if (!e.repeat && this.placing !== null) this.askPlace();
+        else if (!e.repeat) this.play(outline, row);
         return true;
       default:
         return false;
@@ -215,6 +233,17 @@ export class SongScene extends PixelScene {
     this.keysShown = true;
     this.page = page;
     this.redraw();
+  }
+
+  /** A press on a row's name: it is selected; while a piece is being placed, the places by that row open (rule 17). */
+  private pressRow(id: string | null): void {
+    this.select(id);
+    this.askPlace();
+  }
+
+  private askPlace(): void {
+    const song = this.ownSong;
+    if (this.placing !== null && song) this.choicesUnderRow(this.placeChoices(song, this.placing, this.selected), 2, VALUE_CELL);
   }
 
   private fold(id: string, folded: boolean): void {
@@ -354,7 +383,7 @@ export class SongScene extends PixelScene {
   }
 
   protected override hasBubbleAt(): boolean {
-    return this.history !== null;
+    return this.history !== null && this.placing === null;
   }
 
   /**
@@ -365,7 +394,7 @@ export class SongScene extends PixelScene {
    */
   protected override bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
     const song = this.ownSong;
-    if (!song) return null;
+    if (!song || this.placing !== null) return null;
     if (at) {
       const hit = this.rowAt(at);
       const id = hit === undefined ? null : hit;
@@ -382,7 +411,7 @@ export class SongScene extends PixelScene {
       label: t(key), ...(icon ? { icon } : {}), disabled: !values, onClick: () => this.choicesUnderRow(this.valueChoices(song, node, field, offered, name), 2, VALUE_CELL),
     });
     return [
-      { label: t('song.add'), icon: TOOL_ICONS.add, onClick: () => this.choicesUnderRow(this.addChoices(song, node)) },
+      { label: t('song.add'), icon: TOOL_ICONS.add, onClick: () => this.choicesUnderRow(this.addChoices(song, node), 2, VALUE_CELL) },
       { label: t('song.rename'), icon: TOOL_ICONS.rename, onClick: () => this.rename(song, node) },
       value('song.tempoOption', TOOL_ICONS.tempo, 'bpm', TEMPOS, (v) => t('song.tempo', { bpm: v })),
       value('song.keyOption', TOOL_ICONS.circle, 'key', KEYS, keyName),
@@ -450,23 +479,83 @@ export class SongScene extends PixelScene {
       return { kind: 'group', id: freeNodeId(song, name), name, nodes: [blank()] };
     };
     // each choice shows where the new row will stand while the pointer rests on it (d286)
-    const choice = (label: string, at: Parameters<typeof addNode>[1], make: () => SongNode): MenuItem => {
-      const made = make();
+    const choice = (label: string, at: Place, make: () => SongNode): MenuItem => this.addAt(song, label, at, make());
+    return [
+      choice(t('song.addPart'), place, blank),
+      choice(t('song.addGroup'), place, group),
+      ...(node?.kind === 'group' ? [choice(t('song.addInside'), { inside: node.id }, blank)] : []),
+      // a new piece is written in the piece maker in the values it takes here, and added here when saved (rule 17)
+      { label: t('song.addPiece'), onPick: () => startScene(this, 'editor', { song: { songId: song.id, at: place } }) },
+      { label: t('song.addOwn'), onPick: () => this.choicesUnderRow(this.ownPieceChoices(song, place), 2, VALUE_CELL) },
+      { label: t('song.addLink'), disabled: this.linkChoices(song, place).length === 0, onPick: () => this.choicesUnderRow(this.linkChoices(song, place), 2, VALUE_CELL) },
+    ];
+  }
+
+  /** A row added at `place`, shown where it lands while the pointer rests on it (d286), selected once picked. */
+  private addAt(song: Song, label: string, place: Place, made: SongNode): MenuItem {
+    const next = addNode(song, place, made);
+    return {
+      label,
+      preview: (on) => this.showLanding(on ? next : null, made.id),
+      onPick: () => {
+        this.selected = made.id;
+        this.commit(next);
+      },
+    };
+  }
+
+  /**
+   * Slot 0's own pieces (rule 18): each own piece that stands on its own (in no song), by title; `AX-3 provisional:`
+   * the first twelve. A piece in a song leaves the piece book's list (rule 13).
+   */
+  private ownPieceChoices(song: Song, place: Place): MenuItem[] {
+    const { ownPieces, songs } = contextOf(this);
+    const inSongs = songs.pieceIds();
+    const free = ownPieces.list().filter((r) => !inSongs.has(r.id)).slice(0, OWN_PIECES_SHOWN);
+    if (free.length === 0) return [{ label: t('song.noOwnPieces'), disabled: true, onPick: () => undefined }];
+    // a title is shown as written, never in the small capitals of the game's own words
+    return free.map((r) => ({ ...this.addAt(song, r.piece.title, place, { kind: 'piece', id: freeNodeId(song, r.piece.title), piece: r.id }), keepCase: true }));
+  }
+
+  /** Slot 0's links (rule 1): each piece row before the place, played again here. */
+  private linkChoices(song: Song, place: Place): MenuItem[] {
+    return linkTargets(contextOf(this).songs.resolved(song).rows, place).map((r) => ({ ...this.addAt(song, r.name, place, { kind: 'link', id: freeNodeId(song, `${r.id}-again`), to: r.id }), keepCase: true }));
+  }
+
+  /**
+   * Where the piece being placed goes (rule 17), under the row pressed: after it, inside it (a group), or in a new group
+   * after it; under the whole song's row, at the end or in a new group there. Picked, the piece is in the song and the
+   * piece maker opens it again, so Back there returns to this page.
+   */
+  private placeChoices(song: Song, pieceId: string, id: string | null): MenuItem[] {
+    const node = id === null ? undefined : walkSong(song.nodes).find(({ node: n }) => n.id === id)?.node;
+    if (id !== null && !node) return [];
+    const name = this.pieceName(pieceId);
+    const piece: SongNode = { kind: 'piece', id: freeNodeId(song, name), piece: pieceId };
+    const groupName = t('song.newGroup', { n: walkSong(song.nodes).filter(({ node: n }) => n.kind === 'group').length + 1 });
+    const group: SongNode = { kind: 'group', id: freeNodeId(addNode(song, 'end', piece), groupName), name: groupName, nodes: [piece] };
+    const place: Place = node ? { after: node.id } : 'end';
+    const choice = (label: string, at: Place, made: SongNode): MenuItem => {
       const next = addNode(song, at, made);
       return {
         label,
         preview: (on) => this.showLanding(on ? next : null, made.id),
         onPick: () => {
-          this.selected = made.id;
           this.commit(next);
+          startScene(this, 'editor', { id: pieceId, song: { songId: song.id, nodeId: piece.id } });
         },
       };
     };
     return [
-      choice(t('song.addPart'), place, blank),
-      choice(t('song.addGroup'), place, group),
-      ...(node?.kind === 'group' ? [choice(t('song.addInside'), { inside: node.id }, blank)] : []),
+      choice(t(node ? 'song.placeAfter' : 'song.placeEnd'), place, piece),
+      ...(node?.kind === 'group' ? [choice(t('song.placeInside'), { inside: node.id }, piece)] : []),
+      choice(t('song.placeGroup'), place, group),
     ];
+  }
+
+  /** An own piece's title. */
+  private pieceName(pieceId: string): string {
+    return contextOf(this).ownPieces.get(pieceId)?.piece.title ?? pieceId;
   }
 
   /** Slot 6's choices: each move, shown as a faint line where the row would land while the pointer rests on it (d286). */
@@ -558,6 +647,7 @@ export class SongScene extends PixelScene {
   protected override bandActions(): ToolbarItem[] {
     const outline = this.outline();
     if (!outline) return [];
+    if (this.placing !== null) return [{ label: t('song.placeCancel'), main: true, onClick: () => this.back() }];
     const row = this.selectedRow(outline);
     const name = clipToWidth(row ? row.name : (this.song?.title ?? outline.title), STRIP_NAME, fits);
     const playable = row ? rowPlay(row, outline.rows) !== null : true;
@@ -621,7 +711,7 @@ export class SongScene extends PixelScene {
     const chartId = song ? songChartId(song.id) : 'chartId' in this.opened ? this.opened.chartId : '';
     const name = this.button({
       x: left + (width - SMALL - GAP) / 2, y: top + CARD_HEIGHT / 4, width: width - SMALL - GAP, height: CARD_HEIGHT / 2, look: 'ink', align: 'left',
-      label: clipToWidth(title, width - SMALL - 16, fits), labelWidth: width - SMALL - 12, onClick: () => this.select(null),
+      label: clipToWidth(title, width - SMALL - 16, fits), labelWidth: width - SMALL - 12, onClick: () => this.pressRow(null),
     });
     name.setActive(this.selected === null);
     this.playButton(left + width - SMALL / 2 - 2, top + CARD_HEIGHT / 4, t('song.play', { name: title }), true, () => this.play(outline, undefined));
@@ -680,7 +770,7 @@ export class SongScene extends PixelScene {
     const nameButton = this.button({
       x: (x + nameRight) / 2, y: mid, width: nameRight - x, height: CARD_HEIGHT / 2, look: 'ink', align: 'left',
       label, labelWidth: nameRight - x - 6, ...(mark ? { icon: mark } : {}),
-      onClick: () => this.select(row.id),
+      onClick: () => this.pressRow(row.id),
     });
     nameButton.setActive(this.selected === row.id);
     faded.push(nameButton);
