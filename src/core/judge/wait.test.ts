@@ -407,7 +407,7 @@ describe('WaitMode with moveOnWrong: a tug from memory (level 1)', () => {
   });
 });
 
-describe('WaitMode: an ornament is optional, never wrong (core_09.AC65, d305)', () => {
+describe('WaitMode: an ornament is optional, never wrong (core_09.AC65, d306)', () => {
   // C, G with a turn (upper A 69, lower F 65), E
   const pitch = (midi: number) => graceAt(0, midi).pitch;
   const turned = chartWith([{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 67 }, { tick: 960, dur: 960, midi: 64 }], {

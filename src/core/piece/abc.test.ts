@@ -583,7 +583,7 @@ describe('grace notes (core_09.AC31)', () => {
   });
 });
 
-describe('ornament signs (core_09.AC60, d305)', () => {
+describe('ornament signs (core_09.AC60, d306)', () => {
   it('core_09.AC60 reads !trill!, !uppermordent!, !pralltriller!, !lowermordent!, !mordent! and !turn! on the next note, with the neighbours spelled in the key', () => {
     expect(items('!trill!C D E F |]')[0]).toMatchObject({ ornament: { kind: 'trill', upper: { midi: 62 } } });
     expect(items('!uppermordent!C !pralltriller!D E F |]').map((i) => i.kind === 'notes' && i.ornament?.kind)).toEqual(['upperMordent', 'upperMordent', undefined, undefined]);

@@ -108,7 +108,7 @@ describe('passHeldFor', () => {
   });
 });
 
-describe('passHeldFor: ornament signs (core_09.AC65, d305)', () => {
+describe('passHeldFor: ornament signs (core_09.AC65, d306)', () => {
   it('core_09.AC65 an ornament adds one key: the note held while its neighbour is played', () => {
     const notes = [{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 64 }];
     const signed = chartWith(notes, { ornaments: [{ track: 'rh', voice: 1, tick: 0, kind: 'trill', upper: graceAt(0, 62).pitch }] });

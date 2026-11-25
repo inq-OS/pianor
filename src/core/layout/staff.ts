@@ -1526,7 +1526,7 @@ export function layoutStaff(chart: Chart, options: StaffLayoutOptions): StaffLay
 }
 
 /**
- * The ornament signs (core_09.AC60, d305): each centred over its note's head, `ORNAMENT_GAP` above the top line or above
+ * The ornament signs (core_09.AC60, d306): each centred over its note's head, `ORNAMENT_GAP` above the top line or above
  * the note's head, up stem and the beam on it, whichever is higher. AX-3 provisional: TODO(architect, R2) in core_09: a sign under a
  * slur or a triplet number above the same note is not moved clear of it yet.
  */

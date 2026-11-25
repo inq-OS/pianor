@@ -51,7 +51,7 @@ export function stepGraces(chart: Chart, steps: readonly PlayStep[]): ReadonlySe
 }
 
 /**
- * Per step, the pitches an ornament sign on its notes uses, the note's own and its neighbours (core_09.AC65, d305): the
+ * Per step, the pitches an ornament sign on its notes uses, the note's own and its neighbours (core_09.AC65, d306): the
  * ornament is optional, so a press of one of them while the step or the step after it is awaited is ignored, never wrong.
  */
 export function stepOrnaments(chart: Chart, steps: readonly PlayStep[]): ReadonlySet<number>[] {

@@ -110,7 +110,7 @@ export const ACCIDENTAL_STROKES: Record<AccidentalKind, readonly AccidentalStrok
 };
 
 /**
- * The ornament signs (core_09.AC60, d305), in staff spaces from the sign's centre, inside the box `ORNAMENT_BOX`
+ * The ornament signs (core_09.AC60, d306), in staff spaces from the sign's centre, inside the box `ORNAMENT_BOX`
  * (core/layout/staff.ts) gives: the trill's letters t and r with a short wave, the mordent's zigzag (the lower mordent
  * with a stroke through it), and the turn lying on its side. Plain strokes like the accidentals.
  */

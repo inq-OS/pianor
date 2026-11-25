@@ -267,7 +267,7 @@ function resolveVoices(
 
 /**
  * Grace notes (core_09.AC31, d121), each on the start of its main note in the voice's track, a group in its written order
- * (core_09.AC60), which the stable sort leaves alone; and ornament signs (core_09.AC60, d305) on the start of their note.
+ * (core_09.AC60), which the stable sort leaves alone; and ornament signs (core_09.AC60, d306) on the start of their note.
  */
 function marksOf(voices: readonly { voice: AbcVoice; track: Chart['tracks'][number] }[]): Pick<Chart, 'graces' | 'ornaments'> {
   const pitch = (n: { midi: number; spelling: Spelling }) => ({ midi: n.midi, spelling: n.spelling });

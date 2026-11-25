@@ -285,5 +285,5 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d303](game.md#d303) | The theory lesson book lists everything there is to learn, built or not: a topic with no lesson yet stands in it as a ghosted placeholder with its name only | ft_1_39 |
 | [d304](game.md#d304) | Kiur teaches the theory lessons in at most twelve stoic words a step, naming and pointing rather than describing; the first lessons are half steps, whole steps and the major scale | ft_1_39 |
 | [d305](game.md#d305) | The theory lessons' order is a skill tree of prerequisites over the catalog ids, cut into stages, with nothing locked | ft_1_39 |
-| [d305](notation.md#d305) | Trills, mordents, turns and grace groups are read, drawn and heard, and stay optional for the student: playing their notes is never wrong and never needed | core_09 |
+| [d306](notation.md#d306) | Trills, mordents, turns and grace groups are read, drawn and heard, and stay optional for the student: playing their notes is never wrong and never needed | core_09 |
 <!-- /docs:index -->
