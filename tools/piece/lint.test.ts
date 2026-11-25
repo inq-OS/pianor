@@ -57,6 +57,10 @@ describe('levels.json', () => {
     expect(JSON.parse(readFileSync(LEVELS_PATH, 'utf-8')).note).toMatch(/PROVISIONAL/);
   });
 
+  it('switches chords on at every level: a level never switches chords off', () => {
+    expect(loadLevelsFile(LEVELS_PATH).levels.map((l) => l.chords)).toEqual([true, true, true, true, true, true]);
+  });
+
   it('matches the starter table in docs/authoring/au04-levels.md', () => {
     expect(level(1)).toMatchObject({ hands: ['RH'], clefs: ['treble'], range: { low: 60, high: 67 }, rests: false, maxLeapSteps: 1 });
     expect(level(2)).toMatchObject({ hands: ['LH'], clefs: ['bass'], range: { low: 48, high: 55 } });
@@ -93,7 +97,7 @@ describe('every hard rule has a failing and a passing piece', () => {
     { rule: 'note-value', fail: ['C/2 D/2 E F G | G2 F2 | F E D C | C4 |]', { level: 1 }], pass: ['C/2 D/2 E F G | G2 F2 | F E D C | C4 |]', { level: 5 }] },
     { rule: 'rest', fail: ['z D E F | G2 F2 | F E D C | C4 |]', { level: 1 }], pass: ['z D E F | G2 F2 | F E D C | C4 |]', { level: 3 }] },
     { rule: 'rest-value', fail: ['C D E z/2 z/2 | G2 F2 | F E D C | C4 |]', { level: 3 }], pass: ['C D E z/2 z/2 | G2 F2 | F E D C | C4 |]', { level: 5 }] },
-    { rule: 'chord', fail: ['[CE]4 | G2 F2 | F E D C | C4 |]', { level: 1 }], pass: ['[CE]4 | G2 F2 | F E D C | C4 |]', { level: { ...level(1), chords: true } }] },
+    { rule: 'chord', fail: ['[CE]4 | G2 F2 | F E D C | C4 |]', { level: { ...level(1), chords: false } }], pass: ['[CE]4 | G2 F2 | F E D C | C4 |]', { level: { ...level(1), chords: true } }] },
     { rule: 'voices', fail: ['E2 F2 & C4 | G2 F2 | F E D C | C4 |]', { level: 4 }], pass: ['E2 F2 & C4 | G2 F2 | F E D C | C4 |]', { level: 5 }] },
     { rule: 'tie', fail: ['C D E F- | F2 E2 | F E D C | C4 |]', { level: { ...level(1), ties: false } }], pass: ['C D E F- | F2 E2 | F E D C | C4 |]', { level: { ...level(1), ties: true } }] },
     { rule: 'leap', fail: ['C E G E | G2 F2 | F E D C | C4 |]', { level: 1 }], pass: ['C E D F | G2 F2 | F E D C | C4 |]', { level: 3 }] },
