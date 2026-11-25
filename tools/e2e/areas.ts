@@ -26,7 +26,7 @@ export const E2E_AREAS: E2eArea[] = [
   },
   {
     name: 'staff',
-    specs: ['twohands', 'settings', 'grace-notes'],
+    specs: ['twohands', 'chords', 'settings', 'grace-notes'],
     sources: ['src/game/SettingsScene.ts', 'src/game/StaffDemoScene.ts', 'src/game/ui/staff/', 'src/core/layout/'],
   },
   {

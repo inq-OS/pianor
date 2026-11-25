@@ -253,6 +253,31 @@ export function fingersSymbol(shown: 'off' | 'top' | 'all'): Bitmap {
   return b;
 }
 
+/** Small letters 3 x 5, for the note names under a chord. */
+const SMALL_LETTERS: Readonly<Record<'C' | 'E' | 'G', readonly string[]>> = {
+  C: ['###', '#..', '#..', '#..', '###'],
+  E: ['###', '#..', '##.', '#..', '###'],
+  G: ['###', '#..', '#.#', '#.#', '###'],
+};
+const letters = (b: Canvas, x: number, y: number, word: string) => {
+  [...word].forEach((ch, i) => SMALL_LETTERS[ch as 'C'].forEach((row, dy) => [...row].forEach((bit, dx) => { if (bit === '#') put(b, x + i * 4 + dx, y + dy, C.blue); })));
+};
+
+/**
+ * What the hint label under a chord says (core_09.AC59): a C major chord on a scrap of staff, under it its notes (CEG), its
+ * name (C), or both, the name on a second line under the notes, as on the practice staff.
+ */
+export function chordLabelsSymbol(shown: 'notes' | 'name' | 'both'): Bitmap {
+  const b = paper();
+  // a scrap of staff and a chord of three heads on its lines, so two name lines fit under it
+  staff(b, 2, { lines: 3 });
+  for (const y of [8, 5, 2]) note(b, 15, y, INK, 0);
+  if (shown !== 'name') letters(b, 11, 11, 'CEG');
+  if (shown === 'name') letters(b, 15, 11, 'C');
+  if (shown === 'both') letters(b, 15, 17, 'C');
+  return b;
+}
+
 /** Bar numbers: five bars of a staff, and over a bar's start the numbers the setting shows (none, 1, 1 to 5, 1 3 5, 1 5). */
 export function barNumbersSymbol(mode: BarNumberMode): Bitmap {
   const b = paper();

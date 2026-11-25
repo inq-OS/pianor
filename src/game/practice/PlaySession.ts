@@ -28,6 +28,9 @@ import { PracticeController } from './PracticeController';
 import { drawMedalClef, drawPrizes } from './prizeGlyphs';
 import { motionAllowed } from '../motion';
 import { staffSpaceLimits } from '../../core/layout/canvasSize';
+import chordsJson from '../../../content/trainer/chords.json';
+import { loadChordContent } from '../../core/trainer/chordTrainer';
+import { nameChord, staffChordName } from '../../core/trainer/chordNamer';
 
 
 /** The levels' hand positions, which the hand-shift arrows prefer (ft_1_30.AC10). */
@@ -61,6 +64,8 @@ export interface StaffPrefs {
   readonly barNumberSettings: BarNumberSettings;
   /** Which hands get the note duration helper (ft_1_11). */
   readonly durationHelp: DurationHelp;
+  /** What the hint label under a chord says: its notes, its name or both (core_09.AC59); absent reads as the notes. */
+  readonly chordLabels?: 'notes' | 'name' | 'both';
 }
 
 export interface PlaySessionOptions {
@@ -284,7 +289,7 @@ export class PlaySession {
     const settings = prefs.staffSettings;
     // in Tempo mode with the Scores view, room above chords for their stacked scores, so none goes off the page
     // the staff space range counts CSS pixels, so Windows display scaling keeps the notes as big as the player had them
-    const options = { viewport: { width: area.width, height: area.height }, ...staffSpaceLimits(this.scene.scale.zoom), scoreRoom: this.transport !== null && this.scoreView === 'number', staffGap: prefs.staffGap, noteNaming: prefs.noteNaming, ...(this.options.restingTracks ? { restingTracks: this.options.restingTracks } : {}) };
+    const options = { viewport: { width: area.width, height: area.height }, ...staffSpaceLimits(this.scene.scale.zoom), scoreRoom: this.transport !== null && this.scoreView === 'number', staffGap: prefs.staffGap, noteNaming: prefs.noteNaming, ...chordNamesOption(prefs), ...(this.options.restingTracks ? { restingTracks: this.options.restingTracks } : {}) };
     this.naming = prefs.noteNaming;
     const section = this.options.section;
     const drawn = this.drawn;
@@ -500,4 +505,13 @@ function starPoints(cx: number, cy: number, outer: number, inner: number): { x: 
     const a = -Math.PI / 2 + (i * Math.PI) / 5;
     return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
   });
+}
+
+const CHORDS = loadChordContent(chordsJson);
+
+/** The layout's chord names from the player's setting (core_09.AC59): none for the notes only. */
+function chordNamesOption(prefs: StaffPrefs): Pick<StaffLayoutOptions, 'chordNames'> {
+  const show = prefs.chordLabels ?? 'notes';
+  if (show === 'notes') return {};
+  return { chordNames: { show, name: (keys) => { const chord = nameChord(CHORDS, keys); return chord ? staffChordName(chord, prefs.noteNaming) : null; } } };
 }
