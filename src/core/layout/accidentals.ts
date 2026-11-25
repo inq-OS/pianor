@@ -73,11 +73,6 @@ export function keyChangeSigns(from: number, to: number, clef: Clef): { alter: 1
   return [...dropped.map(({ position }) => ({ alter: 0 as const, position })), ...keySignaturePositions(to, clef)];
 }
 
-/** The room a key signature needs above the top line and below the bottom line of a staff, in staff spaces. */
-export function keyRooms(fifths: number, clef: Clef): { above: number; below: number } {
-  return signRooms(keySignaturePositions(fifths, clef));
-}
-
 /** The room signs at these staff positions need above the top line and below the bottom line, in staff spaces. */
 export function signRooms(signs: readonly { alter: number; position: number }[]): { above: number; below: number } {
   let above = 0;
