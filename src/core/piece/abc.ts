@@ -730,15 +730,19 @@ class MusicLine {
    * an accidental written over the sign (a turn with a sharp below) is not in the subset yet.
    */
   private ornamentOn(mark: OrnamentMark, notes: AbcNote[]): AbcOrnament | undefined {
-    if (notes.length !== 1) return void this.error(mark.column, 'an ornament goes on a single note, not on a chord');
-    if (this.voice.pendingTie) return void this.error(mark.column, 'an ornament cannot go on the second note of a tie');
+    const refuse = (message: string): undefined => {
+      this.error(mark.column, message);
+      return undefined;
+    };
+    if (notes.length !== 1) return refuse('an ornament goes on a single note, not on a chord');
+    if (this.voice.pendingTie) return refuse('an ornament cannot go on the second note of a tie');
     const main = notes[0]!;
     const near = (dir: 1 | -1): AbcNote => this.host.spellNote(this.voice, { midi: 0, spelling: { ...neighbourLetter(main.spelling, dir), alter: 0 } }, undefined);
     // a neighbour must sound above (below) the note: a B sharp's C above is the same key, so the sign cannot be played
     const upper = near(1);
     const lower = near(-1);
     if ((usesUpper(mark.kind) && upper.midi <= main.midi) || (usesLower(mark.kind) && lower.midi >= main.midi)) {
-      return void this.error(mark.column, 'an ornament needs a neighbour note that sounds above (or below) its note; here the key gives the same key');
+      return refuse('an ornament needs a neighbour note that sounds above (or below) its note; here the key gives the same key');
     }
     return {
       kind: mark.kind,

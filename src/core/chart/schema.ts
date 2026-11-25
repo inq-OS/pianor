@@ -251,7 +251,6 @@ export type ChartRest = z.infer<typeof restSchema>;
 /** @public A grace note; read by the staff layout from slice 2 of d121 on. */
 export type ChartGrace = z.infer<typeof graceSchema>;
 export type ChartTuplet = z.infer<typeof tupletSchema>;
-export type ChartOrnament = z.infer<typeof ornamentSchema>;
 /** @public Part of the chart model, for readers of chart files. */
 export type ChartBar = z.infer<typeof barSchema>;
 /** @public */

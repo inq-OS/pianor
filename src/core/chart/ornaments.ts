@@ -1,4 +1,4 @@
-import { STEPS, spellingToMidi, type Spelling } from './pitch.ts';
+import { STEPS, type Spelling } from './pitch.ts';
 import { PPQ } from './time.ts';
 
 /**
@@ -33,12 +33,6 @@ export function neighbourLetter(s: Pick<Spelling, 'step' | 'octave'>, dir: 1 | -
   if (index > 6) return { step: 'C', octave: s.octave + 1 };
   if (index < 0) return { step: 'B', octave: s.octave - 1 };
   return { step: STEPS[index]!, octave: s.octave };
-}
-
-/** A neighbour spelled with an alter, and its MIDI. */
-export function spellNeighbour(letter: { step: Spelling['step']; octave: number }, alter: number): { midi: number; spelling: Spelling } {
-  const spelling: Spelling = { ...letter, alter };
-  return { midi: spellingToMidi(spelling), spelling };
 }
 
 /**

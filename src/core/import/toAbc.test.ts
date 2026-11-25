@@ -203,7 +203,7 @@ describe('marks the game piece cannot hold where they stand (ft_Y_04.AC11)', () 
     const out = write(chart);
     expect(out.warnings).toEqual([]);
     expect(out.abc).toContain('{/^FE}D2 !turn!E2 !trill!F2 !lowermordent!G2');
-    const back = compile(out.abc!);
+    const back = compile(out.abc);
     expect(back.graces).toEqual(chart.graces);
     expect(back.ornaments).toEqual(chart.ornaments);
   });
