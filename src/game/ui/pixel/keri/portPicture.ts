@@ -242,7 +242,7 @@ function blockAt(courses: readonly Course[], x: number, y: number): { row: numbe
  * The mooring piles, dark things before the quay as the 1991 game closes a corner: a fat one in the near water on the
  * left with a rope to the quay, a thinner one off the head on the right. Each its foot's column, its top's row and its half width.
  */
-const PILES: readonly { x: number; top: number; half: number; rope: boolean; near?: boolean }[] = [
+const PILES: readonly { x: number; top: number; half: number; rope: boolean; near?: boolean; lean?: number; seed?: number }[] = [
   { x: 20, top: 152, half: 14, rope: true },
   { x: 618, top: 186, half: 10, rope: false },
 ];
@@ -252,8 +252,8 @@ const PILES: readonly { x: number; top: number; half: number; rope: boolean; nea
  * water has none of them.
  */
 const NEAR_PILES: readonly (typeof PILES)[number][] = [
-  { x: 62, top: 286, half: 24, rope: false, near: true },
-  { x: 122, top: 318, half: 17, rope: false, near: true },
+  { x: 62, top: 286, half: 24, rope: false, near: true, lean: 0.11, seed: 1 },
+  { x: 124, top: 320, half: 16, rope: false, near: true, lean: -0.07, seed: 2 },
 ];
 /** The ladder's column: on the pier between the first two arches. */
 const LADDER = 176;
@@ -319,6 +319,8 @@ class PortPainter {
   /** Whether what changes its place from look to look under the water is painted (`moving`), and the things it is made of. */
   private withMovers = true;
   private movers = new Set<number>();
+  /** The near piles' pixels: flat dark shapes close to the eye, which the paint's grain leaves alone. */
+  private readonly flat = new Set<number>();
   /** What moves on the water, recorded in the surface's first look (`paint/live.ts`). */
   private readonly live: LiveRecorder;
   liveWater: LiveWater | null = null;
@@ -553,16 +555,34 @@ class PortPainter {
   }
 
   /**
-   * The water nearest the viewer: a dark band along the picture's foot, its upper edge ragged with the swell, so the
-   * picture is closed below as the 1991 game closes its rooms; and bubbles coming up from below, something down there.
+   * The water nearest the viewer, below the quay's reflection: a sea is strokes all over (water.md, after the Phatt
+   * dock), so it is laid as the swell's long bands, each a stroke of the trough's dark tone with now and then a pale
+   * crest over it, the bands thicker and the troughs wider toward the picture's foot. By day the troughs are the sea's
+   * darkest, so the foot closes the picture as the 1991 game closes its rooms; at night the whole of it is one moonlit
+   * blue plane a step over the far water, its troughs a step under it, never near black. The swell rolls round the loop.
    */
   private nearWater(look: number): void {
-    const [a, b] = this.rows(PORT.water + 24, this.h);
+    const top = PORT.water + PORT_LANDING.face + 24, night = this.hour.night;
+    const [a, b] = this.rows(top, this.h);
+    const roll = (look / PORT_FRAMES) * Math.PI * 2;
+    const moon = this.seaGround([]).moon!;
     for (let y = a; y < b; y++) for (let x = 0; x < this.w; x++) {
-      const edge = this.h - 34 + 6 * (fbm(x / 23 + look * 0.15, 1, 2, 381) - 0.5) * 2;
-      if (y < edge) continue;
-      const stroke = hash2((x + look * 2) >> 3, y, 382) > (y < edge + 3 ? 0.55 : 0.9);
-      this.put(x, y, stroke ? R.sea[2]! : tone(F.sea, clamp01(0.16 - (y - edge) / 120), x, y));
+      const near = (y - top) / Math.max(1, this.h - top);
+      // where the reflection above meets it, the swell comes in ragged
+      if (y < top + 10 && hash2(x >> 2, y, 387) * 10 > y - top) continue;
+      // the swell's band at the pixel: level on the whole, bent by long slow waves and the wind's ripple
+      const s = (y - top) / (3.2 + near * 7) + 0.45 * Math.sin(x / (40 + near * 50) + y / 23 - roll) + 0.5 * (fbm(x / 90, y / 40, 2, 384) - 0.5);
+      const f = s - Math.floor(s), band = Math.floor(s);
+      // the trough's stroke, wider nearer and tapering along its length; broken now and then so no band runs the picture's width
+      const broken = noise2(x / 26 + band * 3.1, band * 1.7, 385) < -0.4;
+      const trough = !broken && f < 0.18 + near * 0.4 + 0.1 * noise2(x / 9, band, 388);
+      const crest = !trough && f > 0.88 && f < 0.95 + near * 0.02 && noise2(x / 14, band * 2.3, 386) > (night ? 0.25 : 0.1);
+      const plane = night ? moon(x, y) : 0, lit = plane > 0.7 ? 0.12 : plane > 0.35 ? 0.06 : 0;
+      const base = (night ? 0.8 - near * 0.08 : 0.44 - near * 0.18) + lit;
+      const t = trough ? (night ? base - 0.22 : 0.2 - near * 0.22) : crest ? base + (night ? 0.14 : 0.24) : base;
+      // the paint's own scatter on the water: short level dashes a step lighter or darker, as the far sea has
+      const r = hash2((x + Math.floor(hash2(y, 2, 389) * 3)) >> 1, y, 390);
+      this.put(x, y, tone(F.sea, clamp01(t + (r < 0.14 ? -0.09 : r > 0.86 ? 0.09 : 0)), x, y));
     }
     // bubbles rising from below in two places, one gap in each look, so the loop does not jump
     const gap = 14, n = 3;
@@ -643,7 +663,7 @@ class PortPainter {
     // the mooring pile stands before the quay and the boats behind it, so it is laid again over them too
     for (const p of PILES) this.as(() => this.pile(look, false, p));
     this.building = false;
-    for (const p of NEAR_PILES) this.as(() => this.pile(look, false, p));
+    for (const p of NEAR_PILES) this.as(() => this.nearPile(p));
   }
 
   /**
@@ -915,6 +935,55 @@ class PortPainter {
    * The mooring pile: a fat old log leaning a little, its cut top pale, an iron band and a rope round it, weed and
    * barnacles at the water; above the water on top, and under the water, in the sea's blues, down to the bed (`under`).
    */
+  /**
+   * A pile close to the eye: an old trunk driven into the bed, found and worn, never turned (rule 25, wood.md). It leans
+   * its own way and bends a little, swells toward its foot, its sides wander; its top is cut askew and worn round, with
+   * chips out of its rim; the grain runs up it in dark splits; one iron band, rusted and bent with the wood, a rust run
+   * under it; and the weed at the water line ragged, its strands hanging up the wet wood. Dark against the light, as
+   * the 1991 game's foreground things are.
+   */
+  private nearPile({ x: foot, top, half, lean = 0.08, seed = 1 }: (typeof PILES)[number]): void {
+    const bottom = this.plan.fine.h + 4, tall = bottom - top;
+    const side = this.hour.side;
+    // the top cut askew: lower on the side it leans to, its rim chipped
+    const topAt = (u: number, k: number): number => top + Math.round(u * 3 * Math.sign(lean) + (hash2(k >> 2, seed, 471) > 0.72 ? 1 + 2 * hash2(k, seed, 472) : 0) + (Math.abs(u) > 0.75 ? (Math.abs(u) - 0.75) * 8 : 0));
+    const [a, b] = this.rows(top - 4, bottom);
+    const put = (x: number, y: number, c: number): void => { this.put(x, y, c); this.flat.add((y - this.top) * this.w + x); };
+    for (let y = a; y < b; y++) {
+      const down = (y - top) / tall;
+      const cx = foot + (bottom - y) * lean + 2.5 * Math.sin((bottom - y) / 47 + seed);
+      // thicker toward the foot, each side wandering on its own
+      const w = half * (0.9 + 0.22 * down);
+      const l = -w + 2 * (fbm(y / 19, 1, 2, 473 + seed) - 0.5) * 2.4, r = w + 2 * (fbm(y / 23, 2, 2, 474 + seed) - 0.5) * 2.4;
+      for (let x = Math.floor(cx + l); x <= Math.ceil(cx + r); x++) {
+        const u = ((x - cx) - (l + r) / 2) / ((r - l) / 2);
+        if (Math.abs(u) > 1) continue;
+        const k = x - Math.round(cx);
+        const t0 = topAt(u, k + 40);
+        if (y < t0) continue;
+        // the worn top: pale end grain with its rings, its rim rounded off into the side's tone
+        if (y < t0 + 3 && Math.abs(u) < 0.9) {
+          const ring = Math.abs(Math.hypot(u * half, (y - t0 - 1) * 3) % 6 - 3) < 0.7;
+          put(x, y, y === t0 + 2 ? R.wood[1]! : ring ? R.wood[2]! : tone(F.wood, 0.55 + 0.2 * (u * side), x, y, 0.2));
+          continue;
+        }
+        // the iron band, one, bent with the wood and tilted with the lean, a rust run under it now and then
+        const bandY = top + (seed === 1 ? 22 : 9) + u * 2 * Math.sign(lean);
+        if (Math.abs(y - bandY) < 1.6) { put(x, y, hash2(x, seed, 475) > 0.7 ? R.sponge[2]! : R.stone[1]!); continue; }
+        const rust = y > bandY && y < bandY + 4 + 6 * hash2(x >> 1, seed, 476) && hash2(x >> 1, seed, 477) > 0.82;
+        // the weed at the water line, its upper edge ragged and strands hanging up the wood
+        const weedTop = bottom - 9 - 4 * fbm(x / 5, seed, 2, 478) - (hash2(x, seed, 479) > 0.8 ? 3 + 7 * hash2(x, seed, 480) : 0);
+        if (y > weedTop) { put(x, y, tone([R.bush[0]!, R.bush[1]!, R.stone[1]!], 0.2 + 0.4 * hash2(x >> 1, y >> 2, 481), x, y)); continue; }
+        // the grain: splits running up the trunk, each wandering, and the round side shaded against the light
+        const split = Math.abs(((k + 3 * Math.sin(y / 13 + k)) % 7) - 3.5) < 0.5 && hash2(k, y >> 3, 482) > 0.35;
+        // the round side in three flat bands that follow it, the light's side lit, wandering with the grain
+        const lit = u * side + 0.25 * Math.sin(y / 9 + k * 0.3);
+        const t = (lit > 0.4 ? 0.24 : lit > -0.3 ? 0.13 : 0.05) + (Math.abs(u) > 0.84 ? -0.05 : 0) + (split ? -0.06 : 0);
+        put(x, y, rust ? R.sponge[1]! : tone(F.wood, clamp01(t), x, y));
+      }
+    }
+  }
+
   private pile(look: number, under: boolean, { x: foot, top, half, rope, near }: (typeof PILES)[number]): void {
     const lean = 0.06, bottom = under ? PORT.bed + 8 : near ? this.plan.fine.h + 4 : PORT.water + 2;
     const [a, b] = this.rows(under ? PORT.water + 1 : top - 4, bottom);
@@ -1399,15 +1468,15 @@ class PortPainter {
     this.live.on = look === 0;
     this.paintSky();
     this.paintSea(look);
+    this.nearWater(look);
     // the pale bands the water curls in round what stands in it (`water/rings`, the Phatt dock's), then the quay's dark
     // reflection over them, so the heavy quay stands in dark water and does not float on the lightest
     rings.paint(this.brush(look, PORT_FRAMES), this.seaGround(STANDS), optionsOf(rings, undefined, { band: 24, way: PORT_WAY }), 0);
     this.reflection(look);
-    this.nearWater(look);
     this.quayAbove(look);
     if (look === 0) this.liveWater = this.live.seal(bitmap);
     this.live.on = false;
-    grain(this.px, this.w, GRAIN_RUNS, { seed: 600 });
+    grain(this.px, this.w, GRAIN_RUNS, { seed: 600, keep: (i) => this.flat.has(i) });
     this.outline();
     return bitmap;
   }

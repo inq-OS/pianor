@@ -7,6 +7,7 @@ import { clamp01, smoothstep as smooth } from '../paint/ease';
 import { cropTogether, type Overlay } from '../pack';
 import { lean, paintLooks, SkyMask, StillPart } from '../paint/motion';
 import { LiveRecorder, type LiveWater } from '../paint/live';
+import { moonlitFoot } from '../paint/moonlit';
 import type { SmokeTones } from '../paint/smoke';
 import { tintedCloud, type CurlSpec } from './curlCloud';
 import { KERI_HOURS, scenePalette, type Hour } from './keriPalette';
@@ -50,6 +51,10 @@ const SHARED = scenePalette();
 const R = SHARED.run;
 /** The whole runs, with the colours between the named tones, for what shades off (the sky, the sea, the hill's body); d111. */
 const F = SHARED.fine;
+/** The ground runs of the slope nearest the eye, which the night lifts to a moonlit plane (`moonlitFoot`): the roses, the bushes and the near shapes stay dark wings. */
+const NEAR_GROUND = [F.grass, F.dry, F.earth, F.shingle, F.stone];
+/** Where the night's moonlit plane begins, where it is full, and how far up its runs it lifts the ground (fine rows; the rows a conversation's board covers and a little over). */
+const KNOLL_FOOT = { from: 236, full: 320, lift: 0.3 } as const;
 
 
 /** The greens of the grass kept short round the fire: the light end of the run. */
@@ -1000,6 +1005,8 @@ class KnollPainter {
       rose.paint(this.brush, ROSES.to / 2, this.h, optionsOf(rose, 'corner', { wide: ROSES.to, high: this.h - ROSES.from, lumps: ROSES.lumps }), 0);
       STEMS.forEach((s, n) => stem.paint(this.brush, s.foot, this.h + 6, { reach: s.top[0] - s.foot, high: this.h + 6 - s.top[1], size: s.size, rays: s.rays }, n));
       this.marking = false;
+      // at night the slope nearest the eye is a moonlit plane, the roses' corner still a dark wing over it
+      if (this.hour.night) moonlitFoot(this.px, this.w, NEAR_GROUND, { from: KNOLL_FOOT.from, full: KNOLL_FOOT.full, lift: KNOLL_FOOT.lift });
     });
     if (look === 0) this.water = this.live.seal(bitmap);
     this.live.on = false;
