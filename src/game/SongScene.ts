@@ -325,10 +325,9 @@ export class SongScene extends PixelScene {
     pixelStars(this, this.root, left + width - 2 - STARS, line, profiles.recordFor(chartId)?.bestGrade ?? 0, { gap: 1, ink: true });
   }
 
-  /** A notice on a row: the first visit's hint under the box it is about, any other under the row's name (`x`). */
-  private rowNotice(notice: string, line: number, left: number, width: number, x: number): void {
-    const at = notice === t('song.tickHint') ? left + 4 : x + 4;
-    this.root.add(new PixelText(this, at, line, clipToWidth(notice, left + width - at - 2, fits), { color: C.redDark }).setName('songNotice'));
+  /** A notice on a row, from under its switch so a whole sentence fits the row. */
+  private rowNotice(notice: string, line: number, left: number, width: number): void {
+    this.root.add(new PixelText(this, left + 4, line, clipToWidth(notice, width - 6, fits), { color: C.redDark }).setName('songNotice'));
   }
 
   /** One row of the outline (rule 10). */
@@ -387,7 +386,7 @@ export class SongScene extends PixelScene {
     const line = top + 19;
     if (this.notice && this.noticeRow === row.id) {
       // the notice stands on the row it is about, in place of its values
-      this.rowNotice(this.notice, line, left, width, x);
+      this.rowNotice(this.notice, line, left, width);
       if (!row.on) faded.forEach((o) => o.setAlpha(OFF_FADE));
       return;
     }
