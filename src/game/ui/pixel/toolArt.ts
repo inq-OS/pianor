@@ -7,7 +7,7 @@ import { C } from './palette';
  * hints; for the editor's toolbar (d088) a floppy disk for Save and an arrow into or out of a tray for Import and
  * Export; a loop for the ear trainer's repeat and the note trainer's new round, stairs for the note trainer's step, and undo, redo, a bin, play, stop, backspace and a tick for the piece maker and the name box. Original, drawn for this project (the Kenney pack page refused the download, and these are a few pixels each). Each fits inside a 14 pixel bar button with its frame (10 rows at most).
  */
-export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'speed' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort' | 'hide' | 'pointerFollow' | 'pointerStill' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen' | 'head' | 'songs' | 'folded' | 'unfolded' | 'link' | 'blank' | 'add' | 'rename' | 'move';
+export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'speed' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort' | 'hide' | 'pointerFollow' | 'pointerStill' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen' | 'head' | 'songs' | 'folded' | 'unfolded' | 'link' | 'blank' | 'add' | 'rename' | 'move' | 'meter' | 'write';
 
 const LEGEND = { k: C.ink, w: C.white, g: C.gold, G: C.goldDark, s: C.skin } as const;
 
@@ -161,6 +161,10 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   add: art(['...w...', '...w...', '...w...', 'wwwwwww', '...w...', '...w...', '...w...']),
   rename: art(['.....ww', '....w.w', '...w.w.', '..w.w..', '.w.w...', 'ww.....', 'www....']),
   move: art(['...w...', '..www..', '.w.w.w.', '...w...', '.w.w.w.', '..www..', '...w...']),
+  /** A row's meter (slot 4 of the song page's bubble): a 3 over a 4, as a time signature. */
+  /** Write a part in the piece maker (slot 5 and a blank row's button): a note with a pen across its stem, unlike Name's pencil. */
+  write: art(['...w....ww', '...w...ww.', '...w..ww..', '...w.ww...', '...www....', '.wwww.....', 'wwwww.....', '.www......']),
+  meter: art(['www', '..w', '.ww', '..w', 'www', 'w.w', 'w.w', 'www', '..w', '..w']),
   repeat: art(REPEAT),
   /** The note trainer's step: stairs, beside the step's number. */
   steps: art(['.......www', '.......www', '....wwwwww', '....wwwwww', '.wwwwwwwww', '.wwwwwwwww']),

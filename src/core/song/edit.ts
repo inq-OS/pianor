@@ -136,3 +136,43 @@ export function moveNode(song: Song, id: string, kind: MoveKind): Song | null {
   outer.list.splice(outer.index + 1, 0, node);
   return kept(next);
 }
+
+/** The values a row or the song sets (rule 3). */
+type ValueField = keyof SongValues;
+
+/**
+ * The song with a value set (rule 12, slots 2 to 4): a row's own tempo, key or meter, or with `undefined` the row follows
+ * the song (or its group) again. With no row (`id` null) the song's own default is set; `undefined` then changes nothing,
+ * as a song always has its defaults. A link sets no values: it plays its piece as it is.
+ */
+export function setValue<F extends ValueField>(song: Song, id: string | null, field: F, value: SongValues[F] | undefined): Song {
+  const next = copy(song);
+  if (id === null) {
+    if (value !== undefined) (next as SongValues)[field] = value;
+    return next;
+  }
+  const node = walkSong(next.nodes).find(({ node: n }) => n.id === id)?.node;
+  if (!node || node.kind === 'link') return next;
+  const target = node as unknown as Partial<SongValues>;
+  if (value === undefined) delete target[field];
+  else target[field] = value;
+  return next;
+}
+
+/**
+ * The song with a written blank (rule 11): the blank becomes a piece node with the same id, so its switch and any link
+ * keep working; its name, labels and own values stay. A node that is not a blank is left as it is.
+ */
+export function writeBlank(song: Song, id: string, pieceId: string): Song {
+  const next = copy(song);
+  const at = siblingsOf(next.nodes, id);
+  const blank = at?.list[at.index];
+  if (!at || blank?.kind !== 'blank') return song;
+  const piece: SongNode = { kind: 'piece', id: blank.id, piece: pieceId, name: blank.name };
+  if (blank.labels) piece.labels = blank.labels;
+  if (blank.bpm !== undefined) piece.bpm = blank.bpm;
+  if (blank.key) piece.key = blank.key;
+  if (blank.meter) piece.meter = blank.meter;
+  at.list[at.index] = piece;
+  return next;
+}
