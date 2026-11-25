@@ -21,9 +21,9 @@ test.describe('chords in a piece', () => {
     test(`core_09.AC58 ${title} plays to its end in Wait mode, every key of each chord pressed together`, async ({ page }) => {
       const errors = await openGame(page, '?device=virtual');
       await openPiece(page, title);
-      await playStepsWithVirtualPiano(page, steps as number[][]);
+      await playStepsWithVirtualPiano(page, steps);
       await toScoreScreen(page);
-      expect(await results(page)).toMatchObject({ accuracy: 1, mistakes: 0, notes: count(steps as number[][]) });
+      expect(await results(page)).toMatchObject({ accuracy: 1, mistakes: 0, notes: count(steps) });
       expectNoErrors(errors);
     });
   }

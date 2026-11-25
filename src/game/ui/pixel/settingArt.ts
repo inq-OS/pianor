@@ -260,7 +260,7 @@ const SMALL_LETTERS: Readonly<Record<'C' | 'E' | 'G', readonly string[]>> = {
   G: ['###', '#..', '#.#', '#.#', '###'],
 };
 const letters = (b: Canvas, x: number, y: number, word: string) => {
-  [...word].forEach((ch, i) => SMALL_LETTERS[ch as 'C']!.forEach((row, dy) => [...row].forEach((bit, dx) => { if (bit === '#') put(b, x + i * 4 + dx, y + dy, C.blue); })));
+  [...word].forEach((ch, i) => SMALL_LETTERS[ch as 'C'].forEach((row, dy) => [...row].forEach((bit, dx) => { if (bit === '#') put(b, x + i * 4 + dx, y + dy, C.blue); })));
 };
 
 /**
