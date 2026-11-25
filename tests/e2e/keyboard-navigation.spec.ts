@@ -103,8 +103,8 @@ test.describe('keyboard navigation', () => {
 
   test('ft_Y_13.AC2 with a piece info card open the keys reach only its Close button, and Escape closes it', async ({ page }) => {
     const errors = await openGame(page);
-    await showMenuPageWith(page, 'Hot Cross Buns');
-    const open = () => page.evaluate(() => window.__game.scene.getScene('menu').infoButtons.get('hot-cross-buns').press());
+    await showMenuPageWith(page, 'Au Clair de la Lune');
+    const open = () => page.evaluate(() => window.__game.scene.getScene('menu').infoButtons.get('au-clair-de-la-lune').press());
     await open();
     expect(await sceneTexts(page, 'menu')).toContain('How hard: Beginner');
 

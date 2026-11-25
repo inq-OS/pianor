@@ -28,9 +28,11 @@ describe('every character in content/characters (ft_1_22.AC2)', () => {
         for (const id of ids ?? []) {
           const meta = pieces.get(id);
           expect(meta, `${c.id}: phrase ${id}`).toBeDefined();
-          // A phrase's difficulty is its tug level (d138), its style the character's (WP-02 section 3).
+          // A phrase's difficulty is its tug level (d138), its style the character's (WP-02 section 3),
+          // unless it is an original piece the maintainer approved for the game (d272).
           expect(meta!.difficulty, `${id} difficulty`).toBe(Number(level));
-          expect(meta!.styles.some((s) => (c.styles as readonly string[]).includes(s)), `${id} style`).toBe(true);
+          const approvedOriginal = meta!.status === 'approved' && meta!.styles.includes('original');
+          if (!approvedOriginal) expect(meta!.styles.some((s) => (c.styles as readonly string[]).includes(s)), `${id} style`).toBe(true);
         }
       }
     }
@@ -116,7 +118,7 @@ describe("Puuvaim, the first character (WP-11)", () => {
     expect(lintConversation(conv, { hasKey: (k) => k in strings })).toEqual([]);
     const teaches = Object.values(conv.nodes).flatMap((n) => n.effects ?? []).filter((e) => 'teach' in e);
     expect(teaches).toEqual([{ teach: puuvaim.phrases[1]![0] }]);
-    for (const id of ['puuvaim-1', 'puuvaim-2', 'puuvaim-3']) expect(['draft', 'approved'], id).toContain(pieces.get(id)!.status);
+    for (const id of Object.values(puuvaim.phrases).flat()) expect(['draft', 'approved'], id).toContain(pieces.get(id)!.status);
   });
 
   it('plays its first talk, a later talk, the invitation to the tug and the talk after teaching as cast-and-phrases.md section 5 drafts them', () => {
@@ -133,12 +135,12 @@ describe("Puuvaim, the first character (WP-11)", () => {
     };
     const first = startTalk(conv, facts)!;
     // the first talk: his greeting and his music tie, then his menu: who he is, teach or leave; no tug before he taught (ft_1_22.AC1, AC10)
-    expect(lines(first, [1])).toEqual(['talk.puuvaim.hello', 'character.puuvaim.music', 'talk.puuvaim.menu', 'piece.puuvaim-1.about']);
+    expect(lines(first, [1])).toEqual(['talk.puuvaim.hello', 'character.puuvaim.music', 'talk.puuvaim.menu', 'piece.both-hands.about']);
     // asked who he is, he answers and offers his menu again
-    expect(lines(startTalk(conv, facts), [0, 0])).toEqual(['talk.puuvaim.hello', 'character.puuvaim.music', 'talk.puuvaim.menu', 'talk.puuvaim.who', 'piece.puuvaim-1.about']);
+    expect(lines(startTalk(conv, facts), [0, 0])).toEqual(['talk.puuvaim.hello', 'character.puuvaim.music', 'talk.puuvaim.menu', 'talk.puuvaim.who', 'piece.both-hands.about']);
     expect(lines(startTalk(conv, { ...facts, flags: ['met-puuvaim', 'known-puuvaim'] }), [1])).toEqual(['talk.puuvaim.menu', 'talk.puuvaim.bye']);
     // the first talk after teaching: his taught line, and he leaves
-    const after = startTalk(conv, { ...facts, flags: ['met-puuvaim'], taught: ['puuvaim-1'] })!;
+    const after = startTalk(conv, { ...facts, flags: ['met-puuvaim'], taught: ['both-hands'] })!;
     expect(after.line).toBe('talk.puuvaim.taught');
     expect(after.outcome).toEqual({ leave: true });
     // a later talk: the menu offers the tug, the invitation

@@ -1,0 +1,17 @@
+{
+  "id": "skipping-stones",
+  "title": "Skipping Stones",
+  "titles": { "et": "Lendavad kivid" },
+  "level": 5,
+  "status": "draft",
+  "hands": ["RH"],
+  "phrases": [
+    { "name": "Skip", "bars": [1, 4] },
+    { "name": "Splash", "bars": [5, 8] }
+  ],
+  "styles": ["original"],
+  "tags": ["eighth-notes", "c-position"],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": { "kind": "manual" }
+}

@@ -87,9 +87,9 @@ export default defineConfig({
     // reuse a server you started yourself on purpose.
     reuseExistingServer: process.env.PW_REUSE_SERVER === '1',
     // the pieces in the machine's gitignored private/pieces/ would change the piece lists the tests see
-    // PIANOR_E2E: the preview server answers the preview tool's requests as the dev server does (tools/vite-pieces.ts)
+    // PIANOR_E2E, VITE_PIANOR_E2E: the bundle carries the tests' own pieces and songs (tests/fixtures/e2e); the preview server answers the preview tool's requests as the dev server does (tools/vite-pieces.ts)
     // NODE_ENV: without it `vite build` makes `import.meta.env.DEV` false even in mode development, and the handles are gone
-    env: { PIANOR_NO_PRIVATE_PIECES: '1', PIANOR_E2E: '1', ...(process.env.PW_DEV_SERVER === '1' ? {} : { NODE_ENV: 'development' }) },
+    env: { PIANOR_NO_PRIVATE_PIECES: '1', PIANOR_E2E: '1', VITE_PIANOR_E2E: '1', ...(process.env.PW_DEV_SERVER === '1' ? {} : { NODE_ENV: 'development' }) },
     // A cold start paints Keri's pictures first (tools/vite-keri.ts): over a minute on a slow machine since the
     // room's set grew (82 s in a cloud session); the painting is cached after that.
     timeout: 180_000,

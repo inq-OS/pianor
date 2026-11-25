@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import morning from '../../../content/songs/morning-song/song.json';
+import morning from '../../../tests/fixtures/e2e/songs/morning-song/song.json';
 import { resolveSong } from './resolve.ts';
 import { songSchema } from './schema.ts';
 import { songBarX, songMapLayout, songMapParts, type MapPart } from './songMap.ts';

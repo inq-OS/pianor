@@ -6,7 +6,7 @@ import { WEIGHT_KEYS, barSamples, calibrationReport, fitBarWeights, practiceLogO
 import { readScore } from './labelledSet';
 
 const chartOf = (id: string) => {
-  const read = readScore(join('content/pieces', id));
+  const read = readScore(join('tests/fixtures/anchors', id));
   if (!read.ok) throw new Error(`${id}: ${read.reason}`);
   return read.chart;
 };

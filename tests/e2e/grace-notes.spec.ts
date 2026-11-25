@@ -4,7 +4,7 @@ import { expect, test } from './fixtures';
 import { expectNoErrors, letGameRun, openGame, openPiece, playWithVirtualPiano, results, toScoreScreen } from './helpers';
 
 /**
- * Grace Steps (`content/pieces/grace-steps`, a draft piece made for this test, synthetic): five graces, four slashed, one
+ * Grace Steps (`tests/fixtures/e2e/pieces/grace-steps`, a draft piece made for this test, synthetic): five graces, four slashed, one
  * plain ({F}D), one with a sharp ({/^D}E) and one under a ledger line ({/B,}C).
  */
 const PIECE = 'Grace Steps';

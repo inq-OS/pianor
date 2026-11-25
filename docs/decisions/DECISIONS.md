@@ -252,7 +252,7 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d269](notation.md#d269) | First and second endings: ABC `\|1` and `:\|2` are read into the repeat's optional `endings`, played first ending on the first pass and second ending in its place on the second, and drawn as numbered brackets | core_09 |
 | [d270](game.md#d270) | A character's name stays hidden until the student asks who it is | ft_1_22 |
 | [d271](game.md#d271) | A character's levels run from 1 with none skipped, and each teaches 4 to 16 bars of a piece | ft_1_21, ft_1_22 |
-| [d272](game.md#d272) | Each level's piece is a real public-domain piece or an open-licence line in the manner of a named folk tradition, never one made for the game | ft_1_21, ft_1_22 |
+| [d272](game.md#d272) | Each level's piece is a real public-domain piece, an open-licence line in the manner of a named folk tradition, or an open-licence piece made for the game that the maintainer approved | ft_1_21, ft_1_22 |
 | [d273](game.md#d273) | Each level's piece has its background in one line, said in the talk that teaches it, and the talk teaches something of the character's specialty | ft_1_21, ft_1_22 |
 | [d274](game.md#d274) | Every level beaten gives a new, named, drawn rung of the character's prize ladder, and no rung is on two characters' ladders | ft_1_21 |
 | [d275](workflow.md#d275) | A part of a feature is named by its feature id and slice, never by a work-package id |  |

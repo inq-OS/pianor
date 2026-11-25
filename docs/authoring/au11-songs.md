@@ -6,7 +6,7 @@ summary: "Song files (`content/songs/<id>/song.json`): a tree of pieces, groups,
 
 Part of [piece authoring](AUTHORING.md). The rules are those of [ft_1_36](../features/ft_1_36-songs.md); this page is how a song is written.
 
-A bundled song is one folder, `content/songs/<id>/song.json`, its folder name equal to its `id`. Its pieces are ordinary pieces in `content/pieces/`, each in one song at most. The example is `content/songs/morning-song/`: an intro and an outro of 12 bars each, written, with 58 bars between them planned as blanks.
+A bundled song is one folder, `content/songs/<id>/song.json`, its folder name equal to its `id`. Its pieces are ordinary pieces in `content/pieces/`, each in one song at most. The example is Morning Song (`tests/fixtures/e2e/songs/morning-song/`, one of the end-to-end tests' own, its pieces in `tests/fixtures/e2e/pieces/`): an intro and an outro of 12 bars each, written, with 58 bars between them planned as blanks.
 
 ```json
 {

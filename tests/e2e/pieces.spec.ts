@@ -181,28 +181,28 @@ test.describe('the parts of a piece from the song list (core_06)', () => {
   test('core_06.AC4 ft_1_36.AC13 a tap on a piece plays it at once; the P button of a piece with parts opens the song page with the whole piece first and then its parts, and a part\'s play button practises its bars', async ({ page }) => {
     const errors = await openGame(page);
     // a piece with parts: its card plays the whole piece at once (AX-3 provisional in MenuScene: the parts are behind P)
-    await clickButton(page, 'menu', await showMenuPageWith(page, 'Hot Cross Buns'));
+    await clickButton(page, 'menu', await showMenuPageWith(page, 'Au Clair de la Lune'));
     await waitForScene(page, 'practice');
-    expect(await practising(page)).toBe('hot-cross-buns');
+    expect(await practising(page)).toBe('au-clair-de-la-lune');
     await page.keyboard.press('Escape');
     await waitForScene(page, 'menu');
     // its P button opens the song page with the piece at its root: the whole piece first, then one row per part with its bars
-    await showMenuPageWith(page, 'Hot Cross Buns');
-    const point = await partsButtonPoint(page, 'hot-cross-buns');
+    await showMenuPageWith(page, 'Au Clair de la Lune');
+    const point = await partsButtonPoint(page, 'au-clair-de-la-lune');
     expect(point, 'a piece with parts has a P button').not.toBeNull();
     await page.mouse.click(point!.x, point!.y);
     await waitForScene(page, 'song');
-    const parts = await page.evaluate(() => (window.__game.registry.get('context').pieces.find('hot-cross-buns').chart.phrases as { name: string; startBar: number; endBar: number }[]).map((p) => ({ ...p })));
+    const parts = await page.evaluate(() => (window.__game.registry.get('context').pieces.find('au-clair-de-la-lune').chart.phrases as { name: string; startBar: number; endBar: number }[]).map((p) => ({ ...p })));
     expect(parts.length).toBeGreaterThan(0);
     const rows = await page.evaluate(() => (window.__game.scene.getScene('song').buttons as { options: { label: string; align?: string } }[]).filter((b) => b.options.align === 'left').map((b) => b.options.label));
-    expect(rows[0]).toBe('Hot Cross Buns');
+    expect(rows[0]).toBe('Au Clair de la Lune');
     expect(rows.length).toBe(parts.length + 1);
     expect(rows[1]).toBe(`1 ${parts[0]!.name}`);
     expect(await sceneTexts(page, 'song')).toContain(`${parts[0]!.startBar + 1}-${parts[0]!.endBar + 1}`);
     // a part's play button practises that part's bars as a section
     await clickButton(page, 'song', await sceneButton(page, 'song', `Play ${parts[0]!.name}`));
     await waitForScene(page, 'practice');
-    expect(await practising(page)).toBe(`hot-cross-buns#bars-${parts[0]!.startBar + 1}-${parts[0]!.endBar + 1}`);
+    expect(await practising(page)).toBe(`au-clair-de-la-lune#bars-${parts[0]!.startBar + 1}-${parts[0]!.endBar + 1}`);
     expectNoErrors(errors);
   });
 });

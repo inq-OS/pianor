@@ -32,8 +32,8 @@ async function click(page: Page, target: Target): Promise<void> {
 test.describe('the info card of a piece', () => {
   test('shows the stars, the style and what the chart says, and Close shuts it', async ({ page }) => {
     const errors = await openGame(page);
-    await showMenuPageWith(page, 'Hot Cross Buns');
-    await click(page, { info: 'hot-cross-buns' });
+    await showMenuPageWith(page, 'Au Clair de la Lune');
+    await click(page, { info: 'au-clair-de-la-lune' });
     expect(await sceneTexts(page, 'menu')).toEqual(
       expect.arrayContaining(['How hard: Beginner', 'Style: Folk song', 'In this piece:', '- Fastest: quarter notes', 'Close']),
     );
@@ -46,16 +46,16 @@ test.describe('the info card of a piece', () => {
 
   test('a piece with two hands, rests or black keys lists them', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
-    await showMenuPageWith(page, 'Take Turns');
-    await click(page, { info: 'take-turns' });
+    await showMenuPageWith(page, 'Echo Giant');
+    await click(page, { info: 'echo-giant' });
     expect(await sceneTexts(page, 'menu')).toEqual(expect.arrayContaining(['- Both hands play', '- Hands far apart', '- Rests: quiet beats']));
     expectNoErrors(errors);
   });
 
   test('a tap outside the card closes it and does not press what is behind it', async ({ page }) => {
     const errors = await openGame(page);
-    await showMenuPageWith(page, 'Hot Cross Buns');
-    await click(page, { info: 'hot-cross-buns' });
+    await showMenuPageWith(page, 'Au Clair de la Lune');
+    await click(page, { info: 'au-clair-de-la-lune' });
     expect(await sceneTexts(page, 'menu')).toContain('How hard: Beginner');
     // the piece cards are under the dimmed screen, outside the card
     await click(page, 'outside');

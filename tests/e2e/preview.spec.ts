@@ -9,8 +9,8 @@ import { activeScenes, playWithVirtualPiano, waitForScene } from './helpers';
  */
 const URL = '/?demo=preview&device=virtual';
 
-/** Hot Cross Buns: E D C D | E D C | C C D D | E D C */
-const HOT_CROSS_BUNS = [64, 62, 60, 62, 64, 62, 60, 60, 60, 62, 62, 64, 62, 60];
+/** Au Clair de la Lune: C C C D | E D | C E D D | C */
+const AU_CLAIR = [60, 60, 60, 62, 64, 62, 60, 64, 62, 62, 60];
 
 async function openPreview(page: Page, hash = ''): Promise<string[]> {
   const errors: string[] = [];
@@ -35,29 +35,29 @@ test.describe('piece preview page', () => {
     const errors = await openPreview(page);
     const rows = page.locator('[data-testid^="piece-"]');
     expect(await rows.count()).toBeGreaterThanOrEqual(11);
-    await expect(page.getByTestId('piece-hot-cross-buns')).toContainText('Hot Cross Buns');
-    await expect(page.getByTestId('piece-hot-cross-buns')).toContainText('L1');
-    await expect(page.getByTestId('piece-hot-cross-buns')).toContainText('0e');
-    await expect(page.getByTestId('piece-take-turns')).toContainText('L4');
+    await expect(page.getByTestId('piece-au-clair-de-la-lune')).toContainText('Au Clair de la Lune');
+    await expect(page.getByTestId('piece-au-clair-de-la-lune')).toContainText('L3');
+    await expect(page.getByTestId('piece-au-clair-de-la-lune')).toContainText('0e');
+    await expect(page.getByTestId('piece-echo-giant')).toContainText('L4');
     await expect(page.getByTestId('piece-scratch')).toBeVisible();
     expect(errors).toEqual([]);
   });
 
   test('selecting a piece checks it and draws it with the real staff renderer', async ({ page }) => {
     const errors = await openPreview(page);
-    await page.getByTestId('piece-ode-to-joy').click();
-    await expect(page.getByTestId('abc')).toHaveValue(/Ode to Joy/);
+    await page.getByTestId('piece-pebble-hop').click();
+    await expect(page.getByTestId('abc')).toHaveValue(/Pebble Hop/);
     await expect(page.getByTestId('diagnostics')).toContainText('No errors or warnings.');
     await expect(page.locator('body')).toContainText('fits levels 1');
     await expect(page.locator('body')).toContainText(/difficulty \d+\/100, \w+ [\d.]+ stars, proposed \(not confirmed, score [\d.]+/); // core_08.AC3
     await expect(page.locator('body')).toContainText(/Parts: .+ \d+\/100/); // core_08.AC7
-    expect(await staff(page)).toMatchObject({ notes: 30, fits: true });
-    expect(page.url()).toContain('#ode-to-joy');
+    expect(await staff(page)).toMatchObject({ notes: 23, fits: true });
+    expect(page.url()).toContain('#pebble-hop');
     expect(errors).toEqual([]);
   });
 
   test('the difficulty panel scores any passage, clicked or typed, and says why (core_08.AC8, core_08.AC10)', async ({ page }) => {
-    const errors = await openPreview(page, '#ode-to-joy');
+    const errors = await openPreview(page, '#pebble-hop');
     const panel = page.getByTestId('difficulty');
     await expect(panel.getByTestId('difficulty-whole')).toContainText(/difficulty \d+\/100, \w+ [\d.]+ stars, proposed/);
     await expect(panel.locator('[data-testid^="difficulty-bar-"]')).toHaveCount(8);
@@ -120,8 +120,8 @@ test.describe('piece preview page', () => {
   });
 
   test('listen plays the piece through the sampler and lights the notes as they sound, and stop silences it', async ({ page }) => {
-    const errors = await openPreview(page, '#hot-cross-buns');
-    await expect.poll(async () => (await staff(page))?.notes).toBe(14);
+    const errors = await openPreview(page, '#au-clair-de-la-lune');
+    await expect.poll(async () => (await staff(page))?.notes).toBe(11);
     const voices = () => page.evaluate(() => window.__game.registry.get('context').audio.piano.voiceCount as number);
     await page.getByTestId('listen').click();
     await expect(page.getByTestId('listen')).toHaveText('Stop');
@@ -150,21 +150,21 @@ test.describe('piece preview page', () => {
   });
 
   test('play along runs the real practice scene on the draft, earns no XP, and returns to the preview with the result', async ({ page }) => {
-    const errors = await openPreview(page, '#hot-cross-buns');
-    await expect.poll(async () => (await staff(page))?.notes).toBe(14);
+    const errors = await openPreview(page, '#au-clair-de-la-lune');
+    await expect.poll(async () => (await staff(page))?.notes).toBe(11);
     await page.getByTestId('play-along').click();
     await waitForScene(page, 'practice');
-    await playWithVirtualPiano(page, HOT_CROSS_BUNS);
+    await playWithVirtualPiano(page, AU_CLAIR);
     await waitForScene(page, 'preview');
     await expect(page.getByTestId('status')).toContainText('Played along: 100% right, 0 mistake(s)', { timeout: 10_000 });
     expect(await page.evaluate(() => window.__game.registry.get('context').profiles.progress.totalXp)).toBe(0);
     expect(await page.evaluate(() => window.__game.registry.get('context').profiles.profile.attempts.length)).toBe(0);
-    expect((await staff(page))?.notes).toBe(14); // the staff is back
+    expect((await staff(page))?.notes).toBe(11); // the staff is back
     expect(errors).toEqual([]);
   });
 
   test('Back and Escape in a play-along return to the preview, not the menu', async ({ page }) => {
-    const errors = await openPreview(page, '#hot-cross-buns');
+    const errors = await openPreview(page, '#au-clair-de-la-lune');
     await page.getByTestId('play-along').click();
     await waitForScene(page, 'practice');
     await page.keyboard.press('Escape');
@@ -174,8 +174,8 @@ test.describe('piece preview page', () => {
   });
 
   test('hint boxes show note names and finger numbers on the staff', async ({ page }) => {
-    const errors = await openPreview(page, '#hot-cross-buns');
-    await expect.poll(async () => (await staff(page))?.notes).toBe(14);
+    const errors = await openPreview(page, '#au-clair-de-la-lune');
+    await expect.poll(async () => (await staff(page))?.notes).toBe(11);
     const visibleHints = () =>
       page.evaluate(() => {
         const scene = window.__game.scene.getScene('preview');
@@ -184,10 +184,20 @@ test.describe('piece preview page', () => {
     expect(await visibleHints()).toBe(0);
     await page.getByLabel('note names').check();
     await page.getByLabel('fingers').check();
-    expect(await visibleHints()).toBe(28); // a letter and a finger for each of the 14 notes
+    expect(await visibleHints()).toBe(22); // a letter and a finger for each of the 11 notes
     expect(errors).toEqual([]);
   });
 });
+
+/** The game's pieces are all approved, so the list the page reads shows one of them as a draft (the file stays as it is). */
+async function listAsDraft(page: Page, id = 'au-clair-de-la-lune') {
+  await page.route('**/__pianor/pieces', async (route) => {
+    const response = await route.fetch();
+    const data = (await response.json()) as { pieces: { folder: string; meta: string }[] };
+    for (const p of data.pieces) if (p.folder === id) p.meta = p.meta.replace('"status": "approved"', '"status": "draft"');
+    await route.fulfill({ response, json: data });
+  });
+}
 
 test.describe('approving a piece', () => {
   /** Stand-in for the dev server's answer, so that no test changes a file in content/pieces. */
@@ -201,9 +211,10 @@ test.describe('approving a piece', () => {
   }
 
   test('asks first, then sends the request and shows the new state', async ({ page }) => {
+    await listAsDraft(page);
     const errors = await openPreview(page);
-    const requests = await fakeServer(page, { status: 200, body: { ok: true, id: 'stair-steps', status: 'approved', changed: true, warnings: 0 } });
-    await page.getByTestId('piece-stair-steps').click();
+    const requests = await fakeServer(page, { status: 200, body: { ok: true, id: 'au-clair-de-la-lune', status: 'approved', changed: true, warnings: 0 } });
+    await page.getByTestId('piece-au-clair-de-la-lune').click();
     const approve = page.getByTestId('approve');
     await expect(approve).toHaveText('Approve for the student');
     await expect(approve).toBeEnabled();
@@ -213,12 +224,12 @@ test.describe('approving a piece', () => {
     expect(requests).toEqual([]);
 
     page.once('dialog', (dialog) => {
-      expect(dialog.message()).toContain('Approve "Stair Steps" for the student?');
+      expect(dialog.message()).toContain('Approve "Au Clair de la Lune" for the student?');
       void dialog.accept();
     });
     await approve.click();
-    await expect(page.getByTestId('status')).toContainText('"stair-steps" is now approved.');
-    expect(requests).toEqual([{ id: 'stair-steps', status: 'approved' }]);
+    await expect(page.getByTestId('status')).toContainText('"au-clair-de-la-lune" is now approved.');
+    expect(requests).toEqual([{ id: 'au-clair-de-la-lune', status: 'approved' }]);
     await expect(approve).toHaveText('Back to draft');
     await expect(page.getByTestId('meta')).toHaveValue(/"status": "approved"/);
     expect(errors).toEqual([]);
@@ -228,9 +239,10 @@ test.describe('approving a piece', () => {
     // the faked refusal is a 422, which Chrome logs as an error
     test.use({ allowPageErrors: true });
     test('shows the reason when the server refuses', async ({ page }) => {
+      await listAsDraft(page);
       await openPreview(page);
       await fakeServer(page, { status: 422, body: { ok: false, message: '1 error(s), so it cannot be approved: nope' } });
-      await page.getByTestId('piece-stair-steps').click();
+      await page.getByTestId('piece-au-clair-de-la-lune').click();
       page.once('dialog', (dialog) => void dialog.accept());
       await page.getByTestId('approve').click();
       await expect(page.getByTestId('status')).toContainText('so it cannot be approved: nope');
@@ -239,8 +251,9 @@ test.describe('approving a piece', () => {
   });
 
   test('cannot be pressed for a piece with errors or with edits that are not in the file', async ({ page }) => {
+    await listAsDraft(page);
     await openPreview(page);
-    await page.getByTestId('piece-stair-steps').click();
+    await page.getByTestId('piece-au-clair-de-la-lune').click();
     await expect(page.getByTestId('approve')).toBeEnabled();
     const abc = page.getByTestId('abc');
     await abc.fill((await abc.inputValue()).replace('C4 |]', 'C4 $ |]'));
@@ -264,14 +277,14 @@ test.describe('the dev server side of the preview', () => {
     const response = await request.get('/__pianor/pieces');
     expect(response.status()).toBe(200);
     const data = (await response.json()) as { levels: string; pieces: { folder: string; abc: string; meta: string }[] };
-    expect(data.pieces.map((p) => p.folder)).toContain('hot-cross-buns');
+    expect(data.pieces.map((p) => p.folder)).toContain('au-clair-de-la-lune');
     expect(JSON.parse(data.levels).levels.length).toBeGreaterThanOrEqual(5);
   });
 
   test('refuses a status change that is not JSON, from another site, or for a piece that does not exist', async ({ request }) => {
-    const form = await request.post('/__pianor/status', { headers: { 'content-type': 'text/plain' }, data: '{"id":"stair-steps","status":"approved"}' });
+    const form = await request.post('/__pianor/status', { headers: { 'content-type': 'text/plain' }, data: '{"id":"au-clair-de-la-lune","status":"approved"}' });
     expect(form.status()).toBe(415);
-    const foreign = await request.post('/__pianor/status', { headers: { origin: 'http://evil.example' }, data: { id: 'stair-steps', status: 'approved' } });
+    const foreign = await request.post('/__pianor/status', { headers: { origin: 'http://evil.example' }, data: { id: 'au-clair-de-la-lune', status: 'approved' } });
     expect(foreign.status()).toBe(403);
     const missing = await request.post('/__pianor/status', { data: { id: 'no-such-piece', status: 'approved' } });
     expect(missing.status()).toBe(404);

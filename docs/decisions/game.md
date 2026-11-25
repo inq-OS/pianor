@@ -407,11 +407,11 @@ Check: `src/core/character/rules.test.ts` "each level teaches a piece of 4 to 16
 
 ## d272
 
-**Each level's piece is a real public-domain piece or an open-licence line in the manner of a named folk tradition, never one made for the game.** Features: ft_1_21, ft_1_22.
+**Each level's piece is a real public-domain piece, an open-licence line in the manner of a named folk tradition, or an open-licence piece made for the game that the maintainer approved.** Features: ft_1_21, ft_1_22.
 
-The piece has `license: "public-domain"` and a `source` naming its real origin (not original, composed by or generated), or an open-licence line written in a named folk tradition (d263).
+The piece has `license: "public-domain"` and a `source` naming its real origin (not original, composed by or generated), or an open-licence line written in a named folk tradition (d263), or an open licence and `status: "approved"`.
 
-Check: `src/core/character/rules.test.ts` "each piece is a real public-domain piece, not one made for the game"
+Check: `src/core/character/rules.test.ts` "each piece is a real public-domain piece, not one made for the game unless approved"; `src/core/character/rules.test.ts` "an original piece the maintainer approved may be taught too, a draft one may not"
 
 ## d273
 

@@ -12,7 +12,7 @@ import { readManifest, readScore, type Manifest } from './labelledSet';
 import { buildSamples, modelPath, trainModel, trainReport } from './train';
 import { readFileSync } from 'node:fs';
 
-const PIECES = 'content/pieces';
+const PIECES = 'tests/fixtures/anchors';
 
 /** synthetic: `bars` bars of 4/4 at `bpm`, quarter notes climbing by `leap` steps of the C major scale, as MusicXML. */
 function synthScore(bars: number, bpm: number, leap: number): string {
