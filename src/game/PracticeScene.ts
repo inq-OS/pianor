@@ -461,7 +461,9 @@ export class PracticeScene extends PixelScene {
     // the intro's learn stage learns the lesson's bars bar by bar, kept only for the intro (ft_1_31.AC8)
     if (this.intro?.stage === 'learn' && data.section && context.flags.learn) {
       const lesson = introLearnProfile(context.profiles, this.intro.learning, (progress) => { this.introLearning = progress; });
-      return LearnSession.open(lesson, sliceChart(this.fullChart, data.section.first, data.section.last), dayString(new Date()), undefined, true);
+      // never asked again: a lesson the intro has learned is not learned anew (ft_1_32.AC24 is Kiur's Learn only), and the
+      // lesson has no free plays to count against its learning
+      return LearnSession.open(lesson, sliceChart(this.fullChart, data.section.first, data.section.last), dayString(new Date()));
     }
     if (this.preview || this.checkup || data.section || !context.flags.learn) return null;
     const asked = data.learn === true;
