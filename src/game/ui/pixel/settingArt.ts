@@ -264,7 +264,7 @@ const letters = (b: Canvas, x: number, y: number, word: string) => {
 };
 
 /**
- * What the hint label under a chord says (core_09.AC57): a C major chord on a scrap of staff, under it its notes (CEG), its
+ * What the hint label under a chord says (core_09.AC59): a C major chord on a scrap of staff, under it its notes (CEG), its
  * name (C), or both, the name on a second line under the notes, as on the practice staff.
  */
 export function chordLabelsSymbol(shown: 'notes' | 'name' | 'both'): Bitmap {

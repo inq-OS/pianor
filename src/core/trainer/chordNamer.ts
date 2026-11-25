@@ -31,7 +31,7 @@ export function nameChord(content: Pick<ChordContent, 'qualities'>, keys: readon
 }
 
 /**
- * A chord's name as the staff's hint labels write a note (core_09.AC57): the root as a note label (b for a flat, the B or H
+ * A chord's name as the staff's hint labels write a note (core_09.AC59): the root as a note label (b for a flat, the B or H
  * naming), a small letter for a minor quality, then the suffix. The trainers' `chordLabel` draws a flat sign in the pixel
  * font instead.
  */

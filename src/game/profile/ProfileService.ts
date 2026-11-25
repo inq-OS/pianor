@@ -62,7 +62,7 @@ export type SwitchResult = 'ok' | 'busy' | 'unreadable';
 
 /** The finger numbers the player sees: none, on a chord's top note, or on every note of a chord. */
 export type FingerNumbers = 'off' | 'top' | 'all';
-/** What the hint label under a chord says (core_09.AC57). */
+/** What the hint label under a chord says (core_09.AC59). */
 export type ChordLabels = 'notes' | 'name' | 'both';
 
 /**
@@ -169,7 +169,7 @@ export class ProfileService {
     return this.active.settings.chordFingers ?? false;
   }
 
-  /** What the hint label under a chord says: its notes (absent in older saves), its name, or both (core_09.AC57). */
+  /** What the hint label under a chord says: its notes (absent in older saves), its name, or both (core_09.AC59). */
   get chordLabels(): ChordLabels {
     return this.active.settings.chordLabels ?? 'notes';
   }

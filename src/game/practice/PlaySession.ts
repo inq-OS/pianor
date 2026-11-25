@@ -64,7 +64,7 @@ export interface StaffPrefs {
   readonly barNumberSettings: BarNumberSettings;
   /** Which hands get the note duration helper (ft_1_11). */
   readonly durationHelp: DurationHelp;
-  /** What the hint label under a chord says: its notes, its name or both (core_09.AC57); absent reads as the notes. */
+  /** What the hint label under a chord says: its notes, its name or both (core_09.AC59); absent reads as the notes. */
   readonly chordLabels?: 'notes' | 'name' | 'both';
 }
 
@@ -509,7 +509,7 @@ function starPoints(cx: number, cy: number, outer: number, inner: number): { x: 
 
 const CHORDS = loadChordContent(chordsJson);
 
-/** The layout's chord names from the player's setting (core_09.AC57): none for the notes only. */
+/** The layout's chord names from the player's setting (core_09.AC59): none for the notes only. */
 function chordNamesOption(prefs: StaffPrefs): Pick<StaffLayoutOptions, 'chordNames'> {
   const show = prefs.chordLabels ?? 'notes';
   if (show === 'notes') return {};

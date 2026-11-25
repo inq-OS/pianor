@@ -1,4 +1,4 @@
-// Covers core_09.AC57.
+// Covers core_09.AC59.
 import { describe, expect, it } from 'vitest';
 import type { Chart } from '../chart';
 import { compilePiece } from '../piece/compile';
@@ -22,29 +22,29 @@ const lay = (chart: Chart, chordNames?: StaffLayoutOptions['chordNames']) =>
 
 const labels = (chart: Chart, chordNames?: StaffLayoutOptions['chordNames']) => lay(chart, chordNames).notes.map((n) => n.label).filter((l) => l !== '');
 
-describe('chord names under a chord (core_09.AC57)', () => {
+describe('chord names under a chord (core_09.AC59)', () => {
   const chart = compiled('[CEG]2 [CE]2 | [C_E_G_B]4 |]');
 
-  it('core_09.AC57 by default a chord is named by its notes, low to high', () => {
+  it('core_09.AC59 by default a chord is named by its notes, low to high', () => {
     expect(labels(chart)).toEqual(['C/E/G', 'C/E', 'C/Eb/Gb/Bb']);
   });
 
-  it('core_09.AC57 "name" shows the chord name where the namer knows the chord, and the notes where it does not', () => {
+  it('core_09.AC59 "name" shows the chord name where the namer knows the chord, and the notes where it does not', () => {
     expect(labels(chart, { show: 'name', name: namer })).toEqual(['C', 'C/E', 'c7b5']);
   });
 
-  it('core_09.AC57 "both" shows the notes, and the name on a second line under them', () => {
+  it('core_09.AC59 "both" shows the notes, and the name on a second line under them', () => {
     const layout = lay(chart, { show: 'both', name: namer });
     const named = layout.notes.filter((n) => n.label !== '');
     expect(named.map((n) => n.label)).toEqual(['C/E/G\nC', 'C/E', 'C/Eb/Gb/Bb\nc7b5']);
     expect(named.map((n) => n.labelLines)).toEqual([2, 1, 2]);
   });
 
-  it('core_09.AC57 a single note is never named as a chord', () => {
+  it('core_09.AC59 a single note is never named as a chord', () => {
     expect(labels(compiled('C D E F |]'), { show: 'name', name: () => 'X' })).toEqual(['C', 'D', 'E', 'F']);
   });
 
-  it('core_09.AC57 with two lines the staff keeps room for both, and a dynamic mark goes under the second', () => {
+  it('core_09.AC59 with two lines the staff keeps room for both, and a dynamic mark goes under the second', () => {
     const marked = compiled('!p![CEG]4 |]');
     const one = lay(marked);
     const two = lay(marked, { show: 'both', name: namer });

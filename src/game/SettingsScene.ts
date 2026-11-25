@@ -283,7 +283,7 @@ export class SettingsScene extends PixelScene {
     const click = ([[false, t('settings.paceClickOff')], [true, t('settings.paceClickOn')]] as const)
       .map(([value, label]): Choice<boolean> => ({ value, label, symbol: paceClickSymbol(value) }));
     this.setting(1, 3, t('settings.paceClick'), click, learnPaceClick(learn), (value) => profiles.updateLearnSettings({ paceClick: value }));
-    // what the hint label under a chord says (core_09.AC57): its notes, its name, or the name on a line under the notes
+    // what the hint label under a chord says (core_09.AC59): its notes, its name, or the name on a line under the notes
     const chordLabels = ([['notes', t('settings.chordLabelsNotes')], ['name', t('settings.chordLabelsName')], ['both', t('settings.chordLabelsBoth')]] as const)
       .map(([value, label]): Choice<ChordLabels> => ({ value, label, symbol: chordLabelsSymbol(value) }));
     this.setting(0, 4, t('settings.chordLabels'), chordLabels, profiles.chordLabels, (value) => profiles.updateChordLabels(value));

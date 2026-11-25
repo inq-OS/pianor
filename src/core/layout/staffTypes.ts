@@ -50,7 +50,7 @@ export interface StaffLayoutOptions {
   /** How a hint label names a note: B or H (`noteLabel`). Default B. */
   noteNaming?: NoteNaming;
   /**
-   * Chord names in the hint label of a chord of one staff (core_09.AC57): `name` shows the name instead of the notes where
+   * Chord names in the hint label of a chord of one staff (core_09.AC59): `name` shows the name instead of the notes where
    * `name` knows the chord, `both` the notes with the name on a second line under them. `name` gets the chord's keys (MIDI)
    * and returns its name, or null. By default a chord is named by its notes only.
    */
@@ -134,7 +134,7 @@ export interface NoteGlyph {
   /** Centre x of this head's finger: right of the head, past its ledger line or dot, level with the head at `y`. */
   fingerX: number;
   labelY: number;
-  /** Lines of the label: 2 when a chord's name stands under its notes (core_09.AC57), else 1. `labelY` is the first line's centre. */
+  /** Lines of the label: 2 when a chord's name stands under its notes (core_09.AC59), else 1. `labelY` is the first line's centre. */
   labelLines: number;
   fingerY: number;
   /** A dynamic mark this note starts (core_09.AC15): its letters, and where they sit below the hint labels, or null. */

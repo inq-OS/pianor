@@ -70,7 +70,7 @@ describe('classifyWrongNote', () => {
     expect(classifyWrongNote(70, [60, 72])).toMatchObject({ expectedMidi: 72 });
   });
 
-  it('core_09.AC56 in a chord, a key with the letter of an awaited note in another octave is that note\'s wrong octave, even when another note is closer', () => {
+  it('core_09.AC58 in a chord, a key with the letter of an awaited note in another octave is that note\'s wrong octave, even when another note is closer', () => {
     expect(classifyWrongNote(72, [60, 64, 67])).toMatchObject({ reason: 'wrong-octave', direction: 'higher', expectedMidi: 60 });
     expect(classifyWrongNote(46, [60, 63, 66, 70])).toMatchObject({ reason: 'wrong-octave', direction: 'lower', expectedMidi: 70 });
     // a neighbour of the closest note stays a neighbour

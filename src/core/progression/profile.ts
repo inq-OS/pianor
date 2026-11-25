@@ -152,7 +152,7 @@ export const profileSettingsSchema = z.object({
   /** Show the finger of every note of a chord, each beside its head. Optional, no version bump (d069.3): absent reads as off. */
   chordFingers: z.boolean().optional(),
   /**
-   * What the hint label under a chord says (core_09.AC57): its notes, its name, or both. Optional, no version bump (d069.3):
+   * What the hint label under a chord says (core_09.AC59): its notes, its name, or both. Optional, no version bump (d069.3):
    * absent reads as the notes.
    */
   chordLabels: z.enum(['notes', 'name', 'both']).optional(),

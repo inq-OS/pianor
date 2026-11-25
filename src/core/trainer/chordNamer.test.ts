@@ -60,10 +60,10 @@ describe('nameChord (ft_1_29.AC4)', () => {
 
 const STEP_PC: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
 
-describe('staffChordName (core_09.AC57)', () => {
+describe('staffChordName (core_09.AC59)', () => {
   const named = (keys: number[], naming: 'B' | 'H' = 'B') => staffChordName(nameChord(content, keys)!, naming);
 
-  it('core_09.AC57 writes the name as the staff labels write notes: b for a flat, a small letter for a minor chord, and the naming setting', () => {
+  it('core_09.AC59 writes the name as the staff labels write notes: b for a flat, a small letter for a minor chord, and the naming setting', () => {
     expect(named([60, 64, 67])).toBe('C');
     expect(named([60, 63, 66, 70])).toBe('c7b5');
     expect(named([63, 67, 70])).toBe('Eb');

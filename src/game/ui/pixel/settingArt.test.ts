@@ -71,7 +71,7 @@ describe('settings button pictures', () => {
     expect(notesIn(learnHandsSymbol(false), 15, 19)).toBeGreaterThan(notesIn(learnHandsSymbol(true), 15, 19));
   });
 
-  it('core_09.AC57 chord labels: a chord on a staff, under it its three letters, its one name letter, or both lines', () => {
+  it('core_09.AC59 chord labels: a chord on a staff, under it its three letters, its one name letter, or both lines', () => {
     const blue = (['notes', 'name', 'both'] as const).map((v) => count(chordLabelsSymbol(v), C.blue));
     expect(blue[1]).toBeLessThan(blue[0]!);
     expect(blue[2]).toBe(blue[0]! + blue[1]!);

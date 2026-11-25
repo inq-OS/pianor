@@ -1,4 +1,4 @@
-// Covers core_09.AC1, core_09.AC56, core_09.AC57.
+// Covers core_09.AC1, core_09.AC58, core_09.AC59.
 import { expect, test } from './fixtures';
 import { clickAndRedraw, clickToolbar, expectNoErrors, openGame, openPiece, openSettings, playStepsWithVirtualPiano, results, sceneButton, toScoreScreen, waitForScene } from './helpers';
 
@@ -18,7 +18,7 @@ const count = (steps: number[][]) => steps.reduce((sum, s) => sum + s.length, 0)
 
 test.describe('chords in a piece', () => {
   for (const [title, steps] of [['Chord Steps', CHORD_STEPS], ['Evening Chords', EVENING_CHORDS]] as const) {
-    test(`core_09.AC56 ${title} plays to its end in Wait mode, every key of each chord pressed together`, async ({ page }) => {
+    test(`core_09.AC58 ${title} plays to its end in Wait mode, every key of each chord pressed together`, async ({ page }) => {
       const errors = await openGame(page, '?device=virtual');
       await openPiece(page, title);
       await playStepsWithVirtualPiano(page, steps as number[][]);
@@ -28,7 +28,7 @@ test.describe('chords in a piece', () => {
     });
   }
 
-  test('core_09.AC56 a chord waits for its last key: the cursor stays until every key is down', async ({ page }) => {
+  test('core_09.AC58 a chord waits for its last key: the cursor stays until every key is down', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await openPiece(page, 'Chord Steps');
     const step = () => page.evaluate(() => window.__game.scene.getScene('practice').playSession.controller.getState().stepIndex as number);
@@ -39,7 +39,7 @@ test.describe('chords in a piece', () => {
     expectNoErrors(errors);
   });
 
-  test('core_09.AC57 the setting under a chord shows its notes, its name, or the name on a line under the notes', async ({ page }) => {
+  test('core_09.AC59 the setting under a chord shows its notes, its name, or the name on a line under the notes', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await openSettings(page);
     await clickAndRedraw(page, 'settings', await sceneButton(page, 'settings', 'Learning'));

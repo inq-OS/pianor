@@ -28,7 +28,7 @@ function closest(played: number, awaiting: readonly number[]): number {
  * - neighbour-key: the key right next to it, black or white
  * - wrong-letter: anything else
  * In a chord, a key that would be a wrong letter for the closest note but has the letter of another awaited note is
- * that note's wrong octave: the student found the letter (core_09.AC56).
+ * that note's wrong octave: the student found the letter (core_09.AC58).
  */
 export function classifyWrongNote(played: number, awaiting: readonly number[]): WrongNoteDiagnosis {
   const nearest = diagnose(played, closest(played, awaiting));

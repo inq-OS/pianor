@@ -78,7 +78,7 @@ const SYSTEM_GAP = 0.8;
 /** The short gap between the staves of a grand staff, from the bottom line of one to the top line of the other. */
 const SHORT_GAP = 2;
 const LABEL_HALF = 0.55; // half the height of a hint label, in staff spaces
-/** From one line of a two-line hint label to the next (a chord's name under its notes, core_09.AC57), in staff spaces. */
+/** From one line of a two-line hint label to the next (a chord's name under its notes, core_09.AC59), in staff spaces. */
 export const LABEL_LINE = 2 * LABEL_HALF + 0.1;
 const SCORE_STEP = 1.4; // between two stacked tempo scores of a chord, in staff spaces
 /** How far under the hint labels a dynamic mark sits, in staff spaces (core_09.AC15). */
@@ -374,7 +374,7 @@ function staffRooms(groups: readonly RoomGroup[], clef: Clef, eighths: boolean, 
   return { above: above + 0.3, below };
 }
 
-/** The ticks where a staff strikes a chord whose name stands on a second label line (core_09.AC57). */
+/** The ticks where a staff strikes a chord whose name stands on a second label line (core_09.AC59). */
 function twoLineTicks(notes: readonly { note: ChartNote }[], chordNames: StaffLayoutOptions['chordNames']): Set<number> {
   const out = new Set<number>();
   if (chordNames?.show !== 'both') return out;
@@ -627,7 +627,7 @@ function planFrame(chart: Chart, staves: readonly StaffSpec[], keys: KeyPlan, op
     const upOf = runDirections(staffBeams(chart, groups, s.track.clef, s.twoVoiceBars), groups);
     const upOfGroup = (g: readonly { note: ChartNote; index: number }[]) => upOf.get(g[0]!.index) ?? voiceStemUp(s, g[0]!.note) ?? chordStemUpOf(g, s.track.clef);
     const sides = tupletSides(chart, groups, upOfGroup);
-    // a chord named on a second line under its notes needs a second line of room (core_09.AC57)
+    // a chord named on a second line under its notes needs a second line of room (core_09.AC59)
     const twoLines = twoLineTicks(s.notes, options.chordNames);
     const own = staffRooms(
       groups.map((g): RoomGroup => {
@@ -805,7 +805,7 @@ interface Placer {
   S: number;
   /** The hint label naming (B or H), from the player's settings. */
   naming: NoteNaming;
-  /** Chord names in the labels (core_09.AC57), or undefined for the notes only. */
+  /** Chord names in the labels (core_09.AC59), or undefined for the notes only. */
   chordNames: StaffLayoutOptions['chordNames'];
   chart: Chart;
   barTicks: number;
@@ -1002,7 +1002,7 @@ function chordGlyphs(
 }
 
 /**
- * The name of the chord one staff strikes on a tick (core_09.AC57), in the label that names its notes: instead of them
+ * The name of the chord one staff strikes on a tick (core_09.AC59), in the label that names its notes: instead of them
  * (`name`) where the namer knows the chord, or on a second line under them (`both`). A single note is never named.
  */
 function nameTheChord(p: Placer, members: readonly NoteGlyph[]): void {

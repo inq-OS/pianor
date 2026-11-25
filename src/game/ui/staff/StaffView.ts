@@ -31,7 +31,7 @@ export interface StaffTheme {
   cursor: number;
   cursorFill: number;
   hint: string;
-  /** A chord's name on the second line of its label (core_09.AC57): darker than the note names, so the two lines read apart. */
+  /** A chord's name on the second line of its label (core_09.AC59): darker than the note names, so the two lines read apart. */
   chordName: string;
   /** The soft background of a section's bars while it is chosen, and the colour of its A and B. */
   sectionFill: number;
@@ -151,7 +151,7 @@ export class StaffView {
   private readonly playheadGfx: Phaser.GameObjects.Graphics;
   private readonly notesGfx: Phaser.GameObjects.Graphics;
   private readonly labels: Phaser.GameObjects.Text[] = [];
-  /** The second label line of a chord named under its notes (core_09.AC57), by the same slot as `labels`; null where there is none. */
+  /** The second label line of a chord named under its notes (core_09.AC59), by the same slot as `labels`; null where there is none. */
   private readonly nameLabels: (Phaser.GameObjects.Text | null)[] = [];
   /** The note-name hint of each grace note (core_09.AC32), small, under its head; in the order of `layout.graces`. */
   private readonly graceLabels: Phaser.GameObjects.Text[] = [];
@@ -235,7 +235,7 @@ export class StaffView {
     let markIndex = 0;
     for (const n of layout.notes) {
       const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize, color: theme.hint };
-      // a chord's name stands on a second line under its notes (core_09.AC57), one text per line so each sits on its own line
+      // a chord's name stands on a second line under its notes (core_09.AC59), one text per line so each sits on its own line
       const [notes, name] = n.label.split('\n');
       this.labels.push(scene.add.text(origin.x + n.column, origin.y + n.labelY, notes ?? '', style).setOrigin(0.5));
       this.nameLabels.push(name === undefined ? null : scene.add.text(origin.x + n.column, origin.y + n.labelY + LABEL_LINE * layout.staffSpace, name, { ...style, color: theme.chordName }).setOrigin(0.5));

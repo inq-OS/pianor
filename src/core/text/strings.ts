@@ -699,7 +699,7 @@ export const strings = {
   'settings.learnStepOne': 'One bar at a time',
   'settings.learnStepTwo': 'Two bars at a time',
   'settings.naming': 'Letter names',
-  // what the hint label under a chord says (core_09.AC57)
+  // what the hint label under a chord says (core_09.AC59)
   'settings.chordLabels': 'Chord labels',
   'settings.chordLabelsNotes': 'Its notes',
   'settings.chordLabelsName': 'Its name',
