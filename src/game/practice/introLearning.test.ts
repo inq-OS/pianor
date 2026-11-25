@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_LEARN_SETTINGS, START_PROGRESS, type LearnProgress } from '../../core/learn/progress';
 import type { LearnProfile } from './LearnSession';
-import { introLearnProfile } from './introLearning';
+import { chartWith } from '../../../tests/helpers/charts';
+import { introLearnProfile, openIntroLearning } from './introLearning';
 
 const player: LearnProfile = {
   learnSettings: DEFAULT_LEARN_SETTINGS,
@@ -23,5 +24,16 @@ describe('the intro lesson learns on its own', () => {
     expect(kept).toEqual([next]);
     // the next run of the lesson goes on from there
     expect(introLearnProfile(player, next, () => undefined).learnProgressOf('twinkle-twinkle')).toEqual(next);
+  });
+});
+
+describe('the intro lesson once learned', () => {
+  it('ft_1_32.AC24 a lesson the intro has learned is not learned again', () => {
+    const lesson = chartWith([60, 62, 64, 65].map((midi, i) => ({ tick: i * 480, dur: 480, midi })));
+    const keep = () => undefined;
+    expect(openIntroLearning(player, undefined, keep, lesson, '1998-11-22')).not.toBeNull();
+    // the one-bar lesson's plan is two steps: done
+    const learned: LearnProgress = { ...START_PROGRESS, step: 2, lastDay: '1998-11-22', stepBars: 1, handsApart: false, medals: ['gold', 'gold'], learnedAt: '1998-11-22T10:00:00.000Z' };
+    expect(openIntroLearning(player, learned, keep, lesson, '1998-11-22')).toBeNull();
   });
 });

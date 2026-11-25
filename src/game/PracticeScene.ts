@@ -46,7 +46,7 @@ import type { PartMarks, StaffView } from './ui/staff/StaffView';
 import { songBarX, songMapLayout, songMapParts, type MapBlock, type MapPart } from '../core/song/songMap';
 import type { KeriScreen } from './visit/islandVisit';
 import type { ClefFlight } from './MenuScene';
-import { introLearnProfile } from './practice/introLearning';
+import { openIntroLearning } from './practice/introLearning';
 import { afterPlay, type PlayStage, type PracticeSpot } from '../core/intro/intro';
 import { INTRO } from './intro/introContent';
 import type { Rect } from '../core/layout/rect';
@@ -460,8 +460,8 @@ export class PracticeScene extends PixelScene {
     const context = contextOf(this);
     // the intro's learn stage learns the lesson's bars bar by bar, kept only for the intro (ft_1_31.AC8)
     if (this.intro?.stage === 'learn' && data.section && context.flags.learn) {
-      const lesson = introLearnProfile(context.profiles, this.intro.learning, (progress) => { this.introLearning = progress; });
-      return LearnSession.open(lesson, sliceChart(this.fullChart, data.section.first, data.section.last), dayString(new Date()), undefined, true);
+      const lesson = sliceChart(this.fullChart, data.section.first, data.section.last);
+      return openIntroLearning(context.profiles, this.intro.learning, (progress) => { this.introLearning = progress; }, lesson, dayString(new Date()));
     }
     if (this.preview || this.checkup || data.section || !context.flags.learn) return null;
     const asked = data.learn === true;
