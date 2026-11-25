@@ -22,8 +22,14 @@ The table as the linter reads it (generated from `content/curriculum/levels.json
 | 3 | Right hand, rests and thirds | RH | treble | C4 to G4 | whole, dottedHalf, half, quarter | yes | 4/4, 3/4 | 2 | no | 4 to 32 |
 | 4 | Both hands, one at a time | RH, LH | treble, bass | C3 to G4 | whole, dottedHalf, half, quarter | yes | 4/4, 3/4 | 2 | no | 4 to 32 |
 | 5 | Both hands together, eighth notes | RH, LH | treble, bass | C3 to C5 | whole, dottedHalf, half, dottedQuarter, quarter, dottedEighth, eighth, sixteenth | yes | 4/4, 3/4, 2/4 | 4 | yes | 4 to 32 |
+| 6 | Classics arranged: wider range and leaps | RH, LH | treble, bass | C3 to C6 | whole, dottedHalf, half, dottedQuarter, quarter, dottedEighth, eighth, sixteenth | yes | 4/4, 3/4, 2/4 | 7 | yes | 4 to 32 |
 <!-- /docs:levels -->
 
 Every level that allows the half note also allows the dotted half (`dottedHalf` in `noteValues`, a full 3/4 bar), so a piece written in the editor with one fits a level. It stays at every level, the lowest included. The dotted quarter (`dottedQuarter`, core_09.AC38) comes with the eighth at level 5, since its partner is an eighth. AX-3 provisional: the level that brings eighths brings the dotted quarter. Level 5 also has the dotted eighth and the sixteenth (core_09.AC42), so it allows every value the staff draws. The generators never write dotted notes.
 
-What the levels are for: level 2 mirrors level 1 for the left hand; level 3 introduces rests and small skips (thirds); level 4 alternates hands in separate phrases; level 5 lets the hands play together (the two-hand bonus of ft_0_15) and adds eighths. Accidentals and key signatures are not a level: every level allows them (`accidentals: true`, all fifteen `keys`), since pieces come from practice sheets that use them (core_09.AC9; the draft pieces `g-major-walk` in G and `f-major-song` in F show them).
+What the levels are for: level 2 mirrors level 1 for the left hand; level 3 introduces rests and small skips (thirds); level 4 alternates hands in separate phrases; level 5 lets the hands play together (the two-hand bonus of ft_0_15) and adds eighths; level 6 holds real classics arranged for beginners (the tune in the right hand, the bass in the left, cut into 4-bar song parts), with the range widened to C3 to C6 and leaps up to an octave, since a real tune needs them. Accidentals and key signatures are not a level: every level allows them (`accidentals: true`, all fifteen `keys`), since pieces come from practice sheets that use them (core_09.AC9; the draft pieces `g-major-walk` in G and `f-major-song` in F show them).
+
+## TODO
+
+- AX-3 provisional: level 6 is level 5 with a wider range and larger leaps, made for the first arranged classics (Ständchen, the Impromptu in C minor); it gets its own place in the order once a method book is chosen. TODO(architect, Later): review level 6 with the rest of the table.
+- IDEA: the faithful full scores of the arranged classics (chords, both hands as written, the whole Impromptu with its key changes) as advanced songs, once the levels have chords and a song part can draw its own key. The beginner arrangements come first.
