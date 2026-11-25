@@ -151,6 +151,11 @@ export const profileSettingsSchema = z.object({
   durationHelp: durationHelpSchema.optional(),
   /** Show the finger of every note of a chord, each beside its head. Optional, no version bump (d069.3): absent reads as off. */
   chordFingers: z.boolean().optional(),
+  /**
+   * What the hint label under a chord says (core_09.AC57): its notes, its name, or both. Optional, no version bump (d069.3):
+   * absent reads as the notes.
+   */
+  chordLabels: z.enum(['notes', 'name', 'both']).optional(),
   /** Show the finger numbers on the practice screen from the start. Off, or absent in older saves. Counts as a hint (XP). */
   showFingers: z.boolean().optional(),
   /** Learning a piece bar by bar (ft_1_32): the step size and the mistake markers. Optional, no version bump (d069.3): absent reads as the defaults. */

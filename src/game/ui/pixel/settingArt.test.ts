@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Bitmap } from './bitmap';
 import { C } from './palette';
 import { BAR_NUMBER_MODES } from '../../../core/layout/barNumbers';
-import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, beatLaneSymbol, durationSymbol, fingersSymbol, liveTempoSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, paceClickSymbol, resumeSymbol, scoreSymbol, staffGapSymbol } from './settingArt';
+import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, beatLaneSymbol, chordLabelsSymbol, durationSymbol, fingersSymbol, liveTempoSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, paceClickSymbol, resumeSymbol, scoreSymbol, staffGapSymbol } from './settingArt';
 
 const same = (a: Bitmap, b: Bitmap) => a.pixels.every((p, i) => p === b.pixels[i]);
 const count = (b: Bitmap, colour: number) => b.pixels.filter((p) => p === colour).length;
@@ -21,6 +21,7 @@ const SETTINGS: Record<string, Bitmap[]> = {
   naming: (['B', 'H'] as const).map(namingSymbol),
   resume: (['continue', 'over'] as const).map(resumeSymbol),
   fingers: (['off', 'top', 'all'] as const).map(fingersSymbol),
+  chordLabels: (['notes', 'name', 'both'] as const).map(chordLabelsSymbol),
   barNumbers: BAR_NUMBER_MODES.map(barNumbersSymbol),
   liveTempo: [false, true].map(liveTempoSymbol),
   beatLane: (['above', 'between', 'off'] as const).map(beatLaneSymbol),
@@ -68,6 +69,12 @@ describe('settings button pictures', () => {
     const notesIn = (b: Bitmap, y0: number, y1: number) => [...b.pixels.keys()].filter((i) => b.pixels[i] === C.ink && Math.floor(i / b.width) >= y0 && Math.floor(i / b.width) <= y1 && i % b.width >= 7 && i % b.width <= 12).length;
     // the first column: lower staff notes only when both hands play
     expect(notesIn(learnHandsSymbol(false), 15, 19)).toBeGreaterThan(notesIn(learnHandsSymbol(true), 15, 19));
+  });
+
+  it('core_09.AC57 chord labels: a chord on a staff, under it its three letters, its one name letter, or both lines', () => {
+    const blue = (['notes', 'name', 'both'] as const).map((v) => count(chordLabelsSymbol(v), C.blue));
+    expect(blue[1]).toBeLessThan(blue[0]!);
+    expect(blue[2]).toBe(blue[0]! + blue[1]!);
   });
 
   it('finger numbers and bar numbers are pictures with more blue digits the more the setting shows, and none when off', () => {

@@ -62,6 +62,8 @@ export type SwitchResult = 'ok' | 'busy' | 'unreadable';
 
 /** The finger numbers the player sees: none, on a chord's top note, or on every note of a chord. */
 export type FingerNumbers = 'off' | 'top' | 'all';
+/** What the hint label under a chord says (core_09.AC57). */
+export type ChordLabels = 'notes' | 'name' | 'both';
 
 /**
  * The game's view of progress: the active profile, its XP and level, each piece's record, and the few things scenes
@@ -165,6 +167,18 @@ export class ProfileService {
   /** Whether a chord shows the finger of every head; absent in older saves reads as off. */
   get chordFingers(): boolean {
     return this.active.settings.chordFingers ?? false;
+  }
+
+  /** What the hint label under a chord says: its notes (absent in older saves), its name, or both (core_09.AC57). */
+  get chordLabels(): ChordLabels {
+    return this.active.settings.chordLabels ?? 'notes';
+  }
+
+  /** Change what the hint label under a chord says, and save. */
+  async updateChordLabels(mode: ChordLabels): Promise<boolean> {
+    const value = profileSettingsSchema.shape.chordLabels.parse(mode);
+    this.active = { ...this.active, settings: { ...this.active.settings, chordLabels: value } };
+    return this.persist();
   }
 
   /** The finger numbers setting: off; on the top note of a chord; or on every note of a chord. */

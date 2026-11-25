@@ -1,6 +1,6 @@
-// Covers core_09.AC1, core_09.AC56.
+// Covers core_09.AC1, core_09.AC56, core_09.AC57.
 import { expect, test } from './fixtures';
-import { expectNoErrors, openGame, openPiece, playStepsWithVirtualPiano, results, toScoreScreen } from './helpers';
+import { clickAndRedraw, clickToolbar, expectNoErrors, openGame, openPiece, openSettings, playStepsWithVirtualPiano, results, sceneButton, toScoreScreen, waitForScene } from './helpers';
 
 /** Chord Steps (level 1, right hand): two and three keys at once in the C position. */
 const CHORD_STEPS: number[][] = [
@@ -36,6 +36,29 @@ test.describe('chords in a piece', () => {
     await expect.poll(step).toBe(0);
     await playStepsWithVirtualPiano(page, [[64]]);
     await expect.poll(step).toBe(1);
+    expectNoErrors(errors);
+  });
+
+  test('core_09.AC57 the setting under a chord shows its notes, its name, or the name on a line under the notes', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await openSettings(page);
+    await clickAndRedraw(page, 'settings', await sceneButton(page, 'settings', 'Learning'));
+    const setting = await sceneButton(page, 'settings', 'Its notes');
+    const saved = () => page.evaluate(() => window.__game.registry.get('context').profiles.chordLabels as string);
+    expect(await saved()).toBe('notes');
+    await clickAndRedraw(page, 'settings', setting);
+    await expect.poll(saved).toBe('name');
+    await clickAndRedraw(page, 'settings', setting);
+    await expect.poll(saved).toBe('both');
+    await clickToolbar(page, 'back');
+    await waitForScene(page, 'menu');
+    await openPiece(page, 'Evening Chords');
+    await page.keyboard.press('KeyA');
+    const lines = () => page.evaluate(() => {
+      const view = window.__game.scene.getScene('practice').playSession.staffView as unknown as { labels: { text: string }[]; nameLabels: ({ text: string } | null)[] };
+      return view.labels.map((l, i) => `${l.text}|${view.nameLabels[i]?.text ?? ''}`).filter((l) => l.includes('/'));
+    });
+    await expect.poll(lines).toEqual(expect.arrayContaining(['C/E/G|C', 'D/F/A|d', 'C/Eb/Gb/Bb|c7b5', 'C/F/A|F']));
     expectNoErrors(errors);
   });
 });

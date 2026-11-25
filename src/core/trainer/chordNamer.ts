@@ -2,6 +2,7 @@
  * The chord namer (ft_1_29 slice D): the name of the chord the keys held make, from the chord dictionary of
  * `content/trainer/chords.json` (slice B's qualities), or nothing for a set it does not know. Pure: no DOM, no engine.
  */
+import { noteLabel, type NoteNaming } from '../text/noteName';
 import { parseChord, type Chord, type ChordContent } from './chordTrainer';
 
 /** The root a name is written with, by pitch class: AX-3 provisional, the spelling most often taught for each. */
@@ -27,4 +28,14 @@ export function nameChord(content: Pick<ChordContent, 'qualities'>, keys: readon
     }
   }
   return null;
+}
+
+/**
+ * A chord's name as the staff's hint labels write a note (core_09.AC57): the root as a note label (b for a flat, the B or H
+ * naming), a small letter for a minor quality, then the suffix. The trainers' `chordLabel` draws a flat sign in the pixel
+ * font instead.
+ */
+export function staffChordName(chord: Chord, naming: NoteNaming): string {
+  const root = noteLabel(chord.root, naming);
+  return (chord.minor ? root.slice(0, 1).toLowerCase() + root.slice(1) : root) + chord.suffix;
 }
