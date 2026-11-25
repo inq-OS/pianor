@@ -3,8 +3,8 @@ import { pageOf } from '../core/layout/paging';
 import { rectCentre } from '../core/layout/rect';
 import { keyName, meterName, pieceOutline, rowPlay, shownRows, startFolded, type ShownRow } from '../core/song/outline';
 import { pieceFactsOf, type ResolvedSong, type RowValue, type SongRow } from '../core/song/resolve';
-import { walkSong, type Song, type SongNode } from '../core/song/schema';
-import { addNode, freeNodeId, moveNode, removeNode, renameNode, NEW_BLANK_BARS, type MoveKind } from '../core/song/edit';
+import { walkSong, type Song, type SongNode, type SongValues } from '../core/song/schema';
+import { addNode, freeNodeId, moveNode, removeNode, renameNode, setValue, NEW_BLANK_BARS, type MoveKind } from '../core/song/edit';
 import { canRedo, canUndo, push, redo, startHistory, undo, type History } from '../core/editor/history';
 import { openTextField } from './ui/textField';
 import { keepsLastPartOn, labelOn, setLabelOn, setPartOn } from '../core/song/switches';
@@ -48,6 +48,18 @@ const STARS = GRADE_STARS * (STAR_FULL.width + 1) - 1;
 const NOTICE_MS = 3000;
 /** A choice of the bubble's Add and Move, in layout cells. */
 const CHOICE_CELL = { w: 64, h: 12 };
+/** A value's choice: wide enough for Follow the song on one line. */
+const VALUE_CELL = { w: 112, h: 12 };
+/**
+ * The values slots 2 to 4 offer (rule 12), beside Follow the song: `AX-3 provisional:` a short list of the tempos, keys and
+ * meters a beginner's song is written in (the piece maker writes 2/4, 3/4 and 4/4); a value set otherwise is offered too.
+ */
+const TEMPOS: readonly number[] = [60, 70, 80, 90, 100, 110, 120];
+const KEYS: readonly SongValues['key'][] = [
+  { fifths: 0, mode: 'major' }, { fifths: 1, mode: 'major' }, { fifths: 2, mode: 'major' }, { fifths: -1, mode: 'major' }, { fifths: -2, mode: 'major' },
+  { fifths: 0, mode: 'minor' }, { fifths: 1, mode: 'minor' }, { fifths: -1, mode: 'minor' },
+];
+const METERS: readonly SongValues['meter'][] = [{ num: 2, den: 4 }, { num: 3, den: 4 }, { num: 4, den: 4 }];
 
 /** What the song page is opened with: a song, or a piece with parts and no song (its phrases as the rows, ft_1_36.AC13). */
 export type SongData = { songId: string } | { chartId: string };
@@ -297,8 +309,10 @@ export class SongScene extends PixelScene {
 
   private keep(): void {
     if (!this.history) return;
-    // an open name field belongs to the tree as it was: it goes
+    // an open name field belongs to the tree as it was: it goes; so does the first visit's hint, once the song is being written
     this.closeField?.();
+    if (this.tickHint) this.notice = null;
+    this.tickHint = false;
     this.closeField = null;
     const song = this.history.present;
     const { ownSongs, profiles } = contextOf(this);
@@ -344,8 +358,8 @@ export class SongScene extends PixelScene {
   }
 
   /**
-   * An own song's editing in the bubble, in fixed slots (rule 12): 0 add, 1 name, 6 move, 7 remove; slots 2 to 5 (tempo,
-   * key, meter, write) come with the next part of the slice. A press on a row selects it first; on empty paper the whole
+   * An own song's editing in the bubble, in fixed slots (rule 12): 0 add, 1 name, 2 tempo, 3 key, 4 meter, 5 write or
+   * edit, 6 move, 7 remove. A press on a row selects it first; on empty paper the whole
    * song is selected, so Add puts a part at the end. A bundled song has no bubble. An option's choices open in a row under
    * the selected row, never over other rows' names.
    */
@@ -362,23 +376,66 @@ export class SongScene extends PixelScene {
     }
     const node = this.selectedNode(song);
     const moves = node ? this.moveChoices(song, node) : [];
+    // a piece holds its own numbers (rule 4) and a link plays its piece as it is: neither sets a value here
+    const values = node?.kind !== 'piece' && node?.kind !== 'link';
+    const value = <F extends keyof SongValues>(key: StringKey, icon: ToolbarItem['icon'], field: F, offered: readonly SongValues[F][], name: (v: SongValues[F]) => string): ToolbarItem => ({
+      label: t(key), ...(icon ? { icon } : {}), disabled: !values, onClick: () => this.choicesUnderRow(this.valueChoices(song, node, field, offered, name), 2, VALUE_CELL),
+    });
     return [
       { label: t('song.add'), icon: TOOL_ICONS.add, onClick: () => this.choicesUnderRow(this.addChoices(song, node)) },
       { label: t('song.rename'), icon: TOOL_ICONS.rename, onClick: () => this.rename(song, node) },
-      null,
-      null,
-      null,
-      null,
+      value('song.tempoOption', TOOL_ICONS.tempo, 'bpm', TEMPOS, (v) => t('song.tempo', { bpm: v })),
+      value('song.keyOption', TOOL_ICONS.circle, 'key', KEYS, keyName),
+      value('song.meterOption', TOOL_ICONS.meter, 'meter', METERS, meterName),
+      this.writeOption(song, node),
       { label: t('song.move'), icon: TOOL_ICONS.move, disabled: moves.every((m) => m.disabled), onClick: () => this.choicesUnderRow(moves) },
       { label: t('song.remove'), icon: TOOL_ICONS.trash, disabled: !node, onClick: () => node && this.remove(song, node) },
     ];
   }
 
-  /** An option's choices in one row under the selected row (rule 12). */
-  private choicesUnderRow(items: MenuItem[]): void {
+  /** An option's choices in a row (or a few) under the selected row (rule 12), `columns` wide at most. */
+  private choicesUnderRow(items: MenuItem[], columns = 2, cell = CHOICE_CELL): void {
     const r = this.rowRects.get(this.selected ?? '');
     if (!r) return;
-    this.openMenu({ rect: { x: r.left, y: r.top, width: r.width, height: CARD_HEIGHT - 4 } }, items, { cell: CHOICE_CELL, columns: Math.min(2, items.length), open: 'below' });
+    this.openMenu({ rect: { x: r.left, y: r.top, width: r.width, height: CARD_HEIGHT - 4 } }, items, { cell, columns: Math.min(columns, items.length), open: 'below' });
+  }
+
+  /**
+   * Slots 2 to 4's choices (rule 12): Follow the song (the group, inside one) first on a row, then the values, the one in
+   * use lit. A value equal to the one the row would follow makes it follow, so a row never sets its parent's value again.
+   * With no row the song's own default is set. `AX-3 provisional:` a changed song or group value does not yet rewrite the
+   * pieces that follow it (rule 4): each keeps its numbers and shows them as its own.
+   */
+  private valueChoices<F extends keyof SongValues>(song: Song, node: SongNode | undefined, field: F, offered: readonly SongValues[F][], name: (v: SongValues[F]) => string): MenuItem[] {
+    const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+    const row = node ? contextOf(this).songs.resolved(song).rows.find((r) => r.id === node.id) : undefined;
+    const current = (row ? row[field] : { value: song[field], own: true, parent: song[field] }) as RowValue<SongValues[F]>;
+    const id = node?.id ?? null;
+    const pick = (value: SongValues[F] | undefined) => () => {
+      const next = setValue(song, id, field, node && value !== undefined && same(value, current.parent) ? undefined : value);
+      if (!same(next, song)) this.commit(next);
+    };
+    const values = offered.some((v) => same(v, current.value)) ? offered : [current.value, ...offered];
+    const follow: MenuItem[] = node ? [{ label: t(row?.parent ? 'song.followGroup' : 'song.follow'), active: !current.own, onPick: pick(undefined) }] : [];
+    return [...follow, ...values.map((v) => ({ label: name(v), active: current.own && same(v, current.value), onPick: pick(v) }))];
+  }
+
+  /**
+   * Slot 5 (rules 11 and 12): Write a blank, or Edit an own piece, in the piece maker; Back there returns to this page.
+   * Shown and greyed on any other row and on the whole song.
+   */
+  private writeOption(song: Song, node: SongNode | undefined): ToolbarItem {
+    if (node?.kind === 'piece' && contextOf(this).ownPieces.get(node.piece)) {
+      const piece = node.piece;
+      return { label: t('song.edit'), icon: TOOL_ICONS.write, onClick: () => startScene(this, 'editor', { id: piece, song: { songId: song.id, nodeId: node.id } }) };
+    }
+    const blank = node?.kind === 'blank' ? node : undefined;
+    return { label: t('song.write'), icon: TOOL_ICONS.write, disabled: !blank, onClick: () => blank && this.write(song, blank.id) };
+  }
+
+  /** The piece maker writes the blank (rule 11): a new piece of its bars in the values it takes. */
+  private write(song: Song, nodeId: string): void {
+    startScene(this, 'editor', { song: { songId: song.id, nodeId } });
   }
 
   /** Slot 0's choices: a new part or group after the selected row (at the end with none), and into a selected group. */
@@ -634,7 +691,7 @@ export class SongScene extends PixelScene {
       if (tx + fits(text) + 4 > nameRight) break;
       tx = this.tab(tx, top + 3, text, faded);
     }
-    if (rowPlay(row, outline.rows)) this.playButton(right - SMALL / 2, mid, t('song.play', { name: row.name }), true, () => this.play(outline, row));
+    this.rowEnd(outline, row, right - SMALL / 2, mid);
     // the line under it: song bars, tempo, key and meter (an own value on a red chip beside the crossed-out one it
     // replaces); a follower's value only while it fits, an own value always
     const line = top + 19;
@@ -647,9 +704,12 @@ export class SongScene extends PixelScene {
     let vx = x + 4;
     if (row.bars > 0) vx = this.text(vx, line, t('song.barRange', { first: row.startBar, last: row.endBar }), C.umberDark, faded) + 5;
     if (row.kind !== 'phrase') {
-      vx = this.value(vx, line, row.bpm, (v) => t('song.tempo', { bpm: v }), faded, right);
-      vx = this.value(vx, line, row.key, keyName, faded, right);
-      vx = this.value(vx, line, row.meter, meterName, faded, right);
+      const tempo = (v: number) => t('song.tempo', { bpm: v });
+      // own values that do not all fit with the values they replace drop the crossed-out ones: the chips alone
+      const compact = vx + valueWidth(row.bpm, tempo) + valueWidth(row.key, keyName) + valueWidth(row.meter, meterName) > right;
+      vx = this.value(vx, line, row.bpm, tempo, faded, right, compact);
+      vx = this.value(vx, line, row.key, keyName, faded, right, compact);
+      vx = this.value(vx, line, row.meter, meterName, faded, right, compact);
     }
     // a piece's best stars, at the line's end while they fit
     if ((row.kind === 'piece' || row.kind === 'link') && row.piece && vx + STARS <= right) {
@@ -658,7 +718,17 @@ export class SongScene extends PixelScene {
     if (!row.on) faded.forEach((o) => o.setAlpha(OFF_FADE));
   }
 
-  /** The selected row is lit: a pale band behind it over its whole height, drawn before what is written on it. */
+  /** The button at a row's right end: play (rule 6), or on a blank of an own song a pen that writes it in the piece maker (rule 11). */
+  private rowEnd(outline: ResolvedSong, row: SongRow, x: number, y: number): void {
+    if (rowPlay(row, outline.rows)) {
+      this.playButton(x, y, t('song.play', { name: row.name }), true, () => this.play(outline, row));
+      return;
+    }
+    const own = this.ownSong;
+    if (row.kind !== 'blank' || !own) return;
+    this.button({ x, y, width: SMALL, height: SMALL, look: 'ink', inkBox: true, icon: TOOL_ICONS.write, iconOnly: true, label: t('song.writePart', { name: row.name }), onClick: () => this.write(own, row.id) });
+  }
+
   /** A row's ground: a thin rule under it, so each row reads as one block, and the gold band while it is selected. */
   private lit(left: number, top: number, width: number, selected: boolean): void {
     const rule = createBitmap(width - 4, 1);
@@ -686,8 +756,9 @@ export class SongScene extends PixelScene {
    * A value of a row (rule 3): a follower's in pale ink; an own value in red ink on a chip, beside its parent's crossed
    * out. Returns where it ends.
    */
-  private value<T>(x: number, y: number, value: RowValue<T>, format: (v: T) => string, faded: { setAlpha(a: number): unknown }[], right: number): number {
+  private value<T>(x: number, y: number, value: RowValue<T>, format: (v: T) => string, faded: { setAlpha(a: number): unknown }[], right: number, compact: boolean): number {
     if (!value.own) return x + fits(format(value.value)) > right ? x : this.text(x, y, format(value.value), C.umberLight, faded) + 5;
+    if (compact) return this.chip(x, y, format(value.value), faded) + 5;
     const before = format(value.parent);
     const end = this.text(x, y, before, C.umberLight, faded);
     const strike = createBitmap(Math.max(1, end - x + 2), 1);
@@ -722,6 +793,11 @@ export class SongScene extends PixelScene {
 }
 
 const fits = (text: string): number => measure(drawnText(text));
+
+/** How wide a row's value is drawn: an own value with the crossed-out one it replaces, a follower's alone. */
+function valueWidth<T>(value: RowValue<T>, format: (v: T) => string): number {
+  return value.own ? fits(format(value.parent)) + 3 + fits(format(value.value)) + 4 + 5 : fits(format(value.value)) + 5;
+}
 
 /** A label's name: the ready-made list's own string, or the author's word as written. */
 function labelText(word: string): string {

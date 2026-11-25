@@ -37,7 +37,7 @@ import chordsJson from '../../content/trainer/chords.json';
 import { nameChord } from '../core/trainer/chordNamer';
 import { chordLabel, loadChordContent } from '../core/trainer/chordTrainer';
 import {
-  BARS_DEFAULT, BPM_MAX, soundingMidi, EDITOR_LENGTHS, cycleLength, emptyPiece, findNote, lengthen, lengthenRest, lengthsFor, stepChord, placeNote, placeRest, placedRests, removeNote, removeRest, setAlter, nextAlter, longestFit, setDynamic, nextDynamic, setBeats, setPickup, onBothStaves, setKey, setFinger, bpmOf, stepBpm, setLength, setTitle, shorten, shortenRest, stepBars,
+  BARS_DEFAULT, BPM_MAX, soundingMidi, EDITOR_LENGTHS, cycleLength, emptyPiece, findNote, lengthen, lengthenRest, lengthsFor, stepChord, placeNote, placeRest, placedRests, removeNote, removeRest, setAlter, nextAlter, longestFit, setDynamic, nextDynamic, setBeats, setPickup, onBothStaves, setKey, setFinger, bpmOf, setBpm, stepBpm, setLength, setTitle, shorten, shortenRest, stepBars,
   type Edit, type EditorHand, type EditorLength, type EditorPiece, type NoteRef,
   midiOf,
 } from '../core/editor/model';
@@ -71,6 +71,7 @@ import { DEFAULT_THEME, StaffView } from './ui/staff/StaffView';
 import { PhotoOverlay, barsToFill, photoServer, sendPhoto, type PhotoReply } from './editor/photoImport';
 import { PhotoTool } from './editor/photoTool';
 import { CANCELLED, openOverlay, startScene } from './scenes';
+import { writeBlank } from '../core/song/edit';
 import { circleItem } from './CircleOfFifthsScene';
 import { STAFF_FONT } from './ui/staff/staffFont';
 
@@ -178,14 +179,23 @@ const KEY_LENGTHS: Readonly<Record<string, EditorLength>> = {
 
 interface Session {
   id: string | null;
+  song: SongPlace | null;
   history: History<EditorPiece>;
   saved: EditorPiece | null;
   length: EditorLength;
   meterAuto: boolean;
 }
 
+/** The row of an own song the piece maker writes (ft_1_36 rule 11): a blank, which the saved piece takes the place of. */
+export interface SongPlace {
+  songId: string;
+  nodeId: string;
+}
+
 export interface EditorData {
   id?: string;
+  /** Write a song's blank: a new piece of its bars in the tempo, key and meter it takes; Back returns to the song page. */
+  song?: SongPlace;
 }
 
 /**
@@ -208,6 +218,8 @@ export class EditorScene extends PixelScene {
   private photoToken = 0;
 
   private id: string | null = null;
+  /** The song row this piece is written for, or null for a piece of its own. */
+  private song: SongPlace | null = null;
   /** The save in progress, if any: saves run in order (see `save`). */
   private saving: Promise<void> = Promise.resolve();
   private history!: History<EditorPiece>;
@@ -393,16 +405,17 @@ export class EditorScene extends PixelScene {
     this.vim = this.loadVimPref() ? VIM_START : null;
     this.vimLast = null;
     if (back) {
-      ({ id: this.id, history: this.history, saved: this.saved, length: this.length, meterAuto: this.meterAuto } = back);
+      ({ id: this.id, song: this.song, history: this.history, saved: this.saved, length: this.length, meterAuto: this.meterAuto } = back);
       this.message = '';
       return;
     }
     const record = data.id ? context.ownPieces.get(data.id) : null;
     this.id = record?.id ?? null;
+    this.song = data.song ?? null;
     // always both staves; an own piece saved for one hand opens with its notes on that hand's staff
     const opened = record ? onBothStaves(record.piece) : null;
     this.saved = opened;
-    this.history = startHistory(opened ?? emptyPiece({ title: t('editor.untitled'), hands: 'both', beats: 4, bars: BARS_DEFAULT }));
+    this.history = startHistory(opened ?? (data.song ? this.blankPiece(data.song) : null) ?? emptyPiece({ title: t('editor.untitled'), hands: 'both', beats: 4, bars: BARS_DEFAULT }));
     this.length = 'quarter';
     this.meterAuto = false;
   }
@@ -1682,7 +1695,7 @@ export class EditorScene extends PixelScene {
   private stash(): void {
     this.player?.stop();
     this.flushEntry();
-    EditorScene.returning = { id: this.id, history: this.history, saved: this.saved, length: this.length, meterAuto: this.meterAuto };
+    EditorScene.returning = { id: this.id, song: this.song, history: this.history, saved: this.saved, length: this.length, meterAuto: this.meterAuto };
   }
 
   protected override beforeSettings(): void {
@@ -2512,10 +2525,10 @@ export class EditorScene extends PixelScene {
   private vimEx(name: string, bang: boolean, arg: string): void {
     const word = name.toLowerCase();
     if (word === 'w') return void this.save();
-    if (word === 'q') return bang ? startScene(this, 'menu') : this.leave();
+    if (word === 'q') return bang ? this.goBack() : this.leave();
     if (word === 'wq' || word === 'x') {
       void this.save().then(() => {
-        if (this.scene.isActive() && !this.dirty()) startScene(this, 'menu');
+        if (this.scene.isActive() && !this.dirty()) this.goBack();
       });
       return;
     }
@@ -2589,7 +2602,39 @@ export class EditorScene extends PixelScene {
 
   private leave(): void {
     if (this.dirty() && !window.confirm(t('editor.leaveUnsaved'))) return;
-    startScene(this, 'menu');
+    this.goBack();
+  }
+
+  /** Back to the song page a song's row was written from, else to the piece book. */
+  private goBack(): void {
+    if (this.song) startScene(this, 'song', { songId: this.song.songId });
+    else startScene(this, 'menu');
+  }
+
+  /**
+   * A new piece for a song's blank (rule 11): the blank's bars, all empty, in the tempo, key and meter it takes, titled with
+   * the song and the blank's name. Null when the song or the blank is gone. A meter the piece maker cannot write (not
+   * 2/4, 3/4 or 4/4) starts in 4/4.
+   */
+  private blankPiece(place: SongPlace): EditorPiece | null {
+    const { ownSongs, songs } = contextOf(this);
+    const song = ownSongs.get(place.songId);
+    const row = song ? songs.resolved(song).rows.find((r) => r.id === place.nodeId) : undefined;
+    if (!song || !row || row.kind !== 'blank') return null;
+    const meter = row.meter.value;
+    const beats = meter.den === 4 && (meter.num === 2 || meter.num === 3 || meter.num === 4) ? meter.num : 4;
+    const empty = emptyPiece({ title: `${song.title}: ${row.name}`, hands: 'both', beats, bars: row.bars });
+    return setBpm(setKey(empty, row.key.value.fifths, row.key.value.mode), row.bpm.value);
+  }
+
+  /** The saved piece takes its blank's place in the song (rule 11), once; the song keeps the row's id, name and labels. */
+  private placeInSong(pieceId: string): void {
+    const place = this.song;
+    const { ownSongs } = contextOf(this);
+    const song = place ? ownSongs.get(place.songId) : undefined;
+    if (!place || !song) return;
+    const written = writeBlank(song, place.nodeId, pieceId);
+    if (written !== song) void ownSongs.save(written);
   }
 
   private dirty(): boolean {
@@ -2705,6 +2750,7 @@ export class EditorScene extends PixelScene {
     if (!result.ok) return this.say(result.reason === 'empty' ? t('editor.empty') : t('editor.notDrawable'), MESSAGE_MS);
     this.id = result.id;
     this.saved = piece;
+    this.placeInSong(result.id);
     this.say(result.saved ? t('editor.saved') : t('editor.savedHere'), MESSAGE_MS);
   }
 

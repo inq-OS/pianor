@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addNode, freeNodeId, moveNode, newSong, removeNode, renameNode } from './edit.ts';
+import { addNode, freeNodeId, moveNode, newSong, removeNode, renameNode, setValue, writeBlank } from './edit.ts';
 import { songSchema, walkSong, type Song, type SongNode } from './schema.ts';
 
 const blank = (id: string, name = id): SongNode => ({ kind: 'blank', id, name, bars: 8 });
@@ -61,5 +61,26 @@ describe('making and editing a song (ft_1_36 rule 12)', () => {
     const linked: Song = { ...song, nodes: [{ kind: 'piece', id: 'p', piece: 'own-x' }, blank('a'), { kind: 'link', id: 'l', to: 'p' }] };
     expect(ids(removeNode(linked, 'p')!)).toEqual(['a']);
     expect(removeNode({ ...song, nodes: [blank('a')] }, 'a')).toBeNull();
+  });
+});
+
+describe('values and written parts (ft_1_36 rules 3, 11 and 12)', () => {
+  it('ft_1_36.AC14 a row takes its own tempo, key or meter, and Follow the song clears it; with no row the song\'s own default changes', () => {
+    const song = sample();
+    const own = setValue(song, 'b', 'bpm', 100);
+    expect(walkSong(own.nodes).find((n) => n.node.id === 'b')!.node).toMatchObject({ bpm: 100 });
+    const followed = setValue(own, 'b', 'bpm', undefined);
+    expect('bpm' in walkSong(followed.nodes).find((n) => n.node.id === 'b')!.node).toBe(false);
+    expect(setValue(song, null, 'key', { fifths: 1, mode: 'major' }).key).toEqual({ fifths: 1, mode: 'major' });
+    expect(setValue(song, null, 'meter', undefined).meter).toEqual(song.meter);
+  });
+
+  it('ft_1_36.AC15 a written blank becomes a piece node with the same id, name, labels and own values', () => {
+    const song: Song = { ...sample(), nodes: [{ kind: 'blank', id: 'chorus', name: 'Chorus', bars: 8, labels: ['chorus'], bpm: 90 }] };
+    const written = writeBlank(song, 'chorus', 'own-chorus');
+    expect(written.nodes[0]).toEqual({ kind: 'piece', id: 'chorus', piece: 'own-chorus', name: 'Chorus', labels: ['chorus'], bpm: 90 });
+    expect(songSchema.safeParse(written).success).toBe(true);
+    // a node that is no blank stays as it is
+    expect(writeBlank(written, 'chorus', 'own-other')).toEqual(written);
   });
 });
