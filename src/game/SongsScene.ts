@@ -13,6 +13,7 @@ import { drawnText, measure } from './ui/pixel/font';
 import { createBitmap } from './ui/pixel/bitmap';
 import { PixelImage, PixelText, pixelStars, type PixelButton } from './ui/pixel/PixelObjects';
 import { drawPieceInfo } from './menu/PieceInfoCard';
+import { openTextField } from './ui/textField';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 
@@ -26,6 +27,8 @@ const BOOK_GUTTER = 18;
 /** The small buttons of a row: a finger wide at the usual zoom, as the book's own. */
 const SMALL = 11;
 const SMALL_GAP = 3;
+/** The new song's title field, in layout cells: a line of big letters. */
+const FIELD_HEIGHT = 14;
 
 /**
  * The songs list (ft_1_36 rule 13), behind the piece book's song bookmark: the same open book, one row a song with what to
@@ -38,6 +41,8 @@ export class SongsScene extends PixelScene {
   /** The song whose info card is open, or null. */
   private infoId: string | null = null;
   private infoClose: PixelButton | null = null;
+  /** The new song's title field is open. */
+  private naming = false;
 
   protected override keyboardNavigation = true;
 
@@ -48,6 +53,7 @@ export class SongsScene extends PixelScene {
   init(): void {
     this.page = 0;
     this.infoId = null;
+    this.naming = false;
   }
 
   /** Esc and Back: close an open info card, else back to the piece book. */
@@ -83,19 +89,22 @@ export class SongsScene extends PixelScene {
     this.sky();
     this.openBook({ x: BOOK_SIDE, y: LIST_TOP - 2, w: width - 2 * BOOK_SIDE, h: height - LIST_TOP + 1 });
     this.inkWriting = true;
-    if (list.length === 0) {
-      this.label(BOOK_MARGIN, LIST_TOP + 16, all.length > 0 ? t('songs.allOff') : t('songs.none'), C.umberDark, { shadow: false });
-      return;
-    }
     const row = CARD_HEIGHT;
     const grid = cardGrid({ width, height, top: LIST_TOP + 4, margin: BOOK_MARGIN, rowHeight: row, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
-    const slice = pageOf(list.length, this.page, { singlePageMax: grid.singlePageMax, perPage: grid.perPage });
+    // the first row makes a new song (rule 12), then the songs that are on
+    const rows: (Song | null)[] = [null, ...list];
+    const slice = pageOf(rows.length, this.page, { singlePageMax: grid.singlePageMax, perPage: grid.perPage });
     this.page = slice.page;
     const capacity = slice.paged ? grid.perPage : grid.singlePageMax;
-    list.slice(slice.first, slice.first + slice.count).forEach((song, i) => {
+    rows.slice(slice.first, slice.first + slice.count).forEach((song, i) => {
       const { x, y } = rectCentre(grid.pageCell(i, capacity));
-      this.songRow(song, x, y - row / 4, grid.cardWidth);
+      if (song) this.songRow(song, x, y - row / 4, grid.cardWidth);
+      else this.newSongRow(x, y, grid.cardWidth);
     });
+    if (list.length === 0) {
+      const { x, y } = rectCentre(grid.pageCell(1, capacity));
+      this.label(x - grid.cardWidth / 2 + 6, y - 4, all.length > 0 ? t('songs.allOff') : t('songs.none'), C.umberDark, { shadow: false });
+    }
     if (slice.paged) {
       this.pager(slice, (page) => {
         this.page = page;
@@ -105,6 +114,39 @@ export class SongsScene extends PixelScene {
     this.infoClose = null;
     const open = this.infoId === null ? undefined : songs.pieceFor(songChartId(this.infoId));
     if (open) this.infoClose = this.own(drawPieceInfo({ scene: this, root: this.root, width, height, close: () => this.showInfo(null) }, open, 'song'));
+  }
+
+  /**
+   * "+ New song" (rule 12): a press asks the title in a field on this row; Enter makes the song with the defaults and one
+   * blank, kept on this device, and opens its song page. Esc, or an empty title, makes nothing.
+   */
+  private newSongRow(x: number, y: number, width: number): void {
+    const button = this.button({
+      x, y, width: width - 4, height: CARD_HEIGHT - 6, label: t('songs.new'), look: 'ink', align: 'left', labelWidth: width - 12,
+      onClick: () => {
+        // one field at a time: a second press keeps the one open
+        if (this.naming) return;
+        this.naming = true;
+        const r = button.rect;
+        openTextField(
+          { scene: this, root: this.root, scale: this.px.scale, x: r.x, y: r.y + (r.height - FIELD_HEIGHT) / 2, w: r.width, h: FIELD_HEIGHT },
+          {
+            value: '', label: t('song.titleLabel'), maxLength: 60,
+            onCancel: () => {
+              this.naming = false;
+            },
+            onDone: (title) => {
+              this.naming = false;
+              if (title === '') return;
+              void contextOf(this).ownSongs.create(title, t('song.newPart', { n: 1 })).then((song) => startScene(this, 'song', { songId: song.id }));
+            },
+          },
+        );
+      },
+    });
+    const rule = createBitmap(width - 4, 1);
+    rule.pixels.fill(C.umberLight);
+    this.root.add(new PixelImage(this, x - width / 2 + 2, y + CARD_HEIGHT / 2 - 2, rule).setName('rowRule').setAlpha(0.6));
   }
 
   /** One song: its title (opens the song page) with its tempo and key, and under it the stars, the bars written of planned, the parts and the buttons. */

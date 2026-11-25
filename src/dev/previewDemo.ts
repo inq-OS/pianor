@@ -1,4 +1,5 @@
 import { OwnPieces } from '../game/editor/OwnPieces';
+import { OwnSongs } from '../game/OwnSongs';
 import { browserTextFiles } from '../io/files/textFiles';
 import { MemoryStore } from '../io/storage/MemoryStore';
 import { createAdminAccess } from '../io/admin/adminAccess';
@@ -83,7 +84,7 @@ export async function startPreview(): Promise<void> {
   const songs = new SongCatalogue({ files: [], showDrafts: true, piece: (id) => pieces.find(id), partsOff: () => [] });
   const { actors, editor, learn, demo, staffDemo, sky } = appConfig.flags;
   const context: GameContext = {
-    keyboard: inputs.keyboard, lights: inputs.lights, midi: null, audio, profiles, flags: { actors, editor, learn, demo, staffDemo, sky, devTools: true, autoplay: false, draftsShown: true, pageBase: window.location.href, intro: 'off' as const }, pieces, songs, ownPieces,
+    keyboard: inputs.keyboard, lights: inputs.lights, midi: null, audio, profiles, flags: { actors, editor, learn, demo, staffDemo, sky, devTools: true, autoplay: false, draftsShown: true, pageBase: window.location.href, intro: 'off' as const }, pieces, songs, ownPieces, ownSongs: await OwnSongs.load(new MemoryStore()),
     files: browserTextFiles, savesPersist: false, admin: createAdminAccess(new MemoryStore()), teacher: createTeacherDesk(new MemoryStore()), adminSettings: { ...DEFAULT_ADMIN_SETTINGS },
     // the preview page shows no toolbar: a switch that does nothing
     keyboardSwitch: { shown: () => true, toggle: () => {}, enabled: () => true, onChange: () => () => {} },
