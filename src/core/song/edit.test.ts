@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { addNode, freeNodeId, moveNode, newSong, removeNode, renameNode, setValue, writeBlank } from './edit.ts';
+import { addNode, freeNodeId, linkTargets, moveNode, newSong, removeNode, renameNode, setValue, valuesAt, writeBlank } from './edit.ts';
+import { resolveSong } from './resolve.ts';
 import { songSchema, walkSong, type Song, type SongNode } from './schema.ts';
 
 const blank = (id: string, name = id): SongNode => ({ kind: 'blank', id, name, bars: 8 });
@@ -82,5 +83,31 @@ describe('values and written parts (ft_1_36 rules 3, 11 and 12)', () => {
     expect(songSchema.safeParse(written).success).toBe(true);
     // a node that is no blank stays as it is
     expect(writeBlank(written, 'chorus', 'own-other')).toEqual(written);
+  });
+});
+
+describe('a new piece and a link at a place (ft_1_36 rules 1 and 17)', () => {
+  const facts = () => ({ title: 'X', bars: 4, bpm: 80, key: { fifths: 0, mode: 'major' as const }, meter: { num: 4, den: 4 }, phrases: [] });
+  /** a, a group g (its own tempo 100) holding the piece p, then the piece q. */
+  function placed(): Song {
+    return { ...sample(), nodes: [blank('a'), { kind: 'group', id: 'g', name: 'G', bpm: 100, nodes: [{ kind: 'piece', id: 'p', piece: 'own-p' }] }, { kind: 'piece', id: 'q', piece: 'own-q' }] };
+  }
+
+  it('ft_1_36.AC21 a new piece takes the values of its place: after a row what that row follows, inside a group the group\'s, at the end the song\'s', () => {
+    const song = placed();
+    const rows = resolveSong(song, facts).rows;
+    expect(valuesAt(song, rows, { after: 'p' }).bpm).toBe(100);
+    expect(valuesAt(song, rows, { inside: 'g' }).bpm).toBe(100);
+    expect(valuesAt(song, rows, { after: 'g' }).bpm).toBe(80);
+    expect(valuesAt(song, rows, 'end').bpm).toBe(80);
+  });
+
+  it('ft_1_36.AC21 a link may play only a piece before its place, a group\'s own pieces included after the group', () => {
+    const rows = resolveSong(placed(), facts).rows;
+    expect(linkTargets(rows, { after: 'a' }).map((r) => r.id)).toEqual([]);
+    expect(linkTargets(rows, { after: 'g' }).map((r) => r.id)).toEqual(['p']);
+    expect(linkTargets(rows, { inside: 'g' }).map((r) => r.id)).toEqual(['p']);
+    expect(linkTargets(rows, 'end').map((r) => r.id)).toEqual(['p', 'q']);
+    expect(linkTargets(rows, { after: 'gone' })).toEqual([]);
   });
 });

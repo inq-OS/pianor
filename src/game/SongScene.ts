@@ -4,7 +4,7 @@ import { rectCentre } from '../core/layout/rect';
 import { keyName, meterName, pieceOutline, rowPlay, shownRows, startFolded, type ShownRow } from '../core/song/outline';
 import { pieceFactsOf, type ResolvedSong, type RowValue, type SongRow } from '../core/song/resolve';
 import { walkSong, type Song, type SongNode, type SongValues } from '../core/song/schema';
-import { addNode, freeNodeId, moveNode, removeNode, renameNode, setValue, NEW_BLANK_BARS, type MoveKind, type Place } from '../core/song/edit';
+import { addNode, freeNodeId, moveNode, removeNode, renameNode, setValue, linkTargets, NEW_BLANK_BARS, type MoveKind, type Place } from '../core/song/edit';
 import { canRedo, canUndo, push, redo, startHistory, undo, type History } from '../core/editor/history';
 import { openTextField } from './ui/textField';
 import { keepsLastPartOn, labelOn, setLabelOn, setPartOn } from '../core/song/switches';
@@ -519,15 +519,7 @@ export class SongScene extends PixelScene {
 
   /** Slot 0's links (rule 1): each piece row before the place, played again here. */
   private linkChoices(song: Song, place: Place): MenuItem[] {
-    const rows = contextOf(this).songs.resolved(song).rows;
-    // a link comes after its piece: the rows before the place, a group's own rows too when the place is after it
-    let end = rows.length;
-    if (place !== 'end') {
-      const at = rows.findIndex((r) => r.id === ('after' in place ? place.after : place.inside));
-      end = at + 1;
-      while ('after' in place && end < rows.length && rows[end]!.depth > rows[at]!.depth) end++;
-    }
-    return rows.slice(0, end).filter((r) => r.kind === 'piece').map((r) => ({ ...this.addAt(song, r.name, place, { kind: 'link', id: freeNodeId(song, `${r.id}-again`), to: r.id }), keepCase: true }));
+    return linkTargets(contextOf(this).songs.resolved(song).rows, place).map((r) => ({ ...this.addAt(song, r.name, place, { kind: 'link', id: freeNodeId(song, `${r.id}-again`), to: r.id }), keepCase: true }));
   }
 
   /**

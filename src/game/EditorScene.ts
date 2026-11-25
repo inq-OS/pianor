@@ -71,7 +71,7 @@ import { DEFAULT_THEME, StaffView } from './ui/staff/StaffView';
 import { PhotoOverlay, barsToFill, photoServer, sendPhoto, type PhotoReply } from './editor/photoImport';
 import { PhotoTool } from './editor/photoTool';
 import { CANCELLED, openOverlay, startScene } from './scenes';
-import { addNode, freeNodeId, writeBlank, type Place } from '../core/song/edit';
+import { addNode, freeNodeId, valuesAt, writeBlank, type Place } from '../core/song/edit';
 import type { SongValues } from '../core/song/schema';
 import { circleItem } from './CircleOfFifthsScene';
 import { STAFF_FONT } from './ui/staff/staffFont';
@@ -2631,7 +2631,7 @@ export class EditorScene extends PixelScene {
     const song = ownSongs.get(place.songId);
     if (!song) return null;
     const rows = songs.resolved(song).rows;
-    let values: SongValues = { bpm: song.bpm, key: song.key, meter: song.meter };
+    let values: SongValues;
     let title = t('editor.untitled');
     let bars = BARS_DEFAULT;
     if ('nodeId' in place) {
@@ -2640,12 +2640,8 @@ export class EditorScene extends PixelScene {
       values = { bpm: row.bpm.value, key: row.key.value, meter: row.meter.value };
       title = `${song.title}: ${row.name}`;
       bars = row.bars;
-    } else if (place.at !== 'end') {
-      // after a row it takes what that row would follow; inside a group, the group's values
-      const at = place.at;
-      const after = 'after' in at;
-      const row = rows.find((r) => r.id === (after ? at.after : at.inside));
-      if (row) values = after ? { bpm: row.bpm.parent, key: row.key.parent, meter: row.meter.parent } : { bpm: row.bpm.value, key: row.key.value, meter: row.meter.value };
+    } else {
+      values = valuesAt(song, rows, place.at);
     }
     const { meter } = values;
     const beats = meter.den === 4 && (meter.num === 2 || meter.num === 3 || meter.num === 4) ? meter.num : 4;
@@ -2821,7 +2817,11 @@ export class EditorScene extends PixelScene {
   private async exportFile(): Promise<void> {
     const context = contextOf(this);
     if (this.piece.notes.length === 0) return this.say(t('editor.empty'), MESSAGE_MS);
-    if (this.dirty() || !this.id) await this.save();
+    if (this.dirty() || !this.id) {
+      // a piece exported before its first save is kept on its own: the question where it goes is not asked over Export
+      this.whereChosen = true;
+      await this.save();
+    }
     const file = this.id ? context.ownPieces.exportFile(this.id) : null;
     if (!file) return;
     context.files.download(file.name, file.text);
