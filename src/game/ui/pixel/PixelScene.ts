@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { pagerBoxes } from '../../../core/layout/cardGrid';
 import type { PageSlice } from '../../../core/layout/paging';
 import { ART_DETAIL, FRAME_ROWS, VINE_ROWS, frameCorners, frameView, toolbarLayout, type FrameView } from '../../../core/layout/frame';
-import { BUBBLE_SLOTS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, twoFingerTap, twoFingersSlid, wheelChoice } from '../../../core/layout/bubble';
+import { BUBBLE_SLOTS, SLIDER_CELLS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, sliderArc, sliderFraction, sliderPoint, sliderStep, twoFingerTap, twoFingersSlid, wheelChoice, type BubbleLayout, type SliderArc } from '../../../core/layout/bubble';
 import type { PixelView } from '../../../core/layout/pixelView';
 import { rectCentre, type Rect } from '../../../core/layout/rect';
 import { dropMenuLayout } from '../../../core/layout/dropMenu';
@@ -16,7 +16,7 @@ import { signOnly } from './itemArt';
 import { PALETTE, C } from './palette';
 import { createBitmap, recolor, type Bitmap } from './bitmap';
 import { LiveImage, PixelBar, PixelButton, PixelImage, PixelText, type PixelButtonOptions, type RgbaArt } from './PixelObjects';
-import { BACKPACK, BUBBLE_ALPHA, choicesSausage, stripBitmap, wornChip } from './bubbleArt';
+import { BACKPACK, BUBBLE_ALPHA, choicePatch, choicesSausage, CHOICE_SIZE, stripBitmap, wornChip } from './bubbleArt';
 import { LiveWaterPlayer } from './liveWater';
 import type { LiveWater } from './paint/live';
 import { TITLE_X, TOP_BAR } from './playBars';
@@ -70,7 +70,43 @@ export interface ToolbarItem {
   worn?: boolean;
   /** A bubble option's preview (d286): drawn while the pointer rests on it, taken away when it leaves or the bubble closes. */
   preview?: (on: boolean) => void;
+  /**
+   * A bubble option that sets a value in a range (ft_1_20.AC26): it opens a slider along the outer ring in place of
+   * choices. `change` shows each value while the knob is dragged (the preview, d286); `commit` keeps the one let go of
+   * (or set with the arrow keys); a drag given up with Esc shows `value` again.
+   */
+  slider?: BubbleSlider;
   onClick: () => void;
+}
+
+/** The choices an open bubble option shows on the outer ring: none for a slider (ft_1_20.AC26), which has a track there. */
+function ringChoices(open: ToolbarItem | null | undefined): readonly (MenuItem | null)[] {
+  if (!open || open.slider) return [];
+  return open.menu?.items() ?? [];
+}
+
+/** An open slider: its option, the value shown, whether its knob is held, and how it is moved (`keep` keeps the value). */
+interface OpenSlider {
+  item: BubbleSlider;
+  /** Its track, in art pixels. */
+  arc: SliderArc;
+  value: number;
+  /** The value kept last (the one a drag given up goes back to). */
+  kept: number;
+  dragging: boolean;
+  set: (value: number, keep: boolean) => void;
+}
+
+/** A slider in the bubble (ft_1_20.AC26): its value now, its range and steps, and what showing and keeping a value do. */
+export interface BubbleSlider {
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  change: (value: number) => void;
+  commit: (value: number) => void;
+  /** A drag given up (Esc, or the bubble closed while the knob is held): the screen takes its preview away. */
+  cancel?: () => void;
 }
 
 /** A layer drawn over the staff (which draws at depth 8 to 10) and under a drop-down menu: Kiur, his bubble, an open panel. */
@@ -239,7 +275,7 @@ export abstract class PixelScene extends Phaser.Scene {
   private visit = 0;
   /** The open drop-down menu, if any: its container and its choices (which are also in `buttons` while it is open). */
   /** The open menu; `previews` are its choices' previews, taken away when it closes (a closing menu sends no pointer-out). */
-  private menu: { container: Phaser.GameObjects.Container; buttons: PixelButton[]; focusBefore: number; bubble?: boolean; ring?: PixelButton[]; previews?: ((on: boolean) => void)[] } | null = null;
+  private menu: { container: Phaser.GameObjects.Container; buttons: PixelButton[]; focusBefore: number; bubble?: boolean; ring?: PixelButton[]; previews?: ((on: boolean) => void)[]; slider?: OpenSlider } | null = null;
   /** F1 in the piece maker: every band item with a key shows it in its corner. */
   protected shortcutsShown = false;
   /** The band's buttons by their key, as last drawn: a key opens its item's menu from the item. */
@@ -674,6 +710,11 @@ export abstract class PixelScene extends Phaser.Scene {
     const menu = this.menu;
     if (!menu) return;
     this.menu = null;
+    // a drag given up shows the value it started from again
+    if (menu.slider?.dragging) {
+      menu.slider.item.change(menu.slider.kept);
+      menu.slider.item.cancel?.();
+    }
     for (const preview of menu.previews ?? []) preview(false);
     this.buttons = this.buttons.filter((b) => !menu.buttons.includes(b));
     menu.buttons.forEach((b) => b.destroy());
@@ -1280,6 +1321,17 @@ export abstract class PixelScene extends Phaser.Scene {
   }
 
   /** Esc closes an open menu or bubble before the screen sees it; the context-menu key and Shift + F10 open the bubble at the focus. */
+  /** With a slider open, left and right move its knob a step and keep the value (ft_1_20.AC26); true when taken. */
+  private sliderKey(e: KeyboardEvent): boolean {
+    const slider = this.menu?.slider;
+    if (!slider || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return false;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    const { item } = slider;
+    slider.set(Math.min(item.max, Math.max(item.min, slider.value + (e.key === 'ArrowRight' ? item.step : -item.step))), true);
+    return true;
+  }
+
   private bubbleKey(e: KeyboardEvent): void {
     if (this.sys.isPaused() || !this.scene.isActive()) return;
     if (e.key === 'Escape' && this.menuOpen) {
@@ -1288,6 +1340,7 @@ export abstract class PixelScene extends Phaser.Scene {
       this.closeMenu();
       return;
     }
+    if (this.sliderKey(e)) return;
     // in the bubble the arrows walk its options round the ring: right and down clockwise, left and up back (ft_1_20, d282)
     const ring = this.menu?.ring?.filter((b) => !b.disabled) ?? [];
     const walk = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
@@ -1348,8 +1401,8 @@ export abstract class PixelScene extends Phaser.Scene {
     if (at === null && strip) bounds.h = this.mainRows - top;
     const centre = at ?? (more ? { x: more.x + more.w / 2, y: more.y } : { x: bounds.w / 2, y: bounds.y + bounds.h / 2 });
     const open = options.open !== undefined ? listed[paging.slots[options.open] as number] : undefined;
-    const choices = open?.menu?.items() ?? [];
-    const layout = bubbleLayout({ at: centre, options: BUBBLE_SLOTS, screen: bounds, ...(open && options.open !== undefined ? { open: { option: options.open, choices: choices.length } } : {}) });
+    const choices = ringChoices(open);
+    const layout = bubbleLayout({ at: centre, options: BUBBLE_SLOTS, screen: bounds, ...(open && options.open !== undefined ? { open: { option: options.open, choices: open.slider ? SLIDER_CELLS : choices.length } } : {}) });
     const container = this.add.container(this.root.x, this.root.y).setScale(this.px.scale).setDepth(MENU_DEPTH);
     // the catcher takes every press outside the bubble and closes it on release, so the press never reaches the screen
     // under it; the lift of the long press that opened it is not such a press
@@ -1357,7 +1410,20 @@ export abstract class PixelScene extends Phaser.Scene {
     // a press inside the ring but between the options picks the option in that direction (a slice of the ring each), so a
     // quick move toward an option is enough; outside the ring it closes the bubble
     const sectorPick: ((() => void) | null)[] = [];
+    const held: { slider?: OpenSlider | undefined } = {};
     catcher.on('pointerup', (p: Phaser.Input.Pointer) => {
+      const slider = held.slider;
+      if (slider?.dragging) {
+        slider.dragging = false;
+        slider.set(slider.value, true);
+        return;
+      }
+      // a press that just misses the open slider's track leaves the bubble open
+      if (slider) {
+        const a = this.artPoint(p);
+        const d = Math.hypot(a.x - slider.arc.centre.x, a.y - slider.arc.centre.y);
+        if (d > layout.area.w / 2 && d <= slider.arc.radius + CHOICE_SIZE) return;
+      }
       if (this.bubbleFreshTouch) {
         this.bubbleFreshTouch = false;
         return;
@@ -1424,7 +1490,7 @@ export abstract class PixelScene extends Phaser.Scene {
       const item = slot === null ? null : listed[slot];
       if (!item) return;
       const pick = () => {
-        if (item.menu) {
+        if (item.menu || item.slider) {
           this.openBubble(at, options.open === i ? {} : { open: i });
           return;
         }
@@ -1436,6 +1502,7 @@ export abstract class PixelScene extends Phaser.Scene {
       ring.push(make(r, item, pick, item.preview));
       if (!item.disabled) sectorPick[i] = pick;
     });
+    held.slider = this.mountSlider(container, catcher, layout, open?.slider);
     choices.forEach((choice, j) => {
       const r = layout.choices[j];
       if (!choice || !r) return;
@@ -1447,9 +1514,66 @@ export abstract class PixelScene extends Phaser.Scene {
     });
     make(layout.close, { label: t('band.close'), icon: TOOL_ICONS.close, onClick: () => undefined }, () => this.closeMenu(), undefined, 'bubbleClose');
     const optionPreviews = paging.slots.flatMap((slot) => (typeof slot === 'number' && listed[slot]?.preview ? [listed[slot].preview] : []));
-    this.menu = { container, buttons, focusBefore: this.focusIndex, bubble: true, ring, previews: [...optionPreviews, ...choices.flatMap((choice) => (choice?.preview ? [choice.preview] : []))] };
+    this.menu = { container, buttons, focusBefore: this.focusIndex, bubble: true, ring, previews: [...optionPreviews, ...choices.flatMap((choice) => (choice?.preview ? [choice.preview] : []))], ...(held.slider ? { slider: held.slider } : {}) };
     this.buttons.push(...buttons);
     if (options.keyboard || this.keyboardNavigation) this.focusOn(ring.find((b) => !b.disabled) ?? buttons[0]);
+  }
+
+  /**
+   * An open option's slider (ft_1_20.AC26), drawn on its sausage: the knob follows a press and a drag on its track (the
+   * catcher hears them), and the value let go of is kept; none for an option without one.
+   */
+  private mountSlider(container: Phaser.GameObjects.Container, catcher: Phaser.GameObjects.Zone, layout: BubbleLayout, item: BubbleSlider | undefined): OpenSlider | undefined {
+    const arc = item ? sliderArc(layout) : null;
+    if (!item || !arc) return undefined;
+    const slider = this.drawSlider(container, arc, item);
+    const onTrack = (a: { x: number; y: number }) => {
+      const k = sliderPoint(arc, sliderFraction(arc, a));
+      return Math.hypot(a.x - k.x, a.y - k.y) <= CHOICE_SIZE / 2 + 3;
+    };
+    catcher.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      const a = this.artPoint(p);
+      if (p.rightButtonDown() || !onTrack(a)) return;
+      slider.dragging = true;
+      slider.set(sliderStep(sliderFraction(arc, a), item), false);
+    });
+    catcher.on('pointermove', (p: Phaser.Input.Pointer) => {
+      if (slider.dragging) slider.set(sliderStep(sliderFraction(arc, this.artPoint(p)), item), false);
+    });
+    return slider;
+  }
+
+  /**
+   * The slider (ft_1_20.AC26) on its sausage: a row of dots along the track, gold up to the knob and faint past it, and the
+   * gold-rimmed patch as the knob; moving it shows each value (`change`) and keeps one (`commit`).
+   */
+  private drawSlider(container: Phaser.GameObjects.Container, arc: SliderArc, item: BubbleSlider): OpenSlider {
+    const track = this.add.graphics();
+    const knob = new PixelImage(this, 0, 0, choicePatch('on'));
+    container.add([track, knob]);
+    const span = Math.abs(arc.to - arc.from) * arc.radius;
+    const range = item.max - item.min;
+    const state: OpenSlider = {
+      item, arc, value: item.value, kept: item.value, dragging: false,
+      set: (value, keep) => {
+        state.value = value;
+        const f = range > 0 ? (value - item.min) / range : 0;
+        track.clear();
+        for (let d = 0; d <= span; d += 2) {
+          const p = sliderPoint(arc, d / span);
+          track.fillStyle(PALETTE[d / span <= f ? C.goldLight : C.dim] ?? 0xffffff, 1).fillRect(Math.round(p.x), Math.round(p.y), 1, 1);
+        }
+        const k = sliderPoint(arc, f);
+        knob.setPosition(Math.round(k.x - CHOICE_SIZE / 2), Math.round(k.y - CHOICE_SIZE / 2));
+        item.change(value);
+        if (keep) {
+          state.kept = value;
+          item.commit(value);
+        }
+      },
+    };
+    state.set(item.value, false);
+    return state;
   }
 
   /**

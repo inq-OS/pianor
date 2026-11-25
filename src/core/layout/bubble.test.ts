@@ -1,6 +1,6 @@
 // Covers ft_1_20 (actions in a bubble, a pinned strip and a backpack, d282).
 import { describe, expect, it } from 'vitest';
-import { BUBBLE_SLOTS, PIN_COLUMNS, PINCH_SLIDE, PIN_ROWS, TAP_SLIP, TWO_FINGER_TOGETHER_MS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, twoFingerTap, twoFingersSlid, wheelChoice } from './bubble';
+import { BUBBLE_SLOTS, SLIDER_CELLS, PIN_COLUMNS, sliderArc, sliderFraction, sliderPoint, sliderStep, PINCH_SLIDE, PIN_ROWS, TAP_SLIP, TWO_FINGER_TOGETHER_MS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, twoFingerTap, twoFingersSlid, wheelChoice } from './bubble';
 import { rectBottom, rectRight, type Rect } from './rect';
 
 const SCREEN = { w: 320, h: 180 };
@@ -184,5 +184,42 @@ describe('the two-finger tap on a touch screen (ft_1_20.AC25)', () => {
     const start = [{ x: 100, y: 200 }, { x: 300, y: 260 }];
     expect(twoFingersSlid(start, [{ x: 104, y: 200 }, { x: 300, y: 255 }])).toBe(false);
     expect(twoFingersSlid(start, [{ x: 100 - PINCH_SLIDE - 1, y: 200 }, { x: 300, y: 260 }])).toBe(true);
+  });
+});
+
+describe('a slider on the outer ring (ft_1_20.AC26)', () => {
+  const layout = bubbleLayout({ at: { x: 160, y: 90 }, options: BUBBLE_SLOTS, screen: SCREEN, open: { option: 2, choices: SLIDER_CELLS } });
+  const arc = sliderArc(layout)!;
+  const middle = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+
+  it('ft_1_20.AC26 runs along the outer ring where the choices would be, its least at the first and its most at the last', () => {
+    expect(sliderPoint(arc, 0).x).toBeCloseTo(middle(layout.choices[0]!).x, 0);
+    expect(sliderPoint(arc, 0).y).toBeCloseTo(middle(layout.choices[0]!).y, 0);
+    expect(sliderPoint(arc, 1).x).toBeCloseTo(middle(layout.choices.at(-1)!).x, 0);
+    expect(sliderPoint(arc, 1).y).toBeCloseTo(middle(layout.choices.at(-1)!).y, 0);
+    expect(sliderArc({ ...layout, choices: [] })).toBeNull();
+  });
+
+  it('ft_1_20.AC26 reads where the pointer is along it, the nearer end past either end', () => {
+    for (const f of [0, 0.3, 0.5, 1]) expect(sliderFraction(arc, sliderPoint(arc, f))).toBeCloseTo(f);
+    // farther out or nearer in on the same line of the ring reads the same
+    const p = sliderPoint(arc, 0.7);
+    const out = { x: arc.centre.x + (p.x - arc.centre.x) * 1.2, y: arc.centre.y + (p.y - arc.centre.y) * 1.2 };
+    expect(sliderFraction(arc, out)).toBeCloseTo(0.7);
+    // round the ring past the last cell: the most; past the first: the least
+    const past = (f: number) => {
+      const a = arc.from + f * (arc.to - arc.from);
+      return { x: arc.centre.x + arc.radius * Math.cos(a), y: arc.centre.y + arc.radius * Math.sin(a) };
+    };
+    expect(sliderFraction(arc, past(1.3))).toBe(1);
+    expect(sliderFraction(arc, past(-0.3))).toBe(0);
+  });
+
+  it('ft_1_20.AC26 snaps a value to its steps between its least and its most', () => {
+    const range = { min: 0, max: 1.5, step: 0.1 };
+    expect(sliderStep(0, range)).toBe(0);
+    expect(sliderStep(1, range)).toBe(1.5);
+    expect(sliderStep(0.5, range)).toBeCloseTo(0.8);
+    expect(sliderStep(2, range)).toBe(1.5);
   });
 });

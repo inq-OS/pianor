@@ -12,6 +12,7 @@ import { VIEW } from './roomView';
 import { ART_DETAIL } from '../../../../core/layout/frame';
 import { ROOM, ROOM_OBJECTS, ROOM_PRESSABLES, pieceCorners, projectBounds } from '../../../../core/layout/room';
 import { WOBBLE } from '../paint/painter';
+import { lchOf } from '../paint/lab';
 import { stripArt } from './stripArt';
 
 const art = roomArt(null);
@@ -36,6 +37,15 @@ describe('the painted warden\'s room (ft_1_18.AC3)', () => {
   beforeAll(() => {
     for (const phase of ['day', 'night'] as const) rooms[phase] = paintRoom(plan.fine, plan.camera, phase, plan, art);
   }, 480_000);
+
+  it('ft_1_20.AC2 the lower left near the viewer is drawn: by night the near things take the moon\'s low light and are not one near-black mass', () => {
+    const { w, h } = plan.fine;
+    const look = rooms.night.looks[1]!, palette = rooms.night.palette;
+    let dark = 0, all = 0;
+    for (let y = Math.round(h * 0.6); y < h; y++) for (let x = 0; x < Math.round(w * 0.3); x++, all++) if (lchOf(palette[look.pixels[y * w + x]!]!).l < 12) dark++;
+    // before the near fill 95% of it was under L* 12
+    expect(dark / all).toBeLessThan(0.88);
+  });
 
   it('ft_1_18.AC3 the room\'s palette is the game\'s own for the hour, the room\'s shades after it, then the island\'s shared runs the view in the windows is painted from', () => {
     const shades = Object.values(ROOM_RUNS).flat().length + 2;

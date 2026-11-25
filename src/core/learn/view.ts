@@ -5,9 +5,10 @@ import type { LearnRewards } from './progress';
 /**
  * What the staff draws for a learning run (ft_1_32.AC20): the whole piece, so the staff stays where it is from step to step,
  * with the bars outside the run very faint (`faint`, ranges of bars, inclusive). The run's notes come first, in the order the
- * judge's chart has them, so a note's index is the same in both and the judge never waits for a faint one.
+ * judge's chart has them, so a note's index is the same in both and the judge never waits for a faint one. `offset` is the
+ * tick of the run's first bar in the piece: a tick of the judge's chart plus it is the same moment on the staff.
  */
-export function shownWithPiece(piece: Chart, step: LearnStep): { chart: Chart; faint: { from: number; to: number }[] } {
+export function shownWithPiece(piece: Chart, step: LearnStep): { chart: Chart; faint: { from: number; to: number }[]; offset: number } {
   const chart = handChart(piece, step.hand);
   const inRun = (bar: number) => bar >= step.firstBar && bar <= step.lastBar;
   const notes = [...chart.notes.filter((n) => inRun(n.bar)), ...chart.notes.filter((n) => !inRun(n.bar))];
@@ -16,7 +17,7 @@ export function shownWithPiece(piece: Chart, step: LearnStep): { chart: Chart; f
     ...(step.firstBar > 0 ? [{ from: 0, to: step.firstBar - 1 }] : []),
     ...(step.lastBar < last ? [{ from: step.lastBar + 1, to: last }] : []),
   ];
-  return { chart: { ...chart, notes }, faint };
+  return { chart: { ...chart, notes }, faint, offset: piece.bars[step.firstBar]!.startTick };
 }
 
 /**
