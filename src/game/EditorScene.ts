@@ -2933,7 +2933,7 @@ export class EditorScene extends PixelScene {
       saved.push(result.id);
     }
     // the strips are a help, not the piece: a failure to write them leaves the parts and the song as they are
-    await sendParts(book, parts.flatMap((p, i) => (ids[i] ? [{ id: ids[i]!, movement: p.movement, firstBar: p.firstBar, lastBar: p.lastBar }] : [])));
+    await sendParts(book, parts.flatMap((p, i) => { const id = ids[i]; return id ? [{ id, movement: p.movement, firstBar: p.firstBar, lastBar: p.lastBar }] : []; }));
     const only = ids[0];
     if (parts.length === 1 && only) {
       const part = parts[0]!;
