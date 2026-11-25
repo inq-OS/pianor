@@ -41,7 +41,7 @@ describe('compiling an own piece', () => {
     if (edit.ok) p = edit.piece;
     const c = compileOwn(p, { id: 'own-wide', author: 'Mia' });
     expect(c.fitsLevels).toEqual([]);
-    expect(c.level).toBe(5);
+    expect(c.level).toBe(6);
     expect(c.problems[0]).toMatchObject({ severity: 'error' });
     expect(c.chart).not.toBeNull(); // no limits: it still plays
   });
