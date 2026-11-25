@@ -10,3 +10,4 @@ How notation is drawn (clefs, accidentals, key signature places, the grand staff
 | Page | What it covers | Used by |
 |---|---|---|
 | [circle-of-fifths.md](circle-of-fifths.md) | The fifteen keys, their signatures, relative minors, the enharmonic steps, our spelling choices, B and H names | [ft_1_28](../features/ft_1_28-circle-of-fifths.md), [ft_1_29](../features/ft_1_29-scales-and-chords.md), the piece maker's key choice |
+| [learning-catalog.md](learning-catalog.md) | Everything a piano student can learn, one row per topic with its id and what the game can do for it today | [ft_1_39](../features/ft_1_39-theory-lessons.md) |

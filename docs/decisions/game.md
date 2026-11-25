@@ -564,3 +564,11 @@ Check: `tests/e2e/kiur-door.spec.ts` "ft_1_15.AC8 a bash while the score of a pa
 A hint leads to a place, a press opens its close-up, a trainer runs there with one pacing shape (rounds that rise, a struggle rule, a rescue in the story, a best mark), and what was played leaves a lasting change derived from the logs and never taken back. A scene may hold such a job, so the island is where practice happens rather than a wrapper around it; nothing on the island must be solved before the student may play. The island's lore opens in layers by player level, each a deeper layer of Keri's real past, and the lighthouse is the long climb whose lantern is the game's summit, reached last.
 
 Check: untestable: a direction for the vision; each slice of ft_1_38 brings its own tests.
+
+## d303
+
+**The theory lesson book lists everything there is to learn, built or not: a topic with no lesson yet stands in it as a ghosted placeholder with its name only.** Features: ft_1_39.
+
+The list is `docs/theory/learning-catalog.md`, one row per topic with a fixed id and a status (trained, drawn, needs drawing, needs a feature, idea); a topic is added as a row and never deleted for not being built. Seeing the whole map shows what the game covers and keeps wanted topics from being forgotten.
+
+Check: untestable: the book that shows the list is not built yet; ft_1_39.AC1 tests it with slice 1.
