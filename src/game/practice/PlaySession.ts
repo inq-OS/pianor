@@ -6,7 +6,7 @@ import { firstPrintedBar, fullBarTicks, unrollRepeats, writtenTick, writtenView,
 import { DEFAULT_FOLLOW_RULES, TempoMode, WaitMode, type Hints, type TempoStart, type JudgeEvent, type NoteJudged, type PieceResult, type PlaySettings, type PlayState } from '../../core/judge';
 import { barNumbersToShow, type BarNumberSettings } from '../../core/layout/barNumbers';
 import type { PaceMark } from '../../core/layout/beat';
-import { laneDots, waveTick, type LaneLook } from '../../core/layout/beatLane';
+import { clickWaveTick, laneDots, waveTick, type LaneLook } from '../../core/layout/beatLane';
 import { PRIZE, prizeColumn, type PrizeColumn, type PrizeGlyph } from '../../core/layout/learnPrizes';
 import { CLEF_FLIGHT, grownBox } from '../../core/layout/clefFlight';
 import type { LearnRewards } from '../../core/learn/progress';
@@ -130,6 +130,8 @@ export class PlaySession {
   /** The beat lanes as the player tuned them (core_13 rules 2 and 10), and the latest right key: its tick on the staff and its time. */
   private laneLooks: readonly LaneLook[] = [];
   private laneAnchor: { tick: number; atMs: number } | null = null;
+  /** The staff tick of the next note awaited, for the bar a lane that follows the click runs in (core_13.AC9); null: the first bar. */
+  private cursorTick: number | null = null;
   /** The score of the pass just finished, drawn past the last bar (ft_1_12); empty when none is shown. */
   private passScore: Phaser.GameObjects.GameObject[] = [];
   /** The width of the area the staff was last drawn in: the sheet's, which the prizes' column keeps inside. */
@@ -218,6 +220,7 @@ export class PlaySession {
       },
       onJudged: (event, state) => {
         this.followKey(event);
+        this.followCursor(state);
         callbacks.onJudged(event, state);
       },
       onCompleted: (result) => callbacks.onCompleted(result),
@@ -250,19 +253,32 @@ export class PlaySession {
     if (this.laneAnchor?.tick !== tick) this.laneAnchor = { tick, atMs: event.timeMs };
   }
 
+  /** The next note awaited after a key: the bar where a lane that follows the click runs its wave. */
+  private followCursor(state: PlayState): void {
+    const next = state.awaiting[0];
+    const note = next === undefined ? undefined : this.chart.notes[next];
+    if (note) this.cursorTick = this.staffTick(note.tick);
+  }
+
   /**
    * Move the lane's wave to `nowMs` (core_13.AC1): in Tempo mode with the piece's clock, so it runs with the playhead and the
    * click; in Wait mode on from the latest right key at `msPerQuarter` (the click's, or the student's own pace in learning),
    * at most a bar on, where it waits for the next key; none with no pace. `marks` colour the keys played, by staff tick.
    */
-  moveLane(nowMs: number, msPerQuarter: number | null, marks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>>): void {
+  moveLane(nowMs: number, msPerQuarter: number | null, marks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>>, click?: { beat: { beatInBar: number; atMs: number } | null; msPerQuarter: number } | null): void {
     if (!this.view || this.laneLooks.length === 0) return;
     const drawn = this.drawn;
     const playTick = this.transport?.tickAt(nowMs) ?? null;
-    const wave = playTick !== null
-      ? (playTick < 0 ? null : this.staffTick(playTick))
-      : waveTick(this.laneAnchor, msPerQuarter === null ? null : msPerQuarter / drawn.ppq, nowMs, fullBarTicks(drawn.meterMap, drawn.ppq));
-    this.view.moveLane(wave, marks);
+    if (playTick !== null) {
+      // Tempo mode: the piece's clock is the click's, so every lane follows it
+      this.view.moveLane(playTick < 0 ? null : this.staffTick(playTick), marks);
+      return;
+    }
+    const wave = waveTick(this.laneAnchor, msPerQuarter === null ? null : msPerQuarter / drawn.ppq, nowMs, fullBarTicks(drawn.meterMap, drawn.ppq));
+    // a lane that follows the click runs on its beats, in the bar of the next note; with no click it follows the student
+    const at = this.cursorTick ?? this.laneAnchor?.tick ?? 0;
+    const bar = drawn.bars.find((b) => at >= b.startTick && at < b.endTick) ?? drawn.bars[0] ?? null;
+    this.view.moveLane(wave, marks, click ? clickWaveTick(bar, click.beat, click.msPerQuarter, nowMs, drawn.ppq) : undefined);
   }
 
   /** Tempo mode: move the playhead to where the piece is at `nowMs`. */

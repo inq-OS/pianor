@@ -39,6 +39,7 @@ import { BAR_BUTTON_HEIGHT, BAR_EDGE, BAR_GAP, BUBBLE_X, TITLE_X, TOP_BAR } from
 import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { LANE_ICONS } from './ui/pixel/laneArt';
+import { msPerBeat } from '../core/chart/time';
 import { openOverlay, startScene, type OverlayOutcome } from './scenes';
 import { goBackFrom, type SongReturn } from './songReturn';
 import { songIdOfChart, songStaffMarks } from '../core/song/songChart';
@@ -307,6 +308,8 @@ export class PracticeScene extends PixelScene {
   private paceMarks = new Map<number, Pick<PaceMark, 'side' | 'far'>>();
   /** Wait mode outside learning (core_13 rule 2): the keys of this pass and the student's own pace from them, for the lane. */
   private ownPace: { events: JudgeEvent[]; pace: LearnPace | null } | null = null;
+  /** The click heard last (its beat in the bar and time), for a lane that follows the click (core_13.AC9); null while silent. */
+  private heardBeat: { beatInBar: number; atMs: number } | null = null;
   /** The time of the latest key the learning click was started from (core_13.AC6). */
   private paceClickFrom: number | null = null;
   /** Turns the judge's events into the practice log's bar plays; null for a draft preview. */
@@ -604,6 +607,11 @@ export class PracticeScene extends PixelScene {
     this.paceMarks = new Map();
     this.paceClickFrom = null;
     this.ownPace = null;
+    this.heardBeat = null;
+    const offBeat = contextOf(this).audio.metronome.onBeat((beat) => {
+      if (this.metronomeOn) this.heardBeat = { beatInBar: beat.beatInBar, atMs: beat.atMs };
+    });
+    this.events.once('shutdown', offBeat);
     this.events.once('shutdown', () => {
       this.game.events.off(MIDI_CHANGED, midiChanged);
       offBubbleKey();
@@ -1014,6 +1022,7 @@ export class PracticeScene extends PixelScene {
   }
 
   private stopMetronome(): void {
+    this.heardBeat = null;
     if (!this.metronomeOn) return;
     this.metronomeOn = false;
     (contextOf(this)).audio.metronome.stop();
@@ -1265,12 +1274,12 @@ export class PracticeScene extends PixelScene {
   /** The beat dots in the bubble (core_13 rule 10): their tuning page over the piece; none in a draft preview. */
   private laneItem(): ToolbarItem | null {
     if (this.preview) return null;
-    return { label: t('settings.beatLanesTune'), icon: LANE_ICONS.between, disabled: this.listening, onClick: () => this.openLanes() };
+    return { label: t('lanes.title'), tooltip: t('settings.beatLanesTune'), icon: LANE_ICONS.between, disabled: this.listening, onClick: () => this.openLanes() };
   }
 
   /**
    * Tune the beat lanes over the paused piece (core_13 rule 10): the keys are muted and the click stops while the page is
-   * open, and the piece goes on where it was with the lanes as kept, as after the circle.
+   * open, and the piece goes on as after the circle: Wait mode where it was, Tempo mode from the pass's start.
    */
   private openLanes(): void {
     if (this.leaving || this.listening || this.atDoor) return;
@@ -1516,7 +1525,8 @@ export class PracticeScene extends PixelScene {
       { label: t('ui.hint.names'), icon: TOOL_ICONS[this.hints.noteNames ? 'noteNamesOn' : 'noteNames'], active: this.hints.noteNames, worn: true, shortcut: HOTKEYS.noteNames.letter, tooltip: hotkeyLabel(t('ui.hint.names'), 'noteNames'), onClick: () => this.toggle('noteNames') },
       { label: t('ui.hint.fingers'), icon: TOOL_ICONS.fingers, active: this.hints.fingers, worn: true, shortcut: HOTKEYS.fingers.letter, tooltip: hotkeyLabel(t('ui.hint.fingers'), 'fingers'), onClick: () => this.toggle('fingers') },
     ];
-    // the beat dots' tuning in the ramp's slot, which only a section uses (`AX-3 provisional:` the slot)
+    // the beat dots' tuning has the second slot, which a section gives to its tempo ramp: there the beat dots go after the
+    // rest, on the bubble's next page (`AX-3 provisional:` the slots)
     if (this.locked) return [null, this.asWritten ? null : this.laneItem(), null, null, null, null, ...worn];
     const section = this.startData.section;
     const sectionName = t(section ? 'practice.whole' : 'practice.section');
@@ -1529,6 +1539,7 @@ export class PracticeScene extends PixelScene {
       // the analysis of the whole piece: where it is tricky and what to practise (core_10)
       this.preview ? null : { label: t('analyze.button'), icon: TOOL_ICONS.analyse, onClick: () => this.openAnalysis() },
       ...worn,
+      ...(this.rampShown ? [this.laneItem()] : []),
     ];
   }
 
@@ -1644,7 +1655,10 @@ export class PracticeScene extends PixelScene {
   private moveLane(nowMs: number): void {
     if (this.listening) return;
     const clicking = !this.learn && this.metronomeOn ? clickPlan(this.chart, this.percent, this.clickOffset).bpm : null;
-    this.playSession.moveLane(nowMs, waveQuarterMs(clicking, this.livePace), this.paceMarks);
+    // a lane that follows the click: on the click's beats while it sounds (in learning, the click at the student's pace)
+    const clickMs = !this.metronomeOn ? null : this.learn ? this.learn.pace?.beatMs ?? null : msPerBeat(clickPlan(this.chart, this.percent, this.clickOffset).bpm);
+    const click = clickMs === null ? null : { beat: this.heardBeat, msPerQuarter: clickMs };
+    this.playSession.moveLane(nowMs, waveQuarterMs(clicking, this.livePace), this.paceMarks, click);
   }
 
   /** The student's own pace on the latest key: the learning run's, or this Wait-mode pass's; null in Tempo mode. */

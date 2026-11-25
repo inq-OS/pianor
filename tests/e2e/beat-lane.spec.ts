@@ -1,4 +1,4 @@
-// Covers core_13.AC1, core_13.AC2, core_13.AC5, core_13.AC6, core_13.AC7, core_13.AC8.
+// Covers core_13.AC1, core_13.AC2, core_13.AC5, core_13.AC6, core_13.AC7, core_13.AC8, core_13.AC9.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { bubbleOpen, clickButton, expectNoErrors, lastButton, openGame, openPiece, pressInBubble, pressPracticeButton as press, sceneButton, waitForScene } from './helpers';
@@ -11,7 +11,10 @@ const lane = (page: Page) => page.evaluate(() => {
 const running = (page: Page) => page.evaluate(() => window.__game.registry.get('context').audio.metronome.running as boolean);
 
 /** Where the lane's wave is now (a drawn tick), null with none. */
-const waveAt = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { staffView: { laneWave: number | null } | null } }).playSession.staffView?.laneWave ?? null);
+const waveAt = (page: Page) => page.evaluate(() => {
+  const view = (window.__game.scene.getScene('practice') as unknown as { playSession: { staffView: { laneWave: number | null; clickWave?: number | null } | null } }).playSession.staffView;
+  return view ? (view.clickWave !== undefined ? view.clickWave : view.laneWave) : null;
+});
 /** Mark the learning run on the practice screen, and whether the one there now is the one marked (a new step starts a new run). */
 const markRun = (page: Page) => page.evaluate(() => { (window.__game.scene.getScene('practice') as unknown as { learn: { marked?: boolean } }).learn.marked = true; });
 const sameRun = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { learn: { marked?: boolean } | null }).learn?.marked === true);
@@ -114,7 +117,7 @@ test.describe('the beat lane (core_13)', () => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
     await keysApart(page, [60], 0);
-    await pressInBubble(page, 'practice', 'Tune the beat dots: which dots, the wave, and where they run');
+    await pressInBubble(page, 'practice', 'Beat dots');
     await waitForScene(page, 'beat-lanes');
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key))).not.toContain('practice'); // paused under it
     await page.keyboard.press('Escape');
@@ -123,6 +126,21 @@ test.describe('the beat lane (core_13)', () => {
     // the piece goes on where it was: the next key is the second note
     await keysApart(page, [62], 0);
     await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { getState(): { stepIndex: number } } }).playSession.getState().stepIndex)).toBe(2);
+    expectNoErrors(errors);
+  });
+
+  test('core_13.AC9 a lane set to follow the click runs on the metronome\'s beats before any key, in the bar of the next note', async ({ page }) => {
+    const errors = await openGame(page);
+    await page.evaluate(() => window.__game.registry.get('context').profiles.updateLearnSettings({
+      beatLanes: [{ place: 'above', offset: 0, dots: { ghost: 1, beat: 1, top: 1, bottom: 1 }, wave: { height: 0.8, reach: 0.25 }, follow: 'click' }],
+    }));
+    await openPiece(page, 'Little Steps');
+    await press(page, 'Click');
+    await expect.poll(() => running(page)).toBe(true);
+    // no key played: a lane that follows the student would stand still, this one runs with the click
+    const seen = new Set<number>();
+    await expect.poll(async () => { const w = await waveAt(page); if (w !== null) seen.add(Math.round(w / 240)); return seen.size; }, { timeout: 6000 }).toBeGreaterThan(2);
+    expect(Math.max(...[...seen].map((q) => q * 240))).toBeLessThanOrEqual(1920); // within the first bar, where the next note is
     expectNoErrors(errors);
   });
 
