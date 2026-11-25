@@ -1,3 +1,4 @@
+import type { SongRow } from './resolve.ts';
 import { MAX_GROUP_DEPTH, SONG_SCHEMA_VERSION, songTreeProblems, walkSong, type Song, type SongNode, type SongValues } from './schema.ts';
 
 /** A new song's defaults (ft_1_36 rule 12, `AX-3 provisional:` 4/4, C major, 80 BPM) and its one blank's bars. */
@@ -175,4 +176,33 @@ export function writeBlank(song: Song, id: string, pieceId: string): Song {
   if (blank.meter) piece.meter = blank.meter;
   at.list[at.index] = piece;
   return next;
+}
+
+/**
+ * The values a new piece takes at a place (rule 17): after a row, what that row would follow (its parent's); inside a
+ * group, the group's; at the end, the song's. `rows` is the song resolved.
+ */
+export function valuesAt(song: Song, rows: readonly SongRow[], place: Place): SongValues {
+  const songValues: SongValues = { bpm: song.bpm, key: song.key, meter: song.meter };
+  if (place === 'end') return songValues;
+  const after = 'after' in place;
+  const row = rows.find((r) => r.id === (after ? place.after : place.inside));
+  if (!row) return songValues;
+  return after ? { bpm: row.bpm.parent, key: row.key.parent, meter: row.meter.parent } : { bpm: row.bpm.value, key: row.key.value, meter: row.meter.value };
+}
+
+/**
+ * The piece rows a link added at `place` may play again (rule 1: a link comes after its piece): those before the place,
+ * a group's own pieces too when the place is after the group or at its end. None for a place that is not in the song.
+ */
+export function linkTargets(rows: readonly SongRow[], place: Place): SongRow[] {
+  let end = rows.length;
+  if (place !== 'end') {
+    const at = rows.findIndex((r) => r.id === ('after' in place ? place.after : place.inside));
+    if (at < 0) return [];
+    end = at + 1;
+    // after a group or at a group's end: its own rows come before the link
+    while (end < rows.length && rows[end]!.depth > rows[at]!.depth) end++;
+  }
+  return rows.slice(0, end).filter((r) => r.kind === 'piece');
 }
