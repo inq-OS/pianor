@@ -27,6 +27,8 @@ const BOOK_GUTTER = 18;
 /** The small buttons of a row: a finger wide at the usual zoom, as the book's own. */
 const SMALL = 11;
 const SMALL_GAP = 3;
+/** The new song's title field, in layout cells: a line of big letters. */
+const FIELD_HEIGHT = 14;
 
 /**
  * The songs list (ft_1_36 rule 13), behind the piece book's song bookmark: the same open book, one row a song with what to
@@ -39,6 +41,8 @@ export class SongsScene extends PixelScene {
   /** The song whose info card is open, or null. */
   private infoId: string | null = null;
   private infoClose: PixelButton | null = null;
+  /** The new song's title field is open. */
+  private naming = false;
 
   protected override keyboardNavigation = true;
 
@@ -49,6 +53,7 @@ export class SongsScene extends PixelScene {
   init(): void {
     this.page = 0;
     this.infoId = null;
+    this.naming = false;
   }
 
   /** Esc and Back: close an open info card, else back to the piece book. */
@@ -119,12 +124,19 @@ export class SongsScene extends PixelScene {
     const button = this.button({
       x, y, width: width - 4, height: CARD_HEIGHT - 6, label: t('songs.new'), look: 'ink', align: 'left', labelWidth: width - 12,
       onClick: () => {
-        const { x: left, y: top } = button.rect;
+        // one field at a time: a second press keeps the one open
+        if (this.naming) return;
+        this.naming = true;
+        const r = button.rect;
         openTextField(
-          { scene: this, root: this.root, scale: this.px.scale, x: left, y: top + 4, w: width - 4, h: 14 },
+          { scene: this, root: this.root, scale: this.px.scale, x: r.x, y: r.y + (r.height - FIELD_HEIGHT) / 2, w: r.width, h: FIELD_HEIGHT },
           {
-            value: '', label: t('song.titleLabel'), maxLength: 60, onCancel: () => undefined,
+            value: '', label: t('song.titleLabel'), maxLength: 60,
+            onCancel: () => {
+              this.naming = false;
+            },
             onDone: (title) => {
+              this.naming = false;
               if (title === '') return;
               void contextOf(this).ownSongs.create(title, t('song.newPart', { n: 1 })).then((song) => startScene(this, 'song', { songId: song.id }));
             },

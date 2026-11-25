@@ -47,7 +47,7 @@ const STARS = GRADE_STARS * (STAR_FULL.width + 1) - 1;
 /** How long "One part must stay on." stays. */
 const NOTICE_MS = 3000;
 /** A choice of the bubble's Add and Move, in layout cells. */
-const CHOICE_CELL = { w: 74, h: 12 };
+const CHOICE_CELL = { w: 64, h: 12 };
 
 /** What the song page is opened with: a song, or a piece with parts and no song (its phrases as the rows, ft_1_36.AC13). */
 export type SongData = { songId: string } | { chartId: string };
@@ -151,6 +151,11 @@ export class SongScene extends PixelScene {
   protected override screenKey(e: KeyboardEvent): boolean {
     const outline = this.outline();
     if (this.undoKey(e)) return true;
+    if (e.key === 'Delete' && this.history) {
+      const node = this.selectedNode(this.history.present);
+      if (node) this.remove(this.history.present, node);
+      return node !== undefined;
+    }
     if (!outline || this.focusedButton) return false;
     const ours = ['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', ' ', 'Enter', 'PageUp', 'PageDown'];
     if (!ours.includes(e.key)) return false;
@@ -273,7 +278,6 @@ export class SongScene extends PixelScene {
     }
   }
 
-  /** The labels of the song's parts, in the order of the ready-made list first: a switch each in the strip (rule 16). */
   /** The own song being edited (rule 12), or null: a bundled song, and a piece's own parts, are read only. */
   private get ownSong(): Song | null {
     return this.history?.present ?? null;
@@ -293,9 +297,17 @@ export class SongScene extends PixelScene {
 
   private keep(): void {
     if (!this.history) return;
+    // an open name field belongs to the tree as it was: it goes
+    this.closeField?.();
+    this.closeField = null;
     const song = this.history.present;
-    void contextOf(this).ownSongs.save(song);
-    if (this.selected !== null && !walkSong(song.nodes).some(({ node }) => node.id === this.selected)) this.selected = null;
+    const { ownSongs, profiles } = contextOf(this);
+    void ownSongs.save(song);
+    const ids = new Set(walkSong(song.nodes).map(({ node }) => node.id));
+    if (this.selected !== null && !ids.has(this.selected)) this.selected = null;
+    // the player's switches forget rows that left the song, so a row put back or made again comes back on
+    const off = profiles.songPartsOff(song.id);
+    if (off.some((id) => !ids.has(id))) void profiles.setSongPartsOff(song.id, off.filter((id) => ids.has(id)));
     this.redraw();
   }
 
@@ -380,14 +392,23 @@ export class SongScene extends PixelScene {
       const name = t('song.newGroup', { n: walkSong(song.nodes).filter(({ node: n }) => n.kind === 'group').length + 1 });
       return { kind: 'group', id: freeNodeId(song, name), name, nodes: [blank()] };
     };
-    const add = (at: Parameters<typeof addNode>[1], made: SongNode) => {
-      this.selected = made.id;
-      this.commit(addNode(song, at, made));
+    // each choice shows where the new row will stand while the pointer rests on it (d286)
+    const choice = (label: string, at: Parameters<typeof addNode>[1], make: () => SongNode): MenuItem => {
+      const made = make();
+      const next = addNode(song, at, made);
+      return {
+        label,
+        preview: (on) => this.showLanding(on ? next : null, made.id),
+        onPick: () => {
+          this.selected = made.id;
+          this.commit(next);
+        },
+      };
     };
     return [
-      { label: t('song.addPart'), onPick: () => add(place, blank()) },
-      { label: t('song.addGroup'), onPick: () => add(place, group()) },
-      ...(node?.kind === 'group' ? [{ label: t('song.addInside'), onPick: () => add({ inside: node.id }, blank()) }] : []),
+      choice(t('song.addPart'), place, blank),
+      choice(t('song.addGroup'), place, group),
+      ...(node?.kind === 'group' ? [choice(t('song.addInside'), { inside: node.id }, blank)] : []),
     ];
   }
 
@@ -443,8 +464,9 @@ export class SongScene extends PixelScene {
         value: current, label: t(node ? 'song.partName' : 'song.titleLabel'), maxLength: 60,
         onDone: (value) => {
           this.closeField = null;
-          if (value === '' || value === current) return;
-          this.commit(node ? renameNode(song, node.id, value) : { ...song, title: value });
+          const now = this.history?.present;
+          if (!now || value === '' || value === current) return;
+          this.commit(node ? renameNode(now, node.id, value) : { ...now, title: value });
         },
         onCancel: () => {
           this.closeField = null;
@@ -470,6 +492,7 @@ export class SongScene extends PixelScene {
     this.say(t('song.removed', { name }), null);
   }
 
+  /** The labels of the song's parts, in the order of the ready-made list first: a switch each in the strip (rule 16). */
   private labels(outline: ResolvedSong): string[] {
     const words = [...new Set(outline.rows.flatMap((r) => r.labels))];
     return words;

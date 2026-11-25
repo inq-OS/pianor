@@ -90,6 +90,7 @@ Slice 4:
 ## TODO
 
 - TODO(builder, R2): the rest of slice 3: slots 2 to 5 (tempo, key, meter with Follow the song; write a blank and edit a piece in the piece maker), a new piece, an own piece and a link added from slot 0, saving a new piece into a song and moving an own piece into one (rules 17 and 18), dragging rows, the key change that transposes, songs as files.
+- TODO(builder, R2): the landing line of Add and Move shows while the pointer rests on a choice; a tablet and the keyboard need it too (on focus, or a first tap that shows and a second that picks), as every drop-down's preview (d286).
 - TODO(builder, R2): a part with its own key or meter inside a song: the staff layout draws one key and one meter per piece (`UnsupportedNotationError`), so such a song does not draw yet; draw the key and time signature changes and a tempo mark where a part sets its own (rule 7, AC9).
 - TODO(painter, R2): a part's name over its first bar is the section ink in the staff font, without the bracket rule 7 names.
 - TODO(painter, R2): the song bookmark, the marks of a link and a blank on the song page, and the song map's blocks.

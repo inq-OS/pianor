@@ -48,7 +48,7 @@ export function openTextField(place: FieldPlace, options: TextFieldOptions): () 
     const height = place.h * place.scale * zoom;
     // 16px at least, so a tablet does not zoom in on focus
     input.style.cssText = `position:absolute;left:${rect.left + window.scrollX + at(place.x, place.root.x)}px;top:${rect.top + window.scrollY + at(place.y, place.root.y)}px;`
-      + `width:${place.w * place.scale * zoom}px;height:${height}px;box-sizing:border-box;font:${Math.max(16, Math.round(height * 0.6))}px monospace;`
+      + `width:${place.w * place.scale * zoom}px;height:${height}px;box-sizing:border-box;font:${Math.max(16, Math.min(28, Math.round(height * 0.6)))}px monospace;`
       + `border:2px solid ${css(C.redDark)};border-radius:3px;background:${css(C.white)};color:${css(C.ink)};padding:0 6px;z-index:5`;
   };
   lay();
