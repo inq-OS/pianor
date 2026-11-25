@@ -184,7 +184,7 @@ test.describe('songs made of pieces', () => {
     await page.evaluate(async () => {
       const context = window.__game.registry.get('context');
       for (const song of context.songs.list() as { id: string }[]) await context.profiles.setPieceOn(`song:${song.id}`, false);
-      window.__game.scene.getScene('songs').scene.restart();
+      (window.__game.scene.getScene('songs') as unknown as { scene: { restart(): void } }).scene.restart();
     });
     await expect.poll(() => sceneTexts(page, 'songs')).toContain('All songs are off. Turn some on in Settings.');
     expectNoErrors(errors);
