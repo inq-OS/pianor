@@ -141,11 +141,11 @@ describe('every hard rule has a failing and a passing piece', () => {
   });
 
   it('core_09.AC64 an ornament sign passes where the level switch is on (every level) and fails with ornament where a teacher turns it off; a grace group passes', () => {
-    expect(errors(lint('!trill!C D E F | G4 | E D C D | C4 |]', { level: 1 }).diagnostics).map(formatDiagnostic)).toEqual([]);
-    const off = lint('!trill!C D E F | G4 | E D C D | C4 |]', { level: { ...level(1), ornaments: false } });
+    expect(errors(lint('!trill!C D E F | G4 | F E D D | C4 |]', { level: 1 }).diagnostics).map(formatDiagnostic)).toEqual([]);
+    const off = lint('!trill!C D E F | G4 | F E D D | C4 |]', { level: { ...level(1), ornaments: false } });
     expect(rules(off.diagnostics)).toContain('ornament');
     expect(off.diagnostics.map((d) => d.message).join('\n')).toMatch(/ornaments \(a trill, mordent or turn\) are not allowed at level 1/);
-    expect(errors(lint('{/ed}C D E F | G4 | E D C D | C4 |]', { level: 1 }).diagnostics).map(formatDiagnostic)).toEqual([]);
+    expect(errors(lint('{/ed}C D E F | G4 | F E D D | C4 |]', { level: 1 }).diagnostics).map(formatDiagnostic)).toEqual([]);
   });
 
   it('core_09.AC51 a triplet length outside a triplet fails note-value at every level, and an eighth triplet needs eighths in the level', () => {
