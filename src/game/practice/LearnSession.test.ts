@@ -123,6 +123,31 @@ describe('LearnSession', () => {
     expect(hands).toEqual(['RH', 'LH', undefined]);
   });
 
+  it('ft_1_32.AC24 a learned piece opened from Kiur is learned again from the first step; from the piano it plays in full', async () => {
+    const learned: LearnProgress = { ...START_PROGRESS, step: 2, lastDay: '1998-11-21', stepBars: 1 as const, handsApart: false, medals: ['gold' as const, 'silver' as const], learnedAt: '1998-11-21T10:00:00.000Z' };
+    const kept = { progress: learned };
+    const profileOf: LearnProfile = {
+      learnSettings: DEFAULT_LEARN_SETTINGS, learnProgressOf: () => kept.progress, practiceFor: () => [], recordFor: () => undefined,
+      saveLearnProgress: (_, progress) => { kept.progress = progress; return Promise.resolve(true); },
+    };
+    expect(LearnSession.open(profileOf, piece, '1998-11-22')).toBeNull();
+    const again = LearnSession.open(profileOf, piece, '1998-11-22', undefined, true)!;
+    expect(again).not.toBeNull();
+    expect(again.run).toMatchObject({ kind: 'step', firstBar: 0, lastBar: 0 });
+    expect(again.halfway).toBe(false);
+    expect(again.learned).toBe(false);
+    // nothing is kept until a run is played: leaving at once leaves the piece as it was
+    expect(kept.progress).toBe(learned);
+    await again.finish('perfect');
+    expect(kept.progress).toMatchObject({ step: 1, learnedAt: learned.learnedAt, clef: 'silver' });
+    // learned again with runs that did not count: the clef stays at the one won before
+    const last = LearnSession.open(profileOf, piece, '1998-11-22', undefined, true)!;
+    for (let run = 0; run < 6; run++) await last.finish('stopped');
+    for (let run = 0; run < 3; run++) await last.finish('perfect');
+    expect(last.learned).toBe(true);
+    expect(last.rewards().piece).toBe('silver');
+  });
+
   it('counts nothing with note names shown', () => {
     expect(open().session().outcomeOf(piece, true)).toEqual({ outcome: 'hinted' });
   });
