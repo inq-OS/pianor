@@ -1,0 +1,13 @@
+X:1
+T:Evening Chords
+M:4/4
+L:1/4
+Q:1/4=60
+K:C
+% The right hand sings, the left hand holds chords under it; the last but one is a half-diminished chord (C Eb Gb Bb).
+V:RH clef=treble
+V:LH clef=bass
+V:RH
+!3!E2 !5!G2 | !4!F !3!E !2!D2 | !3!E2 !5!A2 | !4!G4 | !5!A2 !5!G !4!F | !3!E !2!D !1!C2 | !3!_E2 !2!D2 | !1!C4 |]
+V:LH
+[!5!C, !3!E, !1!G,]4 | [!4!D, !2!F, !1!A,]4 | [!5!C, !2!F, !1!A,]4 | [!4!D, !2!G, !1!B,]4 | [!5!C, !2!F, !1!A,]4 | [!5!C, !3!E, !1!G,]4 | [!5!C, !3!_E, !2!_G, !1!_B,]4 | [!5!C, !3!E, !1!G,]4 |]
