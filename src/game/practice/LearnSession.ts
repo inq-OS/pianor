@@ -1,4 +1,4 @@
-import type { Chart } from '../../core/chart';
+import { MS_PER_MINUTE, type Chart } from '../../core/chart';
 import { sliceChart } from '../../core/chart/section';
 import type { JudgeEvent } from '../../core/judge';
 import { markersByNote, mistakeMarkers } from '../../core/learn/markers';
@@ -159,16 +159,28 @@ export class LearnSession {
   }
 
   /**
-   * The live pace (core_13.AC5): the latest key against the student's own pace so far, or the piece's baseline before
-   * the run has one; null before the run's first events.
+   * The live pace (core_13.AC5): the latest key against the student's own pace so far, or the pace carried from the runs
+   * before it in this sitting, or the piece's baseline before the run has one; null before the run's first events.
    */
   get pace(): LearnPace | null {
     if (!this.played) return null;
     // read every frame by the beat lane: measured again only when a new event came
-    if (this.paceAt?.events !== this.events.length) this.paceAt = { events: this.events.length, pace: learnPace(this.played, this.events, this.baseline) };
+    if (this.paceAt?.events !== this.events.length) this.paceAt = { events: this.events.length, pace: learnPace(this.played, this.events, this.carriedBpm ?? this.baseline) };
     return this.paceAt.pace;
   }
   private paceAt: { events: number; pace: LearnPace } | null = null;
+
+  /**
+   * The student's pace carried over from the runs before this one in the same sitting (BPM a quarter; core_13 rule 9), so the
+   * lane's wave runs from the first key of every step, not only once a short step has three keys; before the baseline.
+   */
+  carriedBpm: number | null = null;
+
+  /** The pace to carry to the next run: this run's own, else what it was carried, else none (BPM a quarter). */
+  get paceToCarry(): number | null {
+    const beatMs = this.pace?.beatMs ?? null;
+    return beatMs !== null && beatMs > 0 ? Math.round((MS_PER_MINUTE / beatMs) * 100) / 100 : this.carriedBpm;
+  }
 
   get verdict(): LearnRunVerdict {
     return this.judge?.verdict ?? { state: 'going' };

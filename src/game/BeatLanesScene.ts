@@ -7,16 +7,17 @@ import { layoutStaff, type StaffLayout } from '../core/layout/staff';
 import { t, type StringKey } from '../core/text/strings';
 import { contextOf } from './context';
 import type { SettingsData } from './SettingsScene';
-import { freshData } from './scenes';
+import { CANCELLED, closeOverlay, freshData, settleOverlay } from './scenes';
 import { LANE_ICONS, type LaneIconId } from './ui/pixel/laneArt';
 import { C } from './ui/pixel/palette';
 import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { StaffView } from './ui/staff/StaffView';
 
-/** Where Back goes: the settings' learning page, or the screen it was opened from. */
+/** Where Back goes: the settings' learning page, or (`overlay`, opened over the practice screen) back to the piece. */
 export interface BeatLanesData {
   returnTo?: SettingsData;
+  overlay?: boolean;
 }
 
 /** The piece the preview plays: two bars of a two-hand piece, so both staves and the space between them show. */
@@ -69,6 +70,7 @@ const SLIDERS: readonly LaneSlider[] = [
  */
 export class BeatLanesScene extends PixelScene {
   private returnTo: SettingsData = { page: 1 };
+  private overlay = false;
   private lanes: LaneLook[] = [];
   /** The lane the bubble from More or the keyboard tunes: the last one touched. */
   private selected = 0;
@@ -94,6 +96,7 @@ export class BeatLanesScene extends PixelScene {
 
   init(data?: BeatLanesData): void {
     this.returnTo = data?.returnTo ?? { page: 1 };
+    this.overlay = data?.overlay === true;
     this.lanes = learnBeatLanes(contextOf(this).profiles.learnSettings).map((l) => structuredClone(l));
     this.selected = 0;
     this.saveFailed = false;
@@ -104,6 +107,10 @@ export class BeatLanesScene extends PixelScene {
   }
 
   override create(): void {
+    if (this.overlay) {
+      this.scene.bringToTop();
+      this.events.once('shutdown', () => settleOverlay('beat-lanes', CANCELLED, this));
+    }
     super.create();
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.down(p));
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.moved(p));
@@ -112,7 +119,8 @@ export class BeatLanesScene extends PixelScene {
 
   protected override back(): void {
     this.game.canvas.style.cursor = '';
-    this.scene.start('settings', freshData(this.returnTo));
+    if (this.overlay) closeOverlay(this, 'beat-lanes', 'closed');
+    else this.scene.start('settings', freshData(this.returnTo));
   }
 
   override update(): void {
