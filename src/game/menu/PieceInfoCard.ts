@@ -40,7 +40,7 @@ function dither(width: number, height: number) {
  * says about it (`pieceInfo`). A tap anywhere outside the card, or on Close, closes it. Drawn in art pixels like the rest.
  * Returns the Close button, which the scene must destroy when it draws again (`own`).
  */
-export function drawPieceInfo(host: InfoCardHost, piece: Piece): PixelButton {
+export function drawPieceInfo(host: InfoCardHost, piece: Piece, kind: 'piece' | 'song' = 'piece'): PixelButton {
   const { scene, root, width, height } = host;
   const info = pieceInfo(piece, pieceStyles);
   const panelWidth = Math.min(width - 2 * MARGIN, 280);
@@ -79,7 +79,7 @@ export function drawPieceInfo(host: InfoCardHost, piece: Piece): PixelButton {
     y += text(x, y, t('info.styles', { styles }), C.panelDark, inner).height + 5;
   }
   if (info.features.length > 0) {
-    y += text(x, y, t('info.features'), C.brownDark, inner).height + 3;
+    y += text(x, y, t(kind === 'song' ? 'info.songFeatures' : 'info.features'), C.brownDark, inner).height + 3;
     // one column; two when one would not leave room for the Close button on a small screen
     const room = height - 2 * MARGIN - y - CLOSE.height - PAD - 4;
     const columns = info.features.length * LINE_HEIGHT > room ? 2 : 1;

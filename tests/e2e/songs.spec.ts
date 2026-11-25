@@ -1,7 +1,7 @@
-// Covers ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20.
+// Covers ft_1_36.AC14, ft_1_36.AC15, ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { allMenuTitles, clickButton, expectNoErrors, openGame, sceneButton, sceneTexts, waitForScene } from './helpers';
+import { allMenuTitles, clickButton, expectNoErrors, lastButton, menuButton, openBubbleFromMore, openGame, pressInBubble, sceneButton, sceneTexts, waitForScene } from './helpers';
 
 const partsOff = (page: Page) => page.evaluate(() => [...window.__game.registry.get('context').profiles.songPartsOff('morning-song')] as string[]);
 const rowLabels = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('song').buttons as { options: { label: string; align?: string } }[]).filter((b) => b.options.align === 'left').map((b) => b.options.label));
@@ -149,6 +149,159 @@ test.describe('songs made of pieces', () => {
     expect(turned.page).toBeGreaterThan(0);
     expect(turned.lit).toEqual(['Intro']);
     expect(turned.framed).toBe(true);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC6 the library files a song by its title, never its pieces, and turns it off as one; the songs list then leaves it out; its i button opens its info card', async ({ page }) => {
+    const errors = await openGame(page);
+    // the info card from the songs list: the song's title, closed by Escape
+    await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', 'i'));
+    await expect.poll(() => sceneTexts(page, 'songs')).toContain('Close');
+    await page.keyboard.press('Escape');
+    await expect.poll(() => sceneTexts(page, 'songs')).not.toContain('Close');
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'menu');
+    // the library: one card for the song, none for its pieces
+    await clickButton(page, 'menu', await menuButton(page, 'Settings'));
+    await waitForScene(page, 'settings');
+    await clickButton(page, 'settings', await sceneButton(page, 'settings', 'Choose pieces'));
+    await waitForScene(page, 'pieces');
+    const drawerOf = (title: string) => page.evaluate((x) => (window.__game.scene.getScene('pieces') as unknown as { drawerOf(t: string): { label: string } | null }).drawerOf(x), title);
+    expect(await drawerOf('Morning Song: Intro')).toBeNull();
+    const drawer = await drawerOf('Morning Song');
+    expect(drawer).not.toBeNull();
+    await clickButton(page, 'pieces', await sceneButton(page, 'pieces', drawer!.label));
+    await clickButton(page, 'pieces', await sceneButton(page, 'pieces', 'Morning Song'));
+    await expect.poll(() => page.evaluate(() => [...window.__game.registry.get('context').profiles.hiddenPieces] as string[])).toContain('song:morning-song');
+    // the songs list no longer shows it
+    await page.evaluate(() => { window.__game.scene.stop('pieces'); window.__game.scene.start('songs'); });
+    await waitForScene(page, 'songs');
+    expect(await sceneTexts(page, 'songs')).toContain('All songs are off. Turn some on in Settings.');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC11 a player\'s first song page says once what a tick does, until a switch is pressed, and never again after a reload', async ({ page }) => {
+    const errors = await openGame(page);
+    await openSongPage(page);
+    expect(await sceneTexts(page, 'song')).toContain('Ticked parts are played.');
+    // a press on a switch: the hint has done its work and goes
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'In the song'));
+    await expect.poll(() => sceneTexts(page, 'song')).not.toContain('Ticked parts are played.');
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', 'Morning Song'));
+    await waitForScene(page, 'song');
+    expect(await sceneTexts(page, 'song')).not.toContain('Ticked parts are played.');
+    // told is kept: after a reload the hint does not come back
+    await openGame(page);
+    await openSongPage(page);
+    expect(await sceneTexts(page, 'song')).not.toContain('Ticked parts are played.');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC14 a new song takes its title and one blank; rows are added, moved, renamed and removed through the bubble, each undoable, and kept after a reload', async ({ page }) => {
+    const errors = await openGame(page);
+    await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', '+ New song'));
+    await expect(page.locator('#text-field')).toBeFocused();
+    await page.keyboard.type('Evening Tune');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'song');
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1']);
+    // a group after the first part, holding a new blank
+    await clickButton(page, 'song', await sceneButton(page, 'song', '1 Part 1'));
+    await pressInBubble(page, 'song', 'Add');
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'New group'));
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1', '2 Group 1', '2.1 Part 2']);
+    // out of its group, then back by Undo
+    await clickButton(page, 'song', await sceneButton(page, 'song', '2.1 Part 2'));
+    await pressInBubble(page, 'song', 'Move');
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'Out of group'));
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1', '2 Group 1', '3 Part 2']);
+    await page.keyboard.press('Control+z');
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1', '2 Group 1', '2.1 Part 2']);
+    // a name typed in the row's field
+    await clickButton(page, 'song', await sceneButton(page, 'song', '1 Part 1'));
+    await pressInBubble(page, 'song', 'Name');
+    await expect(page.locator('#text-field')).toBeFocused();
+    await page.keyboard.press('Control+a');
+    await page.keyboard.type('Verse');
+    await page.keyboard.press('Enter');
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Verse', '2 Group 1', '2.1 Part 2']);
+    // removed at once, and said
+    await clickButton(page, 'song', await sceneButton(page, 'song', '2 Group 1'));
+    await pressInBubble(page, 'song', 'Remove');
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Verse']);
+    expect(await sceneTexts(page, 'song')).toContain('Removed Group 1.');
+    // kept on this device
+    await openGame(page);
+    await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', 'Evening Tune'));
+    await waitForScene(page, 'song');
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Verse']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC14 ft_1_36.AC15 a part takes its own tempo and follows the song again; a blank is written in the piece maker and takes its place', async ({ page }) => {
+    const errors = await openGame(page);
+    await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', '+ New song'));
+    await expect(page.locator('#text-field')).toBeFocused();
+    await page.keyboard.type('Evening Tune');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'song');
+    const node = () => page.evaluate(() => {
+      const song = window.__game.registry.get('context').ownSongs.list()[0] as { bpm: number; nodes: { kind: string; bpm?: number; piece?: string }[] };
+      return { song: song.bpm, ...song.nodes[0]! };
+    });
+    // the part's own tempo, then Follow the song clears it
+    await clickButton(page, 'song', await sceneButton(page, 'song', '1 Part 1'));
+    await pressInBubble(page, 'song', 'Tempo');
+    await clickButton(page, 'song', await sceneButton(page, 'song', '♩100'));
+    await expect.poll(async () => (await node()).bpm).toBe(100);
+    await pressInBubble(page, 'song', 'Tempo');
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'Follow the song'));
+    await expect.poll(async () => (await node()).bpm).toBeUndefined();
+    // the song's own tempo, with no row selected: the part follows it
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'Evening Tune'));
+    await pressInBubble(page, 'song', 'Tempo');
+    await clickButton(page, 'song', await sceneButton(page, 'song', '♩90'));
+    await expect.poll(async () => (await node()).song).toBe(90);
+    // the blank's pen opens the piece maker with its bars and the tempo it takes
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'Write Part 1'));
+    await waitForScene(page, 'editor');
+    const made = await page.evaluate(() => {
+      const piece = window.__game.scene.getScene('editor').history.present as { title: string; bars: number };
+      return { title: piece.title, bars: piece.bars };
+    });
+    expect(made).toEqual({ title: 'Evening Tune: Part 1', bars: 8 });
+    // left with nothing saved: the blank stays a blank, and Back returns to the song page
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'song');
+    expect((await node()).kind).toBe('blank');
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'Write Part 1'));
+    await waitForScene(page, 'editor');
+    // a note, saved: the blank becomes the piece, and Back returns to the song page
+    const point = await page.evaluate(() => {
+      const at = window.__game.scene.getScene('editor').pointForNote({ hand: 'RH', octave: 4, bar: 0, start: 0, step: 'C' }) as { x: number; y: number };
+      const canvas = document.querySelector('canvas')!;
+      const rect = canvas.getBoundingClientRect();
+      return { x: rect.left + (at.x / canvas.width) * rect.width, y: rect.top + (at.y / canvas.height) * rect.height };
+    });
+    await page.mouse.click(point.x, point.y, { button: 'middle' });
+    let save = await lastButton(page, 'editor', 'Save');
+    if (save < 0 && (await openBubbleFromMore(page, 'editor'))) save = await lastButton(page, 'editor', 'Save');
+    await clickButton(page, 'editor', save);
+    await expect.poll(async () => (await node()).kind).toBe('piece');
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'song');
+    await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1']);
+    expect(await sceneButton(page, 'song', 'Play Part 1')).toBeGreaterThanOrEqual(0);
     expectNoErrors(errors);
   });
 

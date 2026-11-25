@@ -337,6 +337,17 @@ export class ProfileService {
     return this.persist();
   }
 
+  /** Whether the active player was told once what a song page's tick does (ft_1_36 rule 10). */
+  get songTickTold(): boolean {
+    return this.active.settings.pieces.songTickTold === true;
+  }
+
+  /** Marks the tick as told, so the song page does not say it again. */
+  markSongTickTold(): Promise<boolean> {
+    this.active = { ...this.active, settings: { ...this.active.settings, pieces: { ...this.active.settings.pieces, songTickTold: true } } };
+    return this.persist();
+  }
+
   /** The pieces on offer: no piece is locked by level (ft_1_13.AC3), so the guard "keep one piece on" counts them all. */
   private offeredIds(): string[] {
     return this.options.catalogue().map((p) => p.id);

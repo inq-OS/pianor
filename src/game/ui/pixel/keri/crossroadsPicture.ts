@@ -40,7 +40,7 @@ const SHARED = scenePalette({
   // the lighthouse's iron, rust red in the sun (the reference photographs)
   iron: [0x481816, 0x802c20, 0xac4e32],
   // the shared materials it paints with (d123): no ash and no stem, so the night's longer runs fit in 256
-}, ['grass', 'dry', 'far', 'shingle', 'stone', 'earth', 'bush', 'near', 'bloom', 'rose', 'smoke']);
+}, ['grass', 'dry', 'far', 'shingle', 'stone', 'earth', 'bush', 'near', 'bloom', 'rose', 'smoke'], { sky: 4.5 });
 const R = SHARED.run;
 const F = SHARED.fine;
 
@@ -421,9 +421,8 @@ class CrossroadsPainter {
       if (hour === KERI_HOURS.dawn || hour === KERI_HOURS.dusk) t += 0.3 * Math.exp(-(((x - warm) / 260) ** 2)) * (y / hz) ** 2 - 0.1;
       // at dusk the sun sets behind the viewer: the sky ahead stays cooler and violet low down
       if (hour === KERI_HOURS.dusk) t -= 0.18 * (1 - Math.exp(-(((x - warm) / 200) ** 2))) * (y / hz) ** 2;
-      // between two bands of the sky, short level dashes of the next colour, as the 1991 game paints a sky; no checkerboard
-      const dash = hash2(Math.floor((x + hash2(y, 0, 16) * 9) / (4 + Math.floor(hash2(y, 1, 17) * 6))), y, 15);
-      this.put(x, y, grain(F.sky, tone(F.sky, clamp01(t + ((dash - 0.5) * 0.9) / (F.sky.length - 1)), x, y, 0), x, y, 0.12));
+      // a smooth sky, as on the harbour: a long run of small steps, one tone to a row, no dither and no grain (rule 12)
+      this.put(x, y, tone(F.sky, clamp01(t), x, y));
     }
     if (hour.night) this.stars();
     for (let x = 0; x < w; x++) if (hash2(x >> 2, 3, 14) > 0.3) this.put(x, hz - 1 + this.bows[x]!, R.sky[4]!);

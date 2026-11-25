@@ -747,6 +747,9 @@ export abstract class PixelScene extends Phaser.Scene {
   private onNavigationKey(e: KeyboardEvent): void {
     // a screen paused under an overlay (d070) takes no keys: they are the overlay's
     if (this.sys.isPaused()) return;
+    // a key typed into a text field (a title, a name) is the field's own
+    const target = e.target as { tagName?: string } | null;
+    if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return;
     const moves: Record<string, FocusMove> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
     if (!this.menuOpen && this.screenKey?.(e) === true) {
       e.preventDefault();

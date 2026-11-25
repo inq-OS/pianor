@@ -14,6 +14,8 @@ export interface SongCatalogueSources {
   piece: (id: string) => Piece | undefined;
   /** The parts of a song the active player turned off (ft_1_36 rule 5). */
   partsOff: (songId: string) => readonly string[];
+  /** The player's own songs on this device (ft_1_36 rule 12); none by default. */
+  own?: () => readonly Song[];
 }
 
 /** The chart id of a whole song (ft_1_36 rule 9): its records are kept under it. */
@@ -28,13 +30,23 @@ export class SongCatalogue {
   private readonly sources: SongCatalogueSources;
   private songs: Song[] | null = null;
   /** The joined chart of each song, kept while the player's switches are the same (the practice screen keeps one chart). */
-  private joined = new Map<string, { key: string; chart: SongChart | null }>();
+  private joined = new Map<string, { key: string; song: Song; charts: (Chart | undefined)[]; chart: SongChart | null }>();
 
   constructor(sources: SongCatalogueSources) {
     this.sources = sources;
   }
 
   list(): Song[] {
+    const own = this.sources.own?.() ?? [];
+    return [...this.bundled(), ...own].sort((a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id));
+  }
+
+  /** Whether the song is the player's own, which the song page edits (a bundled song is read only, rule 12). */
+  isOwn(songId: string): boolean {
+    return (this.sources.own?.() ?? []).some((s) => s.id === songId);
+  }
+
+  private bundled(): Song[] {
     this.songs ??= this.sources.files
       .flatMap((raw) => {
         const parsed = songSchema.safeParse(raw);
@@ -68,10 +80,12 @@ export class SongCatalogue {
   joinedChart(song: Song): SongChart | null {
     const off = this.sources.partsOff(song.id);
     const key = JSON.stringify(off);
+    // an own song or one of its pieces edited since is joined again
+    const charts = walkSong(song.nodes).flatMap(({ node }) => (node.kind === 'piece' ? [this.chartOf(node.piece)] : []));
     const kept = this.joined.get(song.id);
-    if (kept?.key === key) return kept.chart;
+    if (kept?.key === key && kept.song === song && kept.charts.length === charts.length && kept.charts.every((c, i) => c === charts[i])) return kept.chart;
     const chart = songChart(song, this.chartOf, new Set(off));
-    this.joined.set(song.id, { key, chart });
+    this.joined.set(song.id, { key, song, charts, chart });
     return chart;
   }
 

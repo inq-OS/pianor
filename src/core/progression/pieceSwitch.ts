@@ -13,6 +13,8 @@ export const piecesSettingsSchema = z.object({
    * optional, so older saves read as they are (d069.3). Ids of songs or nodes that no longer exist are ignored.
    */
   songs: z.record(z.string(), z.array(z.string().min(1))).optional(),
+  /** Whether the player was told, on a first visit to a song page, what a tick does (ft_1_36 rule 10). Optional, no version bump (d069.3): absent reads as not yet. */
+  songTickTold: z.boolean().optional(),
 });
 
 export type PiecesSettings = z.infer<typeof piecesSettingsSchema>;
@@ -62,6 +64,14 @@ export function pressHide(armed: ArmedHide | null, pieceId: string, now: number)
 /** The node ids of a song the player turned off (ft_1_36 rule 5). */
 export function songPartsOff(settings: PiecesSettings, songId: string): readonly string[] {
   return settings.songs?.[songId] ?? [];
+}
+
+/**
+ * The pieces the piece book can show, of `ids`: all but a song's own pieces (ft_1_36 rule 13), which are filed under their
+ * song. These are the ones the guard "keep one piece on" counts.
+ */
+export function bookPieces(ids: readonly string[], inSongs: ReadonlySet<string>): string[] {
+  return ids.filter((id) => !inSongs.has(id));
 }
 
 /** The settings with a song's parts that are off replaced by `off`. */
