@@ -383,9 +383,9 @@ function staffRooms(groups: readonly RoomGroup[], clef: Clef, eighths: boolean, 
 function twoLineTicks(notes: readonly { note: ChartNote }[], chordNames: StaffLayoutOptions['chordNames']): Set<number> {
   const out = new Set<number>();
   if (chordNames?.show !== 'both') return out;
-  const byTick = new Map<number, number[]>();
-  for (const { note } of notes) byTick.set(note.tick, [...(byTick.get(note.tick) ?? []), note.midi]);
-  for (const [tick, keys] of byTick) if (keys.length > 1 && chordNames.name(keys) !== null) out.add(tick);
+  const byTick = new Map<number, ChartNote[]>();
+  for (const { note } of notes) byTick.set(note.tick, [...(byTick.get(note.tick) ?? []), note]);
+  for (const [tick, chord] of byTick) if (chord.length > 1 && chordNames.name(chord.map((n) => n.midi), chord.map((n) => n.spelling)) !== null) out.add(tick);
   return out;
 }
 
@@ -1013,7 +1013,8 @@ function chordGlyphs(
 function nameTheChord(p: Placer, members: readonly NoteGlyph[]): void {
   const holder = members.find((m) => m.label !== '');
   if (!p.chordNames || !holder || members.length < 2) return;
-  const name = p.chordNames.name(members.map((m) => p.chart.notes[m.index]!.midi));
+  const notes = members.map((m) => p.chart.notes[m.index]!);
+  const name = p.chordNames.name(notes.map((n) => n.midi), notes.map((n) => n.spelling));
   if (name === null) return;
   if (p.chordNames.show === 'name') holder.label = name;
   else {

@@ -34,7 +34,7 @@ Chord and key names in Estonian follow the way Estonian music teaching writes th
 
 - A fourth picture on the stand's panel, three notes on one stem (`chordBoard`, a first sketch), opens `ChordTrainerScene`; the rules are `src/core/trainer/chordTrainer.ts` (`loadChordContent`, `parseChord`, `chordLabel`, `ChordRound`), the chords `content/trainer/chords.json` (`schemaVersion` 1).
 - A chord name is a root letter, capital for major and small for minor, an optional `b` or `#` and a suffix the dictionary knows (`7`, `maj7`); a step with a name the dictionary does not know fails to load. Steps: triads on white keys, all twelve major and minor triads, seventh chords.
-- The chord counts once every one of its pitch classes is among the keys pressed for it and still down, in any octave or inversion; keys still down from the last chord do not count. A key outside the chord costs a life and is named (spelled with flats for a flat chord). XP is 10 per note of a right chord, kept on a loss.
+- The chord counts once every one of its pitch classes is among the keys pressed for it and still down, in any octave or inversion; keys still down from the last chord do not count. A key outside the chord costs a life and is named, spelled on the side of the chord's key (`wrongKeySpelling`: the key signature of its root as a major or minor key, flats for F, Bb, c or d, sharps otherwise). XP is 10 per note of a right chord, kept on a loss.
 - `AX-3 provisional:` any key of the keyboard counts, not only the level's range; the pixel font has no sharp sign, so a sharp is written #. TODO(architect, R2): decide whether a chord must be played inside the player's level range, as AC2 says.
 
 ## Slice C as built
@@ -44,9 +44,10 @@ Chord and key names in Estonian follow the way Estonian music teaching writes th
 
 ## Slice D as built
 
-- `nameChord(content, keys)` in `src/core/trainer/chordNamer.ts` names the chord the keys make from slice B's dictionary, now with the diminished and augmented triads and the half-diminished and diminished sevenths (`dim`, `+`, `7b5` shown as 7♭5, `dim7`); nothing for a set it does not know or for fewer than three pitch classes. Of the roots that fit, the lowest key's wins, so a symmetric chord is named from its bass.
+- `nameChord(content, keys, hint?)` in `src/core/trainer/chordNamer.ts` names the chord the keys make from slice B's dictionary, now with the diminished and augmented triads, the half-diminished and diminished sevenths and the major and minor sixths (`dim`, `+`, `7b5` shown as 7♭5, `dim7`, `6`: C6, c6); nothing for a set it does not know or for fewer than three pitch classes. Of the roots that fit, the lowest key's wins, so a symmetric chord is named from its bass and C E G A over C is C6 while over A it is a7.
+- The root is spelled as the chord's root note is written where the notes are written (on the staff and in the piece maker: D# F# A# is d#, Gb Bb Db is Gb), else from the key on screen (the trainer's chosen key, or the switcher's bar), its scale first and then the key's side (sharps or flats).
 - Shown live at the left above the staff on slice A's screen for the keys held, and in the piece maker as a message when a selected note's column (both hands) is a chord, once per column and set of notes.
-- `AX-3 provisional:` each root is spelled as it is most often taught (Db, Eb, F#, Ab, Bb; c#, eb, f#, g#, bb), not from the piece's key. TODO(architect, R2): confirm the root spellings, or spell a column's chord from the piece's key.
+- `AX-3 provisional:` where neither the notes nor a key tell it (C major and a minor, a root written with two signs), each root is spelled as it is most often taught (Db, Eb, F#, Ab, Bb; c#, eb, f#, g#, bb). TODO(architect, R2): confirm the root spellings.
 
 ## Acceptance criteria
 

@@ -95,8 +95,7 @@ export class ShapeTrainerScene extends PixelScene {
     if (state.outcome === 'won') this.label(0, WORDS_Y, t('shapes.won', { n: this.round.chart.notes.length }), C.white).centerAt(width / 2);
     else if (this.switcher) {
       // the key of the bar the cursor is in: the name changes as the bar does (AC3)
-      const bar = this.round.chart.notes[play.awaiting[0] ?? 0]!.bar;
-      const key = withFlat(keyNames(this.barKeys[bar]!, profiles.noteNaming).major);
+      const key = withFlat(keyNames(this.keyOnScreen(), profiles.noteNaming).major);
       this.label(0, WORDS_Y, t('circle.major', { key }), C.white).centerAt(width / 2);
     } else if (this.wrong?.reason === 'wrong-octave') this.label(0, WORDS_Y, t('theory.wrongOctave'), C.white).centerAt(width / 2);
 
@@ -137,7 +136,7 @@ export class ShapeTrainerScene extends PixelScene {
         return;
       }
       const result = this.round.press(event);
-      const held = nameChord(CHORDS, this.round.play().heldKeys);
+      const held = nameChord(CHORDS, this.round.play().heldKeys, { fifths: this.keyOnScreen() });
       const heldChanged = held?.name !== this.held?.name;
       this.held = held;
       if (result.verdict === 'ignored') {
@@ -152,6 +151,13 @@ export class ShapeTrainerScene extends PixelScene {
       if (result.verdict === 'wrong') this.flash();
     });
     this.redraw();
+  }
+
+  /** The key on screen, as fifths: the switcher's bar the cursor is in, else the chosen key. The held chord is spelled in it. */
+  private keyOnScreen(): number {
+    if (!this.switcher) return this.choice.fifths;
+    const bar = this.round.chart.notes[this.round.play().awaiting[0] ?? 0]?.bar ?? 0;
+    return this.barKeys[bar] ?? this.choice.fifths;
   }
 
   /** The awaited notes flash red for a moment after a wrong key. */

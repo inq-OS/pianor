@@ -986,13 +986,15 @@ export class EditorScene extends PixelScene {
    */
   private nameSelectedChord(): void {
     const at = this.selected;
-    const keys = at ? this.piece.notes.filter((n) => n.bar === at.bar && n.start === at.start).map(soundingMidi) : [];
+    const column = at ? this.piece.notes.filter((n) => n.bar === at.bar && n.start === at.start) : [];
+    const keys = column.map(soundingMidi);
     // a new column, or a note added to or taken from this one
-    const column = at ? `${at.bar}:${at.start}:${[...keys].sort((a, b) => a - b).join(',')}` : null;
-    if (column === this.namedColumn) return;
-    this.namedColumn = column;
+    const named = at ? `${at.bar}:${at.start}:${column.map((n) => `${soundingMidi(n)}${n.step}${n.alter}`).sort().join(',')}` : null;
+    if (named === this.namedColumn) return;
+    this.namedColumn = named;
     if (!at) return;
-    const chord = nameChord(CHORDS, keys);
+    // the root is spelled as its note is written (D# F# A# is d#, not eb)
+    const chord = nameChord(CHORDS, keys, { spellings: column.map((n) => ({ step: n.step, alter: n.alter, octave: n.octave })) });
     if (chord) this.say(t('editor.chordName', { chord: chordLabel(chord, contextOf(this).profiles.noteNaming) }), MESSAGE_MS);
   }
 
