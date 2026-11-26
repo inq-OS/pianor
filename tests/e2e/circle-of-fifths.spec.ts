@@ -30,16 +30,16 @@ async function closeWithEsc(page: Page, key: string): Promise<void> {
   }, key);
 }
 
-/** A real click on the middle of a step's major or minor name on the wheel. */
-async function clickStep(page: Page, step: number, ring: 'major' | 'minor'): Promise<void> {
-  const point = await page.evaluate(({ s, r }) => {
+/** A real click on the middle of a step's major or minor name on the wheel, `dy` art pixels below it. */
+async function clickStep(page: Page, step: number, ring: 'major' | 'minor', dy = 0): Promise<void> {
+  const point = await page.evaluate(({ s, r, d }) => {
     const scene = window.__game.scene.getScene('circle') as unknown as { layout: { steps: { majorAt: { x: number; y: number }; minorAt: { x: number; y: number } }[] }; root: { x: number; y: number }; px: { scale: number } };
     const at = r === 'major' ? scene.layout.steps[s]!.majorAt : scene.layout.steps[s]!.minorAt;
     const element = document.querySelector('canvas')!;
     const canvas = element.getBoundingClientRect();
     const ratio = canvas.width / element.width;
-    return { x: canvas.left + (scene.root.x + at.x * scene.px.scale) * ratio, y: canvas.top + (scene.root.y + at.y * scene.px.scale) * ratio };
-  }, { s: step, r: ring });
+    return { x: canvas.left + (scene.root.x + at.x * scene.px.scale) * ratio, y: canvas.top + (scene.root.y + (at.y + d) * scene.px.scale) * ratio };
+  }, { s: step, r: ring, d: dy });
   await page.mouse.click(point.x, point.y);
 }
 
@@ -124,6 +124,19 @@ test.describe('Circle of fifths', () => {
     await page.evaluate(() => { window.__virtualDevice!.press(65, 80); window.__virtualDevice!.release(65); });
     await expect.poll(() => circleState(page)).toMatchObject({ fifths: -1, mode: 'major', playing: false });
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/F-major.png` });
+
+    // the bottom step's two names: the lower one is G flat, the upper F sharp; a second click on a step switches its spelling
+    await clickStep(page, 6, 'major', 4);
+    await expect.poll(() => circleState(page)).toMatchObject({ fifths: -6, mode: 'major' });
+    expect(await sceneTexts(page, 'circle')).toContain('G♭ major');
+    await clickStep(page, 6, 'major', -4);
+    await expect.poll(() => circleState(page)).toMatchObject({ fifths: 6, mode: 'major' });
+    expect(await sceneTexts(page, 'circle')).toContain('F# major');
+    await clickStep(page, 7, 'major');
+    await expect.poll(() => circleState(page)).toMatchObject({ fifths: -5, mode: 'major' });
+    await clickStep(page, 7, 'major');
+    await expect.poll(() => circleState(page)).toMatchObject({ fifths: 7, mode: 'major' });
+    expect(await sceneTexts(page, 'circle')).toContain('C# major');
 
     // the close button on the circle goes back too
     await clickButton(page, 'circle', await sceneButton(page, 'circle', 'Close'));

@@ -1,4 +1,4 @@
-import { circleHit, circleLayout, keyAt, moveStep, spellingsOf, stepOfKey, tonicStep, withFlat, type CircleKey, type CircleLayout, type CircleRing } from '../core/layout/circleOfFifths';
+import { chooseKey, circleHit, circleLayout, keyAt, moveStep, spellingsOf, stepOfKey, tonicStep, withFlat, type CircleKey, type CircleLayout, type CircleRing, type CircleTarget } from '../core/layout/circleOfFifths';
 import { pitchClass } from '../core/chart/pitch';
 import { keyNames } from '../core/editor/key';
 import { circleScaleLayout } from '../core/trainer/staffFrame';
@@ -78,12 +78,13 @@ export class CircleOfFifthsScene extends PixelScene {
     // the keys are this overlay's own while it is open: the arrows, Enter and Esc stop here, ahead of the computer keyboard's piano
     this.onWindowKey((e) => this.onKey(e));
     this.events.once('shutdown', contextOf(this).keyboard.onNote((event) => {
-      if (event.kind === 'on' && event.velocity > 0) this.choose(tonicStep(pitchClass(event.midi), this.selected.ring), this.selected.ring, false);
+      // a played tonic takes the spelling with fewer signs, or the piece's, and never switches the spelling (only a click or an arrow does)
+      if (event.kind === 'on' && event.velocity > 0) this.choose(keyAt(tonicStep(pitchClass(event.midi), this.selected.ring), this.selected.ring, this.piecePrefer), false);
     }));
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
       if (over.length > 0 || !this.layout) return;
       const hit = circleHit(this.layout, (pointer.x - this.root.x) / this.px.scale, (pointer.y - this.root.y) / this.px.scale);
-      if (hit) this.choose(hit.step, hit.ring, true);
+      if (hit) this.go(hit);
     });
     super.create();
   }
@@ -107,10 +108,11 @@ export class CircleOfFifthsScene extends PixelScene {
     const { step, ring } = this.selected;
     const act: Record<string, () => void> = {
       Escape: () => this.close(),
-      ArrowLeft: () => this.choose(moveStep(step, -1), ring, true),
-      ArrowRight: () => this.choose(moveStep(step, 1), ring, true),
-      ArrowUp: () => this.choose(step, 'major', true),
-      ArrowDown: () => this.choose(step, 'minor', true),
+      ArrowLeft: () => this.go({ step: moveStep(step, -1), ring }),
+      ArrowRight: () => this.go({ step: moveStep(step, 1), ring }),
+      // up on the major ring (or down on the minor) again switches a two-spelling step's spelling, as a second click does
+      ArrowUp: () => this.go({ step, ring: 'major' }),
+      ArrowDown: () => this.go({ step, ring: 'minor' }),
       Enter: () => this.playScale(),
       ' ': () => this.playScale(),
     };
@@ -121,17 +123,26 @@ export class CircleOfFifthsScene extends PixelScene {
     if (!e.repeat) action();
   }
 
-  /** The fifths counts whose spelling wins where a step has two: the piece's key, then the key chosen. */
+  /** The fifths counts whose spelling the wheel shows where a step has two: the key chosen, then the piece's key. */
   private get prefer(): number[] {
-    return [this.pieceKey?.fifths, this.selectedKey.fifths].filter((f): f is number => f !== undefined);
+    return [this.selectedKey.fifths, ...this.piecePrefer];
+  }
+
+  /** The piece's key, whose spelling a newly chosen step takes where it has two (rule 3). */
+  private get piecePrefer(): number[] {
+    return this.pieceKey ? [this.pieceKey.fifths] : [];
+  }
+
+  /** A click or an arrow: chooses the key it lands on (`chooseKey`, the spelling switching on a second press) and plays its scale. */
+  private go(target: CircleTarget): void {
+    this.choose(chooseKey(this.selectedKey, target, this.piecePrefer), true);
   }
 
   /** Choose a key: its name, signature and scale are drawn; `play` plays the scale (a click or an arrow, not a key the student played). */
-  private choose(step: number, ring: CircleRing, play: boolean): void {
+  private choose(key: CircleKey, play: boolean): void {
     this.stopScale();
-    this.selected = { step, ring };
-    const prefer = this.pieceKey ? [this.pieceKey.fifths] : [];
-    this.selectedKey = keyAt(step, ring, prefer);
+    this.selected = { step: stepOfKey(key), ring: key.mode };
+    this.selectedKey = key;
     this.redraw();
     if (play) this.playScale();
   }

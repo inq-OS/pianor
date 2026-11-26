@@ -80,13 +80,14 @@ export function spellingsOf(step: number): number[] {
 
 /**
  * The spellings a step shows. The bottom shows both, sharps first (rule 2, AX-3 provisional); the steps with a seven-sign
- * spelling show only the one with fewer signs, unless a `prefer`red key (the piece's key) is spelled the other way.
+ * spelling show only one: the first `prefer`red key spelled on it (the key chosen, then the piece's), else the one with
+ * fewer signs.
  */
 function shownSpellings(step: number, prefer: readonly number[]): number[] {
   const all = spellingsOf(step);
   if (all.length === 1) return all;
   if (step === 6) return [6, -6];
-  const preferred = all.find((f) => prefer.includes(f) && Math.abs(f) === 7);
+  const preferred = prefer.find((f) => all.includes(f));
   return [preferred ?? all.reduce((a, b) => (Math.abs(a) <= Math.abs(b) ? a : b))];
 }
 
@@ -97,7 +98,29 @@ function signOf(fifths: number): CircleSign {
 /** The key a step and ring stand for: a preferred spelling where the step has one (G flat for a piece in G flat), else its first. */
 export function keyAt(step: number, ring: CircleRing, prefer: readonly number[] = []): CircleKey {
   const shown = shownSpellings(stepOfFifths(step), prefer);
-  return { fifths: shown.find((f) => prefer.includes(f)) ?? shown[0]!, mode: ring };
+  return { fifths: prefer.find((f) => shown.includes(f)) ?? shown[0]!, mode: ring };
+}
+
+/** Where a click or an arrow lands: a step and ring, and the spelling when the click was on one half of a two-spelling name or count. */
+export interface CircleTarget {
+  readonly step: number;
+  readonly ring: CircleRing;
+  readonly fifths?: number;
+}
+
+/**
+ * The key a click or an arrow chooses, from the key chosen now. The spelling the click picked wins (the G flat half of the
+ * bottom name); on the step already chosen, the same ring again switches to its other spelling (B and C flat, F sharp and
+ * G flat, D flat and C sharp) and the other ring keeps the spelling; any other step takes `keyAt`, the spelling with fewer
+ * signs or the piece's (`prefer`). AX-3 provisional: a second click switches the spelling, so every key can be chosen.
+ */
+export function chooseKey(current: CircleKey, target: CircleTarget, prefer: readonly number[] = []): CircleKey {
+  if (target.fifths !== undefined) return { fifths: target.fifths, mode: target.ring };
+  const spellings = spellingsOf(target.step);
+  const at = spellings.indexOf(current.fifths);
+  if (at < 0 || spellings.length === 1) return keyAt(target.step, target.ring, prefer);
+  const fifths = target.ring === current.mode ? spellings[(at + 1) % spellings.length]! : current.fifths;
+  return { fifths, mode: target.ring };
 }
 
 /**
@@ -116,8 +139,8 @@ export function circleLayout(area: { cx: number; cy: number; radius: number }, n
       index,
       fifths,
       major: names.map((n) => n.major).join('/'),
-      // the minor ring is too narrow at the bottom for two names: d sharp, or e flat when the piece or the choice is in G flat (AX-3 provisional)
-      minor: (fifths.length > 1 ? [keyNames(prefer.includes(-6) ? -6 : fifths[0]!, naming)] : names).map((n) => n.minor.toLowerCase()).join('/'),
+      // the minor ring is too narrow at the bottom for two names: d sharp, or e flat when the choice or the piece is in G flat (AX-3 provisional)
+      minor: (fifths.length > 1 ? [keyNames(prefer.find((f) => fifths.includes(f)) ?? fifths[0]!, naming)] : names).map((n) => n.minor.toLowerCase()).join('/'),
       signs: fifths.map(signOf),
       angle,
       majorAt: at(angle, (radii.minor + radii.major) / 2),
@@ -130,16 +153,22 @@ export function circleLayout(area: { cx: number; cy: number; radius: number }, n
 
 /**
  * The step and ring under a point, or null: the major ring and the counts beyond it are the major key, the minor ring the
- * minor key; the hub and anything outside the circle are none.
+ * minor key; the hub and anything outside the circle are none. Where a step shows two major names (one above the other)
+ * and two counts (side by side), the half under the point picks its spelling: the upper name or left count the first
+ * (sharps), the lower or right the second (flats).
  */
-export function circleHit(layout: CircleLayout, x: number, y: number): { step: number; ring: CircleRing } | null {
+export function circleHit(layout: CircleLayout, x: number, y: number): CircleTarget | null {
   const dx = x - layout.cx;
   const dy = y - layout.cy;
   const r = Math.hypot(dx, dy);
   if (r < layout.radii.hub || r > layout.radii.edge) return null;
   const angle = Math.atan2(dx, -dy); // clockwise from straight up
   const step = stepOfFifths(Math.round((angle * CIRCLE_STEPS) / (2 * Math.PI)));
-  return { step, ring: r < layout.radii.minor ? 'minor' : 'major' };
+  if (r < layout.radii.minor) return { step, ring: 'minor' };
+  const shown = layout.steps[step]?.fifths ?? [];
+  if (shown.length < 2) return { step, ring: 'major' };
+  const second = r < layout.radii.major ? y >= layout.steps[step]!.majorAt.y : x >= layout.steps[step]!.signAt.x;
+  return { step, ring: 'major', fifths: shown[second ? 1 : 0]! };
 }
 
 /**
