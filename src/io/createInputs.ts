@@ -24,6 +24,8 @@ export interface KeyboardInputs {
   keyboardProfile(): KeyboardProfile;
   /** Resolves when the attempt to open MIDI has finished, whether or not it worked. Never rejects. */
   ready: Promise<void>;
+  /** While true, no key press reaches the game from any keyboard (the window is too small to play, d105). */
+  hold(held: boolean): void;
   dispose(): void;
 }
 
@@ -58,7 +60,7 @@ export function createKeyboardInputs(options: CreateInputsOptions): KeyboardInpu
   const inputs: KeyboardInputs = {
     keyboard: composite, lights: onScreen, onScreen, virtualDevice, midi: null, midiProblem: null, keyboardOutput: () => null,
     keyboardProfile: () => UNKNOWN_PROFILE,
-    ready: Promise.resolve(), dispose: () => composite.dispose(),
+    ready: Promise.resolve(), hold: (held) => composite.setHeld(held), dispose: () => composite.dispose(),
   };
   inputs.ready = WebMidiKeyboard.create({
     ...(virtualDevice ? { requestAccess: () => Promise.resolve(virtualDevice.access) } : {}),

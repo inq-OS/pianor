@@ -89,4 +89,19 @@ describe('CompositeKeyboard', () => {
     expect(a.disposed).toBe(true);
     expect(got).toEqual([]);
   });
+
+  it('takes no press while held (the window too small, d105), yet releases a key pressed before', () => {
+    const a = new Fake('a', { state: 'connected', name: 'A' });
+    const composite = new CompositeKeyboard([a]);
+    const got: string[] = [];
+    composite.onNote((e) => got.push(`${e.kind} ${e.midi}`));
+    a.notes.emit(note(60));
+    composite.setHeld(true);
+    a.notes.emit(note(62));
+    a.notes.emit({ ...note(62), kind: 'off', velocity: 0 });
+    a.notes.emit({ ...note(60), kind: 'off', velocity: 0 });
+    composite.setHeld(false);
+    a.notes.emit(note(64));
+    expect(got).toEqual(['on 60', 'off 60', 'on 64']);
+  });
 });

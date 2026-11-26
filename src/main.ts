@@ -152,7 +152,9 @@ async function startGame(): Promise<void> {
     game.scale.refresh();
   };
   window.addEventListener('resize', fitGame);
-  if (!appConfig.flags.anySize) guardScreenSize(game);
+  // a change of the display's scaling alone (the window dragged to a screen of other scaling) fires no resize
+  onPixelRatioChange(() => window.dispatchEvent(new Event('resize')));
+  if (!appConfig.flags.anySize) guardScreenSize(game, (held) => inputs.hold(held));
   profiles.onKeyboardSettings(() => {
     const before = keyboardHost.style.display;
     applyKeyboardVisibility();
@@ -187,7 +189,7 @@ async function startGame(): Promise<void> {
  * centred line asking for a bigger window and F11, and the game underneath is paused (no state is lost); it comes back by
  * itself when the window is big enough. A normal browser window plays. The whole window counts, not the canvas, so the on-screen keyboard (a developer's tool) never sets it off.
  */
-function guardScreenSize(game: Phaser.Game): void {
+function guardScreenSize(game: Phaser.Game, holdInput: (held: boolean) => void): void {
   const cover = document.createElement('div');
   cover.id = 'screen-guard';
   // in capitals (make the window bigger, F11): one loud line, the only thing on the screen
@@ -197,15 +199,36 @@ function guardScreenSize(game: Phaser.Game): void {
     background: css(C.night), color: css(C.cream), font: 'bold 48px monospace', textAlign: 'center',
   });
   document.body.appendChild(cover);
+  let covered = false;
+  // the hidden screen takes no key press while covered: the scenes' window keys (Esc would end a piece) and the computer
+  // keyboard's piano; a release still goes through, so a key held when the cover came is let go. F11 still reaches the
+  // browser, as nothing prevents its default
+  window.addEventListener('keydown', (e) => {
+    if (covered) e.stopImmediatePropagation();
+  }, { capture: true });
   const check = () => {
     const size = canvasSize(window.innerWidth, window.innerHeight, window.devicePixelRatio);
     const fits = frameFits(size.width, size.height);
+    covered = !fits;
     cover.style.display = fits ? 'none' : 'flex';
+    holdInput(covered);
     if (fits) game.resume();
     else game.pause();
   };
   window.addEventListener('resize', check);
   check();
+}
+
+/** Calls back each time `devicePixelRatio` changes (a media query for the current ratio, made again after every change). */
+function onPixelRatioChange(changed: () => void): void {
+  const watch = () => {
+    const query = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+    query.addEventListener('change', () => {
+      changed();
+      watch();
+    }, { once: true });
+  };
+  watch();
 }
 
 // The dev pages: `demo` is always null in a production build (src/config.ts), and the `import.meta.env.DEV` test lets the

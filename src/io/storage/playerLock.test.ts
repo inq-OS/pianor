@@ -32,4 +32,9 @@ describe('the player lock (two tabs of one player overwrote each other)', () => 
   it('without the Web Locks API every claim is granted', async () => {
     expect(await webPlayerLock(undefined).claim('tuvi')).toBe(true);
   });
+
+  it('a page refused the Web Locks API (a sandboxed frame) is granted every claim instead of hanging', async () => {
+    const refused: LockRequester = { request: () => Promise.reject(new DOMException('Access to the Locks API is denied', 'SecurityError')) };
+    expect(await webPlayerLock(refused).claim('tuvi')).toBe(true);
+  });
 });
