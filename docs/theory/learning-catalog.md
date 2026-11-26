@@ -89,11 +89,11 @@ Ids are `<area letter><number>` and stay fixed once given; a lesson in the conte
 |---|---|---|---|
 | E1 | The major scale pattern | trained | scales and chords trainer (ft_1_29) |
 | E2 | All twelve major scales | trained | scales and chords trainer, scale switcher |
-| E3 | Key signatures with sharps | trained | circle of fifths (ft_1_28) |
-| E4 | Key signatures with flats | trained | circle of fifths |
-| E5 | The circle of fifths | trained | circle of fifths |
+| E3 | Key signatures with sharps | drawn | circle of fifths (ft_1_28) |
+| E4 | Key signatures with flats | drawn | circle of fifths |
+| E5 | The circle of fifths | drawn | circle of fifths |
 | E6 | Scale degree names (tonic, dominant and the rest) | drawn | |
-| E7 | Relative minor | trained | circle of fifths |
+| E7 | Relative minor | drawn | circle of fifths |
 | E8 | Parallel minor | drawn | |
 | E9 | Natural minor | trained | scales and chords trainer |
 | E10 | Harmonic minor | drawn | |
