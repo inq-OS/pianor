@@ -6,11 +6,12 @@
  */
 import { ledgerLinePositions, midiToSpelling, staffPosition, type Chart, type Spelling } from '../chart';
 import { keyAlters, keyAt } from '../chart/key';
+import { ACCIDENTAL_BOX, accidentalKind } from './accidentals';
 import type { StaffLayout } from './staffTypes';
 
 export interface PlayedMark {
   system: number;
-  /** Head centre: just right of the awaited note's column, so a neighbour key does not cover the note to read. */
+  /** Head centre: just right of the awaited note's column (further right when it prints an accidental), so a neighbour key does not cover the note to read. */
   x: number;
   y: number;
   rx: number;
@@ -19,6 +20,8 @@ export interface PlayedMark {
   spelling: Spelling;
   /** The accidental to print left of the head (1 sharp, -1 flat, 0 natural), or null when the key signature says it. */
   accidental: number | null;
+  /** The centre of the accidental: between the awaited note's head and the mark's own ink, clear of both. */
+  accidentalX: number;
   ledgerLines: { y: number; x1: number; x2: number }[];
 }
 
@@ -26,6 +29,8 @@ export interface PlayedMark {
 const LEDGER_REACH = 1.6;
 /** The mark stands this many head half-widths right of the awaited column. */
 export const PLAYED_OFFSET = 2.6;
+/** Staff spaces of clear room each side of the mark's accidental, as between an accidental and its note. */
+const ACCIDENTAL_CLEAR = 0.2;
 
 /** Where `midi` goes next to the awaited notes (`awaited`, indexes into `chart.notes`): on the staff of the nearest one in pitch. Null when none of them is laid out. */
 export function playedMark(layout: StaffLayout, chart: Chart, awaited: readonly number[], midi: number): PlayedMark | null {
@@ -42,7 +47,16 @@ export function playedMark(layout: StaffLayout, chart: Chart, awaited: readonly 
   const S = layout.staffSpace;
   const yOf = (p: number) => staff.bottomLineY - (p * S) / 2;
   const reach = nearest.headRx * LEDGER_REACH;
-  const x = nearest.column + nearest.headRx * PLAYED_OFFSET;
+  const keyAlter = keyAlters(fifths)[spelling.step];
+  const accidental = keyAlter === spelling.alter ? null : spelling.alter;
+  const ledgers = ledgerLinePositions(position);
+  // a printed accidental stands right of the awaited head and pushes the mark right by its width, so it covers neither
+  const signWidth = accidental === null ? 0 : ACCIDENTAL_BOX[accidentalKind(accidental)].width * S;
+  const accidentalX = nearest.column + nearest.headRx + ACCIDENTAL_CLEAR * S + signWidth / 2;
+  const leftReach = ledgers.length > 0 ? reach : nearest.headRx;
+  const x = accidental === null
+    ? nearest.column + nearest.headRx * PLAYED_OFFSET
+    : Math.max(nearest.column + nearest.headRx * PLAYED_OFFSET, accidentalX + signWidth / 2 + ACCIDENTAL_CLEAR * S + leftReach);
   return {
     system: nearest.system,
     x,
@@ -50,7 +64,8 @@ export function playedMark(layout: StaffLayout, chart: Chart, awaited: readonly 
     rx: nearest.headRx,
     ry: nearest.headRy,
     spelling,
-    accidental: keyAlters(fifths)[spelling.step] === spelling.alter ? null : spelling.alter,
-    ledgerLines: ledgerLinePositions(position).map((p) => ({ y: yOf(p), x1: x - reach, x2: x + reach })),
+    accidental,
+    accidentalX,
+    ledgerLines: ledgers.map((p) => ({ y: yOf(p), x1: x - reach, x2: x + reach })),
   };
 }

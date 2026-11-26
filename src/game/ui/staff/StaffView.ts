@@ -1040,7 +1040,7 @@ export class StaffView {
     g.fillStyle(color, PLAYED_ALPHA).fillEllipse(mark.x, mark.y, mark.rx * 2, mark.ry * 2);
     if (mark.accidental !== null) {
       g.setAlpha(PLAYED_ALPHA);
-      this.drawAccidental(g, mark.accidental, mark.x - mark.rx * 2.4, mark.y, color);
+      this.drawAccidental(g, mark.accidental, mark.accidentalX, mark.y, color);
       g.setAlpha(1);
     }
   }

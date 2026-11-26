@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
 import type { Chart } from '../chart';
 import { PLAYED_OFFSET, playedMark } from './playedMark';
-import { layoutStaff, type StaffLayout } from './staff';
+import { ACCIDENTAL_BOX, layoutStaff, type StaffLayout } from './staff';
 
 const lay = (chart: Chart): StaffLayout => layoutStaff(chart, { viewport: { width: 1366, height: 600 }, barsPerLine: 2 });
 
@@ -49,6 +49,18 @@ describe('the key that was played, on the staff (ft_1_12.AC7)', () => {
     const after = playedMark(layout, changed, [2], 70)!; // the A4 at tick 960 stands in F major
     expect(after.spelling).toEqual({ step: 'B', alter: -1, octave: 4 });
     expect(after.accidental).toBeNull();
+  });
+
+  it('ft_1_12.AC7: keeps a black key\'s accidental clear of the awaited note\'s head, and right of it the mark\'s ledger lines', () => {
+    for (const [awaitedIndex, midi] of [[1, 70], [0, 73], [0, 85]] as const) { // A#4 by B4, C#5 by C5, C#6 two ledger lines up
+      const awaited = glyph(awaitedIndex);
+      const mark = playedMark(layout, chart, [awaitedIndex], midi)!;
+      expect(mark.accidental).toBe(1);
+      const half = (ACCIDENTAL_BOX.sharp.width / 2) * S;
+      expect(mark.accidentalX - half).toBeGreaterThan(awaited.column + awaited.headRx);
+      const leftInk = Math.min(mark.x - mark.rx, ...mark.ledgerLines.map((l) => l.x1));
+      expect(mark.accidentalX + half).toBeLessThan(leftInk);
+    }
   });
 
   it('ft_1_12.AC7: is null when nothing is awaited or the note is not on the shown layout', () => {
