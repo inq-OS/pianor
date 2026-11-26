@@ -166,6 +166,13 @@ describe('LearnSession', () => {
     expect(open().session().outcomeOf(piece, true)).toEqual({ outcome: 'hinted' });
   });
 
+  it('ft_1_32.AC3 counts nothing when note names were shown at any moment of the run, even turned off before its end', () => {
+    const run = open().session();
+    run.namesShown();
+    // the names were turned off again: no note of the run was judged with them, and still the run does not count
+    expect(playRun(run, [0, 500, 1000, 1500])).toEqual({ outcome: 'hinted' });
+  });
+
   it('ft_1_32.AC2 a piece in progress keeps its step size when the setting changes; a new piece takes the setting', async () => {
     const eight = chartWith(Array.from({ length: 8 }, (_, bar) => ({ tick: bar * 1920, dur: 480, midi: 60 + bar })));
     const kept = { progress: START_PROGRESS, settings: DEFAULT_LEARN_SETTINGS };

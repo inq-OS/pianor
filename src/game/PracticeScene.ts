@@ -2193,6 +2193,7 @@ export class PracticeScene extends PixelScene {
       return;
     }
     this.hints = { ...this.hints, [hint]: !this.hints[hint] };
+    if (hint === 'noteNames' && this.hints.noteNames) this.learn?.namesShown();
     this.playSession.setHints(this.hints);
     this.redraw();
   }

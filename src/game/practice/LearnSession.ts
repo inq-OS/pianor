@@ -201,12 +201,18 @@ export class LearnSession {
    */
   outcomeOf(played: Chart, noteNames: boolean): { outcome: RunOutcome; bpm?: number } {
     this.measured = null;
-    if (noteNames) return { outcome: 'hinted' };
+    if (noteNames || this.namesWereShown) return { outcome: 'hinted' };
     // a play with wrong keys counts as a play, with no tempo kept (d300)
     if (this.verdict.state === 'flawed') return { outcome: 'flawed' };
     this.measured = isMeasured(this.run) ? runTempo(played, this.events) : null;
     return measuredOutcome(this.progress, this.measured);
   }
+
+  /** The note names were shown during this run (ft_1_32.AC3): it counts nothing, even when they were turned off before its end. */
+  namesShown(): void {
+    this.namesWereShown = true;
+  }
+  private namesWereShown = false;
 
   /** The learning has begun and is past its first step: opening it asks to go on or start over (ft_1_32.AC16). */
   get halfway(): boolean {
