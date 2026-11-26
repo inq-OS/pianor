@@ -897,6 +897,18 @@ describe('key signatures (core_09.AC5)', () => {
     expect(last.x + (ACCIDENTAL_BOX.sharp.width / 2) * SPACE).toBeLessThan(layout.timeSignature.x);
   });
 
+  it('leaves a clear gap between the last sign of any key and the digits of the time signature (core_09.AC5)', () => {
+    for (let fifths = -7; fifths <= 7; fifths++) {
+      if (fifths === 0) continue;
+      const layout = layoutStaff(keyChart(fifths), { viewport: BIG, staffSpace: SPACE });
+      const last = keyMarks(layout).at(-1)!;
+      const signRight = last.x + (ACCIDENTAL_BOX[fifths > 0 ? 'sharp' : 'flat'].width / 2) * SPACE;
+      const ts = layout.timeSignature;
+      const digitsLeft = ts.x - (ts.digitHeight * 3) / 10; // a digit is 3 cells of a 5-cell height wide
+      expect(digitsLeft - signRight).toBeGreaterThanOrEqual(0.3 * SPACE);
+    }
+  });
+
   it('keeps every key accidental on the page, above the top staff and below the bottom one (core_09.AC5)', () => {
     for (const [fifths, clef] of [[7, 'treble'], [-7, 'bass']] as const) {
       const layout = layoutStaff(keyChart(fifths, clef), { viewport: BIG, staffSpace: SPACE });
