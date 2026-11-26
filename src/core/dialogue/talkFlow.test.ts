@@ -4,7 +4,7 @@ import type { Conversation } from './conversation';
 import type { TalkFacts } from './talk';
 import { chooseInTalk, openTalk, pressInTalk, type TalkFlow } from './talkFlow';
 
-const facts: TalkFacts = { flags: [], items: [], met: [], taught: [], level: 1, knowledge: false };
+const facts: TalkFacts = { flags: [], items: [], met: [], taught: [], knowledge: false };
 const conv = {
   schemaVersion: 1,
   id: 'test',

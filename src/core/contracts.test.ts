@@ -100,7 +100,7 @@ describe('WP-01 content contracts: what the schemas refuse or default', () => {
       ...placeholderConversation,
       nodes: { ...placeholderConversation.nodes, play: { ...placeholderConversation.nodes.play, when } },
     });
-    expect(conversationSchema.safeParse(withWhen({ any: [{ hasItem: 'shell' }, { levelAtLeast: 2 }, { knowledge: true }] })).success).toBe(true);
+    expect(conversationSchema.safeParse(withWhen({ any: [{ hasItem: 'shell' }, { knowledge: true }] })).success).toBe(true);
     expect(conversationSchema.safeParse(withWhen({ weather: 'rain' })).success).toBe(false);
   });
 

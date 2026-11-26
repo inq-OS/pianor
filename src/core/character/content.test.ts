@@ -123,7 +123,7 @@ describe("Puuvaim, the first character (WP-11)", () => {
 
   it('plays its first talk, a later talk, the invitation to the tug and the talk after teaching as cast-and-phrases.md section 5 drafts them', () => {
     const conv = conversationSchema.parse(Object.entries(conversations).find(([p]) => fileId(p) === 'puuvaim')![1]);
-    const facts: TalkFacts = { flags: [], items: [], met: [], taught: [], level: 1, knowledge: false };
+    const facts: TalkFacts = { flags: [], items: [], met: [], taught: [], knowledge: false };
     const lines = (step: ReturnType<typeof startTalk>, picks: number[]): string[] => {
       const seen: string[] = [];
       let s = step;
