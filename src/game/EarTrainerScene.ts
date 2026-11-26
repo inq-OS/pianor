@@ -23,8 +23,9 @@ import { startScene } from './scenes';
 import { watchKeyBash } from './practice/bashDoor';
 
 const MARGIN = 8;
-/** The ear level line at the top of the main area: the ear, "Ear level N" and a bar of the points towards the next level. */
-const LEVEL_Y = 6;
+/** The ear level line at the top of the main area: the ear, "Ear level N" and a bar of the points towards the next level.
+ * Low enough that an accent over a capital (the Estonian Õ) stays on the light card, under its torn top edge. */
+const LEVEL_Y = 8;
 const LEVEL_BAR_WIDTH = 48;
 const LEVEL_BAR_HEIGHT = 5;
 /** The round's stars, twice the sprite size, centred above the staff. */
