@@ -119,6 +119,41 @@ test.describe('pitch trainer by ear (ft_1_10)', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_1_10.AC2 a question sounds alone: the notes left of the last sounding stop and never start in the next one', async ({ page }) => {
+    const errors = await openEar(page);
+    // every note the game's piano starts or stops, with the time it happened
+    await page.evaluate(() => {
+      const piano = window.__game.registry.get('context').audio.piano as { noteOn: (m: number, v: number) => void; noteOff: (m: number) => void };
+      const log: { kind: 'on' | 'off'; midi: number; at: number }[] = [];
+      (window as unknown as { __soundLog: typeof log }).__soundLog = log;
+      const on = piano.noteOn.bind(piano);
+      const off = piano.noteOff.bind(piano);
+      piano.noteOn = (m, v) => { log.push({ kind: 'on', midi: m, at: performance.now() }); on(m, v); };
+      piano.noteOff = (m) => { log.push({ kind: 'off', midi: m, at: performance.now() }); off(m); };
+    });
+    // Play again, then the next question before the first sounding has ended
+    await page.evaluate(() => (window.__game.scene.getScene('earTrainer') as unknown as { play(): void }).play());
+    await page.waitForTimeout(300);
+    const mark = await page.evaluate(() => {
+      (window.__game.scene.getScene('earTrainer') as unknown as { nextQuestion(pause: number): void }).nextQuestion(0);
+      return performance.now();
+    });
+    const next = (await ear(page)).notes;
+    await page.waitForTimeout(1600);
+    const log = await page.evaluate(() => (window as unknown as { __soundLog: { kind: 'on' | 'off'; midi: number; at: number }[] }).__soundLog);
+    const after = log.filter((e) => e.at > mark);
+    // after the new question started only its own notes start, and each sounds its whole length (1 s) before it stops
+    expect(after.filter((e) => e.kind === 'on').map((e) => e.midi)).toEqual(next);
+    // the last sounding was stopped when the new question started, not later in the middle of it
+    expect(after.filter((e) => e.kind === 'off').every((e) => next.includes(e.midi))).toBe(true);
+    for (const start of after.filter((e) => e.kind === 'on')) {
+      const stop = after.find((e) => e.kind === 'off' && e.midi === start.midi && e.at > start.at);
+      expect(stop, `note ${start.midi} stops`).toBeDefined();
+      expect(stop!.at - start.at).toBeGreaterThan(800);
+    }
+    expectNoErrors(errors);
+  });
+
   test('a click on the screen goes on after a round; the note length is one button cycling 1, 2, 3 s (AC6, AC11)', async ({ page }) => {
     const errors = await openEarFromRoom(page);
     const first = await ear(page);
