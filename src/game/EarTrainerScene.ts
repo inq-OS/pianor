@@ -248,7 +248,7 @@ export class EarTrainerScene extends PixelScene {
   /** Repeat the question when nothing happened for twice its sounding time (the rule decides). */
   private checkRepeat(): void {
     if (this.question.done) return;
-    const due = isRepeatDue({ now: this.time.now, lastActivityMs: this.lastActivityMs, seconds: this.seconds, repeatOn: this.repeatOn });
+    const due = isRepeatDue({ now: this.time.now, lastActivityMs: this.lastActivityMs, seconds: this.seconds, notes: this.notes.length, repeatOn: this.repeatOn });
     if (due) this.play();
   }
 
