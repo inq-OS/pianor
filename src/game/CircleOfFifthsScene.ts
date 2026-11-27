@@ -2,7 +2,8 @@ import { CIRCLE_SCALE_BARS, chooseKey, circleHit, circleLayout, circlePanelLayou
 import { frameCorners } from '../core/layout/frame';
 import { pitchClass } from '../core/chart/pitch';
 import { rectCentre } from '../core/layout/rect';
-import { keyName } from '../core/editor/key';
+import { keyName, keyTonic } from '../core/editor/key';
+import { language } from '../core/text/language';
 import { circleScaleLayout } from '../core/trainer/staffFrame';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
 import { scaleChart } from '../core/trainer/scaleChart';
@@ -212,9 +213,8 @@ export class CircleOfFifthsScene extends PixelScene {
     });
     // a key with two spellings has a switch to the other by its name ("also G♭"), so the second spelling is never hidden
     const other = otherSpelling(this.selectedKey);
-    const otherNames = other && keyNames(other.fifths, naming);
-    const otherShort = otherNames && withFlat(other.mode === 'major' ? otherNames.major : otherNames.minor.toLowerCase());
-    const otherTitle = otherNames && (other.mode === 'major' ? t('circle.major', { key: withFlat(otherNames.major) }) : t('circle.minor', { key: withFlat(otherNames.minor.toLowerCase()) }));
+    const otherShort = other && keyTonic(other.fifths, other.mode, naming, language());
+    const otherTitle = other && keyName(other.fifths, other.mode, naming);
     const swapLabel = otherShort === null ? null : t('circle.also', { key: otherShort });
     const layout = circlePanelLayout({ width, rows: this.mainRows }, {
       heading: { w: heading.width, h: heading.height }, swap: swapLabel === null ? null : renderText(drawnText(swapLabel, true), { color: C.ink }).width + 10,

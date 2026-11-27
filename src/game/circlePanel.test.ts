@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { CIRCLE_SCALE_BARS, circlePanelLayout, otherSpelling, spellingsOf, stepOfFifths, withFlat } from '../core/layout/circleOfFifths';
+import { CIRCLE_SCALE_BARS, circlePanelLayout, otherSpelling, spellingsOf, stepOfFifths } from '../core/layout/circleOfFifths';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
 import { circleScaleLayout } from '../core/trainer/staffFrame';
 import { FRAME_ROWS, frameView } from '../core/layout/frame';
 import type { Rect } from '../core/layout/rect';
-import { keyName, keyNames, type KeyMode } from '../core/editor/key';
+import { keyName, keyTonic, type KeyMode } from '../core/editor/key';
 import { t } from '../core/text/strings';
-import { setLanguage, type Language } from '../core/text/language';
+import { language, setLanguage, type Language } from '../core/text/language';
 import type { NoteNaming } from '../core/text/noteName';
 import { WHEEL_MARGIN } from './ui/pixel/circleArt';
 import { drawnText, renderText } from './ui/pixel/font';
@@ -25,7 +25,7 @@ function panelFor(screen: { width: number; height: number }, fifths: number, mod
   const heading = renderText(drawnText(name(fifths), true), { color: 0 });
   const ticks = choosing ? spellingsOf(stepOfFifths(fifths)).map((f) => Math.max(22, (f === 0 ? 14 : signatureIcon(f).width) + 8)) : [];
   const other = otherSpelling({ fifths, mode });
-  const swap = other ? renderText(drawnText(t('circle.also', { key: withFlat(mode === 'major' ? keyNames(other.fifths, naming).major : keyNames(other.fifths, naming).minor.toLowerCase()) }), true), { color: 0 }).width + 10 : null;
+  const swap = other ? renderText(drawnText(t('circle.also', { key: keyTonic(other.fifths, other.mode, naming, language()) }), true), { color: 0 }).width + 10 : null;
   return circlePanelLayout({ width: view.width, rows: Math.floor(screen.height / view.scale) - FRAME_ROWS }, {
     heading: { w: heading.width, h: heading.height }, ticks, swap, wheelMargin: WHEEL_MARGIN, button: { w: 22, h: BAR_BUTTON_HEIGHT },
   });
