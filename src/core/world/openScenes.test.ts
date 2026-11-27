@@ -4,7 +4,7 @@ import { isTester, openScenes } from './openScenes';
 const SCENES = [{ id: 'knoll' }, { id: 'harbour' }, { id: 'spit' }];
 
 describe('which scenes are open (ft_1_19)', () => {
-  it('ft_1_19.AC2 every built scene is open to every player: no level opens or locks a scene (d113)', () => {
+  it('ft_1_19.AC2 a scene not marked closed is open to every player: no level opens or locks a scene (d113)', () => {
     expect(openScenes(SCENES)).toEqual(['knoll', 'harbour', 'spit']);
     expect(openScenes(SCENES, false)).toEqual(['knoll', 'harbour', 'spit']);
   });
