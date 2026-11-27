@@ -4,11 +4,11 @@ import { mouseAction, type MouseAction } from '../core/editor/mouse';
 import { HELP_CARDS, KEY_CAP, KEY_TOUR, type HeldKey, type KeyTourSpot } from '../core/editor/help';
 import { helpGridLayout } from '../core/layout/helpCards';
 import type { Rect } from '../core/layout/rect';
-import { moveBar, moveInTime, movePitch, otherStaff, startKeyCursor, withPitch, type KeyCursor } from '../core/editor/keyCursor';
+import { moveBar, moveInTime, moveOnGrowing, movePitch, otherStaff, startKeyCursor, withPitch, type KeyCursor } from '../core/editor/keyCursor';
 import { nextLength } from '../core/editor/nextLength';
 import { beatsFit, confirmBeats, firstBarFull, guessBeats, type Beats } from '../core/editor/meterGuess';
 import { chordKeyPress, moveNoteKeepingLegato, repeatTied } from '../core/editor/keyEdits';
-import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, moveBars, pasteAt, pasteOverwrites, pasteSpan, replaceBars, type BarRange, type Clip } from '../core/editor/bars';
+import { changedBar, clearBars, copyBars, cutBars, insertBars, insertBlankBars, moveBars, pasteAt, pasteOverwrites, pasteSpan, replaceBars, type BarRange, type Clip } from '../core/editor/bars';
 import { deleteNotes, eraseBefore, nearestPitch, pitchAbove, snapToNote, stepsTo, VIM_START, vimKey, vimMotion, vimShowCmd, type VimCommand, type VimState } from '../core/editor/vim';
 import { samePitchNotAdjacent, tieAll } from '../core/editor/ties';
 import { arcInto, toggleArc } from '../core/editor/arcs';
@@ -19,19 +19,20 @@ import { addedMarks, NO_MARKS, pendingArc, slurPoints, tiePoints, type AddedMark
 import Phaser from 'phaser';
 import { strokePolyline } from './ui/staff/polyline';
 import { DIGITS } from './ui/staff/glyphs';
-import { firstPrintedBar, levelsFileSchema, playbackLengthMs, playbackNotes, staffPosition, type Chart, type LevelDefinition, type Step } from '../core/chart';
+import { firstPrintedBar, levelsFileSchema, lastSoundMs, playbackNotes, staffPosition, type Chart, type LevelDefinition, type Step } from '../core/chart';
 import { toChart } from '../core/editor/chart';
 import { autoFingers } from '../core/editor/fingers';
 import levelsJson from '../../content/curriculum/levels.json';
 import { keyLabel, type KeyMode } from '../core/editor/key';
-import { canRedo, canUndo, mapEvery, push, redo, startHistory, undo, type History } from '../core/editor/history';
+import { TIME_PANEL_START, timePanelKey, type TimeGroup, type TimePanelState } from '../core/editor/timePanelKeys';
+import { amend, canRedo, canUndo, mapEvery, push, redo, startHistory, undo, type History } from '../core/editor/history';
 import { debugLog } from '../core/debug/debugLog';
-import { entryBackspace, entryDown, entryTick, entryUp, moveCursor, startEntry, type EntryKey, type EntryOptions, type EntryState } from '../core/editor/entryMachine';
+import { entryBackspace, entryDown, entryTick, entryUp, moveCursor, nextEntryPlace, startEntry, type EntryKey, type EntryOptions, type EntryState } from '../core/editor/entryMachine';
 import { DEFAULT_ENTRY_PREFS, ENTRY_PREFS_KEY, parseEntryPrefs, serializeEntryPrefs, type EntryPrefs } from '../core/editor/entryPrefs';
 import { cursorAfter, cursorOf, type StaffMode } from '../core/editor/playEntry';
 import type { NoteEvent } from '../core/judge/types';
 import { hitTest, placeClick, pointOf, targetOf, type ActionTarget, type EntryMode, type Hit } from '../core/editor/hitTest';
-import { barBoxes, barsInRect, drawnWhileWriting, editorStaff, keyNameSpot, pageOfBar, repeatPreview, shadowsFor, snapBar, targetBox } from '../core/editor/staff';
+import { barBoxes, barsInRect, drawnWhileWriting, editorStaff, firstBarOfPage, keyNameSpot, pageOfBar, repeatPreview, shadowsFor, snapBar, targetBox } from '../core/editor/staff';
 import { onRepeatHandle, repeatCopies, repeatHandleBox } from '../core/editor/repeatHandle';
 import chordsJson from '../../content/trainer/chords.json';
 import { nameChord } from '../core/trainer/chordNamer';
@@ -132,6 +133,8 @@ const hasLaterNote = (piece: EditorPiece, ref: NoteRef): boolean => piece.notes.
 /** Whether two places name the same head: hand, bar, start and pitch. */
 const sameRef = (a: NoteRef, b: NoteRef): boolean => a.hand === b.hand && a.bar === b.bar && a.start === b.start && a.step === b.step && a.octave === b.octave;
 const MESSAGE_MS = 3000;
+/** Listen lets the last note ring this long after its end before it stops the piano and shows Listen again. */
+const LISTEN_TAIL_MS = 400;
 /** The chord dictionary the piece maker names a column's chord from (ft_1_29 slice D). */
 const CHORDS = loadChordContent(chordsJson);
 /** The id an unsaved piece is drawn under. */
@@ -290,7 +293,7 @@ export class EditorScene extends PixelScene {
   private touring = false;
   private cursorMark: Phaser.GameObjects.Graphics | null = null;
   /** A menu opened by its key (ft_1_02d.AC19): a digit picks a choice; any other key takes `fallback` and then does its own work. */
-  private keyMenu: { items: MenuItem[]; fallback: number } | null = null;
+  private keyMenu: { name: EditorKeyName; items: MenuItem[]; fallback: number } | null = null;
   private chart: Chart | null = null;
   private layout: StaffLayout | null = null;
   private staffView: StaffView | null = null;
@@ -380,6 +383,8 @@ export class EditorScene extends PixelScene {
    * fifths, which sets the key (ft_1_28 rule 8).
    */
   private panel: 'time' | null = null;
+  /** The time panel's keys: the group they act on and a tempo typed so far (ft_1_02d.AC21). */
+  private timeKeys: TimePanelState = TIME_PANEL_START;
   /** With the band: whether the page buttons over the staff were drawn (only while the piece has more than one page). */
   private pageButtonsDrawn = false;
   /** Where the bar buttons after the last bar were drawn, to draw them again when it moves. */
@@ -498,6 +503,14 @@ export class EditorScene extends PixelScene {
     };
     window.addEventListener('keyup', released, true);
     this.events.once('shutdown', () => window.removeEventListener('keyup', released, true));
+    // closing or reloading the tab with unsaved work: the browser asks first (ft_1_02a.AC16)
+    const unload = (e: BeforeUnloadEvent) => {
+      if (!this.dirty()) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', unload);
+    this.events.once('shutdown', () => window.removeEventListener('beforeunload', unload));
     this.events.once('shutdown', () => {
       this.player?.stop();
       this.removeTitleInput();
@@ -876,6 +889,8 @@ export class EditorScene extends PixelScene {
     if (action === 'select' && this.grabRepeatHandle(p)) return;
     const hit = this.hit(p);
     if (!hit || action === 'none' || this.meterAsk !== null) return;
+    // a press on the staff is another action: a warned paste asks again (ft_1_02d.AC37)
+    this.forgetPasteWarning();
     if (this.repeatPick) {
       // the bar the sign snaps to, as its preview shows (ft_1_02d.AC31)
       const bar = this.repeatBarAt(p) ?? this.barOf(hit);
@@ -1182,7 +1197,7 @@ export class EditorScene extends PixelScene {
     // on a placed rest Enter makes it a step longer and Ctrl + Enter moves on, as on a note (ft_1_02d.AC17, AC22)
     const rest = shift ? undefined : this.restAt(c);
     if (rest) {
-      if (ctrl) return this.setKeyCursor(moveInTime(this.piece, c, 1, this.length), true);
+      if (ctrl) return this.moveOn(c, false);
       this.keyCursor = c;
       return this.apply(lengthenRest(this.piece, rest), null);
     }
@@ -1196,7 +1211,7 @@ export class EditorScene extends PixelScene {
       this.placeAt(alt ? 'whole' : this.length, { kind: 'place', staff: 0, trackId: c.hand.toLowerCase(), clef, bar: c.bar, start: c.start, position: staffPosition({ step: c.step, alter: 0, octave: c.octave }, clef), step: c.step, octave: c.octave });
       // a refused place leaves the cursor where it was; Ctrl + Enter on the same note already there moves on too
       const there = findNote(this.piece, c);
-      if (ctrl && (this.piece !== before || there)) return this.setKeyCursor(moveInTime(this.piece, c, 1, this.length), true);
+      if (ctrl && (this.piece !== before || there)) return this.moveOn(c, this.piece !== before);
       // the cursor stays on what Enter wrote; the next played key still goes after it (placeAt set that)
       this.keyCursor = c;
       this.barAnchor = c.bar;
@@ -1209,6 +1224,22 @@ export class EditorScene extends PixelScene {
     this.follow = made.into.bar;
     this.apply({ ok: true, piece: made.piece }, null);
     this.setKeyCursor(made.into);
+  }
+
+  /**
+   * Ctrl + Enter's move on: to the next place; at the last place of the piece four more empty bars and into the first of
+   * them, as playing on adds bars (ft_1_02d.AC17). The bars join the undo step of what Ctrl + Enter just wrote (`written`).
+   */
+  private moveOn(c: KeyCursor, written: boolean): void {
+    const out = moveOnGrowing(this.piece, c, this.length);
+    if (out.piece !== this.piece) {
+      if (written) {
+        this.history = amend(this.history, out.piece);
+        this.autoAt.set(this.history.present, this.meterAuto);
+        this.resync();
+      } else this.change(out.piece);
+    } else if (out.cursor === c) this.say(t('editor.why.bars-full'), MESSAGE_MS);
+    this.setKeyCursor(out.cursor, true);
   }
 
   /** The chord key (ft_1_02d.AC18): a chord on the cursor's pitch; pressed again on the same root it cycles through the shapes. */
@@ -1310,7 +1341,7 @@ export class EditorScene extends PixelScene {
 
   /**
    * A key while the title is typed: true when it stays the field's. Esc gives the keys back to the piece maker (and goes no
-   * further: it would leave the piece maker); the piece maker's own Ctrl + S, O, E and F1 leave the field and do their work,
+   * further); the piece maker's own Ctrl + S, O, E and F1 leave the field and do their work,
    * never the browser's.
    */
   private titleKey(e: KeyboardEvent): boolean {
@@ -1326,6 +1357,7 @@ export class EditorScene extends PixelScene {
 
   private key(e: KeyboardEvent): void {
     if (!this.scene.isActive() || this.titleKey(e)) return;
+    this.keyEndsPasteWarning(e);
     // the computer keyboard is no piano here (ft_1_02d.AC14): the piano's listener comes after this one and never hears its keys
     if (PIANO_KEYS.test(e.code)) e.stopPropagation();
     if (this.keyMenu && this.keyMenuKey(e)) return;
@@ -1347,7 +1379,7 @@ export class EditorScene extends PixelScene {
     if (this.toolKey(e, ctrl)) return;
     if (e.code === 'PageUp' || e.code === 'PageDown') {
       handled();
-      this.turnPage(e.code === 'PageUp' ? -1 : 1);
+      this.turnPage(e.code === 'PageUp' ? -1 : 1, true);
       return;
     }
     if (this.barKey(e, ctrl) || this.cursorKey(e, ctrl)) return;
@@ -1359,12 +1391,30 @@ export class EditorScene extends PixelScene {
       this.deleteSelected();
     } else if (e.code === 'Escape') {
       handled();
-      // a waiting pick (a tie or slur, a pre-note, the repeat's bars) ends first; a second Esc leaves
+      // a waiting pick (a tie or slur, a pre-note, the repeat's bars) ends; Esc never leaves, only the door does (ft_1_02a.AC16)
       if (this.arcFrom || this.graceFor || this.repeatPick) {
         this.disarm();
         this.refreshStaff();
-      } else this.leave();
+      } else if (!e.repeat) this.say(t('editor.escStays'), MESSAGE_MS);
     }
+  }
+
+  /**
+   * A paste that warned it writes over notes is done only by the same paste next (ft_1_02d.AC37): any other key in between
+   * (a lone modifier is none; V and the paste menu's digits are the paste) asks again.
+   */
+  private keyEndsPasteWarning(e: KeyboardEvent): void {
+    if (!this.pasteWarn || ['Shift', 'Control', 'Meta', 'Alt'].includes(e.key)) return;
+    const ctrl = e.ctrlKey || e.metaKey;
+    if ((ctrl && e.code === 'KeyV') || this.keyMenu?.name === 'paste' || editorKeyOf(e) === 'paste') return;
+    this.forgetPasteWarning();
+  }
+
+  /** The warned paste forgotten, its red bars taken off the staff. */
+  private forgetPasteWarning(): void {
+    if (!this.pasteWarn) return;
+    this.pasteWarn = null;
+    this.refreshStaff();
   }
 
   /**
@@ -1434,7 +1484,7 @@ export class EditorScene extends PixelScene {
     const { width } = this.px;
     const anchor = this.shortcutButtons.get(EDITOR_KEYS[name].label) ?? { rect: { x: width / 2 - 10, y: this.mainRows, width: 20, height: 1 } };
     this.openMenu(anchor, numbered, { cell, columns, open: 'above' });
-    this.keyMenu = { items: numbered, fallback: Math.max(0, fallback) };
+    this.keyMenu = { name, items: numbered, fallback: Math.max(0, fallback) };
   }
 
   /** A menu closed any way (a click off it, a pick) takes its key's choices with it, so a later mouse menu is not read as one. */
@@ -1685,11 +1735,8 @@ export class EditorScene extends PixelScene {
       // every other key waits while the question is open: nothing is written behind it
       return take();
     }
-    // Esc closes the key or time panel before it leaves
-    if (e.code === 'Escape' && this.panel !== null) {
-      this.openPanel(this.panel);
-      return take();
-    }
+    // the time panel's own keys (ft_1_02d.AC21): digits, the arrows, Enter and Esc are the panel's, never the note's
+    if (this.panel === 'time') return this.timePanelKey(e) && take();
     return false;
   }
 
@@ -1888,6 +1935,7 @@ export class EditorScene extends PixelScene {
   /** Opens the time panel over the staff's foot, or closes it when it is open. */
   private openPanel(kind: 'time'): void {
     this.panel = this.panel === kind ? null : kind;
+    this.timeKeys = TIME_PANEL_START;
     this.titleInput?.blur();
     this.redraw();
   }
@@ -1901,11 +1949,20 @@ export class EditorScene extends PixelScene {
   }
 
   /** Another page of lines, when the bars take more lines than the screen shows. */
-  private turnPage(direction: 1 | -1): void {
+  private turnPage(direction: 1 | -1, withCursor = this.keyCursor !== null): void {
     const pages = this.layout?.pageCount ?? 1;
     const page = Math.max(0, Math.min(pages - 1, this.page + direction));
     if (page === this.page) return;
     this.page = page;
+    // Page Up and Down (and the buttons while the cursor is shown) put the keyboard cursor on the page's first bar (ft_1_02d.AC15)
+    if (withCursor && this.layout && this.meterAsk === null) {
+      const c = this.keyCursor ?? this.defaultCursor();
+      const bar = firstBarOfPage(this.layout, page);
+      this.barSel = null;
+      this.setKeyCursor({ ...c, bar, start: 0 }, true);
+      // the A time's question may have stopped the move: the page is turned all the same
+      if (this.keyCursor?.bar === bar) return;
+    }
     this.refreshStaff(true);
   }
 
@@ -2247,6 +2304,13 @@ export class EditorScene extends PixelScene {
     if (this.entryState.piece === this.drawnPiece) return;
     const last = this.entryState.items[this.entryState.items.length - 1];
     this.follow = last ? last.bar : null;
+    // a cursor shown goes on after the played notes, where the next key goes (ft_1_02d.AC15), at the pitch just played
+    const next = last && this.keyCursor ? nextEntryPlace(this.entryState, last.hand) : null;
+    if (last && next && next.bar < this.entryState.piece.bars) {
+      const pitch = last.notes[0] ?? this.keyCursor!;
+      this.keyCursor = { hand: last.hand, ...next, step: pitch.step, octave: pitch.octave };
+      this.barAnchor = next.bar;
+    }
     this.refreshStaff();
   }
 
@@ -2653,7 +2717,10 @@ export class EditorScene extends PixelScene {
     this.flushEntry();
     debugLog.log('edit', 'undo');
     if (!canUndo(this.history)) return this.say(t('editor.nothingToUndo'), MESSAGE_MS);
+    const before = this.history.present;
     this.history = undo(this.history);
+    // the page of the bar it changed is shown (ft_1_02a.AC11)
+    this.follow = changedBar(before, this.history.present);
     this.meterAuto = this.autoAt.get(this.history.present) ?? this.meterAuto;
     this.resync();
     this.selected = null;
@@ -2667,7 +2734,10 @@ export class EditorScene extends PixelScene {
     this.flushEntry();
     debugLog.log('edit', 'redo');
     if (!canRedo(this.history)) return this.say(t('editor.nothingToRedo'), MESSAGE_MS);
+    const before = this.history.present;
     this.history = redo(this.history);
+    // the page of the bar it changed is shown (ft_1_02a.AC11)
+    this.follow = changedBar(before, this.history.present);
     this.meterAuto = this.autoAt.get(this.history.present) ?? this.meterAuto;
     this.resync();
     this.selected = null;
@@ -2685,9 +2755,25 @@ export class EditorScene extends PixelScene {
 
   // ------------------------------------------------------------------------------------------------------- actions
 
+  /**
+   * The door (and `:q`): with unsaved work a panel asks Save and leave, Leave without saving or Stay (ft_1_02a.AC16). Save and
+   * leave goes once the piece is saved; a save that asks for the title first leaves after it, as `:wq` does.
+   */
   private leave(): void {
-    if (this.dirty() && !window.confirm(t('editor.leaveUnsaved'))) return;
-    this.goBack();
+    if (!this.dirty()) return this.goBack();
+    this.player?.stop();
+    this.showListen(false);
+    void openOverlay(this, 'editorLeave').then((choice) => {
+      const act = () => {
+        if (choice === 'leave') return this.goBack();
+        if (choice !== 'save') return;
+        this.leaveAfterSave = true;
+        void this.save().then(() => this.leaveIfSaved());
+      };
+      // the piece maker is resumed on its next step: it acts once it runs again
+      if (this.scene.isActive()) act();
+      else this.events.once('resume', act);
+    });
   }
 
   /** Back to the song page a song's row was written from, else to the piece book. */
@@ -2788,7 +2874,9 @@ export class EditorScene extends PixelScene {
       return;
     }
     if (!this.chart || this.chart.notes.length === 0) return this.say(t('editor.empty'), MESSAGE_MS);
-    this.player.start(playbackNotes(this.chart), playbackLengthMs(this.chart), () => this.showListen(false));
+    // it ends with the last written note, not after the empty bars still to fill (ft_1_02a.AC17)
+    const notes = playbackNotes(this.chart);
+    this.player.start(notes, lastSoundMs(notes) + LISTEN_TAIL_MS, () => this.showListen(false));
     this.showListen(true);
   }
 
@@ -3169,7 +3257,7 @@ export class EditorScene extends PixelScene {
     this.ghostLabel?.setDepth(10);
     // the option buttons are drawn once: show the tempo of the piece now (also after undo and redo)
     this.bpmText?.setText(t('editor.bpm', { bpm: bpmOf(this.piece) }));
-    this.pageText?.setText(t('editor.page', { page: this.page + 1, pages: this.layout.pageCount }));
+    this.pageText?.setText(this.pageLabel(this.layout.pageCount));
     this.barsText?.setText(t('editor.bars', { bars: this.piece.bars }));
     this.pickupText?.setText(pickupLabel(this.piece));
     this.meterText?.setText(this.meterLabel());
@@ -3183,6 +3271,11 @@ export class EditorScene extends PixelScene {
     this.repeatButton?.setActive(this.repeatPick !== null);
     this.updateStatus();
     if (this.titleInput && this.titleInput.value !== this.shownTitle()) this.titleInput.value = this.shownTitle();
+  }
+
+  /** Which page is shown: "page 2 of 3" in the strip over the band (ft_1_02a.AC11), "2/3" in the rows of buttons. */
+  private pageLabel(pages: number): string {
+    return t(this.bandShown ? 'editor.pageOf' : 'editor.page', { page: this.page + 1, pages });
   }
 
   /** A faint note head at the tonic on every place a note can go, on the page shown. */
@@ -3528,9 +3621,14 @@ export class EditorScene extends PixelScene {
     }
     let titleRight = importAt - GROUP_GAP;
     if (this.pageButtonsDrawn) {
+      // "page 2 of 3" between < and > (ft_1_02a.AC11), as wide as its widest number so the buttons stay put
       const next = titleRight - STEP_WIDTH;
-      const previous = next - CHOICE_GAP - STEP_WIDTH;
+      const textWidth = measure(drawnText(t('editor.pageOf', { page: pages, pages })));
+      const textAt = next - CHOICE_GAP - textWidth;
+      const previous = textAt - CHOICE_GAP - STEP_WIDTH;
       make({ x: previous + STEP_WIDTH / 2, y, width: STEP_WIDTH, height: BAR_BUTTON_HEIGHT, label: '<', tooltip: t('editor.pagePrevious'), onClick: () => this.turnPage(-1) });
+      this.pageText = new PixelText(this, textAt, y - TEXT_RISE, this.pageLabel(pages), { color: C.white, shadow: C.groove });
+      layer.add(this.pageText);
       make({ x: next + STEP_WIDTH / 2, y, width: STEP_WIDTH, height: BAR_BUTTON_HEIGHT, label: '>', tooltip: t('editor.pageNext'), onClick: () => this.turnPage(1) });
       titleRight = previous - GROUP_GAP;
     }
@@ -3734,6 +3832,54 @@ export class EditorScene extends PixelScene {
     const bpm = row(pickup.end + GROUP_GAP * 2, GROUP_GAP);
     this.bpmText = group(bpm, t('editor.bpm', { bpm: bpmOf(this.piece) }), t('editor.bpm.tip'), (d) => this.stepBpm(d));
     this.timeGroups = [{ from: BAR_EDGE, to: meter.end, step: (d) => this.stepMeter(d) }, { from: meter.end, to: pickup.end, step: (d) => this.stepPickup(d) }, { from: pickup.end, to: bpm.end, step: (d) => this.stepBpm(d) }];
+    this.showTimeKeys();
+  }
+
+  /** A key while the time panel is open (`timePanelKey`): true when it is the panel's. */
+  private timePanelKey(e: KeyboardEvent): boolean {
+    const { state, action } = timePanelKey(this.timeKeys, e.code);
+    if (action.kind === 'pass') return false;
+    const group = state.group !== this.timeKeys.group;
+    this.timeKeys = state;
+    if (e.repeat && action.kind !== 'step') return true;
+    switch (action.kind) {
+      case 'close': this.openPanel('time'); break;
+      case 'step': ({ meter: () => this.stepMeter(action.direction), pickup: () => this.stepPickup(action.direction), bpm: () => this.stepBpm(action.direction) })[action.group](); break;
+      case 'meter': this.setMeterTo(action.beats); break;
+      case 'pickup': {
+        if (action.beats >= this.piece.beats) break;
+        if (action.beats !== (this.piece.pickup ?? 0)) this.apply(setPickup(this.piece, action.beats), null);
+        break;
+      }
+      case 'bpm': {
+        if (action.bpm !== bpmOf(this.piece)) this.change(setBpm(this.piece, action.bpm));
+        if (action.close) this.openPanel('time');
+        break;
+      }
+      default: break;
+    }
+    // the chosen group lit and a tempo typed so far shown, while the panel is still open
+    if (this.panel === 'time' && (group || action.kind === 'typed' || action.kind === 'bpm' || action.kind === 'step')) this.showTimeKeys();
+    return true;
+  }
+
+  /** The time panel's labels: the group the keys act on lit, and the tempo as typed so far. */
+  private showTimeKeys(): void {
+    const labels: [TimeGroup, PixelText | null][] = [['meter', this.meterText], ['pickup', this.pickupText], ['bpm', this.bpmText]];
+    for (const [group, label] of labels) label?.setOptions({ color: group === this.timeKeys.group ? C.goldLight : C.white, shadow: C.groove });
+    const typed = this.timeKeys.typed;
+    this.bpmText?.setText(t('editor.bpm', { bpm: typed ? `${typed}_` : bpmOf(this.piece) }));
+  }
+
+  /** 2, 3 or 4 in the time panel: that time, as stepping to it would set it. */
+  private setMeterTo(beats: 2 | 3 | 4): void {
+    if (!this.meterAuto && this.piece.beats === beats) return;
+    const edit = setBeats(this.piece, beats);
+    if (!edit.ok) return this.apply(edit, null);
+    this.meterAuto = false;
+    this.apply(edit, null);
+    this.meterText?.setText(this.meterLabel());
+    this.redraw();
   }
 
   private meterLabel(): string {

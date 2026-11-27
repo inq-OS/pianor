@@ -1,7 +1,7 @@
 // Covers ft_1_36.AC1, ft_1_36.AC14, ft_1_36.AC15, ft_1_36.AC21, ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { allMenuTitles, clickButton, expectNoErrors, lastButton, menuButton, openBubbleFromMore, openGame, pressInBubble, sceneButton, sceneTexts, waitForScene } from './helpers';
+import { allMenuTitles, clickButton, clickToolbar, expectNoErrors, lastButton, menuButton, openBubbleFromMore, openGame, pressInBubble, sceneButton, sceneTexts, waitForScene } from './helpers';
 
 const partsOff = (page: Page) => page.evaluate(() => [...window.__game.registry.get('context').profiles.songPartsOff('morning-song')] as string[]);
 const rowLabels = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('song').buttons as { options: { label: string; align?: string } }[]).filter((b) => b.options.align === 'left').map((b) => b.options.label));
@@ -369,7 +369,7 @@ test.describe('songs made of pieces', () => {
     });
     expect(made).toEqual({ title: 'Evening Tune: Part 1', bars: 8 });
     // left with nothing saved: the blank stays a blank, and Back returns to the song page
-    await page.keyboard.press('Escape');
+    await clickToolbar(page, 'back');
     await waitForScene(page, 'song');
     expect((await node()).kind).toBe('blank');
     await clickButton(page, 'song', await sceneButton(page, 'song', 'Write Part 1'));
@@ -386,7 +386,7 @@ test.describe('songs made of pieces', () => {
     if (save < 0 && (await openBubbleFromMore(page, 'editor'))) save = await lastButton(page, 'editor', 'Save');
     await clickButton(page, 'editor', save);
     await expect.poll(async () => (await node()).kind).toBe('piece');
-    await page.keyboard.press('Escape');
+    await clickToolbar(page, 'back');
     await waitForScene(page, 'song');
     await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1']);
     expect(await sceneButton(page, 'song', 'Play Part 1')).toBeGreaterThanOrEqual(0);
@@ -438,7 +438,7 @@ test.describe('songs made of pieces', () => {
     // the piece maker has it again; Back returns to the song page, the piece in its new group
     await waitForScene(page, 'editor');
     expect(await inSongs()).toBe(1);
-    await page.keyboard.press('Escape');
+    await clickToolbar(page, 'back');
     await waitForScene(page, 'song');
     await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1', '2 Group 1', '2.1 Bells']);
     // a piece saved on its own is added from the song page's Add, as a piece of mine
@@ -472,7 +472,7 @@ test.describe('songs made of pieces', () => {
     await clickButton(page, 'song', await lastButton(page, 'song', 'New piece'));
     await writeAndSave('Flute');
     await expect.poll(() => inSongs()).toBe(2);
-    await page.keyboard.press('Escape');
+    await clickToolbar(page, 'back');
     await waitForScene(page, 'song');
     await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1', '2 Flute', '3 Group 1', '3.1 Bells']);
     expectNoErrors(errors);

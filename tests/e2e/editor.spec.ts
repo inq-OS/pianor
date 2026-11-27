@@ -1609,7 +1609,7 @@ test.describe('slim tool row with menus', () => {
     expect(await notes(page)).toEqual(['0:0:E:quarter', '1:0:F:quarter']);
     await page.keyboard.press('Control+KeyZ');
     expect(await notes(page)).toEqual(['0:0:E:quarter', '1:0:E:quarter']);
-    // Esc clears the bar selection and the band goes with it; Esc with no selection would leave the editor
+    // Esc clears the bar selection and the band goes with it
     await page.keyboard.press('Escape');
     expect(await bar()).toBeNull();
     expect(await bandLength()).toBe(idleBand);
@@ -2554,6 +2554,228 @@ test.describe('piece maker: the cursor follows the pointer, the bubble offers wh
       context.keyboardSwitch.shown = () => false;
     });
     expect(await bubbleAt(page, { bar: 2, start: 0, step: 'A', octave: 5 })).not.toContain('A short tap writes an eighth note (on) or a quarter note (off)');
+    expectNoErrors(errors);
+  });
+});
+
+test.describe('piece maker: leaving, Listen, pages and the keys that went nowhere', () => {
+  const focusedLeave = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('editorLeave') as unknown as { focusedButton?: { options: { label: string } } }).focusedButton?.options.label ?? null);
+  const unloadAsks = (page: Page) => page.evaluate(() => {
+    const e = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(e);
+    return e.defaultPrevented;
+  });
+
+  test('ft_1_02a.AC16 Esc never leaves the piece maker; the door with unsaved work asks on a panel, on Stay, and the tab asks before it closes', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    expect(await unloadAsks(page)).toBe(false);
+    await clickNote(page, 0, 0, 'E');
+    expect(await unloadAsks(page)).toBe(true);
+    // a menu closed by Esc, then a habitual second Esc and a third: still in the piece maker, the door named
+    await page.keyboard.press('KeyN');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    expect(await activeScenes(page)).toContain('editor');
+    expect(await status(page)).toContain('To leave the piece maker, press the door.');
+    // the door: the panel, the keys on Stay; Enter stays, so does Esc
+    await clickToolbar(page, 'back');
+    await waitForScene(page, 'editorLeave');
+    expect(await sceneTexts(page, 'editorLeave')).toEqual(expect.arrayContaining(['This piece has changes that are not saved.', 'Save and leave', 'Leave without saving', 'Stay']));
+    expect(await focusedLeave(page)).toBe('Stay');
+    await page.keyboard.press('Enter');
+    await expect.poll(() => activeScenes(page)).not.toContain('editorLeave');
+    expect(await activeScenes(page)).toContain('editor');
+    await clickToolbar(page, 'back');
+    await waitForScene(page, 'editorLeave');
+    await page.keyboard.press('Escape');
+    await expect.poll(() => activeScenes(page)).not.toContain('editorLeave');
+    expect(await notes(page)).toEqual(['0:0:E:quarter']);
+    // Save and leave: saved under its title, then the menu
+    await setTitle(page, 'Door Test');
+    await clickToolbar(page, 'back');
+    await waitForScene(page, 'editorLeave');
+    await clickButton(page, 'editorLeave', await sceneButton(page, 'editorLeave', 'Save and leave'));
+    await waitForScene(page, 'menu');
+    expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().map((r: { piece: { title: string } }) => r.piece.title))).toEqual(['Door Test']);
+    // Leave without saving leaves the change behind
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'G');
+    await clickToolbar(page, 'back');
+    await waitForScene(page, 'editorLeave');
+    await page.keyboard.press('ArrowUp');
+    expect(await focusedLeave(page)).toBe('Leave without saving');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'menu');
+    expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().length)).toBe(1);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02a.AC17 Listen ends after the last written note, not after the empty bars, and shows Listen again', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await eAndGQuarters(page);
+    const listen = () => page.evaluate(() => {
+      const scene = window.__game.scene.getScene('editor') as unknown as { piece: { bars: number }; player: { isPlaying: boolean; lengthMs: number }; listenButton: { options: { label: string } } | null };
+      return { bars: scene.piece.bars, playing: scene.player.isPlaying, ms: scene.player.lengthMs };
+    });
+    await page.keyboard.press('KeyP');
+    const started = await listen();
+    expect(started.bars).toBeGreaterThanOrEqual(8);
+    expect(started.playing).toBe(true);
+    // two quarters and the last one's ring, not eight bars
+    expect(started.ms).toBeLessThan(3000);
+    await expect.poll(async () => (await listen()).playing, { timeout: 5000 }).toBe(false);
+    expect(await sceneWords(page, 'editor')).toContain('Listen');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC17 Ctrl + Enter at the last place of the piece adds four empty bars and goes on, one undo step with the note', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    const bars = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { piece: { bars: number } }).piece.bars);
+    const start = await bars();
+    // the cursor to the last bar, a whole note there with Ctrl + Enter
+    await page.keyboard.press('ArrowRight');
+    await pressTimes(page, 'Control+ArrowRight', start - 1);
+    expect((await keyState(page)).cursor).toBe(`RH:${start - 1}:0:B4`);
+    await page.keyboard.press('Digit1');
+    await page.keyboard.press('Control+Enter');
+    expect(await notes(page)).toEqual([`${start - 1}:0:B:whole`]);
+    expect(await bars()).toBe(start + 4);
+    expect((await keyState(page)).cursor).toBe(`RH:${start}:0:B4`);
+    // the cursor is drawn on the page of the new bar
+    await page.keyboard.press('Control+Enter');
+    expect(await notes(page)).toEqual([`${start - 1}:0:B:whole`, `${start}:0:B:whole`]);
+    await page.keyboard.press('Control+KeyZ');
+    await page.keyboard.press('Control+KeyZ');
+    expect(await notes(page)).toEqual([]);
+    expect(await bars()).toBe(start);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC15 after played keys the drawn cursor stands where the next key goes', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await page.keyboard.press('ArrowRight');
+    expect((await keyState(page)).cursor).toBe('RH:0:0:B4');
+    await tap(page, 72);
+    await page.waitForTimeout(400);
+    await tap(page, 76);
+    await expect.poll(() => notes(page)).toEqual(['0:0:C:quarter', '0:480:E:quarter']);
+    await expect.poll(async () => (await keyState(page)).cursor).toBe('RH:0:960:E5');
+    // Enter there writes after the played notes
+    await page.keyboard.press('Enter');
+    expect(await notes(page)).toEqual(['0:0:C:quarter', '0:480:E:quarter', '0:960:E:quarter']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02a.AC11 ft_1_02d.AC15 Page Down puts the cursor on the first bar of the page, the strip says which page, and undo turns to the page of its change', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'E');
+    await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('editor') as unknown as {
+        history: { present: { bars: number; notes: { bar: number }[] } };
+        apply(edit: { ok: true; piece: unknown }, select: null): void;
+      };
+      const piece = scene.history.present;
+      const note = piece.notes[0]!;
+      scene.apply({ ok: true, piece: { ...piece, bars: 32, notes: Array.from({ length: 32 }, (_, bar) => ({ ...note, bar })) } }, null);
+    });
+    const state = () => page.evaluate(() => {
+      type Layout = { pageCount: number; bars: { system: number }[]; systems: { page: number }[] };
+      const scene = window.__game.scene.getScene('editor') as unknown as { page: number; layout: Layout };
+      const first = scene.layout.bars.findIndex((b) => scene.layout.systems[b.system]!.page === scene.page);
+      return { page: scene.page, pages: scene.layout.pageCount, first };
+    });
+    const { pages } = await state();
+    expect(pages).toBeGreaterThan(1);
+    expect(await sceneTexts(page, 'editor')).toContain(`page 1 of ${pages}`);
+    await page.keyboard.press('PageDown');
+    const second = await state();
+    expect(second.page).toBe(1);
+    expect((await keyState(page)).cursor).toBe(`RH:${second.first}:0:E4`);
+    expect(await sceneTexts(page, 'editor')).toContain(`page 2 of ${pages}`);
+    // a change on page 2, then back to page 1: undo shows page 2 again
+    await page.keyboard.press('Delete');
+    await page.keyboard.press('PageUp');
+    expect((await state()).page).toBe(0);
+    expect((await keyState(page)).cursor).toBe('RH:0:0:E4');
+    await page.keyboard.press('Control+KeyZ');
+    expect((await state()).page).toBe(1);
+    expect(await sceneTexts(page, 'editor')).toContain(`page 2 of ${pages}`);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC21 while the time panel is open digits, the arrows, Enter and Esc are its own and never reach the selected note', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 1, 0, 'E');
+    await selectNote(page, 1, 0, 'E');
+    const piece = () => page.evaluate(() => {
+      const scene = window.__game.scene.getScene('editor') as unknown as { piece: { bpm?: number; pickup?: number }; panel: string | null; entry: string };
+      return { bpm: scene.piece.bpm ?? null, pickup: scene.piece.pickup ?? 0, panel: scene.panel, entry: scene.entry };
+    });
+    await page.keyboard.press('KeyI');
+    expect((await piece()).panel).toBe('time');
+    // right to the pick-up: 1 is one beat; right to the tempo: 9 then 0 is 90
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Digit1');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Digit9');
+    await page.keyboard.press('Digit0');
+    expect(await piece()).toEqual({ bpm: 90, pickup: 1, panel: 'time', entry: 'note' });
+    expect(await notes(page)).toEqual(['1:0:E:quarter']);
+    // a tempo typed and Enter: set, and the panel closes
+    await page.keyboard.press('Digit7');
+    await page.keyboard.press('Digit5');
+    await page.keyboard.press('Enter');
+    expect(await piece()).toMatchObject({ bpm: 75, panel: null });
+    expect(await notes(page)).toEqual(['1:0:E:quarter']);
+    await page.keyboard.press('KeyI');
+    await page.keyboard.press('Escape');
+    expect((await piece()).panel).toBeNull();
+    expect(await activeScenes(page)).toContain('editor');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC37 a paste that warned asks again after any other action in between', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'E');
+    await clickNote(page, 1, 0, 'G');
+    await selectNote(page, 0, 0, 'E');
+    await selectNote(page, 0, 0, 'E', 4, ['Shift']);
+    await page.keyboard.press('Control+KeyC');
+    await selectNote(page, 1, 0, 'G');
+    await selectNote(page, 1, 0, 'G', 4, ['Shift']);
+    await page.keyboard.press('Control+KeyV');
+    expect(await status(page)).toContain('Notes this paste writes over (red): 1.');
+    // another key in between (a menu opened and closed): the next paste warns again and writes nothing
+    await page.keyboard.press('KeyN');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Control+KeyV');
+    expect(await notes(page)).toEqual(['0:0:E:quarter', '1:0:G:quarter']);
+    await page.keyboard.press('Control+KeyV');
+    expect(await notes(page)).toEqual(['0:0:E:quarter', '1:0:E:quarter']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02e.AC5 in vim insert mode Backspace after a rest takes the rest away', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await page.keyboard.press('Control+Shift+KeyV');
+    await page.keyboard.type('icr');
+    const rests = () => page.evaluate(() => ((window.__game.scene.getScene('editor') as unknown as { piece: { rests?: { bar: number; start: number }[] } }).piece.rests ?? []).map((r) => `${r.bar}:${r.start}`));
+    expect(await rests()).toEqual(['0:480']);
+    await page.keyboard.press('Backspace');
+    expect(await rests()).toEqual([]);
+    expect(await notes(page)).toHaveLength(1);
+    expect((await keyState(page)).cursor).toMatch(/^RH:0:480:/);
+    await page.keyboard.press('Backspace');
+    expect(await notes(page)).toEqual([]);
     expectNoErrors(errors);
   });
 });
