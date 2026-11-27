@@ -141,6 +141,20 @@ describe('the bubble (ft_1_20, d282)', () => {
     expect(Math.min(...turns)).toBeLessThan(0.5);
   });
 
+  it('ft_1_20.AC20 the choices turn toward the empty side, off what the screen keeps in sight (the staff), where a turn can', () => {
+    // a note at the staff's left end: the staff runs to the right of it along the top of the screen
+    const staff = { x: 10, y: 30, w: 300, h: 50 };
+    const overStaff = (b: ReturnType<typeof bubbleLayout>) => b.choices.filter((c) => overlap(c, staff)).length;
+    for (const [option, choices] of [[0, 8], [4, 7], [5, 6]] as const) {
+      const plain = bubbleLayout({ at: { x: 30, y: 50 }, options: 8, screen: MAKER, open: { option, choices } });
+      const kept = bubbleLayout({ at: { x: 30, y: 50 }, options: 8, screen: MAKER, open: { option, choices }, avoid: [staff] });
+      expect(overStaff(kept), JSON.stringify({ option })).toBeLessThanOrEqual(overStaff(plain));
+    }
+    // the lengths (slot 0, eight) no longer lie along the staff to the right
+    const lengths = bubbleLayout({ at: { x: 30, y: 50 }, options: 8, screen: MAKER, open: { option: 0, choices: 8 }, avoid: [staff] });
+    expect(overStaff(lengths)).toBeLessThan(overStaff(bubbleLayout({ at: { x: 30, y: 50 }, options: 8, screen: MAKER, open: { option: 0, choices: 8 } })));
+  });
+
   it('ft_1_20.AC19 more options than slots: the last slot is More and turns to the rest', () => {
     const first = bubblePage({ options: 11, page: 0 });
     expect(first.slots).toEqual([0, 1, 2, 3, 4, 5, 6, 'more']);

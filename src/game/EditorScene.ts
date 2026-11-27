@@ -153,6 +153,8 @@ const LABEL_PAD = 10;
 const PIECE_PANEL = 20;
 /** The width of each answer to the question to leave without saving. */
 const LEAVE_WIDTH = 124;
+/** How far above and below its lines a system's notes reach, in layout cells, for `bubbleKeepClear`. */
+const STAFF_KEEP_CLEAR = 6;
 const FINGER_MENU_CELL = { w: 16, h: BAR_BUTTON_HEIGHT } as const;
 /** The lengths in the order the Length item cycles them (ft_1_20: one item that shows its note). */
 const LENGTH_ORDER: readonly EditorLength[] = EDITOR_LENGTHS;
@@ -1424,7 +1426,10 @@ export class EditorScene extends PixelScene {
   /** A menu closed any way (a click off it, a pick) takes its key's choices with it, so a later mouse menu is not read as one. */
   protected override closeMenu(): void {
     this.keyMenu = null;
+    const bubble = this.bubbleIsOpen;
     super.closeMenu();
+    // the message the bubble hid shows again
+    if (bubble) this.updateStatus();
     if (this.photo) this.drawPhoto();
   }
 
@@ -3262,6 +3267,27 @@ export class EditorScene extends PixelScene {
    * follow switch, 6 remove repeat, 7 the key's circle (from More). From More (`at` null): the note's options while one is
    * selected, else the place's.
    */
+  /**
+   * The staff's systems on the page shown, with room for the notes above and below their lines: a bubble's choices turn
+   * toward the empty side of the sheet where they can (ft_1_20), so the notes round the one edited stay in sight.
+   */
+  protected override bubbleKeepClear(): Rect[] {
+    const layout = this.layout;
+    if (!layout) return [];
+    const k = this.px.scale;
+    const reach = STAFF_KEEP_CLEAR;
+    return layout.systems.filter((s) => s.page === this.page).map((s) => {
+      const x = (this.staffLeft + s.left - this.root.x) / k, y = (this.staffTop + s.topLineY - this.root.y) / k;
+      return { x, y: y - reach, w: (s.right - s.left) / k, h: (s.bottomLineY - s.topLineY) / k + 2 * reach };
+    });
+  }
+
+  /** The bubble covers the message strip under the top strip while it is open: the message waits until it closes. */
+  override openBubble(...args: Parameters<PixelScene['openBubble']>): void {
+    super.openBubble(...args);
+    if (this.bubbleIsOpen) this.bubble?.show('');
+  }
+
   /** A bubble opens anywhere unless the time is being asked for; asked before the bubble opens, so it selects nothing. */
   protected override hasBubbleAt(): boolean {
     return this.meterAsk === null && !this.leaveAsk;

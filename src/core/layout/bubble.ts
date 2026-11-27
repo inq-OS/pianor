@@ -34,6 +34,11 @@ const EDGE = HALF + PLATE_REACH;
 const COVER_COST = 32;
 /** How far, in steps of `AWAY_STEP` cells, the bubble may move on away from the thing pressed to leave it in sight. */
 const AWAY_STEP = 4;
+/**
+ * AX-3 provisional: how many cells of moving the bubble count the same as one choice lying over a place the screen keeps in
+ * sight (`avoid`: the piece maker's staff), so the ring turns toward the empty side where it can.
+ */
+const AVOID_COST = 3;
 const AWAY_STEPS = 10;
 
 export interface BubbleLayout {
@@ -52,7 +57,7 @@ export interface BubbleLayout {
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
 
 /** The bubble for `options` options (at most `BUBBLE_SLOTS`) opened at `at` on a screen `screen` cells large, kept below its `y`. */
-export function bubbleLayout(input: { at: { x: number; y: number }; options: number; screen: { y?: number; w: number; h: number }; open?: { option: number; choices: number } }): BubbleLayout {
+export function bubbleLayout(input: { at: { x: number; y: number }; options: number; screen: { y?: number; w: number; h: number }; open?: { option: number; choices: number }; avoid?: readonly Rect[] }): BubbleLayout {
   // `screen.y`: rows at the top the bubble keeps off (the top strip of a screen without a toolbar); `h` counts from there
   const top = input.screen.y ?? 0;
   const bottom = top + input.screen.h;
@@ -73,6 +78,8 @@ export function bubbleLayout(input: { at: { x: number; y: number }; options: num
     const covers = (c: { x: number; y: number }, arc: Rect[]) =>
       arc.some((r) => input.at.x >= r.x - SAUSAGE_REACH && input.at.x < r.x + r.w + SAUSAGE_REACH && input.at.y >= r.y - SAUSAGE_REACH && input.at.y < r.y + r.h + SAUSAGE_REACH) ||
       Array.from({ length: slots }, (_, i) => slotAngle(i)).some((a) => Math.hypot(input.at.x - c.x - RING * Math.cos(a), input.at.y - c.y - RING * Math.sin(a)) < OPTION / 2 + PLATE_REACH);
+    // how many choices lie over what the screen asks to keep in sight (the staff): the ring turns toward the empty side
+    const crowded = (arc: Rect[]) => arc.filter((r) => (input.avoid ?? []).some((a) => r.x < a.x + a.w && a.x < r.x + r.w && r.y < a.y + a.h && a.y < r.y + r.h)).length;
     const onScreen = (arc: Rect[]) => arc.every((r) => r.x - SAUSAGE_REACH >= 0 && rectRight(r) + SAUSAGE_REACH <= input.screen.w && r.y - SAUSAGE_REACH >= top && rectBottom(r) + SAUSAGE_REACH <= bottom);
     let best: { centre: { x: number; y: number }; middle: number; cost: number } | null = null;
     for (let k = 0; k <= 2 * turns; k++) {
@@ -88,7 +95,7 @@ export function bubbleLayout(input: { at: { x: number; y: number }; options: num
         const c = step === 0 ? moved : fit({ x: moved.x + (away.x / length) * step * AWAY_STEP, y: moved.y + (away.y / length) * step * AWAY_STEP });
         const at = arcAt(c, middle);
         if (step > 0 && !onScreen(at)) continue;
-        const cost = Math.abs(c.x - centre.x) + Math.abs(c.y - centre.y) + (covers(c, at) ? COVER_COST : 0);
+        const cost = Math.abs(c.x - centre.x) + Math.abs(c.y - centre.y) + (covers(c, at) ? COVER_COST : 0) + AVOID_COST * crowded(at);
         if (!best || cost < best.cost) best = { centre: c, middle, cost };
         if (!covers(c, at)) break;
       }
