@@ -81,8 +81,22 @@ export type SceneKey = keyof SceneData;
  * in `SceneData`, or a data type that includes it) can be started without any.
  */
 export function startScene<K extends SceneKey>(from: Phaser.Scene, key: K, ...data: undefined extends SceneData[K] ? [SceneData[K]?] : [SceneData[K]]): void {
+  // Phaser only queues the move: a second move asked before it happens (a click, then Esc at once) would start both
+  // screens, so a screen on its way out ignores it, until it shuts down or is started anew.
+  if (leaving.has(from)) return;
+  leaving.add(from);
+  const settled = (): void => {
+    leaving.delete(from);
+    from.events.off('shutdown', settled);
+    from.events.off('start', settled);
+  };
+  from.events.once('shutdown', settled);
+  from.events.once('start', settled);
   from.scene.start(key, freshData(data[0]));
 }
+
+/** The screens that asked `startScene` for a move that has not happened yet. */
+const leaving = new WeakSet<Phaser.Scene>();
 
 /**
  * The data a scene is started with, never `undefined`: Phaser keeps a scene's last data when it is started again without
