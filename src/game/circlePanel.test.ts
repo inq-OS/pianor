@@ -1,10 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { circlePanelLayout, spellingsOf, stepOfFifths, withFlat } from '../core/layout/circleOfFifths';
+import { circlePanelLayout, spellingsOf, stepOfFifths } from '../core/layout/circleOfFifths';
 import { FRAME_ROWS, frameView } from '../core/layout/frame';
 import type { Rect } from '../core/layout/rect';
-import { keyNames, type KeyMode } from '../core/editor/key';
+import { keyName, type KeyMode } from '../core/editor/key';
 import { setLanguage, type Language } from '../core/text/language';
-import { t } from '../core/text/strings';
 import type { NoteNaming } from '../core/text/noteName';
 import { WHEEL_MARGIN } from './ui/pixel/circleArt';
 import { drawnText, renderText } from './ui/pixel/font';
@@ -19,10 +18,7 @@ const inside = (a: Rect, b: Rect) => a.x >= b.x && a.y >= b.y && a.x + a.w <= b.
 /** The circle's panel as the overlay lays it out on a screen, with its name and ticks measured as the scene draws them. */
 function panelFor(screen: { width: number; height: number }, fifths: number, mode: KeyMode, naming: NoteNaming, choosing: boolean) {
   const view = frameView(screen.width, screen.height);
-  const name = (f: number) => {
-    const names = keyNames(f, naming);
-    return mode === 'major' ? t('circle.major', { key: withFlat(names.major) }) : t('circle.minor', { key: withFlat(names.minor.toLowerCase()) });
-  };
+  const name = (f: number) => keyName(f, mode, naming);
   const heading = renderText(drawnText(name(fifths), true), { color: 0 });
   const ticks = choosing ? spellingsOf(stepOfFifths(fifths)).map((f) => Math.max(22, (f === 0 ? 14 : signatureIcon(f).width) + 8)) : [];
   return circlePanelLayout({ width: view.width, rows: Math.floor(screen.height / view.scale) - FRAME_ROWS }, {
