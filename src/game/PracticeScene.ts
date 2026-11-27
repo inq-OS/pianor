@@ -13,7 +13,7 @@ import { PLAY_CHOICES, choiceSettings, followsPlayer, playChoiceOf, type PlayCho
 import { barAtPoint } from '../core/layout/barPick';
 import { TAP_SLIP } from '../core/layout/bubble';
 import { DEFAULT_RAMP, RAMP_CHOICES, RAMP_MAX_PERCENT, TEMPO_PERCENT, clampTempoPercent, cleanLap, nextChoice, nextTarget, rampAfterLap, scrollRamp, toggleUnit, type TempoRamp, type Transport, type MetronomePlan, clickBpm, clickPlan, stepClickOffset } from '../core/transport';
-import { emptyFreePlay, recordFreePlayNote, recordFreePlayRound, summarizeFreePlay, type FreePlaySession } from '../core/scoring/freePlay';
+import { emptyFreePlay, playedToTheEnd, recordFreePlayNote, recordFreePlayRound, summarizeFreePlay, type FreePlaySession } from '../core/scoring/freePlay';
 import { t, type StringKey } from '../core/text/strings';
 import { passStarsFor } from '../core/scoring/stars';
 import { passLines } from '../core/text/rundown';
@@ -1200,6 +1200,11 @@ export class PracticeScene extends PixelScene {
     if (this.preview) {
       // A play-along of a draft earns nothing and is not saved: back to the preview with what happened.
       this.time.delayedCall(RESULTS_DELAY_MS, () => (this.returnTo === 'editor' ? startScene(this, 'editor', {}) : startScene(this, 'preview', { result })));
+      return;
+    }
+    // the clock ran to the end with no note played right: no pass, nothing saved or scored, the piece starts again
+    if (!playedToTheEnd(result)) {
+      this.scene.restart({ ...this.startData, ...this.carry() });
       return;
     }
     // The piece loops (ft_1_12.AC3): the pass is saved (XP as before; ft_1_13 moves it to the piece), its score shows past

@@ -91,6 +91,29 @@ test.describe('tempo mode (slice c)', () => {
     expectNoErrors(errors);
   });
 
+  test('a Tempo pass where the clock runs to the end with no key played earns no pass, no stars and no XP', async ({ page }) => {
+    test.slow(); // a bar counted in, then the whole piece at its own speed
+    const errors = await openGame(page);
+    await page.evaluate(() => window.__game.registry.get('context').profiles.updatePlaySettings({ mode: 'tempo' }));
+    await openPiece(page, 'Little Steps');
+    // the starting key (not a note), then nothing
+    await page.evaluate(() => {
+      window.__virtualDevice!.press(60);
+      window.__virtualDevice!.release(60);
+    });
+    const endMs = await page.evaluate(() => window.__game.scene.getScene('practice').transport.endMs as number);
+    await page.waitForFunction((end) => window.__game.registry.get('context').audio.clock.nowMs() > end + 1500, endMs, { timeout: 60_000 });
+    const after = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('practice');
+      return { rounds: scene.session.rounds.length, attempts: window.__game.registry.get('context').profiles.profile.attempts.length };
+    });
+    expect(after).toEqual({ rounds: 0, attempts: 0 });
+    // nothing was played: Back goes straight to the pieces, with no score screen
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'menu');
+    expectNoErrors(errors);
+  });
+
   test('core_01.AC8: a note let go at once changes its colour and its number when released', async ({ page }) => {
     const errors = await openGame(page);
     await page.evaluate(() => window.__game.registry.get('context').profiles.updatePlaySettings({ mode: 'tempo', scoreView: 'number' }));
