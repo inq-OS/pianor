@@ -358,11 +358,12 @@ export class StaffView {
       const number = this.barNumbers.find((n) => n.index === index);
       const cell = (0.8 * S) / 5;
       const numberWidth = number === undefined ? 0 : String(number.number).length * 4 * cell - cell + 0.4 * S;
-      const before = used.get(index) ?? 0;
-      used.set(index, before + 1);
-      const x = this.origin.x + bar.x + 0.25 * S + numberWidth + before * 1.1 * S;
+      // a second mark on the same bar (A and B of a one-bar section) starts after the first one's whole text, its tempo and lap too
+      const x = used.get(index) ?? this.origin.x + bar.x + 0.25 * S + numberWidth;
       const y = this.origin.y + this.layout.systems[bar.system]!.topLineY - 1.95 * S;
-      this.markTexts.push({ text: this.scene.add.text(x, y, text, style).setOrigin(0, 0.5), system: bar.system });
+      const label = this.scene.add.text(x, y, text, style).setOrigin(0, 0.5);
+      used.set(index, x + label.width + 0.6 * S);
+      this.markTexts.push({ text: label, system: bar.system });
     }
     this.drawStaff();
     this.setHints(this.hints);

@@ -255,6 +255,20 @@ test.describe('practice tools (core_02 and core_03)', () => {
     expectNoErrors(errors);
   });
 
+  test('in a one-bar section B stands after the whole of A with its tempo and lap, not on top of it', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await press(page, 'Section');
+    await tapBar(page, 1);
+    await tapBar(page, 1);
+    await expect.poll(() => chartId(page)).toBe('little-steps#bars-2-2');
+    const marks = await page.evaluate(() => (window.__game.scene.getScene('practice').playSession.staffView.markTexts as { text: { text: string; x: number; width: number } }[])
+      .map((m) => ({ text: m.text.text, x: m.text.x, width: m.text.width })));
+    expect(marks.map((m) => m.text)).toEqual(['A  70 BPM, lap 1', 'B']);
+    expect(marks[1]!.x).toBeGreaterThan(marks[0]!.x + marks[0]!.width);
+    expectNoErrors(errors);
+  });
+
   test('a piece starts at the tempo percent where this player last played it', async ({ page }) => {
     test.slow();
     const errors = await openGame(page);
