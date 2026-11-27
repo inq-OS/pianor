@@ -15,6 +15,10 @@ const holdTogether = (page: Page, keys: number[]) => page.evaluate((notes) => {
   for (const midi of notes) window.__virtualDevice!.release(midi);
 }, keys);
 
+/** The label of the step button (found by its tooltip). */
+const stepLabel = (page: Page) => page.evaluate((key) => (window.__game.scene.getScene(key).buttons as { options: { label: string; tooltip?: string } }[])
+  .find((b) => b.options.tooltip === 'Step: which chords come')?.options.label, SCENE);
+
 const openTrainer = async (page: Page) => {
   const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
   await clickButton(page, 'profiles', await profileButton(page, 'TUVI'));
@@ -46,10 +50,10 @@ test.describe('chord from its name (ft_1_29)', () => {
     await expect.poll(() => state(page)).toMatchObject({ lives: 0, over: true });
     expect(await sceneTexts(page, SCENE)).toContain('Chords played: 1, 30 XP');
     // the step button names the step and goes on to the next one, a new round
-    expect(await sceneTexts(page, SCENE)).toContain('White triads');
+    expect(await stepLabel(page)).toBe('White triads');
     await clickButton(page, SCENE, await sceneButton(page, SCENE, 'Step: which chords come'));
     await expect.poll(() => state(page)).toMatchObject({ lives: 3, solved: 0 });
-    await expect.poll(() => sceneTexts(page, SCENE)).toContain('All triads');
+    await expect.poll(() => stepLabel(page)).toBe('All triads');
     expectNoErrors(errors);
   });
 
