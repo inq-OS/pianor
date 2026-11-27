@@ -55,7 +55,7 @@ export class AdminScene extends PixelScene {
     const { width } = this.px;
     const { profiles, files } = contextOf(this);
     this.sky();
-    this.label(MARGIN, TITLE_Y, t('admin.title'), C.gold, { big: true });
+    this.label(this.titleX(MARGIN), TITLE_Y, t('admin.title'), C.gold, { big: true });
     // AX-3 provisional: the admin's tasks are a list (an adult's page, words too long for a cell) and stay in the main area under the band (ft_1_20 rule 1)
     const row = (i: number) => FIRST_Y + i * (ROW_HEIGHT + ROW_GAP) + ROW_HEIGHT / 2;
     this.button({

@@ -396,16 +396,17 @@ export abstract class PixelScene extends Phaser.Scene {
    * A box to write in on a register's line at `top` (layout cells), from `x`, `w` wide, drawn by hand (`inkField`) between
    * the line's rules, with `value` written in it; the box being written in is red and shows where the next letter goes.
    */
-  protected ruledField(x: number, top: number, w: number, value: string, active: boolean): void {
+  protected ruledField(x: number, top: number, w: number, value: string, active: boolean): PixelImage {
     const fine = (v: number) => v * ART_DETAIL;
-    this.fineImage(fine(x - 3), fine(top - 1), inkField(fine(w), fine(REGISTER.row - 2), active));
+    const field = this.fineImage(fine(x - 3), fine(top - 1), inkField(fine(w), fine(REGISTER.row - 2), active));
     let shown = value;
     while (shown.length > 0 && measure(shown) > w - 8) shown = shown.slice(1);
     if (shown) this.label(x, top, shown, C.ink);
-    if (!active) return;
+    if (!active) return field;
     const caret = createBitmap(2, fine(CARET_HEIGHT));
     caret.pixels.fill(C.redDark);
     this.fineImage(fine(x + (shown ? measure(shown) + 2 : 0)), fine(top), caret);
+    return field;
   }
 
   /** A ribbon (`paint/card.ts`) under a title, `rect` the title's box in layout cells: the ribbon reaches past it on both sides. */

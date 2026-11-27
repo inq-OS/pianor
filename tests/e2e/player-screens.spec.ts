@@ -299,6 +299,62 @@ test.describe('admin page (ft_1_07.AC6)', () => {
     expectNoErrors(errors);
   });
 
+  test('the admin screens\' titles stand clear of the Back door in the top left corner', async ({ page }) => {
+    const errors = await openGame(page);
+    await openAdmin(page);
+    for (const key of ['admin', 'adminPages', 'adminDelete', 'adminPassword', 'adminGate']) {
+      await page.evaluate((k) => {
+        for (const s of window.__game.scene.getScenes(true)) window.__game.scene.stop(s.scene.key);
+        window.__game.scene.start(k);
+      }, key);
+      await waitForScene(page, key);
+      const clash = await page.evaluate((k) => {
+        type Box = { left: number; top: number; right: number; bottom: number };
+        type Text = { pixelText?: boolean; visible: boolean; text: string; x: number; y: number; scaleX: number; scaleY: number; letterBox: Box };
+        const scene = window.__game.scene.getScene(k) as unknown as { root: { list: Text[] }; toolbarButtons: { back: { box: { x: number; y: number; width: number; height: number } } | null } };
+        const back = scene.toolbarButtons.back!.box;
+        return scene.root.list
+          .filter((o) => o.pixelText === true && o.visible && o.text.trim() !== '')
+          .filter((o) => o.x + o.letterBox.left * o.scaleX < back.x + back.width && back.x < o.x + o.letterBox.right * o.scaleX && o.y + o.letterBox.top * o.scaleY < back.y + back.height && back.y < o.y + o.letterBox.bottom * o.scaleY)
+          .map((o) => o.text);
+      }, key);
+      expect([key, clash]).toEqual([key, []]);
+    }
+    expectNoErrors(errors);
+  });
+
+  test('the admin gate draws the box the password is typed into, as the teacher\'s gate does', async ({ page }) => {
+    const errors = await openGame(page);
+    for (const key of ['adminGate', 'teacherGate']) {
+      await page.evaluate((k) => {
+        for (const s of window.__game.scene.getScenes(true)) window.__game.scene.stop(s.scene.key);
+        window.__game.scene.start(k);
+      }, key);
+      await waitForScene(page, key);
+      const field = () => page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { root: { list: { name: string }[] } }).root.list.some((o) => o.name === 'passwordField'), key);
+      expect([key, await field()]).toEqual([key, true]);
+    }
+    expectNoErrors(errors);
+  });
+
+  test('the admin pages\' buttons write their words on one baseline in both columns', async ({ page }) => {
+    const errors = await openGame(page);
+    await openAdmin(page);
+    await page.evaluate(() => {
+      for (const s of window.__game.scene.getScenes(true)) window.__game.scene.stop(s.scene.key);
+      window.__game.scene.start('adminPages');
+    });
+    await waitForScene(page, 'adminPages');
+    const baselines = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('adminPages') as unknown as { buttons: { box: { y: number; height: number }; label: { y: number; height: number; text: string } }[] };
+      // where the capitals stand on their baseline, from the button's top
+      return scene.buttons.filter((b) => b.box.height === 18).map((b) => b.label.y + b.label.height - b.box.y);
+    });
+    expect(baselines.length).toBeGreaterThan(4);
+    expect(new Set(baselines).size).toBe(1);
+    expectNoErrors(errors);
+  });
+
   test('Enter on a blank name is refused on the picker as Done is', async ({ page }) => {
     const errors = await openGame(page);
     await openAdmin(page);

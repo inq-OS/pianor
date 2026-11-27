@@ -3,7 +3,7 @@ import { blit, createBitmap, recolor, toRgba, type Bitmap } from './bitmap';
 import { FOCUS_RING, barBitmap, focusRingBitmap, inkBarBitmap, inkStar, labelOverflow, panelBitmap, tinted, trayBitmap, type BarColors, type PanelKind, type TrayKind } from './frames';
 import { BUBBLE_ALPHA, choicePatch, closePlate, goldChip, OPTION_PLATE, OPTION_SIZE, optionFocus, optionPlate, stripCell, wornInk, type PlateLook } from './bubbleArt';
 import { C } from './palette';
-import { drawnText, letterBoxOf, LINE_GAP, LINE_HEIGHT, renderText, type TextOptions } from './font';
+import { drawnText, letterBoxOf, LINE_GAP, LINE_HEIGHT, renderText, TAIL, type TextOptions } from './font';
 import { MASCOT, STAR_EMPTY, STAR_FULL, type MascotFrame } from './sprites';
 import { ART_DETAIL } from '../../../core/layout/frame';
 import { TOOLTIP_DELAY_MS, tooltipBox } from '../../../core/layout/tooltip';
@@ -666,8 +666,10 @@ export class PixelButton {
     const big = this.options.big === true ? 2 : 1;
     const letters = this.label.letterBox;
     const labelHeight = letters.bottom * big;
+    // centred on the capitals, tails left out: a word with a tail (g, y) stands on the same baseline as one without
+    const capsHeight = Math.max(0, this.label.height - TAIL) * big;
     const subHeight = this.sublabel ? this.sublabel.height + 2 : 0;
-    const top = y + Math.floor((height - labelHeight - subHeight) / 2) + sink;
+    const top = y + Math.floor((height - capsHeight - subHeight) / 2) + sink;
     const iconWidth = this.icon && !this.options.iconOnly ? this.icon.displayWidth + ICON_PAD : 0;
     if (this.icon) {
       // a fine icon is placed on the fine grid, half a cell at a time
