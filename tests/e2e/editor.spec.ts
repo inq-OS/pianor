@@ -1937,6 +1937,35 @@ test.describe('the next length and the A time', () => {
     expectNoErrors(errors);
   });
 
+  test('Esc in the title box asked for by Save gives the keys back to the piece maker, and the title gets no letter', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'C');
+    await clickButton(page, 'editor', await editorButton(page, 'Save'));
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('editor-title');
+    await page.keyboard.press('Escape');
+    expect(await page.evaluate(() => document.activeElement?.id)).not.toBe('editor-title');
+    await page.keyboard.type('n');
+    expect(await page.inputValue('#editor-title')).toBe('');
+    expect(await activeScenes(page)).toContain('editor');
+    expectNoErrors(errors);
+  });
+
+  test(':wq on a piece with no name asks for it, then saves and leaves once it is typed', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'C');
+    await page.keyboard.press('Control+Shift+KeyV');
+    await page.keyboard.type(':wq');
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('editor-title');
+    await page.fill('#editor-title', 'Bells');
+    await page.press('#editor-title', 'Enter');
+    await expect.poll(() => activeScenes(page)).not.toContain('editor');
+    expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().map((r: { id: string }) => r.id))).toEqual(['own-bells']);
+    expectNoErrors(errors);
+  });
+
   test('ft_1_02a.AC15 a piece is never saved under a blank name or one another piece has, in any case: the field turns red until the name is new', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
