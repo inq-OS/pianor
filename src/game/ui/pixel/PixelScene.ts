@@ -16,7 +16,7 @@ import { signOnly } from './itemArt';
 import { PALETTE, C } from './palette';
 import { createBitmap, flipX, recolor, type Bitmap } from './bitmap';
 import { LiveImage, PixelBar, PixelButton, PixelImage, PixelText, type PixelButtonOptions, type RgbaArt } from './PixelObjects';
-import { BACKPACK, BUBBLE_ALPHA, choicePatch, choicesSausage, CHOICE_SIZE, stripBitmap, wornChip } from './bubbleArt';
+import { BACKPACK, BUBBLE_ALPHA, choicePatch, choicesSausage, CHOICE_SIZE, stripBitmap, stripCell, wornChip } from './bubbleArt';
 import { LiveWaterPlayer } from './liveWater';
 import type { LiveWater } from './paint/live';
 import { TITLE_X, TOP_BAR } from './playBars';
@@ -263,6 +263,11 @@ export abstract class PixelScene extends Phaser.Scene {
   private manyFingers = false;
   /** The door and the gear over the top corners with the band and no toolbar: faded until the pointer or the focus is on them. */
   private corners: PixelButton[] = [];
+  /**
+   * True on a screen whose card or frame reaches under the top corners (the score screen, the settings): the door and the
+   * gear stand on a strip cell of their own, never faded, so they read over the light parchment.
+   */
+  protected cornersOnCard = false;
   /** Everything of the scene goes in here, positions in art pixels. */
   protected root!: Phaser.GameObjects.Container;
   /** Buttons made with `button` (so a test can find and press them). */
@@ -1104,12 +1109,17 @@ export abstract class PixelScene extends Phaser.Scene {
     const corners = frameCorners(this.px.width);
     // over the staff too: a screen whose staff fills the main area (practice, the piece maker) would hide them
     const layer = this.overStaff();
-    const touch = this.sys.game.device.input.touch && !this.sys.game.device.os.desktop;
+    // over a card they stand on a plate of the band's wood, solid like the band's buttons
+    const solid = (this.sys.game.device.input.touch && !this.sys.game.device.os.desktop) || this.cornersOnCard;
+    const plate = (r: Rect) => {
+      if (this.cornersOnCard) layer.add(new PixelImage(this, r.x, r.y, stripCell(r.w, r.h)));
+    };
     const corner = (r: Rect, label: string, icon: Bitmap, onClick: () => void): PixelButton => {
+      plate(r);
       // the picture alone, no button behind it; never faded on a touch screen, which has no hover to show it
-      const button: PixelButton = this.buttonOn(layer, { ...rectCentre(r), label, picture: icon, onHover: (over) => button.setAlpha(over || touch ? 1 : CORNER_FADED), onClick });
-      button.setAlpha(touch ? 1 : CORNER_FADED);
-      if (!touch) this.corners.push(button);
+      const button: PixelButton = this.buttonOn(layer, { ...rectCentre(r), label, picture: icon, onHover: (over) => button.setAlpha(over || solid ? 1 : CORNER_FADED), onClick });
+      button.setAlpha(solid ? 1 : CORNER_FADED);
+      if (!solid) this.corners.push(button);
       return button;
     };
     const back = this.hasBack ? corner(corners.back, t('ui.back'), ICONS.quit, () => (this.backAction ?? (() => this.back()))()) : null;
@@ -1120,6 +1130,7 @@ export abstract class PixelScene extends Phaser.Scene {
     if (status) {
       left -= corners.settings.w + BACKPACK_GAP;
       const r = { ...corners.settings, x: left };
+      plate(r);
       // a picture, not a button: it does nothing when pressed, its tooltip says what it means
       const shown = this.buttonOn(layer, { ...rectCentre(r), label: status.label, tooltip: status.label, picture: status.lit ? status.icon : recolor(status.icon, { [C.white]: C.lock }), onClick: () => undefined });
       shown.setAlpha(status.lit ? 1 : CORNER_FADED);
@@ -1128,6 +1139,7 @@ export abstract class PixelScene extends Phaser.Scene {
     if (kept) {
       left -= corners.settings.w + BACKPACK_GAP;
       const r = { ...corners.settings, x: left };
+      plate(r);
       // the items are read at the press, so one won while the screen is open is there
       const bag: PixelButton = this.buttonOn(layer, {
         ...rectCentre(r), label: t('band.backpack'), picture: BACKPACK,

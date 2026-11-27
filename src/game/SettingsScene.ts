@@ -91,6 +91,8 @@ export class SettingsScene extends PixelScene {
 
   constructor() {
     super('settings');
+    // the card (the frame) reaches under the door and the gear: they stand on a plate of their own
+    this.cornersOnCard = true;
   }
 
   init(data?: SettingsData): void {
