@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import type { Focus } from '../learn/stats';
 import { TEMPO_RULES } from '../learn/tempo';
 import { focusLine, MEANING_PAGES, meaningLine, measureValue } from './learnStatsText';
-import { t } from './strings';
 
 const printed = (bar: number) => bar + 1;
 
