@@ -1,7 +1,7 @@
 // Covers core_13.AC1, core_13.AC2, core_13.AC5, core_13.AC6, core_13.AC7, core_13.AC8, core_13.AC9.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { bubbleOpen, clickButton, expectNoErrors, lastButton, openGame, openPiece, pressInBubble, pressPracticeButton as press, sceneButton, waitForScene } from './helpers';
+import { bubbleOpen, clickButton, expectNoErrors, lastButton, openGame, openPiece, pressInBubble, pressPracticeButton as press, sceneButton, sceneTexts, waitForScene } from './helpers';
 
 /** The beat lane on the staff (core_13 rule 2): its dots on the page, how many the wave lifts now, how many keys are coloured. */
 const lane = (page: Page) => page.evaluate(() => {
@@ -173,7 +173,7 @@ test.describe('tuning the beat lanes (core_13 rule 10)', () => {
   });
   const saved = (page: Page) => page.evaluate(() => window.__game.registry.get('context').profiles.learnSettings.beatLanes as { place: string; offset: number; wave: { height: number }; blink?: boolean }[] | undefined);
 
-  test('core_13.AC8 the beat dots button opens a page with a running preview; a click on the staff adds a row there, and a row dragged stays where it is dropped', async ({ page }) => {
+  test('core_13.AC8 the beat dots button opens a page with a running preview and says how it is used; a click on the staff adds a row there, and a row dragged stays where it is dropped', async ({ page }) => {
     const errors = await openGame(page);
     await page.evaluate(() => { window.__game.scene.stop('menu'); window.__game.scene.start('settings', { page: 1 }); });
     await waitForScene(page, 'settings');
@@ -181,6 +181,8 @@ test.describe('tuning the beat lanes (core_13 rule 10)', () => {
     await waitForScene(page, 'beat-lanes');
     await expect.poll(async () => (await lanesScene(page)).shown?.lanes).toBe(1);
     await expect.poll(async () => (await lanesScene(page)).shown?.lifted ?? 0).toBeGreaterThan(0); // the wave runs on the preview
+    // the page says how it is used, at the sheet's foot
+    expect((await sceneTexts(page, 'beat-lanes')).join(' ')).toContain('Click the staff to add a row of dots');
     const at = await toPage(page);
     // a click over the staff, away from the row between the staves, adds a row there
     const { top, S } = await staffTop(page);

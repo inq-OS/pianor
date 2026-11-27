@@ -452,3 +452,42 @@ test.describe('the two-finger tap on a touch screen (ft_1_20.AC25)', () => {
     expectNoErrors(errors);
   });
 });
+
+test.describe('the bubble\'s pages (ft_1_20 rule 2)', () => {
+  test('ft_1_20.AC27 a bubble closed on its second page opens again on its first, from a right click as from More', async ({ page }) => {
+    const errors = await openGame(page);
+    await startScene(page, 'beat-lanes', {});
+    await waitForScene(page, 'beat-lanes');
+    // the beat dots' page: a lane's bubble has two pages (its place first, the wave's width on the second)
+    const lane = await page.evaluate(() => {
+      const s = window.__game.scene.getScene('beat-lanes') as unknown as { laneYs(): number[] };
+      const canvas = document.querySelector('canvas')!;
+      const rect = canvas.getBoundingClientRect();
+      const y = s.laneYs()[0];
+      return y === undefined ? null : { x: rect.left + rect.width / 2, y: rect.top + (y / canvas.height) * rect.height };
+    });
+    expect(lane).not.toBeNull();
+    const rightClick = async () => {
+      await page.mouse.click(lane!.x, lane!.y, { button: 'right' });
+      await expect.poll(() => bubbleOpen(page, 'beat-lanes')).toBe(true);
+    };
+    await rightClick();
+    await expect.poll(() => lastButton(page, 'beat-lanes', 'Where the row runs')).toBeGreaterThanOrEqual(0);
+    await clickButton(page, 'beat-lanes', await lastButton(page, 'beat-lanes', 'More'));
+    await expect.poll(() => lastButton(page, 'beat-lanes', 'How wide the wave is')).toBeGreaterThanOrEqual(0);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => bubbleOpen(page, 'beat-lanes')).toBe(false);
+    // opened anew, the first option is in its slot again
+    await rightClick();
+    await expect.poll(() => lastButton(page, 'beat-lanes', 'Where the row runs')).toBeGreaterThanOrEqual(0);
+    expect(await lastButton(page, 'beat-lanes', 'How wide the wave is')).toBe(-1);
+    await clickButton(page, 'beat-lanes', await lastButton(page, 'beat-lanes', 'More'));
+    await expect.poll(() => lastButton(page, 'beat-lanes', 'How wide the wave is')).toBeGreaterThanOrEqual(0);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => bubbleOpen(page, 'beat-lanes')).toBe(false);
+    await openBubble(page, 'beat-lanes');
+    await expect.poll(() => lastButton(page, 'beat-lanes', 'The dotted line')).toBeGreaterThanOrEqual(0);
+    expect(await lastButton(page, 'beat-lanes', 'How wide the wave is')).toBe(-1);
+    expectNoErrors(errors);
+  });
+});

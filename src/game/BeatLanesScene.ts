@@ -28,6 +28,9 @@ const PREVIEW_QUARTER_MS = 600;
 const GRAB = 1.2;
 /** A press that moves less than this (screen pixels) before it is let go is a click: it adds a lane. */
 const CLICK_SLIP = 6;
+/** The hint's left edge, and how far above the sheet's torn foot it ends (art rows). */
+const HINT_X = 12;
+const HINT_FOOT = 5;
 /** How strong the dots of the lane a click would add are drawn while the pointer rests there (d286). */
 const GHOST_STRENGTH = 0.35;
 
@@ -144,9 +147,16 @@ export class BeatLanesScene extends PixelScene {
     const strip = this.cornerStrip;
     // the book lies under the strip of the door and the gear, where the title stands on the desk clear of both boxes
     this.openBook({ x: 3, y: strip.rows, w: width - 6, h: this.px.height - 2 - strip.rows });
-    this.label(this.titleX(0), 6, this.saveFailed ? t('settings.saveFailed') : t('lanes.title'), C.gold);
+    this.label(this.titleX(0), 6, t('lanes.title'), C.gold);
     this.inkWriting = true;
-    this.drawPreview(strip.rows + 1, this.mainRows - strip.rows - 2);
+    const rows = this.mainRows - strip.rows - 2;
+    this.drawPreview(strip.rows + 1, rows);
+    // at the sheet's foot, below where any lane can run: how the page is used, or a failed save
+    const hint = this.label(HINT_X, 0, this.saveFailed ? t('settings.saveFailed') : t('lanes.hint'), this.saveFailed ? C.gold : C.dim, { maxWidth: width - 2 * HINT_X });
+    hint.y = strip.rows + 1 + rows - hint.height - HINT_FOOT;
+    // the preview's sheet is drawn over the page: the hint stands on it
+    this.root.remove(hint);
+    this.overStaff().add(hint);
   }
 
   /** The preview staff over the whole width, `top` art rows down and `rows` high, with the lanes as they are now. */
