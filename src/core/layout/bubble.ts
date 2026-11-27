@@ -68,7 +68,11 @@ export function bubbleLayout(input: { at: { x: number; y: number }; options: num
     // that needs the bubble moved least, moved by that much (and kept whole on the screen)
     const turns = Math.max(TURN_STEPS, Math.floor(n / 2));
     const arcAt = (c: { x: number; y: number }, middle: number) => Array.from({ length: n }, (_, i) => box(c, middle + (i - (n - 1) / 2) * OUTER_STEP, OUTER, CHOICE));
-    const covers = (arc: Rect[]) => arc.some((r) => input.at.x >= r.x - SAUSAGE_REACH && input.at.x < r.x + r.w + SAUSAGE_REACH && input.at.y >= r.y - SAUSAGE_REACH && input.at.y < r.y + r.h + SAUSAGE_REACH);
+    // the thing pressed hidden: under a choice's sausage, or under an option's plate where the bubble moved off it
+    const slots = Math.min(BUBBLE_SLOTS, input.options);
+    const covers = (c: { x: number; y: number }, arc: Rect[]) =>
+      arc.some((r) => input.at.x >= r.x - SAUSAGE_REACH && input.at.x < r.x + r.w + SAUSAGE_REACH && input.at.y >= r.y - SAUSAGE_REACH && input.at.y < r.y + r.h + SAUSAGE_REACH) ||
+      Array.from({ length: slots }, (_, i) => slotAngle(i)).some((a) => Math.hypot(input.at.x - c.x - RING * Math.cos(a), input.at.y - c.y - RING * Math.sin(a)) < OPTION / 2 + PLATE_REACH);
     const onScreen = (arc: Rect[]) => arc.every((r) => r.x - SAUSAGE_REACH >= 0 && rectRight(r) + SAUSAGE_REACH <= input.screen.w && r.y - SAUSAGE_REACH >= top && rectBottom(r) + SAUSAGE_REACH <= bottom);
     let best: { centre: { x: number; y: number }; middle: number; cost: number } | null = null;
     for (let k = 0; k <= 2 * turns; k++) {
@@ -84,9 +88,9 @@ export function bubbleLayout(input: { at: { x: number; y: number }; options: num
         const c = step === 0 ? moved : fit({ x: moved.x + (away.x / length) * step * AWAY_STEP, y: moved.y + (away.y / length) * step * AWAY_STEP });
         const at = arcAt(c, middle);
         if (step > 0 && !onScreen(at)) continue;
-        const cost = Math.abs(c.x - centre.x) + Math.abs(c.y - centre.y) + (covers(at) ? COVER_COST : 0);
+        const cost = Math.abs(c.x - centre.x) + Math.abs(c.y - centre.y) + (covers(c, at) ? COVER_COST : 0);
         if (!best || cost < best.cost) best = { centre: c, middle, cost };
-        if (!covers(at)) break;
+        if (!covers(c, at)) break;
       }
     }
     centre = best!.centre;

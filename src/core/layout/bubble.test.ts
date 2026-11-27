@@ -86,8 +86,8 @@ describe('the bubble (ft_1_20, d282)', () => {
   });
 
   it('ft_1_20.AC20 near an edge the bubble moves only as far as its outer ring needs, and not at all where a turn is enough', () => {
-    const shut = bubbleLayout({ at: { x: 160, y: 40 }, options: 8, screen: SCREEN });
-    const open = bubbleLayout({ at: { x: 160, y: 40 }, options: 8, screen: SCREEN, open: { option: 0, choices: 8 } });
+    const shut = bubbleLayout({ at: { x: 160, y: 56 }, options: 8, screen: SCREEN });
+    const open = bubbleLayout({ at: { x: 160, y: 56 }, options: 8, screen: SCREEN, open: { option: 0, choices: 8 } });
     // the choices' sausage rests on the screen's top: moved no farther than that
     expect(Math.min(...open.choices.map((c) => c.y)) - SAUSAGE_REACH).toBeLessThanOrEqual(1);
     expect(open.centre.x).toBe(shut.centre.x);
@@ -118,10 +118,13 @@ describe('the bubble (ft_1_20, d282)', () => {
   });
 
   it('ft_1_20.AC20 the choices never lie over the thing the bubble was opened on, so its note stays in sight while they are tried', () => {
-    for (const at of [{ x: 30, y: 50 }, { x: 60, y: 45 }, { x: 160, y: 50 }, { x: 290, y: 140 }, { x: 30, y: 150 }]) {
+    for (const at of [{ x: 30, y: 50 }, { x: 30, y: 60 }, { x: 60, y: 45 }, { x: 160, y: 50 }, { x: 290, y: 140 }, { x: 30, y: 150 }]) {
       for (const [option, choices] of [[0, 8], [4, 7], [5, 6], [1, 3], [3, 5]] as const) {
         const b = bubbleLayout({ at, options: 8, screen: MAKER, open: { option, choices } });
         for (const c of b.choices) expect(holds(pad(c, SAUSAGE_REACH), at), JSON.stringify({ at, option })).toBe(false);
+        // nor does an option's plate, where the bubble moved to make room for them
+        const shut = bubbleLayout({ at, options: 8, screen: MAKER });
+        if (b.centre.x !== shut.centre.x || b.centre.y !== shut.centre.y) for (const o of b.options) expect(Math.hypot(at.x - o.x - o.w / 2, at.y - o.y - o.h / 2), JSON.stringify({ at, option })).toBeGreaterThanOrEqual(o.w / 2 + PLATE_REACH);
       }
     }
   });
