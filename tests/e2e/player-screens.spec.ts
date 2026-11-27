@@ -381,7 +381,8 @@ test.describe('admin page (ft_1_07.AC6)', () => {
         const p = scene.plateBox;
         const inside = { left: p.x + p.rule, top: p.y + p.rule, right: p.x + p.w - p.rule, bottom: p.y + p.h - p.rule };
         return scene.root.list
-          .filter((o) => o.pixelText === true && o.visible && o.text.trim() !== '' && o.text !== 'TUVI')
+          // the ask stands above the plate (ft_1_07): only the writing on the plate counts here
+          .filter((o) => o.pixelText === true && o.visible && o.text.trim() !== '' && o.text !== 'TUVI' && o.y >= p.y)
           .map((o) => {
             const box = { left: o.x + o.letterBox.left * o.scaleX, top: o.y + o.letterBox.top * o.scaleY, right: o.x + o.letterBox.right * o.scaleX, bottom: o.y + o.letterBox.bottom * o.scaleY };
             return { text: o.text, inside: box.left >= inside.left && box.top >= inside.top && box.right <= inside.right && box.bottom <= inside.bottom };
