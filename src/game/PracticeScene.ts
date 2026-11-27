@@ -17,6 +17,7 @@ import { emptyFreePlay, recordFreePlayNote, recordFreePlayRound, summarizeFreePl
 import { t, type StringKey } from '../core/text/strings';
 import { passStarsFor } from '../core/scoring/stars';
 import { passLines } from '../core/text/rundown';
+import { MODE_LABEL, modeTooltip } from './practice/modeText';
 import { STATS_PANE_COUNT_HEIGHT, statsPane, type StatsPane } from '../core/layout/statsPane';
 import { createBitmap, type Bitmap } from './ui/pixel/bitmap';
 import type { CompletionOutcome } from './profile/ProfileService';
@@ -119,17 +120,6 @@ const STATUS_RISE = 11;
 const BAND_STRIP_DROP = 1;
 /** How long Kiur's one hint about the bubble stays before the start message. */
 const BUBBLE_HINT_MS = 6000;
-
-/** The cycling mode button's name per choice (core_01.AC10). */
-const MODE_LABEL: Readonly<Record<PlayChoice, 'settings.modeWait' | 'settings.modeFollow' | 'settings.modeTempo' | 'settings.modeTempoFirstNote'>> = {
-  wait: 'settings.modeWait', follow: 'settings.modeFollow', tempo: 'settings.modeTempo', tempoFirstNote: 'settings.modeTempoFirstNote',
-};
-
-/** The mode button's tooltip: what Wait and Tempo mean, what the following clock does, or the name of the start on the first note. */
-const modeTooltip = (choice: PlayChoice): string => {
-  if (choice === 'follow') return t('settings.hintFollow');
-  return choice === 'tempoFirstNote' ? t(MODE_LABEL[choice]) : t('settings.hint');
-};
 
 /** A learning run carries the student's pace from the run before it in the sitting (core_13 rule 9). */
 function carryPace(learn: LearnSession | null, bpm: number | undefined): LearnSession | null {
