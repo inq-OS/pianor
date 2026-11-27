@@ -673,6 +673,80 @@ test.describe('piece editor (preliminary)', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_1_02d.AC21 Undo past the time set to A brings A back with its step', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await openTime(page);
+    await clickButton(page, 'editor', await timeStep(page, 'meter', '-'));
+    await clickButton(page, 'editor', await timeStep(page, 'meter', '+'));
+    await clickButton(page, 'editor', await timeStep(page, 'meter', '+'));
+    const auto = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { meterAuto: boolean }).meterAuto);
+    expect(await auto()).toBe(true);
+    await page.keyboard.press('Control+z');
+    expect(await auto()).toBe(false);
+    expect(await page.evaluate(() => window.__game.scene.getScene('editor').history.present.beats)).toBe(4);
+    await page.keyboard.press('Control+y');
+    expect(await auto()).toBe(true);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC17 Ctrl + Enter on a placed rest moves on, Enter makes it longer, and Delete takes it away', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    const rests = () => page.evaluate(() => (window.__game.scene.getScene('editor').history.present.rests ?? []).map((r: { start: number; length: string }) => `${r.start}:${r.length}`));
+    const cursorAt = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { keyCursor: { bar: number; start: number } | null }).keyCursor?.start);
+    await page.keyboard.press('KeyR');
+    await page.keyboard.press('Digit4');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Enter');
+    expect(await rests()).toEqual(['0:quarter']);
+    expect(await cursorAt()).toBe(0);
+    await page.keyboard.press('Control+Enter');
+    expect(await cursorAt()).toBe(480);
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('Enter');
+    expect(await rests()).toEqual(['0:half']);
+    await page.keyboard.press('Delete');
+    expect(await rests()).toEqual([]);
+    expectNoErrors(errors);
+  });
+
+  test('Esc in the title field gives the keys back without leaving, and Ctrl + S there saves instead of the browser', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'C');
+    await page.keyboard.press('Control+s');
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('editor-title');
+    await page.keyboard.press('Escape');
+    expect(await page.evaluate(() => document.activeElement?.id)).not.toBe('editor-title');
+    expect(await activeScenes(page)).toContain('editor');
+    // typing goes to the field; Ctrl + S there is the piece maker's, and saves under the name
+    await page.click('#editor-title');
+    await page.keyboard.type('Bells');
+    await page.keyboard.press('Control+s');
+    await expect.poll(() => status(page)).toContain('Saved. It is in the menu now.');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC24 the selected bars and the drag-repeat grip are drawn over the parchment', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'C');
+    const box = await canvasPoint(page, { bar: 1, start: 0, step: 'B', octave: 4 });
+    const area = { x: box.x - 4, y: box.y - 20, width: 30, height: 40 };
+    // the pointer away from the staff, so its target box is not drawn in either picture
+    await page.mouse.move(area.x, 700);
+    await letGameRun(page, 3);
+    const before = await page.screenshot({ clip: area });
+    await selectNote(page, 1, 0, 'B', 4, ['Shift']);
+    await page.mouse.move(area.x, 700);
+    // Shift + click selects from the bar clicked last (the note's) to this one
+    expect(await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { barSel: unknown }).barSel)).toEqual({ from: 0, to: 1 });
+    await letGameRun(page, 3);
+    expect((await page.screenshot({ clip: area })).equals(before)).toBe(false);
+    expectNoErrors(errors);
+  });
+
   test('ft_1_02a.AC13 Export of a saved piece whose name was emptied exports nothing until it has a name again', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);

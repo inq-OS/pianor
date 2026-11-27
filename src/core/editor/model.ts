@@ -436,7 +436,7 @@ export function stepPitch(piece: EditorPiece, ref: NoteRef, direction: 1 | -1): 
   const note = findNote(piece, ref);
   if (!note) return refuse('no-note');
   const { step, octave } = stepped(note, direction);
-  return setPitch(piece, ref, step, octave);
+  return replace(piece, ref, (n) => ({ ...n, step, octave, alter: keyAlterOf(piece, step) }));
 }
 
 export function stepped(note: Pick<EditorNote, 'step' | 'octave'>, direction: 1 | -1): Pick<EditorNote, 'step' | 'octave'> {
@@ -454,7 +454,8 @@ export function stepChord(piece: EditorPiece, ref: NoteRef, direction: 1 | -1): 
   if (!findNote(piece, ref)) return refuse('no-note');
   let next: EditorPiece = { ...piece, notes: piece.notes.filter((n) => !sameChord(n, ref)) };
   for (const member of chordOf(piece, ref)) {
-    const edit = placeNote(next, { ...member, ...stepped(member, direction) });
+    // the new letter takes the key's sharp or flat (ft_1_02d.AC7), as a note placed there would
+    const edit = placeNote(next, { ...member, ...stepped(member, direction), alter: undefined });
     if (!edit.ok) return edit;
     next = edit.piece;
   }
