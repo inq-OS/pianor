@@ -63,6 +63,34 @@ describe('the key that was played, on the staff (ft_1_12.AC7)', () => {
     }
   });
 
+  it('ft_1_12.AC7: pins a key far off the staff two ledger lines out, so it stays by its own line of music', () => {
+    const low = playedMark(layout, chart, [0], 36)!; // C2 by C5 on the treble staff
+    const staff = layout.systems[low.system]!.staves[0]!;
+    expect(low.beyond).toBe('below');
+    expect(low.y).toBeCloseTo(staff.bottomLineY + 2 * S);
+    expect(low.ledgerLines).toHaveLength(2);
+    expect(low.spelling).toEqual({ step: 'C', alter: 0, octave: 2 });
+    const high = playedMark(layout, chart, [0], 97)!; // C#7
+    expect(high.beyond).toBe('above');
+    expect(high.y).toBeCloseTo(staff.bottomLineY - 6 * S);
+    expect(high.ledgerLines).toHaveLength(2);
+    expect(high.accidental).toBeNull(); // the head stands for a note it is not, so it prints no sign
+    expect(playedMark(layout, chart, [0], 81)!.beyond).toBeNull(); // A5, one ledger line: where it belongs
+  });
+
+  it('ft_1_12.AC7: never pins a key nearer the staff than the awaited note it is played against', () => {
+    const deep = chartWith([{ tick: 0, dur: 480, midi: 53 }]); // F3, three ledger lines under the treble staff
+    const deepLayout = lay(deep);
+    const awaited = deepLayout.notes[0]!;
+    const space = deepLayout.staffSpace;
+    const mark = playedMark(deepLayout, deep, [0], 52)!; // E3: one step lower still
+    expect(mark.beyond).toBeNull();
+    expect(mark.y).toBeCloseTo(awaited.y + space / 2);
+    const far = playedMark(deepLayout, deep, [0], 36)!;
+    expect(far.beyond).toBe('below');
+    expect(far.y).toBeCloseTo(awaited.y + space);
+  });
+
   it('ft_1_12.AC7: is null when nothing is awaited or the note is not on the shown layout', () => {
     expect(playedMark(layout, chart, [], 60)).toBeNull();
     expect(playedMark(layout, chart, [99], 60)).toBeNull();

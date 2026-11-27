@@ -1038,6 +1038,15 @@ export class StaffView {
     g.lineStyle(this.lineWidth(), this.theme.ink, PLAYED_ALPHA);
     for (const ledger of mark.ledgerLines) g.lineBetween(ledger.x1, ledger.y, ledger.x2, ledger.y);
     g.fillStyle(color, PLAYED_ALPHA).fillEllipse(mark.x, mark.y, mark.rx * 2, mark.ry * 2);
+    if (mark.beyond) {
+      // pinned at the limit: a small arrow right of the head says the key lies further out that way
+      const S = this.layout.staffSpace;
+      const ax = mark.x + mark.rx + S * 0.6;
+      const dir = mark.beyond === 'above' ? -1 : 1;
+      const tip = mark.y + dir * S * 0.9;
+      const base = mark.y - dir * S * 0.1;
+      g.fillTriangle(ax - S * 0.4, base, ax + S * 0.4, base, ax, tip);
+    }
     if (mark.accidental !== null) {
       g.setAlpha(PLAYED_ALPHA);
       this.drawAccidental(g, mark.accidental, mark.accidentalX, mark.y, color);
