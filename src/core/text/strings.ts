@@ -876,7 +876,7 @@ export const strings = {
   'learnStats.focus.handRight': 'The right hand wobbles more ({spread}%) than the left ({other}%). Play the right hand alone.',
   'learnStats.focus.uneven': 'The notes wobble by {spread}% around the beat. Play slower and count evenly.',
   'learnStats.focus.tempoVaries': 'The tempo differs from test to test ({from} to {to}). Choose one speed and keep it.',
-  'learnStats.focus.steady': 'Even and repeatable at tempo {bpm}. Nothing to fix here: go on to the next step.',
+  'learnStats.focus.steady': 'Even and repeatable: the latest tests at tempo {bpm}. Nothing to fix here: go on to the next step.',
   'learnStats.focus.none': 'No tests yet. The first final test of a chunk starts the numbers.',
   'learnStats.meaning.bpm': 'Tempo: the speed the player chose, in beats a minute, from the usual gap between notes. The whisker is the spread of that test, a red dot an uneven test, the dotted line the piece\'s own tempo. Aim: the same height from test to test.',
   'learnStats.meaning.sd': 'Spread: how far the gaps between notes are from the usual gap, in percent (the standard deviation). A stop counts in full. Aim: falling, toward 10% or less.',

@@ -869,7 +869,7 @@ export const stringsEt: Record<StringKey, string> = {
   'learnStats.focus.handRight': 'Parem käsi kõigub rohkem ({spread}%) kui vasak ({other}%). Mängi paremat kätt eraldi.',
   'learnStats.focus.uneven': 'Noodid kõiguvad löögi ümber {spread}%. Mängi aeglasemalt ja loe ühtlaselt.',
   'learnStats.focus.tempoVaries': 'Tempo erineb proovist proovi ({from} kuni {to}). Vali üks kiirus ja hoia seda.',
-  'learnStats.focus.steady': 'Ühtlane ja korratav tempos {bpm}. Siin pole midagi parandada: mine järgmise sammu juurde.',
+  'learnStats.focus.steady': 'Ühtlane ja korratav: viimased proovid tempos {bpm}. Siin pole midagi parandada: mine järgmise sammu juurde.',
   'learnStats.focus.none': 'Proove veel pole. Esimene osa lõpuproov alustab arve.',
   'learnStats.meaning.bpm': 'Tempo: kiirus, mille mängija ise valis, lööki minutis, nootide tavalise vahe järgi. Vurr on selle proovi hajuvus, punane täpp ebaühtlane proov, punktiirjoon loo oma tempo. Siht: proovist proovi sama kõrgus.',
   'learnStats.meaning.sd': 'Hajuvus: kui kaugel on nootide vahed tavalisest vahest, protsentides (standardhälve). Peatus läheb täies mahus arvesse. Siht: langeb, 10% või alla selle.',
