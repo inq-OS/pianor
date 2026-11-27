@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { UNDO_LIMIT, canRedo, canUndo, mapEvery, push, redo, startHistory, undo } from './history';
+import { UNDO_LIMIT, amend, canRedo, canUndo, mapEvery, push, redo, startHistory, undo } from './history';
 
 describe('editor undo history', () => {
   it('starts with nothing to undo or redo', () => {
@@ -54,5 +54,13 @@ describe('editor undo history', () => {
     expect(h.present).toEqual({ title: 'Sunny Day', notes: 1 });
     expect(undo(h).present).toEqual({ title: 'Sunny Day', notes: 0 });
     expect(redo(h).present).toEqual({ title: 'Sunny Day', notes: 2 });
+  });
+});
+
+describe('amending the last step', () => {
+  it('ft_1_02d.AC17 a change folded into the step just made is undone with it, in one undo', () => {
+    const h = amend(push(startHistory('a'), 'b'), 'b+');
+    expect(h).toEqual({ past: ['a'], present: 'b+', future: [] });
+    expect(undo(h).present).toBe('a');
   });
 });

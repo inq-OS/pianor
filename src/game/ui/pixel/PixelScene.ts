@@ -1019,6 +1019,12 @@ export abstract class PixelScene extends Phaser.Scene {
     return this.bubbleOptions(at) !== null;
   }
 
+  /** What a bubble opened at `at` acts on and must leave in view (art pixels): it then opens beside it (ft_1_02d.AC52). None by default. */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected bubbleBeside(_at: { x: number; y: number }): Rect | null {
+    return null;
+  }
+
   // the base screen has no bubble wherever it is opened; a screen overrides this and reads `at`
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
@@ -1411,7 +1417,8 @@ export abstract class PixelScene extends Phaser.Scene {
     const centre = at ?? (more ? { x: more.x + more.w / 2, y: more.y } : { x: bounds.w / 2, y: bounds.y + bounds.h / 2 });
     const open = options.open !== undefined ? listed[paging.slots[options.open] as number] : undefined;
     const choices = ringChoices(open);
-    const layout = bubbleLayout({ at: centre, options: BUBBLE_SLOTS, screen: bounds, ...(open && options.open !== undefined ? { open: { option: options.open, choices: open.slider ? SLIDER_CELLS : choices.length } } : {}) });
+    const beside = at ? this.bubbleBeside(at) : null;
+    const layout = bubbleLayout({ at: centre, options: BUBBLE_SLOTS, screen: bounds, ...(beside ? { beside } : {}), ...(open && options.open !== undefined ? { open: { option: options.open, choices: open.slider ? SLIDER_CELLS : choices.length } } : {}) });
     const container = this.add.container(this.root.x, this.root.y).setScale(this.px.scale).setDepth(MENU_DEPTH);
     // the catcher takes every press outside the bubble and closes it on release, so the press never reaches the screen
     // under it; the lift of the long press that opened it is not such a press

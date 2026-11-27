@@ -7,7 +7,7 @@
  */
 import { STEPS as STEPS_IN_ORDER, type Step } from '../chart/pitch';
 import { moveBar, moveInTime, movePitch, otherStaff, timeStops, type KeyCursor } from './keyCursor';
-import { findNote, KEY_HIGH, KEY_LOW, midiOf, removeNote, type Edit, type EditorLength, type EditorPiece } from './model';
+import { findNote, KEY_HIGH, KEY_LOW, midiOf, placedRests, removeNote, removeRest, type Edit, type EditorLength, type EditorPiece } from './model';
 
 export type VimMode = 'normal' | 'insert' | 'visual';
 
@@ -335,12 +335,16 @@ export function deleteNotes(piece: EditorPiece, cursor: KeyCursor, count: number
   return { ok: true, piece: next };
 }
 
-/** The notes of the place right before the cursor (a whole chord), for insert mode's Backspace: the edit and where the cursor goes. */
+/** The notes of the place right before the cursor (a whole chord) or its placed rest, for insert mode's Backspace: the edit and where the cursor goes. */
 export function eraseBefore(piece: EditorPiece, cursor: KeyCursor, length: EditorLength): { edit: Edit; cursor: KeyCursor } {
   const back = moveInTime(piece, cursor, -1, length);
   if (back.bar === cursor.bar && back.start === cursor.start) return { edit: { ok: false, reason: 'no-note' }, cursor };
   const chord = piece.notes.filter((n) => n.hand === back.hand && n.bar === back.bar && n.start === back.start);
-  if (chord.length === 0) return { edit: { ok: false, reason: 'no-note' }, cursor: back };
+  if (chord.length === 0) {
+    // a placed rest goes as a note does
+    const rest = placedRests(piece).find((r) => r.hand === back.hand && r.bar === back.bar && r.start === back.start);
+    return { edit: rest ? removeRest(piece, rest) : { ok: false, reason: 'no-note' }, cursor: back };
+  }
   let next = piece;
   for (const note of chord) {
     const removed = removeNote(next, note);

@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { emptyPiece, LENGTH_TICKS, pieceProblem, placedRests, type EditorHand, type EditorPiece } from './model';
-import { startEntry, entryDown, entryTick, entryUp, entryBackspace, moveCursor, type EntryOptions, type EntryState } from './entryMachine';
+import { startEntry, entryDown, entryTick, entryUp, entryBackspace, moveCursor, nextEntryPlace, type EntryOptions, type EntryState } from './entryMachine';
 
 const NOTES: EntryOptions = { staff: 'auto', shortTapEighth: false, rests: false };
 const TAP_EIGHTH: EntryOptions = { ...NOTES, shortTapEighth: true };
@@ -213,5 +213,18 @@ describe('entry: properties', () => {
         for (const n of s.piece.notes) expect(n.start + LENGTH_TICKS[n.length]).toBeLessThanOrEqual(beats * 480);
       }
     }), { seed: 20260, numRuns: 200 });
+  });
+});
+
+describe('where the next played key goes (ft_1_02d.AC15)', () => {
+  it('ft_1_02d.AC15 after played keys the next place is after them, once a cursor set before is used up', () => {
+    let s = moveCursor(startEntry(fresh()), 'RH', 2, 480);
+    expect(nextEntryPlace(s, 'RH')).toEqual({ bar: 2, start: 480 });
+    s = press(s, 60, 0, 100);
+    expect(nextEntryPlace(s, 'RH')).toEqual({ bar: 2, start: 960 });
+    s = press(s, 62, 1000, 1100);
+    expect(nextEntryPlace(s, 'RH')).toEqual({ bar: 2, start: 1440 });
+    // an empty staff starts at the top
+    expect(nextEntryPlace(s, 'LH')).toEqual({ bar: 0, start: 0 });
   });
 });

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { newSong } from '../core/song/edit';
 import { songSchema, type Song } from '../core/song/schema';
 import type { KeyValueStore } from '../core/progression';
+import { compareTitles } from '../core/text/titleOrder';
 
 /** Own songs live on this device, one key each, next to the own pieces (ft_1_36 rule 14). */
 const PREFIX = 'pianor/v1/own-song/';
@@ -44,7 +45,7 @@ export class OwnSongs {
 
   /** Every own song, by title. */
   list(): Song[] {
-    return [...this.songs.values()].sort((a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id));
+    return [...this.songs.values()].sort((a, b) => compareTitles(a.title, b.title) || a.id.localeCompare(b.id));
   }
 
   get(id: string): Song | undefined {

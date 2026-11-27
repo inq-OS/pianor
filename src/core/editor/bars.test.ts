@@ -1,7 +1,7 @@
 // Covers ft_1_02d.AC28, ft_1_02d.AC37. Covers the bar editing of the piece editor: copy, cut, paste, drag-repeat, replace, clear and move by step or octave.
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, isValidRange, moveBars, pasteAt, pasteOverwrites, pasteSpan, replaceBars, type BarRange } from './bars';
+import { changedBar, clearBars, copyBars, cutBars, insertBars, insertBlankBars, isValidRange, moveBars, pasteAt, pasteOverwrites, pasteSpan, replaceBars, type BarRange } from './bars';
 import { MAX_BARS, emptyPiece, pieceProblem, type Edit, type EditorNote, type EditorPiece } from './model';
 
 const piece = (over: Partial<EditorPiece> = {}): EditorPiece => ({ ...emptyPiece({ title: 'Test', hands: 'RH', beats: 4, bars: 8 }), ...over });
@@ -351,5 +351,20 @@ describe('pasting bars', () => {
     const other = copyBars(piece({ notes: [single(0)] }), range(0));
     const result = pasteAt(p, range(0), true, null, other);
     expect(result.edit.ok).toBe(false);
+  });
+});
+
+describe('the bar an undo or redo changes (ft_1_02a.AC11)', () => {
+  it('ft_1_02a.AC11 is the first bar whose notes, rests, slurs or repeats differ, and none for a change of the whole piece', () => {
+    const a = piece({ notes: [note({ bar: 1 }), note({ bar: 5 })] });
+    expect(changedBar(a, { ...a, notes: [note({ bar: 1 }), note({ bar: 5, step: 'D' })] })).toBe(5);
+    expect(changedBar(a, { ...a, rests: [{ hand: 'RH', bar: 6, start: 0, length: 'quarter' }] })).toBe(6);
+    expect(changedBar(a, { ...a, repeats: [{ startBar: 2, endBar: 3 }] })).toBe(2);
+    expect(changedBar(a, { ...a, slurs: [{ hand: 'RH', from: { bar: 1, start: 0 }, to: { bar: 5, start: 0 } }] })).toBe(1);
+    // fewer bars: the last bar left; more bars: the first new one
+    expect(changedBar(a, { ...a, bars: 4, notes: [note({ bar: 1 })] })).toBe(3);
+    expect(changedBar(a, { ...a, bars: 12 })).toBe(8);
+    expect(changedBar(a, { ...a, title: 'Other', bpm: 90 })).toBeNull();
+    expect(changedBar(a, a)).toBeNull();
   });
 });

@@ -4,11 +4,11 @@ import { mouseAction, type MouseAction } from '../core/editor/mouse';
 import { HELP_CARDS, KEY_CAP, KEY_TOUR, type HeldKey, type KeyTourSpot } from '../core/editor/help';
 import { helpGridLayout } from '../core/layout/helpCards';
 import type { Rect } from '../core/layout/rect';
-import { moveBar, moveInTime, movePitch, otherStaff, startKeyCursor, withPitch, type KeyCursor } from '../core/editor/keyCursor';
+import { moveBar, moveInTime, moveOnGrowing, movePitch, otherStaff, startKeyCursor, withPitch, type KeyCursor } from '../core/editor/keyCursor';
 import { nextLength } from '../core/editor/nextLength';
 import { beatsFit, confirmBeats, firstBarFull, guessBeats, type Beats } from '../core/editor/meterGuess';
 import { chordKeyPress, moveNoteKeepingLegato, repeatTied } from '../core/editor/keyEdits';
-import { clearBars, copyBars, cutBars, insertBars, insertBlankBars, moveBars, pasteAt, pasteOverwrites, pasteSpan, replaceBars, type BarRange, type Clip } from '../core/editor/bars';
+import { changedBar, clearBars, copyBars, cutBars, insertBars, insertBlankBars, moveBars, pasteAt, pasteOverwrites, pasteSpan, replaceBars, type BarRange, type Clip } from '../core/editor/bars';
 import { deleteNotes, eraseBefore, nearestPitch, pitchAbove, snapToNote, stepsTo, VIM_START, vimKey, vimMotion, vimShowCmd, type VimCommand, type VimState } from '../core/editor/vim';
 import { samePitchNotAdjacent, tieAll } from '../core/editor/ties';
 import { arcInto, toggleArc } from '../core/editor/arcs';
@@ -19,19 +19,20 @@ import { addedMarks, NO_MARKS, pendingArc, slurPoints, tiePoints, type AddedMark
 import Phaser from 'phaser';
 import { strokePolyline } from './ui/staff/polyline';
 import { DIGITS } from './ui/staff/glyphs';
-import { firstPrintedBar, levelsFileSchema, playbackLengthMs, playbackNotes, staffPosition, type Chart, type LevelDefinition, type Step } from '../core/chart';
+import { firstPrintedBar, levelsFileSchema, lastSoundMs, playbackNotes, staffPosition, type Chart, type LevelDefinition, type Step } from '../core/chart';
 import { toChart } from '../core/editor/chart';
 import { autoFingers } from '../core/editor/fingers';
 import levelsJson from '../../content/curriculum/levels.json';
 import { keyLabel, type KeyMode } from '../core/editor/key';
-import { canRedo, canUndo, mapEvery, push, redo, startHistory, undo, type History } from '../core/editor/history';
+import { TIME_PANEL_START, timePanelKey, type TimeGroup, type TimePanelState } from '../core/editor/timePanelKeys';
+import { amend, canRedo, canUndo, mapEvery, push, redo, startHistory, undo, type History } from '../core/editor/history';
 import { debugLog } from '../core/debug/debugLog';
-import { entryBackspace, entryDown, entryTick, entryUp, moveCursor, startEntry, type EntryKey, type EntryOptions, type EntryState } from '../core/editor/entryMachine';
+import { entryBackspace, entryDown, entryTick, entryUp, moveCursor, nextEntryPlace, startEntry, type EntryKey, type EntryOptions, type EntryState } from '../core/editor/entryMachine';
 import { DEFAULT_ENTRY_PREFS, ENTRY_PREFS_KEY, parseEntryPrefs, serializeEntryPrefs, type EntryPrefs } from '../core/editor/entryPrefs';
 import { cursorAfter, cursorOf, type StaffMode } from '../core/editor/playEntry';
 import type { NoteEvent } from '../core/judge/types';
 import { hitTest, placeClick, pointOf, targetOf, type ActionTarget, type EntryMode, type Hit } from '../core/editor/hitTest';
-import { barBoxes, barsInRect, drawnWhileWriting, editorStaff, keyNameSpot, pageOfBar, repeatPreview, shadowsFor, snapBar, targetBox } from '../core/editor/staff';
+import { barBoxes, barsInRect, drawnWhileWriting, editorStaff, firstBarOfPage, keyNameSpot, pageOfBar, repeatPreview, shadowsFor, snapBar, targetBox } from '../core/editor/staff';
 import { onRepeatHandle, repeatCopies, repeatHandleBox } from '../core/editor/repeatHandle';
 import chordsJson from '../../content/trainer/chords.json';
 import { nameChord } from '../core/trainer/chordNamer';
@@ -59,8 +60,8 @@ import { C, css, hexCss } from './ui/pixel/palette';
 import { clipToWidth } from '../core/text/clip';
 import { GESTURE_SIZE, HELP_ARROW, SKETCH_SIZE, gesturePicture, keyCap, staffSketch } from './ui/pixel/mouseArt';
 import { PixelImage, PixelText, type PixelButton, type PixelButtonOptions } from './ui/pixel/PixelObjects';
-import { SpeechBubble } from './ui/pixel/SpeechBubble';
-import { CELL_HEIGHT, drawnText, measure } from './ui/pixel/font';
+import { CELL_HEIGHT, drawnText, LINE_HEIGHT, measure, wrap } from './ui/pixel/font';
+import { MESSAGE_OVER_BUTTONS_MS, MESSAGE_PAD_X, stripMessageBox } from '../core/layout/stripMessage';
 import { ART_DETAIL } from '../core/layout/frame';
 import { BAR_BUTTON_HEIGHT, BAR_EDGE } from './ui/pixel/playBars';
 import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
@@ -132,6 +133,8 @@ const hasLaterNote = (piece: EditorPiece, ref: NoteRef): boolean => piece.notes.
 /** Whether two places name the same head: hand, bar, start and pitch. */
 const sameRef = (a: NoteRef, b: NoteRef): boolean => a.hand === b.hand && a.bar === b.bar && a.start === b.start && a.step === b.step && a.octave === b.octave;
 const MESSAGE_MS = 3000;
+/** Listen lets the last note ring this long after its end before it stops the piano and shows Listen again. */
+const LISTEN_TAIL_MS = 400;
 /** The chord dictionary the piece maker names a column's chord from (ft_1_29 slice D). */
 const CHORDS = loadChordContent(chordsJson);
 /** The id an unsaved piece is drawn under. */
@@ -267,6 +270,8 @@ export class EditorScene extends PixelScene {
   private band: Phaser.GameObjects.Graphics | null = null;
   /** Where a left press started, for the lasso; null when no left button is down on the staff. */
   private lassoFrom: { x: number; y: number } | null = null;
+  /** The place a left press went down on: let go there without a drag, it writes a note (ft_1_02d.AC50). */
+  private clickPlace: Extract<Hit, { kind: 'place' }> | null = null;
   /** True once the press moved more than LASSO_START art pixels: it is a drag, not a click. */
   private lassoActive = false;
   private lassoBox: Phaser.GameObjects.Graphics | null = null;
@@ -288,7 +293,7 @@ export class EditorScene extends PixelScene {
   private touring = false;
   private cursorMark: Phaser.GameObjects.Graphics | null = null;
   /** A menu opened by its key (ft_1_02d.AC19): a digit picks a choice; any other key takes `fallback` and then does its own work. */
-  private keyMenu: { items: MenuItem[]; fallback: number } | null = null;
+  private keyMenu: { name: EditorKeyName; items: MenuItem[]; fallback: number } | null = null;
   private chart: Chart | null = null;
   private layout: StaffLayout | null = null;
   private staffView: StaffView | null = null;
@@ -370,13 +375,21 @@ export class EditorScene extends PixelScene {
   private meterText: PixelText | null = null;
   /** The time panel's three groups across the screen (art pixels), for the wheel over them. */
   private timeGroups: { from: number; to: number; step: (direction: 1 | -1) => void }[] = [];
-  private bubble: SpeechBubble | null = null;
+  /** With the band: the message in the strip at the foot (ft_1_02d.AC54), drawn once the strip is (`afterFrame`). */
+  private messageBox: { image: PixelImage; text: PixelText; free: { left: number; right: number; top: number; rows: number } } | null = null;
+  /** The message said last stood over the strip's buttons and was taken away (its time ran out, or a press or key came, ft_1_02d.AC54). */
+  private messageDismissed = false;
+  private messageCoverTimer: Phaser.Time.TimerEvent | null = null;
+  /** The frame the last message was said in: the key or press that said it does not take it away. */
+  private messageFrame = -1;
   /**
    * The panel open over the staff's foot (the start screen gone): the time, the pick-up and the tempo,
    * from a click on the time signature (or I). Closed by Esc or another click there. A click on a clef opens the circle of
    * fifths, which sets the key (ft_1_28 rule 8).
    */
   private panel: 'time' | null = null;
+  /** The time panel's keys: the group they act on and a tempo typed so far (ft_1_02d.AC21). */
+  private timeKeys: TimePanelState = TIME_PANEL_START;
   /** With the band: whether the page buttons over the staff were drawn (only while the piece has more than one page). */
   private pageButtonsDrawn = false;
   /** Where the bar buttons after the last bar were drawn, to draw them again when it moves. */
@@ -401,6 +414,7 @@ export class EditorScene extends PixelScene {
     this.barAnchor = null;
     this.clipRange = null;
     this.lassoFrom = null;
+    this.clickPlace = null;
     this.lassoActive = false;
     this.lassoBox = null;
     this.repeatDrag = null;
@@ -473,6 +487,9 @@ export class EditorScene extends PixelScene {
       this.ghostLabel?.setVisible(false);
       this.drawTarget(null);
     });
+    // a message over the strip's buttons goes at any press or key (ft_1_02d.AC54)
+    this.input.on('pointerdown', () => this.dismissCoveringMessage(true));
+    this.onWindowKey(() => this.dismissCoveringMessage(true));
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       // Phaser keeps a click on the canvas from moving the focus, so a click anywhere ends typing the title
       this.titleInput?.blur();
@@ -494,6 +511,14 @@ export class EditorScene extends PixelScene {
     };
     window.addEventListener('keyup', released, true);
     this.events.once('shutdown', () => window.removeEventListener('keyup', released, true));
+    // closing or reloading the tab with unsaved work: the browser asks first (ft_1_02a.AC16)
+    const unload = (e: BeforeUnloadEvent) => {
+      if (!this.dirty()) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', unload);
+    this.events.once('shutdown', () => window.removeEventListener('beforeunload', unload));
     this.events.once('shutdown', () => {
       this.player?.stop();
       this.removeTitleInput();
@@ -580,7 +605,7 @@ export class EditorScene extends PixelScene {
     this.pickupText = null;
     this.meterText = null;
     this.timeGroups = [];
-    this.bubble = null;
+    this.messageBox = null;
     this.staffButton = null;
     this.shortTapButton = null;
     this.dynamicButton = null;
@@ -860,8 +885,9 @@ export class EditorScene extends PixelScene {
   }
 
   /**
-   * A press on the staff: the middle button (or Alt + left) places and changes notes, the left
-   * button selects, Shift + left extends the bar selection, a left drag is the lasso; the right button opens the bubble.
+   * A press on the staff: the middle button (or Alt + left) places and changes notes; a left click on an empty place
+   * writes a note there once it is let go without a drag (ft_1_02d.AC50), on a note it selects it; Shift + left extends
+   * the bar selection, a left drag is the lasso; the right button opens the bubble.
    */
   private press(p: Phaser.Input.Pointer): void {
     const event = p.event as MouseEvent | undefined;
@@ -871,6 +897,8 @@ export class EditorScene extends PixelScene {
     if (action === 'select' && this.grabRepeatHandle(p)) return;
     const hit = this.hit(p);
     if (!hit || action === 'none' || this.meterAsk !== null) return;
+    // a press on the staff is another action: a warned paste asks again (ft_1_02d.AC37)
+    this.forgetPasteWarning();
     if (this.repeatPick) {
       // the bar the sign snaps to, as its preview shows (ft_1_02d.AC31)
       const bar = this.repeatBarAt(p) ?? this.barOf(hit);
@@ -882,13 +910,20 @@ export class EditorScene extends PixelScene {
     }
     if (this.askMeter(this.barOf(hit) ?? 0)) return;
     if (action === 'select') this.lassoFrom = { x: p.x, y: p.y };
+    // a tie or slur pick shows its curve, not a shadow note: a left click off a note only ends it (d286)
+    const picking = this.pickWaits();
     if (this.barPress(hit, action)) return;
     const ctrl = !!event?.ctrlKey || !!event?.metaKey;
     if (hit.kind === 'note') return this.pressNote(hit.noteIndex, action, ctrl);
     // a press on a clef or the key signature opens the circle of fifths to set the key, on the time signature the time panel
     if (hit.kind === 'key') return this.openCircle();
     if (hit.kind === 'time') return this.openPanel('time');
-    if (action === 'select') return this.selectSpot(hit);
+    // a left press on a place writes when it is let go, so a drag from it stays a lasso and writes nothing
+    if (action === 'select') {
+      if (picking) return this.selectSpot(hit);
+      this.clickPlace = hit;
+      return;
+    }
     this.placeAt(this.length, hit);
   }
 
@@ -902,7 +937,7 @@ export class EditorScene extends PixelScene {
     if (action === 'place') this.apply(ctrl ? shorten(this.piece, ref) : lengthen(this.piece, ref), ref);
   }
 
-  /** A left click on an empty spot: nothing stays selected, and the next played key goes there (the entry cursor). */
+  /** An empty spot picked without writing (the bubble of a free place): nothing stays selected, and the next played key goes there (the entry cursor). */
   private selectSpot(hit: Extract<Hit, { kind: 'place' }>): void {
     this.selected = null;
     this.keyCursor = this.cursorAtHit(hit);
@@ -910,7 +945,7 @@ export class EditorScene extends PixelScene {
     this.refreshStaff();
   }
 
-  /** The middle button on a place: a note or rest of the current length, joining a chord or taking a placed rest's place. */
+  /** The middle button, or a left click let go, on a place: a note or rest of the current length, joining a chord or taking a placed rest's place. */
   private placeAt(length: EditorLength, hit: Extract<Hit, { kind: 'place' }>): void {
     this.keyCursor = this.cursorAtHit(hit);
     // a length that does not fit gives way to the longest that does (autoLength): Alt + Enter asks for a whole
@@ -1004,8 +1039,9 @@ export class EditorScene extends PixelScene {
     this.endLasso(p);
   }
 
-  /** No lasso waits: no start point, not dragging, no frame drawn. */
+  /** No lasso waits: no start point, not dragging, no frame drawn, and no left click waits to write. */
   private endLassoState(): void {
+    this.clickPlace = null;
     this.lassoFrom = null;
     this.lassoActive = false;
     this.lassoBox?.clear();
@@ -1022,11 +1058,13 @@ export class EditorScene extends PixelScene {
     this.lassoBox.clear().lineStyle(1, DEFAULT_THEME.cursor, 0.9).strokeRect(Math.min(x, p.x), Math.min(y, p.y), Math.abs(p.x - x), Math.abs(p.y - y));
   }
 
-  /** The left button comes up: a lasso selects every bar it touched (both staves), and a click stays a click. */
+  /** The left button comes up: a lasso selects every bar it touched (both staves), and a click on a place writes there. */
   private endLasso(p: Phaser.Input.Pointer): void {
     const from = this.lassoFrom;
     const active = this.lassoActive;
+    const click = this.clickPlace;
     this.endLassoState();
+    if (click && !active) return this.placeAt(this.length, click);
     if (!from || !active || !this.layout) return;
     const range = barsInRect(this.layout, this.page, { x1: from.x - this.staffLeft, y1: from.y - this.staffTop, x2: p.x - this.staffLeft, y2: p.y - this.staffTop });
     if (!range) return;
@@ -1167,7 +1205,7 @@ export class EditorScene extends PixelScene {
     // on a placed rest Enter makes it a step longer and Ctrl + Enter moves on, as on a note (ft_1_02d.AC17, AC22)
     const rest = shift ? undefined : this.restAt(c);
     if (rest) {
-      if (ctrl) return this.setKeyCursor(moveInTime(this.piece, c, 1, this.length), true);
+      if (ctrl) return this.moveOn(c, false);
       this.keyCursor = c;
       return this.apply(lengthenRest(this.piece, rest), null);
     }
@@ -1181,7 +1219,7 @@ export class EditorScene extends PixelScene {
       this.placeAt(alt ? 'whole' : this.length, { kind: 'place', staff: 0, trackId: c.hand.toLowerCase(), clef, bar: c.bar, start: c.start, position: staffPosition({ step: c.step, alter: 0, octave: c.octave }, clef), step: c.step, octave: c.octave });
       // a refused place leaves the cursor where it was; Ctrl + Enter on the same note already there moves on too
       const there = findNote(this.piece, c);
-      if (ctrl && (this.piece !== before || there)) return this.setKeyCursor(moveInTime(this.piece, c, 1, this.length), true);
+      if (ctrl && (this.piece !== before || there)) return this.moveOn(c, this.piece !== before);
       // the cursor stays on what Enter wrote; the next played key still goes after it (placeAt set that)
       this.keyCursor = c;
       this.barAnchor = c.bar;
@@ -1194,6 +1232,22 @@ export class EditorScene extends PixelScene {
     this.follow = made.into.bar;
     this.apply({ ok: true, piece: made.piece }, null);
     this.setKeyCursor(made.into);
+  }
+
+  /**
+   * Ctrl + Enter's move on: to the next place; at the last place of the piece four more empty bars and into the first of
+   * them, as playing on adds bars (ft_1_02d.AC17). The bars join the undo step of what Ctrl + Enter just wrote (`written`).
+   */
+  private moveOn(c: KeyCursor, written: boolean): void {
+    const out = moveOnGrowing(this.piece, c, this.length);
+    if (out.piece !== this.piece) {
+      if (written) {
+        this.history = amend(this.history, out.piece);
+        this.autoAt.set(this.history.present, this.meterAuto);
+        this.resync();
+      } else this.change(out.piece);
+    } else if (out.cursor === c) this.say(t('editor.why.bars-full'), MESSAGE_MS);
+    this.setKeyCursor(out.cursor, true);
   }
 
   /** The chord key (ft_1_02d.AC18): a chord on the cursor's pitch; pressed again on the same root it cycles through the shapes. */
@@ -1295,7 +1349,7 @@ export class EditorScene extends PixelScene {
 
   /**
    * A key while the title is typed: true when it stays the field's. Esc gives the keys back to the piece maker (and goes no
-   * further: it would leave the piece maker); the piece maker's own Ctrl + S, O, E and F1 leave the field and do their work,
+   * further); the piece maker's own Ctrl + S, O, E and F1 leave the field and do their work,
    * never the browser's.
    */
   private titleKey(e: KeyboardEvent): boolean {
@@ -1311,6 +1365,7 @@ export class EditorScene extends PixelScene {
 
   private key(e: KeyboardEvent): void {
     if (!this.scene.isActive() || this.titleKey(e)) return;
+    this.keyEndsPasteWarning(e);
     // the computer keyboard is no piano here (ft_1_02d.AC14): the piano's listener comes after this one and never hears its keys
     if (PIANO_KEYS.test(e.code)) e.stopPropagation();
     if (this.keyMenu && this.keyMenuKey(e)) return;
@@ -1332,7 +1387,7 @@ export class EditorScene extends PixelScene {
     if (this.toolKey(e, ctrl)) return;
     if (e.code === 'PageUp' || e.code === 'PageDown') {
       handled();
-      this.turnPage(e.code === 'PageUp' ? -1 : 1);
+      this.turnPage(e.code === 'PageUp' ? -1 : 1, true);
       return;
     }
     if (this.barKey(e, ctrl) || this.cursorKey(e, ctrl)) return;
@@ -1344,12 +1399,30 @@ export class EditorScene extends PixelScene {
       this.deleteSelected();
     } else if (e.code === 'Escape') {
       handled();
-      // a waiting pick (a tie or slur, a pre-note, the repeat's bars) ends first; a second Esc leaves
+      // a waiting pick (a tie or slur, a pre-note, the repeat's bars) ends; Esc never leaves, only the door does (ft_1_02a.AC16)
       if (this.arcFrom || this.graceFor || this.repeatPick) {
         this.disarm();
         this.refreshStaff();
-      } else this.leave();
+      } else if (!e.repeat) this.say(t('editor.escStays'), MESSAGE_MS);
     }
+  }
+
+  /**
+   * A paste that warned it writes over notes is done only by the same paste next (ft_1_02d.AC37): any other key in between
+   * (a lone modifier is none; V and the paste menu's digits are the paste) asks again.
+   */
+  private keyEndsPasteWarning(e: KeyboardEvent): void {
+    if (!this.pasteWarn || ['Shift', 'Control', 'Meta', 'Alt'].includes(e.key)) return;
+    const ctrl = e.ctrlKey || e.metaKey;
+    if ((ctrl && e.code === 'KeyV') || this.keyMenu?.name === 'paste' || editorKeyOf(e) === 'paste') return;
+    this.forgetPasteWarning();
+  }
+
+  /** The warned paste forgotten, its red bars taken off the staff. */
+  private forgetPasteWarning(): void {
+    if (!this.pasteWarn) return;
+    this.pasteWarn = null;
+    this.refreshStaff();
   }
 
   /**
@@ -1419,7 +1492,7 @@ export class EditorScene extends PixelScene {
     const { width } = this.px;
     const anchor = this.shortcutButtons.get(EDITOR_KEYS[name].label) ?? { rect: { x: width / 2 - 10, y: this.mainRows, width: 20, height: 1 } };
     this.openMenu(anchor, numbered, { cell, columns, open: 'above' });
-    this.keyMenu = { items: numbered, fallback: Math.max(0, fallback) };
+    this.keyMenu = { name, items: numbered, fallback: Math.max(0, fallback) };
   }
 
   /** A menu closed any way (a click off it, a pick) takes its key's choices with it, so a later mouse menu is not read as one. */
@@ -1670,11 +1743,8 @@ export class EditorScene extends PixelScene {
       // every other key waits while the question is open: nothing is written behind it
       return take();
     }
-    // Esc closes the key or time panel before it leaves
-    if (e.code === 'Escape' && this.panel !== null) {
-      this.openPanel(this.panel);
-      return take();
-    }
+    // the time panel's own keys (ft_1_02d.AC21): digits, the arrows, Enter and Esc are the panel's, never the note's
+    if (this.panel === 'time') return this.timePanelKey(e) && take();
     return false;
   }
 
@@ -1857,21 +1927,23 @@ export class EditorScene extends PixelScene {
    * The Length item's menu (the inventory holds one note and pressing it opens the choice of every
    * duration): every length as the note or rest a click writes, the one in use lit, those the bar cannot hold greyed.
    */
-  private lengthItems(kind: EntryMode): MenuItem[] {
-    // opening the notes' or the rests' menu writes with that item from now on
-    this.setEntry(kind);
+  private lengthItems(kind: EntryMode, ofNote?: EditorLength): MenuItem[] {
+    // opening the notes' or the rests' menu writes with that item from now on; the bubble on a note (`ofNote`, its length)
+    // changes that note and leaves notes or rests as they are (ft_1_02d.AC55)
+    if (ofNote === undefined) this.setEntry(kind);
     const allowed = lengthsFor(this.piece);
     // with a note selected a pick changes its length: a length that does not fit it there is greyed too (ft_1_02d.AC39)
     const selected = this.selected;
     const fits = (l: EditorLength) => allowed.includes(l) && (!selected || setLength(this.piece, selected, l).ok);
     return LENGTH_ORDER.map((l) => ({
-      label: t(`editor.length.${l}` as StringKey), icon: this.lengthPicture(l, kind), fineIcon: true, active: l === this.length, disabled: !fits(l), onPick: () => this.chooseLength(l),
+      label: t(`editor.length.${l}` as StringKey), icon: this.lengthPicture(l, kind), fineIcon: true, active: l === (ofNote ?? this.length), disabled: !fits(l), onPick: () => this.chooseLength(l),
     }));
   }
 
   /** Opens the time panel over the staff's foot, or closes it when it is open. */
   private openPanel(kind: 'time'): void {
     this.panel = this.panel === kind ? null : kind;
+    this.timeKeys = TIME_PANEL_START;
     this.titleInput?.blur();
     this.redraw();
   }
@@ -1885,11 +1957,20 @@ export class EditorScene extends PixelScene {
   }
 
   /** Another page of lines, when the bars take more lines than the screen shows. */
-  private turnPage(direction: 1 | -1): void {
+  private turnPage(direction: 1 | -1, withCursor = this.keyCursor !== null): void {
     const pages = this.layout?.pageCount ?? 1;
     const page = Math.max(0, Math.min(pages - 1, this.page + direction));
     if (page === this.page) return;
     this.page = page;
+    // Page Up and Down (and the buttons while the cursor is shown) put the keyboard cursor on the page's first bar (ft_1_02d.AC15)
+    if (withCursor && this.layout && this.meterAsk === null) {
+      const c = this.keyCursor ?? this.defaultCursor();
+      const bar = firstBarOfPage(this.layout, page);
+      this.barSel = null;
+      this.setKeyCursor({ ...c, bar, start: 0 }, true);
+      // the A time's question may have stopped the move: the page is turned all the same
+      if (this.keyCursor?.bar === bar) return;
+    }
     this.refreshStaff(true);
   }
 
@@ -2231,6 +2312,13 @@ export class EditorScene extends PixelScene {
     if (this.entryState.piece === this.drawnPiece) return;
     const last = this.entryState.items[this.entryState.items.length - 1];
     this.follow = last ? last.bar : null;
+    // a cursor shown goes on after the played notes, where the next key goes (ft_1_02d.AC15), at the pitch just played
+    const next = last && this.keyCursor ? nextEntryPlace(this.entryState, last.hand) : null;
+    if (last && next && next.bar < this.entryState.piece.bars) {
+      const pitch = last.notes[0] ?? this.keyCursor!;
+      this.keyCursor = { hand: last.hand, ...next, step: pitch.step, octave: pitch.octave };
+      this.barAnchor = next.bar;
+    }
     this.refreshStaff();
   }
 
@@ -2637,7 +2725,10 @@ export class EditorScene extends PixelScene {
     this.flushEntry();
     debugLog.log('edit', 'undo');
     if (!canUndo(this.history)) return this.say(t('editor.nothingToUndo'), MESSAGE_MS);
+    const before = this.history.present;
     this.history = undo(this.history);
+    // the page of the bar it changed is shown (ft_1_02a.AC11)
+    this.follow = changedBar(before, this.history.present);
     this.meterAuto = this.autoAt.get(this.history.present) ?? this.meterAuto;
     this.resync();
     this.selected = null;
@@ -2651,7 +2742,10 @@ export class EditorScene extends PixelScene {
     this.flushEntry();
     debugLog.log('edit', 'redo');
     if (!canRedo(this.history)) return this.say(t('editor.nothingToRedo'), MESSAGE_MS);
+    const before = this.history.present;
     this.history = redo(this.history);
+    // the page of the bar it changed is shown (ft_1_02a.AC11)
+    this.follow = changedBar(before, this.history.present);
     this.meterAuto = this.autoAt.get(this.history.present) ?? this.meterAuto;
     this.resync();
     this.selected = null;
@@ -2669,9 +2763,25 @@ export class EditorScene extends PixelScene {
 
   // ------------------------------------------------------------------------------------------------------- actions
 
+  /**
+   * The door (and `:q`): with unsaved work a panel asks Save and leave, Leave without saving or Stay (ft_1_02a.AC16). Save and
+   * leave goes once the piece is saved; a save that asks for the title first leaves after it, as `:wq` does.
+   */
   private leave(): void {
-    if (this.dirty() && !window.confirm(t('editor.leaveUnsaved'))) return;
-    this.goBack();
+    if (!this.dirty()) return this.goBack();
+    this.player?.stop();
+    this.showListen(false);
+    void openOverlay(this, 'editorLeave').then((choice) => {
+      const act = () => {
+        if (choice === 'leave') return this.goBack();
+        if (choice !== 'save') return;
+        this.leaveAfterSave = true;
+        void this.save().then(() => this.leaveIfSaved());
+      };
+      // the piece maker is resumed on its next step: it acts once it runs again
+      if (this.scene.isActive()) act();
+      else this.events.once('resume', act);
+    });
   }
 
   /** Back to the song page a song's row was written from, else to the piece book. */
@@ -2730,20 +2840,29 @@ export class EditorScene extends PixelScene {
   /**
    * A new piece of its own, saved for the first time while the player has own songs: Save asks once, under its button,
    * where the piece goes (rule 17): on its own in the piece book, or into a song, whose page then asks for its place.
+   * The songs come in title order, six a page with < and > under them (ft_1_36.AC24), so the list stays on the screen.
    * False when there is nothing to ask.
    */
-  private askWhere(): boolean {
+  private askWhere(page = 0): boolean {
     const songs = contextOf(this).ownSongs.list();
     const anchor = this.saveButton;
     if (this.id || this.song || this.whereChosen || songs.length === 0 || !anchor) return false;
+    const perPage = 6;
+    const pages = Math.ceil(songs.length / perPage);
+    const at = Math.min(pages - 1, Math.max(0, page));
+    const turn = (to: number): MenuItem => ({
+      label: to < at ? '<' : '>', tooltip: t(to < at ? 'editor.pagePrevious' : 'editor.pageNext'), disabled: to < 0 || to >= pages,
+      onPick: () => void this.askWhere(to),
+    });
     const items: MenuItem[] = [
       { label: t('editor.saveAlone'), onPick: () => this.saveWhere(null) },
-      ...songs.map((song): MenuItem => {
+      ...songs.slice(at * perPage, (at + 1) * perPage).map((song): MenuItem => {
         // a long song title is cut to the cell, with the whole of it in the tooltip, so it never runs over the next choice
         const label = t('editor.saveInto', { title: song.title });
         const shown = clipToWidth(label, WHERE_CELL_WIDTH - LABEL_PAD, (text) => measure(drawnText(text)));
         return { label: shown, keepCase: true, ...(shown !== label ? { tooltip: label } : {}), onPick: () => this.saveWhere(song.id) };
       }),
+      ...(pages > 1 ? [turn(at - 1), turn(at + 1)] : []),
     ];
     this.openMenu(anchor, items, { cell: { w: WHERE_CELL_WIDTH, h: BAR_BUTTON_HEIGHT }, columns: 1, open: 'below' });
     return true;
@@ -2772,7 +2891,9 @@ export class EditorScene extends PixelScene {
       return;
     }
     if (!this.chart || this.chart.notes.length === 0) return this.say(t('editor.empty'), MESSAGE_MS);
-    this.player.start(playbackNotes(this.chart), playbackLengthMs(this.chart), () => this.showListen(false));
+    // it ends with the last written note, not after the empty bars still to fill (ft_1_02a.AC17)
+    const notes = playbackNotes(this.chart);
+    this.player.start(notes, lastSoundMs(notes) + LISTEN_TAIL_MS, () => this.showListen(false));
     this.showListen(true);
   }
 
@@ -2903,10 +3024,20 @@ export class EditorScene extends PixelScene {
     this.say(t('editor.exported', { file: file.name }), MESSAGE_MS);
   }
 
-  /** Choose a piece file and add its piece to the player's own pieces; the piece being written is left alone. */
+  /** Said once a session where the game's server lacks Audiveris: photos and PDFs are not offered, and where to get it (ft_Y_04.AC27). */
+  private static readerTold = false;
+
+  /**
+   * Choose a piece file and add its piece to the player's own pieces; the piece being written is left alone. The server is
+   * asked again first, so photos and PDFs are offered only while Audiveris is there to read them (ft_Y_04.AC27).
+   */
   private async importFile(): Promise<void> {
     const context = contextOf(this);
     let text: string | null;
+    const reader = await photoServer();
+    this.photoReady = reader.ok;
+    // a person who looked for a photo or a PDF found none to pick: when nothing was picked, say once why
+    const tell = !reader.ok && reader.missing === true && !EditorScene.readerTold;
     if (this.photoReady) {
       // on a computer with Audiveris, Import takes a photo or scan of a sheet too (ft_Y_04 slice 4)
       const file = await context.files.pickFile({ accept: '.json,application/json,image/jpeg,image/png,application/pdf,.pdf', id: 'editor-import-file' });
@@ -2914,6 +3045,10 @@ export class EditorScene extends PixelScene {
       if (file && /\.pdf$/i.test(file.name)) return this.importBook(file.name, file.bytes);
       text = file ? new TextDecoder().decode(file.bytes) : null;
     } else text = await context.files.pick({ accept: '.json,application/json', id: 'editor-import-file' });
+    if (text === null && tell) {
+      EditorScene.readerTold = true;
+      return this.say(t('editor.photo.noReader'), MESSAGE_MS * 4);
+    }
     if (text === null) return this.say(t('editor.importEmpty'), MESSAGE_MS);
     const result = await context.ownPieces.importFile(text, { reservedIds: context.pieces.bundledIds(), takenTitles: this.takenTitles(), blankTitle: t('editor.importedTitle') });
     if (!result.ok) {
@@ -3038,20 +3173,29 @@ export class EditorScene extends PixelScene {
 
   /** What the status line says: a message for a moment, otherwise which levels the piece fits. */
   private say(text: string, forMs = 0): void {
-    this.message = text;
+    this.freshMessage(text);
     this.messageTimer?.remove();
     this.messageTimer = forMs > 0 ? this.time.delayedCall(forMs, () => {
       // a pick still waiting keeps its message once a message about something else has faded
-      this.message = this.pickMessage();
+      this.freshMessage(this.pickMessage());
       this.updateStatus();
     }) : null;
     this.updateStatus();
   }
 
+  /** A new message: shown again even over the strip's buttons, for its own moment there (ft_1_02d.AC54). */
+  private freshMessage(text: string): void {
+    this.message = text;
+    this.messageDismissed = false;
+    this.messageFrame = this.game.loop.frame;
+    this.messageCoverTimer?.remove();
+    this.messageCoverTimer = null;
+  }
+
   private updateStatus(): void {
-    // with the band: a message in the bubble over the staff's foot, the levels the piece fits in the Save cell's tooltip (no status line, ft_1_20.AC3)
-    if (this.bubble) {
-      this.bubble.show(this.message);
+    // with the band: a message in the strip at the foot, the levels the piece fits in the Save cell's tooltip (no status line, ft_1_20.AC3)
+    if (this.bandShown) {
+      this.showMessage(this.message);
       const fit = this.fitText();
       this.saveButton?.setTooltip(fit ? `${t('editor.save')}: ${fit}` : t('editor.save'));
       return;
@@ -3153,7 +3297,7 @@ export class EditorScene extends PixelScene {
     this.ghostLabel?.setDepth(10);
     // the option buttons are drawn once: show the tempo of the piece now (also after undo and redo)
     this.bpmText?.setText(t('editor.bpm', { bpm: bpmOf(this.piece) }));
-    this.pageText?.setText(t('editor.page', { page: this.page + 1, pages: this.layout.pageCount }));
+    this.pageText?.setText(this.pageLabel(this.layout.pageCount));
     this.barsText?.setText(t('editor.bars', { bars: this.piece.bars }));
     this.pickupText?.setText(pickupLabel(this.piece));
     this.meterText?.setText(this.meterLabel());
@@ -3167,6 +3311,11 @@ export class EditorScene extends PixelScene {
     this.repeatButton?.setActive(this.repeatPick !== null);
     this.updateStatus();
     if (this.titleInput && this.titleInput.value !== this.shownTitle()) this.titleInput.value = this.shownTitle();
+  }
+
+  /** Which page is shown: "page 2 of 3" in the strip over the band (ft_1_02a.AC11), "2/3" in the rows of buttons. */
+  private pageLabel(pages: number): string {
+    return t(this.bandShown ? 'editor.pageOf' : 'editor.page', { page: this.page + 1, pages });
   }
 
   /** A faint note head at the tonic on every place a note can go, on the page shown. */
@@ -3248,6 +3397,28 @@ export class EditorScene extends PixelScene {
     return this.meterAsk === null;
   }
 
+  /** A bubble on a note or a placed rest opens beside it, so what it acts on stays in view (ft_1_02d.AC52). */
+  protected override bubbleBeside(at: { x: number; y: number }): Rect | null {
+    const hit = this.hit({ x: this.root.x + at.x * this.px.scale, y: this.root.y + at.y * this.px.scale });
+    if (!this.layout || !this.chart || !hit) return null;
+    const S = this.layout.staffSpace;
+    let box: { x: number; y: number; rx: number; ry: number } | null = null;
+    if (hit.kind === 'note') {
+      const head = this.layout.notes.find((n) => n.index === hit.noteIndex);
+      // the head and a head's width round it
+      if (head) box = { x: head.x, y: head.y, rx: 2 * head.headRx, ry: head.headRy };
+    } else if (hit.kind === 'place' && this.restAt({ hand: this.handOf(hit.trackId), bar: hit.bar, start: hit.start })) {
+      // a rest stands round the staff's middle line
+      const middle = pointOf(this.layout, this.chart, { bar: hit.bar, start: hit.start, staff: hit.staff, position: 4 });
+      if (middle) box = { x: middle.x, y: middle.y, rx: S, ry: 1.5 * S };
+    }
+    if (!box) return null;
+    const scale = this.px.scale;
+    const x1 = (this.staffLeft + box.x - box.rx - this.root.x) / scale;
+    const y1 = (this.staffTop + box.y - box.ry - this.root.y) / scale;
+    return { x: Math.floor(x1), y: Math.floor(y1), w: Math.ceil((2 * box.rx) / scale), h: Math.ceil((2 * box.ry) / scale) };
+  }
+
   protected override bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
     if (this.meterAsk !== null) return null;
     const hit = at ? this.hit({ x: this.root.x + at.x * this.px.scale, y: this.root.y + at.y * this.px.scale }) : null;
@@ -3277,7 +3448,11 @@ export class EditorScene extends PixelScene {
       this.barSel = null;
       this.barAnchor = hit.bar;
       this.selectSpot(hit);
-      return trimSlots(this.placeOptions());
+      const options = this.placeOptions();
+      // on a rest the author placed, Delete takes the note's Delete slot (ft_1_02d.AC53)
+      const rest = this.restAt({ hand: this.handOf(hit.trackId), bar: hit.bar, start: hit.start });
+      if (rest) options[2] = { label: t('editor.delete'), icon: TOOL_ICONS.trash, shortcut: EDITOR_KEYS.delete.label, onClick: () => this.apply(removeRest(this.piece, rest), null) };
+      return trimSlots(options);
     }
     if (at === null && (this.selected || this.barSel)) return trimSlots(this.noteOptions());
     // More stands on no place: the key's circle has its slot there too
@@ -3299,7 +3474,8 @@ export class EditorScene extends PixelScene {
     const paste = sel ? this.pasteOption() : null;
     const onNote = <T,>(item: T): T | null => (note ? item : null);
     return [
-      onNote({ label: t(`editor.length.${this.length}` as StringKey), icon: this.lengthPicture(this.length, 'note'), fineIcon: true, onClick: () => undefined, menu: { items: () => this.lengthItems('note'), cell: ITEM_MENU_CELL, columns: LENGTH_ORDER.length } }),
+      // the clicked note's own length, and opening it keeps notes or rests as they are (ft_1_02d.AC55)
+      note ? { label: t(`editor.length.${note.length}` as StringKey), icon: this.lengthPicture(note.length, 'note'), fineIcon: true, onClick: () => undefined, menu: { items: () => this.lengthItems('note', note.length), cell: ITEM_MENU_CELL, columns: LENGTH_ORDER.length } } : null,
       note
         ? { label: t(`editor.acc.${sign}`), icon: itemPicture(sign), fineIcon: true, tooltip: t('editor.acc.tip'), shortcut: EDITOR_KEYS.accidentals.label, onClick: () => undefined, menu: { items: () => this.accidentalItems(), cell: ITEM_MENU_CELL, columns: 3 } }
         : paste,
@@ -3430,11 +3606,11 @@ export class EditorScene extends PixelScene {
   /**
    * The piece maker over the band (ft_1_20.AC8): no rows of buttons; the staff gets every row above the band, and the rows'
    * buttons are the band's actions and items. In the strip between the door and the gear: Save, the title, the page buttons
-   * while the piece has more than one page, Import and Export; the staff starts under that strip, the message bubble just
-   * under it. The time panel (time, pick-up, tempo) opens over the staff's foot; + and - after the last bar add or take bars.
+   * while the piece has more than one page, Import and Export; the staff starts under that strip (the message is in the
+   * strip at the foot, `afterFrame`). The time panel (time, pick-up, tempo) opens over the staff's foot; + and - after the last bar add or take bars.
    */
   private drawOverBand(): void {
-    const { width, scale } = this.px;
+    const { scale } = this.px;
     const rows = this.mainRows;
     const piece = this.piece;
     const strip = this.cornerStrip;
@@ -3485,17 +3661,66 @@ export class EditorScene extends PixelScene {
     }
     let titleRight = importAt - GROUP_GAP;
     if (this.pageButtonsDrawn) {
+      // "page 2 of 3" between < and > (ft_1_02a.AC11), as wide as its widest number so the buttons stay put
       const next = titleRight - STEP_WIDTH;
-      const previous = next - CHOICE_GAP - STEP_WIDTH;
+      const textWidth = measure(drawnText(t('editor.pageOf', { page: pages, pages })));
+      const textAt = next - CHOICE_GAP - textWidth;
+      const previous = textAt - CHOICE_GAP - STEP_WIDTH;
       make({ x: previous + STEP_WIDTH / 2, y, width: STEP_WIDTH, height: BAR_BUTTON_HEIGHT, label: '<', tooltip: t('editor.pagePrevious'), onClick: () => this.turnPage(-1) });
+      this.pageText = new PixelText(this, textAt, y - TEXT_RISE, this.pageLabel(pages), { color: C.white, shadow: C.groove });
+      layer.add(this.pageText);
       make({ x: next + STEP_WIDTH / 2, y, width: STEP_WIDTH, height: BAR_BUTTON_HEIGHT, label: '>', tooltip: t('editor.pageNext'), onClick: () => this.turnPage(1) });
       titleRight = previous - GROUP_GAP;
     }
     const titleAt = strip.left + ICON_BUTTON_WIDTH + GROUP_GAP;
     this.placeTitleInput(titleAt, titleRight - titleAt, y);
-    // what the piece maker says goes just under the strip, over the top of the sheet
-    this.bubble = new SpeechBubble(this, layer, { x: strip.left, y: strip.rows + 1, width: Math.min(width, strip.right) - strip.left }, '');
     this.refreshStaff();
+  }
+
+  /** What the piece maker says stands in the strip at the foot, never over the staff (ft_1_02d.AC54): made once the strip is drawn. */
+  protected override afterFrame(free: { left: number; right: number; top: number; rows: number } | null): void {
+    if (!this.bandShown || !free) return;
+    const layer = this.overStaff();
+    const image = new PixelImage(this, 0, 0, panelBitmap(5, 5, 'bubble')).setVisible(false);
+    const text = new PixelText(this, 0, 0, '', { color: C.ink }).setVisible(false);
+    layer.add([image, text]);
+    this.messageBox = { image, text, free };
+    this.updateStatus();
+  }
+
+  /** A message over the strip's buttons goes (a press or key then reaches the button under it, now seen); one on the free side stays. */
+  private dismissCoveringMessage(byPress = false): void {
+    const box = this.messageBox;
+    if (!box?.image.visible || box.image.x >= box.free.left) return;
+    if (byPress && this.messageFrame === this.game.loop.frame) return;
+    this.messageDismissed = true;
+    this.messageCoverTimer?.remove();
+    this.messageCoverTimer = null;
+    box.image.setVisible(false);
+    box.text.setVisible(false);
+  }
+
+  /** The message in the strip: on its empty right side, growing left along it when longer (`stripMessageBox`). */
+  private showMessage(message: string): void {
+    const box = this.messageBox;
+    if (!box) return;
+    box.image.setVisible(message !== '');
+    box.text.setVisible(message !== '');
+    if (message === '') return;
+    const drawn = drawnText(message);
+    const spot = stripMessageBox({ textWidth: measure(drawn), lineHeight: LINE_HEIGHT, linesAt: (w) => wrap(drawn, w).length, free: box.free, width: this.px.width });
+    // over the strip's buttons a message stays only a moment: they must not stay hidden (ft_1_02d.AC54)
+    if (spot.covers && this.messageDismissed) {
+      box.image.setVisible(false);
+      box.text.setVisible(false);
+      return;
+    }
+    if (spot.covers && !this.messageCoverTimer) this.messageCoverTimer = this.time.delayedCall(MESSAGE_OVER_BUTTONS_MS, () => this.dismissCoveringMessage());
+    box.image.setBitmap(panelBitmap(spot.w, spot.h, 'bubble'));
+    box.image.setPosition(spot.x, spot.y);
+    box.text.setOptions({ color: C.ink, maxWidth: spot.textWidth });
+    box.text.setText(message);
+    box.text.setPosition(spot.x + MESSAGE_PAD_X, spot.y + 2);
   }
 
   /**
@@ -3666,6 +3891,54 @@ export class EditorScene extends PixelScene {
     const bpm = row(pickup.end + GROUP_GAP * 2, GROUP_GAP);
     this.bpmText = group(bpm, t('editor.bpm', { bpm: bpmOf(this.piece) }), t('editor.bpm.tip'), (d) => this.stepBpm(d));
     this.timeGroups = [{ from: BAR_EDGE, to: meter.end, step: (d) => this.stepMeter(d) }, { from: meter.end, to: pickup.end, step: (d) => this.stepPickup(d) }, { from: pickup.end, to: bpm.end, step: (d) => this.stepBpm(d) }];
+    this.showTimeKeys();
+  }
+
+  /** A key while the time panel is open (`timePanelKey`): true when it is the panel's. */
+  private timePanelKey(e: KeyboardEvent): boolean {
+    const { state, action } = timePanelKey(this.timeKeys, e.code);
+    if (action.kind === 'pass') return false;
+    const group = state.group !== this.timeKeys.group;
+    this.timeKeys = state;
+    if (e.repeat && action.kind !== 'step') return true;
+    switch (action.kind) {
+      case 'close': this.openPanel('time'); break;
+      case 'step': ({ meter: () => this.stepMeter(action.direction), pickup: () => this.stepPickup(action.direction), bpm: () => this.stepBpm(action.direction) })[action.group](); break;
+      case 'meter': this.setMeterTo(action.beats); break;
+      case 'pickup': {
+        if (action.beats >= this.piece.beats) break;
+        if (action.beats !== (this.piece.pickup ?? 0)) this.apply(setPickup(this.piece, action.beats), null);
+        break;
+      }
+      case 'bpm': {
+        if (action.bpm !== bpmOf(this.piece)) this.change(setBpm(this.piece, action.bpm));
+        if (action.close) this.openPanel('time');
+        break;
+      }
+      default: break;
+    }
+    // the chosen group lit and a tempo typed so far shown, while the panel is still open
+    if (this.panel === 'time' && (group || action.kind === 'typed' || action.kind === 'bpm' || action.kind === 'step')) this.showTimeKeys();
+    return true;
+  }
+
+  /** The time panel's labels: the group the keys act on lit, and the tempo as typed so far. */
+  private showTimeKeys(): void {
+    const labels: [TimeGroup, PixelText | null][] = [['meter', this.meterText], ['pickup', this.pickupText], ['bpm', this.bpmText]];
+    for (const [group, label] of labels) label?.setOptions({ color: group === this.timeKeys.group ? C.goldLight : C.white, shadow: C.groove });
+    const typed = this.timeKeys.typed;
+    this.bpmText?.setText(t('editor.bpm', { bpm: typed ? `${typed}_` : bpmOf(this.piece) }));
+  }
+
+  /** 2, 3 or 4 in the time panel: that time, as stepping to it would set it. */
+  private setMeterTo(beats: 2 | 3 | 4): void {
+    if (!this.meterAuto && this.piece.beats === beats) return;
+    const edit = setBeats(this.piece, beats);
+    if (!edit.ok) return this.apply(edit, null);
+    this.meterAuto = false;
+    this.apply(edit, null);
+    this.meterText?.setText(this.meterLabel());
+    this.redraw();
   }
 
   private meterLabel(): string {

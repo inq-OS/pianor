@@ -124,3 +124,29 @@ describe('a click on a chord', () => {
     }
   });
 });
+
+describe('a click next to a note head', () => {
+  const withG = () => {
+    const edit = placeNote(emptyPiece({ title: 'T', hands: 'RH', beats: 4, bars: 1 }), { hand: 'RH', bar: 0, start: 0, length: 'quarter', step: 'G', octave: 4 });
+    if (!edit.ok) throw new Error(edit.reason);
+    const chart = toChart(edit.piece, { id: 'draft' });
+    return { chart, layout: layoutStaff(chart, { viewport, allPlayTracks: true }) };
+  };
+
+  it('ft_1_02d.AC51 a click on the line or space a step from a note is that place, so a second can be written as a chord', () => {
+    const { chart, layout } = withG();
+    // G4 is on the second line of the treble (position 2): the space above is A4, the line below F4
+    for (const [position, step] of [[3, 'A'], [1, 'F']] as const) {
+      const at = pointOf(layout, chart, { bar: 0, start: 0, staff: 0, position })!;
+      expect(hitTest(layout, chart, at)).toMatchObject({ kind: 'place', start: 0, position, step, octave: 4 });
+    }
+  });
+
+  it('ft_1_02d.AC51 a click on the head itself, a little off its centre, is still the note', () => {
+    const { chart, layout } = withG();
+    const head = layout.notes[0]!;
+    for (const dy of [-layout.staffSpace / 5, 0, layout.staffSpace / 5]) {
+      expect(hitTest(layout, chart, { x: head.x + head.headRx / 2, y: head.y + dy })).toEqual({ kind: 'note', noteIndex: head.index });
+    }
+  });
+});
