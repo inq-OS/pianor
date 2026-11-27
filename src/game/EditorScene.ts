@@ -23,7 +23,7 @@ import { firstPrintedBar, levelsFileSchema, playbackLengthMs, playbackNotes, sta
 import { toChart } from '../core/editor/chart';
 import { autoFingers } from '../core/editor/fingers';
 import levelsJson from '../../content/curriculum/levels.json';
-import { keyLabel, type KeyMode } from '../core/editor/key';
+import { keyName, type KeyMode } from '../core/editor/key';
 import { canRedo, canUndo, mapEvery, push, redo, startHistory, undo, type History } from '../core/editor/history';
 import { debugLog } from '../core/debug/debugLog';
 import { entryBackspace, entryDown, entryTick, entryUp, moveCursor, startEntry, type EntryKey, type EntryOptions, type EntryState } from '../core/editor/entryMachine';
@@ -725,7 +725,7 @@ export class EditorScene extends PixelScene {
   private showKeyName(system: number): void {
     const spot = this.layout ? keyNameSpot(this.layout, system) : null;
     if (!spot || !this.ghostLabel || this.layout?.systems[system]?.page !== this.page) return;
-    const name = keyLabel(this.piece.fifths, this.piece.mode, contextOf(this).profiles.noteNaming);
+    const name = keyName(this.piece.fifths, this.piece.mode, contextOf(this).profiles.noteNaming);
     this.ghostLabel.setText(name).setPosition(this.staffLeft + spot.x, this.staffTop + spot.y).setVisible(true);
   }
 

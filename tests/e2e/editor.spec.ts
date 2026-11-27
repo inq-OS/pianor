@@ -204,7 +204,7 @@ test.describe('piece editor (preliminary)', () => {
     // (ft_1_02d.AC32) the pointer on the clef names the key over it, before anything is pressed
     await pressSignature(page, 'key', 'hover');
     const label = () => page.evaluate(() => { const l = (window.__game.scene.getScene('editor') as unknown as { ghostLabel: { visible: boolean; text: string } }).ghostLabel; return l.visible ? l.text : ''; });
-    await expect.poll(label).toBe('C');
+    await expect.poll(label).toBe('C major');
     // the clef opens the circle, which sets the key (ft_1_28.AC7)
     await pressSignature(page, 'key');
     await waitForScene(page, 'circle');

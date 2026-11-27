@@ -1,5 +1,4 @@
-import { keyLabel, keyNames } from '../core/editor/key';
-import { withFlat } from '../core/layout/circleOfFifths';
+import { keyName } from '../core/editor/key';
 import type { WrongReason } from '../core/judge/types';
 import { layoutForSettings } from '../core/layout/staffSettings';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
@@ -95,8 +94,7 @@ export class ShapeTrainerScene extends PixelScene {
     if (state.outcome === 'won') this.label(0, WORDS_Y, t('shapes.won', { n: this.round.chart.notes.length }), C.white).centerAt(width / 2);
     else if (this.switcher) {
       // the key of the bar the cursor is in: the name changes as the bar does (AC3)
-      const key = withFlat(keyNames(this.keyOnScreen(), profiles.noteNaming).major);
-      this.label(0, WORDS_Y, t('circle.major', { key }), C.white).centerAt(width / 2);
+      this.label(0, WORDS_Y, keyName(this.keyOnScreen(), 'major', profiles.noteNaming), C.white).centerAt(width / 2);
     } else if (this.wrong?.reason === 'wrong-octave') this.label(0, WORDS_Y, t('theory.wrongOctave'), C.white).centerAt(width / 2);
 
     const top = this.mainTop + STAFF_TOP * scale;
@@ -194,7 +192,7 @@ export class ShapeTrainerScene extends PixelScene {
     const shapeLabel = this.switcher ? 'shapes.switcher' : choice.shape === 'scale' ? 'shapes.scale' : 'shapes.triad';
     const nextShape = () => (this.switcher ? this.choose({ shape: 'scale' }, false) : choice.shape === 'scale' ? this.choose({ shape: 'triad' }) : this.choose({}, true));
     const items: ToolbarItem[] = [
-      ...(this.switcher ? [] : [{ label: displayText(keyLabel(choice.fifths, choice.mode, contextOf(this).profiles.noteNaming)), tooltip: t('shapes.keyTip'), onClick: () => this.chooseKey() }]),
+      ...(this.switcher ? [] : [{ label: displayText(keyName(choice.fifths, choice.mode, contextOf(this).profiles.noteNaming)), tooltip: t('shapes.keyTip'), onClick: () => this.chooseKey() }]),
       { label: displayText(t(shapeLabel)), tooltip: t('shapes.shapeTip'), onClick: nextShape },
       { label: displayText(t(choice.hand === 'RH' ? 'shapes.rh' : 'shapes.lh')), tooltip: t('shapes.handTip'), onClick: () => this.choose({ hand: choice.hand === 'RH' ? 'LH' : 'RH' }) },
     ];

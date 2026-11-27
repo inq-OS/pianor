@@ -1,7 +1,7 @@
 import { chooseKey, circleHit, circleLayout, circlePanelLayout, keyAt, moveStep, spellingsOf, stepOfKey, tonicStep, withFlat, type CircleKey, type CircleLayout, type CircleRing, type CircleTarget } from '../core/layout/circleOfFifths';
 import { pitchClass } from '../core/chart/pitch';
 import { rectCentre } from '../core/layout/rect';
-import { keyNames } from '../core/editor/key';
+import { keyName } from '../core/editor/key';
 import { circleScaleLayout } from '../core/trainer/staffFrame';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
 import { scaleChart } from '../core/trainer/scaleChart';
@@ -182,16 +182,14 @@ export class CircleOfFifthsScene extends PixelScene {
     this.root.add(this.add.rectangle(0, -this.mainTop / scale, width, height + this.mainTop / scale, PALETTE[C.duskDeep], DIM_ALPHA).setOrigin(0, 0));
 
     // beside the wheel: the chosen key's name, a Listen button, and its scale on a staff with its signature
-    const names = keyNames(this.selectedKey.fifths, naming);
-    const title = this.selectedKey.mode === 'major' ? t('circle.major', { key: withFlat(names.major) }) : t('circle.minor', { key: withFlat(names.minor.toLowerCase()) });
-    // keepCase: the key's name is written as on the circle, the b of a flat and the small letter of a minor key included
+    const title = keyName(this.selectedKey.fifths, this.selectedKey.mode, naming);
+    // keepCase: the key's name is written as on the circle, the small letter of a minor key included
     const heading = new PixelText(this, 0, 0, title, { color: C.ink, keepCase: true });
     // opened to choose (rule 8): a tick with the signature for each spelling of the step chosen, sharps first; two where the
     // step has two (F sharp or G flat), so every one of the fifteen signatures can be set
     const ticks = (this.choosing ? spellingsOf(this.selected.step).sort((x, y) => y - x) : []).map((fifths) => {
       const key: CircleKey = { fifths, mode: this.selectedKey.mode };
-      const spelled = keyNames(fifths, naming);
-      const name = key.mode === 'major' ? t('circle.major', { key: withFlat(spelled.major) }) : t('circle.minor', { key: withFlat(spelled.minor.toLowerCase()) });
+      const name = keyName(fifths, key.mode, naming);
       // C major and a minor have no signs to show: a tick says the same
       const picture = fifths === 0 ? TOOL_ICONS.tick : signatureIcon(fifths);
       return { key, name, picture, width: Math.max(22, picture.width + 8) };
