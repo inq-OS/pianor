@@ -31,8 +31,8 @@ const steps = loadTrainerSteps(stepsJson).steps;
  * The note-name trainer (ft_0_17): one note on the staff, and the student presses its key. The name stays hidden until a wrong
  * press, which costs one life and puts the name on the note. The third lost life ends the round; a key, a click on the screen
  * or the toolbar's loop starts a new one. The rules are in `core/trainer`; this scene draws the staff and the hearts and hands
- * each key press to the rule. Almost no text: the hearts are the lives, the toolbar's XP bar shows the
- * XP, the step and the letter naming are cycling buttons on the toolbar.
+ * each key press to the rule. Almost no text: the hearts are the lives, and
+ * the step and the letter naming are cycling buttons on the toolbar.
  * Each right name's XP is saved to the active profile at once (ft_0_17.AC3).
  */
 export class NoteTrainerScene extends PixelScene {

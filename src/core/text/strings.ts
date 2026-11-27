@@ -302,7 +302,6 @@ export const strings = {
   'adminPassword.blank': 'The new password cannot be empty.',
   'profile.defaultName': 'Player {n}',
   'profile.blankName': 'Player',
-  'menu.locked': 'Reach level {level} to play',
   'menu.pieceLevel': 'Level {level}',
   'practice.statsPane': 'Latest plays',
   'practice.paneLatest': '{percent}%',

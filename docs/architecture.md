@@ -48,7 +48,7 @@ src/
     world/               The world model of Keri (content/world/keri.json, d108): schema, loadWorld, geometry
     sky/                 The hour of the sky from the real sun (skyPhase, sceneLook, wind; ft_1_14, d097)
     scoring/             Stars, the two-hands bonus, the session lines of the looping play (ft_1_12)
-    progression/         XP, levels, unlocks, profile (versioned save; the version history is the comment on PROFILE_SCHEMA_VERSION in profile.ts), migrations, repository
+    progression/         XP, levels, profile (versioned save; the version history is the comment on PROFILE_SCHEMA_VERSION in profile.ts), migrations, repository
     editor/              Piece editor model: edits, history, ABC and chart output, hit testing (ft_1_02a)
     properties/          What a piece asks of the player (note values, range, hands), for the piece card and difficulty
     random.ts, issues.ts Seeded random numbers; schema problems as readable lines

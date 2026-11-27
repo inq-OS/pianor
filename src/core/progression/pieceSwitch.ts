@@ -27,7 +27,7 @@ export function isPieceOn(settings: PiecesSettings, pieceId: string): boolean {
 }
 
 /**
- * Whether the piece may be turned off: not when it is the last piece on among `offered` (the pieces the player can play now: unlocked ones, not padlocked cards),
+ * Whether the piece may be turned off: not when it is the last piece on among `offered` (the pieces the player can play now),
  * which would leave the player with an empty menu. A piece that is already off, or is not on offer, never blocks.
  */
 export function canTurnOff(settings: PiecesSettings, pieceId: string, offered: readonly string[]): boolean {

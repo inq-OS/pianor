@@ -53,7 +53,7 @@ Every feature file carries `completeness: N` (an integer, 0 to 100) in its front
 | [ft_0_07](ft_0_07-audio.md) | Audio | Salamander sampled piano, metronome, one audio clock | done | 100 | 3 | done; sound check open (Human) |
 | [ft_0_08](ft_0_08-judge-and-wait-mode.md) | Judge and Wait mode | Wait-mode judge, wrong-note reasons, bar, phrase and piece results | done | 100 |  | done |
 | [ft_0_09](ft_0_09-practice-scene.md) | Practice scene | Practice screen, results and stars, end-to-end tests | done | 100 | 1 | done; playtest open (Human) |
-| [ft_0_10](ft_0_10-progression.md) | Progression | XP, levels, unlocks, several players, versioned saves | done | 100 |  | done; numbers provisional |
+| [ft_0_10](ft_0_10-progression.md) | Progression | XP, levels, several players, versioned saves | done | 100 |  | done; numbers provisional |
 | [ft_0_11](ft_0_11-piece-preview.md) | Piece preview and first content | Preview tool, approval workflow, menu paging, first pieces | done | 100 |  | done; review and approval open (Human) |
 | [ft_0_12](ft_0_12-generators.md) | Generators and agent composing | Five seeded generators, regeneration, the agent prompt | done | 100 |  | done |
 | [ft_0_13](ft_0_13-pixel-art-and-menus.md) | Pixel art and menus | Original pixel kit, whole-number zoom, menu, results, credits, eighth notes | done | 100 | 2 | done; look not reviewed (Human) |

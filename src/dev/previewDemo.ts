@@ -251,7 +251,7 @@ export async function startPreview(): Promise<void> {
     title.textContent = meta ? `${meta.title}` : selected.folder ?? 'Scratch';
     facts.textContent = meta
       ? [
-          selected.folder ?? 'scratch', `level ${meta.level}`, `unlocks at ${meta.unlockLevel ?? meta.level}`, meta.status, meta.license,
+          selected.folder ?? 'scratch', `level ${meta.level}`, `list order ${meta.unlockLevel ?? meta.level}`, meta.status, meta.license,
           check.fitsLevels.length > 0 ? `fits levels ${check.fitsLevels.join(', ')}` : 'fits no level',
           check.difficulty ? difficultySummary(check.difficulty, meta.difficulty) : '',
         ].filter(Boolean).join('  |  ')

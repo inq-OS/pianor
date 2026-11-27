@@ -156,7 +156,7 @@ const HIDE_HINT = 0.35;
 
 /**
  * The piece picker: Kiur, the player's level and XP, and the pieces as cards in two columns, six to a page. A card shows
- * the title, how many stars were earned and which hand plays; a locked card shows a padlock and the level it needs.
+ * the title, how many stars were earned and which hand plays. No card is locked: levels gate nothing.
  * Drawn in art pixels, so everything stays crisp at any whole-number zoom.
  */
 export class MenuScene extends PixelScene {
@@ -170,9 +170,9 @@ export class MenuScene extends PixelScene {
   private goOnTo: KeriScreen | 'profile' | null = null;
   /** The piece whose info card is open, if any. */
   private infoId: string | null = null;
-  /** The small "i" button of each unlocked card on this page, by piece id (not in `buttons`: they are not piece cards). */
+  /** The small "i" button of each card on this page, by piece id (not in `buttons`: they are not piece cards). */
   protected infoButtons = new Map<string, PixelButton>();
-  /** The small "S" button of each unlocked card on this page, by piece id: it opens the piece's stats page (core_04). */
+  /** The small "S" button of each card on this page, by piece id: it opens the piece's stats page (core_04). */
   protected statsButtons = new Map<string, PixelButton>();
   /** An own piece's pencil, which opens it in the piece maker (ft_1_12), by piece id. */
   protected editButtons = new Map<string, PixelButton>();
