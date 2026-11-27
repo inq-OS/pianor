@@ -581,7 +581,8 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
     expect((await sceneTexts(page, 'teacherGate')).join(' ')).toContain('child lock');
     await page.keyboard.type('teacher');
     await page.keyboard.press('Enter');
-    await expect.poll(() => sceneTexts(page, 'teacherGate')).toContain('Wrong password. Try again.');
+    // written on the register's page, line by line: the sentence may wrap
+    await expect.poll(async () => (await sceneTexts(page, 'teacherGate')).join(' ')).toContain('Wrong password. Try again.');
     await page.keyboard.type('pianor');
     await page.keyboard.press('Enter');
     await waitForScene(page, 'teacher');

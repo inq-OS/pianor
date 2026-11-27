@@ -141,10 +141,11 @@ export class BeatLanesScene extends PixelScene {
   protected draw(): void {
     const { width } = this.px;
     this.sky();
-    this.openBook({ x: 3, y: 3, w: width - 6, h: this.px.height - 5 });
-    this.inkWriting = true;
     const strip = this.cornerStrip;
-    this.label(strip.left + 2, 6, this.saveFailed ? t('settings.saveFailed') : t('lanes.title'), C.gold);
+    // the book lies under the strip of the door and the gear, where the title stands on the desk clear of both boxes
+    this.openBook({ x: 3, y: strip.rows, w: width - 6, h: this.px.height - 2 - strip.rows });
+    this.label(this.titleX(0), 6, this.saveFailed ? t('settings.saveFailed') : t('lanes.title'), C.gold);
+    this.inkWriting = true;
     this.drawPreview(strip.rows + 1, this.mainRows - strip.rows - 2);
   }
 

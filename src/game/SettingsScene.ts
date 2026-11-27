@@ -12,6 +12,8 @@ import type { Bitmap } from './ui/pixel/bitmap';
 import { C } from './ui/pixel/palette';
 import { Mascot } from './ui/pixel/PixelObjects';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
+import { BOOK_PAGE, bookPages } from '../core/layout/bookPages';
+import type { Rect } from '../core/layout/rect';
 import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, barsSymbol, beatLaneSymbol, chordLabelsSymbol, durationSymbol, fingersSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, liveTempoSymbol, markersFromSymbol, markersSymbol, namingSymbol, paceClickSymbol, scoreSymbol, staffGapSymbol } from './ui/pixel/settingArt';
 import { freshData, startScene } from './scenes';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
@@ -23,7 +25,6 @@ const TITLE_Y = 14;
 const MASCOT_WIDTH = 24;
 const MASCOT_Y = 16;
 const MASCOT_RIGHT = 20;
-const OPTION_GAP = 4;
 /**
  * One button per setting, which shows the current choice and moves to the next one when pressed; the setting's name sits right
  * of it. Two columns of rows, the first row centred on FIRST_ROW_Y, one every ROW_STEP; a name may take two lines.
@@ -31,15 +32,15 @@ const OPTION_GAP = 4;
 const SETTING_WIDTH = SYMBOL_WIDTH + 6;
 const SETTING_HEIGHT = SYMBOL_HEIGHT + 4;
 const NAME_GAP = 6;
-/** The shaded fold down the middle of the open book: no name runs into it. */
-const FOLD_ROOM = 8;
+/** The open book's cover from the screen's sides and foot; with the band its top is under the corner strip. */
+const BOOK_EDGE = 3;
+/** Without the band the title is written on the left page, this many rows over the first setting. */
+const TITLE_ROOM = 12;
 // AX-3 provisional (d110): a normal-size title and the rows and hint moved up, so the four rows, the hint and the bottom
 // corner vines fit the 320 x 157 main area
 const FIRST_ROW_Y = 39;
 const ROW_STEP = 26;
-/** The second column starts at the middle of the screen. */
-/** The first column sits two pixels in from the margin, so its last row's focus ring clears the bottom left vine. */
-const columnX = (column: 0 | 1, width: number) => (column === 0 ? MARGIN + 2 : Math.floor(width / 2) + OPTION_GAP);
+
 /** The line under the rows: the hint (or, once Space between staves is tapped, what it changes), or that saving failed. */
 const HINT_Y = 132;
 /** With the band: the buttons two rows shorter and edge to edge, so the four rows end inside the book above the band. */
@@ -73,6 +74,8 @@ export class SettingsScene extends PixelScene {
   private saveFailed = false;
   /** The first row's centre: under the title, or under the strip of the door and the gear with the band (ft_1_20). */
   private firstRowY = FIRST_ROW_Y;
+  /** The book's two pages as last drawn (`bookPages`): each column of settings is written on its own page. */
+  private pages: readonly [Rect, Rect] = [{ x: 0, y: 0, w: 0, h: 0 }, { x: 0, y: 0, w: 0, h: 0 }];
   /** The rows' step and the buttons' height: a little tighter under the band, whose main area has 124 rows (ft_1_20). */
   private rowStep = ROW_STEP;
   private settingHeight = SETTING_HEIGHT;
@@ -141,7 +144,8 @@ export class SettingsScene extends PixelScene {
    * saves the next choice (after the last comes the first again) for this player with `save` and draws the screen again.
    */
   private setting<T>(column: 0 | 1, row: number, name: string, choices: Choice<T>[], current: T, save: (value: T) => Promise<boolean>): void {
-    const x = columnX(column, this.px.width);
+    const page = this.pages[column];
+    const x = page.x;
     const y = this.firstRowY + row * this.rowStep;
     const index = Math.max(0, choices.findIndex((c) => c.value === current));
     const next = choices[(index + 1) % choices.length]!;
@@ -158,8 +162,8 @@ export class SettingsScene extends PixelScene {
       },
     });
     const nameX = x + SETTING_WIDTH + NAME_GAP;
-    // a name on the left page wraps short of the book's fold
-    const end = column === 0 ? Math.floor(this.px.width / 2) - FOLD_ROOM : this.px.width - MARGIN;
+    // a name wraps short of its page's edge: the fold on the left page, the torn edge on the right
+    const end = page.x + page.w;
     const text = this.label(nameX, y, name, C.white, { maxWidth: end - nameX });
     // the name's letters (tails left out) centred on the button
     text.y = Math.round(y - text.letterBox.bottom / 2);
@@ -169,16 +173,26 @@ export class SettingsScene extends PixelScene {
     const { width } = this.px;
     const profiles = (contextOf(this)).profiles;
     this.sky();
-    // the settings are written in the open book on the desk, as the song list is
-    this.openBook({ x: 3, y: 3, w: width - 6, h: this.px.height - 5 });
-    this.inkWriting = true;
-    // with the band (ft_1_20) the title, the hint line and Kiur stand in the strip between the door and the gear, so the four
-    // rows fit the 124 rows above the band; the player is in the room, Report a bug and the piece list are the band's actions
+    // with the band (ft_1_20) the title, the hint line and Kiur stand in the strip between the door and the gear, on the desk
+    // above the book, so the corner boxes cover none of it; the player is in the room, Report a bug and the piece list are the band's actions
     const strip = this.bandShown ? this.cornerStrip : null;
+    // the settings are written on the pages of the open book on the desk, as the song list is
+    // with the band the book lies below the strip and runs on under the band, its foot out of sight as the closed book's on
+    // the name screen: its pages reach the band, room for five rows of settings
+    const bookTop = strip ? strip.rows : BOOK_EDGE;
+    const bookFoot = strip ? this.mainRows - 1 + BOOK_PAGE.foot : this.px.height - BOOK_EDGE + 1;
+    const book = { x: BOOK_EDGE, y: bookTop, w: width - 2 * BOOK_EDGE, h: bookFoot - bookTop };
+    this.openBook(book);
+    const { left, right } = bookPages(book);
+    this.pages = [left, right];
+    this.inkWriting = true;
     this.settingHeight = strip ? BAND_SETTING_HEIGHT : SETTING_HEIGHT;
     this.rowStep = strip ? BAND_ROW_STEP : ROW_STEP;
-    this.firstRowY = strip ? strip.rows - 1 + this.settingHeight / 2 : FIRST_ROW_Y;
-    const title = this.label(strip ? strip.left + 2 : MARGIN, strip ? STRIP_TEXT_Y : TITLE_Y, t('settings.title'), C.gold);
+    this.firstRowY = strip ? left.y + this.settingHeight / 2 : Math.max(FIRST_ROW_Y, left.y + TITLE_ROOM + this.settingHeight / 2);
+    // on the desk in the strip the title and the hint are in the frame's gold, not ink
+    this.inkWriting = !strip;
+    const title = this.label(strip ? this.titleX(MARGIN) : left.x, strip ? STRIP_TEXT_Y : Math.max(TITLE_Y, left.y), t('settings.title'), C.gold);
+    this.inkWriting = true;
     const mascotX = strip ? strip.right - MASCOT_WIDTH : width - MASCOT_RIGHT - MASCOT_WIDTH;
     this.own(new Mascot(this, this.root, mascotX, strip ? 1 : MASCOT_Y));
 
@@ -188,6 +202,7 @@ export class SettingsScene extends PixelScene {
     const hint = this.saveFailed ? t('settings.saveFailed') : this.gapTapped ? t('settings.staffGapHint') : '';
     const hintX = strip ? title.x + title.width + NAME_GAP * 2 : MARGIN;
     const hintEnd = strip ? mascotX - NAME_GAP : width - MARGIN;
+    this.inkWriting = !strip;
     const hintLabel = this.label(hintX, strip ? STRIP_TEXT_Y : HINT_Y, hint, this.saveFailed ? C.gold : C.dim, { maxWidth: hintEnd - hintX });
     // a hint that wraps in the strip is lifted so its last line still ends above the first row
     if (strip) hintLabel.y = Math.max(0, Math.min(STRIP_TEXT_Y, this.firstRowY - this.settingHeight / 2 - hintLabel.height - 1));
@@ -195,7 +210,8 @@ export class SettingsScene extends PixelScene {
 
   /** The beat lanes' button: the first lane's picture, and a press opens their own page (`BeatLanesScene`). */
   private laneButton(column: 0 | 1, row: number, place: 'above' | 'between' | 'off'): void {
-    const x = columnX(column, this.px.width);
+    const page = this.pages[column];
+    const x = page.x;
     const y = this.firstRowY + row * this.rowStep;
     this.button({
       x: x + SETTING_WIDTH / 2, y, width: SETTING_WIDTH, height: this.settingHeight, look: 'ink', inkBox: true,
@@ -203,7 +219,7 @@ export class SettingsScene extends PixelScene {
       onClick: () => this.scene.start('beat-lanes', freshData({ returnTo: { returnTo: this.returnTo, page: 1 } })),
     });
     const nameX = x + SETTING_WIDTH + NAME_GAP;
-    const end = column === 0 ? Math.floor(this.px.width / 2) - FOLD_ROOM : this.px.width - MARGIN;
+    const end = page.x + page.w;
     const text = this.label(nameX, y, t('settings.beatLane'), C.white, { maxWidth: end - nameX });
     text.y = Math.round(y - text.letterBox.bottom / 2);
   }

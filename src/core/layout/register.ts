@@ -1,3 +1,4 @@
+import { bookPages } from './bookPages';
 import type { Rect } from './rect';
 
 /**
@@ -6,17 +7,9 @@ import type { Rect } from './rect';
  * register is kept. Pure: the scenes measure their words and draw what this places. Layout cells.
  */
 export const REGISTER = {
-  /** The book's cover from the screen's side and from the main area's top. */
-  side: 3,
+  /** The book's cover from the screen's side and from the main area's top; where its pages are written is `bookPages`. */
+  side: 1,
   top: 1,
-  /** Bare page between the cover's edge and the writing, on the left page and at the right page's outer edge. */
-  margin: 11,
-  edge: 8,
-  /** Bare page each side of the gutter. */
-  gutter: 7,
-  /** The heading's room at the top of a page (one big line), and the stack of leaves and the cover at the foot. */
-  title: 7,
-  foot: 9,
   /** A ruled line of the table, and the room a pager takes at the foot. */
   row: 13,
   pager: 14,
@@ -41,16 +34,17 @@ export interface RegisterLayout {
 
 /** The register over a main area `width` by `height` (its top at 0). */
 export function registerLayout(width: number, height: number): RegisterLayout {
-  const { side, top, margin, edge, gutter, title, foot } = REGISTER;
-  const mid = Math.floor(width / 2);
-  const leftX = side + margin, rightEnd = width - side - edge;
+  const { side, top } = REGISTER;
+  const book = { x: side, y: top, w: width - 2 * side, h: height - top - 1 };
+  // written only on the pages, clear of the cover, the stack of leaves, the torn edge and the gutter (`bookPages`)
+  const { left, right } = bookPages(book);
   return {
-    book: { x: side, y: top, w: width - 2 * side, h: height - top - 1 },
-    mid,
-    left: { x: leftX, w: mid - gutter - leftX },
-    right: { x: mid + gutter, w: rightEnd - mid - gutter },
-    top: top + title,
-    bottom: height - 1 - foot,
+    book,
+    mid: Math.floor(width / 2),
+    left: { x: left.x, w: left.w },
+    right: { x: right.x, w: right.w },
+    top: left.y,
+    bottom: left.y + left.h,
   };
 }
 

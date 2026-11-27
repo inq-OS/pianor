@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { pagerBoxes } from '../../../core/layout/cardGrid';
+import { LIST_BOTTOM_MARGIN, pagerBoxes } from '../../../core/layout/cardGrid';
 import type { PageSlice } from '../../../core/layout/paging';
 import { ART_DETAIL, FRAME_ROWS, VINE_ROWS, frameCorners, frameView, toolbarLayout, type FrameView } from '../../../core/layout/frame';
 import { BUBBLE_SLOTS, SLIDER_CELLS, bubbleLayout, bubblePage, bubbleTooltipBox, cellSpan, keyBadgeBox, pinFlow, pinRows, sliderArc, sliderFraction, sliderPoint, sliderStep, twoFingerTap, twoFingersSlid, wheelChoice, type BubbleLayout, type SliderArc } from '../../../core/layout/bubble';
@@ -26,6 +26,7 @@ import { CARD_PALETTE, RIBBON_TAIL, paintCard, paintRibbon } from './paint/card'
 import { BOOK_PALETTE, REGISTER_PALETTE, paintBook } from './paint/book';
 import { RULING_PALETTE, inkField, paintRuling } from './paint/register';
 import { REGISTER, registerLayout, type RegisterLayout } from '../../../core/layout/register';
+import { bookPages } from '../../../core/layout/bookPages';
 import { contextOf } from '../../context';
 import { motionAllowed } from '../../motion';
 import { measure, drawnText, wrap } from './font';
@@ -330,9 +331,30 @@ export abstract class PixelScene extends Phaser.Scene {
   }
 
   /** An open book (`paint/book.ts`) laid on the desk over `rect` (layout cells): call it before what is written in it. */
+  /** The open book drawn on the screen, if any, and its pages (`bookPages`): what is written on it stays inside a page (read by the tests). */
+  bookShown: { book: Rect; pages: Rect[] } | null = null;
+
   protected openBook(rect: Rect): PixelImage {
+    const pages = bookPages(rect);
+    this.bookShown = { book: rect, pages: [pages.left, pages.right] };
     const w = rect.w * ART_DETAIL, h = rect.h * ART_DETAIL;
     return this.fineImage(rect.x * ART_DETAIL, rect.y * ART_DETAIL, paintedOnce(`book:${w}x${h}`, () => paintBook(w, h)), BOOK_PALETTE);
+  }
+
+  /**
+   * Where a list in the open book over `book` is written (`cardGrid`'s margin, gap between the columns, top and height): on
+   * its pages (`bookPages`), the margins alike on both sides, its top under the Back box and the gear in the top corners.
+   */
+  protected bookGrid(book: Rect): { margin: number; columnGap: number; top: number; height: number } {
+    const { left, right } = bookPages(book);
+    const width = this.px.width;
+    const margin = Math.max(left.x, width - (right.x + right.w));
+    let top = left.y;
+    if (!this.screenFrame.toolbar) {
+      const { back, settings } = frameCorners(width);
+      if (margin < back.x + back.w || width - margin > settings.x) top = Math.max(top, back.y + back.h + 1, settings.y + settings.h + 1);
+    }
+    return { margin, columnGap: right.x - (left.x + left.w), top, height: left.y + left.h + LIST_BOTTOM_MARGIN };
   }
 
   /**
@@ -342,6 +364,8 @@ export abstract class PixelScene extends Phaser.Scene {
   protected register(): RegisterLayout {
     const layout = registerLayout(this.px.width, this.mainRows);
     const { book } = layout;
+    const pages = bookPages(book);
+    this.bookShown = { book, pages: [pages.left, pages.right] };
     const w = book.w * ART_DETAIL, h = book.h * ART_DETAIL;
     this.fineImage(book.x * ART_DETAIL, book.y * ART_DETAIL, paintedOnce(`book:${w}x${h}`, () => paintBook(w, h)), REGISTER_PALETTE);
     this.inkWriting = true;
@@ -865,12 +889,21 @@ export abstract class PixelScene extends Phaser.Scene {
 
   /** The pager row under a card list (`cardGrid`): Previous, Next and the page label; `turn` gets the page to show. */
   protected pager(slice: PageSlice, turn: (page: number) => void): void {
-    const { previous, next, labelY, centreX } = pagerBoxes(this.px.width, this.px.height);
+    const boxes = pagerBoxes(this.px.width, this.px.height);
+    const { previous, next, centreX } = boxes;
     // written on a page (a book) the two are words in ink, not boards
     const look = this.inkWriting ? { look: 'ink' as const } : {};
-    // in a book the gutter stays clear: Previous and the page number on the left page, Next on the right
-    const book = this.inkWriting ? { previous: this.px.width * 0.19, label: this.px.width * 0.36, next: this.px.width * 0.75 } : null;
-    const at = (box: Rect, x: number | undefined) => ({ ...rectCentre(box), ...(x === undefined ? {} : { x }) });
+    // in a book the gutter stays clear: Previous and the page number on the left page, Next on the right, all at the pages'
+    // foot above the stack of leaves (`bookShown`)
+    const pages = this.bookShown?.pages;
+    const lift = pages ? Math.min(0, pages[0]!.y + pages[0]!.h - (previous.y + previous.h)) : 0;
+    const labelY = boxes.labelY + lift;
+    const book = this.inkWriting
+      ? pages
+        ? { previous: pages[0]!.x + previous.w / 2, label: pages[0]!.x + previous.w + (pages[0]!.w - previous.w) / 2, next: pages[1]!.x + pages[1]!.w - next.w / 2 }
+        : { previous: this.px.width * 0.19, label: this.px.width * 0.36, next: this.px.width * 0.75 }
+      : null;
+    const at = (box: Rect, x: number | undefined) => ({ ...rectCentre({ ...box, y: box.y + lift }), ...(x === undefined ? {} : { x }) });
     this.button({ ...at(previous, book?.previous), label: t('menu.previous'), ...look, disabled: slice.page === 0, onClick: () => turn(slice.page - 1) });
     this.button({ ...at(next, book?.next), label: t('menu.next'), ...look, disabled: slice.page === slice.pages - 1, onClick: () => turn(slice.page + 1) });
     this.label(0, labelY, t('menu.page', { page: slice.page + 1, pages: slice.pages }), C.dim).centerAt(book?.label ?? centreX);
@@ -1919,6 +1952,7 @@ export abstract class PixelScene extends Phaser.Scene {
 
   private teardown(): void {
     this.inventoryBand = null;
+    this.bookShown = null;
     this.closeMenu();
     this.buttons.forEach((b) => b.setFocused(false));
     this.animators = [];

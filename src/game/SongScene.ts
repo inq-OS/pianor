@@ -1,4 +1,5 @@
 import { cardGrid } from '../core/layout/cardGrid';
+import { BOOK_PAGE } from '../core/layout/bookPages';
 import { pageOf } from '../core/layout/paging';
 import { rectCentre } from '../core/layout/rect';
 import { keyName, meterName, pieceOutline, rowPlay, shownRows, startFolded, type ShownRow } from '../core/song/outline';
@@ -28,9 +29,7 @@ const CARD_HEIGHT = 32;
 const BAND_CARD_ROW = 28;
 const CARD_GAP = 2;
 const LIST_TOP = 4;
-const BOOK_SIDE = 3;
-const BOOK_MARGIN = 14;
-const BOOK_GUTTER = 18;
+const BOOK_SIDE = 1;
 /** A switch, a fold triangle and a play button: a finger wide at the usual zoom, as the book's own small buttons. */
 const SMALL = 11;
 const GAP = 2;
@@ -39,7 +38,7 @@ const PLAY_GAP = 5;
 /** The widest name the strip's Play names. */
 const STRIP_NAME = 120;
 /** A row is set this far in from its page's cell, so its switch, numbers and play button stay on the paper, as the piece book's cards do. */
-const ROW_INSET = 3;
+const ROW_INSET = 1;
 /** Each level of the outline is set in this far. */
 const INDENT = 6;
 /** A row that is off is drawn this pale over its whole height; the switch of the last written part on this faded. */
@@ -683,11 +682,15 @@ export class SongScene extends PixelScene {
     const { width, height } = this.px;
     const outline = this.outline();
     this.sky();
-    this.openBook({ x: BOOK_SIDE, y: LIST_TOP - 2, w: width - 2 * BOOK_SIDE, h: height - LIST_TOP + 1 });
+    // the book runs on under the band, its foot out of sight (as the settings' book): its pages reach the band, so a page
+    // holds as many rows as the piece book's
+    const bookTop = LIST_TOP - 2;
+    const book = { x: BOOK_SIDE, y: bookTop, w: width - 2 * BOOK_SIDE, h: Math.max(height - LIST_TOP + 1, this.mainRows - 1 + BOOK_PAGE.foot - bookTop) };
+    this.openBook(book);
     this.inkWriting = true;
     if (!outline) return;
     const rowHeight = this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT;
-    const grid = cardGrid({ width, height, top: LIST_TOP + 4, margin: BOOK_MARGIN, rowHeight, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
+    const grid = cardGrid({ width, ...this.bookGrid(book), rowHeight, rowGap: CARD_GAP });
     this.items = [null, ...shownRows(outline.rows, this.folded)];
     this.rowRects.clear();
     this.landing = null;

@@ -76,13 +76,9 @@ const CARD_GAP = 2;
 const NEW_PIECE_INSET = 5;
 /** The piece maker's New piece staff: short, so the card's words fit beside it. */
 const MAKER_NEW_STAFF = 40;
-/** The piece maker's left page has no bookmarks, but its torn edge still takes a few cells. */
-const MAKER_SHIFT = 6;
 const MARGIN = 6;
-/** The open book's cover from the screen's sides, the list's margin inside it, and the gutter between its pages, in cells. */
-const BOOK_SIDE = 3;
-const BOOK_MARGIN = 14;
-const BOOK_GUTTER = 18;
+/** The open book's cover from the screen's sides, in cells; the list is written on its pages (`bookGrid`). */
+const BOOK_SIDE = 1;
 /** The group signs at the end of a title's line keep this far apart. */
 const SIGN_GAP = 3;
 /** The bar under a curriculum piece's days left: how near its level is to the expected one. */
@@ -102,7 +98,7 @@ const BOOKMARK_SILK: Readonly<Record<Bookmark, number>> = { all: 0, own: 1, curr
  * On the left page the rules under the pieces start this much further in, clear of the bookmarks in its outer margin;
  * the right page's outer margin is free for more bookmarks later.
  */
-const LEFT_SHIFT = 12;
+const LEFT_SHIFT = 7;
 /**
  * A bookmark's ribbon, in cells: a closed one hangs `shut` wide from `out` cells in; the open one is `open` wide from the
  * screen's edge, lying over the page's margin up to the pieces. Its height and the gap between two.
@@ -499,27 +495,29 @@ export class MenuScene extends PixelScene {
     // the cards: two columns, as many rows as fit; a pager row only when there are more pieces than fit
     const top = context.savesPersist ? listTop : listTop + NO_SAVE_ROOM;
     // the list is written in an open book on the desk, a column on each page
-    this.openBook({ x: BOOK_SIDE, y: top - 2, w: width - 2 * BOOK_SIDE, h: height - top + 1 });
+    const book = { x: BOOK_SIDE, y: top - 2, w: width - 2 * BOOK_SIDE, h: height - top + 1 };
+    this.openBook(book);
     if (!this.maker) this.bookmarks(top + TAB_TOP);
-    const margin = BOOK_MARGIN;
-    const shift = this.maker ? MAKER_SHIFT : LEFT_SHIFT;
+    const bookRows = this.bookGrid(book);
+    const { margin, columnGap } = bookRows;
+    const shift = this.maker ? 0 : LEFT_SHIFT;
     // Kiur's book: its title at the top of the left page, the pieces under it
     const kiurRoom = this.forKiur === null ? 0 : KIUR_TITLE_ROOM;
     this.inkWriting = true;
-    this.forKiurTitle(margin + shift, top + KIUR_TITLE_TOP, width / 2 - margin - shift - BOOK_GUTTER / 2);
+    this.forKiurTitle(margin + shift, bookRows.top - 4 + KIUR_TITLE_TOP, width / 2 - margin - shift - columnGap / 2);
     this.inkWriting = false;
     if (pieces.length === 0) {
       // the bookmark's own picture on the empty page, then the sentence under it
       const picture = BOOKMARK_ICON[this.bookmark]();
       this.root.add(new PixelImage(this, margin + shift + 6, top + 10 + kiurRoom, picture).setName('emptyBookmark'));
       this.inkWriting = true;
-      this.label(margin + shift + 6, top + 16 + kiurRoom + picture.height, t(this.forKiur === 'tug' ? 'menu.noneLearned' : 'menu.noneHere'), C.umberDark, { maxWidth: width / 2 - margin - shift - BOOK_GUTTER / 2 - 6 });
+      this.label(margin + shift + 6, top + 16 + kiurRoom + picture.height, t(this.forKiur === 'tug' ? 'menu.noneLearned' : 'menu.noneHere'), C.umberDark, { maxWidth: width / 2 - margin - shift - columnGap / 2 - 6 });
       this.inkWriting = false;
       return;
     }
     this.inkWriting = true;
     // under Kiur's title the rows end where they would without it, above the page numbers: a row fewer when it does not fit
-    const grid = cardGrid({ width, height: height - kiurRoom, top: top + 4 + kiurRoom, margin, rowHeight: this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
+    const grid = cardGrid({ width, ...bookRows, top: bookRows.top + kiurRoom, height: bookRows.height - kiurRoom, rowHeight: this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT, rowGap: CARD_GAP });
     const { cardWidth } = grid;
     if (this.page === Number.POSITIVE_INFINITY) {
       const at = pieces.findIndex((p) => p !== 'new' && p.chart.id === this.flight?.chartId);

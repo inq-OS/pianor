@@ -21,9 +21,7 @@ import { TOOL_ICONS } from './ui/pixel/toolArt';
 const CARD_HEIGHT = 44;
 const CARD_GAP = 2;
 const LIST_TOP = 4;
-const BOOK_SIDE = 3;
-const BOOK_MARGIN = 14;
-const BOOK_GUTTER = 18;
+const BOOK_SIDE = 1;
 /** A row is set this far in from its page's cell. */
 const ROW_INSET = 3;
 /** The small buttons of a row: a finger wide at the usual zoom, as the book's own. */
@@ -89,10 +87,11 @@ export class SongsScene extends PixelScene {
     const all = songs.list();
     const list = all.filter((song) => profiles.isPieceOn(songChartId(song.id)));
     this.sky();
-    this.openBook({ x: BOOK_SIDE, y: LIST_TOP - 2, w: width - 2 * BOOK_SIDE, h: height - LIST_TOP + 1 });
+    const book = { x: BOOK_SIDE, y: LIST_TOP - 2, w: width - 2 * BOOK_SIDE, h: height - LIST_TOP + 1 };
+    this.openBook(book);
     this.inkWriting = true;
     const row = CARD_HEIGHT;
-    const grid = cardGrid({ width, height, top: LIST_TOP + 4, margin: BOOK_MARGIN, rowHeight: row, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
+    const grid = cardGrid({ width, ...this.bookGrid(book), rowHeight: row, rowGap: CARD_GAP });
     // the first row makes a new song (rule 12), then the songs that are on
     const rows: (Song | null)[] = [null, ...list];
     const slice = pageOf(rows.length, this.page, { singlePageMax: grid.singlePageMax, perPage: grid.perPage });

@@ -308,6 +308,36 @@ export async function sceneTexts(page: Page, key: string): Promise<string[]> {
 }
 
 /**
+ * The scene's writing that is out of place (ft_1_20 rule 3, the open book): a text under the Back or Settings box in the top
+ * corners, or a text on the open book (`bookShown`) that is not inside one of its pages, clear of the cover, the torn edge
+ * and the gutter (the band under the main area aside). Empty when all is in place. Texts in the scene's root, in its layout cells.
+ */
+export function misplacedWriting(page: Page, key: string): Promise<string[]> {
+  return page.evaluate((k) => {
+    type Box = { left: number; top: number; right: number; bottom: number };
+    type Rect = { x: number; y: number; w: number; h: number };
+    type Text = { pixelText?: boolean; visible: boolean; text: string; x: number; y: number; scaleX: number; scaleY: number; letterBox: Box };
+    type Button = { objects: unknown[]; box: { x: number; y: number; width: number; height: number } } | null;
+    const scene = window.__game.scene.getScene(k) as unknown as { root: { list: Text[] }; toolbarButtons: { back: Button; settings: Button }; bookShown: { book: Rect; pages: Rect[] } | null; mainRows: number };
+    const hit = (a: Box, b: Box) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    const inside = (a: Box, r: Rect) => a.left >= r.x && a.top >= r.y && a.right <= r.x + r.w && a.bottom <= r.y + r.h;
+    const boxOf = (r: Rect): Box => ({ left: r.x, top: r.y, right: r.x + r.w, bottom: r.y + r.h });
+    const corners = [scene.toolbarButtons.back, scene.toolbarButtons.settings].filter((b): b is NonNullable<Button> => b !== null);
+    const own = new Set(corners.flatMap((b) => b.objects));
+    const out: string[] = [];
+    for (const o of scene.root.list) {
+      if (o.pixelText !== true || !o.visible || o.text.trim() === '' || own.has(o)) continue;
+      const box = { left: o.x + o.letterBox.left * o.scaleX, top: o.y + o.letterBox.top * o.scaleY, right: o.x + o.letterBox.right * o.scaleX, bottom: o.y + o.letterBox.bottom * o.scaleY };
+      for (const c of corners) if (hit(box, { left: c.box.x, top: c.box.y, right: c.box.x + c.box.width, bottom: c.box.y + c.box.height })) out.push(`"${o.text}" under a corner box`);
+      // the band's cells under the main area lie over the book's foot, not on it
+      const book = scene.bookShown;
+      if (book && box.top < scene.mainRows && hit(box, boxOf(book.book)) && !book.pages.some((p) => inside(box, p))) out.push(`"${o.text}" off the book's pages`);
+    }
+    return out;
+  }, key);
+}
+
+/**
  * What a scene says: its visible texts and, after them, every button's word and tooltip (a picture's word is hidden). Under the band (ft_1_20) a cell or item says
  * its state in its tooltip bubble (the piano's name, the BPM, the section), not in a line of text.
  */

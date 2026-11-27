@@ -1,7 +1,7 @@
 // Covers ft_1_32.AC2 (the learning settings), ft_0_16.AC3, ft_0_16.AC4, ft_1_11.AC1, ft_1_11.AC6, ft_1_16.AC1.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { addPlayer, clickAndRedraw, clickButton, clickToolbar, expectNoErrors, goToMainMenu, menuButton, openGame, openPiece, openSettings, pickProfile, playerName, results, sceneButton, sceneTexts, toScoreScreen, useOneLine, waitForScene } from './helpers';
+import { addPlayer, clickAndRedraw, clickButton, clickToolbar, expectNoErrors, goToMainMenu, misplacedWriting, menuButton, openGame, openPiece, openSettings, pickProfile, playerName, results, sceneButton, sceneTexts, toScoreScreen, useOneLine, waitForScene } from './helpers';
 
 /** The settings screen's buttons, in the order it makes them: one per setting, each press moving to its next choice; then the band's door (d088, ft_1_20). */
 const LINES = 0;
@@ -452,6 +452,13 @@ for (const lang of ['en', 'et'] as const) {
     });
     const first = await check();
     expect(first.out).toEqual([]);
+    // every word on the book's pages, none under the Back box (ft_1_20 rule 3), on the learning page too
+    expect(await misplacedWriting(page, 'settings')).toEqual([]);
+    await page.evaluate(() => (window.__game.scene.getScene('settings') as unknown as { scene: { restart(d: object): void } }).scene.restart({ page: 1 }));
+    await waitForScene(page, 'settings');
+    expect(await misplacedWriting(page, 'settings')).toEqual([]);
+    await page.evaluate(() => (window.__game.scene.getScene('settings') as unknown as { scene: { restart(d: object): void } }).scene.restart({ page: 0 }));
+    await waitForScene(page, 'settings');
 
     // the longest things the screen can show: the Space between staves hint, and the saving-failed line
     await clickButton(page, 'settings', 1); // Space between staves, the second setting made

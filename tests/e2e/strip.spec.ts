@@ -1,6 +1,6 @@
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { activeScene, buttonPoint, clickButton, clickToolbar, expectNoErrors, openBubbleFromMore, openGame, waitForScene } from './helpers';
+import { activeScene, buttonPoint, clickButton, clickToolbar, expectNoErrors, misplacedWriting, openBubbleFromMore, openGame, waitForScene } from './helpers';
 
 /**
  * The frame of every screen but the teacher's (ft_1_20, d282): a slim strip of pinned actions at the foot only where a screen
@@ -399,4 +399,41 @@ test.describe('the screens\' buttons in the strip and the bubble (ft_1_20.AC8)',
     await waitForScene(page, 'practice');
     expectNoErrors(errors);
   });
+});
+
+/** Every screen written in the open book, and those with a title near the corners. */
+const WRITTEN: readonly [string, (page: Page) => Promise<object>][] = [
+  ['menu', async () => ({})],
+  ['settings', async () => ({ page: 0 })],
+  ['settings', async () => ({ page: 1 })],
+  ['beat-lanes', async () => ({})],
+  ['songs', async () => ({})],
+  ['song', async () => ({ chartId: 'pebble-hop' })],
+  ['earTrainer', async () => ({})],
+  ['results', async () => ({ chartId: 'little-steps' })],
+  ['teacherGate', async () => ({})],
+  ['teacher', async () => ({})],
+  ['teacherPiece', async (page) => ({ player: await page.evaluate(() => window.__game.registry.get('context').profiles.profile.id as string) })],
+];
+
+test.describe('writing in its place (ft_1_20 rule 3)', () => {
+  for (const lang of ['en', 'et'] as const) {
+    for (const [key, data] of WRITTEN) {
+      test(`ft_1_20.AC2 no text lies under the corner boxes or off the open book's pages: ${key} ${data.toString().includes('page: 1') ? '(learning) ' : ''}in ${lang}`, async ({ page }) => {
+        const errors = await openGame(page, '?device=virtual', lang);
+        // the teacher's screens are behind her password, pianor by default: the gate opens them
+        if (key.startsWith('teacher') && key !== 'teacherGate') {
+          await startScene(page, 'teacherGate');
+          await waitForScene(page, 'teacherGate');
+          await page.keyboard.type('pianor');
+          await page.keyboard.press('Enter');
+          await waitForScene(page, 'teacher');
+        }
+        await startScene(page, key, await data(page));
+        await waitForScene(page, key);
+        expect(await misplacedWriting(page, key)).toEqual([]);
+        expectNoErrors(errors);
+      });
+    }
+  }
 });
