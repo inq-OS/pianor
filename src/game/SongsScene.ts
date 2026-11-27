@@ -92,7 +92,9 @@ export class SongsScene extends PixelScene {
     this.openBook({ x: BOOK_SIDE, y: LIST_TOP - 2, w: width - 2 * BOOK_SIDE, h: height - LIST_TOP + 1 });
     this.inkWriting = true;
     const row = CARD_HEIGHT;
-    const grid = cardGrid({ width, height, top: LIST_TOP + 4, margin: BOOK_MARGIN, rowHeight: row, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
+    // the rows start under the door and the gear (ft_1_36.AC22), so a row's buttons are never under a corner
+    const top = this.bandShown ? Math.max(LIST_TOP + 4, this.cornerStrip.rows + 1) : LIST_TOP + 4;
+    const grid = cardGrid({ width, height, top, margin: BOOK_MARGIN, rowHeight: row, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
     // the first row makes a new song (rule 12), then the songs that are on
     const rows: (Song | null)[] = [null, ...list];
     const slice = pageOf(rows.length, this.page, { singlePageMax: grid.singlePageMax, perPage: grid.perPage });

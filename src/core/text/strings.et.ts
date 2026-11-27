@@ -109,6 +109,8 @@ export const stringsEt: Record<StringKey, string> = {
   'song.addPart': 'Uus osa',
   'song.addGroup': 'Uus rühm',
   'song.addInside': 'Osa sisse',
+  'song.addAfter': 'Osa järele',
+  'song.addAfterGroup': 'Osa {name} järele',
   'song.moveUp': 'Üles',
   'song.moveDown': 'Alla',
   'song.moveInto': 'Rühma sisse',

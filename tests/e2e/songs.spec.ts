@@ -1,7 +1,7 @@
-// Covers ft_1_36.AC1, ft_1_36.AC14, ft_1_36.AC15, ft_1_36.AC21, ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20.
+// Covers ft_1_36.AC1, ft_1_36.AC14, ft_1_36.AC15, ft_1_36.AC21, ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20, ft_1_36.AC22, ft_1_36.AC23.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { allMenuTitles, clickButton, clickToolbar, expectNoErrors, lastButton, menuButton, openBubbleFromMore, openGame, pressInBubble, sceneButton, sceneTexts, waitForScene } from './helpers';
+import { activeScenes, allMenuTitles, clickButton, clickToolbar, expectNoErrors, lastButton, menuButton, openBubbleFromMore, openGame, pressInBubble, sceneButton, sceneTexts, waitForScene } from './helpers';
 
 const partsOff = (page: Page) => page.evaluate(() => [...window.__game.registry.get('context').profiles.songPartsOff('morning-song')] as string[]);
 const rowLabels = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('song').buttons as { options: { label: string; align?: string } }[]).filter((b) => b.options.align === 'left').map((b) => b.options.label));
@@ -278,6 +278,83 @@ test.describe('songs made of pieces', () => {
     await clickButton(page, 'songs', await sceneButton(page, 'songs', 'Evening Tune'));
     await waitForScene(page, 'song');
     await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Verse']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC22 every row of the song page answers its own press on every page, none under the door or the gear', async ({ page }) => {
+    const errors = await openGame(page);
+    await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', '+ New song'));
+    await page.keyboard.type('Long Song');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'song');
+    for (let i = 0; i < 9; i++) {
+      await clickButton(page, 'song', await sceneButton(page, 'song', 'Long Song'));
+      await pressInBubble(page, 'song', 'Add');
+      await clickButton(page, 'song', await lastButton(page, 'song', 'New part'));
+    }
+    await expect.poll(async () => (await rowLabels(page)).length).toBeGreaterThan(4);
+    // no row's button reaches under a corner, on any page
+    const overlaps = () => page.evaluate(() => {
+      type Box = { x: number; y: number; width: number; height: number };
+      type Button = { rect: Box; options: { label: string } };
+      const scene = window.__game.scene.getScene('song') as unknown as { corners: Button[]; buttons: Button[] };
+      const meet = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+      const corners = scene.corners.map((c) => c.rect);
+      return scene.buttons.filter((b) => !scene.corners.includes(b) && corners.some((c) => meet(c, b.rect))).map((b) => b.options.label);
+    });
+    expect(await overlaps()).toEqual([]);
+    // the right page's first row: its pen writes that part, never opens the settings
+    const pens = await page.evaluate(() => (window.__game.scene.getScene('song').buttons as { options: { label: string } }[]).flatMap((b, i) => (b.options.label.startsWith('Write ') ? [i] : [])));
+    const firstOnRight = await page.evaluate((list) => {
+      const buttons = window.__game.scene.getScene('song').buttons as { rect: { x: number; y: number } }[];
+      const right = list.filter((i) => buttons[i]!.rect.x > 160);
+      return right.reduce((best, i) => (buttons[i]!.rect.y < buttons[best]!.rect.y ? i : best), right[0]!);
+    }, pens);
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'Next'));
+    expect(await overlaps()).toEqual([]);
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'Previous'));
+    await clickButton(page, 'song', firstOnRight);
+    await waitForScene(page, 'editor');
+    expect(await activeScenes(page)).not.toContain('settings');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC23 Add on a group offers a part after it and one inside it, a row inside a group a part after its group; a name cut short is whole in its tooltip', async ({ page }) => {
+    const errors = await openGame(page);
+    await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', '+ New song'));
+    await page.keyboard.type('Beside Song');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'song');
+    await clickButton(page, 'song', await sceneButton(page, 'song', '1 Part 1'));
+    await pressInBubble(page, 'song', 'Add');
+    await clickButton(page, 'song', await lastButton(page, 'song', 'New group'));
+    await expect.poll(() => rowLabels(page)).toEqual(['Beside Song', '1 Part 1', '2 Group 1', '2.1 Part 2']);
+    // on the group: after it and inside it, named apart
+    await clickButton(page, 'song', await sceneButton(page, 'song', '2 Group 1'));
+    await pressInBubble(page, 'song', 'Add');
+    expect(await lastButton(page, 'song', 'Part after')).toBeGreaterThanOrEqual(0);
+    expect(await lastButton(page, 'song', 'Part inside')).toBeGreaterThanOrEqual(0);
+    await page.keyboard.press('Escape');
+    // on a part inside the group: a part beside the group, after it
+    await clickButton(page, 'song', await sceneButton(page, 'song', '2.1 Part 2'));
+    await pressInBubble(page, 'song', 'Add');
+    await clickButton(page, 'song', await lastButton(page, 'song', 'Part after Group 1'));
+    await expect.poll(() => rowLabels(page)).toEqual(['Beside Song', '1 Part 1', '2 Group 1', '2.1 Part 2', '3 Part 3']);
+    // a long name is cut on its row and whole in the tooltip
+    await clickButton(page, 'song', await sceneButton(page, 'song', '2.1 Part 2'));
+    await pressInBubble(page, 'song', 'Name');
+    await expect(page.locator('#text-field')).toBeFocused();
+    await page.keyboard.press('Control+a');
+    await page.keyboard.type('The second half of the long first verse');
+    await page.keyboard.press('Enter');
+    const row = () => page.evaluate(() => (window.__game.scene.getScene('song').buttons as { options: { label: string; tooltip?: string } }[])
+      .map((b) => b.options).find((o) => o.label.startsWith('2.1 ')));
+    await expect.poll(async () => (await row())?.tooltip).toBe('2.1 The second half of the long first verse');
+    expect((await row())?.label).not.toBe('2.1 The second half of the long first verse');
     expectNoErrors(errors);
   });
 

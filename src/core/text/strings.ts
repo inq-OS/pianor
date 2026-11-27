@@ -113,6 +113,8 @@ export const strings = {
   'song.addPart': 'New part',
   'song.addGroup': 'New group',
   'song.addInside': 'Part inside',
+  'song.addAfter': 'Part after',
+  'song.addAfterGroup': 'Part after {name}',
   'song.moveUp': 'Up',
   'song.moveDown': 'Down',
   'song.moveInto': 'Into group',
