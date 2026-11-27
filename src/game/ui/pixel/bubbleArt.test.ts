@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bubbleLayout, cellSpan, PIN_ROWS } from '../../../core/layout/bubble';
 import { inkCount, type Bitmap } from './bitmap';
-import { BACKPACK, BUBBLE_ALPHA, choicesSausage, closePlate, NEW_ITEM_DOT, openBackpack, openBagPlaces, OPEN_BAG, OPTION_PLATE, OPTION_SIZE, optionFocus, optionPlate, PIN_CELL_SIZE, pinCell, pressRing, STRIP_ROWS, stripBitmap, wornChip, type PlateLook } from './bubbleArt';
+import { BACKPACK, BUBBLE_ALPHA, choicesSausage, closePlate, NEW_ITEM_DOT, openBackpack, openBagPlaces, OPEN_BAG, OPTION_PLATE, OPTION_SIZE, optionFocus, optionPlate, PIN_CELL_SIZE, pinCell, pressRing, STRIP_ROWS, stripBitmap, wornChip, wornInk, type PlateLook } from './bubbleArt';
 import { ICONS } from './iconArt';
 import { C } from './palette';
 import { TOOL_ICONS } from './toolArt';
@@ -91,6 +91,17 @@ describe('the bubble, the strip and the backpack (ft_1_20, d282): their look fit
     expect(chip.height).toBe(PIN_CELL_SIZE.h);
     expect(chip.width).toBeGreaterThanOrEqual(TOOL_ICONS.fingers.width + 4);
     expect(chip.pixels.some((p) => p === C.gold)).toBe(true);
+  });
+
+  it('a worn option that is on keeps its picture readable: the ink inside it (the finger numbers) stays clear, not a solid block', () => {
+    for (const icon of [TOOL_ICONS.fingers, TOOL_ICONS.noteNames, TOOL_ICONS.noteNamesOn]) {
+      const ink = wornInk(icon);
+      icon.pixels.forEach((p, i) => expect(ink.pixels[i]).toBe(p === 0 || p === C.ink ? 0 : C.groove));
+    }
+    const fingers = wornInk(TOOL_ICONS.fingers);
+    const digitRow = fingers.pixels.slice(3 * fingers.width, 4 * fingers.width); // a row through the numbers
+    expect(digitRow.some((p) => p === 0)).toBe(true);
+    expect(digitRow.some((p) => p === C.groove)).toBe(true);
   });
 
   it('ft_1_20.AC23 the backpack is no larger than the gear beside it, wears a dot when an item is new, and opens into a bag of 3 x 3 items', () => {

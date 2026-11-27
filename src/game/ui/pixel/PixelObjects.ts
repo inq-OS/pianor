@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { blit, createBitmap, recolor, toRgba, type Bitmap } from './bitmap';
 import { barBitmap, focusRingBitmap, inkBarBitmap, inkStar, labelOverflow, panelBitmap, tinted, trayBitmap, type BarColors, type PanelKind, type TrayKind } from './frames';
-import { BUBBLE_ALPHA, choicePatch, closePlate, goldChip, OPTION_PLATE, OPTION_SIZE, optionFocus, optionPlate, stripCell, type PlateLook } from './bubbleArt';
+import { BUBBLE_ALPHA, choicePatch, closePlate, goldChip, OPTION_PLATE, OPTION_SIZE, optionFocus, optionPlate, stripCell, wornInk, type PlateLook } from './bubbleArt';
 import { C } from './palette';
 import { drawnText, letterBoxOf, LINE_GAP, LINE_HEIGHT, renderText, type TextOptions } from './font';
 import { MASCOT, STAR_EMPTY, STAR_FULL, type MascotFrame } from './sprites';
@@ -534,7 +534,7 @@ export class PixelButton {
     // a drawing on its own slip of paper (the settings' pictures): the slip goes, the drawing is inked onto the page, its colours kept
     if (this.look === 'ink' && this.options.inkBox && icon.pixels.includes(C.cream)) return recolor(icon, { [C.cream]: 0, [C.ink]: this.inkColour() });
     if (this.look === 'ink') return icon.pixels.includes(C.ink) ? tinted(icon, C.buffLight, this.inkColour()) : tinted(icon, this.inkColour());
-    if (this.options.worn) return tinted(icon, C.groove);
+    if (this.options.worn) return wornInk(icon);
     return this.look === 'bandCell' || this.isBubble() ? tinted(icon, this.labelStyle().color ?? C.honey) : icon;
   }
 
