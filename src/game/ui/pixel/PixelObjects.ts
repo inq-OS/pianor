@@ -243,7 +243,7 @@ export interface PixelButtonOptions {
    * Its label shows in a bubble above it after the pointer rests on it, and at once while it has the keyboard focus.
    */
   picture?: Bitmap;
-  /** Called when the pointer comes onto the button (true) and leaves it (false): the faded corner buttons light up (ft_1_20). */
+  /** Called when the pointer comes onto the button (true) and leaves it (false): a drawer of the piece cabinet pulls out. */
   onHover?: (over: boolean) => void;
   onClick: () => void;
 }
@@ -400,7 +400,7 @@ export class PixelButton {
     this.panel.emit('pointerout');
   }
 
-  /** See-through by `alpha` (0 to 1), panel, picture and label together: the faded corner buttons over a picture (ft_1_20). */
+  /** See-through by `alpha` (0 to 1), panel, picture and label together: a piece turned off, a map place not yet open. */
   setAlpha(alpha: number): void {
     for (const o of this.objects) (o as unknown as { setAlpha(a: number): void }).setAlpha(alpha);
   }

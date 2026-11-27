@@ -186,7 +186,7 @@ export interface PracticeData {
   lap?: number;
   /**
    * Back from the settings (Wait mode): the keys of the pass left there and the notes it was played on (`chartNotes`), so
-   * the pass goes on at the note it stood on. Tempo mode, or a piece whose notes changed, starts the pass again and Kiur says so.
+   * the pass goes on at the note it stood on; a piece whose notes changed starts it again and Kiur says so. Tempo mode keeps no keys, so it starts the pass again.
    */
   resume?: { keys: readonly NoteEvent[]; notes: string };
   /**
