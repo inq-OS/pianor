@@ -71,8 +71,6 @@ export class ResultsScene extends OutcomeScene {
 
   constructor() {
     super('results');
-    // the card (the frame) reaches under the door and the gear: they stand on a plate of their own
-    this.cornersOnCard = true;
   }
 
   init(data: ResultsData): void {

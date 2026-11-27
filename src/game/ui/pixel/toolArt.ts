@@ -5,9 +5,9 @@ import { C } from './palette';
  * The pictures on the practice screen's buttons: a fermata or a running note for Wait and Tempo, a metronome for
  * the click, A, an arrow and B for a section, a note (with its name once names are on) and a hand with numbered fingers for the
  * hints; for the editor's toolbar (d088) a floppy disk for Save and an arrow into or out of a tray for Import and
- * Export; a loop for the ear trainer's repeat and the note trainer's new round, stairs for the note trainer's step, and undo, redo, a bin, play, stop, backspace and a tick for the piece maker and the name box. Original, drawn for this project (the Kenney pack page refused the download, and these are a few pixels each). Each fits inside a 14 pixel bar button with its frame (10 rows at most).
+ * Export; a loop for start over and the trainers' new round, an ear with a loop for the ear trainer's repeat, stairs for the note trainer's step, and undo, redo, a bin, play, stop, backspace and a tick for the piece maker and the name box. Original, drawn for this project (the Kenney pack page refused the download, and these are a few pixels each). Each fits inside a 14 pixel bar button with its frame (10 rows at most).
  */
-export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'speed' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort' | 'hide' | 'pointerFollow' | 'pointerStill' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen' | 'head' | 'songs' | 'folded' | 'unfolded' | 'link' | 'blank' | 'add' | 'rename' | 'move' | 'meter' | 'write' | 'learnGraph';
+export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'listenRepeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'speed' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort' | 'hide' | 'pointerFollow' | 'pointerStill' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen' | 'head' | 'songs' | 'folded' | 'unfolded' | 'link' | 'blank' | 'add' | 'slower' | 'faster' | 'rename' | 'move' | 'meter' | 'write' | 'learnGraph';
 
 const LEGEND = { k: C.ink, w: C.white, g: C.gold, G: C.goldDark, s: C.skin } as const;
 
@@ -39,7 +39,7 @@ const mirror = (rows: readonly string[]) => rows.map((r) => [...r].reverse().joi
 /** A quarter note in white, 5 x 10: the stem on the right of the head. */
 const NOTE = ['....w', '....w', '....w', '....w', '....w', '....w', '....w', '.wwww', 'wwwww', '.www.'];
 
-/** A loop with an arrow: the ear trainer's repeat and the practice screen's start over. */
+/** A loop with an arrow: start over. */
 const REPEAT = ['..wwwwwww....', '.w.......w...', 'w.........w..', 'w.........w..', 'w.......wwwww', 'w........www.', '.w........w..', '..wwwww......'];
 
 /** The running note of Tempo, its note gold: the first note played starts it (core_01.AC10). */
@@ -137,7 +137,6 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   /** The name box's delete (a key with a cross, pointing left) and done (a tick). */
   backspace: art(['...wwwwwwwww', '..w........w', '.w..w...w..w', 'w....w.w...w', 'w.....w....w', 'w....w.w...w', '.w..w...w..w', '..w........w', '...wwwwwwwww']),
   tick: art(['.........w', '........ww', '.......ww.', 'w.....ww..', 'ww...ww...', '.ww.ww....', '..www.....', '...w......']),
-  /** The ear trainer's repeat: a loop with an arrow. */
   /** The book's orders (ft_1_12.AC11): as listed (1 2 3), by stars, by deadline (an hourglass), by title (A to Z), by the last play (a clock). By level it is the steps. */
   orderBook: orderBook(),
   orderAchieved: fromAscii(['....k....', '...kgk...', 'kkkkgkkkk', 'kgggggggk', '.kgggggk.', '..kgggk..', '.kggkggk.', '.kgk.kgk.', '.kk...kk.'], LEGEND),
@@ -166,13 +165,31 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   blank: art(['ww.w.ww', 'w.....w', '.......', 'w.....w', '.......', 'w.....w', 'ww.w.ww']),
   // making a song (ft_1_36 rule 12): add a row, name it, move it
   add: art(['...w...', '...w...', '...w...', 'wwwwwww', '...w...', '...w...', '...w...']),
+  /** Practice's tempo a step slower and faster (the strip's - and +): strokes two pixels thick, so they read as well as the percent between them. */
+  slower: art(['wwwwwwwwww', 'wwwwwwwwww']),
+  faster: art(['....ww....', '....ww....', '....ww....', '....ww....', 'wwwwwwwwww', 'wwwwwwwwww', '....ww....', '....ww....', '....ww....', '....ww....']),
   rename: art(['.....ww', '....w.w', '...w.w.', '..w.w..', '.w.w...', 'ww.....', 'www....']),
   move: art(['...w...', '..www..', '.w.w.w.', '...w...', '.w.w.w.', '..www..', '...w...']),
   /** A row's meter (slot 4 of the song page's bubble): a 3 over a 4, as a time signature. */
   /** Write a part in the piece maker (slot 5 and a blank row's button): a note with a pen across its stem, unlike Name's pencil. */
   write: art(['...w....ww', '...w...ww.', '...w..ww..', '...w.ww...', '...www....', '.wwww.....', 'wwwww.....', '.www......']),
   meter: art(['www', '..w', '.ww', '..w', 'www', 'w.w', 'w.w', 'www', '..w', '..w']),
+  /** Start over (practice, the score's Play again, a trainer's new round): a loop with an arrow. */
   repeat: art(REPEAT),
+  /**
+   * The ear trainer's Repeat (the sound comes again by itself after a quiet while): an ear with a small loop beside it, so it
+   * is told from Listen's ear and from the loop of start over. Original, a few pixels.
+   */
+  listenRepeat: art([
+    '.wwwww.......',
+    'ww...ww..ww..',
+    'w.....w.w..w.',
+    'w....w..w.www',
+    'ww...w..w..w.',
+    '.ww..w...w...',
+    '..ww.w.......',
+    '....ww.......',
+  ]),
   /** A trainer's step: stairs, beside the step's number or name (the strip's `ToolbarItem.value`). */
   steps: art(['.......www', '.......www', '....wwwwww', '....wwwwww', '.wwwwwwwww', '.wwwwwwwww']),
   noteNames: art(NOTE),

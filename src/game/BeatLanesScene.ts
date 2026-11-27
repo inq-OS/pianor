@@ -28,9 +28,6 @@ const PREVIEW_QUARTER_MS = 600;
 const GRAB = 1.2;
 /** A press that moves less than this (screen pixels) before it is let go is a click: it adds a lane. */
 const CLICK_SLIP = 6;
-/** The title's line in the strip of the door and the gear, below the book's blue top rim, and the room left after the door's plate. */
-const TITLE_Y = 8;
-const TITLE_ROOM = 4;
 /** The hint's left edge, and how far above the sheet's torn foot it ends (art rows). */
 const HINT_X = 12;
 const HINT_FOOT = 5;
@@ -98,8 +95,6 @@ export class BeatLanesScene extends PixelScene {
 
   constructor() {
     super('beat-lanes');
-    // the page's book reaches under the door and the gear: they stand on a plate, as on the other book screens (ft_1_20 rule 3)
-    this.cornersOnCard = true;
   }
 
   init(data?: BeatLanesData): void {
@@ -149,13 +144,13 @@ export class BeatLanesScene extends PixelScene {
   protected draw(): void {
     const { width } = this.px;
     this.sky();
-    this.openBook({ x: 3, y: 3, w: width - 6, h: this.px.height - 5 });
-    this.inkWriting = true;
     const strip = this.cornerStrip;
+    // the book lies under the strip of the door and the gear, where the title stands on the desk clear of both boxes
+    this.openBook({ x: 3, y: strip.rows, w: width - 6, h: this.px.height - 2 - strip.rows });
+    this.label(this.titleX(0), 6, t('lanes.title'), C.gold);
+    this.inkWriting = true;
     const rows = this.mainRows - strip.rows - 2;
     this.drawPreview(strip.rows + 1, rows);
-    // the title below the book's top rim, clear of the door's plate
-    this.label(strip.left + TITLE_ROOM, TITLE_Y, t('lanes.title'), C.gold);
     // at the sheet's foot, below where any lane can run: how the page is used, or a failed save
     const hint = this.label(HINT_X, 0, this.saveFailed ? t('settings.saveFailed') : t('lanes.hint'), this.saveFailed ? C.gold : C.dim, { maxWidth: width - 2 * HINT_X });
     hint.y = strip.rows + 1 + rows - hint.height - HINT_FOOT;

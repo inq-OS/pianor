@@ -77,11 +77,11 @@ const BAND_CARD_ROW = 28;
 const CARD_GAP = 2;
 /** The New piece staff's room at each end of its card, so it starts where a piece's title does. */
 const NEW_PIECE_INSET = 5;
+/** The piece maker's New piece staff: short, so the card's words fit beside it. */
+const MAKER_NEW_STAFF = 40;
 const MARGIN = 6;
-/** The open book's cover from the screen's sides, the list's margin inside it, and the gutter between its pages, in cells. */
-const BOOK_SIDE = 3;
-const BOOK_MARGIN = 14;
-const BOOK_GUTTER = 18;
+/** The open book's cover from the screen's sides, in cells; the list is written on its pages (`bookGrid`). */
+const BOOK_SIDE = 1;
 /** The group signs at the end of a title's line keep this far apart. */
 const SIGN_GAP = 3;
 /** The bar under a curriculum piece's days left: how near its level is to the expected one. */
@@ -101,7 +101,7 @@ const BOOKMARK_SILK: Readonly<Record<Bookmark, number>> = { all: 0, own: 1, curr
  * On the left page the rules under the pieces start this much further in, clear of the bookmarks in its outer margin;
  * the right page's outer margin is free for more bookmarks later.
  */
-const LEFT_SHIFT = 12;
+const LEFT_SHIFT = 7;
 /**
  * A bookmark's ribbon, in cells: a closed one hangs `shut` wide from `out` cells in; the open one is `open` wide from the
  * screen's edge, lying over the page's margin up to the pieces. Its height and the gap between two.
@@ -137,6 +137,10 @@ const RULE_COLOUR = C.umberLight;
 const LIST_TOP = 4;
 /** The line that says progress is not saved takes this much room above the cards. */
 const NO_SAVE_ROOM = 9;
+/** Rows the title of Kiur's book (`forKiurTitle`) takes at the top of the page, with the space under it. */
+const KIUR_TITLE_ROOM = 13;
+/** The title's top, under the book's top edge. */
+const KIUR_TITLE_TOP = 6;
 /** The "i" and "S" buttons on a card: big enough for a finger at the usual zoom (44 screen pixels at 4x). */
 const INFO_SIZE = 11;
 /** The "S" button sits this far left of the "i" button (centre to centre). */
@@ -190,6 +194,16 @@ export class MenuScene extends PixelScene {
   protected infoClose: PixelButton | null = null;
   /** Piece maker (from the main menu): the Make list is shown, and Back goes to the main menu. Kept across restarts. */
   private maker = false;
+  /**
+   * Picking for Kiur, the book's title says what it is for, centred at the top of its left page (`x` to `x` + `width`) in the
+   * book's red ink, or in gold on the desk when no book is open, so it is not taken for the piano's book.
+   */
+  private forKiurTitle(x: number, y: number, width: number): void {
+    if (this.forKiur === null) return;
+    const title = this.label(x, y, t(this.forKiur === 'tug' ? 'menu.forKiurTug' : 'menu.forKiurLearn'), C.gold, { maxWidth: width }).setName('forKiur');
+    if (this.inkWriting) title.x = Math.round(x + (width - title.width) / 2);
+  }
+
   /** Picking for Kiur (`MenuData.forKiur`): a piece picked is learned with him, or taken to the room for his tug. */
   private forKiur: 'learn' | 'tug' | null = null;
   /** The title line of each piece on this page (and New piece), in reading order: what the wheel moves along. */
@@ -277,8 +291,6 @@ export class MenuScene extends PixelScene {
 
   constructor() {
     super('menu');
-    // the book reaches under the door and the gear: they stand on a plate of their own, as on every card screen
-    this.cornersOnCard = true;
   }
 
   init(data?: MenuData): void {
@@ -404,6 +416,16 @@ export class MenuScene extends PixelScene {
     this.button({ x: x + w / 2, y: y + h / 2, width: w, height: h, label: t('room.kiur.learn'), icon: art, iconOnly: true, fineIcon: true, onClick: () => startScene(this, 'menu', { forKiur: 'learn' }) });
   }
 
+  /** A bookmark's empty page: its own picture at `x`, `top` + 10, then the sentence under it, at most `maxWidth` wide. */
+  private emptyPage(x: number, top: number, maxWidth: number): void {
+    const picture = BOOKMARK_ICON[this.bookmark]();
+    this.root.add(new PixelImage(this, x, top + 10, picture).setName('emptyBookmark'));
+    this.inkWriting = true;
+    const line = this.label(x, top + 16 + picture.height, t(this.forKiur === 'tug' ? 'menu.noneLearned' : 'menu.noneHere'), C.umberDark, { maxWidth });
+    this.inkWriting = false;
+    if (this.forKiur === 'tug') this.learnInstead(x, line.y + line.height + 6);
+  }
+
   /** The pieces in the order chosen (ft_1_12.AC11). */
   private ordered(pieces: readonly Piece[]): Piece[] {
     const { profiles } = contextOf(this);
@@ -488,6 +510,7 @@ export class MenuScene extends PixelScene {
     const marked = !this.maker && this.bookmark !== 'all';
     if (pieces.length === 0 && !marked) {
       const why = this.forKiur === 'tug' && listed.length > 0 ? 'menu.noneLearned' : offered.length > 0 ? 'menu.allOff' : 'menu.noPieces';
+      this.forKiurTitle(this.titleX(MARGIN), listTop + 3, this.cornerStrip.right - this.titleX(MARGIN));
       const line = this.label(MARGIN, listTop + 16, t(why), C.dim, { maxWidth: width - 2 * MARGIN });
       if (why === 'menu.noneLearned') this.learnInstead(MARGIN, line.y + line.height + 6);
       return;
@@ -496,22 +519,24 @@ export class MenuScene extends PixelScene {
     // the cards: two columns, as many rows as fit; a pager row only when there are more pieces than fit
     const top = context.savesPersist ? listTop : listTop + NO_SAVE_ROOM;
     // the list is written in an open book on the desk, a column on each page
-    this.openBook({ x: BOOK_SIDE, y: top - 2, w: width - 2 * BOOK_SIDE, h: height - top + 1 });
+    const book = { x: BOOK_SIDE, y: top - 2, w: width - 2 * BOOK_SIDE, h: height - top + 1 };
+    this.openBook(book);
     if (!this.maker) this.bookmarks(top + TAB_TOP);
-    const margin = BOOK_MARGIN;
+    const bookRows = this.bookGrid(book);
+    const { margin, columnGap } = bookRows;
     const shift = this.maker ? 0 : LEFT_SHIFT;
+    // Kiur's book: its title at the top of the left page, the pieces under it
+    const kiurRoom = this.forKiur === null ? 0 : KIUR_TITLE_ROOM;
+    this.inkWriting = true;
+    this.forKiurTitle(margin + shift, bookRows.top - 4 + KIUR_TITLE_TOP, width / 2 - margin - shift - columnGap / 2);
+    this.inkWriting = false;
     if (pieces.length === 0) {
-      // the bookmark's own picture on the empty page, then the sentence under it
-      const picture = BOOKMARK_ICON[this.bookmark]();
-      this.root.add(new PixelImage(this, margin + shift + 6, top + 10, picture).setName('emptyBookmark'));
-      this.inkWriting = true;
-      const line = this.label(margin + shift + 6, top + 16 + picture.height, t(this.forKiur === 'tug' ? 'menu.noneLearned' : 'menu.noneHere'), C.umberDark, { maxWidth: width / 2 - margin - shift - BOOK_GUTTER / 2 - 6 });
-      this.inkWriting = false;
-      if (this.forKiur === 'tug') this.learnInstead(margin + shift + 6, line.y + line.height + 6);
+      this.emptyPage(margin + shift + 6, top + kiurRoom, width / 2 - margin - shift - columnGap / 2 - 6);
       return;
     }
     this.inkWriting = true;
-    const grid = cardGrid({ width, height, top: top + 4, margin, rowHeight: this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
+    // under Kiur's title the rows end where they would without it, above the page numbers: a row fewer when it does not fit
+    const grid = cardGrid({ width, ...bookRows, top: bookRows.top + kiurRoom, height: bookRows.height - kiurRoom, rowHeight: this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT, rowGap: CARD_GAP });
     const { cardWidth } = grid;
     if (this.page === Number.POSITIVE_INFINITY) {
       const at = pieces.findIndex((p) => p !== 'new' && p.chart.id === this.flight?.chartId);
@@ -532,7 +557,13 @@ export class MenuScene extends PixelScene {
         // an empty staff with a pencil, as wide as a piece card; the label stays for tests and the tooltip
         // on the left page it stays clear of the bookmarks, as the rules do
         const inset = cell.x < width / 2 ? shift : 0;
-        this.pieceButtons.push(this.button({ x: x + inset / 2, y: y + 1, width: cardWidth - inset, height: NEW_PIECE_HEIGHT + 4, label: t('menu.newPiece'), icon: newPieceArt(cardWidth - inset - 2 * NEW_PIECE_INSET), iconOnly: true, look: 'ink', onClick: () => startScene(this, 'editor', {}) }));
+        // in the piece maker (no bookmarks to say where the player is) the card says its words beside a shorter staff
+        const art = newPieceArt(this.maker ? MAKER_NEW_STAFF : cardWidth - inset - 2 * NEW_PIECE_INSET);
+        this.pieceButtons.push(this.button({ x: x + inset / 2, y: y + 1, width: cardWidth - inset, height: NEW_PIECE_HEIGHT + 4, label: t('menu.newPiece'), icon: art, iconOnly: !this.maker, look: 'ink', onClick: () => startScene(this, 'editor', {}) }));
+        // the piece maker with no own piece yet says where they will be
+        if (this.maker && pieces.length === 1) {
+          this.label(cell.x + shift + NEW_PIECE_INSET, y + NEW_PIECE_HEIGHT / 2 + 8, t('menu.maker.none'), C.umberDark, { maxWidth: cardWidth - shift - 2 * NEW_PIECE_INSET });
+        }
         return;
       }
       // a card on the left page is mirrored, so every title is lined up to the spine

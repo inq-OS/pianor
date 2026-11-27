@@ -3,7 +3,7 @@ import { levelsFileSchema } from '../../core/chart';
 import { handShiftMap } from '../../core/fingering/shifts';
 import type Phaser from 'phaser';
 import { firstPrintedBar, fullBarTicks, unrollRepeats, writtenTick, writtenView, type Chart, type PlayChart } from '../../core/chart';
-import { DEFAULT_FOLLOW_RULES, TempoMode, WaitMode, type Hints, type TempoStart, type JudgeEvent, type NoteJudged, type PieceResult, type PlaySettings, type PlayState } from '../../core/judge';
+import { DEFAULT_FOLLOW_RULES, TempoMode, WaitMode, replayKeys, type Hints, type NoteEvent, type TempoStart, type JudgeEvent, type NoteJudged, type PieceResult, type PlaySettings, type PlayState } from '../../core/judge';
 import { barNumbersToShow, type BarNumberSettings } from '../../core/layout/barNumbers';
 import type { PaceMark } from '../../core/layout/beat';
 import { clickWaveTick, laneDots, waveTick, type LaneLook } from '../../core/layout/beatLane';
@@ -101,6 +101,11 @@ export interface PlaySessionOptions {
   tempo?: { percent: number; scoreView: PlaySettings['scoreView']; startAtMs?: number; loop?: boolean; gradeHold?: boolean; start?: TempoStart; follow?: boolean };
   /** Wait mode only: a wrong key moves on instead of waiting (level 1 of the tug of ft_1_21.AC6, `WaitMode` `moveOnWrong`; no caller until it is built). */
   moveOnWrong?: boolean;
+  /**
+   * Wait mode only: the keys of a pass left for the settings (`passKeys`), handed to the fresh judge so the pass goes on at
+   * the note it stood on; `nowMs` is the clock now. Keys that would finish the piece are not picked up (`resumed` false).
+   */
+  resume?: { keys: readonly NoteEvent[]; nowMs: number };
 }
 
 /**
@@ -151,6 +156,10 @@ export class PlaySession {
   private lastWrong: WrongKey | null = null;
   private wrongTimer: Phaser.Time.TimerEvent | null = null;
   private messageTimer: Phaser.Time.TimerEvent | null = null;
+  /** Wait mode: every key the judge heard in this pass, in order (`passKeys`). */
+  private keysOfPass: NoteEvent[] = [];
+  /** The pass was picked up where it was left (`resume`). */
+  resumed = false;
 
   constructor(private readonly scene: Phaser.Scene, private readonly options: PlaySessionOptions) {
     this.written = options.chart;
@@ -165,7 +174,12 @@ export class PlaySession {
     const noCountIn = tempo !== undefined && (tempo.startAtMs !== undefined || tempo.start === 'firstNote');
     this.transport = tempo ? new Transport(this.chart, { tempoPercent: tempo.percent, ...(noCountIn ? { countInBars: 0 } : {}) }) : null;
     if (tempo?.startAtMs !== undefined) this.transport!.start(tempo.startAtMs);
-    this.startJudge();
+    this.startJudge(options.resume);
+  }
+
+  /** Wait mode: the keys of this pass so far, for picking it up again on a fresh judge (`resume`); none in Tempo mode. */
+  get passKeys(): readonly NoteEvent[] {
+    return this.transport ? [] : this.keysOfPass;
   }
 
   /** The chart the staff draws: the written chart, or what `shown` puts in its place. */
@@ -205,14 +219,34 @@ export class PlaySession {
     this.startJudge();
   }
 
-  private startJudge(): void {
-    const { keyboard, callbacks } = this.options;
-    const mode = this.transport
+  private startJudge(resume?: PlaySessionOptions['resume']): void {
+    const { callbacks } = this.options;
+    this.keysOfPass = [];
+    const waitMode = () => new WaitMode(this.chart, { hints: this.hints, ...(this.options.moveOnWrong ? { moveOnWrong: true } : {}) });
+    let mode = this.transport
       ? new TempoMode(this.chart, this.transport, {
         hints: this.hints, loop: this.options.tempo?.loop === true, gradeHold: this.options.tempo?.gradeHold !== false, start: this.options.tempo?.start ?? 'anyKey',
         ...(this.options.tempo?.follow ? { follow: DEFAULT_FOLLOW_RULES } : {}),
       })
-      : this.options.moveOnWrong ? new WaitMode(this.chart, { hints: this.hints, moveOnWrong: true }) : undefined;
+      : waitMode();
+    this.resumed = false;
+    if (resume && !this.transport && resume.keys.length > 0) {
+      if (replayKeys(mode, resume.keys, resume.nowMs)) {
+        this.keysOfPass = [...resume.keys];
+        this.resumed = true;
+      } else mode = waitMode();
+    }
+    // the keys the judge hears are kept, so a pass left for the settings can be picked up again
+    const keyboard: KeyboardInput = {
+      id: this.options.keyboard.id,
+      getStatus: () => this.options.keyboard.getStatus(),
+      onStatus: (listener) => this.options.keyboard.onStatus(listener),
+      dispose: () => this.options.keyboard.dispose(),
+      onNote: (listener) => this.options.keyboard.onNote((event) => {
+        if (!this.transport) this.keysOfPass.push(event);
+        listener(event);
+      }),
+    };
     this.controllerNow = new PracticeController(this.chart, keyboard, {
       onChange: (state) => {
         this.applyState(state);

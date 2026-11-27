@@ -396,3 +396,28 @@ export function paceClickSymbol(on: boolean): Bitmap {
 }
 
 /** A kind of dot of a tuned beat lane (core_13 rule 10): the dotted line, the click's beats, the top staff's notes, the bottom staff's. */
+
+/**
+ * Bars on a line (ft_0_16 rule 2): a scrap of staff cut into its bars. Two or four bars carry their number over them in
+ * blue; auto has a two-headed arrow the line's width over its bars, as many as the line holds. AX-3 provisional: the arrow.
+ */
+export function barsSymbol(bars: StaffSettings['barsPerLine']): Bitmap {
+  const b = paper();
+  const top = 10, left = 1, right = SYMBOL_WIDTH - 2;
+  staff(b, top, { x0: left, x1: right, gap: 2 });
+  const count = bars === 'auto' ? 3 : bars;
+  for (let i = 0; i <= count; i++) vline(b, left + Math.round(((right - left) * i) / count), top, top + 8);
+  if (bars !== 'auto') {
+    digits(b, Math.floor(SYMBOL_WIDTH / 2) - 1, 2, String(bars), C.blue);
+    return b;
+  }
+  const y = 4;
+  hline(b, left, right, y, C.blue);
+  for (const d of [1, 2]) {
+    for (const x of [left + d, right - d]) {
+      put(b, x, y - d, C.blue);
+      put(b, x, y + d, C.blue);
+    }
+  }
+  return b;
+}

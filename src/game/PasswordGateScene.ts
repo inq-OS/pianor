@@ -14,6 +14,9 @@ const BUTTON_Y = 130;
 const BUTTON_HEIGHT = 18;
 const BUTTON_WIDTH = 120;
 const MAX_LENGTH = 32;
+/** The parchment round the password's box on a plain screen, in cells; the box's name (read by the tests). */
+const FIELD_CARD_PAD = 7;
+const PASSWORD_FIELD = 'passwordField';
 /** The box the password is written in, in the register (layout cells). */
 const FIELD_WIDTH = 110;
 
@@ -56,9 +59,11 @@ export abstract class PasswordGateScene extends PixelScene {
       this.drawInRegister();
       return;
     }
-    this.label(MARGIN, TITLE_Y, t(this.titleKey), C.gold, { big: true });
+    this.label(this.titleX(MARGIN), TITLE_Y, t(this.titleKey), C.gold, { big: true });
     this.label(MARGIN, HINT_Y, t(this.hintKey), C.dim, { maxWidth: width - 2 * MARGIN });
-    this.label(MARGIN, FIELD_Y, '*'.repeat(this.typed.length), C.white, { maxWidth: width - 2 * MARGIN });
+    // the box the password is written in, as the teacher's gate has it: a slip of parchment with the inked field on it
+    this.parchmentCard({ x: MARGIN - 3 - FIELD_CARD_PAD, y: FIELD_Y - 1 - FIELD_CARD_PAD, w: FIELD_WIDTH + 2 * FIELD_CARD_PAD, h: REGISTER.row - 2 + 2 * FIELD_CARD_PAD });
+    this.ruledField(MARGIN, FIELD_Y, FIELD_WIDTH, '*'.repeat(this.typed.length), true).setName(PASSWORD_FIELD);
     if (this.wrong) this.label(MARGIN, WRONG_Y, t('adminGate.wrong'), C.dim, { maxWidth: width - 2 * MARGIN });
     // with the band (ft_1_20 rule 1) Enter is its action, not a button under the field
     if (!this.bandShown) this.button({ x: width / 2, y: BUTTON_Y, width: BUTTON_WIDTH, height: BUTTON_HEIGHT, ...this.enter() });
@@ -76,7 +81,7 @@ export abstract class PasswordGateScene extends PixelScene {
     const title = this.ruledText(left, top, t(this.titleKey), C.gold);
     this.ruledText(right, top, t(this.hintKey), C.dim);
     const field = line(title + 1);
-    this.ruledField(left.x, field, Math.min(left.w, FIELD_WIDTH), '*'.repeat(this.typed.length), true);
+    this.ruledField(left.x, field, Math.min(left.w, FIELD_WIDTH), '*'.repeat(this.typed.length), true).setName(PASSWORD_FIELD);
     if (this.wrong) this.ruledText(left, field + REGISTER.row, t('adminGate.wrong'), C.redDark);
     if (!this.bandShown) {
       this.button({ x: left.x - 3 + BUTTON_WIDTH / 4, y: field + 3 * REGISTER.row + 4, width: BUTTON_WIDTH / 2, height: REGISTER.row - 1, look: 'ink', inkBox: true, ...this.enter() });

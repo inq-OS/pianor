@@ -19,7 +19,8 @@ The whole game is in Estonian and in capitals, because the game is made for Esto
 5. A new Estonian player defaults to letter naming `H` (`defaultNoteNaming`).
 6. Note-name hints, finger numbers and section marks are not words and are never changed.
 7. Label fit is measured (`labelFit`, `tests/e2e/button-fit.spec.ts`) over menu, settings, pieces, profiles, room, admin, credits, editor, practice and the stats screen with no saved play; results, rundown and the stats numbers need saved play and are not checked.
-8. Labels changed for the student to check: settings `1. takt`, editor `Tühista` (undo) and `Uuesti` (redo).
+8. A key with a name is named in the language shown, through a string key: the space bar is `tühik` in Estonian (`key.space`, `hotkeyLabel`); letters, Shift, Enter, Esc, Tab and Ctrl are printed so on the keys and stay.
+9. Labels changed for the student to check: settings `1. takt`, editor `Tühista` (undo) and `Uuesti` (redo).
 
 ## Acceptance criteria
 

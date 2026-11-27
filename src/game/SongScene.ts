@@ -1,4 +1,5 @@
 import { cardGrid } from '../core/layout/cardGrid';
+import { BOOK_PAGE } from '../core/layout/bookPages';
 import { pageOf } from '../core/layout/paging';
 import { rectCentre } from '../core/layout/rect';
 import { keyName, meterName, pieceOutline, rowPlay, shownRows, startFolded, type ShownRow } from '../core/song/outline';
@@ -28,9 +29,7 @@ const CARD_HEIGHT = 32;
 const BAND_CARD_ROW = 28;
 const CARD_GAP = 2;
 const LIST_TOP = 4;
-const BOOK_SIDE = 3;
-const BOOK_MARGIN = 14;
-const BOOK_GUTTER = 18;
+const BOOK_SIDE = 1;
 /** A switch, a fold triangle and a play button: a finger wide at the usual zoom, as the book's own small buttons. */
 const SMALL = 11;
 const GAP = 2;
@@ -39,9 +38,7 @@ const PLAY_GAP = 5;
 /** The widest name the strip's Play names. */
 const STRIP_NAME = 120;
 /** A row is set this far in from its page's cell, so its switch, numbers and play button stay on the paper, as the piece book's cards do. */
-const ROW_INSET = 3;
-/** Each row stands this much nearer the spine than its cell's middle, its outer end further from the book's rim. */
-const TOWARD_SPINE = 3;
+const ROW_INSET = 1;
 /** Each level of the outline is set in this far. */
 const INDENT = 6;
 /** A row that is off is drawn this pale over its whole height; the switch of the last written part on this faded. */
@@ -710,14 +707,15 @@ export class SongScene extends PixelScene {
     const { width, height } = this.px;
     const outline = this.outline();
     this.sky();
-    this.openBook({ x: BOOK_SIDE, y: LIST_TOP - 2, w: width - 2 * BOOK_SIDE, h: height - LIST_TOP + 1 });
+    // the book runs on under the band, its foot out of sight (as the settings' book): its pages reach the band, so a page
+    // holds as many rows as the piece book's
+    const bookTop = LIST_TOP - 2;
+    const book = { x: BOOK_SIDE, y: bookTop, w: width - 2 * BOOK_SIDE, h: Math.max(height - LIST_TOP + 1, this.mainRows - 1 + BOOK_PAGE.foot - bookTop) };
+    this.openBook(book);
     this.inkWriting = true;
     if (!outline) return;
     const rowHeight = this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT;
-    // the rows start under the door and the gear (ft_1_36.AC22), so a row's switch, pen or play button is never under a corner
-    // and one cell closer together, so a page still holds as many rows as the piece book's
-    const top = this.bandShown ? Math.max(LIST_TOP + 4, this.cornerStrip.rows + 1) : LIST_TOP + 4;
-    const grid = cardGrid({ width, height, top, margin: BOOK_MARGIN, rowHeight, rowGap: this.bandShown ? CARD_GAP - 1 : CARD_GAP, columnGap: BOOK_GUTTER });
+    const grid = cardGrid({ width, ...this.bookGrid(book), rowHeight, rowGap: CARD_GAP });
     this.items = [null, ...shownRows(outline.rows, this.folded)];
     this.rowRects.clear();
     this.landing = null;
@@ -728,8 +726,7 @@ export class SongScene extends PixelScene {
     this.items.slice(slice.first, slice.first + slice.count).forEach((item, i) => {
       const { x, y } = rectCentre(grid.pageCell(i, this.perPage));
       const rowWidth = grid.cardWidth - 2 * ROW_INSET;
-      // moved toward the spine, so a row's switch and play button keep clear of the book's rim, its corners and the gear
-      const left = x - rowWidth / 2 + (x < width / 2 ? TOWARD_SPINE : -TOWARD_SPINE);
+      const left = x - rowWidth / 2;
       const top = y - rowHeight / 2;
       this.rowRects.set(item === null ? '' : item.row.id, { left, top, width: rowWidth, depth: item === null ? -1 : item.row.depth });
       if (item === null) this.wholeRow(outline, left, top, rowWidth);
@@ -737,7 +734,7 @@ export class SongScene extends PixelScene {
     });
     // the piece book's pager: its page numbers and turned-up corners (rule 10)
     if (slice.paged) {
-      this.bookPager(slice, { x: BOOK_SIDE, y: LIST_TOP - 2, w: width - 2 * BOOK_SIDE, h: height - LIST_TOP + 1 }, (page) => {
+      this.bookPager(slice, book, (page) => {
         this.page = page;
         this.redraw();
       });

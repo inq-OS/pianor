@@ -1,7 +1,7 @@
 // Covers ft_1_32.AC2 (the learning settings), ft_0_16.AC3, ft_0_16.AC4, ft_1_11.AC1, ft_1_11.AC6, ft_1_16.AC1.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { addPlayer, clickAndRedraw, clickButton, clickToolbar, expectNoErrors, goToMainMenu, menuButton, openGame, openPiece, openSettings, pickProfile, playerName, results, sceneButton, sceneTexts, toScoreScreen, useOneLine, waitForScene } from './helpers';
+import { addPlayer, clickAndRedraw, clickButton, clickToolbar, expectNoErrors, goToMainMenu, misplacedWriting, menuButton, openGame, openPiece, openSettings, pickProfile, playerName, results, sceneButton, sceneTexts, toScoreScreen, useOneLine, waitForScene } from './helpers';
 
 /** The settings screen's buttons, in the order it makes them: one per setting, each press moving to its next choice; then the band's door (d088, ft_1_20). */
 const LINES = 0;
@@ -79,8 +79,6 @@ test.describe('settings', () => {
       const o = (window.__game.scene.getScene('settings').buttons[i] as { options: { label: string; tooltip?: string } }).options;
       return o.tooltip ?? o.label;
     }, index);
-  /** The text a settings button draws (a number, or blank). */
-  const buttonText = (page: Page, index: number) => page.evaluate((i) => (window.__game.scene.getScene('settings').buttons[i] as { options: { label: string } }).options.label, index);
   /** The button shows its choice as a picture, never as a word that could be cut short. */
   const isPicture = (page: Page, index: number) => page.evaluate((i) => (window.__game.scene.getScene('settings').buttons[i] as { options: { iconOnly?: boolean } }).options.iconOnly === true, index);
 
@@ -110,7 +108,7 @@ test.describe('settings', () => {
     await openSettings(page);
     expect(await sceneTexts(page, 'settings')).toEqual(expect.arrayContaining(['Settings', 'Lines of music on the screen', 'Bars on a line']));
     expect([await shows(page, LINES), await shows(page, BARS)]).toEqual(['2', 'Auto']); // two lines by default
-    expect(await buttonText(page, BARS)).toBe('A');
+    expect(await isPicture(page, BARS)).toBe(true); // a picture of its bars, its name the tooltip
 
     await clickAndRedraw(page, 'settings', BARS);
     await expect.poll(() => settings(page)).toEqual({ lines: 2, barsPerLine: 2 });
@@ -400,7 +398,7 @@ for (const lang of ['en', 'et'] as const) {
 }
 
 // each setting's button shows its current choice as a picture, the way the student sees it while playing, or
-// as a number where a number says it best (bars on a line), never as a word.
+// never as a word.
 test('the setting buttons show pictures or numbers, and the choice name only as a tooltip', async ({ page }) => {
   const errors = await openGame(page);
   await clickButton(page, 'menu', await menuButton(page, 'Settings'));
@@ -411,7 +409,7 @@ test('the setting buttons show pictures or numbers, and the choice name only as 
     })),
   );
   expect(buttons).toHaveLength(6); // Wait/Tempo moved to the practice screen; the keyboard switch is on this screen's toolbar (d099)
-  expect(buttons.filter((b) => !b.picture)).toEqual([{ name: 'Auto', picture: false, text: 'A' }]); // bar and finger numbers are pictures too
+  expect(buttons.filter((b) => !b.picture)).toEqual([]); // bars on a line, bar and finger numbers are pictures too
   const texts = await sceneTexts(page, 'settings');
   for (const word of ['Colors', 'Auto', 'Small', 'Back']) expect(texts).not.toContain(word);
   expectNoErrors(errors);
@@ -454,6 +452,13 @@ for (const lang of ['en', 'et'] as const) {
     });
     const first = await check();
     expect(first.out).toEqual([]);
+    // every word on the book's pages, none under the Back box (ft_1_20 rule 3), on the learning page too
+    expect(await misplacedWriting(page, 'settings')).toEqual([]);
+    await page.evaluate(() => (window.__game.scene.getScene('settings') as unknown as { scene: { restart(d: object): void } }).scene.restart({ page: 1 }));
+    await waitForScene(page, 'settings');
+    expect(await misplacedWriting(page, 'settings')).toEqual([]);
+    await page.evaluate(() => (window.__game.scene.getScene('settings') as unknown as { scene: { restart(d: object): void } }).scene.restart({ page: 0 }));
+    await waitForScene(page, 'settings');
 
     // the longest things the screen can show: the Space between staves hint, and the saving-failed line
     await clickButton(page, 'settings', 1); // Space between staves, the second setting made

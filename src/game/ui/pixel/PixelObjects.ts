@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
 import { blit, createBitmap, recolor, toRgba, type Bitmap } from './bitmap';
-import { barBitmap, focusRingBitmap, inkBarBitmap, inkStar, labelOverflow, panelBitmap, tinted, trayBitmap, type BarColors, type PanelKind, type TrayKind } from './frames';
+import { FOCUS_RING, barBitmap, focusRingBitmap, inkBarBitmap, inkStar, labelOverflow, panelBitmap, tinted, trayBitmap, type BarColors, type PanelKind, type TrayKind } from './frames';
 import { BUBBLE_ALPHA, choicePatch, closePlate, goldChip, OPTION_PLATE, OPTION_SIZE, optionFocus, optionPlate, stripCell, wornInk, type PlateLook } from './bubbleArt';
 import { C } from './palette';
-import { drawnText, letterBoxOf, LINE_GAP, LINE_HEIGHT, renderText, type TextOptions } from './font';
+import { drawnText, letterBoxOf, LINE_GAP, LINE_HEIGHT, renderText, TAIL, type TextOptions } from './font';
 import { MASCOT, STAR_EMPTY, STAR_FULL, type MascotFrame } from './sprites';
 import { ART_DETAIL } from '../../../core/layout/frame';
 import { TOOLTIP_DELAY_MS, tooltipBox } from '../../../core/layout/tooltip';
@@ -236,12 +236,14 @@ export interface PixelButtonOptions {
    * Tablets have no hover, so a tooltip is a bonus, never the only way to know what a button does (ft_1_08.AC5).
    */
   tooltip?: string;
+  /** Where the tooltip's bubble (`size` cells, on a `screen` this large) stands, when not under or over the button: a bubble option's name outside the ring (`bubbleTooltipBox`). */
+  tooltipAt?: (size: { w: number; h: number }, screen: { w: number; h: number }) => { x: number; y: number; w: number; h: number };
   /**
    * The button is this picture alone, centred in its box, with no panel and no label drawn (a room object, ft_1_08.AC7).
    * Its label shows in a bubble above it after the pointer rests on it, and at once while it has the keyboard focus.
    */
   picture?: Bitmap;
-  /** Called when the pointer comes onto the button (true) and leaves it (false): the faded corner buttons light up (ft_1_20). */
+  /** Called when the pointer comes onto the button (true) and leaves it (false): a drawer of the piece cabinet pulls out. */
   onHover?: (over: boolean) => void;
   onClick: () => void;
 }
@@ -262,6 +264,8 @@ export class PixelButton {
   private ring: PixelImage | null = null;
   private hover = false;
   private down = false;
+  /** When the primary press now on this button began (the pointer's down time), or null: a release fires only that press. */
+  private pressedAt: number | null = null;
   private readonly box: { x: number; y: number; width: number; height: number };
   private readonly maxLabelWidth: number;
   private readonly icon: PixelImage | null;
@@ -303,8 +307,10 @@ export class PixelButton {
     // A disabled button takes no press and no hover look; its tooltip still explains why it is off (when it has one).
     if (over > 0) this.panel.setInteractive({ hitArea: new Phaser.Geom.Rectangle(over, over, width, height), hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: !this.disabled });
     else this.panel.setInteractive({ useHandCursor: !this.disabled });
-    this.panel.on('pointerover', () => {
-      if (!this.disabled) this.set({ hover: true });
+    this.panel.on('pointerover', (pointer: Phaser.Input.Pointer) => {
+      // the press that began here and slid off shows pressed again when it comes back, as its release here fires it
+      const back = pointer.primaryDown && this.pressedAt === pointer.downTime;
+      if (!this.disabled) this.set({ hover: true, ...(back ? { down: true } : {}) });
       options.onHover?.(true);
       this.scheduleTooltip();
     });
@@ -318,12 +324,17 @@ export class PixelButton {
     // only the main button presses (a finger is one too): a right press opens the bubble, never the button under it (ft_1_20.AC19)
     this.panel.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (pointer.button !== 0) return;
+      this.pressedAt = pointer.downTime;
       this.hideTooltip();
       if (!this.disabled) this.set({ down: true });
     });
     this.panel.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       this.set({ down: false });
-      if (pointer.button !== 0 || this.disabled) return;
+      // only the press that began on this button fires it: never one that began elsewhere and slid on, nor one that opened
+      // the bubble under the finger (a long press) or the pointer (a right click)
+      const own = this.pressedAt === pointer.downTime;
+      this.pressedAt = null;
+      if (pointer.button !== 0 || this.disabled || !own) return;
       // the second click of a double click whose first opened this screen (a place on the map, then the piano under the same spot in the room)
       const event = pointer.event as MouseEvent | undefined;
       const opened = (scene as { screenOpenedAt?: number }).screenOpenedAt;
@@ -335,6 +346,11 @@ export class PixelButton {
   /** Extra pictures that belong to this button (stars, badges): they go away with it. */
   attach(...extra: Phaser.GameObjects.GameObject[]): void {
     this.objects.push(...extra);
+  }
+
+  /** The button's label as it was given (an icon-only button keeps one too): what it is, across a redraw. */
+  get labelText(): string {
+    return this.options.label;
   }
 
   /** The button's rectangle in art pixels, for placing things on it. */
@@ -366,7 +382,7 @@ export class PixelButton {
     }
     const { x, y, width, height } = this.box;
     const over = this.overhang();
-    this.ring = this.isBubble() ? new PixelImage(this.panel.scene, x - over - 2, y - over - 2, optionFocus(width + 2 * over)) : new PixelImage(this.panel.scene, x - 2, y - 2, focusRingBitmap(width, height));
+    this.ring = this.isBubble() ? new PixelImage(this.panel.scene, x - over - 2, y - over - 2, optionFocus(width + 2 * over)) : new PixelImage(this.panel.scene, x - FOCUS_RING, y - FOCUS_RING, focusRingBitmap(width, height));
     this.panel.parentContainer?.add(this.ring);
     // a picture (or a button of only its icon, as the settings' choices) has no label on it: the keyboard shows its name at once
     if (this.unlabelled()) {
@@ -384,7 +400,7 @@ export class PixelButton {
     this.panel.emit('pointerout');
   }
 
-  /** See-through by `alpha` (0 to 1), panel, picture and label together: the faded corner buttons over a picture (ft_1_20). */
+  /** See-through by `alpha` (0 to 1), panel, picture and label together: a piece turned off, a map place not yet open. */
   setAlpha(alpha: number): void {
     for (const o of this.objects) (o as unknown as { setAlpha(a: number): void }).setAlpha(alpha);
   }
@@ -526,10 +542,11 @@ export class PixelButton {
     const plate = width + 2 * this.overhang();
     if (!picture && this.look === 'bubble') return optionPlate(this.plateLook(), plate);
     if (!picture && this.look === 'bubbleClose') return closePlate(this.hover || this.down ? 'hover' : 'plain', plate, false);
-    // a choice lies on the sausage the scene draws under the row: only a patch under the one in use or the pointer
+    // a choice lies on the sausage the scene draws under the row: only a patch under the one in use or the pointer, and a sunk
+    // dark one under a greyed one, so its picture still reads
     if (!picture && this.look === 'bubbleChoice') {
       const look = this.plateLook();
-      return look === 'plain' || look === 'off' ? createBitmap(width, height) : choicePatch(look);
+      return look === 'plain' ? createBitmap(width, height) : choicePatch(look);
     }
     if (!picture && this.look === 'bandCell' && this.options.worn) return goldChip(width, height);
     if (!picture && this.look === 'bandCell') return stripCell(width, height, this.options.main && this.plateLook() === 'plain' ? 'main' : this.plateLook());
@@ -624,7 +641,7 @@ export class PixelButton {
     const size = { w: letters.width + 8, h: letters.letterBox.bottom - letters.letterBox.top + 8 };
     const screen = { w: Math.ceil(scene.scale.width / parent.scaleX), h: Math.ceil(scene.scale.height / parent.scaleY) };
     const { x, y, width, height } = this.box;
-    const at = tooltipBox({ x, y, w: width, h: height }, size, screen, this.options.picture ? 'above' : 'below');
+    const at = this.options.tooltipAt?.(size, screen) ?? tooltipBox({ x, y, w: width, h: height }, size, screen, this.options.picture ? 'above' : 'below');
     const bubble = new PixelImage(scene, at.x, at.y, panelBitmap(at.w, at.h, 'bubble'));
     letters.x = at.x + 4;
     letters.y = at.y + 4 - letters.letterBox.top;
@@ -649,8 +666,10 @@ export class PixelButton {
     const big = this.options.big === true ? 2 : 1;
     const letters = this.label.letterBox;
     const labelHeight = letters.bottom * big;
+    // centred on the capitals, tails left out: a word with a tail (g, y) stands on the same baseline as one without
+    const capsHeight = Math.max(0, this.label.height - TAIL) * big;
     const subHeight = this.sublabel ? this.sublabel.height + 2 : 0;
-    const top = y + Math.floor((height - labelHeight - subHeight) / 2) + sink;
+    const top = y + Math.floor((height - capsHeight - subHeight) / 2) + sink;
     const iconWidth = this.icon && !this.options.iconOnly ? this.icon.displayWidth + ICON_PAD : 0;
     if (this.icon) {
       // a fine icon is placed on the fine grid, half a cell at a time

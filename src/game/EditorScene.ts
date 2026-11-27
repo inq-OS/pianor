@@ -154,6 +154,8 @@ const LABEL_PAD = 10;
  * message bubble's top and the page buttons stand this far above the foot. The finger menu's cells.
  */
 const PIECE_PANEL = 20;
+/** How far above and below its lines a system's notes reach, in layout cells, for `bubbleKeepClear`. */
+const STAFF_KEEP_CLEAR = 6;
 const FINGER_MENU_CELL = { w: 16, h: BAR_BUTTON_HEIGHT } as const;
 /** The lengths in the order the Length item cycles them (ft_1_20: one item that shows its note). */
 const LENGTH_ORDER: readonly EditorLength[] = EDITOR_LENGTHS;
@@ -368,7 +370,6 @@ export class EditorScene extends PixelScene {
   /** With the band (ft_1_20): the notes' item, the Save button (its tooltip says which levels the piece fits) and the Kiur-less message bubble under the top strip. */
   private lengthItem: PixelButton | null = null;
   /** With the band: the rests' item beside the notes' one (two items, each scrolled like the other). */
-  private restItem: PixelButton | null = null;
   private saveButton: PixelButton | null = null;
   private barsText: PixelText | null = null;
   private pickupText: PixelText | null = null;
@@ -599,7 +600,6 @@ export class EditorScene extends PixelScene {
 
   protected override clear(): void {
     this.lengthItem = null;
-    this.restItem = null;
     this.saveButton = null;
     this.barsText = null;
     this.pickupText = null;
@@ -1671,7 +1671,8 @@ export class EditorScene extends PixelScene {
       this.apply(setDynamic(this.piece, this.selected, mark), this.selected);
       this.showDynamic(mark);
     };
-    return [...DYNAMICS, undefined].map((mark) => ({ label: mark ?? '-', keepCase: true, icon: dynamicPicture(mark), fineIcon: true, active: mark === current, onPick: set(mark) }));
+    // no mark: the dashed empty picture, named in its tooltip (the marks keep their case: pp is not PP)
+    return [...DYNAMICS, undefined].map((mark) => ({ ...(mark ? { label: mark, keepCase: true, icon: dynamicPicture(mark), fineIcon: true } : { label: t('editor.dyn.off'), icon: TOOL_ICONS.blank }), active: mark === current, onPick: set(mark) }));
   }
 
   /** The staff the played notes go on: Auto, treble, bass, the one in use lit; the default is the next, so M then Enter does what a click does. */
@@ -1884,9 +1885,9 @@ export class EditorScene extends PixelScene {
   private toggleEntry(): void {
     this.entry = this.entry === 'note' ? 'rest' : 'note';
     if (this.bandShown) {
-      // with the band, the item a click writes with is on a purple ground
-      this.lengthItem?.setArmed(this.entry === 'note');
-      this.restItem?.setArmed(this.entry === 'rest');
+      // with the band the writer cell, always armed (purple), turns to what a click writes now
+      this.lengthItem?.setLabel(t(`editor.entry.${this.entry}`));
+      this.lengthItem?.setTooltip(t(`editor.entry.${this.entry}.tip`));
     } else {
       this.entryButton?.setLabel(t(`editor.entry.${this.entry}`));
       this.entryButton?.setIcon(this.entry === 'rest' ? REST_ICONS.quarter : NOTE_ICONS.quarter);
@@ -1915,8 +1916,8 @@ export class EditorScene extends PixelScene {
   /** The Length item (with the band) shows the length a click writes, as a note or a rest. */
   private showLength(): void {
     if (this.bandShown) {
-      this.lengthItem?.setIcon(this.lengthPicture(this.length, 'note'));
-      this.restItem?.setIcon(this.lengthPicture(this.length, 'rest'));
+      // the strip cell shows the sign alone, as it was built (`stripSign`): the whole scrap would cover the cell
+      this.lengthItem?.setIcon(this.stripSign(this.lengthPicture(this.length)));
       return;
     }
     this.lengthItem?.setIcon(this.lengthPicture(this.length));
@@ -3386,12 +3387,27 @@ export class EditorScene extends PixelScene {
   /**
    * The bubble (ft_1_20, d282) for what is under the pointer, each option in its fixed slot. On a note (it becomes the
    * selected note, unless it is in the selected bars, which the options then act on): 0 length, 1 accidental, 2 delete, 3 tie
-   * or slur, 4 dynamic, 5 fingers, 6 grace note, 7 copy; with bars selected also paste (`noteOptions`). On the time signature: 0
+   * or slur, 4 dynamic, 5 fingers, 6 grace note (paste with bars selected), 7 copy (`noteOptions`). On the time signature: 0
    * the time panel. On the clef or the key signature: 0 the key's circle. Elsewhere on the staff (the entry cursor moves
    * there): 0 notes or rests, 1 paste at that bar, 2 repeat, 3 the staff for played notes, 4 the short tap, 5 the cursor's
    * follow switch, 6 remove repeat, 7 the key's circle (from More). From More (`at` null): the note's options while one is
    * selected, else the place's.
    */
+  /**
+   * The staff's systems on the page shown, with room for the notes above and below their lines: a bubble's choices turn
+   * toward the empty side of the sheet where they can (ft_1_20), so the notes round the one edited stay in sight.
+   */
+  protected override bubbleKeepClear(): Rect[] {
+    const layout = this.layout;
+    if (!layout) return [];
+    const k = this.px.scale;
+    const reach = STAFF_KEEP_CLEAR;
+    return layout.systems.filter((s) => s.page === this.page).map((s) => {
+      const x = (this.staffLeft + s.left - this.root.x) / k, y = (this.staffTop + s.topLineY - this.root.y) / k;
+      return { x, y: y - reach, w: (s.right - s.left) / k, h: (s.bottomLineY - s.topLineY) / k + 2 * reach };
+    });
+  }
+
   /** A bubble opens anywhere unless the time is being asked for; asked before the bubble opens, so it selects nothing. */
   protected override hasBubbleAt(): boolean {
     return this.meterAsk === null;
@@ -3461,8 +3477,8 @@ export class EditorScene extends PixelScene {
 
   /**
    * The bubble on a note or the selected bars: what is done to them, each option only where it applies (ft_1_02d.AC35). On a
-   * note: 0 length, 1 accidental, 2 delete, 3 tie or slur, 4 dynamic, 5 fingers, 6 grace note, 7 copy, and with bars
-   * selected 8 paste (with something copied). With bars selected and no note under the pointer the note's options are gone,
+   * note: 0 length, 1 accidental, 2 delete, 3 tie or slur, 4 dynamic, 5 fingers, 6 grace note, 7 copy; with bars selected
+   * slot 6 is paste instead, so the eight fit one page and Copy never moves to a second. With bars selected and no note under the pointer the note's options are gone,
    * 1 is paste (its slot on an empty place) and 6 the repeat round the selected bars, so all fit one page. A repeat is never
    * offered on a note.
    */
@@ -3481,11 +3497,11 @@ export class EditorScene extends PixelScene {
         : paste,
       note || sel ? { label: t('editor.delete'), icon: TOOL_ICONS.trash, shortcut: EDITOR_KEYS.delete.label, onClick: () => (sel ? this.change(clearBars(this.piece, sel)) : this.deleteSelected()) } : null,
       arcs.length > 0 ? { label: t('editor.arc.menu'), icon: sel ? TOOL_ICONS.slur : itemPicture('tie'), fineIcon: !sel, shortcut: EDITOR_KEYS.ties.label, onClick: () => undefined, menu: { items: () => this.arcItems(), cell: ITEM_MENU_CELL, columns: arcs.length } } : null,
-      onNote({ label: note?.dynamic ?? '-', icon: dynamicPicture(note?.dynamic ?? 'mf'), fineIcon: true, keepCase: true, tooltip: t('editor.dyn.tip'), shortcut: EDITOR_KEYS.dynamics.label, onClick: () => undefined, menu: { items: () => this.dynamicItems(), cell: ITEM_MENU_CELL, columns: 7 } }),
+      onNote({ label: note?.dynamic ?? t('editor.dyn.off'), icon: note?.dynamic ? dynamicPicture(note.dynamic) : TOOL_ICONS.blank, ...(note?.dynamic ? { fineIcon: true, keepCase: true } : {}), tooltip: note?.dynamic ? t('editor.dyn.tip') : `${t('editor.dyn.off')}: ${t('editor.dyn.tip')}`, shortcut: EDITOR_KEYS.dynamics.label, onClick: () => undefined, menu: { items: () => this.dynamicItems(), cell: ITEM_MENU_CELL, columns: 7 } }),
       onNote({ label: t('editor.finger.menu'), icon: TOOL_ICONS.fingers, shortcut: EDITOR_KEYS.fingers.label, onClick: () => undefined, menu: { items: () => this.fingerItems(), cell: FINGER_MENU_CELL, columns: 6 } }),
-      note ? this.graceOption(note.grace !== undefined) : sel ? this.repeatOption() : null,
+      // with bars selected slot 6 is the bars' (paste on a note, the repeat off one); a grace note is set on a note alone
+      note ? (sel ? paste : this.graceOption(note.grace !== undefined)) : sel ? this.repeatOption() : null,
       note || sel ? { label: t('editor.copy'), icon: TOOL_ICONS.copy, shortcut: EDITOR_KEYS.copy.label, onClick: () => this.copyBar() } : null,
-      note ? paste : null,
     ];
   }
 
@@ -3597,9 +3613,11 @@ export class EditorScene extends PixelScene {
   private fingerItems(): MenuItem[] {
     // AUTO only when it would write or change a finger (ft_1_02d.AC39)
     const auto = autoFingers(this.piece, this.fingerLevel());
+    const now = this.selected ? findNote(this.piece, this.selected)?.finger : undefined;
     return [
-      ...([1, 2, 3, 4, 5] as const).map((finger) => ({ label: String(finger), keepCase: true, tooltip: t('editor.finger.tip'), onPick: () => this.setFingerTo(finger) })),
-      ...(auto.filled + auto.changed === 0 ? [] : [{ label: t('editor.finger.auto'), keepCase: true, tooltip: t('editor.finger.auto.tip'), preview: this.itemPreview('auto', () => ({ ok: true, piece: autoFingers(this.piece, this.fingerLevel()).piece })), onPick: () => this.autoFillFingers() }]),
+      ...([1, 2, 3, 4, 5] as const).map((finger) => ({ label: String(finger), keepCase: true, tooltip: t('editor.finger.tip'), active: finger === now, onPick: () => this.setFingerTo(finger) })),
+      // AUTO as the fingers' picture: the word is wider than a choice
+      ...(auto.filled + auto.changed === 0 ? [] : [{ label: t('editor.finger.auto'), icon: TOOL_ICONS.fingers, tooltip: `${t('editor.finger.auto')}: ${t('editor.finger.auto.tip')}`, preview: this.itemPreview('auto', () => ({ ok: true, piece: autoFingers(this.piece, this.fingerLevel()).piece })), onPick: () => this.autoFillFingers() }]),
     ];
   }
 

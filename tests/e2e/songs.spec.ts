@@ -351,10 +351,11 @@ test.describe('songs made of pieces', () => {
     const overlaps = () => page.evaluate(() => {
       type Box = { x: number; y: number; width: number; height: number };
       type Button = { rect: Box; options: { label: string } };
-      const scene = window.__game.scene.getScene('song') as unknown as { corners: Button[]; buttons: Button[] };
+      const scene = window.__game.scene.getScene('song') as unknown as { toolbarButtons: { back: Button | null; settings: Button | null }; buttons: Button[] };
       const meet = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
-      const corners = scene.corners.map((c) => c.rect);
-      return scene.buttons.filter((b) => !scene.corners.includes(b) && corners.some((c) => meet(c, b.rect))).map((b) => b.options.label);
+      const own = [scene.toolbarButtons.back, scene.toolbarButtons.settings].filter((b): b is Button => b !== null);
+      const corners = own.map((c) => c.rect);
+      return scene.buttons.filter((b) => !own.includes(b) && corners.some((c) => meet(c, b.rect))).map((b) => b.options.label);
     });
     expect(await overlaps()).toEqual([]);
     // the right page's first row: its pen writes that part, never opens the settings

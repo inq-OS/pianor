@@ -63,8 +63,6 @@ export class LearnStatsScene extends PixelScene {
 
   constructor() {
     super('learn-stats');
-    // the parchment reaches under the door and the gear: they stand on a plate of their own, as on every card screen
-    this.cornersOnCard = true;
   }
 
   private fromSong: SongReturn | undefined = undefined;

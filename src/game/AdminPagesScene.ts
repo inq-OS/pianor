@@ -59,7 +59,7 @@ export class AdminPagesScene extends PixelScene {
     const { width } = this.px;
     const { admin, flags } = contextOf(this);
     this.sky();
-    this.label(MARGIN, TITLE_Y, t('adminPages.title'), C.gold, { big: true });
+    this.label(this.titleX(MARGIN), TITLE_Y, t('adminPages.title'), C.gold, { big: true });
 
     const row = (i: number) => FIRST_Y + (i % ROWS_PER_COLUMN) * (ROW_HEIGHT + ROW_GAP) + ROW_HEIGHT / 2;
     const column = (i: number) => MARGIN + Math.floor(i / ROWS_PER_COLUMN) * (ROW_WIDTH + COLUMN_GAP) + ROW_WIDTH / 2;

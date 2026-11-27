@@ -24,6 +24,17 @@ describe('the release zip (tools/release/pack.sh)', () => {
     expect(pack).toContain('Compress-Archive');
   });
 
+  it('leaves out the repository README pictures (public/readme): they are not part of the game', () => {
+    expect(pack).toContain('rm -rf "$out/game/readme"');
+  });
+
+  it('a failed start keeps its message on screen: the launcher waits for Enter and the start files pause on an error', () => {
+    expect(launcher).toMatch(/Pianor could not start[\s\S]*Read-Host 'Press Enter to close'/);
+    for (const name of ['Start Pianor.cmd', 'Start Pianor (English).cmd']) {
+      expect(readFileSync(`tools/release/windows/${name}`, 'utf8'), name).toMatch(/^if errorlevel 1 pause\r?$/m);
+    }
+  });
+
   it('the launcher sends every kind of file the game is built of with its type (a module script as octet-stream will not run)', () => {
     const types = new Set([...launcher.matchAll(/'(\.[a-z0-9]+)' = '/g)].map((m) => m[1]));
     const publicFiles = (readdirSync('public', { recursive: true, withFileTypes: true }) as { name: string; isFile(): boolean }[])
