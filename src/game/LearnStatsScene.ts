@@ -6,7 +6,7 @@ import {
   barProfile, DAY_FILTERS, DEFAULT_STATS_FILTER, filterTests, focusHints, KIND_FILTERS, MEASURES, measureSeries, seriesTrend, type Focus, type Measure, type StatsFilter,
 } from '../core/learn/stats';
 import { baselineBpm } from '../core/learn/tempo';
-import { focusLine, MEANING_PAGES, measureValue } from '../core/text/learnStatsText';
+import { focusLine, MEANING_PAGES, meaningLine, measureValue } from '../core/text/learnStatsText';
 import { pieceTitle } from '../core/text/pieceTitle';
 import { t, type StringKey } from '../core/text/strings';
 import { dayString } from '../io/teacher/teacherDesk';
@@ -127,15 +127,17 @@ export class LearnStatsScene extends PixelScene {
     });
     this.button({ ...rectCentre(layout.kind), label: t(`learnStats.kind.${this.filter.kind}`), onClick: () => choose({ kind: next(KIND_FILTERS, this.filter.kind) }) });
     this.button({ ...rectCentre(layout.days), label: t(`learnStats.days.${this.filter.days}`), onClick: () => choose({ days: next(DAY_FILTERS, this.filter.days) }) });
-    this.label(layout.summary.x, layout.summary.y, this.summary(tests), C.white, { maxWidth: layout.summary.w });
+    // no value for the choice: the graph says so, once
+    const summary = this.summary(tests);
+    if (summary !== null) this.label(layout.summary.x, layout.summary.y, summary, C.white, { maxWidth: layout.summary.w });
   }
 
-  /** The latest run's value of the chosen measure, and where the measure is heading. */
-  private summary(tests: readonly LearnTest[]): string {
+  /** The latest run's value of the chosen measure, and where the measure is heading; null with no value. */
+  private summary(tests: readonly LearnTest[]): string | null {
     const measure = this.filter.measure;
     const series = measureSeries(tests, measure);
     const latest = [...series].reverse().find((point) => point.value !== null);
-    if (!latest || latest.value === null) return t('learnStats.none');
+    if (!latest || latest.value === null) return null;
     if (measure === 'hands') return t('learnStats.hands', { right: latest.value, left: latest.other ?? 0 });
     const trend = seriesTrend(series.map((point) => point.value));
     const value = measureValue(measure, latest.value);
@@ -215,7 +217,7 @@ export class LearnStatsScene extends PixelScene {
     y += this.label(x, y, t(page === 0 ? 'learnStats.focusTitle' : 'learnStats.meaningTitle'), C.gold).height + HELP_LINE_GAP;
     const lines = page === 0
       ? (this.focus.length === 0 ? [t('learnStats.focus.none')] : this.focus.map((focus) => focusLine(focus, printed)))
-      : MEANING_PAGES[page - 1]!.map((key) => t(key));
+      : MEANING_PAGES[page - 1]!.map((key) => meaningLine(key));
     for (const line of lines) y += this.label(x, y, line, C.white, { maxWidth: room }).height + HELP_LINE_GAP;
     const turn = (to: number) => {
       this.help = to;

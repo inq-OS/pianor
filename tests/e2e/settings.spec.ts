@@ -96,6 +96,9 @@ test.describe('settings', () => {
     await clickAndRedraw(page, 'settings', 2);
     await clickAndRedraw(page, 'settings', 3);
     await expect.poll(learn).toEqual({ stepBars: 2, markers: false, markersFrom: 3, handsApart: true });
+    // the ring after one miss is said in the singular
+    for (let press = 0; press < 3; press++) await clickAndRedraw(page, 'settings', 2);
+    expect(await shows(page, 2)).toBe('After 1 miss');
     // the same button turns back to the first page: its rows are where they were
     await clickAndRedraw(page, 'settings', await sceneButton(page, 'settings', 'Learning'));
     expect(await shows(page, LINES)).toBe('2');

@@ -1,8 +1,8 @@
 // Covers ft_1_32.AC10.
 import { describe, expect, it } from 'vitest';
 import type { Focus } from '../learn/stats';
-import { focusLine, MEANING_PAGES, measureValue } from './learnStatsText';
-import { t } from './strings';
+import { TEMPO_RULES } from '../learn/tempo';
+import { focusLine, MEANING_PAGES, meaningLine, measureValue } from './learnStatsText';
 
 const printed = (bar: number) => bar + 1;
 
@@ -28,7 +28,12 @@ describe('MEANING_PAGES', () => {
   it('explains every measure, the bar strip and the trend, each once', () => {
     const keys = MEANING_PAGES.flat();
     expect([...keys].sort()).toEqual(['bars', 'bpm', 'drift', 'halts', 'hands', 'mad', 'sd', 'trend'].map((name) => `learnStats.meaning.${name}`).sort());
-    for (const key of keys) expect(t(key).length).toBeGreaterThan(20);
+    for (const key of keys) expect(meaningLine(key).length).toBeGreaterThan(20);
+  });
+
+  it('ft_1_32.AC10 says a stop is a gap as many times as long as written as the tempo rules count one', () => {
+    expect(meaningLine('learnStats.meaning.halts')).toContain(`at least ${TEMPO_RULES.haltFactor} times as long as written`);
+    expect(meaningLine('learnStats.meaning.halts')).not.toMatch(/\{\w+\}/);
   });
 });
 
