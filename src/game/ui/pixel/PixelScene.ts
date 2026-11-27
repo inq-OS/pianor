@@ -283,7 +283,8 @@ export abstract class PixelScene extends Phaser.Scene {
   private cornerGroups = new Map<PixelButton, -1 | 1>();
   /**
    * A screen the student comes back to between plays (the room, the map) sets this: while no piano is connected a small
-   * dim piano shows left of the gear (`cornerStatus`), its tooltip saying what to do; nothing while one is.
+   * piano in warm light shows left of the gear (`cornerStatus`), whole, never faded, its name bubble (hover, focus and a press)
+   * saying no keyboard was found; nothing while one is.
    */
   protected pianoSign = false;
   /** Index into `buttons` of the focused button, or -1. The ring shows only after the first navigation key. */
@@ -1072,9 +1073,9 @@ export abstract class PixelScene extends Phaser.Scene {
   }
 
   /** A status picture left of the gear (the piano on the practice screen): lit while all is well, what it means in its tooltip; none by default. */
-  protected cornerStatus(): { label: string; icon: Bitmap; lit: boolean } | null {
+  protected cornerStatus(): { label: string; icon: Bitmap; lit: boolean; notice?: boolean } | null {
     if (!this.pianoSign || contextOf(this).midi?.getStatus().state === 'connected') return null;
-    return { label: t(contextOf(this).keyboardSwitch.shown() ? 'midi.notConnected' : 'midi.notConnectedHidden'), icon: ICONS.freePlay, lit: false };
+    return { label: t('midi.noKeyboardShort'), icon: ICONS.freePlay, lit: false, notice: true };
   }
 
   /** The strip's rows on this screen (none without a strip). */
@@ -1135,8 +1136,10 @@ export abstract class PixelScene extends Phaser.Scene {
       const r = { ...corners.settings, x: left };
       plate(r, status.icon);
       // a picture, not a button: it does nothing when pressed, its tooltip says what it means
-      const shown: PixelButton = this.buttonOn(layer, { ...rectCentre(r), label: status.label, tooltip: status.label, picture: status.lit ? status.icon : recolor(status.icon, { [C.white]: C.lock }), onClick: () => undefined });
-      shown.setAlpha(status.lit ? 1 : CORNER_FADED);
+      // a notice (no keyboard, on the room and the map) stands whole in a warm colour, and a press says it, as hover does
+      const picture = status.lit ? status.icon : recolor(status.icon, { [C.white]: status.notice ? C.orangeLight : C.lock });
+      const shown: PixelButton = this.buttonOn(layer, { ...rectCentre(r), label: status.label, tooltip: status.label, picture, onClick: () => { if (status.notice) shown.sayName(); } });
+      shown.setAlpha(status.lit || status.notice ? 1 : CORNER_FADED);
       this.cornerGroups.set(shown, 1);
     }
     const kept = this.backpackItems();

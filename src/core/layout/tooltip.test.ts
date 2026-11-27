@@ -28,9 +28,9 @@ describe('tooltipBox (ft_1_08)', () => {
     expect(tooltipBox({ x: 100, y: 60, w: 40, h: 30 }, { w: 30, h: 15 }, screen, 'above', 15)).toEqual({ x: 105, y: 43, w: 30, h: 15 });
   });
 
-  it('ft_1_08.AC5 stays on the screen at its left and right edges', () => {
-    expect(tooltipBox({ x: 300, y: 10, w: 20, h: 18 }, { w: 60, h: 15 }, screen).x).toBe(320 - 2 - 60);
-    expect(tooltipBox({ x: 0, y: 10, w: 20, h: 18 }, { w: 60, h: 15 }, screen).x).toBe(2);
+  it('ft_1_08.AC5 keeps a margin of six pixels from the screen\'s left and right edges', () => {
+    expect(tooltipBox({ x: 300, y: 10, w: 20, h: 18 }, { w: 60, h: 15 }, screen).x).toBe(320 - 6 - 60);
+    expect(tooltipBox({ x: 0, y: 10, w: 20, h: 18 }, { w: 60, h: 15 }, screen).x).toBe(6);
   });
 
   it('ft_1_08.AC5 waits about 0.6 s before it shows', () => {

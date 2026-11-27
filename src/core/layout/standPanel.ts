@@ -11,26 +11,28 @@ export const STAND_PICTURE = { w: 32, h: 24 } as const;
 /** The room round a picture inside its cell (its frame and the hover ring), the gap between cells, the panel's margin. */
 const FRAME = 3;
 const GAP = 6;
+/** The gap between cells whose words are written under them (Kiur's board, a wanderer's ask): two short words a gap apart never read as one phrase. */
+export const WORDED_GAP = 24;
 const PAD = 7;
 
 /**
  * Where the panel and each of `count` cells go over `picture` (the room's picture on the screen): one row while it fits
  * with a margin of the room to either side, more rows when it does not; centred, so the room shows round it.
  */
-export function standPanel(picture: Rect, count: number): { panel: Rect; cells: Rect[] } {
+export function standPanel(picture: Rect, count: number, gap: number = GAP): { panel: Rect; cells: Rect[] } {
   const cw = STAND_PICTURE.w + 2 * FRAME, ch = STAND_PICTURE.h + 2 * FRAME;
   const room = picture.w - 2 * PAD - 32;
-  const perRow = Math.max(1, Math.min(count, Math.floor((room + GAP) / (cw + GAP))));
+  const perRow = Math.max(1, Math.min(count, Math.floor((room + gap) / (cw + gap))));
   const rows = Math.max(1, Math.ceil(count / perRow));
-  const w = 2 * PAD + perRow * cw + (perRow - 1) * GAP;
-  const h = 2 * PAD + rows * ch + (rows - 1) * GAP;
+  const w = 2 * PAD + perRow * cw + (perRow - 1) * gap;
+  const h = 2 * PAD + rows * ch + (rows - 1) * gap;
   const panel = { x: picture.x + Math.floor((picture.w - w) / 2), y: picture.y + Math.floor((picture.h - h) / 2), w, h };
   const cells = Array.from({ length: count }, (_, i) => {
     const row = Math.floor(i / perRow), col = i % perRow;
     // a last row that is not full sits in the middle
     const inRow = row === rows - 1 ? count - row * perRow : perRow;
-    const rowStart = panel.x + PAD + Math.floor(((perRow - inRow) * (cw + GAP)) / 2);
-    return { x: rowStart + col * (cw + GAP), y: panel.y + PAD + row * (ch + GAP), w: cw, h: ch };
+    const rowStart = panel.x + PAD + Math.floor(((perRow - inRow) * (cw + gap)) / 2);
+    return { x: rowStart + col * (cw + gap), y: panel.y + PAD + row * (ch + gap), w: cw, h: ch };
   });
   return { panel, cells };
 }

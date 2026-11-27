@@ -40,8 +40,10 @@ test.describe('a wanderer the teacher sends (ft_1_37)', () => {
     expect((await here(page)).ids).toEqual(['traveller']);
     expect(await press(page)).toBe(true);
     await letGameRun(page, 10, 400);
-    const words = await page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { root: { list: { name: string; visible: boolean }[] } }).root.list.filter((o) => o.name.endsWith(':word') && o.visible).map((o) => o.name));
-    expect(words).toEqual(['wanderer:play:word', 'wanderer:notNow:word']);
+    const words = await page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { root: { list: { name: string; visible: boolean; x: number; width: number }[] } }).root.list.filter((o) => o.name.endsWith(':word') && o.visible).map((o) => ({ name: o.name, x: o.x, width: o.width })));
+    expect(words.map((w) => w.name)).toEqual(['wanderer:play:word', 'wanderer:notNow:word']);
+    // the two words stand well apart, so they never read as one phrase
+    expect(words[1]!.x - (words[0]!.x + words[0]!.width)).toBeGreaterThanOrEqual(20);
     // the answer is the board's picture, Play it in its bubble
     await clickButton(page, 'knoll', await sceneButton(page, 'knoll', 'Play it'));
     await waitForScene(page, 'practice');

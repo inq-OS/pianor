@@ -61,7 +61,7 @@ test.describe('Puuvaim teaches his phrase in the knoll (ft_1_22.AC3, WP-12)', ()
     expect(await teach(page)).toMatchObject({ who: 'character', piece: 'both-hands', level: 1, tries: [], staff: true });
     // the fact names the first wrong key's reason (C sharp for C: the key next door)
     const missed = await tryIt(page, MISSED);
-    expect(missed).toMatchObject({ tries: [false], saying: '13 of 26 notes right. The key next door' });
+    expect(missed).toMatchObject({ tries: [false], saying: '13 of 26 notes right. You played the key next door' });
     // the staff marks the thirteen notes found only after a wrong key, not every note as right
     expect(missed.notFirst).toHaveLength(13);
     expect(await tryIt(page, TUNE)).toMatchObject({ tries: [false, true], outcome: 'heard', saying: '26 of 26 notes right' });

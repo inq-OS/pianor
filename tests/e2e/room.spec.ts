@@ -722,6 +722,16 @@ test.describe('the way out of the room, and what the room and the map say', () =
     await expect.poll(() => sceneTexts(page, 'profile')).not.toContain('Change player?');
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Back'));
     await expect.poll(() => sceneButton(page, 'profile', 'No')).toBeGreaterThanOrEqual(0);
+    // No on the left, Yes on the right as the quieter card, and the keyboard starts on No
+    const answers = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('profile') as unknown as { buttons: { rect: Box; options: { label: string; look?: string } }[] };
+      const of = (label: string) => scene.buttons.find((b) => b.options.label === label)!;
+      return { no: of('No').rect.x, yes: of('Yes').rect.x, yesLook: of('Yes').options.look ?? 'button', noLook: of('No').options.look ?? 'button' };
+    });
+    expect(answers.no).toBeLessThan(answers.yes);
+    expect(answers).toMatchObject({ yesLook: 'card', noLook: 'button' });
+    await page.keyboard.press('ArrowRight');
+    expect(await focusedLabel(page, 'profile')).toBe('No');
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'No'));
     await expect.poll(() => sceneTexts(page, 'profile')).not.toContain('Change player?');
     expect(await running(page)).toEqual(['profile']);
@@ -815,6 +825,13 @@ test.describe('the way out of the room, and what the room and the map say', () =
     const harbor = await sceneButton(page, 'keriMap', 'The harbor: not open yet');
     await clickButton(page, 'keriMap', harbor);
     await expect.poll(() => page.evaluate((i) => window.__game.scene.getScene('keriMap').buttons[i].tooltipShown as string | null, harbor)).toBe('The harbor: not open yet');
+    // its bubble keeps a margin from the screen's right edge
+    const edge = await page.evaluate((i) => {
+      const scene = window.__game.scene.getScene('keriMap') as unknown as { buttons: { tip: Box[] }[]; px: { width: number } };
+      const bubble = scene.buttons[i]!.tip[0]!;
+      return scene.px.width - (bubble.x + bubble.width);
+    }, harbor);
+    expect(edge).toBeGreaterThanOrEqual(6);
     expect(await running(page)).toEqual(['keriMap']);
     expectNoErrors(errors);
   });
@@ -831,17 +848,22 @@ test.describe('the way out of the room, and what the room and the map say', () =
     expectNoErrors(errors);
   });
 
-  test('ft_0_06 with the piano unplugged a dim piano shows in the room\'s and the map\'s corner, and goes when it is plugged back in', async ({ page }) => {
+  test('ft_0_06 with the piano unplugged a piano in warm light shows in the room\'s and the map\'s corner, a press says No keyboard found, and it goes when plugged back in', async ({ page }) => {
     const errors = await toRoom(page);
-    const sign = (key: string) => page.evaluate((k) => (window.__game.scene.getScene(k).buttons as { options: { label: string } }[]).some((b) => b.options.label.startsWith('No piano found')), key);
-    expect(await sign('profile')).toBe(false);
+    const sign = (key: string) => sceneButton(page, key, 'No keyboard found');
+    expect(await sign('profile')).toBe(-1);
     await page.evaluate(() => (window as unknown as { __virtualDevice: { disconnect(): void } }).__virtualDevice.disconnect());
-    await expect.poll(() => sign('profile')).toBe(true);
+    await expect.poll(() => sign('profile')).toBeGreaterThanOrEqual(0);
+    // whole, never faded, and a press shows its name at once
+    const at = await sign('profile');
+    expect(await page.evaluate((i) => (window.__game.scene.getScene('profile').buttons[i].objects[0] as { alpha: number }).alpha, at)).toBe(1);
+    await clickButton(page, 'profile', at);
+    await expect.poll(() => tooltipOf(page, at)).toBe('No keyboard found');
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
-    expect(await sign('keriMap')).toBe(true);
+    expect(await sign('keriMap')).toBeGreaterThanOrEqual(0);
     await page.evaluate(() => (window as unknown as { __virtualDevice: { connect(): void } }).__virtualDevice.connect());
-    await expect.poll(() => sign('keriMap')).toBe(false);
+    await expect.poll(() => sign('keriMap')).toBe(-1);
     expectNoErrors(errors);
   });
 

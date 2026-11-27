@@ -64,8 +64,8 @@ describe('after each exchange (ft_1_21.AC7)', () => {
   });
 
   it('ft_1_21.AC7 a neighbour key and a wrong letter each say their reason, as a wrong octave does', () => {
-    expect(tugFactLine(tugFact({ notes: 5, firstTryCorrect: 0 }, ['neighbour-key']), 'wait')).toBe('0 of 5 notes right. The key next door');
-    expect(tugFactLine(tugFact({ notes: 6, firstTryCorrect: 0 }, ['wrong-letter']), 'wait')).toBe('0 of 6 notes right. Another letter');
+    expect(tugFactLine(tugFact({ notes: 5, firstTryCorrect: 0 }, ['neighbour-key']), 'wait')).toBe('0 of 5 notes right. You played the key next door');
+    expect(tugFactLine(tugFact({ notes: 6, firstTryCorrect: 0 }, ['wrong-letter']), 'wait')).toBe('0 of 6 notes right. You played another letter');
     expect(tugFactLine(tugFact({ notes: 5, firstTryCorrect: 0 }, ['wrong-octave']), 'wait')).toBe('0 of 5 notes right. Right letter, wrong octave');
     expect(tugFactLine(tugFact({ notes: 5, firstTryCorrect: 5 }, []), 'wait')).toBe('5 of 5 notes right');
   });
@@ -97,7 +97,7 @@ describe('after each exchange (ft_1_21.AC7)', () => {
     expect(needs.slice(0, 4)).toEqual([undefined, undefined, undefined, undefined]);
     // then 65, 70, 75, 80, 85 per cent of 5 notes: 4, 4, 4, 4, 5
     expect(needs.slice(4)).toEqual([4, 4, 4, 4, 5]);
-    expect(tugFactLine({ ...tugFact({ notes: 5, firstTryCorrect: 4 }, ['wrong-letter']), need: 5 }, 'wait')).toBe('4 of 5 notes right. Needed 5 of 5. Another letter');
+    expect(tugFactLine({ ...tugFact({ notes: 5, firstTryCorrect: 4 }, ['wrong-letter']), need: 5 }, 'wait')).toBe('4 of 5 notes right. Needed 5 of 5. You played another letter');
   });
 });
 

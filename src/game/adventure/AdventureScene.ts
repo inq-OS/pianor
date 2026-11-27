@@ -40,7 +40,7 @@ import { DEFAULT_PRESENCE_RULES } from '../../core/island/presenceRules';
 import { giveKeepsake, keptToday, wandererVerdict } from '../../core/island/wanderer';
 import { pieceTitle } from '../../core/text/pieceTitle';
 import { visitable } from '../visit/islandVisit';
-import { standPanel } from '../../core/layout/standPanel';
+import { WORDED_GAP, standPanel } from '../../core/layout/standPanel';
 import { panelBitmap } from '../ui/pixel/frames';
 import { learnBook } from '../ui/pixel/standArt';
 import type { ToolbarItem } from '../ui/pixel/PixelScene';
@@ -911,7 +911,7 @@ export class AdventureScene extends PixelScene {
    * wanderer, and is ignored. AX-3 provisional: the words under the pictures.
    */
   private wandererBoard(at: Rect, id: string, piece: string): void {
-    const { panel, cells } = standPanel(at, 2);
+    const { panel, cells } = standPanel(at, 2, WORDED_GAP);
     const answered = () => this.time.now - this.wandererAskedAt >= DOUBLE_TAP_MS;
     const outside = this.add.rectangle(0, 0, this.px.width, this.px.height, 0x000000, 0).setOrigin(0, 0).setInteractive();
     outside.on('pointerup', () => { if (answered()) this.closeWanderer(); });

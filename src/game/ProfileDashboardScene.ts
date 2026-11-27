@@ -26,7 +26,7 @@ import { daySky } from './ui/pixel/windMotion';
 import type { SceneLook } from '../core/sky/sceneLook';
 import { contextOf } from './context';
 import { startScene } from './scenes';
-import { standPanel } from '../core/layout/standPanel';
+import { WORDED_GAP, standPanel } from '../core/layout/standPanel';
 import { pieceLearned } from '../core/learn/route';
 import { phoneCall, type PhoneCall } from '../core/curriculum/phoneCall';
 import { phoneAtRest, phoneRinging } from './ui/pixel/phoneArt';
@@ -732,7 +732,7 @@ export class ProfileDashboardScene extends PixelScene {
    */
   private kiurAsks(at: Rect): PixelButton[] {
     const choices = [{ id: 'learn', name: 'room.kiur.learn', picture: learnBook }, { id: 'tug', name: 'room.kiur.tug', picture: tugRope }] as const;
-    const { panel, cells } = standPanel(at, choices.length);
+    const { panel, cells } = standPanel(at, choices.length, WORDED_GAP);
     const outside = this.add.rectangle(0, 0, this.px.width, this.px.height, 0x000000, 0).setOrigin(0, 0).setInteractive();
     outside.on('pointerup', () => this.showKiur(false));
     this.root.add(outside);
@@ -1075,8 +1075,8 @@ export class ProfileDashboardScene extends PixelScene {
   }
 
   /**
-   * The question behind the corner Back (AX-3 provisional: one question, two answers): change the player? Yes goes to the
-   * player list, No (the keyboard's first) stays. The room darkens behind it, and a press there or Esc answers No.
+   * The question behind the corner Back (AX-3 provisional: one question, two answers): change the player? No, on the left,
+   * the keyboard's first and the louder, stays; Yes goes to the player list. The room darkens behind it, and a press there or Esc answers No.
    */
   private leaveQuestion(): PixelButton[] {
     const { width, height } = this.px;
@@ -1089,10 +1089,11 @@ export class ProfileDashboardScene extends PixelScene {
     this.root.add(new PixelImage(this, x, y, panelBitmap(w, h, 'panel')).setInteractive().setName('leavePanel'));
     this.label(0, y + CARD_PAD + 2, ask, C.white).centerAt(x + w / 2);
     const row = y + h - CARD_PAD - BAR_BUTTON_HEIGHT / 2;
-    const answer = (dx: number, key: TextKey, onClick: () => void) => this.button({ x: x + w / 2 + dx, y: row, width: LEAVE.answer, height: BAR_BUTTON_HEIGHT, label: t(key), onClick });
-    // No first, so the keyboard starts on staying
-    const no = answer(LEAVE.answer / 2 + 4, 'room.leave.no', () => this.showLeave(false));
-    const yes = answer(-LEAVE.answer / 2 - 4, 'room.leave.yes', () => startScene(this, 'profiles'));
+    const answer = (dx: number, key: TextKey, quiet: boolean, onClick: () => void) =>
+      this.button({ x: x + w / 2 + dx, y: row, width: LEAVE.answer, height: BAR_BUTTON_HEIGHT, label: t(key), ...(quiet ? { look: 'card' as const } : {}), onClick });
+    // No on the left and first, so the keyboard starts on staying; Yes is the quieter dark card
+    const no = answer(-LEAVE.answer / 2 - 4, 'room.leave.no', false, () => this.showLeave(false));
+    const yes = answer(LEAVE.answer / 2 + 4, 'room.leave.yes', true, () => startScene(this, 'profiles'));
     return [no, yes];
   }
 }

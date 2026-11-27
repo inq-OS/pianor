@@ -183,8 +183,8 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
 
   test('ft_1_21.AC7 a neighbour key and a wrong letter each say their reason after the phrase', async ({ page }) => {
     const errors = await openTug(page);
-    expect((await round(page, 'neighbour')).saying).toBe('0 of 5 notes right. The key next door');
-    expect((await round(page, 'letter')).saying).toBe('0 of 6 notes right. Another letter');
+    expect((await round(page, 'neighbour')).saying).toBe('0 of 5 notes right. You played the key next door');
+    expect((await round(page, 'letter')).saying).toBe('0 of 6 notes right. You played another letter');
     await page.keyboard.press('Escape');
     await expect.poll(() => tug(page)).toBeNull();
     expectNoErrors(errors);
@@ -341,7 +341,7 @@ test.describe('Kiur the trainer in the room (ft_1_21.AC14)', () => {
     // no character met: he trains all the same
     await pressKiur(page);
     expect(await roomTug(page)).toMatchObject({ who: 'character', standing: 0, level: 1 });
-    expect(await roomRound(page, WRONG)).toMatchObject({ standing: -1, saying: '0 of 5 notes right. Another letter' });
+    expect(await roomRound(page, WRONG)).toMatchObject({ standing: -1, saying: '0 of 5 notes right. You played another letter' });
     await roomRound(page, WRONG);
     await expect.poll(async () => (await roomTug(page))?.outcome).toBe('lost');
     await expect.poll(async () => (await roomTug(page))?.saying).toContain('Practice the piece more');

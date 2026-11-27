@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STAND_PICTURE, standPanel } from './standPanel';
+import { STAND_PICTURE, WORDED_GAP, standPanel } from './standPanel';
 import type { Rect } from './rect';
 
 const inside = (inner: Rect, outer: Rect) => inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w && inner.y + inner.h <= outer.y + outer.h;
@@ -38,5 +38,12 @@ describe("the stand's panel of pictures (ft_1_08.AC11)", () => {
       const { panel, cells } = standPanel({ x: 3, y: 9, w: 301, h: 117 }, n);
       for (const r of [panel, ...cells]) for (const v of [r.x, r.y, r.w, r.h]) expect(Number.isInteger(v)).toBe(true);
     }
+  });
+
+  it('a board whose pictures have their words under them keeps a wider gap, so two words never read as one phrase', () => {
+    const room = { x: 0, y: 0, w: 320, h: 150 };
+    const [a, b] = standPanel(room, 2, WORDED_GAP).cells;
+    expect(b!.x - (a!.x + a!.w)).toBe(WORDED_GAP);
+    expect(WORDED_GAP).toBeGreaterThanOrEqual(20);
   });
 });

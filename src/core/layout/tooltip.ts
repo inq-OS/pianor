@@ -5,6 +5,8 @@ export const TOOLTIP_DELAY_MS = 600;
 
 /** Gap between a button and its tooltip, and the least margin to the screen's edge, in art pixels. */
 const GAP = 2;
+/** The least room between a bubble and the screen's left or right edge, in art pixels, so its frame never runs against the edge. */
+const SIDE = 6;
 
 /**
  * Where a tooltip of `size` goes for the button `anchor`: centred under it, or above it when there is no room below,
@@ -21,6 +23,6 @@ export function tooltipBox(anchor: Rect, size: { w: number; h: number }, screen:
   const high = above >= top ? above : overTop ? top : fitsBelow ? below : above;
   const y = prefer === 'above' ? high : fitsBelow ? below : above;
   const centred = Math.round(anchor.x + anchor.w / 2 - size.w / 2);
-  const x = Math.max(GAP, Math.min(screen.w - GAP - size.w, centred));
+  const x = Math.max(SIDE, Math.min(screen.w - SIDE - size.w, centred));
   return { x, y, w: size.w, h: size.h };
 }
