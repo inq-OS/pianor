@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { midiToSpelling, type Spelling } from '../chart/pitch';
-import { defaultNoteNaming, noteLabel } from './noteName';
+import { chordNotesLabel, defaultNoteNaming, noteLabel } from './noteName';
 
 const sp = (step: Spelling['step'], alter: number, octave = 4): Spelling => ({ step, alter, octave });
 
@@ -88,5 +88,13 @@ describe('the default letter naming of a new player (ft_0_18, item 7)', () => {
   it('Estonian players start with H, English players with B', () => {
     expect(defaultNoteNaming('et')).toBe('H');
     expect(defaultNoteNaming('en')).toBe('B');
+  });
+});
+
+describe('chordNotesLabel: the names of a chord in one label (core_09.AC6)', () => {
+  it('core_09.AC6 joins the names low to high with a space, not a slash, which reads like a slash chord', () => {
+    expect(chordNotesLabel([sp('C', 1), sp('E', 0), sp('G', 1)], 'B')).toBe('C# E G#');
+    expect(chordNotesLabel([sp('B', -1), sp('D', 0), sp('F', 0)], 'H')).toBe('B D F');
+    expect(chordNotesLabel([sp('C', 0)], 'B')).toBe('C');
   });
 });

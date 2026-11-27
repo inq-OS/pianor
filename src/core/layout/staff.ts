@@ -17,7 +17,7 @@ import { tupletOf, writtenDurOf } from '../chart/tuplets.ts';
 import { NOTE_TICKS, PPQ, fullBarTicks, noteLengthOf } from '../chart/time.ts';
 import { tieLinks } from '../chart/ties.ts';
 import { beatTicksOf, planBeams, type BeamInput, type BeamRun } from './beams.ts';
-import { noteLabel, type NoteNaming } from '../text/noteName.ts';
+import { chordNotesLabel, noteLabel, type NoteNaming } from '../text/noteName.ts';
 import { ACCIDENTAL_BOX, accidentalColumns, accidentalKind, keyChangeSigns, keySignaturePositions, signRooms } from './accidentals.ts';
 import type { NoteValue, StaffLayoutOptions, BarSpacing, StaffReserve, NoteGlyph, GraceGlyph, RestGlyph, BeamGlyph, TieGlyph, SlurGlyph, TupletGlyph, EndingGlyph, KeyAccidentalGlyph, StaffInfo, SystemLayout, BarLayout, BarRoom, TimeSignatureLayout, StaffLayout } from './staffTypes.ts';
 
@@ -1001,8 +1001,8 @@ function chordGlyphs(
       scoreY: 0,
     };
   });
-  // a chord's names are joined with a slash (C#/E/G), so a sharp or flat does not run into the next name
-  if (group.length > 1) members[0]!.label = group.map((e) => noteLabel(e.note.spelling, naming)).join('/');
+  // a chord's names are one label, low to high, joined with a space (C# E G)
+  if (group.length > 1) members[0]!.label = chordNotesLabel(group.map((e) => e.note.spelling), naming);
   return members;
 }
 
@@ -1152,14 +1152,14 @@ function layoutStaffNotes(p: Placer, staffSpec: StaffSpec, staffIndex: number, r
     if (members.length > 0 && chords.filter((c) => chart.notes[c[0]!.index]!.tick === tick).length > 1) {
       const sorted = [...members].sort((a, b) => a.position - b.position);
       const named = sorted.filter((g) => !continuations.has(g.index));
-      const names = named.map((g) => noteLabel(chart.notes[g.index]!.spelling, p.naming));
+      const label = chordNotesLabel(named.map((g) => chart.notes[g.index]!.spelling), p.naming);
       const top = sorted[sorted.length - 1]!;
       for (const g of sorted) {
         g.label = '';
         if (g !== top) g.finger = null;
       }
       // the names go on the lowest head that has one (a tied-to head names nothing)
-      if (named.length > 0) named[0]!.label = names.join('/');
+      if (named.length > 0) named[0]!.label = label;
       top.finger = continuations.has(top.index) ? null : chart.notes[top.index]!.finger ?? null;
     }
     nameTheChord(p, members);

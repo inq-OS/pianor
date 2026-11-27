@@ -28,3 +28,11 @@ export function noteLabel(spelling: Spelling, naming: NoteNaming): string {
 export function defaultNoteNaming(lang: Language): NoteNaming {
   return lang === 'et' ? 'H' : 'B';
 }
+
+/**
+ * The names of a chord's notes in one hint label, low to high (core_09.AC6): joined with a space, so a sharp or flat does
+ * not run into the next name and nothing reads like a slash chord (C/E is "C over E").
+ */
+export function chordNotesLabel(spellings: readonly Spelling[], naming: NoteNaming): string {
+  return spellings.map((s) => noteLabel(s, naming)).join(' ');
+}
