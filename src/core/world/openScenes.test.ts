@@ -29,10 +29,10 @@ describe('a closed scene', () => {
 });
 
 describe('Keri as shipped', () => {
-  it('keeps every scene but the knoll closed to players, so the map is as it was', async () => {
+  it('opens to players only the scenes the maintainer confirmed: the knoll and the crossroads', async () => {
     const { loadWorld } = await import('./world');
     const keri = loadWorld((await import('../../../content/world/keri.json')).default);
-    expect(openScenes(keri.scenes ?? [])).toEqual(['knoll']);
+    expect(openScenes(keri.scenes ?? [])).toEqual(['knoll', 'crossroads']);
     expect(openScenes(keri.scenes ?? [], true)).toContain('terrace');
   });
 });
