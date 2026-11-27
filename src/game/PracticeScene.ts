@@ -1279,7 +1279,13 @@ export class PracticeScene extends PixelScene {
     this.guarded.setMuted(true);
     this.stopMetronome();
     const { fifths, mode } = this.chart.keyMap[0]!;
-    void openOverlay(this, 'circle', { key: { fifths, mode } }).then(() => this.fromDoor('back'));
+    // a note played under the circle chooses a key there, so the prompt to play is hidden while it is open, and back after
+    const said = this.playSession.message;
+    this.playSession.say('');
+    void openOverlay(this, 'circle', { key: { fifths, mode } }).then(() => {
+      this.fromDoor('back');
+      if (!this.leaving && !this.transport && this.playSession.message === '') this.playSession.say(said);
+    });
   }
 
   /** The beat dots in the bubble (core_13 rule 10): their tuning page over the piece; none in a draft preview. */

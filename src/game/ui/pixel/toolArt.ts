@@ -21,6 +21,13 @@ const DIGITS: Readonly<Record<string, readonly string[]>> = {
   '1': ['.k.', 'kk.', '.k.', '.k.', 'kkk'],
   '2': ['kk.', '..k', '.k.', 'k..', 'kkk'],
   '3': ['kk.', '..k', '.k.', '..k', 'kk.'],
+  '4': ['k.k', 'k.k', 'kkk', '..k', '..k'],
+  '5': ['kkk', 'k..', 'kk.', '..k', 'kk.'],
+  '6': ['.kk', 'k..', 'kkk', 'k.k', 'kkk'],
+  '7': ['kkk', '..k', '.k.', '.k.', '.k.'],
+  '8': ['kkk', 'k.k', 'kkk', 'k.k', 'kkk'],
+  '9': ['kkk', 'k.k', 'kkk', '..k', 'kk.'],
+  '0': ['kkk', 'k.k', 'k.k', 'k.k', 'kkk'],
 };
 
 const art = (rows: readonly string[]) => fromAscii(rows, LEGEND);
@@ -166,7 +173,7 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   write: art(['...w....ww', '...w...ww.', '...w..ww..', '...w.ww...', '...www....', '.wwww.....', 'wwwww.....', '.www......']),
   meter: art(['www', '..w', '.ww', '..w', 'www', 'w.w', 'w.w', 'www', '..w', '..w']),
   repeat: art(REPEAT),
-  /** The note trainer's step: stairs, beside the step's number. */
+  /** A trainer's step: stairs, beside the step's number or name (the strip's `ToolbarItem.value`). */
   steps: art(['.......www', '.......www', '....wwwwww', '....wwwwww', '.wwwwwwwww', '.wwwwwwwww']),
   noteNames: art(NOTE),
   noteNamesOn: noteWithName(),

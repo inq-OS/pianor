@@ -7,7 +7,7 @@ These notes are the painter's. The reference photographs of Keri and the referen
 
 ## What it is
 
-The southern port, at the slipway south of the lighthouse: the wider stone dock where most visitors land, the teacher among them. The north jetty (the docks scene) is the warden's and a few special characters'. Its place in the world model is the slipway's foot by the water, (34.5, -90) m from the lighthouse (`scenes` in `content/world/keri.json`), where the map draws its pier. AX-3 provisional: it opens at level 2, as the docks and the crossroads do.
+The southern port, at the slipway south of the lighthouse: the wider stone dock where most visitors land, the teacher among them. The north jetty (the docks scene) is the warden's and a few special characters'. Its place in the world model is the slipway's foot by the water, (34.5, -90) m from the lighthouse (`scenes` in `content/world/keri.json`), where the map draws its pier. It is closed until the maintainer opens it (d113).
 
 ## Direction for the picture
 

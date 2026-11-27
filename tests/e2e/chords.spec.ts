@@ -56,9 +56,9 @@ test.describe('chords in a piece', () => {
     await page.keyboard.press('KeyA');
     const lines = () => page.evaluate(() => {
       const view = window.__game.scene.getScene('practice').playSession.staffView as unknown as { labels: { text: string }[]; nameLabels: ({ text: string } | null)[] };
-      return view.labels.map((l, i) => `${l.text}|${view.nameLabels[i]?.text ?? ''}`).filter((l) => l.includes('/'));
+      return view.labels.map((l, i) => `${l.text}|${view.nameLabels[i]?.text ?? ''}`).filter((l) => l.includes(' '));
     });
-    await expect.poll(lines).toEqual(expect.arrayContaining(['C/E/G|C', 'D/F/A|d', 'C/Eb/Gb/Bb|c7b5', 'C/F/A|F']));
+    await expect.poll(lines).toEqual(expect.arrayContaining(['C E G|C', 'D F A|Dm', 'C Eb Gb Bb|Cm7b5', 'C F A|F']));
     expectNoErrors(errors);
   });
 });

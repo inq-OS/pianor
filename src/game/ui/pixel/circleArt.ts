@@ -23,8 +23,11 @@ const PLATE_SIDE = 1.6;
 const PLATE_EDGE = -0.5;
 
 export interface WheelMarks {
-  /** The step and ring chosen on the circle: its cell and its count's plate are gold. */
-  selected: { step: number; ring: CircleRing } | null;
+  /**
+   * The step and ring chosen on the circle: its cell and its count's plate are gold. On a step with two spellings `fifths`
+   * names the one chosen: only its half of the major cell and of the bottom plate is gold, the other half stays plain.
+   */
+  selected: { step: number; ring: CircleRing; fifths?: number } | null;
   /** The step of the piece's key (rule 3): its plate polished pale, and a red bow tied on the rim beyond it. */
   marked: number | null;
 }
@@ -77,6 +80,11 @@ function pixelAt(dx: number, dy: number): Pixel {
 function isChosen(marks: WheelMarks, step: number, ring: CircleRing | 'count'): boolean {
   // the count belongs to both keys of a step: a chosen minor lights its plate as a chosen major does
   return marks.selected !== null && marks.selected.step === step && (ring === 'count' || marks.selected.ring === ring);
+}
+
+/** Whether the half of a two-spelling cell or plate that holds `fifths` is the spelling chosen (always, where no spelling is named). */
+function chosenHalf(marks: WheelMarks, fifths: number | undefined): boolean {
+  return marks.selected?.fifths === undefined || fifths === undefined || marks.selected.fifths === fifths;
 }
 
 /** The red bow tied on the rim at the piece's key, drawn upright whatever the step: two loops, a knot, two short tails. */
@@ -145,7 +153,12 @@ function rim(p: Pixel, layout: CircleLayout, outer: number, marks: WheelMarks): 
   // a plate with two counts (the bottom) is wider than its step and covers the studs beside it
   const sides = step.signs.length > 1 ? Infinity : Math.abs(p.off) - PLATE_SIDE;
   const inset = Math.min(halfWidth - Math.abs(p.dx - sx), PLATE_HALF - Math.abs(p.dy - sy), sides, p.r - major - PLATE_EDGE, edge - PLATE_EDGE - p.r);
-  if (inset > -0.5) return plate(p, sx, sy, inset, marks);
+  if (inset > -0.5) {
+    // the bottom plate holds two counts side by side: a thin line parts them, and only the chosen one's half lights
+    if (step.signs.length > 1 && inset >= 0.5 && Math.abs(p.dx - sx) < 0.5) return LINE;
+    const half = step.signs.length > 1 ? step.fifths[p.dx > sx ? 1 : 0] : undefined;
+    return plate(p, sx, sy, inset, marks, chosenHalf(marks, half));
+  }
   // a stud on each spoke, in the rim's middle
   const stud = Math.hypot(p.off, p.along - middle);
   if (stud < 1.1) return stud < 0.5 ? C.goldLight : C.gold;
@@ -159,9 +172,9 @@ function rim(p: Pixel, layout: CircleLayout, outer: number, marks: WheelMarks): 
 }
 
 /** A brass plate, upright: a dark line round it, its top and left edges lit, its bottom and right in shade; pale at the piece's key, gold when chosen. */
-function plate(p: Pixel, sx: number, sy: number, inset: number, marks: WheelMarks): number {
+function plate(p: Pixel, sx: number, sy: number, inset: number, marks: WheelMarks, half = true): number {
   if (inset < 0.5) return LINE;
-  const chosen = isChosen(marks, p.step, 'count');
+  const chosen = half && isChosen(marks, p.step, 'count');
   const piece = marks.marked === p.step;
   const [lit, face, shade] = chosen ? [C.goldLight, C.gold, C.goldDark] : piece ? [C.white, C.cream, C.buffLight] : [C.buffLight, C.buff, C.buffDark];
   if (inset < 1.5) return p.dy - sy > 1 || p.dx - sx > 2 ? shade : lit;
@@ -191,7 +204,13 @@ function inside(p: Pixel, layout: CircleLayout, marks: WheelMarks): number {
   if (p.along > 0 && Math.abs(p.off) < 1) return facing(p.spoke + (Math.sign(p.off) * Math.PI) / 2) > 0 ? C.brownLight : C.brown;
   if (Math.abs(p.r - minor) < 0.5) return C.ink;
   const ring: CircleRing = p.r < minor ? 'minor' : 'major';
-  if (isChosen(marks, p.step, ring)) return cellEdge(p, ring, layout) ? C.goldDark : C.gold;
+  // a two-spelling step's major cell is two halves, one name over the other: a thin line between them, the chosen half lit
+  const step = layout.steps[p.step]!;
+  const parted = ring === 'major' && step.fifths.length > 1;
+  const split = step.majorAt.y - layout.cy;
+  if (parted && Math.abs(p.dy - split) < 0.5 && p.r < major - 1.5 && p.r > minor + 1.5) return C.buffDeep;
+  const half = parted ? step.fifths[p.dy > split ? 1 : 0] : undefined;
+  if (isChosen(marks, p.step, ring) && chosenHalf(marks, half)) return cellEdge(p, ring, layout) || (parted && Math.abs(p.dy - split) < 2) ? C.goldDark : C.gold;
   // the paper a tone darker where it meets the rim and the boss, as a sheet under wood is
   if (p.r > major - 2 || p.r < hub + 2) return C.buff;
   return ring === 'minor' ? C.buffLight : C.cream;

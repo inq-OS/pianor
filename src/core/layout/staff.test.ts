@@ -719,7 +719,7 @@ describe('chords on one staff (core_09.AC1)', () => {
   it('shows one name label under the chord (low to high) and the top finger above it (core_09.AC1)', () => {
     const chart = parse({ ...chord([['C', 4], ['E', 4], ['G', 4]]), notes: chord([['C', 4], ['E', 4], ['G', 4]]).notes.map((n, i) => ({ ...n, finger: [1, 3, 5][i] })) });
     const [c, e, g] = heads(lay(chart));
-    expect([c!.label, e!.label, g!.label]).toEqual(['C/E/G', '', '']);
+    expect([c!.label, e!.label, g!.label]).toEqual(['C E G', '', '']);
     expect([c!.finger, e!.finger, g!.finger]).toEqual([null, null, 5]);
     expect(c!.labelY).toBeGreaterThan(c!.y);
     expect(g!.fingerY).toBeLessThan(c!.stem!.y2 + 1);

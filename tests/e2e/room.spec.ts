@@ -66,11 +66,11 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_19.AC2 ft_1_19.AC5 the crossroads is shut on the map for a new player (level 2); opened, its grass, sea and clouds move and Back returns to the map', async ({ page }) => {
+  test('ft_1_19.AC2 ft_1_19.AC5 the crossroads is shut on the map while it is closed; opened, its grass, sea and clouds move and Back returns to the map', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
-    // painted on the map, but no button until the student's level opens it (AX-3 provisional: level 2)
+    // painted on the map, but no button while it is closed (content/world/keri.json)
     expect(await sceneButton(page, 'keriMap', 'Crossroads')).toBe(-1);
     await page.evaluate(() => {
       window.__game.scene.stop('keriMap');
@@ -85,11 +85,11 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_19.AC2 ft_1_19.AC5 the docks are painted on the map but locked for a new player; opened, their sea, clouds and lamp move, and Back returns to the map', async ({ page }) => {
+  test('ft_1_19.AC2 ft_1_19.AC5 the docks are painted on the map but shut while closed; opened, their sea, clouds and lamp move, and Back returns to the map', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
-    // level 2 opens the docks: a new player at level 1 has no button for them
+    // closed: no button for them
     expect(await sceneButton(page, 'keriMap', 'The jetty')).toBe(-1);
     await page.evaluate(() => { const g = window.__game; g.scene.stop('keriMap'); g.scene.start('docks'); });
     await waitForScene(page, 'docks');
@@ -101,11 +101,11 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_19.AC2 ft_1_19.AC5 the terrace is locked for a new player; opened, its clouds, lantern and pennant move, and Back returns to the map', async ({ page }) => {
+  test('ft_1_19.AC2 ft_1_19.AC5 the terrace is shut while closed; opened, its clouds, lantern and pennant move, and Back returns to the map', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
-    // level 2 opens the terrace: a new player at level 1 has no button for it
+    // closed: no button for it
     expect(await sceneButton(page, 'keriMap', 'The terrace')).toBe(-1);
     await page.evaluate(() => { const g = window.__game; g.scene.stop('keriMap'); g.scene.start('terrace'); });
     await waitForScene(page, 'terrace');
@@ -293,6 +293,9 @@ test.describe('the player room', () => {
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Your card'));
     await expect.poll(() => sceneTexts(page, 'profile')).toContain('Level 1');
     expect((await sceneTexts(page, 'profile')).some((t) => /XP/.test(t))).toBe(true);
+    // the total XP, and a bar with the XP toward the next level, so a level-up never looks like XP lost
+    expect(await sceneTexts(page, 'profile')).toContain('0 XP');
+    expect((await sceneTexts(page, 'profile')).some((t) => /^0 \/ \d+ to level 2$/.test(t))).toBe(true);
     expectNoErrors(errors);
   });
 

@@ -1,9 +1,9 @@
-import { keyLabel, keyNames } from '../core/editor/key';
-import { withFlat } from '../core/layout/circleOfFifths';
+import { keyName } from '../core/editor/key';
 import type { WrongReason } from '../core/judge/types';
 import { layoutForSettings } from '../core/layout/staffSettings';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
-import { SHAPE_LIVES, SHAPE_XP_PER_NOTE, ShapeRound, shapeChart, type ShapeChoice } from '../core/trainer/shapeTrainer';
+import { SHAPE_LIVES, SHAPE_XP_PER_NOTE, ShapeRound, shapeChart, wrongWordsKey, type ShapeChoice } from '../core/trainer/shapeTrainer';
+import { levelReached, roundResultLine } from '../core/trainer/trainerResult';
 import { switcherChart } from '../core/trainer/scaleSwitcher';
 import chordsJson from '../../content/trainer/chords.json';
 import { nameChord } from '../core/trainer/chordNamer';
@@ -19,7 +19,7 @@ import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { StaffView } from './ui/staff/StaffView';
 import { watchKeyBash } from './practice/bashDoor';
 
-/** The words under the hearts: the switcher's key, a wrong octave, or the round played through. */
+/** The words under the hearts: the switcher's key, why a key was wrong, or the round's result. */
 const WORDS_Y = 26;
 /** The staff starts under the hearts and the words, in art pixels, and fills the rest of the main area. */
 const STAFF_TOP = 36;
@@ -27,8 +27,9 @@ const STAFF_TOP = 36;
 const WRONG_FLASH_MS = 400;
 /** After a round ends a key starts the next one, but not the key that ended it (ms of wall time). */
 const AGAIN_PAUSE_MS = 1000;
-/** The live chord name of the keys held (slice D): at the left, level with the words. */
+/** The live chord name of the keys held (slice D): at the left, level with the words; a new level at the right. */
 const HELD_X = 8;
+const LEVEL_RIGHT = 8;
 const CHORDS = loadChordContent(chordsJson);
 
 /**
@@ -54,7 +55,9 @@ export class ShapeTrainerScene extends PixelScene {
   private round!: ShapeRound;
   private staff: StaffView | null = null;
   /** The last key was wrong: its reason, and the names stand on the notes; null until then. */
-  private wrong: { reason: WrongReason } | null = null;
+  private wrong: { reason: WrongReason; direction: 'higher' | 'lower' } | null = null;
+  /** The level this round's XP took the player up to, shown until the next round; null when it stayed. */
+  private level: number | null = null;
   private overAtMs: number | null = null;
   private unsubscribe: (() => void) | null = null;
   private flashTimer: Phaser.Time.TimerEvent | null = null;
@@ -90,14 +93,17 @@ export class ShapeTrainerScene extends PixelScene {
     this.sky();
     const state = this.round.state();
     for (const heart of heartRow(this, width, state.lives, SHAPE_LIVES)) this.root.add(heart);
-    // AX-3 provisional: as the note trainer, only the wrong octave gets words; the names on the notes show the rest
     const play = this.round.play();
-    if (state.outcome === 'won') this.label(0, WORDS_Y, t('shapes.won', { n: this.round.chart.notes.length }), C.white).centerAt(width / 2);
+    // after the round, its result in one line: the notes played right of the round's, and the XP (won or lost)
+    if (state.outcome !== 'playing') this.label(0, WORDS_Y, roundResultLine({ unit: 'notes', right: state.right, total: this.round.chart.notes.length, xp: state.xp }), C.white).centerAt(width / 2);
     else if (this.switcher) {
       // the key of the bar the cursor is in: the name changes as the bar does (AC3)
-      const key = withFlat(keyNames(this.keyOnScreen(), profiles.noteNaming).major);
-      this.label(0, WORDS_Y, t('circle.major', { key }), C.white).centerAt(width / 2);
-    } else if (this.wrong?.reason === 'wrong-octave') this.label(0, WORDS_Y, t('theory.wrongOctave'), C.white).centerAt(width / 2);
+      this.label(0, WORDS_Y, keyName(this.keyOnScreen(), 'major', profiles.noteNaming), C.white).centerAt(width / 2);
+    } else if (this.wrong) this.label(0, WORDS_Y, t(wrongWordsKey(this.wrong.reason, this.wrong.direction)), C.white).centerAt(width / 2);
+    if (this.level !== null) {
+      const level = this.label(0, WORDS_Y, t('trainerResult.level', { level: this.level }), C.gold);
+      level.x = width - LEVEL_RIGHT - level.width;
+    }
 
     const top = this.mainTop + STAFF_TOP * scale;
     const height = Math.max(1, (this.mainRows - STAFF_TOP - 4) * scale);
@@ -115,6 +121,7 @@ export class ShapeTrainerScene extends PixelScene {
     this.stopListening();
     this.roundCount += 1;
     this.held = null;
+    this.level = null;
     if (this.switcher) {
       const { chart, keys } = switcherChart(`${Date.now()}-${this.roundCount}`, this.choice.hand);
       this.round = new ShapeRound(chart);
@@ -143,9 +150,9 @@ export class ShapeTrainerScene extends PixelScene {
         if (heldChanged) this.redraw();
         return;
       }
-      if (result.verdict === 'wrong') this.wrong = { reason: result.reason };
+      if (result.verdict === 'wrong') this.wrong = { reason: result.reason, direction: result.direction };
       // the XP of a right note is saved at once, so a lost round cannot take it away
-      else if (result.verdict === 'correct') void contextOf(this).profiles.addTrainerXp(SHAPE_XP_PER_NOTE);
+      else if (result.verdict === 'correct') this.addXp(SHAPE_XP_PER_NOTE);
       if (this.round.state().outcome !== 'playing') this.overAtMs = performance.now();
       this.redraw();
       if (result.verdict === 'wrong') this.flash();
@@ -158,6 +165,14 @@ export class ShapeTrainerScene extends PixelScene {
     if (!this.switcher) return this.choice.fifths;
     const bar = this.round.chart.notes[this.round.play().awaiting[0] ?? 0]?.bar ?? 0;
     return this.barKeys[bar] ?? this.choice.fifths;
+  }
+
+  /** Save `xp` to the player's trainer XP; a level it reaches is shown until the next round. */
+  private addXp(xp: number): void {
+    const { profiles } = contextOf(this);
+    const before = profiles.progress.level.level;
+    void profiles.addTrainerXp(xp);
+    this.level = levelReached(before, profiles.progress.level.level) ?? this.level;
   }
 
   /** The awaited notes flash red for a moment after a wrong key. */
@@ -194,9 +209,10 @@ export class ShapeTrainerScene extends PixelScene {
     const shapeLabel = this.switcher ? 'shapes.switcher' : choice.shape === 'scale' ? 'shapes.scale' : 'shapes.triad';
     const nextShape = () => (this.switcher ? this.choose({ shape: 'scale' }, false) : choice.shape === 'scale' ? this.choose({ shape: 'triad' }) : this.choose({}, true));
     const items: ToolbarItem[] = [
-      ...(this.switcher ? [] : [{ label: displayText(keyLabel(choice.fifths, choice.mode, contextOf(this).profiles.noteNaming)), tooltip: t('shapes.keyTip'), onClick: () => this.chooseKey() }]),
+      ...(this.switcher ? [] : [{ label: displayText(keyName(choice.fifths, choice.mode, contextOf(this).profiles.noteNaming)), tooltip: t('shapes.keyTip'), onClick: () => this.chooseKey() }]),
       { label: displayText(t(shapeLabel)), tooltip: t('shapes.shapeTip'), onClick: nextShape },
-      { label: displayText(t(choice.hand === 'RH' ? 'shapes.rh' : 'shapes.lh')), tooltip: t('shapes.handTip'), onClick: () => this.choose({ hand: choice.hand === 'RH' ? 'LH' : 'RH' }) },
+      // the hand's picture before its word, so the button reads as a hand
+      { label: displayText(t(choice.hand === 'RH' ? 'shapes.rh' : 'shapes.lh')), value: displayText(t(choice.hand === 'RH' ? 'shapes.rh' : 'shapes.lh')), icon: choice.hand === 'RH' ? TOOL_ICONS.handRight : TOOL_ICONS.handLeft, tooltip: t('shapes.handTip'), onClick: () => this.choose({ hand: choice.hand === 'RH' ? 'LH' : 'RH' }) },
     ];
     if (this.round.state().outcome !== 'playing') items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), main: true, onClick: () => this.startRound() });
     return items;

@@ -8,7 +8,9 @@ import { parseChord, type Chord, type ChordContent } from './chordTrainer';
 
 /** The root a name is written with, by pitch class, when nothing tells it: AX-3 provisional, the spelling most often taught for each. */
 const MAJOR_ROOTS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'] as const;
-const MINOR_ROOTS = ['c', 'c#', 'd', 'eb', 'e', 'f', 'f#', 'g', 'g#', 'a', 'bb', 'b'] as const;
+const MINOR_ROOTS = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'G#', 'A', 'Bb', 'B'] as const;
+/** A quality whose third is minor (three semitones over the root) takes the minor spelling of its root. */
+const isMinor = (intervals: readonly number[]) => intervals.includes(3);
 /** The letters in the order of fifths: a key's sharps come on them from the left, its flats from the right. */
 const FIFTHS_ORDER: readonly Step[] = ['F', 'C', 'G', 'D', 'A', 'E', 'B'];
 const SHARP_SPELLING: readonly [Step, number][] = [['C', 0], ['C', 1], ['D', 0], ['D', 1], ['E', 0], ['F', 0], ['F', 1], ['G', 0], ['G', 1], ['A', 0], ['A', 1], ['B', 0]];
@@ -44,7 +46,7 @@ function writtenRoot(root: number, keys: readonly number[], hint: ChordHint | un
 /**
  * The chord `keys` (MIDI keys, any order, any octave, doubled notes allowed) make, or null. Every pitch class of the keys
  * must be the chord's and every one of the chord's must be there. Of the roots that fit, the lowest key's wins, so a
- * symmetric chord (augmented, diminished seventh) is named from its bass and a sixth chord over its root (C6, where a7 has
+ * symmetric chord (augmented, diminished seventh) is named from its bass and a sixth chord over its root (C6, where Am7 has
  * the same notes over A); else the first that fits, from the bass up. The root is spelled as `hint` tells (the notes as
  * written, else the key), else as it is most often taught.
  */
@@ -59,8 +61,8 @@ export function nameChord(content: Pick<ChordContent, 'qualities'>, keys: readon
       if (chord.size !== pcs.size || ![...pcs].every((pc) => chord.has(pc))) continue;
       const written = writtenRoot(root, keys, hint);
       const letter = written
-        ? (quality.minor ? written[0].toLowerCase() : written[0]) + (written[1] < 0 ? 'b' : written[1] > 0 ? '#' : '')
-        : (quality.minor ? MINOR_ROOTS : MAJOR_ROOTS)[root]!;
+        ? written[0] + (written[1] < 0 ? 'b' : written[1] > 0 ? '#' : '')
+        : (isMinor(quality.intervals) ? MINOR_ROOTS : MAJOR_ROOTS)[root]!;
       return parseChord(content, letter + quality.suffix);
     }
   }
@@ -69,10 +71,8 @@ export function nameChord(content: Pick<ChordContent, 'qualities'>, keys: readon
 
 /**
  * A chord's name as the staff's hint labels write a note (core_09.AC59): the root as a note label (b for a flat, the B or H
- * naming), a small letter for a minor quality, then the suffix. The trainers' `chordLabel` draws a flat sign in the pixel
- * font instead.
+ * naming), then the suffix (`Dm`, `Cm7b5`). The trainers' `chordLabel` draws a flat sign in the pixel font instead.
  */
 export function staffChordName(chord: Chord, naming: NoteNaming): string {
-  const root = noteLabel(chord.root, naming);
-  return (chord.minor ? root.slice(0, 1).toLowerCase() + root.slice(1) : root) + chord.suffix;
+  return noteLabel(chord.root, naming) + chord.suffix;
 }

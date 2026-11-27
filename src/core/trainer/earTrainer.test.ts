@@ -9,7 +9,9 @@ import {
   EAR_STAR_POINTS,
   earKeyAction,
   earLevelOf,
+  chooseEarStep,
   earRowFor,
+  earStepOf,
   isRepeatDue,
   pickQuestion,
   pointsForMisses,
@@ -68,6 +70,32 @@ describe('ear levels table (AC2)', () => {
   it('rejects an empty table and levels below 1', () => {
     expect(() => earRowFor([], 1)).toThrow(RangeError);
     expect(() => earRowFor(table, 0)).toThrow(RangeError);
+  });
+});
+
+describe('the step: any row, up or down, starting on the earned one (ft_1_10.AC13)', () => {
+  it('ft_1_10.AC13 with no choice the step is the row the ear level earned, the last row past the table', () => {
+    expect(earStepOf(1, null, 9)).toBe(1);
+    expect(earStepOf(4, null, 9)).toBe(4);
+    expect(earStepOf(12, null, 9)).toBe(9);
+  });
+
+  it('ft_1_10.AC13 a chosen step is used whatever the level: a lower one and a higher one alike (levels never lock)', () => {
+    expect(earStepOf(1, 8, 9)).toBe(8);
+    expect(earStepOf(6, 2, 9)).toBe(2);
+  });
+
+  it('ft_1_10.AC13 choosing the earned row follows the level again; any other row is kept', () => {
+    expect(chooseEarStep(3, 3, 9)).toBeNull();
+    expect(chooseEarStep(9, 12, 9)).toBeNull();
+    expect(chooseEarStep(5, 3, 9)).toBe(5);
+    expect(chooseEarStep(1, 3, 9)).toBe(1);
+  });
+
+  it('rejects a step outside the table', () => {
+    expect(() => chooseEarStep(0, 1, 9)).toThrow(RangeError);
+    expect(() => chooseEarStep(10, 1, 9)).toThrow(RangeError);
+    expect(() => earStepOf(1, 10, 9)).toThrow(RangeError);
   });
 });
 

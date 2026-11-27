@@ -15,7 +15,7 @@ export const INTRO_STARTED_FLAG = 'intro.started';
 /** What a spotlight can show in the room (the room's objects, the shield, Kiur on the bed) and on the practice screen. */
 export const ROOM_SPOTS = ['piano', 'door', 'stand', 'shield', 'kiur'] as const;
 export const PRACTICE_SPOTS = ['staff', 'note', 'listen', 'restart', 'back'] as const;
-/** On the map: the warden's house (the way back to the room) and the first scene the student's level has opened. */
+/** On the map: the warden's house (the way back to the room) and the first open scene. */
 export const MAP_SPOTS = ['house', 'place'] as const;
 export type MapSpot = (typeof MAP_SPOTS)[number];
 export type RoomSpot = (typeof ROOM_SPOTS)[number];

@@ -1,10 +1,21 @@
-// Covers ft_0_17.AC1, ft_0_17.AC2, ft_0_17.AC3, ft_0_17.AC4, ft_0_17.AC6.
+// Covers ft_0_17.AC1, ft_0_17.AC2, ft_0_17.AC3, ft_0_17.AC4, ft_0_17.AC6, ft_0_17.AC8, ft_0_17.AC9, ft_0_17.AC11, ft_0_17.AC12.
 // The player's room opens the note-name trainer from the stand's panel (ft_1_08.AC11): one note on the staff with its name hidden, a wrong press costs a life
 // (a heart goes grey) and puts the name on the note, three lost lives end the round (a key or the toolbar's loop starts a new
 // one), and the B/H letter setting. Almost no text on the screen: hearts, not "Lives: 3"; no hints.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { clickAndRedraw, clickButton, expectNoErrors, openFromStand, openGame, profileButton, playWithVirtualPiano, sceneTexts, totalXp, waitForScene } from './helpers';
+import { clickAndRedraw, clickButton, expectNoErrors, openFromStand, openGame, profileButton, playWithVirtualPiano as playTogether, sceneTexts, totalXp, waitForScene } from './helpers';
+
+/**
+ * Keys played one press after another: keys within a short window are one press (AC8), so each press waits a little
+ * longer than that window after the last.
+ */
+const playWithVirtualPiano = async (page: Page, midis: number[]) => {
+  for (const midi of midis) {
+    await page.waitForTimeout(60);
+    await playTogether(page, [midi]);
+  }
+};
 
 const target = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('noteTrainer') as unknown as { round: { target: number } }).round.target);
 
@@ -40,16 +51,16 @@ const lives = (page: Page) => page.evaluate(() => (window.__game.scene.getScene(
 test.describe('note-name trainer (ft_0_17)', () => {
   test('the room opens it, and the note name stays hidden until a wrong press', async ({ page }) => {
     const errors = await openTrainer(page);
-    // only the band's letter naming has a word (the player is in the room, ft_1_20.AC13); no title, hint or lives text
+    // only the band's step number and letter naming have words (the player is in the room, ft_1_20.AC13); no title, hint or lives text
     const texts = await sceneTexts(page, 'noteTrainer');
-    expect(texts).toEqual(['B']);
+    expect([...texts].sort()).toEqual(['1', 'B']);
     expect(await hearts(page)).toEqual({ lit: 3, total: 3 });
     // no note name is drawn while the student has not pressed a wrong key (AC1): the B on the toolbar is the letter switch
     expect(await page.evaluate(() => (window.__game.scene.getScene('noteTrainer') as unknown as { wrong: unknown }).wrong)).toBeNull();
     expectNoErrors(errors);
   });
 
-  test('a wrong press costs one heart and puts the name on the note; a right one earns XP (AC1, AC2, AC3)', async ({ page }) => {
+  test('a wrong press costs one heart and puts the name on the note; finding it then earns no XP, the next note read alone does (AC1, AC2, AC3, AC9)', async ({ page }) => {
     const errors = await openTrainer(page);
     const namesBefore = (await sceneTexts(page, 'noteTrainer')).filter(isNoteName).length;
     const midi = await target(page);
@@ -60,11 +71,46 @@ test.describe('note-name trainer (ft_0_17)', () => {
     expect((await sceneTexts(page, 'noteTrainer')).filter(isNoteName).length).toBe(namesBefore + 1);
 
     const before = await totalXp(page);
-    const next = await target(page);
-    await playWithVirtualPiano(page, [next]);
+    await playWithVirtualPiano(page, [await target(page)]);
     expect((await sceneTexts(page, 'noteTrainer')).filter(isNoteName).length).toBe(namesBefore);
-    // the right name's XP is saved to the profile at once (AC3)
+    // the name was given away: the note counts as found, with no XP (AC9)
+    expect(await totalXp(page)).toBe(before);
+    await playWithVirtualPiano(page, [await target(page)]);
+    // a right name read alone is saved to the profile at once (AC3)
     expect(await totalXp(page)).toBe(before + 10);
+    expectNoErrors(errors);
+  });
+
+  test('a wrong key slipped together with the right one is a right press (AC8)', async ({ page }) => {
+    const errors = await openTrainer(page);
+    const before = await totalXp(page);
+    const midi = await target(page);
+    await playTogether(page, [wrongKey(midi), midi]);
+    expect(await lives(page)).toBe(3);
+    expect(await totalXp(page)).toBe(before + 10);
+    expect(await target(page)).not.toBe(midi);
+    expectNoErrors(errors);
+  });
+
+  test('two wrong keys together cost one heart (AC8)', async ({ page }) => {
+    const errors = await openTrainer(page);
+    const midi = await target(page);
+    await playTogether(page, [wrongKey(midi), midi + 2 <= 96 ? midi + 2 : midi - 2]);
+    expect(await lives(page)).toBe(2);
+    expectNoErrors(errors);
+  });
+
+  test('a new player level reached in the trainer is said under the hearts (AC12)', async ({ page }) => {
+    const errors = await openTrainer(page);
+    // one right name (10 XP) short of the player's next level
+    const next = await page.evaluate(async () => {
+      const profiles = window.__game.registry.get('context').profiles as { progress: { level: { level: number; xpIntoLevel: number; xpForLevel: number } }; addTrainerXp(xp: number): Promise<unknown> };
+      const { level, xpIntoLevel, xpForLevel } = profiles.progress.level;
+      await profiles.addTrainerXp(xpForLevel - xpIntoLevel - 10);
+      return level + 1;
+    });
+    await playWithVirtualPiano(page, [await target(page)]);
+    await expect.poll(() => sceneTexts(page, 'noteTrainer')).toContain(`Level up! You are now level ${next}`);
     expectNoErrors(errors);
   });
 
@@ -86,8 +132,11 @@ test.describe('note-name trainer (ft_0_17)', () => {
     expect(await lives(page)).toBe(0);
     expect(await totalXp(page)).toBe(earned);
     expect(await hearts(page)).toEqual({ lit: 0, total: 3 });
+    // the round's result in one objective line until the next round (AC11)
+    expect(await sceneTexts(page, 'noteTrainer')).toContain('Right notes: 1, 10 XP');
     await clickButton(page, 'noteTrainer', await bandAction(page, 1));
     expect(await lives(page)).toBe(3);
+    expect(await sceneTexts(page, 'noteTrainer')).not.toContain('Right notes: 1, 10 XP');
     // Again keeps the XP already saved (AC3)
     expect(await totalXp(page)).toBe(earned);
     expectNoErrors(errors);
@@ -105,11 +154,12 @@ test.describe('note-name trainer (ft_0_17)', () => {
     expectNoErrors(errors);
   });
 
-  test('the step button cycles the four steps, each a new round', async ({ page }) => {
+  test('the step button shows its number and cycles the four steps, each a new round', async ({ page }) => {
     const errors = await openTrainer(page);
     for (const expected of [1, 2, 3, 0]) {
       await clickButton(page, 'noteTrainer', await bandAction(page, 0));
       expect(await stepIndex(page)).toBe(expected);
+      expect(await sceneTexts(page, 'noteTrainer')).toContain(String(expected + 1));
     }
     expectNoErrors(errors);
   });
