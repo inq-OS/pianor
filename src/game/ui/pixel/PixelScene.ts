@@ -14,16 +14,16 @@ import { ICONS } from './iconArt';
 import { TOOL_ICONS } from './toolArt';
 import { signOnly } from './itemArt';
 import { PALETTE, C } from './palette';
-import { createBitmap, recolor, type Bitmap } from './bitmap';
+import { createBitmap, flipX, recolor, type Bitmap } from './bitmap';
 import { LiveImage, PixelBar, PixelButton, PixelImage, PixelText, type PixelButtonOptions, type RgbaArt } from './PixelObjects';
-import { BACKPACK, BUBBLE_ALPHA, choicePatch, choicesSausage, CHOICE_SIZE, stripBitmap, wornChip } from './bubbleArt';
+import { BACKPACK, BUBBLE_ALPHA, choicePatch, choicesSausage, CHOICE_SIZE, stripBitmap, stripCell, wornChip } from './bubbleArt';
 import { LiveWaterPlayer } from './liveWater';
 import type { LiveWater } from './paint/live';
 import { TITLE_X, TOP_BAR } from './playBars';
 import { DESK_PALETTE, paintBeam, paintDesk } from './paint/desk';
 import { paintedOnce } from './paintedOnce';
 import { CARD_PALETTE, RIBBON_TAIL, paintCard, paintRibbon } from './paint/card';
-import { BOOK_PALETTE, REGISTER_PALETTE, paintBook } from './paint/book';
+import { BOOK_PALETTE, PAGE_TURN, REGISTER_PALETTE, pageCorners, paintBook, paintFolio, paintPageTurn } from './paint/book';
 import { RULING_PALETTE, inkField, paintRuling } from './paint/register';
 import { REGISTER, registerLayout, type RegisterLayout } from '../../../core/layout/register';
 import { contextOf } from '../../context';
@@ -120,6 +120,12 @@ const CELL_PAD = 4;
  * hovered, faded when not); full while the pointer or the keyboard focus is on them. AX-3 provisional: the exact amount.
  */
 const CORNER_FADED = 0.45;
+/** The cells a corner's plate reaches above and below its button's box (frameCorners' boxes start two cells down). */
+const CORNER_PLATE_GROW = 1;
+/** A book page's turned-up corner (the pager, ft_1_12 rule 1) takes a press this many cells on a side, its corner on the page's. */
+const FOLD = { size: 17 } as const;
+/** A book page's number stands this many cells over the page's foot. */
+const FOLIO_FOOT = 3;
 
 /** One choice in a drop-down menu (`openMenu`): a picture with its name as the tooltip, or a short label. */
 export interface MenuItem {
@@ -259,6 +265,11 @@ export abstract class PixelScene extends Phaser.Scene {
   private manyFingers = false;
   /** The door and the gear over the top corners with the band and no toolbar: faded until the pointer or the focus is on them. */
   private corners: PixelButton[] = [];
+  /**
+   * True on a screen whose card or frame reaches under the top corners (the score screen, the settings): the door and the
+   * gear stand on a strip cell of their own, never faded, so they read over the light parchment.
+   */
+  protected cornersOnCard = false;
   /** Everything of the scene goes in here, positions in art pixels. */
   protected root!: Phaser.GameObjects.Container;
   /** Buttons made with `button` (so a test can find and press them). */
@@ -324,6 +335,41 @@ export abstract class PixelScene extends Phaser.Scene {
   protected openBook(rect: Rect): PixelImage {
     const w = rect.w * ART_DETAIL, h = rect.h * ART_DETAIL;
     return this.fineImage(rect.x * ART_DETAIL, rect.y * ART_DETAIL, paintedOnce(`book:${w}x${h}`, () => paintBook(w, h)), BOOK_PALETTE);
+  }
+
+  /**
+   * The book's pager (ft_1_12 rule 1), on the piece book and every page written in it (the songs, ft_1_36 rule 10): no words. Each page has its number at its foot, printed as an old book prints it
+   * (`paintFolio`: the left page 1, 3, 5 ..., the right 2, 4, 6 ...); the left page's bottom corner is turned up while
+   * there is a page before, the right page's while there is one after. Under the pointer the corner rolls up further, as a
+   * hand lifts it, and a press on it turns the page. A corner with no page behind lies flat and takes no press.
+   */
+  protected bookPager(slice: { page: number; pages: number }, book: Rect, turn: (page: number) => void): void {
+    const fine = (v: number) => v * ART_DETAIL;
+    const at = pageCorners(fine(book.w), fine(book.h));
+    // the picture is big enough for the corner lifted; the press is on the corner itself, FOLD.size cells on a side
+    const size = PAGE_TURN.lifted + 16, press = fine(FOLD.size);
+    const resting = paintPageTurn(size, false), lifted = paintPageTurn(size, true);
+    const corners = [
+      { label: t('menu.previous'), x: fine(book.x) + at.left.x, y: fine(book.y) + at.left.y + 1 - size, flip: true, can: slice.page > 0, page: slice.page - 1 },
+      { label: t('menu.next'), x: fine(book.x) + at.right.x + 1 - size, y: fine(book.y) + at.right.y + 1 - size, flip: false, can: slice.page < slice.pages - 1, page: slice.page + 1 },
+    ];
+    for (const c of corners) {
+      const look = (up: boolean) => (c.flip ? flipX(up ? lifted : resting) : up ? lifted : resting);
+      const image = c.can ? this.fineImage(c.x, c.y, look(false), BOOK_PALETTE).setName(`pageTurn:${c.flip ? 'left' : 'right'}`) : null;
+      const pressX = c.flip ? c.x : c.x + size - press, pressY = c.y + size - press;
+      this.button({
+        x: (pressX + press / 2) / ART_DETAIL, y: (pressY + press / 2) / ART_DETAIL, width: FOLD.size, height: FOLD.size, label: c.label, tooltip: c.label, iconOnly: true,
+        picture: createBitmap(FOLD.size, FOLD.size), disabled: !c.can, onClick: () => turn(c.page),
+        onHover: (over) => image?.setBitmap(look(over), BOOK_PALETTE),
+      });
+    }
+    // the page numbers, each at the middle of its page's foot
+    const spine = book.x + book.w / 2;
+    [{ n: 2 * slice.page + 1, centre: (book.x + spine) / 2 }, { n: 2 * slice.page + 2, centre: (spine + book.x + book.w) / 2 }].forEach(({ n, centre }) => {
+      // painted a fine pixel to a cell, so its strokes are as heavy as the writing on the page
+      const folio = paintFolio(n);
+      this.root.add(new PixelImage(this, Math.round(centre - folio.width / 2), book.y + Math.round(at.right.y / ART_DETAIL) - FOLIO_FOOT - folio.height, folio, BOOK_PALETTE).setName(`pageNumber:${n}`));
+    });
   }
 
   /**
@@ -1071,12 +1117,18 @@ export abstract class PixelScene extends Phaser.Scene {
     const corners = frameCorners(this.px.width);
     // over the staff too: a screen whose staff fills the main area (practice, the piece maker) would hide them
     const layer = this.overStaff();
-    const touch = this.sys.game.device.input.touch && !this.sys.game.device.os.desktop;
+    // over a card they stand on a plate of the band's wood, solid like the band's buttons
+    const solid = (this.sys.game.device.input.touch && !this.sys.game.device.os.desktop) || this.cornersOnCard;
+    // the plate reaches a cell past the button's box above and below, so its inner field, inside the two-cell bevel, holds the 14-cell gear
+    const plate = (r: Rect) => {
+      if (this.cornersOnCard) layer.add(new PixelImage(this, r.x, r.y - CORNER_PLATE_GROW, stripCell(r.w, r.h + 2 * CORNER_PLATE_GROW)));
+    };
     const corner = (r: Rect, label: string, icon: Bitmap, onClick: () => void): PixelButton => {
+      plate(r);
       // the picture alone, no button behind it; never faded on a touch screen, which has no hover to show it
-      const button: PixelButton = this.buttonOn(layer, { ...rectCentre(r), label, picture: icon, onHover: (over) => button.setAlpha(over || touch ? 1 : CORNER_FADED), onClick });
-      button.setAlpha(touch ? 1 : CORNER_FADED);
-      if (!touch) this.corners.push(button);
+      const button: PixelButton = this.buttonOn(layer, { ...rectCentre(r), label, picture: icon, onHover: (over) => button.setAlpha(over || solid ? 1 : CORNER_FADED), onClick });
+      button.setAlpha(solid ? 1 : CORNER_FADED);
+      if (!solid) this.corners.push(button);
       return button;
     };
     const back = this.hasBack ? corner(corners.back, t('ui.back'), ICONS.quit, () => (this.backAction ?? (() => this.back()))()) : null;
@@ -1087,6 +1139,7 @@ export abstract class PixelScene extends Phaser.Scene {
     if (status) {
       left -= corners.settings.w + BACKPACK_GAP;
       const r = { ...corners.settings, x: left };
+      plate(r);
       // a picture, not a button: it does nothing when pressed, its tooltip says what it means
       const shown = this.buttonOn(layer, { ...rectCentre(r), label: status.label, tooltip: status.label, picture: status.lit ? status.icon : recolor(status.icon, { [C.white]: C.lock }), onClick: () => undefined });
       shown.setAlpha(status.lit ? 1 : CORNER_FADED);
@@ -1095,6 +1148,7 @@ export abstract class PixelScene extends Phaser.Scene {
     if (kept) {
       left -= corners.settings.w + BACKPACK_GAP;
       const r = { ...corners.settings, x: left };
+      plate(r);
       // the items are read at the press, so one won while the screen is open is there
       const bag: PixelButton = this.buttonOn(layer, {
         ...rectCentre(r), label: t('band.backpack'), picture: BACKPACK,

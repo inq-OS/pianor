@@ -21,7 +21,7 @@ describe('scoreLines (ft_1_12.AC4)', () => {
 
   it('one pass shows its accuracy once', () => {
     expect(texts(summary({ rounds: 1, roundAccuracy: [0.9], bestAccuracy: 0.9, lastAccuracy: 0.9, notesRight: 11, playedMs: 60_000 })).slice(0, 2)).toEqual([
-      'You played it to the end 1 time!',
+      'You played it to the end once!',
       'Your round: 90% right the first time',
     ]);
   });

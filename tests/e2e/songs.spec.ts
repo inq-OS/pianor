@@ -68,7 +68,8 @@ test.describe('songs made of pieces', () => {
     const rows = await rowLabels(page);
     expect(rows[0]).toBe('Morning Song');
     expect(rows.slice(1).map((r) => r.split(' ')[0])).toEqual(['1', '2', '2.1', '2.2', '2.3', '3']);
-    expect(rows[1]).toBe('1 Intro +2');
+    expect(rows[1]).toBe('1 Intro');
+    expect(await sceneTexts(page, 'song')).toContain('(+2)');
     expect(await sceneTexts(page, 'song')).toEqual(expect.arrayContaining(['1-82', '71-82', '13-36']));
     // the first key only shows the selection: Enter on opening never plays
     await press(page, 'Enter');
@@ -104,6 +105,57 @@ test.describe('songs made of pieces', () => {
     // the switches are this player's, kept across a reload
     await openGame(page);
     expect(await partsOff(page)).toEqual(['outro', 'verse-1', 'verse-2']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC11 a part inside a group that is off shows an empty box and says so when pressed, its own switch kept for when the group is on again', async ({ page }) => {
+    const errors = await openGame(page);
+    await openSongPage(page);
+    const box = (name: string) => page.evaluate((n) => {
+      const scene = window.__game.scene.getScene('song') as unknown as { buttons: { options: { label: string; align?: string; inkBox?: boolean } }[] };
+      // a row's switch is the ink box drawn just before its name
+      const at = scene.buttons.findIndex((b) => b.options.align === 'left' && b.options.label === n);
+      for (let i = at - 1; i >= 0; i--) if (scene.buttons[i]!.options.inkBox) return scene.buttons[i]!.options.label;
+      return null;
+    }, name);
+    // the second part is the group of the verses and the chorus: Space takes it out
+    await press(page, 'ArrowDown');
+    await press(page, 'ArrowDown');
+    await press(page, 'ArrowDown');
+    await press(page, ' ');
+    await expect.poll(() => partsOff(page)).toEqual(['middle']);
+    expect(await box('2.2 Chorus')).toBe('Off with its group');
+    // a press on a part inside it says why and changes nothing
+    await press(page, 'ArrowDown');
+    await press(page, 'ArrowDown');
+    await press(page, ' ');
+    expect(await sceneTexts(page, 'song')).toContain('Its group is off.');
+    expect(await partsOff(page)).toEqual(['middle']);
+    // the group on again: its parts are ticked as before
+    await press(page, 'ArrowUp');
+    await press(page, 'ArrowUp');
+    await press(page, ' ');
+    await expect.poll(() => partsOff(page)).toEqual([]);
+    expect(await box('2.2 Chorus')).toBe('In the song');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC7 Page Down turns the song page even after a key the rows do not take has shown the focus ring', async ({ page }) => {
+    const errors = await openGame(page);
+    await openSongPage(page);
+    const songPage = () => page.evaluate(() => (window.__game.scene.getScene('song') as unknown as { page: number }).page);
+    // the intro unfolded, so the rows take two pages; Down to the first verse, a blank with nothing to fold: Left goes to the focus ring
+    await press(page, 'ArrowDown');
+    await press(page, 'ArrowDown');
+    await press(page, 'ArrowRight');
+    expect(await page.evaluate(() => (window.__game.scene.getScene('song') as unknown as { items: unknown[]; perPage: number }).items.length > (window.__game.scene.getScene('song') as unknown as { perPage: number }).perPage)).toBe(true);
+    for (let i = 0; i < 4; i++) await press(page, 'ArrowDown');
+    await press(page, 'ArrowLeft');
+    expect(await page.evaluate(() => window.__game.scene.getScene('song').focusedButton !== null)).toBe(true);
+    await press(page, 'PageDown');
+    await expect.poll(songPage).toBe(1);
+    await press(page, 'PageUp');
+    await expect.poll(songPage).toBe(0);
     expectNoErrors(errors);
   });
 

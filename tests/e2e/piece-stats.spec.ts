@@ -30,8 +30,10 @@ test.describe('the stats of a piece on the score screen (ft_1_12.AC4)', () => {
     await openStats(page, 'little-steps');
     const texts = await sceneTexts(page, 'results');
     // Back is a door picture: its label is the tooltip, not drawn text
-    expect(texts).toEqual(expect.arrayContaining(['Little Steps', 'Not played yet. Play the whole piece, and your graph starts here!', '100%', '50%', '0%']));
-    expect(await graph(page)).toEqual({ shown: 0, total: 0, modes: [] });
+    expect(texts).toEqual(expect.arrayContaining(['Little Steps', 'Not played yet. Once you play it to the end, its graph shows here.']));
+    // no empty stars and no empty graph before the piece was played to the end (they would read as a grade of none)
+    expect(texts).not.toContain('100%');
+    expect(await page.evaluate(() => ({ graph: window.__game.scene.getScene('results').graph, stars: window.__game.scene.getScene('results').starsShown }))).toEqual({ graph: null, stars: false });
 
     await page.keyboard.press('Escape');
     await waitForScene(page, 'menu');
@@ -58,7 +60,7 @@ test.describe('the stats of a piece on the score screen (ft_1_12.AC4)', () => {
     await waitForScene(page, 'menu');
     await showMenuPageWith(page, 'Little Steps');
     await openStats(page, 'little-steps');
-    expect(await sceneTexts(page, 'results')).toContain('Not played yet. Play the whole piece, and your graph starts here!');
+    expect(await sceneTexts(page, 'results')).toContain('Not played yet. Once you play it to the end, its graph shows here.');
     await clickButton(page, 'results', await bandAction(page, 'results', 1));
     await waitForScene(page, 'menu');
 

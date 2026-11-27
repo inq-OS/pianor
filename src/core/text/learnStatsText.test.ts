@@ -18,7 +18,7 @@ describe('focusLine', () => {
       [{ kind: 'hand', hand: 'RH', spread: 19, other: 8 }, 'The right hand wobbles more (19%) than the left (8%). Play the right hand alone.'],
       [{ kind: 'uneven', spread: 22 }, 'The notes wobble by 22% around the beat. Play slower and count evenly.'],
       [{ kind: 'tempoVaries', from: 52, to: 70 }, 'The tempo differs from test to test (52 to 70). Choose one speed and keep it.'],
-      [{ kind: 'steady', bpm: 60 }, 'Even and repeatable at tempo 60. Nothing to fix here: go on to the next step.'],
+      [{ kind: 'steady', bpm: 60 }, 'Even and repeatable: the latest tests at tempo 60. Nothing to fix here: go on to the next step.'],
     ];
     for (const [focus, line] of lines) expect(focusLine(focus, printed)).toBe(line);
   });

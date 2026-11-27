@@ -3,6 +3,7 @@
   "id": "bass-steps",
   "contentVersion": 1,
   "title": "Bass Steps",
+  "titles": { "et": "Bassi sammud" },
   "level": 2,
   "ppq": 480,
   "tempoMap": [

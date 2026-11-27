@@ -26,7 +26,7 @@ describe('prizeColumn', () => {
     // the quarters a step apart from the lowest up, staggered either side of their one stem like a chord of seconds
     const quarters = notes.filter((n) => n.role === 'bar');
     expect(quarters.map((q) => q.y)).toEqual([...quarters.map((q) => q.y)].sort((a, b) => b - a));
-    expect(quarters[0]!.y - quarters[1]!.y).toBe(PRIZE.step * S);
+    expect(quarters[0]!.y - quarters[1]!.y).toBeCloseTo(PRIZE.step * S);
     expect(quarters[0]!.x).toBeLessThan(stem!.x);
     expect(quarters[1]!.x).toBeGreaterThan(stem!.x);
     expect(stem!.y2).toBeLessThan(quarters.at(-1)!.y);
@@ -66,6 +66,12 @@ describe('prizeColumn', () => {
   it('draws a short chunk with its own count of quarters', () => {
     const six: LearnRewards = { chunks: [{ quarters: [], units: 4, merged: null }, { quarters: [], units: 2, merged: null }], piece: null };
     expect(column(six, focus({ chunk: 1 })).glyphs.map((g) => g.kind)).toEqual(['clef', 'quarter', 'quarter', 'whole']);
+  });
+
+  it('ft_1_32.AC19 draws its heads larger than a staff note head, the heads on one side of the stem never touching', () => {
+    const quarters = column(fresh, focus()).glyphs.filter((g) => g.kind === 'quarter');
+    expect(quarters[0]!.box.w - 0.5 * S).toBeGreaterThanOrEqual(1.5 * S);
+    expect(quarters[0]!.y - quarters[2]!.y).toBeGreaterThan(2 * PRIZE.headRy * S);
   });
 
   it('draws nothing for a piece with nothing to learn', () => {

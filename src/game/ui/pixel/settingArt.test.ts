@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { Bitmap } from './bitmap';
 import { C } from './palette';
 import { BAR_NUMBER_MODES } from '../../../core/layout/barNumbers';
-import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, beatLaneSymbol, chordLabelsSymbol, durationSymbol, fingersSymbol, liveTempoSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, paceClickSymbol, resumeSymbol, scoreSymbol, staffGapSymbol } from './settingArt';
+import { RESUME_HEIGHT, RESUME_WIDTH, SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, beatLaneSymbol, chordLabelsSymbol, durationSymbol, fingersSymbol, liveTempoSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, markersFromSymbol, markersSymbol, namingSymbol, paceClickSymbol, resumeSymbol, scoreSymbol, staffGapSymbol } from './settingArt';
 
 const same = (a: Bitmap, b: Bitmap) => a.pixels.every((p, i) => p === b.pixels[i]);
 const count = (b: Bitmap, colour: number) => b.pixels.filter((p) => p === colour).length;
@@ -19,7 +19,6 @@ const SETTINGS: Record<string, Bitmap[]> = {
   markersFrom: [1, 2, 3, 4, 5].map(markersFromSymbol),
   learnHands: [false, true].map(learnHandsSymbol),
   naming: (['B', 'H'] as const).map(namingSymbol),
-  resume: (['continue', 'over'] as const).map(resumeSymbol),
   fingers: (['off', 'top', 'all'] as const).map(fingersSymbol),
   chordLabels: (['notes', 'name', 'both'] as const).map(chordLabelsSymbol),
   barNumbers: BAR_NUMBER_MODES.map(barNumbersSymbol),
@@ -40,6 +39,17 @@ describe('settings button pictures', () => {
     for (const place of ['above', 'between'] as const) expect(count(beatLaneSymbol(place), C.red)).toBe(0);
     expect(count(paceClickSymbol(false), C.blue)).toBe(0);
     expect(count(paceClickSymbol(true), C.blue)).toBeGreaterThan(0);
+  });
+
+  it('ft_1_32.AC16 go on and start over are pictures told apart at a glance: gold notes, a bookmark and an arrow on, or ink notes and an arrow back', () => {
+    const [on, over] = [resumeSymbol('continue'), resumeSymbol('over')];
+    for (const p of [on, over]) expect([p.width, p.height]).toEqual([RESUME_WIDTH, RESUME_HEIGHT]);
+    expect(count(on, C.gold)).toBeGreaterThan(0);
+    expect(count(on, C.red)).toBeGreaterThan(0);
+    expect(count(over, C.gold) + count(over, C.red)).toBe(0);
+    // the arrows take different places: at least a fifth of the pictures differ
+    const differ = on.pixels.filter((p, i) => p !== over.pixels[i]).length;
+    expect(differ).toBeGreaterThan(on.pixels.length / 5);
   });
 
   it('the timing view looks like play: off is all black notes, colours adds the gold and red of mistimed and missed notes', () => {

@@ -7,7 +7,7 @@ import { C } from './palette';
  * hints; for the editor's toolbar (d088) a floppy disk for Save and an arrow into or out of a tray for Import and
  * Export; a loop for the ear trainer's repeat and the note trainer's new round, stairs for the note trainer's step, and undo, redo, a bin, play, stop, backspace and a tick for the piece maker and the name box. Original, drawn for this project (the Kenney pack page refused the download, and these are a few pixels each). Each fits inside a 14 pixel bar button with its frame (10 rows at most).
  */
-export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'speed' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort' | 'hide' | 'pointerFollow' | 'pointerStill' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen' | 'head' | 'songs' | 'folded' | 'unfolded' | 'link' | 'blank' | 'add' | 'rename' | 'move' | 'meter' | 'write';
+export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'speed' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort' | 'hide' | 'pointerFollow' | 'pointerStill' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen' | 'head' | 'songs' | 'folded' | 'unfolded' | 'link' | 'blank' | 'add' | 'rename' | 'move' | 'meter' | 'write' | 'learnGraph';
 
 const LEGEND = { k: C.ink, w: C.white, g: C.gold, G: C.goldDark, s: C.skin } as const;
 
@@ -210,4 +210,6 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   learn: art(['wwwwwwwwww', '.wwwwwwwww', 'w.w.....ww', '.ww.www.ww', '.ww.....ww', '.wwwwwwwww', '.wwwwwwwww', '..wwwwwwww', 'w.wwwwwwww', '.wwwwwwwww']),
   // four bars rising, the last one gold: the stats pane of the latest plays (ft_1_12)
   statsPane: art(['.........gg', '.........gg', '......ww.gg', '......ww.gg', '...ww.ww.gg', '...ww.ww.gg', 'ww.ww.ww.gg', 'ww.ww.ww.gg', 'wwwwwwwwwww']),
+  // a line graph over a gold dotted line held a row clear of the axis, as the learning stats draw the runs over the piece's own tempo (ft_1_32.AC9)
+  learnGraph: art(['w..........', 'w.........w', 'w........w.', 'w...w...w..', 'w..w.w.w...', 'w.w...w....', 'ww.........', 'wg.g.g.g.g.', 'w..........', 'wwwwwwwwwww']),
 };
