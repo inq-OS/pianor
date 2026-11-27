@@ -3,7 +3,7 @@
   "title": "Chord Steps",
   "titles": { "et": "Akordiastmed" },
   "level": 1,
-  "status": "draft",
+  "status": "approved",
   "hands": ["RH"],
   "phrases": [
     { "name": "Up and home", "bars": [1, 4] },
