@@ -67,11 +67,11 @@ test('the piece book opened by Kiur\'s Learn or Tug says over it which one it is
   await askKiur(page);
   await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Learn'));
   await waitForScene(page, 'menu');
-  expect(await sceneTexts(page, 'menu')).toContain('Pick a piece to learn with Kiur');
+  expect(await sceneTexts(page, 'menu')).toContain('Learn with Kiur');
   await askKiur(page);
   await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Tug'));
   await waitForScene(page, 'menu');
-  expect(await sceneTexts(page, 'menu')).toContain("Pick a learned piece for Kiur's tug");
+  expect(await sceneTexts(page, 'menu')).toContain('Tug with Kiur');
   expectNoErrors(errors);
 });
 
