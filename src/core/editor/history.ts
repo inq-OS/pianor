@@ -18,6 +18,11 @@ export function push<T>(history: History<T>, next: T): History<T> {
   return { past: past.length > UNDO_LIMIT ? past.slice(past.length - UNDO_LIMIT) : past, present: next, future: [] };
 }
 
+/** The present replaced, no new step: a change folded into the step just made, so one undo takes both back. */
+export function amend<T>(history: History<T>, next: T): History<T> {
+  return { ...history, present: next };
+}
+
 export const canUndo = <T>(history: History<T>): boolean => history.past.length > 0;
 export const canRedo = <T>(history: History<T>): boolean => history.future.length > 0;
 

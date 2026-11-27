@@ -1,6 +1,6 @@
 import chordsJson from '../../content/trainer/chords.json';
-import { midiToSpelling } from '../core/chart/pitch';
-import { CHORD_LIVES, ChordRound, chordLabel, loadChordContent } from '../core/trainer/chordTrainer';
+import { CHORD_LIVES, ChordRound, chordLabel, loadChordContent, wrongKeySpelling } from '../core/trainer/chordTrainer';
+import { levelReached, roundResultLine } from '../core/trainer/trainerResult';
 import { displayText } from '../core/text/language';
 import { noteLabel } from '../core/text/noteName';
 import { t } from '../core/text/strings';
@@ -17,6 +17,9 @@ const NAME_Y = 40;
 const NAME_ZOOM = 5;
 /** The words under the hearts: the wrong note named, or how many chords were played. */
 const WORDS_Y = 26;
+/** After the round, its result under the chord's name, and a new level under that (art pixels). */
+const RESULT_Y = NAME_Y + 7 * NAME_ZOOM + 8;
+const LEVEL_Y = RESULT_Y + 12;
 /** After the last life a key starts a new round, but not the key that lost it (ms of wall time). */
 const AGAIN_PAUSE_MS = 1000;
 
@@ -37,6 +40,8 @@ export class ChordTrainerScene extends PixelScene {
   /** The last key outside the chord, named under the hearts; null after a right chord. */
   private wrong: number | null = null;
   private overAtMs: number | null = null;
+  /** The level this round's XP took the player up to, shown until the next round; null when it stayed. */
+  private level: number | null = null;
   private unsubscribe: (() => void) | null = null;
 
   constructor() {
@@ -66,9 +71,9 @@ export class ChordTrainerScene extends PixelScene {
     const state = this.round.state();
     for (const heart of heartRow(this, width, state.lives, CHORD_LIVES)) this.root.add(heart);
     if (this.wrong !== null) {
-      // the wrong key spelled as the chord's root leans: with flats for a flat chord
+      // the wrong key spelled on the side of the chord's key: with flats for F or c
       const chord = this.round.target();
-      const note = noteLabel(midiToSpelling(this.wrong, chord.root.alter < 0), naming).replace(/(?<=.)b/, '♭');
+      const note = noteLabel(wrongKeySpelling(chord, this.wrong), naming).replace(/(?<=.)b/, '♭');
       this.label(0, WORDS_Y, t('chords.notIn', { note, chord: chordLabel(chord, naming) }), C.white).centerAt(width / 2);
     } else if (state.solved > 0) {
       this.label(0, WORDS_Y, t('chords.solved', { n: state.solved }), C.white).centerAt(width / 2);
@@ -76,6 +81,8 @@ export class ChordTrainerScene extends PixelScene {
     const name = this.label(0, NAME_Y, chordLabel(this.round.target(), naming), state.over ? C.lock : C.white, { shadow: false });
     name.setScale(NAME_ZOOM);
     name.x = Math.floor(width / 2 - name.displayWidth / 2);
+    if (state.over) this.label(0, RESULT_Y, roundResultLine({ unit: 'chords', right: state.solved, xp: state.xp }), C.white).centerAt(width / 2);
+    if (this.level !== null) this.label(0, state.over ? LEVEL_Y : RESULT_Y, t('trainerResult.level', { level: this.level }), C.gold).centerAt(width / 2);
   }
 
   /** A new round on step `index`: three lives, no XP and a fresh seed. */
@@ -84,6 +91,7 @@ export class ChordTrainerScene extends PixelScene {
     this.roundCount += 1;
     this.wrong = null;
     this.overAtMs = null;
+    this.level = null;
     this.stopListening();
     this.round = new ChordRound(content, index, `${Date.now()}-${this.roundCount}`);
     this.unsubscribe = contextOf(this).keyboard.onNote((event) => {
@@ -100,7 +108,10 @@ export class ChordTrainerScene extends PixelScene {
       } else if (result.verdict === 'correct') {
         this.wrong = null;
         // the XP of a right chord is saved at once, so a lost round cannot take it away
-        void contextOf(this).profiles.addTrainerXp(this.round.state().xp - xpBefore);
+        const { profiles } = contextOf(this);
+        const levelBefore = profiles.progress.level.level;
+        void profiles.addTrainerXp(this.round.state().xp - xpBefore);
+        this.level = levelReached(levelBefore, profiles.progress.level.level) ?? this.level;
       } else {
         return;
       }
@@ -113,10 +124,11 @@ export class ChordTrainerScene extends PixelScene {
     if (this.overAtMs !== null && performance.now() - this.overAtMs >= AGAIN_PAUSE_MS) this.startRound(this.stepIndex);
   }
 
-  /** The step (cycling through the content's steps, each press a new round) and, after the last life, the loop. */
+  /** The step, named (cycling through the content's steps, each press a new round) and, after the last life, the loop. */
   protected override toolbarItems(): ToolbarItem[] {
     const items: ToolbarItem[] = [
-      { label: displayText(t('theory.step', { n: this.stepIndex + 1 })), icon: TOOL_ICONS.steps, tooltip: t('chords.stepTip'), onClick: () => this.startRound((this.stepIndex + 1) % content.steps.length) },
+      // the stairs and the step's name, as every trainer's step reads (the note and ear trainers' stairs and number)
+      { label: displayText(t(content.steps[this.stepIndex]!.nameKey)), value: displayText(t(content.steps[this.stepIndex]!.nameKey)), icon: TOOL_ICONS.steps, tooltip: t('chords.stepTip'), onClick: () => this.startRound((this.stepIndex + 1) % content.steps.length) },
     ];
     if (this.round.state().over) items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), main: true, onClick: () => this.startRound(this.stepIndex) });
     return items;

@@ -3,6 +3,7 @@ import { appConfig } from './appConfig';
 import { ArtDemoScene } from './game/ArtDemoScene';
 import { KiurDoorScene } from './game/KiurDoorScene';
 import { LearnResumeScene } from './game/LearnResumeScene';
+import { EditorLeaveScene } from './game/EditorLeaveScene';
 import { IntroScene } from './game/IntroScene';
 import { CircleOfFifthsScene } from './game/CircleOfFifthsScene';
 import { BootScene } from './game/BootScene';
@@ -23,6 +24,8 @@ import { NoteTrainerScene } from './game/NoteTrainerScene';
 import { EarTrainerScene } from './game/EarTrainerScene';
 import { ShapeTrainerScene } from './game/ShapeTrainerScene';
 import { ChordTrainerScene } from './game/ChordTrainerScene';
+import { LessonBookScene } from './game/LessonBookScene';
+import { LessonScene } from './game/LessonScene';
 import { AdminScene } from './game/AdminScene';
 import { NameScene } from './game/NameScene';
 import { SongScene } from './game/SongScene';
@@ -119,7 +122,7 @@ async function startGame(): Promise<void> {
     fps: gameLoopConfig(appConfig.flags.timerLoop),
     // sized by `fitGame` below in physical pixels, not by Phaser's RESIZE mode (which uses CSS pixels)
     scale: { mode: Phaser.Scale.NONE },
-    scene: [BootScene, MenuScene, ProfilesScene, ProfileDashboardScene, NoteTrainerScene, EarTrainerScene, ShapeTrainerScene, ChordTrainerScene, AdminScene, AdminGateScene, AdminPagesScene, AdminPasswordScene, AdminDeleteScene, TeacherScene, TeacherPieceScene, TeacherTestsScene, TeacherCastScene, TeacherGateScene, TeacherPasswordScene, NameScene, SongScene, SongsScene, CreditsScene, SettingsScene, BeatLanesScene, PiecesScene, AnalyzeScene, LearnStatsScene, PracticeScene, ResultsScene, EditorScene, StaffDemoScene, ArtDemoScene, KiurDoorScene, LearnResumeScene, IntroScene, CircleOfFifthsScene, KeriMapScene, ...adventureScenes()],
+    scene: [BootScene, MenuScene, ProfilesScene, ProfileDashboardScene, NoteTrainerScene, EarTrainerScene, ShapeTrainerScene, ChordTrainerScene, LessonBookScene, LessonScene, AdminScene, AdminGateScene, AdminPagesScene, AdminPasswordScene, AdminDeleteScene, TeacherScene, TeacherPieceScene, TeacherTestsScene, TeacherCastScene, TeacherGateScene, TeacherPasswordScene, NameScene, SongScene, SongsScene, CreditsScene, SettingsScene, BeatLanesScene, PiecesScene, AnalyzeScene, LearnStatsScene, PracticeScene, ResultsScene, EditorScene, StaffDemoScene, ArtDemoScene, KiurDoorScene, LearnResumeScene, EditorLeaveScene, IntroScene, CircleOfFifthsScene, KeriMapScene, ...adventureScenes()],
   });
   game.registry.set(CONTEXT_KEY, context);
   debug?.watch(game, inputs.keyboard);

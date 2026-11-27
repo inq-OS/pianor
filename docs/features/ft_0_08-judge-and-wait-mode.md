@@ -14,6 +14,8 @@ Index: [FEATURES.md](FEATURES.md).
 
 `src/core/judge`: input is abstract `NoteEvent`s; output is domain events (`NoteJudged`, `BarCompleted`, `PhraseCompleted`, `PieceCompleted`). Play mode is a `PlayMode` strategy interface; Wait is the first implementation (see `docs/futureproofing.md` 1.2 and 1.3). Wait mode: cursor on the current note (or chord); right key advances; wrong key produces a verdict with a reason (wrong octave, neighbour key, wrong letter; "other hand's range" only for two-hand pieces, since MIDI cannot tell which hand played). Per-bar and per-piece results (accuracy, mistakes, hints used). Rhythm tracked but not punishing.
 
+On the staff a note right at the first try turns green; one right only after a wrong key in its step stays orange (the mistimed orange of Tempo mode), so a pass with misses never looks perfect (AX-2.1). The judge marks it in `PlayState.retried`; `StaffView` draws `theme.retried`.
+
 ## Acceptance criteria
 
 - **ft_0_08.AC1** Deterministic unit, property and replay tests with scripted and recorded event sequences, including chords in any press order, repeated notes, wrong-then-right, and note-off handling.

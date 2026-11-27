@@ -1,18 +1,20 @@
 // Covers ft_1_10.AC1 (the screen shows the level and the stars, and no staff or name while a question is open),
 // ft_1_10.AC3 (a wrong press is a miss with a reason), ft_1_10.AC4 (points by misses), ft_1_10.AC7 (the answer after the question),
-// ft_1_10.AC10 (5 round stars, one dimmed per miss), ft_1_10.AC11 (any key continues; that key is not an answer).
+// ft_1_10.AC10 (5 round stars, one dimmed per miss, a two-note question's slots), ft_1_10.AC11 (any key continues; that key is not an answer),
+// ft_1_10.AC13 (any step can be chosen, up or down), ft_1_10.AC5 (a new level is shown by a card, not by colour alone).
 // The room's loudspeaker opens it (the room entry); the other tests open the scene through the scene manager to keep to one step each.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { clickButton, expectNoErrors, openFromStand, openGame, profileButton, playWithVirtualPiano, sceneButton, sceneTexts, waitForScene } from './helpers';
+import { clickButton, expectNoErrors, openFromStand, openGame, pickChoice, profileButton, playWithVirtualPiano, sceneButton, sceneTexts, waitForScene } from './helpers';
 
-type EarView = { notes: number[]; questionNumber: number; question: { misses: number; done: boolean }; shownStars: { lit: number; total: number } };
+type EarView = { notes: number[]; questionNumber: number; question: { misses: number; done: boolean }; shownStars: { lit: number; total: number }; shownSlots: boolean[]; step: number; levelUpCard: unknown };
 const ear = (page: Page) => page.evaluate(() => {
   const scene = window.__game.scene.getScene('earTrainer') as unknown as EarView;
-  return { notes: scene.notes, questionNumber: scene.questionNumber, misses: scene.question.misses, done: scene.question.done, stars: [scene.shownStars.lit, scene.shownStars.total] };
+  return { notes: scene.notes, questionNumber: scene.questionNumber, misses: scene.question.misses, done: scene.question.done, stars: [scene.shownStars.lit, scene.shownStars.total], slots: scene.shownSlots, step: scene.step, levelUpCard: scene.levelUpCard !== null };
 });
-/** Every text on the screen with no question found: the ear level and, in the band, the note length (the player is in the room, ft_1_20.AC13). */
-const ONLY_TEXTS = ['Ear level 1', '1 s'];
+/** Every text on the screen with no question found: the ear level, and the note length and the step beside their pictures (ft_1_10.AC13). */
+const ONLY_TEXTS = ['Ear level 1', '1 s', '1'];
+const STEP = 'Step: one note or two, and which keys';
 /** A note name on the staff (H or B naming, a sharp or flat after it). */
 const isNoteName = (text: string) => /^[A-H](#|b|♯|♭)?$/.test(text);
 const questionNotes = async (page: Page) => (await ear(page)).notes;
@@ -193,6 +195,51 @@ test.describe('pitch trainer by ear (ft_1_10)', () => {
     expect(texts).toEqual(ONLY_TEXTS);
     expect(texts.some((text) => /almost|higher|lower|below|above/i.test(text))).toBe(false);
     expect((await ear(page)).stars).toEqual([3, 5]);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_10.AC13 any step can be chosen at ear level 1: a two-note step asks two notes, and the slots fill as each is found (AC10)', async ({ page }) => {
+    const errors = await openEar(page);
+    expect((await ear(page)).step).toBe(1);
+    expect((await ear(page)).slots).toEqual([]);
+    await pickChoice(page, 'earTrainer', STEP, 'Step 4: two notes');
+    await expect.poll(async () => (await ear(page)).step).toBe(4);
+    const now = await ear(page);
+    expect(now.notes).toHaveLength(2);
+    expect(now.slots).toEqual([false, false]);
+    await page.waitForTimeout(700);
+    await playWithVirtualPiano(page, [now.notes[0]!]);
+    expect((await ear(page)).slots).toEqual([true, false]);
+    // the slots carry no name: the notes are named only once both are found (AC1, AC7)
+    expect((await sceneTexts(page, 'earTrainer')).some(isNoteName)).toBe(false);
+    await playWithVirtualPiano(page, [now.notes[1]!]);
+    expect((await ear(page)).slots).toEqual([true, true]);
+    // and back down to the first step: levels never lock a row
+    await pickChoice(page, 'earTrainer', STEP, 'Step 1: one note');
+    await expect.poll(async () => (await ear(page)).step).toBe(1);
+    expect((await ear(page)).notes).toHaveLength(1);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_10.AC5 a new ear level shows a card with the level, then it goes', async ({ page }) => {
+    const errors = await openEar(page);
+    // 50 points short of level 2, then a question found with no miss
+    await page.evaluate(async () => {
+      const context = window.__game.registry.get('context') as { profiles: { addEarPoints(n: number): Promise<boolean> } };
+      await context.profiles.addEarPoints(550);
+    });
+    await page.waitForTimeout(700);
+    expect((await ear(page)).levelUpCard).toBe(false);
+    await playWithVirtualPiano(page, (await ear(page)).notes);
+    expect((await ear(page)).levelUpCard).toBe(true);
+    // the card stands on the top card, clear of the staff with the answer on it
+    const clear = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('earTrainer') as unknown as { levelUpCard: { getBounds(): { bottom: number } }; staff: { layout?: unknown } | null; mainTop: number; px: { scale: number } };
+      return scene.levelUpCard.getBounds().bottom <= scene.mainTop + 48 * scene.px.scale;
+    });
+    expect(clear).toBe(true);
+    expect((await sceneTexts(page, 'earTrainer')).filter((text) => text === 'Ear level 2')).toHaveLength(2);
+    await expect.poll(async () => (await ear(page)).levelUpCard, { timeout: 10_000 }).toBe(false);
     expectNoErrors(errors);
   });
 });

@@ -61,6 +61,28 @@ export function earRowFor(table: readonly EarRow[], level: number): EarRow {
   return table[Math.min(level, table.length) - 1]!;
 }
 
+function checkStep(step: number, tableLength: number): void {
+  if (!Number.isInteger(step) || step < 1 || step > tableLength) throw new RangeError('a step is a row of the table, 1 to its length');
+}
+
+/**
+ * The step (row number, from 1) the questions come from (ft_1_10.AC13): the one the student chose, or with no choice the row
+ * the ear level earned. Levels never lock a row: any row can be chosen, up or down.
+ */
+export function earStepOf(level: number, chosen: number | null, tableLength: number): number {
+  if (chosen !== null) {
+    checkStep(chosen, tableLength);
+    return chosen;
+  }
+  return Math.min(level, tableLength);
+}
+
+/** The choice kept when the student picks `step`: null (follow the ear level again) for the earned row, else the step. */
+export function chooseEarStep(step: number, level: number, tableLength: number): number | null {
+  checkStep(step, tableLength);
+  return step === earStepOf(level, null, tableLength) ? null : step;
+}
+
 function pickFrom(random: Random, keys: readonly number[], avoid: number | undefined): number {
   const allowed = keys.filter((k) => k !== avoid);
   return random.pick(allowed.length > 0 ? allowed : keys);
@@ -119,10 +141,14 @@ export function pressEar(question: EarQuestion, midi: number): EarPressResult {
   return { verdict: done ? 'done' : 'next', question: { ...question, index, done } };
 }
 
-/** How long a question takes to repeat: twice its sounding time (sound plus an equal wait), in ms. */
-export function repeatAfterMs(seconds: number): number {
+/**
+ * How long a question waits to repeat after its last sound or press: twice its sounding time, in ms.
+ * The sounding time is all its notes one after another, `notes` times `seconds`.
+ */
+export function repeatAfterMs(seconds: number, notes: number): number {
   if (!Number.isInteger(seconds) || seconds < 1 || seconds > 3) throw new RangeError('duration must be whole seconds, 1 to 3');
-  return seconds * 2 * MS_PER_SECOND;
+  if (!Number.isInteger(notes) || notes < 1) throw new RangeError('a question needs a whole number of notes, 1 or more');
+  return notes * seconds * 2 * MS_PER_SECOND;
 }
 
 export interface RepeatInput {
@@ -131,13 +157,15 @@ export interface RepeatInput {
   /** End of the last sound or the last key press, ms, on the same clock. */
   lastActivityMs: number;
   seconds: number;
+  /** Notes in the question. */
+  notes: number;
   repeatOn: boolean;
 }
 
 /** Repeat is due when it is on and nothing happened for repeatAfterMs. */
 export function isRepeatDue(input: RepeatInput): boolean {
   if (!input.repeatOn) return false;
-  return input.now - input.lastActivityMs >= repeatAfterMs(input.seconds);
+  return input.now - input.lastActivityMs >= repeatAfterMs(input.seconds, input.notes);
 }
 
 /** Stars shown after every round (ft_1_10 AC10): all lit on the first try. */

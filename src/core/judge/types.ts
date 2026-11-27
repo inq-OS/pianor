@@ -187,6 +187,8 @@ export interface PlayState {
   /** Keys currently held down, as far as the judge has seen. */
   heldKeys: readonly number[];
   lastJudged: NoteJudged | null;
+  /** Wait mode: per chart note, whether it was played right only after a wrong key in its step (its colour stays apart, AX-2.1). Absent in Tempo mode. */
+  retried?: readonly boolean[];
   /** Tempo mode: per chart note, how it was timed (null when not played or missed). Absent in Wait mode. */
   timings?: readonly (NoteTiming | null)[];
 }

@@ -56,15 +56,30 @@ export interface BubbleLayout {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
 
+/** Between the ring's edge and the thing it opens beside. */
+const BESIDE_GAP = 2;
+
+/**
+ * Where the ring stands across: at the pointer, or with `beside` (the note it acts on, ft_1_02d.AC52) level with it on its
+ * right, on its left where the right has no room, so the thing stays in view.
+ */
+function besideX(x: number, beside: Rect | undefined, width: number): number {
+  if (!beside) return x;
+  const right = rectRight(beside) + BESIDE_GAP + EDGE;
+  if (right + EDGE <= width) return right;
+  const left = beside.x - BESIDE_GAP - EDGE;
+  return left - EDGE >= 0 ? left : x;
+}
+
 /** The bubble for `options` options (at most `BUBBLE_SLOTS`) opened at `at` on a screen `screen` cells large, kept below its `y`. */
-export function bubbleLayout(input: { at: { x: number; y: number }; options: number; screen: { y?: number; w: number; h: number }; open?: { option: number; choices: number }; avoid?: readonly Rect[] }): BubbleLayout {
+export function bubbleLayout(input: { at: { x: number; y: number }; options: number; screen: { y?: number; w: number; h: number }; open?: { option: number; choices: number }; beside?: Rect; avoid?: readonly Rect[] }): BubbleLayout {
   // `screen.y`: rows at the top the bubble keeps off (the top strip of a screen without a toolbar); `h` counts from there
   const top = input.screen.y ?? 0;
   const bottom = top + input.screen.h;
   const slotAngle = (i: number) => -Math.PI / 2 + (2 * Math.PI * i) / BUBBLE_SLOTS;
   const box = (c: { x: number; y: number }, angle: number, radius: number, size: number): Rect => ({ x: Math.round(c.x + radius * Math.cos(angle) - size / 2), y: Math.round(c.y + radius * Math.sin(angle) - size / 2), w: size, h: size });
   const fit = (c: { x: number; y: number }) => ({ x: Math.round(clamp(c.x, EDGE, input.screen.w - EDGE)), y: Math.round(clamp(c.y, top + EDGE, bottom - EDGE)) });
-  let centre = fit(input.at);
+  let centre = fit({ x: besideX(input.at.x, input.beside, input.screen.w), y: input.at.y });
   let choices: Rect[] = [];
   const n = input.open && input.open.option >= 0 && input.open.option < Math.min(BUBBLE_SLOTS, input.options) ? Math.max(0, input.open.choices) : 0;
   if (n > 0 && input.open) {

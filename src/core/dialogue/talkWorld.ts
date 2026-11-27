@@ -7,15 +7,14 @@ import type { WorldState } from '../island/worldState';
 import type { Effect } from './conversation';
 import type { TalkFacts } from './talk';
 
-/** The facts a conversation's conditions read, from the world, the player's level and the knowledge switch (d132). */
-export function talkFactsOf(world: WorldState, level: number, knowledge: boolean): TalkFacts {
+/** The facts a conversation's conditions read, from the world and the knowledge switch (d132). */
+export function talkFactsOf(world: WorldState, knowledge: boolean): TalkFacts {
   const met = Object.keys(world.met);
   return {
     flags: [...world.flags],
     items: [...world.items],
     met,
     taught: met.flatMap((id) => world.met[id]!.taught),
-    level,
     knowledge,
   };
 }

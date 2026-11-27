@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "whole-step",
+  "topic": "D2",
+  "needs": ["D1"],
+  "show": { "line": "lessons.line.listen", "notes": [60, 62, 64, 66], "marks": [{ "from": 0, "to": 1, "kind": "whole" }, { "from": 1, "to": 2, "kind": "whole" }, { "from": 2, "to": 3, "kind": "whole" }] },
+  "pitfall": { "line": "lessons.wholeStep.pitfall", "notes": [64, 66, 71, 73], "marks": [{ "from": 0, "to": 1, "kind": "whole" }, { "from": 2, "to": 3, "kind": "whole" }], "reason": "neighbour-key" },
+  "try": { "line": "lessons.wholeStep.try", "items": { "kind": "step", "semitones": 2, "direction": "up" } },
+  "playAlong": { "line": "lessons.line.playAlong", "notes": [60, 62, 64, 62, 60, 62, 64, 66], "marks": [{ "from": 0, "to": 1, "kind": "whole" }, { "from": 1, "to": 2, "kind": "whole" }, { "from": 6, "to": 7, "kind": "whole" }] },
+  "check": { "line": "lessons.wholeStep.try", "items": { "kind": "step", "semitones": 2, "direction": "up" }, "count": 8 }
+}

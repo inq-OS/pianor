@@ -6,6 +6,7 @@
  */
 import { naturalAtPosition, type Clef, type Step } from '../chart/pitch';
 import { barLength, handsOf, KEY_HIGH, KEY_LOW, LENGTH_TICKS, midiOf, placedRests, stepped, type EditorHand, type EditorLength, type EditorPiece, type NoteRef } from './model';
+import { ensureBars } from './playEntry';
 
 /** Where the cursor is: a note ref names a pitch on a place, whether a note is there or not. */
 export type KeyCursor = NoteRef;
@@ -53,6 +54,18 @@ export function moveInTime(piece: EditorPiece, cursor: KeyCursor, direction: 1 |
   if (bar < 0 || bar >= piece.bars) return cursor;
   const there = timeStops(piece, cursor.hand, bar, length);
   return { ...cursor, bar, start: direction > 0 ? there[0]! : there[there.length - 1]! };
+}
+
+/**
+ * Ctrl + Enter's move on (ft_1_02d.AC17): the next stop, and at the last stop of the last bar four more empty bars and the
+ * start of the first of them, as playing on past the end adds bars. A piece that has every bar it may have stays as it is.
+ */
+export function moveOnGrowing(piece: EditorPiece, cursor: KeyCursor, length: EditorLength): { piece: EditorPiece; cursor: KeyCursor } {
+  const next = moveInTime(piece, cursor, 1, length);
+  if (next !== cursor) return { piece, cursor: next };
+  const grown = ensureBars(piece, cursor.bar + 1);
+  if (grown.bars <= cursor.bar + 1) return { piece, cursor };
+  return { piece: grown, cursor: { ...cursor, bar: cursor.bar + 1, start: timeStops(grown, cursor.hand, cursor.bar + 1, length)[0]! } };
 }
 
 /** Ctrl + left or right: the start of the previous or next bar; left inside a bar goes to its own start first. */

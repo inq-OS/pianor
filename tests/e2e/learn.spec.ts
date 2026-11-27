@@ -83,8 +83,11 @@ test('ft_1_32.AC14 Kiur\'s Tug lists only the learned pieces, and his tug opens 
     await waitForScene(page, 'menu');
     return (await menuLabels(page)).filter(isPieceLabel);
   };
-  // nothing learned yet: the book lists no piece
+  // nothing learned yet: the book lists no piece, and Kiur's Learn picture opens his Learn book from there
   expect(await tugBook()).toEqual([]);
+  await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Learn'));
+  await expect.poll(async () => (await menuLabels(page)).filter(isPieceLabel)).toContain('Little Steps');
+  expect(await page.evaluate(() => (window.__game.scene.getScene('menu') as unknown as { forKiur: string | null }).forKiur)).toBe('learn');
   // Little Steps learned to its last step
   await page.evaluate(() => window.__game.registry.get('context').profiles.saveLearnProgress('little-steps', {
     step: 999, wholeStreak: 0, recall: false, confirm: false, misses: 0, medals: [], lastDay: '1998-11-21', stepBars: 1, handsApart: true,

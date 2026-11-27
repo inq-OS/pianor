@@ -136,7 +136,7 @@ test.describe('the strip and the corners (ft_1_20, d282)', () => {
     expect(shield).toBeGreaterThanOrEqual(0);
     await clickButton(page, 'profile', shield);
     await expect.poll(async () => (await texts()).includes('Pieces played')).toBe(true);
-    expect(await texts()).toEqual(expect.arrayContaining(['Level 1', '0 / 100 XP']));
+    expect(await texts()).toEqual(expect.arrayContaining(['Level 1', '0 XP', '0 / 100 to level 2']));
     await page.keyboard.press('Escape');
     await expect.poll(async () => (await texts()).includes('Pieces played')).toBe(false);
     expect(await activeScene(page)).toBe('profile');

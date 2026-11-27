@@ -261,3 +261,26 @@ export function pasteOverwrites(piece: EditorPiece, selection: BarRange | null, 
   if (!selection || fresh) return 0;
   return piece.notes.filter((n) => inRange(n.bar, selection)).length;
 }
+
+/**
+ * The first bar `after` differs from `before` in (its notes, placed rests, slurs or repeats; with fewer bars the last one
+ * left, with more the first new one), or null when only the whole piece changed (title, tempo, key): undo and redo turn
+ * to that bar's page (ft_1_02a.AC11).
+ */
+export function changedBar(before: EditorPiece, after: EditorPiece): number | null {
+  const bars = new Set<number>();
+  const differ = <T>(a: readonly T[], b: readonly T[], barsOf: (item: T) => number[]) => {
+    const key = (item: T) => JSON.stringify(item);
+    const inB = new Set(b.map(key));
+    const inA = new Set(a.map(key));
+    for (const item of a) if (!inB.has(key(item))) barsOf(item).forEach((bar) => bars.add(bar));
+    for (const item of b) if (!inA.has(key(item))) barsOf(item).forEach((bar) => bars.add(bar));
+  };
+  differ(before.notes, after.notes, (n) => [n.bar]);
+  differ(before.rests ?? [], after.rests ?? [], (r) => [r.bar]);
+  differ(before.slurs ?? [], after.slurs ?? [], (s) => [s.from.bar]);
+  differ(before.repeats ?? [], after.repeats ?? [], (r) => [r.startBar]);
+  if (before.bars !== after.bars) bars.add(after.bars < before.bars ? after.bars - 1 : before.bars);
+  const first = Math.min(...[...bars].map((bar) => Math.min(bar, after.bars - 1)));
+  return Number.isFinite(first) ? first : null;
+}

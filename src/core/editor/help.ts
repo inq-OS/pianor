@@ -1,11 +1,11 @@
 import type { StringKey } from '../text/strings';
-import type { MouseAction } from './mouse';
+import type { ClickOutcome } from './mouse';
 
 /**
  * The piece maker's help as pictures (ft_1_33): each simple mouse action as a card, a small mouse with
  * what is pressed, the staff before and the staff after (every simple action: the mouse, what is pressed, what comes
  * of it), and the steps of Kiur's tour of the keys. Plain data; the scene draws it. Every card that
- * is a press names it, and a test holds it to `mouseAction`, so the pictures say what the buttons do.
+ * is a press names it, and a test holds it to `clickOutcome`, so the pictures say what the buttons do.
  */
 
 /** What the small mouse shows: a button lit, the wheel lit and turned up, or the left button held and dragged. */
@@ -34,32 +34,32 @@ export interface HelpCard {
   readonly key?: HeldKey;
   readonly before: StaffSketch;
   readonly after: StaffSketch;
-  /** The press it shows (a DOM `MouseEvent.button` with its keys) and what `mouseAction` makes of it; none for the wheel. */
-  readonly press?: { readonly button: number; readonly altKey: boolean; readonly shiftKey: boolean; readonly action: MouseAction };
+  /** The press it shows (a DOM `MouseEvent.button` with its keys), where (an empty place or a note) and what `clickOutcome` makes of it; none for the wheel. */
+  readonly press?: { readonly button: number; readonly altKey: boolean; readonly shiftKey: boolean; readonly on: 'place' | 'note'; readonly outcome: ClickOutcome };
 }
 
 const B = 4; // the middle line
 const quarter = (place = B, lit = false): SketchNote => ({ bar: 0, place, length: 'quarter', ...(lit ? { lit } : {}) });
 const pointer = { bar: 0, place: B } as const;
-const press = (button: number, action: MouseAction, altKey = false) => ({ button, altKey, shiftKey: false, action });
+const press = (button: number, on: 'place' | 'note', outcome: ClickOutcome, altKey = false) => ({ button, altKey, shiftKey: false, on, outcome });
 
 /** The cards, in reading order (two columns, row by row). */
 export const HELP_CARDS: readonly HelpCard[] = [
-  // the middle button on the staff writes a note; on a touchpad Alt + left does the same
-  { gesture: 'middle', before: { notes: [], pointer }, after: { notes: [quarter()] }, press: press(1, 'place') },
-  { gesture: 'left', key: 'alt', before: { notes: [], pointer }, after: { notes: [quarter()] }, press: press(0, 'place', true) },
-  { gesture: 'left', before: { notes: [quarter()], pointer }, after: { notes: [quarter(B, true)] }, press: press(0, 'select') },
+  // a left click on the staff writes a note (ft_1_02d.AC50); on a note it selects it
+  { gesture: 'left', before: { notes: [], pointer }, after: { notes: [quarter()] }, press: press(0, 'place', 'write') },
+  { gesture: 'left', before: { notes: [quarter()], pointer }, after: { notes: [quarter(B, true)] }, press: press(0, 'note', 'select') },
   // the wheel on a note moves it a step; with Ctrl it changes its length
   { gesture: 'wheelUp', before: { notes: [quarter()], pointer }, after: { notes: [quarter(B + 1)] } },
   { gesture: 'wheelUp', key: 'ctrl', before: { notes: [quarter()], pointer }, after: { notes: [{ ...quarter(), length: 'half' }] } },
-  // the middle button on a note makes it longer
-  { gesture: 'middle', before: { notes: [quarter()], pointer }, after: { notes: [{ ...quarter(), length: 'half' }] }, press: press(1, 'place') },
+  // the middle button on a note makes it longer; on a touchpad Alt + left does the same
+  { gesture: 'middle', before: { notes: [quarter()], pointer }, after: { notes: [{ ...quarter(), length: 'half' }] }, press: press(1, 'note', 'lengthen') },
+  { gesture: 'left', key: 'alt', before: { notes: [quarter()], pointer }, after: { notes: [{ ...quarter(), length: 'half' }] }, press: press(0, 'note', 'lengthen', true) },
   // a left drag over bars selects them
   {
     gesture: 'drag',
     before: { notes: [quarter(), { bar: 1, place: B + 2, length: 'quarter' }], pointer },
     after: { notes: [quarter(), { bar: 1, place: B + 2, length: 'quarter' }], boxed: true },
-    press: press(0, 'select'),
+    press: press(0, 'place', 'select'),
   },
 ];
 

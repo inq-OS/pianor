@@ -35,7 +35,7 @@ export interface Choice { readonly text: StringKey; readonly next: NodeId; reado
 export type Condition =
   | { readonly flag: string } | { readonly notFlag: string }
   | { readonly hasItem: ItemId } | { readonly met: CharacterId }
-  | { readonly taught: PieceId } | { readonly levelAtLeast: number }
+  | { readonly taught: PieceId }
   /** The per-player knowledge switch (d132). */
   | { readonly knowledge: boolean }
   | { readonly all: readonly Condition[] } | { readonly any: readonly Condition[] };
@@ -62,7 +62,6 @@ const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
     z.strictObject({ hasItem: idSchema }),
     z.strictObject({ met: idSchema }),
     z.strictObject({ taught: pieceIdSchema }),
-    z.strictObject({ levelAtLeast: z.number().int().min(1) }),
     z.strictObject({ knowledge: z.boolean() }),
     z.strictObject({ all: z.array(conditionSchema).min(1) }),
     z.strictObject({ any: z.array(conditionSchema).min(1) }),

@@ -197,6 +197,14 @@ export function entryBackspace(s: EntryState): EntryState {
   return { ...s, piece, held, items, chordOpen, itemFirstMs, lastHand: items.length > 0 ? items[items.length - 1]!.hand : null };
 }
 
+/**
+ * Where the next played key of `hand` goes: the cursor set for it, else after what the hand has (`cursorOf`); null when the
+ * piece is full to its last bar (a key then adds bars). The drawn keyboard cursor follows it after played keys.
+ */
+export function nextEntryPlace(s: EntryState, hand: EditorHand): { bar: number; start: number } | null {
+  return s.cursors[hand] ?? cursorOf(s.piece, hand);
+}
+
 /** Sets where the next entry of `hand` goes; used once, then the staff's own cursor is used again. */
 export function moveCursor(s: EntryState, hand: EditorHand, bar: number, start: number): EntryState {
   return { ...s, cursors: { ...s.cursors, [hand]: { bar, start } } };

@@ -150,6 +150,8 @@ describe('LearnSession', () => {
     expect(again.run).toMatchObject({ kind: 'step', firstBar: 0, lastBar: 0 });
     expect(again.halfway).toBe(false);
     expect(again.learned).toBe(false);
+    // the prize column keeps the clef won before while the piece is learned again, as the book does (rule 23)
+    expect(again.rewards().piece).toBe('silver');
     // nothing is kept until a run is played: leaving at once leaves the piece as it was
     expect(kept.progress).toBe(learned);
     await again.finish('perfect');

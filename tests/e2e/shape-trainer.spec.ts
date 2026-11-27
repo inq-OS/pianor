@@ -31,6 +31,7 @@ test.describe('scales and chords trainer (ft_1_29)', () => {
     await playWithVirtualPiano(page, scale);
     await expect.poll(() => state(page)).toMatchObject({ outcome: 'won', lives: 3 });
     await expect.poll(() => totalXp(page)).toBe(before + 150);
+    await expect.poll(() => sceneTexts(page, SCENE)).toContain('15 of 15 notes, 150 XP');
     expectNoErrors(errors);
   });
 
@@ -39,12 +40,16 @@ test.describe('scales and chords trainer (ft_1_29)', () => {
     const before = await totalXp(page);
     await playWithVirtualPiano(page, [60, 63]);
     await expect.poll(() => state(page)).toMatchObject({ lives: 2, outcome: 'playing' });
-    expect(await page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as View).wrong, SCENE)).toMatchObject({ reason: expect.any(String) });
+    // D is awaited: D# is the key next door, too high, and the words say so
+    expect(await page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as View).wrong, SCENE)).toMatchObject({ reason: 'neighbour-key', direction: 'higher' });
+    expect(await sceneTexts(page, SCENE)).toContain('Next key over, too high');
     await playWithVirtualPiano(page, [74]);
-    await expect.poll(() => page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as View).wrong, SCENE)).toEqual({ reason: 'wrong-octave' });
+    await expect.poll(() => page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as View).wrong, SCENE)).toMatchObject({ reason: 'wrong-octave' });
     await playWithVirtualPiano(page, [61]);
     await expect.poll(() => state(page)).toMatchObject({ lives: 0, outcome: 'lost', xp: 10 });
     await expect.poll(() => totalXp(page)).toBe(before + 10);
+    // the round's result in one objective line
+    expect(await sceneTexts(page, SCENE)).toContain('1 of 15 notes, 10 XP');
     // the toolbar's loop starts a new round with three lives
     await clickButton(page, SCENE, await sceneButton(page, SCENE, 'New round'));
     await expect.poll(() => state(page)).toMatchObject({ lives: 3, outcome: 'playing', xp: 0 });
@@ -87,7 +92,7 @@ test.describe('scales and chords trainer (ft_1_29)', () => {
     const errors = await openTrainer(page);
     await clickButton(page, SCENE, await sceneButton(page, SCENE, 'Scale up and down, the triad, or the scale switcher'));
     await page.evaluate(() => { for (const midi of [60, 64, 67]) window.__virtualDevice!.press(midi, 80); });
-    // the key button reads C too, so count the C's: one more while the chord is held
+    // count the C's on the screen: one more while the chord is held
     const cs = async () => (await sceneTexts(page, SCENE)).filter((text) => text === 'C').length;
     await expect.poll(() => page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as { held: { name: string } | null }).held?.name, SCENE)).toBe('C');
     const withChord = await cs();

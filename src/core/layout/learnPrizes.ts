@@ -11,17 +11,17 @@ export const PRIZE = {
   /** The width the column takes at the right of the staff. */
   room: 5,
   /** From the top of the sheet to the clef, and between the parts of the column. */
-  top: 0.6,
+  top: 1.2,
   gap: 1.2,
   /** A step between two stacked heads (a second), and the stem above the top head. */
-  step: 0.5,
+  step: 0.68,
   stem: 3.2,
-  /** Head radii: a quarter's and a whole note's. */
-  quarterRx: 0.62,
-  wholeRx: 0.78,
-  headRy: 0.47,
+  /** Head radii: a quarter's and a whole note's, larger than the staff's own heads so a medal reads from the bench. */
+  quarterRx: 0.8,
+  wholeRx: 1,
+  headRy: 0.62,
   /** The clef is drawn at this share of the staff's own clef (`TREBLE_CLEF_STROKE`, a 2.6 by 7 box). */
-  clefScale: 0.55,
+  clefScale: 0.7,
   clefBox: { w: 2.6, h: 7 },
 } as const;
 

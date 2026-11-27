@@ -69,7 +69,7 @@ function cut(source: Bitmap, box: Rect): Bitmap {
 /**
  * The map of Keri (ft_1_18.AC2, AC4): the island as one painted picture (d111, `virtual:keri-pictures`, made when the game
  * is built) seen at a slant in its sea, with what moves laid over it: the sea's second look, the lamp's turning beam and
- * drifting clouds. The room's door opens it; the warden's house and Back return to the room. Each scene the student's level has opened is a button on its painted place (ft_1_19.AC2). The map is painted for the sky phase of the hour, like the room.
+ * drifting clouds. The room's door opens it; the warden's house and Back return to the room. Each open scene is a button on its painted place (ft_1_19.AC2). The map is painted for the sky phase of the hour, like the room.
  */
 export class KeriMapScene extends PixelScene {
   protected override keyboardNavigation = true;
@@ -92,8 +92,8 @@ export class KeriMapScene extends PixelScene {
   }
 
   /**
-   * The intro's tour of the map (ft_1_31.AC6): Kiur under the spotlight shows the island, the first place the student's
-   * level has opened and the house; then back to the room for the teacher's knock. Esc skips the rest of the intro there.
+   * The intro's tour of the map (ft_1_31.AC6): Kiur under the spotlight shows the island, the first open place
+   * and the house; then back to the room for the teacher's knock. Esc skips the rest of the intro there.
    */
   private showIntro(): void {
     if (!this.introDue || !this.sys.isActive()) return;
@@ -198,8 +198,8 @@ export class KeriMapScene extends PixelScene {
     const house = fromCells(PLAN.house);
     this.button({ ...rectCentre(house), label: t('map.house'), picture: createBitmap(house.w, house.h), onClick: () => this.back() });
     this.spots = { house };
-    // the scenes that the student's level has opened (ft_1_19.AC2, d113): a clear button over each one's painted place
-    const open = openScenes(KERI.scenes ?? [], contextOf(this).profiles.progress.level.level, isTester(contextOf(this).profiles.profile.name));
+    // the open scenes (ft_1_19.AC2, d113: every one built and not closed): a clear button over each one's painted place
+    const open = openScenes(KERI.scenes ?? [], isTester(contextOf(this).profiles.profile.name));
     for (const scene of PLAN.scenes) {
       const target = SCENE_SCREENS[scene.id];
       if (!target || !open.includes(scene.id)) continue;

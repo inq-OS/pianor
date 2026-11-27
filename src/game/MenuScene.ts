@@ -27,14 +27,17 @@ import { PixelScene } from './ui/pixel/PixelScene';
 import { STAR_FULL } from './ui/pixel/sprites';
 import { GRADE_STARS } from '../core/scoring/stars';
 import { BUBBLE, ICONS, NEW_PIECE_HEIGHT, PENCIL, newPieceArt } from './ui/pixel/iconArt';
-import { blit, createBitmap, flipX, recolor, type Bitmap } from './ui/pixel/bitmap';
+import { blit, createBitmap, recolor, type Bitmap } from './ui/pixel/bitmap';
 import { measure, drawnText } from './ui/pixel/font';
-import { clipToWidth } from '../core/text/clip';
+import { clipToWidth, wholeIfCut } from '../core/text/clip';
+import { pieceOutline } from '../core/song/outline';
+import { pieceFactsOf } from '../core/song/resolve';
 import { HAT, hatPicture } from './ui/pixel/menuArt';
 import { ART_DETAIL } from '../core/layout/frame';
-import { BOOK_PALETTE, PAGE_TURN, pageCorners, paintBookmark, paintFolio, paintPageTurn } from './ui/pixel/paint/book';
+import { BOOK_PALETTE, paintBookmark } from './ui/pixel/paint/book';
 import type { Rect } from '../core/layout/rect';
 import { startScene } from './scenes';
+import { learnBook } from './ui/pixel/standArt';
 import { CLEF_FLIGHT, clefDrop, type Box } from '../core/layout/clefFlight';
 import { clefSpaceFor, drawMedalClef } from './practice/prizeGlyphs';
 import type { Medal as LearnMedal } from '../core/learn/progress';
@@ -104,10 +107,6 @@ const LEFT_SHIFT = 7;
  * screen's edge, lying over the page's margin up to the pieces. Its height and the gap between two.
  */
 const TAB = { shut: 16, open: 30, h: 19, gap: 3, out: 5 } as const;
-/** A page's turned-up corner (the pager, ft_1_12 rule 1) takes a press this many cells on a side, its corner on the page's. */
-const FOLD = { size: 17 } as const;
-/** A page's number stands this many cells over the page's foot. */
-const FOLIO_FOOT = 3;
 /** The bookmarks start this far under the book's top, clear of the door in the screen's top left corner. */
 const TAB_TOP = 22;
 /** Each order's picture in the order button's choices (ft_1_12.AC11). */
@@ -146,6 +145,10 @@ const KIUR_TITLE_TOP = 6;
 const INFO_SIZE = 11;
 /** The "S" button sits this far left of the "i" button (centre to centre). */
 const STATS_OFFSET = INFO_SIZE + 3;
+/** The hide button stands this much further out than the other small buttons, so a finger reaching for i never takes a piece out. */
+const HIDE_GAP = 8;
+/** The piece's level stands at least this far from its title, so it never reads as part of it. */
+const LEVEL_GAP = 10;
 /** The five grade stars on a card, one pixel apart. */
 /** The stacked grade's width: three stars one pixel apart (the two under them sit within). */
 const GRADE_WIDTH = 3 * (STAR_FULL.width + 1) - 1;
@@ -160,7 +163,7 @@ const HIDE_HINT = 0.35;
 
 /**
  * The piece picker: Kiur, the player's level and XP, and the pieces as cards in two columns, six to a page. A card shows
- * the title, how many stars were earned and which hand plays; a locked card shows a padlock and the level it needs.
+ * the title, how many stars were earned and which hand plays. No card is locked: levels gate nothing.
  * Drawn in art pixels, so everything stays crisp at any whole-number zoom.
  */
 export class MenuScene extends PixelScene {
@@ -174,9 +177,9 @@ export class MenuScene extends PixelScene {
   private goOnTo: KeriScreen | 'profile' | null = null;
   /** The piece whose info card is open, if any. */
   private infoId: string | null = null;
-  /** The small "i" button of each unlocked card on this page, by piece id (not in `buttons`: they are not piece cards). */
+  /** The small "i" button of each card on this page, by piece id (not in `buttons`: they are not piece cards). */
   protected infoButtons = new Map<string, PixelButton>();
-  /** The small "S" button of each unlocked card on this page, by piece id: it opens the piece's stats page (core_04). */
+  /** The small "S" button of each card on this page, by piece id: it opens the piece's stats page (core_04). */
   protected statsButtons = new Map<string, PixelButton>();
   /** An own piece's pencil, which opens it in the piece maker (ft_1_12), by piece id. */
   protected editButtons = new Map<string, PixelButton>();
@@ -403,6 +406,26 @@ export class MenuScene extends PixelScene {
     this.inkWriting = false;
   }
 
+  /**
+   * Kiur's Tug with no piece learned (ft_1_32 rule 15): under the line, Kiur's own Learn picture, which opens his Learn book
+   * here, so the student need not go back to the room for it.
+   */
+  private learnInstead(x: number, y: number): void {
+    const art = learnBook();
+    const w = art.width / ART_DETAIL + 4, h = art.height / ART_DETAIL + 4;
+    this.button({ x: x + w / 2, y: y + h / 2, width: w, height: h, label: t('room.kiur.learn'), icon: art, iconOnly: true, fineIcon: true, onClick: () => startScene(this, 'menu', { forKiur: 'learn' }) });
+  }
+
+  /** A bookmark's empty page: its own picture at `x`, `top` + 10, then the sentence under it, at most `maxWidth` wide. */
+  private emptyPage(x: number, top: number, maxWidth: number): void {
+    const picture = BOOKMARK_ICON[this.bookmark]();
+    this.root.add(new PixelImage(this, x, top + 10, picture).setName('emptyBookmark'));
+    this.inkWriting = true;
+    const line = this.label(x, top + 16 + picture.height, t(this.forKiur === 'tug' ? 'menu.noneLearned' : 'menu.noneHere'), C.umberDark, { maxWidth });
+    this.inkWriting = false;
+    if (this.forKiur === 'tug') this.learnInstead(x, line.y + line.height + 6);
+  }
+
   /** The pieces in the order chosen (ft_1_12.AC11). */
   private ordered(pieces: readonly Piece[]): Piece[] {
     const { profiles } = contextOf(this);
@@ -488,7 +511,8 @@ export class MenuScene extends PixelScene {
     if (pieces.length === 0 && !marked) {
       const why = this.forKiur === 'tug' && listed.length > 0 ? 'menu.noneLearned' : offered.length > 0 ? 'menu.allOff' : 'menu.noPieces';
       this.forKiurTitle(this.titleX(MARGIN), listTop + 3, this.cornerStrip.right - this.titleX(MARGIN));
-      this.label(MARGIN, listTop + 16, t(why), C.dim, { maxWidth: width - 2 * MARGIN });
+      const line = this.label(MARGIN, listTop + 16, t(why), C.dim, { maxWidth: width - 2 * MARGIN });
+      if (why === 'menu.noneLearned') this.learnInstead(MARGIN, line.y + line.height + 6);
       return;
     }
 
@@ -507,12 +531,7 @@ export class MenuScene extends PixelScene {
     this.forKiurTitle(margin + shift, bookRows.top - 4 + KIUR_TITLE_TOP, width / 2 - margin - shift - columnGap / 2);
     this.inkWriting = false;
     if (pieces.length === 0) {
-      // the bookmark's own picture on the empty page, then the sentence under it
-      const picture = BOOKMARK_ICON[this.bookmark]();
-      this.root.add(new PixelImage(this, margin + shift + 6, top + 10 + kiurRoom, picture).setName('emptyBookmark'));
-      this.inkWriting = true;
-      this.label(margin + shift + 6, top + 16 + kiurRoom + picture.height, t(this.forKiur === 'tug' ? 'menu.noneLearned' : 'menu.noneHere'), C.umberDark, { maxWidth: width / 2 - margin - shift - columnGap / 2 - 6 });
-      this.inkWriting = false;
+      this.emptyPage(margin + shift + 6, top + kiurRoom, width / 2 - margin - shift - columnGap / 2 - 6);
       return;
     }
     this.inkWriting = true;
@@ -615,41 +634,6 @@ export class MenuScene extends PixelScene {
     startScene(this, to, {});
   }
 
-  /**
-   * The book's pager (ft_1_12 rule 1): no words. Each page has its number at its foot, printed as an old book prints it
-   * (`paintFolio`: the left page 1, 3, 5 ..., the right 2, 4, 6 ...); the left page's bottom corner is turned up while
-   * there is a page before, the right page's while there is one after. Under the pointer the corner rolls up further, as a
-   * hand lifts it, and a press on it turns the page. A corner with no page behind lies flat and takes no press.
-   */
-  private bookPager(slice: { page: number; pages: number }, book: Rect, turn: (page: number) => void): void {
-    const fine = (v: number) => v * ART_DETAIL;
-    const at = pageCorners(fine(book.w), fine(book.h));
-    // the picture is big enough for the corner lifted; the press is on the corner itself, FOLD.size cells on a side
-    const size = PAGE_TURN.lifted + 16, press = fine(FOLD.size);
-    const resting = paintPageTurn(size, false), lifted = paintPageTurn(size, true);
-    const corners = [
-      { label: t('menu.previous'), x: fine(book.x) + at.left.x, y: fine(book.y) + at.left.y + 1 - size, flip: true, can: slice.page > 0, page: slice.page - 1 },
-      { label: t('menu.next'), x: fine(book.x) + at.right.x + 1 - size, y: fine(book.y) + at.right.y + 1 - size, flip: false, can: slice.page < slice.pages - 1, page: slice.page + 1 },
-    ];
-    for (const c of corners) {
-      const look = (up: boolean) => (c.flip ? flipX(up ? lifted : resting) : up ? lifted : resting);
-      const image = c.can ? this.fineImage(c.x, c.y, look(false), BOOK_PALETTE).setName(`pageTurn:${c.flip ? 'left' : 'right'}`) : null;
-      const pressX = c.flip ? c.x : c.x + size - press, pressY = c.y + size - press;
-      this.button({
-        x: (pressX + press / 2) / ART_DETAIL, y: (pressY + press / 2) / ART_DETAIL, width: FOLD.size, height: FOLD.size, label: c.label, tooltip: c.label, iconOnly: true,
-        picture: createBitmap(FOLD.size, FOLD.size), disabled: !c.can, onClick: () => turn(c.page),
-        onHover: (over) => image?.setBitmap(look(over), BOOK_PALETTE),
-      });
-    }
-    // the page numbers, each at the middle of its page's foot
-    const spine = book.x + book.w / 2;
-    [{ n: 2 * slice.page + 1, centre: (book.x + spine) / 2 }, { n: 2 * slice.page + 2, centre: (spine + book.x + book.w) / 2 }].forEach(({ n, centre }) => {
-      // painted a fine pixel to a cell, so its strokes are as heavy as the writing on the page
-      const folio = paintFolio(n);
-      this.root.add(new PixelImage(this, Math.round(centre - folio.width / 2), book.y + Math.round(at.right.y / ART_DETAIL) - FOLIO_FOOT - folio.height, folio, BOOK_PALETTE).setName(`pageNumber:${n}`));
-    });
-  }
-
   /** The light rule in the gap under `cell`: one fine pixel high, a little shorter than the card at each end. */
   private rule(cell: Rect, gap: number): void {
     const inset = 4;
@@ -738,35 +722,38 @@ export class MenuScene extends PixelScene {
   }
 
   /**
-   * The piece's own level (ft_1_13) in the first of `places` it fits in (from `x` up to `limit`, at `y`), else not written;
-   * never over a button.
+   * The piece's own level (ft_1_13) in the first of `places` it fits in, else not written; never over a button. A place
+   * runs from `x` up to `limit` at `y`, the level at its start, or at its end with `end`.
    */
-  private pieceLevel(button: PixelButton, record: PieceRecord, flip: (x: number, w?: number) => number, places: { x: number; y: number; limit: number }[]): void {
+  private pieceLevel(button: PixelButton, record: PieceRecord, flip: (x: number, w?: number) => number, places: { x: number; y: number; limit: number; end?: boolean }[]): void {
     const text = t('menu.pieceLevel', { level: record.level.level });
     const width = measure(drawnText(text));
     const place = places.find((p) => p.x + width <= p.limit);
     if (!place) return;
-    const level = new PixelText(this, flip(place.x, width), place.y, text, { color: C.umberDark }).setName('pieceLevel');
+    const x = place.end ? place.limit - width : place.x;
+    const level = new PixelText(this, flip(x, width), place.y, text, { color: C.umberDeep }).setName('pieceLevel');
     this.root.add(level);
     button.attach(level);
   }
 
   /**
-   * A card's small buttons in a row on its second line, each in its own place whether or not it is there: parts, S, i and
-   * the hide button, outward from the stars.
+   * A card's small buttons in a row on its second line, each in its own place whether or not it is there: parts, S and i
+   * read in that order on both pages, and the hide button apart from them at the card's outer end.
    */
-  private cardButtons(piece: Piece, button: PixelButton, at: (place: number) => { x: number; y: number }): { info: PixelButton; stats: PixelButton } {
+  private cardButtons(piece: Piece, button: PixelButton, at: (place: number) => { x: number; y: number }, mirrored: boolean): { info: PixelButton; stats: PixelButton } {
     const small = (place: { x: number; y: number }, label: string, onClick: () => void): PixelButton =>
       this.own(new PixelButton(this, this.root, { ...place, width: INFO_SIZE, height: INFO_SIZE, label, look: 'ink', inkBox: true, onClick }));
-    const info = small(at(2), t('info.button'), () => this.showInfo(piece.chart.id));
+    // places count outward from the stars; the left page is mirrored, so its three run the other way out to read the same
+    const place = (n: number) => at(mirrored ? 2 - n : n);
+    const info = small(place(2), t('info.button'), () => this.showInfo(piece.chart.id));
     this.infoButtons.set(piece.chart.id, info);
-    const stats = small(at(1), t('stats.button'), () => startScene(this, 'results', { chartId: piece.chart.id }));
+    const stats = small(place(1), t('stats.button'), () => startScene(this, 'results', { chartId: piece.chart.id }));
     this.statsButtons.set(piece.chart.id, stats);
     // AX-3 provisional: the parts page (the song page with the piece at its root, ft_1_36.AC13) is reached by a small button, not by the card, so a tap still plays at once (core_06)
-    if (piece.chart.phrases.length > 0 && !this.maker) {
-      this.partsButtons.set(piece.chart.id, small(at(0), t('parts.button'), () => startScene(this, 'song', { chartId: piece.chart.id })));
+    if (!this.maker && pieceOutline(piece.chart.id, pieceFactsOf(piece.chart)).rows.length > 0) {
+      this.partsButtons.set(piece.chart.id, small(place(0), t('parts.button'), () => startScene(this, 'song', { chartId: piece.chart.id })));
     }
-    // past i: take the piece out of the book, in two presses (ft_1_02c.AC8); never the last piece in it
+    // at the outer end, a gap past the others: take the piece out of the book, in two presses (ft_1_02c.AC8); never the last piece in it
     if (!this.maker && contextOf(this).profiles.canTurnOff(piece.chart.id)) this.hideButton(piece.chart.id, button, at(3));
     return { info, stats };
   }
@@ -786,7 +773,7 @@ export class MenuScene extends PixelScene {
     const line = CARD_HEIGHT / 2;
     // the small buttons in a row on the second line, one button's width past the stars; `at` is a place's centre
     const firstButton = left + 6 + GRADE_WIDTH + INFO_SIZE + INFO_SIZE / 2;
-    const at = (place: number) => ({ x: flip(firstButton + place * STATS_OFFSET), y: top + 23 });
+    const at = (place: number) => ({ x: flip(firstButton + place * STATS_OFFSET + (place === 3 ? HIDE_GAP : 0)), y: top + 23 });
     const lineEnd = left + width - 5;
     // written in the book: the title on the first line with its signs at the line's outer end, the line under it the stars and the
     // piece's level; the title is what plays the piece
@@ -804,13 +791,17 @@ export class MenuScene extends PixelScene {
     ];
     // the signs at the title line's outer end, clear of the turned corner; a title too long for the room before them is cut on one line
     const signsStart = lineEnd - 6 - signs.reduce((a, b) => a + b + SIGN_GAP, 0) + SIGN_GAP;
-    // with no signs the title has its line to the end; a title too long for that is cut too
-    const room = (signs.length === 0 ? lineEnd : signsStart - 4) - (left + 6);
+    // with no signs the title has its line to the end; a title too long for that is cut too. Either way it stops at the small
+    // buttons' outer edge, so every title keeps the margin the buttons keep and none runs onto the page's edge
+    const buttonsEnd = firstButton + 3 * STATS_OFFSET + HIDE_GAP + INFO_SIZE / 2;
+    const room = Math.min(signs.length === 0 ? lineEnd : signsStart - 4, buttonsEnd) - (left + 6);
     const title = clipToWidth(pieceTitle(piece.chart), room, (text) => measure(drawnText(text)));
     const titleEnd = left + 6 + measure(drawnText(title));
     const buttonWidth = (signs.length === 0 ? lineEnd : signsStart - 2) - left;
+    // a cut title ends in an ellipsis; the whole title is in its tooltip
     const button = this.button({
       x: flip(left + buttonWidth / 2), y: top + CARD_HEIGHT / 4, width: buttonWidth, height: CARD_HEIGHT / 2, label: title, look: 'ink', align: mirrored ? 'right' : 'left', labelWidth: room,
+      ...wholeIfCut(title, pieceTitle(piece.chart)),
       onClick: () => {
         if (this.maker) startScene(this, 'editor', { id: piece.chart.id });
         else if (this.forKiur === 'tug') startScene(this, 'profile', { kiurTug: piece.chart.id });
@@ -844,9 +835,14 @@ export class MenuScene extends PixelScene {
       const image = sign(p.bitmap, p.name);
       if (this.flight?.chartId === piece.chart.id) this.flightSign = image;
     });
-    const { info, stats } = this.cardButtons(piece, button, at);
-    // past the small buttons, else past the title and its signs
-    if (record) this.pieceLevel(button, record, flip, [{ x: firstButton + 3 * STATS_OFFSET + INFO_SIZE / 2 + 4, y: top + 20, limit: left + width - 1 }, { x: titleEnd + 6, y: top + 4, limit: signsStart - 3 }]);
+    const { info, stats } = this.cardButtons(piece, button, at, mirrored);
+    // past the small buttons, else at the title line's outer end, well apart from the title so it never reads as part of it
+    const outer = this.outerEnd(left, width, mirrored);
+    const levelPlaces = [
+      { x: firstButton + 3 * STATS_OFFSET + HIDE_GAP + INFO_SIZE / 2 + 4, y: top + 20, limit: outer },
+      { x: titleEnd + LEVEL_GAP, y: top + 4, limit: Math.min(left + 6 + room, outer), end: true },
+    ];
+    if (record) this.pieceLevel(button, record, flip, levelPlaces);
     // the five-star grade of the best play, stacked like interlocking rings: three over two, the two set in between (ft_1_12 rule 7)
     const grade = record?.bestGrade ?? 0;
     const starsAt = flip(left + 6, GRADE_WIDTH);
@@ -857,6 +853,11 @@ export class MenuScene extends PixelScene {
     button.attach(...earned, ...signImages);
     this.fadeIfArmed(piece.chart.id, button, info, stats);
     return button;
+  }
+
+  /** Where a card's free room ends toward the page's outer edge (laid out as on the right page): clear of the left page's bookmarks. */
+  private outerEnd(left: number, width: number, mirrored: boolean): number {
+    return left + width - (mirrored && !this.maker ? LEFT_SHIFT + 2 : 1);
   }
 
   /** A curriculum piece's days left, over a bar of how near the deadline is, at `cursor` on the title's line, before its hat. */

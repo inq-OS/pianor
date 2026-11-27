@@ -2,7 +2,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { chartWith, graceAt } from '../../../tests/helpers/charts';
 import { chartSchema } from './schema';
-import { playbackLengthMs, playbackNotes, soundingAt } from './playback';
+import { lastSoundMs, playbackLengthMs, playbackNotes, soundingAt } from './playback';
 
 /** Two bars of 4/4 at 120 bpm: a quarter is 500 ms. */
 const melody = () =>
@@ -170,5 +170,15 @@ describe('properties', () => {
         expect(notes.at(-1)!.endMs).toBeLessThanOrEqual(playbackLengthMs(chart));
       }),
     );
+  });
+});
+
+describe('lastSoundMs', () => {
+  it('ft_1_02a.AC17 ends where the last written note stops sounding, not at the end of the empty bars after it', () => {
+    // two quarters in the first of eight bars: Listen ends after one second, not after sixteen
+    const chart = chartWith([{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 62 }], { bars: Array.from({ length: 8 }, (_, i) => ({ index: i, startTick: i * 1920, endTick: (i + 1) * 1920 })) });
+    expect(lastSoundMs(playbackNotes(chart))).toBe(1000);
+    expect(playbackLengthMs(chart)).toBe(16000);
+    expect(lastSoundMs([])).toBe(0);
   });
 });

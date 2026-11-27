@@ -39,6 +39,8 @@ const buttonNames = (page: Page) =>
 const buttonLabels = (page: Page) =>
   page.evaluate(() => (window.__game.scene.getScene('practice').buttons as { options: { label: string } }[]).map((b) => b.options.label));
 
+/** The hand-shift arrows on Evening Chords' first page with the finger numbers on (ft_1_30.AC10). */
+const EVENING_ARROWS = { up: 4, down: 4 };
 const chartId = (page: Page) => page.evaluate(() => window.__game.scene.getScene('practice').chart.id as string);
 const percent = (page: Page) => page.evaluate(() => window.__game.scene.getScene('practice').percent as number);
 
@@ -197,6 +199,12 @@ test.describe('practice tools (core_02 and core_03)', () => {
     expect(await buttonLabels(page)).toEqual(expect.arrayContaining(['+10', 'to 110'])); // the ramp stays for the next laps
     // A carries the tempo and the lap; leaving the section, Kiur sums it up
     expect(await page.evaluate(() => (window.__game.scene.getScene('practice').playSession.staffView.markTexts as { text: { text: string } }[]).map((m) => m.text.text))).toContain('A  77 BPM, lap 2');
+    // the marks stand over the beat dots, never on them (core_03 rule 7)
+    expect(await page.evaluate(() => {
+      const view = window.__game.scene.getScene('practice').playSession.staffView as { origin: { y: number }; lanes: { dots: { y: number; system: number }[] }[]; markTexts: { system: number; text: { y: number; height: number } }[] };
+      const dots = view.lanes.flatMap((lane) => lane.dots);
+      return dots.length > 0 && view.markTexts.every((m) => m.text.y + m.text.height / 2 < Math.min(...dots.filter((d) => d.system === m.system).map((d) => view.origin.y + d.y)));
+    })).toBe(true);
     await press(page, 'Whole piece');
     await expect.poll(() => chartId(page)).toBe('little-steps');
     expect(await sceneTexts(page, 'practice')).toContain('Laps: 1, clean: 0, 70 to 77 BPM.');
@@ -429,17 +437,27 @@ test.describe('practice tools (core_02 and core_03)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_30.AC10: arrows above the notes where the hand moves show with the finger numbers, and hide without them', async ({ page }) => {
+  test('ft_1_30.AC10: arrows above the written fingers where the hand moves show with the finger numbers, and hide without them', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual&unlock=all');
-    await openPiece(page, 'Twinkle Twinkle Little Star');
     const arrows = () => page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView.handShiftsShown as { up: number; down: number });
+    const fingersOn = () => page.evaluate(() => window.__game.scene.getScene('practice').hints.fingers as boolean);
+    // Evening Chords writes its fingers: the hands move between its chords
+    await openPiece(page, 'Evening Chords');
     expect(await arrows()).toEqual({ up: 0, down: 0 });
     await page.keyboard.press('KeyF');
-    await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').hints.fingers)).toBe(true);
-    // Twinkle leaves the C position at A: the hand moves up for it and back down for F E D C
-    await expect.poll(arrows).toEqual({ up: 1, down: 1 });
+    await expect.poll(fingersOn).toBe(true);
+    await expect.poll(arrows).toEqual(EVENING_ARROWS);
     await page.keyboard.press('KeyF');
     await expect.poll(arrows).toEqual({ up: 0, down: 0 });
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_30.AC10: a piece with no written fingers shows no arrow with the finger numbers on, so none points at a finger the staff does not show', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual&unlock=all');
+    await openPiece(page, 'Twinkle Twinkle Little Star');
+    await page.keyboard.press('KeyF');
+    await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').hints.fingers as boolean)).toBe(true);
+    expect(await page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView.handShiftsShown)).toEqual({ up: 0, down: 0 });
     expectNoErrors(errors);
   });
 
@@ -504,7 +522,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
 
   test('core_03.AC5 the ramp panel fits in Estonian, over the staff and above the band, with its longest values', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual', 'et');
-    await openPiece(page, 'Little Steps');
+    await openPiece(page, 'Väikesed sammud'); // Little Steps, by its Estonian title
     await page.keyboard.press('Shift+KeyR');
     await page.keyboard.press('Digit2');
     await page.keyboard.press('Digit3');

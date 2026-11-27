@@ -58,10 +58,26 @@ describe('statsGraph', () => {
   it('draws a whisker around a value with a reach, inside the plot, and keeps the scale near the values', () => {
     const [even, wobbly] = statsGraph([point(60, { reach: 0 }), point(60, { reach: 15 })], plot).points;
     expect(even).toMatchObject({ top: even!.y, bottom: even!.y });
-    expect(wobbly).toMatchObject({ y: 70, top: 50, bottom: 90 }); // 45 to 75, the scale's own ends
+    expect(wobbly).toMatchObject({ y: 70, top: 50, bottom: 90 }); // 45 to 75, cut at the scale's own ends
     const stopped = statsGraph([point(60, { reach: 108 })], plot);
-    expect(stopped.lines.map((line) => line.value)).toEqual([40, 80]);
+    expect(stopped.lines.map((line) => line.value)).toEqual([54, 66]);
     expect(stopped.points[0]).toMatchObject({ top: 50, bottom: 90 });
+  });
+
+  it('fits the scale to close runs, so a wide whisker of one run does not flatten them into a line', () => {
+    // runs at 85 to 88 with the piece's baseline at 85; the first, uneven with a stop, has a whisker of 40
+    const graph = statsGraph([point(85, { steady: false, reach: 40 }), point(86, { reach: 2 }), point(87, { reach: 2 }), point(88, { reach: 2 })], plot, { reference: 85 });
+    const [low, high] = [graph.lines[0]!.value, graph.lines.at(-1)!.value];
+    expect(high - low).toBeLessThanOrEqual(20);
+    expect(low).toBeLessThanOrEqual(85);
+    expect(high).toBeGreaterThanOrEqual(88);
+    // the runs stand apart: three beats a minute take at least a sixth of the plot's height
+    expect(graph.points[0]!.y! - graph.points[3]!.y!).toBeGreaterThanOrEqual(plot.h / 6);
+  });
+
+  it('keeps a minimum span, so runs of one tempo are not stretched over the whole plot', () => {
+    const graph = statsGraph([point(85), point(85)], plot);
+    expect(graph.lines.at(-1)!.value - graph.lines[0]!.value).toBeGreaterThanOrEqual(10);
   });
 
   it('gives the second value its own height, and none where it is missing', () => {

@@ -372,20 +372,22 @@ export class PlaySession {
 
   private applyState(state: PlayState): void {
     const shown = this.toWritten(state);
-    this.view?.applyProgress(shown.noteProgress, shown.awaiting);
+    this.view?.applyProgress(shown.noteProgress, shown.awaiting, shown.retried);
     if (this.transport) this.view?.applyTimings(shown.noteProgress, shown.timings, this.scoreView);
   }
 
   /** The judge's state (play notes) as the written notes the staff draws: the pass that is on (core_09.AC18). */
-  private toWritten(state: PlayState): Pick<PlayState, 'noteProgress' | 'awaiting' | 'timings'> {
+  private toWritten(state: PlayState): Pick<PlayState, 'noteProgress' | 'awaiting' | 'timings' | 'retried'> {
     if (this.play.chart === this.written) return state;
     const position = state.awaiting.length > 0 ? Math.min(...state.awaiting) : this.chart.notes.length;
     const shown = writtenView(this.play, this.written.notes.length, position);
     const timings = state.timings;
+    const retried = state.retried;
     return {
       noteProgress: shown.map((p) => state.noteProgress[p] ?? 'pending'),
       awaiting: state.awaiting.map((p) => this.play.writtenNote[p]!),
       ...(timings ? { timings: shown.map((p) => timings[p] ?? null) } : {}),
+      ...(retried ? { retried: shown.map((p) => retried[p] === true) } : {}),
     };
   }
 
@@ -563,5 +565,5 @@ const CHORDS = loadChordContent(chordsJson);
 function chordNamesOption(prefs: StaffPrefs): Pick<StaffLayoutOptions, 'chordNames'> {
   const show = prefs.chordLabels ?? 'notes';
   if (show === 'notes') return {};
-  return { chordNames: { show, name: (keys) => { const chord = nameChord(CHORDS, keys); return chord ? staffChordName(chord, prefs.noteNaming) : null; } } };
+  return { chordNames: { show, name: (keys, spellings) => { const chord = nameChord(CHORDS, keys, { spellings }); return chord ? staffChordName(chord, prefs.noteNaming) : null; } } };
 }

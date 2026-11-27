@@ -1,10 +1,14 @@
-import { circleHit, circleLayout, keyAt, moveStep, spellingsOf, stepOfKey, tonicStep, withFlat, type CircleKey, type CircleLayout, type CircleRing } from '../core/layout/circleOfFifths';
+import { CIRCLE_SCALE_BARS, chooseKey, circleHit, circleLayout, circlePanelLayout, keyAt, moveStep, otherSpelling, spellingsOf, stepOfKey, tonicStep, withFlat, type CircleKey, type CircleLayout, type CircleRing, type CircleStep, type CircleTarget } from '../core/layout/circleOfFifths';
+import { frameCorners } from '../core/layout/frame';
 import { pitchClass } from '../core/chart/pitch';
-import { keyNames } from '../core/editor/key';
+import { rectCentre } from '../core/layout/rect';
+import { keyName, keyTonic } from '../core/editor/key';
+import { language } from '../core/text/language';
 import { circleScaleLayout } from '../core/trainer/staffFrame';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
 import { scaleChart } from '../core/trainer/scaleChart';
 import { t } from '../core/text/strings';
+import type { NoteNaming } from '../core/text/noteName';
 import { contextOf } from './context';
 import { CANCELLED, closeOverlay, settleOverlay } from './scenes';
 import { recolor } from './ui/pixel/bitmap';
@@ -12,6 +16,7 @@ import { paintWheel, WHEEL_MARGIN } from './ui/pixel/circleArt';
 import { ICONS } from './ui/pixel/iconArt';
 import { ACCIDENTAL_ICONS, signatureIcon } from './ui/pixel/lengthArt';
 import { C, PALETTE } from './ui/pixel/palette';
+import { drawnText, renderText } from './ui/pixel/font';
 import { PixelImage, PixelText } from './ui/pixel/PixelObjects';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { BAR_BUTTON_HEIGHT } from './ui/pixel/playBars';
@@ -27,14 +32,9 @@ export interface CircleData {
 
 /** How dark the paused screen under the overlay gets, in the room's dusk (as Kiur's door, art-direction rule 26). */
 const DIM_ALPHA = 0.7;
-/** The panel's margin inside the main area, and the room inside the panel, in art pixels. */
-const PANEL_MARGIN = 3;
-const PAD = 5;
 /** One note of the scale as the game plays it: about 100 beats a minute (AX-3 provisional). */
 const NOTE_MS = 600;
 const VELOCITY = 80;
-/** The scale's staff starts this far under the panel's top, below the key's name. */
-const STAFF_TOP = 30;
 
 /**
  * The circle of fifths (ft_1_28): an overlay (d070) over the paused practice screen, note-name trainer or piece maker. Twelve
@@ -78,12 +78,13 @@ export class CircleOfFifthsScene extends PixelScene {
     // the keys are this overlay's own while it is open: the arrows, Enter and Esc stop here, ahead of the computer keyboard's piano
     this.onWindowKey((e) => this.onKey(e));
     this.events.once('shutdown', contextOf(this).keyboard.onNote((event) => {
-      if (event.kind === 'on' && event.velocity > 0) this.choose(tonicStep(pitchClass(event.midi), this.selected.ring), this.selected.ring, false);
+      // a played tonic takes the spelling with fewer signs, or the piece's, and never switches the spelling (only a click or an arrow does)
+      if (event.kind === 'on' && event.velocity > 0) this.choose(keyAt(tonicStep(pitchClass(event.midi), this.selected.ring), this.selected.ring, this.piecePrefer), false);
     }));
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
       if (over.length > 0 || !this.layout) return;
       const hit = circleHit(this.layout, (pointer.x - this.root.x) / this.px.scale, (pointer.y - this.root.y) / this.px.scale);
-      if (hit) this.choose(hit.step, hit.ring, true);
+      if (hit) this.go(hit);
     });
     super.create();
   }
@@ -107,10 +108,11 @@ export class CircleOfFifthsScene extends PixelScene {
     const { step, ring } = this.selected;
     const act: Record<string, () => void> = {
       Escape: () => this.close(),
-      ArrowLeft: () => this.choose(moveStep(step, -1), ring, true),
-      ArrowRight: () => this.choose(moveStep(step, 1), ring, true),
-      ArrowUp: () => this.choose(step, 'major', true),
-      ArrowDown: () => this.choose(step, 'minor', true),
+      ArrowLeft: () => this.go({ step: moveStep(step, -1), ring }),
+      ArrowRight: () => this.go({ step: moveStep(step, 1), ring }),
+      // up on the major ring (or down on the minor) again switches a two-spelling step's spelling, as a second click does
+      ArrowUp: () => this.go({ step, ring: 'major' }),
+      ArrowDown: () => this.go({ step, ring: 'minor' }),
       Enter: () => this.playScale(),
       ' ': () => this.playScale(),
     };
@@ -121,17 +123,32 @@ export class CircleOfFifthsScene extends PixelScene {
     if (!e.repeat) action();
   }
 
-  /** The fifths counts whose spelling wins where a step has two: the piece's key, then the key chosen. */
+  /** The fifths counts whose spelling the wheel shows where a step has two: the key chosen, then the piece's key. */
   private get prefer(): number[] {
-    return [this.pieceKey?.fifths, this.selectedKey.fifths].filter((f): f is number => f !== undefined);
+    return [this.selectedKey.fifths, ...this.piecePrefer];
+  }
+
+  /** The piece's key, whose spelling a newly chosen step takes where it has two (rule 3). */
+  private get piecePrefer(): number[] {
+    return this.pieceKey ? [this.pieceKey.fifths] : [];
+  }
+
+  /** A click or an arrow: chooses the key it lands on (`chooseKey`, the spelling switching on a second press) and plays its scale. */
+  private go(target: CircleTarget): void {
+    this.choose(chooseKey(this.selectedKey, target, this.piecePrefer), true);
+  }
+
+  /** Switches the chosen key to its other spelling (the button by its name, "also G♭") and plays its scale. */
+  private swap(): void {
+    const other = otherSpelling(this.selectedKey);
+    if (other) this.choose(other, true);
   }
 
   /** Choose a key: its name, signature and scale are drawn; `play` plays the scale (a click or an arrow, not a key the student played). */
-  private choose(step: number, ring: CircleRing, play: boolean): void {
+  private choose(key: CircleKey, play: boolean): void {
     this.stopScale();
-    this.selected = { step, ring };
-    const prefer = this.pieceKey ? [this.pieceKey.fifths] : [];
-    this.selectedKey = keyAt(step, ring, prefer);
+    this.selected = { step: stepOfKey(key), ring: key.mode };
+    this.selectedKey = key;
     this.redraw();
     if (play) this.playScale();
   }
@@ -173,66 +190,80 @@ export class CircleOfFifthsScene extends PixelScene {
     const naming = profiles.noteNaming;
     // the paused screen stays visible, in shade, toolbar included
     this.root.add(this.add.rectangle(0, -this.mainTop / scale, width, height + this.mainTop / scale, PALETTE[C.duskDeep], DIM_ALPHA).setOrigin(0, 0));
-    const panel = { x: PANEL_MARGIN, y: PANEL_MARGIN, w: width - 2 * PANEL_MARGIN, h: this.mainRows - 2 * PANEL_MARGIN };
-    this.parchmentCard(panel);
+
+    // beside the wheel: the chosen key's name, a Listen button, and its scale on a staff with its signature
+    const title = keyName(this.selectedKey.fifths, this.selectedKey.mode, naming);
+    // keepCase: the key's name is written as on the circle, the small letter of a minor key included
+    const heading = new PixelText(this, 0, 0, title, { color: C.ink, keepCase: true });
+    // opened to choose (rule 8): a tick with the signature for each spelling of the step chosen, sharps first; two where the
+    // step has two (F sharp or G flat), so every one of the fifteen signatures can be set
+    const ticks = (this.choosing ? spellingsOf(this.selected.step).sort((x, y) => y - x) : []).map((fifths) => {
+      const key: CircleKey = { fifths, mode: this.selectedKey.mode };
+      const name = keyName(fifths, key.mode, naming);
+      // C major and a minor have no signs to show: a tick says the same
+      const picture = fifths === 0 ? TOOL_ICONS.tick : signatureIcon(fifths);
+      return { key, name, picture, width: Math.max(22, picture.width + 8) };
+    });
+    // a key with two spellings has a switch to the other by its name ("also G♭"), so the second spelling is never hidden
+    const other = otherSpelling(this.selectedKey);
+    const otherShort = other && keyTonic(other.fifths, other.mode, naming, language());
+    const otherTitle = other && keyName(other.fifths, other.mode, naming);
+    const swapLabel = otherShort === null ? null : t('circle.also', { key: otherShort });
+    const layout = circlePanelLayout({ width, rows: this.mainRows }, {
+      heading: { w: heading.width, h: heading.height }, swap: swapLabel === null ? null : swapWidth(naming),
+      ticks: ticks.map((tick) => tick.width), wheelMargin: WHEEL_MARGIN, button: { w: 22, h: BAR_BUTTON_HEIGHT },
+    });
+    this.parchmentCard(layout.panel);
 
     // the wheel on the left, as big as the panel's height allows
-    const radius = Math.floor((panel.h - 2 * PAD) / 2) - WHEEL_MARGIN;
-    const cx = panel.x + PAD + WHEEL_MARGIN + radius;
-    const cy = panel.y + Math.floor(panel.h / 2);
-    const layout = circleLayout({ cx, cy, radius }, naming, this.prefer);
-    this.layout = layout;
+    const { cx, cy, radius } = layout.wheel;
+    const circle = circleLayout({ cx, cy, radius }, naming, this.prefer);
+    this.layout = circle;
     const marked = this.pieceKey ? stepOfKey(this.pieceKey) : null;
-    const wheel = paintWheel(layout, { selected: this.selected, marked });
+    const wheel = paintWheel(circle, { selected: { ...this.selected, fifths: this.selectedKey.fifths }, marked });
     this.root.add(new PixelImage(this, cx - (wheel.width - 1) / 2, cy - (wheel.height - 1) / 2, wheel));
-    for (const step of layout.steps) {
-      this.name(step.major, step.majorAt, C.ink);
+    for (const step of circle.steps) {
+      this.name(step.major, step.majorAt, C.ink, this.dimmed(step));
       this.name(step.minor, step.minorAt, C.featherStreak);
       this.signs(step.signs, step.signAt);
     }
 
-    // beside it: the chosen key's name, a Listen button, and its scale on a staff with its signature
-    const right = cx + radius + WHEEL_MARGIN + PAD + 4;
-    const rightW = panel.x + panel.w - PAD - right;
-    const names = keyNames(this.selectedKey.fifths, naming);
-    const title = this.selectedKey.mode === 'major' ? t('circle.major', { key: withFlat(names.major) }) : t('circle.minor', { key: withFlat(names.minor.toLowerCase()) });
-    // keepCase: the key's name is written as on the circle, the b of a flat and the small letter of a minor key included
-    const heading = new PixelText(this, right, panel.y + PAD + 2, title, { color: C.ink, keepCase: true }).setScale(2);
+    heading.setPosition(layout.heading.x, layout.heading.y).setScale(layout.heading.scale);
     this.root.add(heading);
-    const buttonY = panel.y + PAD + 8;
-    const closeX = panel.x + panel.w - PAD - 11;
-    // opened to choose (rule 8): a tick with the signature for each spelling of the step chosen, before Close; two where the
-    // step has two (F sharp or G flat), so every one of the fifteen signatures can be set
-    const spellings = this.choosing ? spellingsOf(this.selected.step).sort((x, y) => y - x) : [];
-    let left = closeX - 11;
-    for (const fifths of [...spellings].reverse()) {
-      const key: CircleKey = { fifths, mode: this.selectedKey.mode };
-      const spelled = keyNames(fifths, naming);
-      const name = key.mode === 'major' ? t('circle.major', { key: withFlat(spelled.major) }) : t('circle.minor', { key: withFlat(spelled.minor.toLowerCase()) });
-      // C major and a minor have no signs to show: a tick says the same
-      const picture = fifths === 0 ? TOOL_ICONS.tick : signatureIcon(fifths);
-      const w = Math.max(22, picture.width + 8);
-      left -= w + 2;
-      this.button({ x: left + w / 2, y: buttonY, width: w, height: BAR_BUTTON_HEIGHT, label: t('circle.use', { key: name }), icon: picture, iconOnly: true, tooltip: t('circle.use', { key: name }), onClick: () => this.take(key) });
+    this.button({ ...rectCentre(layout.listen), label: t('circle.listen'), icon: ICONS.ear, iconOnly: true, onClick: () => this.playScale() });
+    this.button({ ...rectCentre(layout.close), label: t('circle.close'), icon: TOOL_ICONS.close, iconOnly: true, tooltip: t('circle.close'), onClick: () => this.close() });
+    // the door over the screen's own Back, at full brightness over the shade: it works here, and closes the overlay as Esc does
+    const door = frameCorners(width).back;
+    this.button({ ...rectCentre({ ...door, y: door.y - this.root.y / scale }), label: t('ui.back'), picture: ICONS.quit, tooltip: t('circle.close'), onClick: () => this.close() });
+    if (layout.swap && swapLabel !== null && otherTitle !== null) {
+      // keepCase: the key's name keeps its small letter for a minor and its flat sign
+      this.button({ ...rectCentre(layout.swap), label: swapLabel, keepCase: true, tooltip: t('circle.alsoTip', { key: otherTitle }), onClick: () => this.swap() });
     }
-    const listenX = Math.min(right + heading.width * 2 + 6 + 11, left - 2 - 11);
-    this.button({ x: listenX, y: buttonY, width: 22, height: BAR_BUTTON_HEIGHT, label: t('circle.listen'), icon: ICONS.ear, iconOnly: true, onClick: () => this.playScale() });
-    this.button({ x: closeX, y: buttonY, width: 22, height: BAR_BUTTON_HEIGHT, label: t('circle.close'), icon: TOOL_ICONS.circle, iconOnly: true, onClick: () => this.close() });
-
-    const staffTop = panel.y + STAFF_TOP;
-    const staffRows = panel.h - STAFF_TOP - PAD;
-    // one staff for every key, so choosing another key never moves or resizes it
-    const staffLayout = circleScaleLayout(this.selectedKey.fifths, this.selectedKey.mode, {
-      viewport: { width: rightW * scale, height: staffRows * scale }, ...staffSpaceLimits(this.scale.zoom), barsPerLine: 2, staffGap: profiles.staffGap, noteNaming: naming,
+    ticks.forEach((tick, i) => {
+      const label = t('circle.use', { key: tick.name });
+      this.button({ ...rectCentre(layout.ticks[i]!), label, icon: tick.picture, iconOnly: true, tooltip: label, onClick: () => this.take(tick.key) });
     });
-    this.staff = new StaffView(this, staffLayout, undefined, { noteNames: false, fingers: false }, { x: this.root.x + right * scale, y: this.root.y + staffTop * scale });
+
+    // one staff for every key, so choosing another key never moves or resizes it
+    const room = layout.staff;
+    const staffLayout = circleScaleLayout(this.selectedKey.fifths, this.selectedKey.mode, {
+      viewport: { width: room.w * scale, height: room.h * scale }, ...staffSpaceLimits(this.scale.zoom), barsPerLine: CIRCLE_SCALE_BARS, staffGap: profiles.staffGap, noteNaming: naming,
+    });
+    this.staff = new StaffView(this, staffLayout, undefined, { noteNames: false, fingers: false }, { x: this.root.x + room.x * scale, y: this.root.y + room.y * scale });
   }
 
-  /** A key's name with its middle at `at`, as written (`keepCase`: a minor's small letter); two spellings one above the other, a row apart (the helm's major ring is 15 rows deep). */
-  private name(value: string, at: { x: number; y: number }, color: number): void {
+  /** On the chosen two-spelling step, which of its two major names is not the spelling chosen (drawn dim), or none. */
+  private dimmed(step: CircleStep): number | null {
+    if (step.fifths.length < 2 || step.index !== this.selected.step) return null;
+    const at = step.fifths.indexOf(this.selectedKey.fifths);
+    return at < 0 ? null : 1 - at;
+  }
+
+  /** A key's name with its middle at `at`, as written (`keepCase`: a minor's small letter); two spellings one above the other, a row apart (the helm's major ring is 15 rows deep), the line `dim` in mid brown, legible but second. */
+  private name(value: string, at: { x: number; y: number }, color: number, dim: number | null = null): void {
     const lines = value.split('/');
     lines.forEach((line, i) => {
-      const text = new PixelText(this, 0, 0, withFlat(line), { color, keepCase: true });
+      const text = new PixelText(this, 0, 0, withFlat(line), { color: i === dim ? C.brown : color, keepCase: true });
       text.setPosition(Math.round(at.x - text.width / 2), Math.round(at.y - 3 + (i - (lines.length - 1) / 2) * 8));
       this.root.add(text);
     });
@@ -262,6 +293,18 @@ export class CircleOfFifthsScene extends PixelScene {
     this.staff = null;
     this.layout = null;
   }
+}
+
+/**
+ * The switch's width, the same for every key ("also G♭", "also F♯", "also c♯", ...): as wide as its widest label, so the
+ * piece maker's ticks after it stand still when the label changes.
+ */
+function swapWidth(naming: NoteNaming): number {
+  const widths = [-7, -6, -5, 5, 6, 7].flatMap((fifths) => (['major', 'minor'] as const).map((mode) => {
+    const label = t('circle.also', { key: keyTonic(fifths, mode, naming, language()) });
+    return renderText(drawnText(label, true), { color: C.ink }).width;
+  }));
+  return Math.max(...widths) + 10;
 }
 
 /** The wheel button that opens the circle (rule 1), the same on the toolbar and in the band's slots. */

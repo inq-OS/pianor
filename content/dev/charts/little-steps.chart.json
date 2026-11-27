@@ -3,6 +3,7 @@
   "id": "little-steps",
   "contentVersion": 1,
   "title": "Little Steps",
+  "titles": { "et": "Väikesed sammud" },
   "level": 1,
   "ppq": 480,
   "tempoMap": [

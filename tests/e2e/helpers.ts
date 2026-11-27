@@ -504,9 +504,9 @@ export async function pickProfile(page: Page, name: string): Promise<void> {
 /** The index of the menu button with this label on the page shown now, or -1. */
 export async function menuButton(page: Page, label: string): Promise<number> {
   return page.evaluate(
-    // a picture button (the book's turned corners) is found by its label; a piece's title too long for its card is cut with a dot
+    // a picture button (the book's turned corners) is found by its label; a piece's title too long for its card is cut with an ellipsis
     (t) => {
-      const same = (drawn: string | undefined) => drawn === t || (drawn !== undefined && drawn.length > 4 && drawn.endsWith('.') && t.startsWith(drawn.slice(0, -1)));
+      const same = (drawn: string | undefined) => drawn === t || (drawn !== undefined && drawn.length > 4 && drawn.endsWith('…') && t.startsWith(drawn.slice(0, -1)));
       return (window.__game.scene.getScene('menu').buttons as { objects: { text?: string }[]; options: { label: string } }[]).findIndex((b) => b.objects.some((o) => same(o.text)) || same(b.options.label));
     },
     label,

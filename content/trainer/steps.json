@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "note": "Note-name trainer steps (ft_0_17). Each step is a MIDI range on the EZ-220 (36 to 96). Ranges are provisional until playtests.",
+  "note": "Note-name trainer steps (ft_0_17). Each step is a MIDI range on the EZ-220 (36 to 96); whiteKeys asks only its white keys (AC10). Ranges are provisional until playtests.",
   "steps": [
-    { "id": "t1", "name": "Middle C area", "range": { "low": 60, "high": 67 } },
-    { "id": "t2", "name": "Middle C octave", "range": { "low": 60, "high": 72 } },
+    { "id": "t1", "name": "Middle C area", "range": { "low": 60, "high": 67 }, "whiteKeys": true },
+    { "id": "t2", "name": "Middle C octave", "range": { "low": 60, "high": 72 }, "whiteKeys": true },
     { "id": "t3", "name": "Two octaves around middle C", "range": { "low": 48, "high": 72 } },
     { "id": "t4", "name": "Whole keyboard", "range": { "low": 36, "high": 96 } }
   ]

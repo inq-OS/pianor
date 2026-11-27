@@ -3,7 +3,7 @@ import { pageOf } from '../core/layout/paging';
 import { rectCentre } from '../core/layout/rect';
 import { keyName } from '../core/song/outline';
 import type { Song } from '../core/song/schema';
-import { clipToWidth } from '../core/text/clip';
+import { clipToWidth, wholeIfCut } from '../core/text/clip';
 import { t } from '../core/text/strings';
 import { contextOf } from './context';
 import { songChartId } from './songCatalogue';
@@ -107,8 +107,9 @@ export class SongsScene extends PixelScene {
       const { x, y } = rectCentre(grid.pageCell(1, capacity));
       this.label(x - grid.cardWidth / 2 + 6, y - 4, all.length > 0 ? t('songs.allOff') : t('songs.none'), C.umberDark, { shadow: false });
     }
+    // the piece book's pager: its page numbers and turned-up corners
     if (slice.paged) {
-      this.pager(slice, (page) => {
+      this.bookPager(slice, book, (page) => {
         this.page = page;
         this.redraw();
       });
@@ -162,6 +163,8 @@ export class SongsScene extends PixelScene {
     const title = clipToWidth(song.title, room, (text) => measure(drawnText(text)));
     const button = this.button({
       x: x - (factsWidth + 6) / 2, y, width: width - factsWidth - 6, height: CARD_HEIGHT / 2, label: title, look: 'ink', align: 'left', labelWidth: room,
+      // a cut title's whole words in its tooltip
+      ...wholeIfCut(title, song.title),
       onClick: () => startScene(this, 'song', { songId: song.id }),
     });
     const { x: left, y: top } = button.rect;

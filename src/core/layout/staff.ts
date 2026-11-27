@@ -17,7 +17,7 @@ import { tupletOf, writtenDurOf } from '../chart/tuplets.ts';
 import { NOTE_TICKS, PPQ, fullBarTicks, noteLengthOf } from '../chart/time.ts';
 import { tieLinks } from '../chart/ties.ts';
 import { beatTicksOf, planBeams, type BeamInput, type BeamRun } from './beams.ts';
-import { noteLabel, type NoteNaming } from '../text/noteName.ts';
+import { chordNotesLabel, noteLabel, type NoteNaming } from '../text/noteName.ts';
 import { ACCIDENTAL_BOX, accidentalColumns, accidentalKind, keyChangeSigns, keySignaturePositions, signRooms } from './accidentals.ts';
 import type { NoteValue, StaffLayoutOptions, BarSpacing, StaffReserve, NoteGlyph, GraceGlyph, RestGlyph, BeamGlyph, TieGlyph, SlurGlyph, TupletGlyph, EndingGlyph, KeyAccidentalGlyph, StaffInfo, SystemLayout, BarLayout, BarRoom, TimeSignatureLayout, StaffLayout } from './staffTypes.ts';
 
@@ -383,9 +383,9 @@ function staffRooms(groups: readonly RoomGroup[], clef: Clef, eighths: boolean, 
 function twoLineTicks(notes: readonly { note: ChartNote }[], chordNames: StaffLayoutOptions['chordNames']): Set<number> {
   const out = new Set<number>();
   if (chordNames?.show !== 'both') return out;
-  const byTick = new Map<number, number[]>();
-  for (const { note } of notes) byTick.set(note.tick, [...(byTick.get(note.tick) ?? []), note.midi]);
-  for (const [tick, keys] of byTick) if (keys.length > 1 && chordNames.name(keys) !== null) out.add(tick);
+  const byTick = new Map<number, ChartNote[]>();
+  for (const { note } of notes) byTick.set(note.tick, [...(byTick.get(note.tick) ?? []), note]);
+  for (const [tick, chord] of byTick) if (chord.length > 1 && chordNames.name(chord.map((n) => n.midi), chord.map((n) => n.spelling)) !== null) out.add(tick);
   return out;
 }
 
@@ -413,10 +413,23 @@ interface Request {
   barsPerLine: number | undefined;
   keepBarWidth: boolean;
   linesPerPage: number | undefined;
+  /** From one line's room to the next line's, in staff spaces (`lineGap`). */
+  lineGap: number;
+}
+
+/**
+ * The gap between two lines on a page, in staff spaces: `SYSTEM_GAP`, less one arrow room on a grand staff. Its cursor
+ * arrow stands under the lower staff and over the upper one, and only one line has the cursor, so the arrow under a line
+ * and the arrow over the next share one room and meet tip to tip: the room goes to bigger notes (AX-0). A dynamic mark
+ * under the lower staff's notes reaches into that room, so a piece with one, or a staff with a reserve for notes still to
+ * be written, keeps both rooms.
+ */
+export function lineGap(grand: boolean, dynamicUnderLowerStaff: boolean): number {
+  return grand && !dynamicUnderLowerStaff ? SYSTEM_GAP - ARROW_ROOM : SYSTEM_GAP;
 }
 
 /** Height of `systems` systems in staff spaces, margins included. */
-const blockUnits = (systems: number, systemUnits: number) => 2 * MARGIN_Y + systems * systemUnits + (systems - 1) * SYSTEM_GAP;
+const blockUnits = (systems: number, systemUnits: number, gap: number) => 2 * MARGIN_Y + systems * systemUnits + (systems - 1) * gap;
 
 function planAt(staffSpace: number, r: Request, vp: { width: number; height: number }): Plan {
   const availWidth = vp.width - (2 * MARGIN_X + r.preamble) * staffSpace;
@@ -432,7 +445,7 @@ function planAt(staffSpace: number, r: Request, vp: { width: number; height: num
     systemCount = Math.ceil(r.barCount / barsPerSystem);
   }
   const perPage = Math.min(r.linesPerPage ?? systemCount, systemCount);
-  const height = blockUnits(perPage, r.systemUnits) * staffSpace;
+  const height = blockUnits(perPage, r.systemUnits, r.lineGap) * staffSpace;
   return { staffSpace, barsPerSystem, systemCount, perPage, fits: maxBars >= Math.max(1, barsPerSystem) && height <= vp.height };
 }
 
@@ -453,7 +466,7 @@ function planSpaced(staffSpace: number, r: Request, spacing: readonly BarSpacing
   const systemCount = Math.max(1, lineStarts.length);
   // a page keeps the places of all its lines, also while fewer lines are written: the first line never moves
   const perPage = r.linesPerPage ?? systemCount;
-  const height = blockUnits(perPage, r.systemUnits) * staffSpace;
+  const height = blockUnits(perPage, r.systemUnits, r.lineGap) * staffSpace;
   return {
     staffSpace, barsPerSystem: Math.max(...lineStarts.map((start, k) => (lineStarts[k + 1] ?? r.barCount) - start)), systemCount, perPage,
     spaced: { lineStarts, barUnits }, fits: barUnits.every((u) => u <= availUnits) && height <= vp.height,
@@ -688,6 +701,8 @@ function planFrame(chart: Chart, staves: readonly StaffSpec[], keys: KeyPlan, op
     barsPerLine: options.barsPerLine === undefined ? undefined : Math.max(1, Math.floor(options.barsPerLine)),
     keepBarWidth: options.keepBarWidth === true,
     linesPerPage: options.linesPerPage === undefined ? undefined : Math.max(1, Math.floor(options.linesPerPage)),
+    // a reserve stands for notes not written yet (the editor), which may carry a dynamic: the size must not change when one is
+    lineGap: lineGap(grand, reserve !== undefined || staves[last]!.notes.some((e) => e.note.dynamic !== undefined)),
   };
   let plan: Plan;
   if (options.spacing) {
@@ -743,7 +758,7 @@ function layoutSystems(staves: readonly StaffSpec[], frame: Frame, vp: StaffLayo
   const barCount = request.barCount;
   const systemHeight = systemUnits * S;
   // A page is centred like a whole piece; every page uses the places of a full page, so lines never move between pages.
-  const totalHeight = blockUnits(plan.perPage, systemUnits) * S;
+  const totalHeight = blockUnits(plan.perPage, systemUnits, request.lineGap) * S;
   const offsetY = Math.max(0, (vp.height - totalHeight) / 2) + MARGIN_Y * S;
   const staffLeft = MARGIN_X * S;
   const staffRight = vp.width - MARGIN_X * S;
@@ -760,7 +775,7 @@ function layoutSystems(staves: readonly StaffSpec[], frame: Frame, vp: StaffLayo
     const firstBar = plan.spaced ? plan.spaced.lineStarts[s]! : s * plan.barsPerSystem;
     const count = plan.spaced ? (plan.spaced.lineStarts[s + 1] ?? barCount) - firstBar : Math.min(plan.barsPerSystem, barCount - firstBar);
     const page = Math.floor(s / plan.perPage);
-    const top = offsetY + (s % plan.perPage) * (systemHeight + SYSTEM_GAP * S);
+    const top = offsetY + (s % plan.perPage) * (systemHeight + request.lineGap * S);
     // A line shows the key it starts in, and its bars start after that key's own room (core_09.AC57): the plan kept room
     // for the widest key of the piece, so a line in a smaller key gives its bars what it leaves.
     const lineKey = frame.keys.atBar(firstBar);
@@ -1001,8 +1016,8 @@ function chordGlyphs(
       scoreY: 0,
     };
   });
-  // a chord's names are joined with a slash (C#/E/G), so a sharp or flat does not run into the next name
-  if (group.length > 1) members[0]!.label = group.map((e) => noteLabel(e.note.spelling, naming)).join('/');
+  // a chord's names are one label, low to high, joined with a space (C# E G)
+  if (group.length > 1) members[0]!.label = chordNotesLabel(group.map((e) => e.note.spelling), naming);
   return members;
 }
 
@@ -1013,13 +1028,27 @@ function chordGlyphs(
 function nameTheChord(p: Placer, members: readonly NoteGlyph[]): void {
   const holder = members.find((m) => m.label !== '');
   if (!p.chordNames || !holder || members.length < 2) return;
-  const name = p.chordNames.name(members.map((m) => p.chart.notes[m.index]!.midi));
+  const notes = members.map((m) => p.chart.notes[m.index]!);
+  const name = p.chordNames.name(notes.map((n) => n.midi), notes.map((n) => n.spelling));
   if (name === null) return;
   if (p.chordNames.show === 'name') holder.label = name;
   else {
     holder.label = `${holder.label}\n${name}`;
     holder.labelLines = 2;
   }
+}
+
+/**
+ * A name that falls among the ledger lines over the staff, under a high note (`highest` its staff position, `topY` the
+ * staff's top line), stands centred in the space between two of them, so no ledger line runs through its letters
+ * (ft_0_05.AC3); it moves at most half a staff space, up toward its note or down. Elsewhere it stays where it is.
+ */
+function clearOfLedgers(labelY: number, highest: number, topY: number, S: number): number {
+  const highestLedger = highest - (highest % 2); // ledger lines stand on the even positions above the top line (8)
+  const at = 8 + (topY - labelY) / (S / 2);
+  if (highestLedger < 10 || at <= 8 || at >= highestLedger) return labelY;
+  const space = 2 * Math.floor(at / 2) + 1;
+  return topY - ((space - 8) * S) / 2;
 }
 
 /** Hint labels sit beyond the stems and heads of the whole chord, wherever the stems ended up: names under it, the top finger above it. */
@@ -1029,8 +1058,10 @@ function placeHints(members: readonly NoteGlyph[], S: number, tuplet?: { top: nu
   const stems = members.flatMap((m) => (m.stem ? [m.stem] : []));
   const lowest = Math.max(...members.map((m) => m.y + m.headRy), ...stems.map((st) => (st.up ? -Infinity : st.y2)), tuplet?.bottom ?? -Infinity);
   const highest = Math.min(...members.map((m) => m.y - m.headRy), ...stems.map((st) => (st.up ? st.y2 : Infinity)), tuplet?.top ?? Infinity);
+  const top = members[0]!;
+  const labelY = clearOfLedgers(lowest + GLYPH.hintGap * S, Math.max(...members.map((m) => m.position)), top.y + ((top.position - 8) * S) / 2, S);
   for (const m of members) {
-    m.labelY = lowest + GLYPH.hintGap * S;
+    m.labelY = labelY;
     m.fingerY = highest - GLYPH.hintGap * S;
   }
   // Scores stack one step above the last, highest note first, so no two numbers of a chord share a spot.
@@ -1136,14 +1167,14 @@ function layoutStaffNotes(p: Placer, staffSpec: StaffSpec, staffIndex: number, r
     if (members.length > 0 && chords.filter((c) => chart.notes[c[0]!.index]!.tick === tick).length > 1) {
       const sorted = [...members].sort((a, b) => a.position - b.position);
       const named = sorted.filter((g) => !continuations.has(g.index));
-      const names = named.map((g) => noteLabel(chart.notes[g.index]!.spelling, p.naming));
+      const label = chordNotesLabel(named.map((g) => chart.notes[g.index]!.spelling), p.naming);
       const top = sorted[sorted.length - 1]!;
       for (const g of sorted) {
         g.label = '';
         if (g !== top) g.finger = null;
       }
       // the names go on the lowest head that has one (a tied-to head names nothing)
-      if (named.length > 0) named[0]!.label = names.join('/');
+      if (named.length > 0) named[0]!.label = label;
       top.finger = continuations.has(top.index) ? null : chart.notes[top.index]!.finger ?? null;
     }
     nameTheChord(p, members);

@@ -14,7 +14,7 @@ import { ICONS } from './iconArt';
 import { TOOL_ICONS } from './toolArt';
 import { signOnly } from './itemArt';
 import { PALETTE, C } from './palette';
-import { createBitmap, recolor, type Bitmap } from './bitmap';
+import { createBitmap, flipX, fromAscii, recolor, type Bitmap } from './bitmap';
 import { LiveImage, PixelBar, PixelButton, PixelImage, PixelText, type PixelButtonOptions, type RgbaArt } from './PixelObjects';
 import { BACKPACK, BUBBLE_ALPHA, choicePatch, choicesSausage, CHOICE_SIZE, stripBitmap, wornChip } from './bubbleArt';
 import { LiveWaterPlayer } from './liveWater';
@@ -23,7 +23,7 @@ import { TITLE_X, TOP_BAR } from './playBars';
 import { DESK_PALETTE, paintBeam, paintDesk } from './paint/desk';
 import { paintedOnce } from './paintedOnce';
 import { CARD_PALETTE, RIBBON_TAIL, paintCard, paintRibbon } from './paint/card';
-import { BOOK_PALETTE, REGISTER_PALETTE, paintBook } from './paint/book';
+import { BOOK_PALETTE, PAGE_TURN, REGISTER_PALETTE, pageCorners, paintBook, paintFolio, paintPageTurn } from './paint/book';
 import { RULING_PALETTE, inkField, paintRuling } from './paint/register';
 import { REGISTER, registerLayout, type RegisterLayout } from '../../../core/layout/register';
 import { bookPages } from '../../../core/layout/bookPages';
@@ -49,6 +49,11 @@ export interface ToolbarItem {
   armed?: boolean;
   /** Always the picture only, 22 wide, with the label as its name (a hint switch); otherwise only when the bar is full. */
   iconOnly?: boolean;
+  /**
+   * A short value drawn beside the picture in a cell of the strip (the note trainer's step number), which takes the cells
+   * it needs; the label stays the item's name (its tooltip when it has none). Elsewhere the item shows as usual.
+   */
+  value?: string;
   /** The icon is on the fine grid (d110): an item's picture in a slot of the band (`itemArt.ts`). */
   fineIcon?: boolean;
   tooltip?: string;
@@ -126,6 +131,10 @@ const STATUS_UNLIT = 0.45;
 
 /** The button that had the keyboard focus when a menu opened, by itself and by its label and place; null: none had it. */
 type FocusBefore = { button: PixelButton; label: string; rect: { x: number; y: number; width: number; height: number } } | null;
+/** A book page's turned-up corner (the pager, ft_1_12 rule 1) takes a press this many cells on a side, its corner on the page's. */
+const FOLD = { size: 17 } as const;
+/** A book page's number stands this many cells over the page's foot. */
+const FOLIO_FOOT = 3;
 
 /** One choice in a drop-down menu (`openMenu`): a picture with its name as the tooltip, or a short label. */
 export interface MenuItem {
@@ -134,6 +143,8 @@ export interface MenuItem {
   tooltip?: string;
   /** The value in use now: drawn lit, so the menu shows where you are. */
   active?: boolean;
+  /** The choice the student's level earned (the ear trainer's step): a small gold pip in the cell's top right corner. */
+  marked?: boolean;
   /** Shown but cannot be picked (a length the bar cannot hold). */
   disabled?: boolean;
   keepCase?: boolean;
@@ -145,6 +156,9 @@ export interface MenuItem {
   preview?: (on: boolean) => void;
   onPick: () => void;
 }
+
+/** The pip of a menu's earned choice (`MenuItem.marked`): a gold diamond outlined in ink, readable on a lit cell too. */
+const MARK_PIP = fromAscii(['..k..', '.kgk.', 'kgggk', '.kgk.', '..k..'], { k: C.ink, g: C.gold });
 
 /** A drop-down is drawn over everything of its screen, the staff too (the staff draws at depth 8 to 10). */
 const MENU_DEPTH = 1000;
@@ -158,6 +172,14 @@ const BACKPACK_LINE_PAD = 12;
 /** The largest music sign (fine pixels) in a round option of the bubble and in a cell of the strip. */
 const BUBBLE_SIGN = 24;
 const STRIP_SIGN = 22;
+/** Space between a strip cell's picture and its value (`ToolbarItem.value`), as the button keeps between its icon and label. */
+const VALUE_PAD = 3;
+
+/** How wide a strip item's picture is drawn, in art pixels: a fine one is cut to the strip's sign size. */
+function stripIconWidth(item: ToolbarItem): number {
+  return item.fineIcon ? STRIP_SIGN / ART_DETAIL : (item.icon?.width ?? 0);
+}
+
 /** The long press's ring starts to fill this long after the finger went down. */
 const LONG_PRESS_RING_FROM_MS = 150;
 /** More pulses on this many first visits of a screen. */
@@ -355,6 +377,41 @@ export abstract class PixelScene extends Phaser.Scene {
       if (margin < back.x + back.w || width - margin > settings.x) top = Math.max(top, back.y + back.h + 1, settings.y + settings.h + 1);
     }
     return { margin, columnGap: right.x - (left.x + left.w), top, height: left.y + left.h + LIST_BOTTOM_MARGIN };
+  }
+
+  /**
+   * The book's pager (ft_1_12 rule 1), on the piece book and every page written in it (the songs, ft_1_36 rule 10): no words. Each page has its number at its foot, printed as an old book prints it
+   * (`paintFolio`: the left page 1, 3, 5 ..., the right 2, 4, 6 ...); the left page's bottom corner is turned up while
+   * there is a page before, the right page's while there is one after. Under the pointer the corner rolls up further, as a
+   * hand lifts it, and a press on it turns the page. A corner with no page behind lies flat and takes no press.
+   */
+  protected bookPager(slice: { page: number; pages: number }, book: Rect, turn: (page: number) => void): void {
+    const fine = (v: number) => v * ART_DETAIL;
+    const at = pageCorners(fine(book.w), fine(book.h));
+    // the picture is big enough for the corner lifted; the press is on the corner itself, FOLD.size cells on a side
+    const size = PAGE_TURN.lifted + 16, press = fine(FOLD.size);
+    const resting = paintPageTurn(size, false), lifted = paintPageTurn(size, true);
+    const corners = [
+      { label: t('menu.previous'), x: fine(book.x) + at.left.x, y: fine(book.y) + at.left.y + 1 - size, flip: true, can: slice.page > 0, page: slice.page - 1 },
+      { label: t('menu.next'), x: fine(book.x) + at.right.x + 1 - size, y: fine(book.y) + at.right.y + 1 - size, flip: false, can: slice.page < slice.pages - 1, page: slice.page + 1 },
+    ];
+    for (const c of corners) {
+      const look = (up: boolean) => (c.flip ? flipX(up ? lifted : resting) : up ? lifted : resting);
+      const image = c.can ? this.fineImage(c.x, c.y, look(false), BOOK_PALETTE).setName(`pageTurn:${c.flip ? 'left' : 'right'}`) : null;
+      const pressX = c.flip ? c.x : c.x + size - press, pressY = c.y + size - press;
+      this.button({
+        x: (pressX + press / 2) / ART_DETAIL, y: (pressY + press / 2) / ART_DETAIL, width: FOLD.size, height: FOLD.size, label: c.label, tooltip: c.label, iconOnly: true,
+        picture: createBitmap(FOLD.size, FOLD.size), disabled: !c.can, onClick: () => turn(c.page),
+        onHover: (over) => image?.setBitmap(look(over), BOOK_PALETTE),
+      });
+    }
+    // the page numbers, each at the middle of its page's foot
+    const spine = book.x + book.w / 2;
+    [{ n: 2 * slice.page + 1, centre: (book.x + spine) / 2 }, { n: 2 * slice.page + 2, centre: (spine + book.x + book.w) / 2 }].forEach(({ n, centre }) => {
+      // painted a fine pixel to a cell, so its strokes are as heavy as the writing on the page
+      const folio = paintFolio(n);
+      this.root.add(new PixelImage(this, Math.round(centre - folio.width / 2), book.y + Math.round(at.right.y / ART_DETAIL) - FOLIO_FOOT - folio.height, folio, BOOK_PALETTE).setName(`pageNumber:${n}`));
+    });
   }
 
   /**
@@ -749,6 +806,12 @@ export abstract class PixelScene extends Phaser.Scene {
         },
       });
       if (item.active) button.setActive(true);
+      if (item.marked) {
+        const cell = layout.cells[i]!;
+        const pip = new PixelImage(this, cell.x + cell.w - MARK_PIP.width - 1, cell.y + 1, MARK_PIP);
+        container.add(pip);
+        button.attach(pip);
+      }
       if (item.shortcut) this.keyBadge(container, button, item.shortcut);
       buttons.push(button);
     });
@@ -1117,6 +1180,12 @@ export abstract class PixelScene extends Phaser.Scene {
     return [];
   }
 
+  /** What a bubble opened at `at` acts on and must leave in view (art pixels): it then opens beside it (ft_1_02d.AC52). None by default. */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected bubbleBeside(_at: { x: number; y: number }): Rect | null {
+    return null;
+  }
+
   // the base screen has no bubble wherever it is opened; a screen overrides this and reads `at`
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
@@ -1155,6 +1224,7 @@ export abstract class PixelScene extends Phaser.Scene {
 
   /** How many cells of the strip an item takes: one for a picture, as many as its whole word needs (ft_1_20.AC18). */
   private stripSpan(item: ToolbarItem): number {
+    if (item.icon && item.value !== undefined) return cellSpan(stripIconWidth(item) + VALUE_PAD + measure(drawnText(item.value)) + CELL_PAD + 2, STRIP_CELL_WIDTH);
     return item.icon ? 1 : cellSpan(measure(drawnText(item.label)) + CELL_PAD + 2, STRIP_CELL_WIDTH);
   }
 
@@ -1513,7 +1583,8 @@ export abstract class PixelScene extends Phaser.Scene {
     const centre = at ?? (more ? { x: more.x + more.w / 2, y: more.y } : { x: bounds.w / 2, y: bounds.y + bounds.h / 2 });
     const open = options.open !== undefined ? listed[paging.slots[options.open] as number] : undefined;
     const choices = ringChoices(open);
-    const layout = bubbleLayout({ at: centre, options: BUBBLE_SLOTS, screen: bounds, avoid: this.bubbleKeepClear(), ...(open && options.open !== undefined ? { open: { option: options.open, choices: open.slider ? SLIDER_CELLS : choices.length } } : {}) });
+    const beside = at ? this.bubbleBeside(at) : null;
+    const layout = bubbleLayout({ at: centre, options: BUBBLE_SLOTS, screen: bounds, ...(beside ? { beside } : {}), avoid: this.bubbleKeepClear(), ...(open && options.open !== undefined ? { open: { option: options.open, choices: open.slider ? SLIDER_CELLS : choices.length } } : {}) });
     const container = this.add.container(this.root.x, this.root.y).setScale(this.px.scale).setDepth(MENU_DEPTH);
     // the catcher takes every press outside the bubble and closes it on release, so the press never reaches the screen
     // under it; the lift of the long press that opened it is not such a press
@@ -1709,11 +1780,13 @@ export abstract class PixelScene extends Phaser.Scene {
    */
   private bandButton(item: ToolbarItem, at: { x: number; y: number; width: number; height: number }, look: 'bandCell' | 'bandSlot', room: number): PixelButton {
     // a word is never cut short (ft_1_20.AC18): the strip gives it the cells it needs
-    const label = item.label;
-    const tooltip = item.tooltip;
+    // a cell with a value draws the picture and the value beside it; the item's name is then its tooltip
+    const valued = look === 'bandCell' && item.icon !== undefined && item.value !== undefined;
+    const label = valued ? item.value! : item.label;
+    const tooltip = item.tooltip ?? (valued ? item.label : undefined);
     const menu = item.menu;
     const button: PixelButton = this.button({
-      ...at, label, labelWidth: room, look, ...(item.icon ? { icon: item.fineIcon && look === 'bandCell' ? signOnly(item.icon, STRIP_SIGN, STRIP_SIGN) : item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}), ...(tooltip ? { tooltip } : {}),
+      ...at, label, labelWidth: room, look, ...(item.icon ? { icon: item.fineIcon && look === 'bandCell' ? signOnly(item.icon, STRIP_SIGN, STRIP_SIGN) : item.icon, iconOnly: !valued, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}), ...(tooltip ? { tooltip } : {}),
       ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}), ...(item.main ? { main: true } : {}),
       // a band item's menu opens above it, toward the staff, where the pointer goes next
       onClick: menu ? () => this.openMenu(button, menu.items(), { cell: menu.cell, columns: menu.columns, open: 'above' }) : item.onClick,

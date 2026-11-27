@@ -1,5 +1,6 @@
 import stepsJson from '../../content/trainer/steps.json';
-import { createRound, NOTE_TRAINER_LIVES, NOTE_TRAINER_XP_PER_NOTE, pressKey, type TrainerRound } from '../core/trainer/noteTrainer';
+import { createRound, NOTE_TRAINER_LIVES, pressKey, type PressVerdict, type TrainerRound } from '../core/trainer/noteTrainer';
+import { roundResultLine } from '../core/trainer/trainerResult';
 import { loadTrainerSteps, rangeOf } from '../core/trainer/steps';
 import { noteTrainerLayout } from '../core/trainer/staffFrame';
 import { displayText } from '../core/text/language';
@@ -15,8 +16,8 @@ import { circleItem } from './CircleOfFifthsScene';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
 import { watchKeyBash } from './practice/bashDoor';
 
-/** The one miss said in words, "right letter, wrong octave", under the hearts. */
-const WRONG_OCTAVE_Y = 26;
+/** The one line under the hearts: the round's result once it is over, else "right letter, wrong octave" after that miss, else a new player level. */
+const LINE_Y = 26;
 /** The staff starts under the hearts and the words, in art pixels, and fills the rest of the main area. */
 const STAFF_TOP = 36;
 /**
@@ -31,8 +32,8 @@ const steps = loadTrainerSteps(stepsJson).steps;
  * The note-name trainer (ft_0_17): one note on the staff, and the student presses its key. The name stays hidden until a wrong
  * press, which costs one life and puts the name on the note. The third lost life ends the round; a key, a click on the screen
  * or the toolbar's loop starts a new one. The rules are in `core/trainer`; this scene draws the staff and the hearts and hands
- * each key press to the rule. Almost no text: the hearts are the lives, the toolbar's XP bar shows the
- * XP, the step and the letter naming are cycling buttons on the toolbar.
+ * each key press to the rule. Almost no text: the hearts are the lives, and
+ * the step and the letter naming are cycling buttons on the toolbar.
  * Each right name's XP is saved to the active profile at once (ft_0_17.AC3).
  */
 export class NoteTrainerScene extends PixelScene {
@@ -47,6 +48,8 @@ export class NoteTrainerScene extends PixelScene {
   private overAtMs: number | null = null;
   private unsubscribe: (() => void) | null = null;
   private roundCount = 0;
+  /** The player level the trainer's XP reached in this round, shown under the hearts (ft_0_17.AC12); null when none. */
+  private levelUp: number | null = null;
   /** The lives as last drawn, lit of total (read by the end-to-end test). */
   private shownHearts: { lit: number; total: number } | null = null;
 
@@ -86,8 +89,12 @@ export class NoteTrainerScene extends PixelScene {
     this.shownHearts = { lit: this.round.lives, total };
     for (const heart of heartRow(this, width, this.round.lives, total)) this.root.add(heart);
 
+    // one line under the hearts: the round's result once it is over (AC11), else the words for a wrong octave, else a new level (AC12)
     // AX-3 provisional: which misses get words; chose only the wrong octave (as the ear trainer), because the name on the note already shows a wrong letter or a neighbour key (AX-0.2, AX-2)
-    if (this.wrong?.reason === 'wrong-octave') this.label(0, WRONG_OCTAVE_Y, t('theory.wrongOctave'), C.white).centerAt(width / 2);
+    const line = this.round.over ? roundResultLine({ unit: 'notes', right: this.round.found, xp: this.round.xp })
+      : this.wrong?.reason === 'wrong-octave' ? t('theory.wrongOctave')
+        : this.levelUp !== null ? t('results.levelUp', { level: this.levelUp }) : null;
+    if (line !== null) this.label(0, LINE_Y, line, C.white).centerAt(width / 2);
 
     this.drawStaff(profiles);
   }
@@ -108,14 +115,15 @@ export class NoteTrainerScene extends PixelScene {
     this.stepIndex = index;
     this.roundCount += 1;
     this.wrong = null;
+    this.levelUp = null;
     this.overAtMs = null;
     this.stopListening();
     this.round = createRound(rangeOf(steps[index]!), `${Date.now()}-${this.roundCount}`);
     this.unsubscribe = contextOf(this).keyboard.onNote((event) => {
       // nothing is judged while the circle of fifths is open over the trainer (ft_1_28)
       if (event.kind !== 'on' || event.velocity === 0 || !this.scene.isActive()) return;
-      if (this.round.over) this.againIfOver();
-      else this.press(event.midi);
+      // a key pressed with the one that lost the last life can still be the right one (AC8), so the rule hears it first
+      if (this.press(event.midi, event.timeMs) === 'over') this.againIfOver();
     });
     this.redraw();
   }
@@ -126,7 +134,7 @@ export class NoteTrainerScene extends PixelScene {
    */
   protected override toolbarItems(): ToolbarItem[] {
     const items: ToolbarItem[] = [
-      { label: displayText(t('theory.step', { n: this.stepIndex + 1 })), icon: TOOL_ICONS.steps, tooltip: t('theory.stepTip'), onClick: () => this.startRound((this.stepIndex + 1) % steps.length) },
+      { label: displayText(t('theory.step', { n: this.stepIndex + 1 })), value: String(this.stepIndex + 1), icon: TOOL_ICONS.steps, tooltip: t('theory.stepTip'), onClick: () => this.startRound((this.stepIndex + 1) % steps.length) },
       { label: displayText(t('theory.naming', { n: contextOf(this).profiles.noteNaming })), tooltip: t('theory.namingTip'), onClick: () => this.toggleNaming() },
       // the circle of fifths, with no key marked (ft_1_28 rule 3)
       circleItem(() => void openOverlay(this, 'circle', { key: null }).then(() => this.redraw())),
@@ -155,18 +163,31 @@ export class NoteTrainerScene extends PixelScene {
     void profiles.updateNoteNaming(profiles.noteNaming === 'B' ? 'H' : 'B').then(() => this.redraw());
   }
 
-  /** One key press goes to the rule. A wrong press puts the name on the note (and words for a wrong octave); a right one clears them and the next note comes. */
-  private press(midi: number): void {
-    const result = pressKey(this.round, midi);
+  /**
+   * One key press goes to the rule, with its time so keys pressed together are one press (AC8). A wrong press puts the name
+   * on the note (and words for a wrong octave); a right one clears them and the next note comes. Returns the rule's verdict.
+   */
+  private press(midi: number, atMs: number): PressVerdict {
+    const result = pressKey(this.round, midi, atMs);
+    if (result.verdict === 'over' || result.verdict === 'joined') return result.verdict;
     if (result.verdict === 'wrong' && result.reason) {
       this.wrong = { reason: result.reason };
     } else if (result.verdict === 'correct') {
       this.wrong = null;
-      // the XP of a right name is saved at once, so a new round cannot take it away (ft_0_17.AC3)
-      void contextOf(this).profiles.addTrainerXp(NOTE_TRAINER_XP_PER_NOTE);
+      // the XP of a right name is saved at once, so a new round cannot take it away (ft_0_17.AC3); a name given away earns none (AC9)
+      if (result.earned > 0) void contextOf(this).profiles.addTrainerXp(result.earned).then(({ levelUp }) => this.showLevel(levelUp));
     }
     this.round = result.round;
-    if (this.round.over) this.overAtMs = performance.now();
+    // a right key pressed with the last life's wrong one takes the end back (AC8)
+    this.overAtMs = this.round.over ? (this.overAtMs ?? performance.now()) : null;
+    this.redraw();
+    return result.verdict;
+  }
+
+  /** A new player level reached with the trainer's XP (ft_0_17.AC12): a real milestone, said under the hearts for the rest of the round. */
+  private showLevel(level: number | null): void {
+    if (level === null || !this.scene.isActive()) return;
+    this.levelUp = level;
     this.redraw();
   }
 
