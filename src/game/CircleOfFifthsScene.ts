@@ -1,4 +1,5 @@
-import { chooseKey, circleHit, circleLayout, circlePanelLayout, keyAt, moveStep, spellingsOf, stepOfKey, tonicStep, withFlat, type CircleKey, type CircleLayout, type CircleRing, type CircleTarget } from '../core/layout/circleOfFifths';
+import { CIRCLE_SCALE_BARS, chooseKey, circleHit, circleLayout, circlePanelLayout, keyAt, moveStep, otherSpelling, spellingsOf, stepOfKey, tonicStep, withFlat, type CircleKey, type CircleLayout, type CircleRing, type CircleStep, type CircleTarget } from '../core/layout/circleOfFifths';
+import { frameCorners } from '../core/layout/frame';
 import { pitchClass } from '../core/chart/pitch';
 import { rectCentre } from '../core/layout/rect';
 import { keyName } from '../core/editor/key';
@@ -13,6 +14,7 @@ import { paintWheel, WHEEL_MARGIN } from './ui/pixel/circleArt';
 import { ICONS } from './ui/pixel/iconArt';
 import { ACCIDENTAL_ICONS, signatureIcon } from './ui/pixel/lengthArt';
 import { C, PALETTE } from './ui/pixel/palette';
+import { drawnText, renderText } from './ui/pixel/font';
 import { PixelImage, PixelText } from './ui/pixel/PixelObjects';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { BAR_BUTTON_HEIGHT } from './ui/pixel/playBars';
@@ -79,6 +81,14 @@ export class CircleOfFifthsScene extends PixelScene {
     }));
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
       if (over.length > 0 || !this.layout) return;
+      // the screen's Back, dimmed under the overlay at the top left, closes the overlay as Esc does
+      const back = frameCorners(this.px.width).back;
+      const bx = (pointer.x - this.root.x) / this.px.scale - back.x;
+      const by = pointer.y / this.px.scale - back.y;
+      if (bx >= 0 && by >= 0 && bx < back.w && by < back.h) {
+        this.close();
+        return;
+      }
       const hit = circleHit(this.layout, (pointer.x - this.root.x) / this.px.scale, (pointer.y - this.root.y) / this.px.scale);
       if (hit) this.go(hit);
     });
@@ -132,6 +142,12 @@ export class CircleOfFifthsScene extends PixelScene {
   /** A click or an arrow: chooses the key it lands on (`chooseKey`, the spelling switching on a second press) and plays its scale. */
   private go(target: CircleTarget): void {
     this.choose(chooseKey(this.selectedKey, target, this.piecePrefer), true);
+  }
+
+  /** Switches the chosen key to its other spelling (the button by its name, "also G♭") and plays its scale. */
+  private swap(): void {
+    const other = otherSpelling(this.selectedKey);
+    if (other) this.choose(other, true);
   }
 
   /** Choose a key: its name, signature and scale are drawn; `play` plays the scale (a click or an arrow, not a key the student played). */
@@ -194,8 +210,15 @@ export class CircleOfFifthsScene extends PixelScene {
       const picture = fifths === 0 ? TOOL_ICONS.tick : signatureIcon(fifths);
       return { key, name, picture, width: Math.max(22, picture.width + 8) };
     });
+    // a key with two spellings has a switch to the other by its name ("also G♭"), so the second spelling is never hidden
+    const other = otherSpelling(this.selectedKey);
+    const otherNames = other && keyNames(other.fifths, naming);
+    const otherShort = otherNames && withFlat(other.mode === 'major' ? otherNames.major : otherNames.minor.toLowerCase());
+    const otherTitle = otherNames && (other.mode === 'major' ? t('circle.major', { key: withFlat(otherNames.major) }) : t('circle.minor', { key: withFlat(otherNames.minor.toLowerCase()) }));
+    const swapLabel = otherShort === null ? null : t('circle.also', { key: otherShort });
     const layout = circlePanelLayout({ width, rows: this.mainRows }, {
-      heading: { w: heading.width, h: heading.height }, ticks: ticks.map((tick) => tick.width), choosing: this.choosing, wheelMargin: WHEEL_MARGIN, button: { w: 22, h: BAR_BUTTON_HEIGHT },
+      heading: { w: heading.width, h: heading.height }, swap: swapLabel === null ? null : renderText(drawnText(swapLabel, true), { color: C.ink }).width + 10,
+      ticks: ticks.map((tick) => tick.width), wheelMargin: WHEEL_MARGIN, button: { w: 22, h: BAR_BUTTON_HEIGHT },
     });
     this.parchmentCard(layout.panel);
 
@@ -204,10 +227,10 @@ export class CircleOfFifthsScene extends PixelScene {
     const circle = circleLayout({ cx, cy, radius }, naming, this.prefer);
     this.layout = circle;
     const marked = this.pieceKey ? stepOfKey(this.pieceKey) : null;
-    const wheel = paintWheel(circle, { selected: this.selected, marked });
+    const wheel = paintWheel(circle, { selected: { ...this.selected, fifths: this.selectedKey.fifths }, marked });
     this.root.add(new PixelImage(this, cx - (wheel.width - 1) / 2, cy - (wheel.height - 1) / 2, wheel));
     for (const step of circle.steps) {
-      this.name(step.major, step.majorAt, C.ink);
+      this.name(step.major, step.majorAt, C.ink, this.dimmed(step));
       this.name(step.minor, step.minorAt, C.featherStreak);
       this.signs(step.signs, step.signAt);
     }
@@ -215,7 +238,11 @@ export class CircleOfFifthsScene extends PixelScene {
     heading.setPosition(layout.heading.x, layout.heading.y).setScale(layout.heading.scale);
     this.root.add(heading);
     this.button({ ...rectCentre(layout.listen), label: t('circle.listen'), icon: ICONS.ear, iconOnly: true, onClick: () => this.playScale() });
-    this.button({ ...rectCentre(layout.close), label: t('circle.close'), icon: TOOL_ICONS.circle, iconOnly: true, onClick: () => this.close() });
+    this.button({ ...rectCentre(layout.close), label: t('circle.close'), icon: TOOL_ICONS.close, iconOnly: true, tooltip: t('circle.close'), onClick: () => this.close() });
+    if (layout.swap && swapLabel !== null && otherTitle !== null) {
+      // keepCase: the key's name keeps its small letter for a minor and its flat sign
+      this.button({ ...rectCentre(layout.swap), label: swapLabel, keepCase: true, tooltip: t('circle.alsoTip', { key: otherTitle }), onClick: () => this.swap() });
+    }
     ticks.forEach((tick, i) => {
       const label = t('circle.use', { key: tick.name });
       this.button({ ...rectCentre(layout.ticks[i]!), label, icon: tick.picture, iconOnly: true, tooltip: label, onClick: () => this.take(tick.key) });
@@ -224,16 +251,23 @@ export class CircleOfFifthsScene extends PixelScene {
     // one staff for every key, so choosing another key never moves or resizes it
     const room = layout.staff;
     const staffLayout = circleScaleLayout(this.selectedKey.fifths, this.selectedKey.mode, {
-      viewport: { width: room.w * scale, height: room.h * scale }, ...staffSpaceLimits(this.scale.zoom), barsPerLine: 2, staffGap: profiles.staffGap, noteNaming: naming,
+      viewport: { width: room.w * scale, height: room.h * scale }, ...staffSpaceLimits(this.scale.zoom), barsPerLine: CIRCLE_SCALE_BARS, staffGap: profiles.staffGap, noteNaming: naming,
     });
     this.staff = new StaffView(this, staffLayout, undefined, { noteNames: false, fingers: false }, { x: this.root.x + room.x * scale, y: this.root.y + room.y * scale });
   }
 
-  /** A key's name with its middle at `at`, as written (`keepCase`: a minor's small letter); two spellings one above the other, a row apart (the helm's major ring is 15 rows deep). */
-  private name(value: string, at: { x: number; y: number }, color: number): void {
+  /** On the chosen two-spelling step, which of its two major names is not the spelling chosen (drawn dim), or none. */
+  private dimmed(step: CircleStep): number | null {
+    if (step.fifths.length < 2 || step.index !== this.selected.step) return null;
+    const at = step.fifths.indexOf(this.selectedKey.fifths);
+    return at < 0 ? null : 1 - at;
+  }
+
+  /** A key's name with its middle at `at`, as written (`keepCase`: a minor's small letter); two spellings one above the other, a row apart (the helm's major ring is 15 rows deep), the line `dim` paler. */
+  private name(value: string, at: { x: number; y: number }, color: number, dim: number | null = null): void {
     const lines = value.split('/');
     lines.forEach((line, i) => {
-      const text = new PixelText(this, 0, 0, withFlat(line), { color, keepCase: true });
+      const text = new PixelText(this, 0, 0, withFlat(line), { color: i === dim ? C.buffDeep : color, keepCase: true });
       text.setPosition(Math.round(at.x - text.width / 2), Math.round(at.y - 3 + (i - (lines.length - 1) / 2) * 8));
       this.root.add(text);
     });
