@@ -1211,7 +1211,7 @@ export abstract class PixelScene extends Phaser.Scene {
     const keysAction = !this.screenFrame.toolbar && this.toolbarKeys;
     if (keysAction) actions.push({ label: t('settings.keyboard'), icon: ICONS.freePlay, onClick: () => context.keyboardSwitch.toggle() });
     let bubble = this.hasBubble;
-    const moreItem: ToolbarItem = { label: t('band.more'), icon: TOOL_ICONS.more, onClick: () => this.openBubble(null) };
+    const moreItem: ToolbarItem = { label: t('band.more'), icon: TOOL_ICONS.more, onClick: () => this.openBubble(null, { page: 0 }) };
     const plan = (withMore: boolean) => {
       const list = withMore ? [...actions.filter((a) => !a.main), moreItem, ...actions.filter((a) => a.main)] : actions;
       const main = list.findIndex((a) => a.main);
@@ -1294,7 +1294,7 @@ export abstract class PixelScene extends Phaser.Scene {
     if (this.isBubblePress(p)) {
       if (this.menuOpen) return;
       const at = this.artPoint(p);
-      if (this.hasBubbleAt(at) || this.stripOverflow.length > 0) this.openBubble(at);
+      if (this.hasBubbleAt(at) || this.stripOverflow.length > 0) this.openBubble(at, { page: 0 });
       return;
     }
     if (!p.wasTouch || this.menuOpen || this.pointerOnButton(p)) return;
@@ -1304,7 +1304,7 @@ export abstract class PixelScene extends Phaser.Scene {
     const timer = this.time.delayedCall(LONG_PRESS_MS, () => {
       this.cancelLongPress();
       this.bubbleFreshTouch = true;
-      this.openBubble(at);
+      this.openBubble(at, { page: 0 });
     });
     // a ring fills round the finger from a moment in, so the student sees that holding on opens something
     const ring = this.add.graphics().setDepth(MENU_DEPTH);
@@ -1363,7 +1363,7 @@ export abstract class PixelScene extends Phaser.Scene {
       this.twoFinger = { ids: [one!.identifier, two!.identifier], start: [first, second].map((f) => ({ x: f.x, y: f.y })) };
       // both lifts pick nothing, whichever frames they come on (the count is cleared once every finger is up)
       this.bubbleTouchLifts = 2;
-      this.openBubble(art);
+      this.openBubble(art, { page: 0 });
     };
     const move = (e: TouchEvent) => {
       const two = this.twoFinger;
@@ -1457,7 +1457,7 @@ export abstract class PixelScene extends Phaser.Scene {
       e.preventDefault();
       e.stopImmediatePropagation();
       const focused = this.focusedButton?.rect;
-      this.openBubble(focused ? { x: focused.x + focused.width / 2, y: focused.y + focused.height / 2 } : null, { keyboard: true });
+      this.openBubble(focused ? { x: focused.x + focused.width / 2, y: focused.y + focused.height / 2 } : null, { keyboard: true, page: 0 });
     }
   }
 

@@ -44,8 +44,9 @@ const frame = (page: Page) =>
     };
   });
 
+/** How clear the room's gear is (the room's corners fade; the book screens keep theirs on a plate). */
 const gearAlpha = (page: Page) =>
-  page.evaluate(() => (window.__game.scene.getScene('menu') as unknown as { toolbarButtons: { settings: { objects: { alpha: number }[] } } }).toolbarButtons.settings.objects[0]!.alpha);
+  page.evaluate(() => (window.__game.scene.getScene('profile') as unknown as { toolbarButtons: { settings: { objects: { alpha: number }[] } } }).toolbarButtons.settings.objects[0]!.alpha);
 
 test.describe('the strip and the corners (ft_1_20, d282)', () => {
   test('ft_1_20.AC10 ft_1_20.AC2 ft_1_20.AC21 a screen with pinned actions has the strip at its foot, one without has none; Back and Settings in the same top corners and nothing above the main area', async ({ page }) => {
@@ -78,17 +79,18 @@ test.describe('the strip and the corners (ft_1_20, d282)', () => {
 
   test('ft_1_20.AC3 the gear is clear while the pointer is on it and faded once it leaves, with its name in a bubble', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
-    await startScene(page, 'menu');
-    await waitForScene(page, 'menu');
+    // the room: a screen whose corners fade (the book screens keep them on a plate, ft_1_20 rule 3)
+    await startScene(page, 'profile');
+    await waitForScene(page, 'profile');
     expect(await gearAlpha(page)).toBeLessThan(1);
     const index = await page.evaluate(() => {
-      const scene = window.__game.scene.getScene('menu') as unknown as { buttons: unknown[]; toolbarButtons: { settings: unknown } };
+      const scene = window.__game.scene.getScene('profile') as unknown as { buttons: unknown[]; toolbarButtons: { settings: unknown } };
       return scene.buttons.indexOf(scene.toolbarButtons.settings);
     });
-    const point = await buttonPoint(page, 'menu', index);
+    const point = await buttonPoint(page, 'profile', index);
     await page.mouse.move(point.x, point.y);
     await expect.poll(() => gearAlpha(page)).toBe(1);
-    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('menu') as unknown as { toolbarButtons: { settings: { tooltipShown: string | null } } }).toolbarButtons.settings.tooltipShown)).toBe('Settings');
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('profile') as unknown as { toolbarButtons: { settings: { tooltipShown: string | null } } }).toolbarButtons.settings.tooltipShown)).toBe('Settings');
     const canvas = (await page.locator('canvas').boundingBox())!;
     await page.mouse.move(canvas.x + 5, canvas.y + 300);
     await expect.poll(() => gearAlpha(page)).toBeLessThan(1);
