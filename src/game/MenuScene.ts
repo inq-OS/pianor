@@ -74,6 +74,10 @@ const BAND_CARD_ROW = 28;
 const CARD_GAP = 2;
 /** The New piece staff's room at each end of its card, so it starts where a piece's title does. */
 const NEW_PIECE_INSET = 5;
+/** The piece maker's New piece staff: short, so the card's words fit beside it. */
+const MAKER_NEW_STAFF = 40;
+/** The piece maker's left page has no bookmarks, but its torn edge still takes a few cells. */
+const MAKER_SHIFT = 6;
 const MARGIN = 6;
 /** The open book's cover from the screen's sides, the list's margin inside it, and the gutter between its pages, in cells. */
 const BOOK_SIDE = 3;
@@ -483,7 +487,7 @@ export class MenuScene extends PixelScene {
     this.openBook({ x: BOOK_SIDE, y: top - 2, w: width - 2 * BOOK_SIDE, h: height - top + 1 });
     if (!this.maker) this.bookmarks(top + TAB_TOP);
     const margin = BOOK_MARGIN;
-    const shift = this.maker ? 0 : LEFT_SHIFT;
+    const shift = this.maker ? MAKER_SHIFT : LEFT_SHIFT;
     if (pieces.length === 0) {
       // the bookmark's own picture on the empty page, then the sentence under it
       const picture = BOOKMARK_ICON[this.bookmark]();
@@ -515,7 +519,13 @@ export class MenuScene extends PixelScene {
         // an empty staff with a pencil, as wide as a piece card; the label stays for tests and the tooltip
         // on the left page it stays clear of the bookmarks, as the rules do
         const inset = cell.x < width / 2 ? shift : 0;
-        this.pieceButtons.push(this.button({ x: x + inset / 2, y: y + 1, width: cardWidth - inset, height: NEW_PIECE_HEIGHT + 4, label: t('menu.newPiece'), icon: newPieceArt(cardWidth - inset - 2 * NEW_PIECE_INSET), iconOnly: true, look: 'ink', onClick: () => startScene(this, 'editor', {}) }));
+        // in the piece maker (no bookmarks to say where the player is) the card says its words beside a shorter staff
+        const art = newPieceArt(this.maker ? MAKER_NEW_STAFF : cardWidth - inset - 2 * NEW_PIECE_INSET);
+        this.pieceButtons.push(this.button({ x: x + inset / 2, y: y + 1, width: cardWidth - inset, height: NEW_PIECE_HEIGHT + 4, label: t('menu.newPiece'), icon: art, iconOnly: !this.maker, look: 'ink', onClick: () => startScene(this, 'editor', {}) }));
+        // the piece maker with no own piece yet says where they will be
+        if (this.maker && pieces.length === 1) {
+          this.label(cell.x + shift + NEW_PIECE_INSET, y + NEW_PIECE_HEIGHT / 2 + 8, t('menu.maker.none'), C.umberDark, { maxWidth: cardWidth - shift - 2 * NEW_PIECE_INSET });
+        }
         return;
       }
       // a card on the left page is mirrored, so every title is lined up to the spine
