@@ -59,11 +59,11 @@
     { "id": "E", "topics": [
       { "id": "E1", "status": "trained" },
       { "id": "E2", "status": "trained" },
-      { "id": "E3", "status": "trained" },
-      { "id": "E4", "status": "trained" },
-      { "id": "E5", "status": "trained" },
+      { "id": "E3", "status": "drawn" },
+      { "id": "E4", "status": "drawn" },
+      { "id": "E5", "status": "drawn" },
       { "id": "E6", "status": "drawn" },
-      { "id": "E7", "status": "trained" },
+      { "id": "E7", "status": "drawn" },
       { "id": "E8", "status": "drawn" },
       { "id": "E9", "status": "trained" },
       { "id": "E10", "status": "drawn" },
@@ -83,7 +83,7 @@
       { "id": "F5", "status": "drawn" },
       { "id": "F6", "status": "drawn" },
       { "id": "F7", "status": "drawn" },
-      { "id": "F8", "status": "trained" }
+      { "id": "F8", "status": "needs a feature" }
     ] },
     { "id": "G", "topics": [
       { "id": "G1", "status": "trained" },
@@ -92,7 +92,7 @@
       { "id": "G4", "status": "trained" },
       { "id": "G5", "status": "trained" },
       { "id": "G6", "status": "trained" },
-      { "id": "G7", "status": "drawn" },
+      { "id": "G7", "status": "trained" },
       { "id": "G8", "status": "trained" },
       { "id": "G9", "status": "trained" },
       { "id": "G10", "status": "drawn" },
