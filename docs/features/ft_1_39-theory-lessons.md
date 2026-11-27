@@ -3,8 +3,8 @@ id: "ft_1_39"
 title: "Theory lessons: a lesson book of everything there is to learn"
 scope: "A lesson book under Practice theory that lists every topic of the learning catalog, written lessons as lessons and the rest as ghosted placeholders; each lesson runs the same six steps (Kiur shows with lit keys, the student copies, a pitfall card, tries whose help fades, a play-along in real music, a check played on the keys); a medal per lesson, reviews on later days, nothing locked"
 effort: "large"
-status: "planned: catalog and slices written; nothing built"
-completeness: 0
+status: "slice 1 built: the catalog as data, the lesson format and runner, the first three lessons, the lesson book on the stand and the lesson screen; the picture layout's preview tool and the medals (slice 2) are next"
+completeness: 35
 depends_on: ["ft_0_17", "ft_1_10", "ft_1_28", "ft_1_29", "ft_1_31", "ft_1_32", "ft_Y_06", "core_09"]
 ---
 # ft_1_39: Theory lessons
@@ -61,11 +61,21 @@ Open projects that order learning this way: Exercism names each exercise's conce
 | 3 | Play-alongs found in the player's own approved pieces | medium |
 | 4 | Lessons for the rest of the catalog, one or two areas a pull request, content only | large |
 
-Lessons are content (a new folder under content, zod-validated, `schemaVersion`), each naming the catalog id it teaches; adding a lesson needs no code change.
+Lessons are content (`content/lessons/`, zod-validated, `schemaVersion`), each naming the catalog id it teaches; adding a lesson needs no code change.
+
+## Slice 1 as built
+
+- The catalog is `content/lessons/catalog.json` (`src/core/lessons/catalog.ts`); `tools/docs/learningCatalog.test.ts` keeps it equal to the catalog page, id by id and status by status. Every area and topic has a name under `lessons.area.<letter>` and `lessons.topic.<id>`, in English and Estonian.
+- A lesson is one file in `content/lessons/` (`src/core/lessons/lesson.ts`): its topic and needs, Show (notes and marks), Pitfall (notes, marks and the wrong-note reason that brings its card back), Try and Check (an item generator: a half or whole step from a note, or a major scale from its tonic), Play-along (notes and marks). The first three: `half-step.json` (D1), `whole-step.json` (D2), `major-scale.json` (E1).
+- `LessonRun` (`src/core/lessons/run.ts`) runs the six steps: what is awaited, the lit keys, Try's clean run and its fading light (`LESSON_RULES.fade`), the check's first tries and the medal (`medalOf` of ft_1_32), and 10 theory XP for each right note after the show.
+- The stand's panel has a picture for the book (`lessonKeys` in `standArt.ts`, a first sketch). `LessonBookScene` shows one area a spread: its name, its topics down both pages, the suggested lesson (`src/core/lessons/path.ts`) in red ink with "Next", the rest ghosted; a press on a placeholder says it is not written yet; a tab per area at the foot between two page-turn arrows; Left and Right turn the page, Enter opens the suggested lesson, Esc leaves. The layout is `src/core/layout/lessonBook.ts`.
+- `LessonScene` runs one lesson: the step's line at the top and the numbered steps at the right (green done, gold current); Kiur plays the show note by note with the key lit and the staff's cursor on it; Copy, Pitfall and the play-along draw the notes with their marks (a bracket and "Half step" or "Whole step" over two notes, red for half, blue for whole); Try and Check show the given note and a "?" that breathes where the answer goes (`src/core/lessons/chart.ts` never draws the answer before it is played), Try with five boxes for the clean run; a wrong key turns the "?" red and flashes the emptied run's boxes red; the pitfall card comes back on a parchment card; the ear plays the notes again; the end shows the check's medal as a clef in its colour and the first-try count, with Again and the book. Each right note's XP is saved at once. Esc goes back to the book. `tests/e2e/lessons.spec.ts` plays a whole lesson on the virtual keyboard.
+- `AX-3 provisional:` Kiur plays a show note every 0.7 s, and a key ends his show early; the pitfall card stays until the next key; a wrong key's red lasts 0.7 s; the suggested lesson is the first by catalog id whose needed written lessons have medals (no medals are kept before slice 2, so it is always the half step for now).
+- `AX-3 provisional:` step items are asked in the right hand between B3 and D5; the scales asked are C, G, D, A and E major, one octave up (flat keys wait until items are spelled, a TODO in `lesson.ts`); the major scale's check asks 4 scales, the steps' 8 items; the light is on at once for Try's first 2 items, after two wrong presses for the next 2, then off; the pitfall of all three lessons is the neighbour key.
 
 ## Acceptance criteria
 
-- **ft_1_39.AC1** The book shows every row of the learning catalog under its area; a row with a lesson opens it, a row without one is drawn ghosted with its name and does nothing when pressed.
+- **ft_1_39.AC1** The book shows every row of the learning catalog under its area; a row with a lesson opens it, a row without one is drawn ghosted with its name and opens nothing (a press says it is not written yet).
 - **ft_1_39.AC2** Every written lesson opens at every player level.
 - **ft_1_39.AC3** A lesson runs its steps in order; Try ends only after five clean items in a row; a wrong note whose reason matches the lesson's pitfall shows the pitfall card.
 - **ft_1_39.AC4** Try lights the awaited key at once, then only after two wrong presses, then not at all, on the on-screen keyboard.
@@ -74,6 +84,8 @@ Lessons are content (a new folder under content, zod-validated, `schemaVersion`)
 
 ## TODO
 
-- TODO(builder, R2): slice 0's previews and ergonomics review are done (second pass after the review). Still open from the review, for slice 1: Left and Right keys turn the book's pages, Enter opens the suggested lesson, Esc leaves; a press on a placeholder shows a short "not yet"; the "?" of a Try item pulses while it waits; a wrong note visibly empties the clean-run counter; the door uses the game's door picture.
+- TODO(builder, R2): open from slice 1's ergonomics review: the letter tabs are small for a child's finger; Esc in the middle of a lesson leaves without asking; the numbered steps are small and cannot be pressed to play a done step again; the end has no "next lesson" button yet (with the medals, slice 2).
+- TODO(painter, R2): the book's picture on the stand (`lessonKeys`) and the lesson screen's marks and "?" box are first sketches from shapes; paint them in the house manner.
+- TODO(builder, R2): lesson items are bare MIDI, read with sharps, so the major scale asks only C, G, D, A and E; spell the items (`src/core/lessons/lesson.ts`), then add F, B flat and E flat major.
 - TODO(builder, R2): with slice 2, `piece:lint`-style checking of the tree: every needed id exists in the catalog and there is no loop; test first.
 - NEEDS-HUMAN: the EZ-220 silent-light test (ft_Y_06) decides whether Try can light the real keyboard.

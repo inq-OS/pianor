@@ -22,6 +22,8 @@ import type { VisitData } from './visit/islandVisit';
 import type { RoomData } from './ProfileDashboardScene';
 import type { IntroData } from './IntroScene';
 import type { MapData } from './KeriMapScene';
+import type { LessonBookData } from './LessonBookScene';
+import type { LessonData } from './LessonScene';
 
 /**
  * Every scene key and the data its `init` takes (`undefined`: none). `startScene` checks both, so a renamed key or a
@@ -35,6 +37,8 @@ export interface SceneData {
   'earTrainer': undefined;
   'shapeTrainer': undefined;
   'chordTrainer': undefined;
+  'lessonBook': LessonBookData | undefined;
+  'lesson': LessonData;
   'admin': AdminData | undefined;
   'adminDelete': undefined;
   'adminGate': undefined;
