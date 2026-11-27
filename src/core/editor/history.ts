@@ -30,3 +30,8 @@ export function redo<T>(history: History<T>): History<T> {
   if (!canRedo(history)) return history;
   return { past: [...history.past, history.present], present: history.future[0]!, future: history.future.slice(1) };
 }
+
+/** The same change made to every step, past, present and future: for what is no undo step of its own (the typed title). */
+export function mapEvery<T>(history: History<T>, change: (value: T) => T): History<T> {
+  return { past: history.past.map(change), present: change(history.present), future: history.future.map(change) };
+}
