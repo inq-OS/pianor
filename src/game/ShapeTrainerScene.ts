@@ -211,7 +211,8 @@ export class ShapeTrainerScene extends PixelScene {
     const items: ToolbarItem[] = [
       ...(this.switcher ? [] : [{ label: displayText(keyName(choice.fifths, choice.mode, contextOf(this).profiles.noteNaming)), tooltip: t('shapes.keyTip'), onClick: () => this.chooseKey() }]),
       { label: displayText(t(shapeLabel)), tooltip: t('shapes.shapeTip'), onClick: nextShape },
-      { label: displayText(t(choice.hand === 'RH' ? 'shapes.rh' : 'shapes.lh')), tooltip: t('shapes.handTip'), onClick: () => this.choose({ hand: choice.hand === 'RH' ? 'LH' : 'RH' }) },
+      // the hand's picture before its word, so the button reads as a hand
+      { label: displayText(t(choice.hand === 'RH' ? 'shapes.rh' : 'shapes.lh')), value: displayText(t(choice.hand === 'RH' ? 'shapes.rh' : 'shapes.lh')), icon: choice.hand === 'RH' ? TOOL_ICONS.handRight : TOOL_ICONS.handLeft, tooltip: t('shapes.handTip'), onClick: () => this.choose({ hand: choice.hand === 'RH' ? 'LH' : 'RH' }) },
     ];
     if (this.round.state().outcome !== 'playing') items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), main: true, onClick: () => this.startRound() });
     return items;

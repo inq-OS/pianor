@@ -127,8 +127,8 @@ export class ChordTrainerScene extends PixelScene {
   /** The step, named (cycling through the content's steps, each press a new round) and, after the last life, the loop. */
   protected override toolbarItems(): ToolbarItem[] {
     const items: ToolbarItem[] = [
-      // the step's name as a word, as the shape trainer's choices are (a band cell with a picture shows only the picture)
-      { label: displayText(t(content.steps[this.stepIndex]!.nameKey)), tooltip: t('chords.stepTip'), onClick: () => this.startRound((this.stepIndex + 1) % content.steps.length) },
+      // the stairs and the step's name, as every trainer's step reads (the note and ear trainers' stairs and number)
+      { label: displayText(t(content.steps[this.stepIndex]!.nameKey)), value: displayText(t(content.steps[this.stepIndex]!.nameKey)), icon: TOOL_ICONS.steps, tooltip: t('chords.stepTip'), onClick: () => this.startRound((this.stepIndex + 1) % content.steps.length) },
     ];
     if (this.round.state().over) items.push({ label: displayText(t('theory.again')), icon: TOOL_ICONS.repeat, iconOnly: true, tooltip: t('theory.again'), main: true, onClick: () => this.startRound(this.stepIndex) });
     return items;
