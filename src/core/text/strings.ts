@@ -86,10 +86,25 @@ export const strings = {
   'shapes.rh': 'Right',
   'shapes.lh': 'Left',
   'shapes.handTip': 'Which hand plays: right or left',
-  'shapes.won': 'All {n} notes played',
+  // why a key was wrong in the shape trainer: the key next to the awaited one, or another letter; too high or too low
+  'shapes.neighbourHigher': 'Next key over, too high',
+  'shapes.neighbourLower': 'Next key over, too low',
+  'shapes.letterHigher': 'Wrong letter, too high',
+  'shapes.letterLower': 'Wrong letter, too low',
   // chord from its name (ft_1_29 slice B)
   'chords.notIn': '{note} is not in {chord}',
-  'chords.solved': '{n} chords played',
+  'chords.solved': 'Chords played: {n}',
+  // the chord trainer's steps (content/trainer/chords.json names them by these keys)
+  'chords.step.c1': 'White triads',
+  'chords.step.c2': 'All triads',
+  'chords.step.c3': 'Sevenths',
+  // the result of a round in the shape and chord trainers (core/trainer/trainerResult.ts)
+  'trainerResult.notesOf': '{right} of {total} notes',
+  'trainerResult.notes': 'Right notes: {right}',
+  'trainerResult.chordsOf': '{right} of {total} chords',
+  'trainerResult.chords': 'Chords played: {right}',
+  'trainerResult.withXp': '{result}, {xp} XP',
+  'trainerResult.level': 'Level {level}',
   'chords.stepTip': 'Step: which chords come',
   'ear.level': 'Ear level {n}',
   'ear.playAgain': 'Play again',
