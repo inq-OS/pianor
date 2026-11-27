@@ -263,7 +263,7 @@ export class SettingsScene extends PixelScene {
     const markers = ([[true, t('settings.learnMarkersOn')], [false, t('settings.learnMarkersOff')]] as const)
       .map(([value, label]): Choice<boolean> => ({ value, label, symbol: markersSymbol(value) }));
     this.setting(1, 0, t('settings.learnMarkers'), markers, learn.markers, (value) => profiles.updateLearnSettings({ markers: value }));
-    const from = ([1, 2, 3, 4, 5] as const).map((n): Choice<number> => ({ value: n, label: t('settings.learnMarkersFromN', { n }), symbol: markersFromSymbol(n) }));
+    const from = ([1, 2, 3, 4, 5] as const).map((n): Choice<number> => ({ value: n, label: n === 1 ? t('settings.learnMarkersFromOne') : t('settings.learnMarkersFromN', { n }), symbol: markersFromSymbol(n) }));
     this.setting(0, 1, t('settings.learnMarkersFrom'), from, learn.markersFrom, (value) => profiles.updateLearnSettings({ markersFrom: value }));
     // a two-hand piece: both hands together (the default) or each step by one hand, then the other, then both (rule 13)
     const hands = ([[false, t('settings.learnHandsTogether')], [true, t('settings.learnHandsApart')]] as const)

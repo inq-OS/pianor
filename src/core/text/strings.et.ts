@@ -734,6 +734,7 @@ export const stringsEt: Record<StringKey, string> = {
   'settings.learnMarkersOn': 'Rõngad sees',
   'settings.learnMarkersOff': 'Rõngasteta',
   'settings.learnMarkersFrom': 'Rõngas pärast vigu',
+  'settings.learnMarkersFromOne': 'Pärast 1 viga',
   'settings.learnMarkersFromN': 'Pärast {n} viga',
   'settings.title': 'Seaded',
   'settings.player': 'Mängijale {name}',

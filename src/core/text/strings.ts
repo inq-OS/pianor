@@ -740,6 +740,7 @@ export const strings = {
   'settings.learnMarkersOn': 'Rings on',
   'settings.learnMarkersOff': 'No rings',
   'settings.learnMarkersFrom': 'Ring after misses',
+  'settings.learnMarkersFromOne': 'After 1 miss',
   'settings.learnMarkersFromN': 'After {n} misses',
   'settings.title': 'Settings',
   'settings.player': 'For {name}',
