@@ -114,7 +114,7 @@ export class SettingsScene extends PixelScene {
       // A release build (`tools/release/pack.sh` sets VITE_PIANOR_RELEASE) has no bug report (ft_1_16.AC4); the test is written
       // out here, not in a helper, so the bundler drops the report's code and the repository's address with it.
       ...(import.meta.env.VITE_PIANOR_RELEASE === '1' ? [] : [{ label: t('settings.reportBug'), onClick: () => this.reportBug() }]),
-      { label: t('settings.pieces'), icon: TOOL_ICONS.pieces, onClick: () => startScene(this, 'pieces') },
+      { label: t('settings.pieces'), icon: TOOL_ICONS.pieces, onClick: () => startScene(this, 'pieces', { settings: { returnTo: this.returnTo, page: this.page } }) },
       { label: t('settings.pageLearn'), active: this.page === 1, onClick: () => this.turnPage() },
     ];
   }

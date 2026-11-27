@@ -18,10 +18,11 @@ export function webPlayerLock(locks: LockRequester | undefined = globalThis.navi
       let release = (): void => undefined;
       const holding = new Promise<void>((resolve) => { release = resolve; });
       const granted = await new Promise<boolean>((resolve) => {
-        void locks.request(`pianor-player-${id}`, { ifAvailable: true }, (lock) => {
+        // a page whose origin is opaque (a sandboxed frame) has the API but is refused it: granted, as with no API
+        locks.request(`pianor-player-${id}`, { ifAvailable: true }, (lock) => {
           resolve(lock !== null);
           return lock === null ? undefined : holding;
-        });
+        }).catch(() => resolve(true));
       });
       if (!granted) return false;
       held?.release();

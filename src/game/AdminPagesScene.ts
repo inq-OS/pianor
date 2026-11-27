@@ -38,6 +38,7 @@ const DEV_PAGES = [
 export class AdminPagesScene extends PixelScene {
   /** No player here yet (d088): the toolbar shows no name, rank, XP or settings. */
   protected override toolbarPlayer = false;
+  protected override keyboardNavigation = true;
   private drafts = false;
   private note = '';
 

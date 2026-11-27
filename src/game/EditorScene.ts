@@ -313,6 +313,8 @@ export class EditorScene extends PixelScene {
   private titleInput: HTMLInputElement | null = null;
   /** Save asked for a title (a new piece without a name of its own): Enter in the title field saves once it has one. */
   private titleAsked = false;
+  /** `:wq` or `:x` (ft_1_02e.AC6): leave once the save is done, also when it first asks for the title. */
+  private leaveAfterSave = false;
   /** Where a new piece goes was asked and answered (rule 17): it is asked once. */
   private whereChosen = false;
   /** Save found the title taken by another piece (ft_1_02a.AC15): the field stays ringed red until the title is changed. */
@@ -2542,9 +2544,8 @@ export class EditorScene extends PixelScene {
     if (word === 'w') return void this.save();
     if (word === 'q') return bang ? this.goBack() : this.leave();
     if (word === 'wq' || word === 'x') {
-      void this.save().then(() => {
-        if (this.scene.isActive() && !this.dirty()) this.goBack();
-      });
+      this.leaveAfterSave = true;
+      void this.save().then(() => this.leaveIfSaved());
       return;
     }
     if (word === 'set' && (arg === 'novim' || arg === 'vim')) return this.toggleVim(arg === 'vim');
@@ -2780,6 +2781,13 @@ export class EditorScene extends PixelScene {
     return [...game, ...ownPieces.list().filter((r) => r.id !== this.id).map((r) => r.piece.title)];
   }
 
+  /** After `:wq`: leaves once the piece is saved; while the title is still asked for, waits for it. */
+  private leaveIfSaved(): void {
+    if (!this.leaveAfterSave || this.titleAsked) return;
+    this.leaveAfterSave = false;
+    if (this.scene.isActive() && !this.dirty()) this.goBack();
+  }
+
   /** Puts the typing in the title field, ringed red while its title is taken, and says what it needs. */
   private askTitle(taken = false): void {
     this.titleAsked = true;
@@ -2821,6 +2829,8 @@ export class EditorScene extends PixelScene {
     this.placeInSong(result.id);
     const song = this.song ? context.ownSongs.get(this.song.songId) : undefined;
     this.say(!result.saved ? t('editor.savedHere') : song ? t('editor.savedSong', { title: song.title }) : t('editor.saved'), MESSAGE_MS);
+    // a `:wq` that stopped to ask for the title leaves however the save then came (Enter in the title, or Save)
+    this.leaveIfSaved();
   }
 
   /** Save the piece if it has changes, then offer it as a file to take to another device. */
@@ -3499,12 +3509,20 @@ export class EditorScene extends PixelScene {
       + `width:${width * zoom}px;height:${BAR_BUTTON_HEIGHT * zoom}px;box-sizing:border-box;font:${Math.round(8 * zoom)}px monospace;`
       + `border:2px solid ${hexCss(DEFAULT_THEME.cursor)};border-radius:4px;background:${hexCss(DEFAULT_THEME.paper)};color:${hexCss(DEFAULT_THEME.ink)};padding:0 6px;z-index:5`;
     input.addEventListener('keydown', (e) => {
+      // Esc gives the keys back to the piece maker (its letters and the vim keys) and drops a save that waited for the title
+      if (e.key === 'Escape') {
+        e.stopImmediatePropagation();
+        input.blur();
+        this.titleAsked = false;
+        this.leaveAfterSave = false;
+        return;
+      }
       if (e.key !== 'Enter') return;
       input.blur();
-      // a save that asked for the title goes on once the piece has one
+      // a save that asked for the title goes on once the piece has one (and `:wq` then leaves)
       if (this.titleAsked && !this.needsTitle()) {
         this.titleAsked = false;
-        void this.save();
+        void this.save().then(() => this.leaveIfSaved());
       }
     });
     input.addEventListener('input', () => {

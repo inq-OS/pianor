@@ -1,7 +1,7 @@
 // Covers ft_1_32.AC2 (the learning settings), ft_0_16.AC3, ft_0_16.AC4, ft_1_11.AC1, ft_1_11.AC6, ft_1_16.AC1.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { addPlayer, clickAndRedraw, clickButton, clickToolbar, expectNoErrors, goToMainMenu, menuButton, openGame, openPiece, pickProfile, playerName, results, sceneButton, sceneTexts, toScoreScreen, useOneLine, waitForScene } from './helpers';
+import { addPlayer, clickAndRedraw, clickButton, clickToolbar, expectNoErrors, goToMainMenu, menuButton, openGame, openPiece, openSettings, pickProfile, playerName, results, sceneButton, sceneTexts, toScoreScreen, useOneLine, waitForScene } from './helpers';
 
 /** The settings screen's buttons, in the order it makes them: one per setting, each press moving to its next choice; then the band's door (d088, ft_1_20). */
 const LINES = 0;
@@ -469,3 +469,38 @@ for (const lang of ['en', 'et'] as const) {
     expectNoErrors(errors);
   });
 }
+
+test('Choose pieces and back again returns to the settings page it left, and from there to the piece being played', async ({ page }) => {
+  const errors = await openGame(page);
+  await openPiece(page, 'Little Steps');
+  await openSettings(page);
+  await clickAndRedraw(page, 'settings', await sceneButton(page, 'settings', 'Learning'));
+  expect(await page.evaluate(() => window.__game.scene.getScene('settings').page)).toBe(1);
+  await clickButton(page, 'settings', await sceneButton(page, 'settings', 'Choose pieces'));
+  await waitForScene(page, 'pieces');
+  await page.keyboard.press('Escape');
+  await waitForScene(page, 'settings');
+  expect(await page.evaluate(() => window.__game.scene.getScene('settings').page)).toBe(1);
+  await page.keyboard.press('Escape');
+  await waitForScene(page, 'practice');
+  expect(await page.evaluate(() => window.__game.scene.getScene('practice').chart.id as string)).toBe('little-steps');
+  expectNoErrors(errors);
+});
+
+test('a setting button reached with the arrow keys shows its choice name at once, as the pointer does after a moment', async ({ page }) => {
+  const errors = await openGame(page);
+  await openSettings(page);
+  const focusedButton = () => page.evaluate(() => {
+    const focused = (window.__game.scene.getScene('settings').buttons as { focused: boolean; options: { iconOnly?: boolean }; tooltipShown: string | null }[]).find((b) => b.focused);
+    return focused ? { iconOnly: focused.options.iconOnly === true, tip: focused.tooltipShown } : null;
+  });
+  // down the rows to the first setting that is a picture only
+  let shown = null as Awaited<ReturnType<typeof focusedButton>>;
+  for (let i = 0; i < 8 && shown?.iconOnly !== true; i++) {
+    await page.keyboard.press('ArrowDown');
+    shown = await focusedButton();
+  }
+  expect(shown?.iconOnly).toBe(true);
+  expect(shown?.tip).toBeTruthy();
+  expectNoErrors(errors);
+});

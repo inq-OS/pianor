@@ -349,18 +349,22 @@ export class PixelButton {
     if (!focused) {
       this.ring?.destroy();
       this.ring = null;
-      if (this.options.picture) this.hideTooltip();
+      if (this.unlabelled()) this.hideTooltip();
       return;
     }
     const { x, y, width, height } = this.box;
     const over = this.overhang();
     this.ring = this.isBubble() ? new PixelImage(this.panel.scene, x - over - 2, y - over - 2, optionFocus(width + 2 * over)) : new PixelImage(this.panel.scene, x - 2, y - 2, focusRingBitmap(width, height));
     this.panel.parentContainer?.add(this.ring);
-    // a picture has no label on it: the keyboard shows its name at once
-    if (this.options.picture) {
+    // a picture (or a button of only its icon, as the settings' choices) has no label on it: the keyboard shows its name at once
+    if (this.unlabelled()) {
       this.hideTooltip();
       this.showTooltip();
     }
+  }
+
+  private unlabelled(): boolean {
+    return this.options.picture !== undefined || this.options.iconOnly === true;
   }
 
   /** The pointer is gone, as when it leaves the canvas: what moving off the button does. */
