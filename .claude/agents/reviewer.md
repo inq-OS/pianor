@@ -2,6 +2,7 @@
 name: reviewer
 description: Reviews one pull request against its feature's acceptance criteria and CLAUDE.md and posts one review with a verdict. Never edits code. Started by the builder on every code pull request before it merges (docs/architect/labels.md, the before-pr skill).
 model: sonnet
+effort: medium
 tools: Read, Grep, Glob, Bash
 ---
 
