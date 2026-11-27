@@ -1013,13 +1013,13 @@ export abstract class PixelScene extends Phaser.Scene {
     return this.bubbleOptions(at) !== null;
   }
 
-  // the base screen has no bubble wherever it is opened; a screen overrides this and reads `at`
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   /** What a bubble's choices should leave in sight where a turn round the ring can (the piece maker's staff), in layout cells. */
   protected bubbleKeepClear(): Rect[] {
     return [];
   }
 
+  // the base screen has no bubble wherever it is opened; a screen overrides this and reads `at`
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
     return null;
   }
