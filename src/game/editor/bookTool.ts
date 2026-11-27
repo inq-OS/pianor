@@ -69,6 +69,11 @@ export class BookTool {
   private name = '';
   private title = '';
   private thumbs: HTMLCanvasElement[] = [];
+  /** The pages' cards of step 1, made once per PDF and only marked again when a page is left out or taken back. */
+  private cards: HTMLButtonElement[] = [];
+  private pageGrid: HTMLDivElement | null = null;
+  /** Where step 1's main button stands: Read, or back to a kept reading. */
+  private readonly primary = el('span', { style: 'margin-left:auto;display:flex' });
   private readonly left = new Set<number>();
   private book = '';
   private movements: BookMovement[] = [];
@@ -132,6 +137,7 @@ export class BookTool {
     this.title = titleOfName(file.name);
     this.left.clear();
     this.thumbs = [];
+    this.cards = [];
     this.book = '';
     // a reading belongs to its PDF: another PDF is read anew, never shown with the last one's parts
     this.done = null;
@@ -140,10 +146,35 @@ export class BookTool {
     this.starts = [];
     this.bytes = file.bytes;
     this.showPages();
+    // each page is drawn once, into its own card; nothing else on the page is drawn again (ft_Y_04.AC30)
     for (let n = 1; n <= pdf.count && !this.closed && this.pdf === pdf; n++) {
-      this.thumbs[n - 1] = await pdf.render(n, THUMB * 2);
-      this.showPages();
+      const thumb = await pdf.render(n, THUMB * 2);
+      if (this.closed || this.pdf !== pdf) return;
+      this.thumbs[n - 1] = thumb;
+      this.cards[n - 1]?.firstElementChild?.replaceWith(this.thumbPicture(thumb));
+      this.markCard(n);
+      this.refreshPages();
     }
+  }
+
+  /** A page's small picture in its card. */
+  private thumbPicture(thumb: HTMLCanvasElement): HTMLCanvasElement {
+    const picture = el('canvas', { width: thumb.width, height: thumb.height, style: `width:${THUMB}px;display:block` });
+    picture.getContext('2d')?.drawImage(thumb, 0, 0);
+    return picture;
+  }
+
+  /** A page's card as it stands: in or left out. */
+  private markCard(n: number): void {
+    const card = this.cards[n - 1];
+    if (!card) return;
+    const out = this.left.has(n);
+    card.title = t(out ? 'editor.book.pageTakeBack' : 'editor.book.pageLeaveOut');
+    card.style.borderColor = out ? '#ccc' : '#333';
+    card.setAttribute('aria-pressed', String(!out));
+    (card.firstElementChild as HTMLElement | null)?.style.setProperty('opacity', out ? '0.25' : '1');
+    const label = card.lastElementChild;
+    label?.replaceChildren(el('span', { textContent: out ? '☐' : '☑', style: 'font-size:18px' }), t(out ? 'editor.book.pageOut' : 'editor.book.pageIn', { n }));
   }
 
   private bytes: Uint8Array = new Uint8Array();
@@ -163,32 +194,30 @@ export class BookTool {
   private showPages(): void {
     const pdf = this.pdf;
     if (!pdf) return;
-    const ready = this.thumbs.filter(Boolean).length;
-    this.say(ready < pdf.count ? t('editor.book.preparing', { n: ready + 1, of: pdf.count }) : t('editor.book.pagesHint', { pages: pdf.count }));
-    const grid = el('div', { id: 'book-tool-pages', style: 'display:flex;flex-wrap:wrap;gap:12px;padding-top:4px' });
-    for (let n = 1; n <= pdf.count; n++) {
-      const out = this.left.has(n);
-      const thumb = this.thumbs[n - 1];
-      const picture = thumb ? el('img', { src: thumb.toDataURL('image/png'), alt: '', style: `width:${THUMB}px;display:block;opacity:${out ? 0.25 : 1}` }) : el('div', { style: `width:${THUMB}px;height:${Math.round(THUMB * 1.41)}px;background:#ddd` });
-      const label = el('div', { style: 'padding:4px 2px;display:flex;gap:6px;align-items:center' }, el('span', { textContent: out ? '☐' : '☑', style: 'font-size:18px' }), t(out ? 'editor.book.pageOut' : 'editor.book.pageIn', { n }));
-      const card = el('button', { className: 'book-tool-page', id: `book-tool-page-${n}`, title: t(out ? 'editor.book.pageTakeBack' : 'editor.book.pageLeaveOut'), style: `font:inherit;padding:6px;background:#fff;border:2px solid ${out ? '#ccc' : '#333'};cursor:pointer;text-align:left` }, picture, label);
-      card.setAttribute('aria-pressed', String(!out));
-      card.onclick = () => {
-        if (out) this.left.delete(n);
-        else this.left.add(n);
-        this.showPages();
-      };
-      grid.append(card);
+    if (this.cards.length !== pdf.count || !this.pageGrid) {
+      this.pageGrid = el('div', { id: 'book-tool-pages', style: 'display:flex;flex-wrap:wrap;gap:12px;padding-top:4px' });
+      this.cards = Array.from({ length: pdf.count }, (_, i) => {
+        const n = i + 1;
+        const thumb = this.thumbs[i];
+        const picture = thumb ? this.thumbPicture(thumb) : el('div', { style: `width:${THUMB}px;height:${Math.round(THUMB * 1.41)}px;background:#ddd` });
+        const card = el('button', { className: 'book-tool-page', id: `book-tool-page-${n}`, style: 'font:inherit;padding:6px;background:#fff;border:2px solid #333;cursor:pointer;text-align:left' }, picture, el('div', { style: 'padding:4px 2px;display:flex;gap:6px;align-items:center' }));
+        card.onclick = () => {
+          if (this.left.has(n)) this.left.delete(n);
+          else this.left.add(n);
+          this.markCard(n);
+          this.refreshPages();
+        };
+        return card;
+      });
+      this.pageGrid.append(...this.cards);
+      this.cards.forEach((_, i) => this.markCard(i + 1));
     }
-    this.stage.replaceChildren(grid);
+    this.stage.replaceChildren(this.pageGrid);
     const title = el('input', { id: 'book-tool-name', value: this.title, maxLength: 60, style: 'font:inherit;padding:5px;width:16em;margin-right:12px' });
     title.oninput = () => (this.title = title.value);
-    const count = this.chosen().length;
-    const canRead = count > 0 && ready === pdf.count;
-    // the reading is kept while the same pages are chosen: back to it without reading again (Enter too)
-    const same = this.done !== null && this.readPages === this.chosen().join(',');
     title.onkeydown = (e) => {
       if (e.key !== 'Enter') return;
+      const { same, canRead } = this.readiness();
       if (same) this.showCheck();
       else if (canRead) void this.read();
     };
@@ -196,10 +225,33 @@ export class BookTool {
       ...this.buttons({ label: t('editor.book.choose'), id: 'book-tool-choose', act: () => void this.choose() }),
       el('label', { style: 'margin:0 6px 0 12px' }, t('editor.book.nameLabel')),
       title,
-      ...this.buttons(same
-        ? { label: t('editor.book.toParts'), id: 'book-tool-to-check', act: () => this.showCheck(), primary: true }
-        : { label: ready < pdf.count ? t('editor.book.preparingShort', { n: ready + 1, of: pdf.count }) : t('editor.book.read', { pages: count }), id: 'book-tool-read', act: () => void this.read(), disabled: !canRead, primary: true }),
+      this.primary,
     );
+    this.refreshPages();
+  }
+
+  /** What step 1 can do now: read the chosen pages once all are drawn, or go back to the reading kept for them. */
+  private readiness(): { ready: number; canRead: boolean; same: boolean } {
+    const count = this.pdf?.count ?? 0;
+    const ready = this.thumbs.filter(Boolean).length;
+    return {
+      ready,
+      canRead: this.chosen().length > 0 && ready === count,
+      // the reading is kept while the same pages are chosen: back to it without reading again (Enter too)
+      same: this.done !== null && this.readPages === this.chosen().join(','),
+    };
+  }
+
+  /** Step 1's line and main button, after a page is drawn or chosen: the cards and the name field stay as they are. */
+  private refreshPages(): void {
+    const pdf = this.pdf;
+    if (!pdf || this.stage.firstElementChild !== this.pageGrid) return;
+    const { ready, canRead, same } = this.readiness();
+    this.say(ready < pdf.count ? t('editor.book.preparing', { n: ready + 1, of: pdf.count }) : t('editor.book.pagesHint', { pages: pdf.count }));
+    const button = same
+      ? { label: t('editor.book.toParts'), id: 'book-tool-to-check', act: () => this.showCheck(), primary: true }
+      : { label: ready < pdf.count ? t('editor.book.preparingShort', { n: ready + 1, of: pdf.count }) : t('editor.book.read', { pages: this.chosen().length }), id: 'book-tool-read', act: () => void this.read(), disabled: !canRead, primary: true };
+    this.primary.replaceChildren(...this.buttons(button));
   }
 
   private async choose(): Promise<void> {
@@ -330,8 +382,10 @@ export class BookTool {
       const i = indexOf(part);
       const pages = this.pagesOf(part);
       const where = t(pages.length > 1 && pages[0] !== pages.at(-1) ? 'editor.book.wherePages' : 'editor.book.where', { bars: span(part.firstBar + 1, part.lastBar + 1), pages: pages.length ? span(pages[0]!, pages.at(-1)!) : '?' });
+      // the bars to fill are counted from the book, as the bars of the list and the paper (ft_Y_04.AC29)
+      const fill = 'piece' in part ? barsToFill(part.problems).map((bar) => part.firstBar + bar) : [];
       const state = 'piece' in part
-        ? (barsToFill(part.problems).length === 0 ? t('editor.photoTool.noneToFill') : t('editor.photoTool.fill', { bars: barsToFill(part.problems).join(', ') }))
+        ? (fill.length === 0 ? t('editor.photoTool.noneToFill') : t('editor.photoTool.fill', { bars: fill.join(', ') }))
         : t('editor.book.blank', { reason: part.reason });
       const firstPiece = parts.find((p) => 'piece' in p);
       const ownKey = 'piece' in part && firstPiece && 'piece' in firstPiece && (part.piece.fifths !== firstPiece.piece.fifths || part.piece.mode !== firstPiece.piece.mode)

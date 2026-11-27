@@ -199,6 +199,12 @@ test.describe('practice tools (core_02 and core_03)', () => {
     expect(await buttonLabels(page)).toEqual(expect.arrayContaining(['+10', 'to 110'])); // the ramp stays for the next laps
     // A carries the tempo and the lap; leaving the section, Kiur sums it up
     expect(await page.evaluate(() => (window.__game.scene.getScene('practice').playSession.staffView.markTexts as { text: { text: string } }[]).map((m) => m.text.text))).toContain('A  77 BPM, lap 2');
+    // the marks stand over the beat dots, never on them (core_03 rule 7)
+    expect(await page.evaluate(() => {
+      const view = window.__game.scene.getScene('practice').playSession.staffView as { origin: { y: number }; lanes: { dots: { y: number; system: number }[] }[]; markTexts: { system: number; text: { y: number; height: number } }[] };
+      const dots = view.lanes.flatMap((lane) => lane.dots);
+      return dots.length > 0 && view.markTexts.every((m) => m.text.y + m.text.height / 2 < Math.min(...dots.filter((d) => d.system === m.system).map((d) => view.origin.y + d.y)));
+    })).toBe(true);
     await press(page, 'Whole piece');
     await expect.poll(() => chartId(page)).toBe('little-steps');
     expect(await sceneTexts(page, 'practice')).toContain('Laps: 1, clean: 0, 70 to 77 BPM.');

@@ -43,7 +43,7 @@ export class TeachView {
   private controller: PracticeController | null = null;
   private staff: StaffView | null = null;
   /** The notes of the try as last played: the staff keeps them while the fact is said, and is fresh for the next try. */
-  private played: Pick<PlayState, 'noteProgress' | 'awaiting'> | null = null;
+  private played: Pick<PlayState, 'noteProgress' | 'awaiting' | 'retried'> | null = null;
   private timer: Phaser.Time.TimerEvent | null = null;
   private readonly objects: Phaser.GameObjects.GameObject[] = [];
   private saying: string | null = null;
@@ -175,7 +175,7 @@ export class TeachView {
     this.controller = new PracticeController(this.chart, this.devices.keyboard, {
       onChange: (state: PlayState) => {
         this.played = state;
-        this.staff?.applyProgress(state.noteProgress, state.awaiting);
+        this.staff?.applyProgress(state.noteProgress, state.awaiting, state.retried);
       },
       onJudged: (event: NoteJudged) => { if (event.verdict === 'wrong') reasons.push(event.reason); },
       onCompleted: (result: PieceResult) => this.afterStudent(result, reasons),
@@ -248,7 +248,7 @@ export class TeachView {
     // the staff while the phrase is played and tried, not under the closing line
     if (!this.closing) {
       this.staff = this.makeStaff(this.chart);
-      if (this.played) this.staff.applyProgress(this.played.noteProgress, this.playingNow === 'student' ? this.played.awaiting : []);
+      if (this.played) this.staff.applyProgress(this.played.noteProgress, this.playingNow === 'student' ? this.played.awaiting : [], this.played.retried);
     }
     if (this.playingNow === 'student') {
       const note = choiceNote(true);

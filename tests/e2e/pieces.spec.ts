@@ -164,6 +164,61 @@ test.describe('taking a piece out of the book (ft_1_02c.AC8, AC9)', () => {
     expect(await allMenuTitles(page)).toEqual(all);
     expectNoErrors(errors);
   });
+
+  test('ft_1_02c.AC8 a card\'s small buttons read P, S, i on both pages, and the hide stands apart at the card\'s outer end', async ({ page }) => {
+    const errors = await openGame(page);
+    // every card on the first spread: its small buttons' centres left to right, by kind, and which page it is on
+    const cards = await page.evaluate(() => {
+      type Small = Map<string, { rect: { x: number; width: number } }>;
+      const menu = window.__game.scene.getScene('menu') as unknown as { partsButtons: Small; statsButtons: Small; infoButtons: Small; hideButtons: Small; px: { width: number } };
+      return [...menu.infoButtons.keys()].map((id) => {
+        const kinds = { P: menu.partsButtons, S: menu.statsButtons, i: menu.infoButtons, hide: menu.hideButtons };
+        const at = Object.entries(kinds).flatMap(([kind, map]) => {
+          const b = map.get(id);
+          return b ? [{ kind, x: b.rect.x, w: b.rect.width }] : [];
+        }).sort((a, b) => a.x - b.x);
+        return { left: at[0]!.x < menu.px.width / 2, at };
+      });
+    });
+    expect(cards.some((c) => c.left)).toBe(true);
+    expect(cards.some((c) => !c.left)).toBe(true);
+    for (const card of cards) {
+      const order = card.at.map((b) => b.kind);
+      // the same order on both pages; the hide at the outer end: the left page's left, the right page's right
+      expect(order.filter((k) => k !== 'hide')).toEqual(['P', 'S', 'i'].filter((k) => order.includes(k)));
+      if (!order.includes('hide')) continue;
+      expect(order.indexOf('hide')).toBe(card.left ? 0 : order.length - 1);
+      // a wider gap between the hide and its neighbour than between the others
+      const gap = (a: { x: number; w: number }, b: { x: number }) => b.x - (a.x + a.w);
+      const hideGap = card.left ? gap(card.at[0]!, card.at[1]!) : gap(card.at[card.at.length - 2]!, card.at[card.at.length - 1]!);
+      const others = card.at.filter((b) => b.kind !== 'hide');
+      for (let k = 1; k < others.length; k++) expect(hideGap).toBeGreaterThan(gap(others[k - 1]!, others[k]!));
+    }
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02c a long title is cut at the small buttons\' outer edge on both pages, never running on to the page\'s edge', async ({ page }) => {
+    const errors = await openGame(page);
+    // each card's title as drawn, and the outer edge of its hide button, the card's outermost small button
+    const cards = await page.evaluate(() => {
+      type Box = { x: number; y: number; width: number; height: number };
+      type Button = { rect: Box; objects: { x: number; width: number; visible: boolean; text?: string }[]; options: { look?: string; label: string } };
+      const menu = window.__game.scene.getScene('menu') as unknown as { hideButtons: Map<string, Button>; buttons: Button[]; px: { width: number } };
+      return [...menu.hideButtons.values()].map((hide) => {
+        const left = hide.rect.x < menu.px.width / 2;
+        // the title stands on the line above the small buttons, on the same page
+        const title = menu.buttons.find((b) => b.options.look === 'ink' && b.rect.y < hide.rect.y && hide.rect.y - b.rect.y < 30 && (b.rect.x < menu.px.width / 2) === left)!;
+        const text = title.objects.find((o) => o.text !== undefined && o.visible)!;
+        return { left, label: title.options.label, textLeft: text.x, textRight: text.x + text.width, hideLeft: hide.rect.x, hideRight: hide.rect.x + hide.rect.width };
+      });
+    });
+    expect(cards.some((c) => c.label.endsWith('…'))).toBe(true);
+    for (const c of cards) {
+      if (c.left) expect(c.textLeft, c.label).toBeGreaterThanOrEqual(c.hideLeft);
+      else expect(c.textRight, c.label).toBeLessThanOrEqual(c.hideRight);
+    }
+    expectNoErrors(errors);
+  });
 });
 
 test.describe('the parts of a piece from the song list (core_06)', () => {

@@ -3,6 +3,7 @@
   "id": "rest-waltz",
   "contentVersion": 1,
   "title": "Rest Waltz",
+  "titles": { "et": "Pausivalss" },
   "level": 3,
   "ppq": 480,
   "tempoMap": [

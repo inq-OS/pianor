@@ -144,6 +144,38 @@ test.describe('playing a whole piece without a real keyboard', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_0_08.AC1 a note right only after a wrong key keeps its own colour, a first-try note turns green', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    const colour = (note: number) => page.evaluate((n) => window.__game.scene.getScene('practice').playSession.staffView?.noteColourOf(n) ?? null, note);
+    const step = () => page.evaluate(() => window.__game.scene.getScene('practice').playSession.controller.getState().stepIndex as number);
+    await playWithKeys(page, [65, 60]); // a wrong F4, then the awaited C4
+    await expect.poll(step).toBe(1);
+    await playWithKeys(page, LITTLE_STEPS.slice(1, 2)); // the second note at the first try
+    await expect.poll(step).toBe(2);
+    // once the wrong key's short red flash is over, the note stays in the retried orange (DEFAULT_THEME.retried)
+    await expect.poll(() => colour(0)).toBe(0xff7a00);
+    expect(await colour(1)).toBe(0x1f9d55); // the first-try green (DEFAULT_THEME.correct)
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_12.AC4 leaving mid-piece shows the plain lines, no empty stars and no empty graph; the door and the gear are solid over the card', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await playWithKeys(page, LITTLE_STEPS.slice(0, 3));
+    await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').playSession.controller.getState().stepIndex)).toBe(3);
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'results');
+    expect(await sceneTexts(page, 'results')).toContain('You played some notes. The end can wait for next time!');
+    const shown = await page.evaluate(() => {
+      const results = window.__game.scene.getScene('results');
+      const { back, settings } = results.toolbarButtons as Record<'back' | 'settings', { objects: { alpha: number }[] } | null>;
+      return { stars: results.starsShown, graph: results.graph, door: back?.objects[0]?.alpha, gear: settings?.objects[0]?.alpha };
+    });
+    expect(shown).toEqual({ stars: false, graph: null, door: 1, gear: 1 });
+    expectNoErrors(errors);
+  });
+
   test('hints switched on with real clicks are recorded in the results', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');

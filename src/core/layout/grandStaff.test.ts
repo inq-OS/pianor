@@ -184,6 +184,59 @@ describe('sizes', () => {
   });
 });
 
+describe('two lines of a grand staff on one page', () => {
+  /** Eight bars of both hands in quarters, a line of two bars: four lines, two to a page. */
+  const piece = chartWith(Array.from({ length: 32 }, (_, i) => [
+    { tick: i * 480, dur: 480, midi: [60, 64, 67, 72][i % 4]! },
+    { tick: i * 480, dur: 480, midi: [48, 43, 52, 55][i % 4]!, track: 'lh' },
+  ]).flat());
+  const options = { viewport: { width: 1920, height: 800 }, linesPerPage: 2, barsPerLine: 2, staffGap: 'short' as const };
+
+  it('ft_0_15.AC1 lets the arrow under one line and the arrow over the next share one room, as only one line has the cursor', () => {
+    const l = layoutStaff(piece, options);
+    const [first, second] = l.systems as [typeof l.systems[0], typeof l.systems[0]];
+    const under = first.staves[1]!.arrow;
+    const over = second.staves[0]!.arrow;
+    expect([under.direction, over.direction]).toEqual(['up', 'down']);
+    // the up arrow ends where the down arrow of the next line starts: they meet in one room, neither overlaps the other
+    expect(over.tipY).toBeCloseTo(under.tipY, 6);
+    // and the notes of the next line, their hints included, stay clear of the down arrow
+    const below = Math.min(...l.notes.filter((n) => n.system === 1).map((n) => extent(l, n).top));
+    expect(below).toBeGreaterThan(over.tipY + 0.9 * l.staffSpace);
+  });
+
+  it('ft_0_15.AC1 draws the notes as big as the page allows: one staff space more would not fit two lines', () => {
+    const l = layoutStaff(piece, options);
+    expect(l.fits).toBe(true);
+    const bigger = layoutStaff(piece, { ...options, staffSpace: l.staffSpace + 1 });
+    expect(bigger.fits).toBe(false);
+    // the room saved goes to the notes: bigger than with two arrow rooms between the lines (22 px at this size)
+    expect(l.staffSpace).toBeGreaterThanOrEqual(23);
+  });
+
+  it('keeps both arrow rooms when the lower staff carries a dynamic mark, which stands under its notes', () => {
+    const loud = chartSchema.parse({ ...piece, notes: piece.notes.map((n, i) => (i === 1 ? { ...n, dynamic: 'f' } : n)) });
+    const l = layoutStaff(loud, options);
+    const [first, second] = l.systems as [typeof l.systems[0], typeof l.systems[0]];
+    expect(second.staves[0]!.arrow.tipY).toBeGreaterThan(first.staves[1]!.arrow.tipY + 0.5 * l.staffSpace);
+  });
+
+  it('keeps both arrow rooms with a reserve, so a dynamic written later never changes the size (the editor)', () => {
+    const reserve = { shortestTicks: 240, low: -4, high: 12, widestChord: 4 };
+    const l = layoutStaff(piece, { ...options, reserve });
+    const [first, second] = l.systems as [typeof l.systems[0], typeof l.systems[0]];
+    expect(second.staves[0]!.arrow.tipY).toBeGreaterThan(first.staves[1]!.arrow.tipY + 0.5 * l.staffSpace);
+  });
+
+  it('changes nothing on a single staff: the arrow stays under each line and the next line keeps its whole room', () => {
+    const l = layoutStaff(piece, { ...options, trackId: 'rh' });
+    const [first, second] = l.systems as [typeof l.systems[0], typeof l.systems[0]];
+    const top = Math.min(...l.notes.filter((n) => n.system === 1).map((n) => extent(l, n).top));
+    expect(top).toBeGreaterThan(first.cursorTipY + 0.5 * l.staffSpace);
+    expect(second.staves[0]!.arrow.direction).toBe('up');
+  });
+});
+
 describe('longer pieces and rests', () => {
   /** Eight bars, each hand holding a whole note per bar. */
   const longPiece = () => {

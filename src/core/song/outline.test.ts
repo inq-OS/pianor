@@ -48,6 +48,15 @@ describe('the song page outline', () => {
     expect(rowPlay(outline.rows[1]!, outline.rows)).toEqual({ kind: 'phrase', piece: 'p1', first: 2, last: 3 });
   });
 
+  it('ft_1_36.AC7 gives a piece whose one phrase is the whole piece no rows under it, so it does not fold', () => {
+    const whole: Record<string, PieceFacts> = { w: facts('Whole', 4, [[0, 3]]), h: facts('Half', 4, [[0, 1]]) };
+    const two = songSchema.parse({ ...song, nodes: [{ kind: 'piece', id: 'a', piece: 'w' }, { kind: 'piece', id: 'b', piece: 'h' }] });
+    const all = resolveSong(two, (id) => whole[id]).rows;
+    expect(all.map((r) => r.number)).toEqual(['1', '2', '2.1']);
+    expect(shownRows(all, startFolded(all)).map((s) => [s.row.number, s.folds])).toEqual([['1', false], ['2', true]]);
+    expect(pieceOutline('w', whole.w!).rows).toEqual([]);
+  });
+
   it('names keys and meters as a row shows them', () => {
     expect([keyName({ fifths: 0, mode: 'major' }), keyName({ fifths: 2, mode: 'major' }), keyName({ fifths: -1, mode: 'minor' }), keyName({ fifths: 3, mode: 'minor' })]).toEqual(['C', 'D', 'Dm', 'F#m']);
     expect(meterName({ num: 3, den: 4 })).toBe('3/4');

@@ -413,10 +413,23 @@ interface Request {
   barsPerLine: number | undefined;
   keepBarWidth: boolean;
   linesPerPage: number | undefined;
+  /** From one line's room to the next line's, in staff spaces (`lineGap`). */
+  lineGap: number;
+}
+
+/**
+ * The gap between two lines on a page, in staff spaces: `SYSTEM_GAP`, less one arrow room on a grand staff. Its cursor
+ * arrow stands under the lower staff and over the upper one, and only one line has the cursor, so the arrow under a line
+ * and the arrow over the next share one room and meet tip to tip: the room goes to bigger notes (AX-0). A dynamic mark
+ * under the lower staff's notes reaches into that room, so a piece with one, or a staff with a reserve for notes still to
+ * be written, keeps both rooms.
+ */
+export function lineGap(grand: boolean, dynamicUnderLowerStaff: boolean): number {
+  return grand && !dynamicUnderLowerStaff ? SYSTEM_GAP - ARROW_ROOM : SYSTEM_GAP;
 }
 
 /** Height of `systems` systems in staff spaces, margins included. */
-const blockUnits = (systems: number, systemUnits: number) => 2 * MARGIN_Y + systems * systemUnits + (systems - 1) * SYSTEM_GAP;
+const blockUnits = (systems: number, systemUnits: number, gap: number) => 2 * MARGIN_Y + systems * systemUnits + (systems - 1) * gap;
 
 function planAt(staffSpace: number, r: Request, vp: { width: number; height: number }): Plan {
   const availWidth = vp.width - (2 * MARGIN_X + r.preamble) * staffSpace;
@@ -432,7 +445,7 @@ function planAt(staffSpace: number, r: Request, vp: { width: number; height: num
     systemCount = Math.ceil(r.barCount / barsPerSystem);
   }
   const perPage = Math.min(r.linesPerPage ?? systemCount, systemCount);
-  const height = blockUnits(perPage, r.systemUnits) * staffSpace;
+  const height = blockUnits(perPage, r.systemUnits, r.lineGap) * staffSpace;
   return { staffSpace, barsPerSystem, systemCount, perPage, fits: maxBars >= Math.max(1, barsPerSystem) && height <= vp.height };
 }
 
@@ -453,7 +466,7 @@ function planSpaced(staffSpace: number, r: Request, spacing: readonly BarSpacing
   const systemCount = Math.max(1, lineStarts.length);
   // a page keeps the places of all its lines, also while fewer lines are written: the first line never moves
   const perPage = r.linesPerPage ?? systemCount;
-  const height = blockUnits(perPage, r.systemUnits) * staffSpace;
+  const height = blockUnits(perPage, r.systemUnits, r.lineGap) * staffSpace;
   return {
     staffSpace, barsPerSystem: Math.max(...lineStarts.map((start, k) => (lineStarts[k + 1] ?? r.barCount) - start)), systemCount, perPage,
     spaced: { lineStarts, barUnits }, fits: barUnits.every((u) => u <= availUnits) && height <= vp.height,
@@ -688,6 +701,8 @@ function planFrame(chart: Chart, staves: readonly StaffSpec[], keys: KeyPlan, op
     barsPerLine: options.barsPerLine === undefined ? undefined : Math.max(1, Math.floor(options.barsPerLine)),
     keepBarWidth: options.keepBarWidth === true,
     linesPerPage: options.linesPerPage === undefined ? undefined : Math.max(1, Math.floor(options.linesPerPage)),
+    // a reserve stands for notes not written yet (the editor), which may carry a dynamic: the size must not change when one is
+    lineGap: lineGap(grand, reserve !== undefined || staves[last]!.notes.some((e) => e.note.dynamic !== undefined)),
   };
   let plan: Plan;
   if (options.spacing) {
@@ -743,7 +758,7 @@ function layoutSystems(staves: readonly StaffSpec[], frame: Frame, vp: StaffLayo
   const barCount = request.barCount;
   const systemHeight = systemUnits * S;
   // A page is centred like a whole piece; every page uses the places of a full page, so lines never move between pages.
-  const totalHeight = blockUnits(plan.perPage, systemUnits) * S;
+  const totalHeight = blockUnits(plan.perPage, systemUnits, request.lineGap) * S;
   const offsetY = Math.max(0, (vp.height - totalHeight) / 2) + MARGIN_Y * S;
   const staffLeft = MARGIN_X * S;
   const staffRight = vp.width - MARGIN_X * S;
@@ -760,7 +775,7 @@ function layoutSystems(staves: readonly StaffSpec[], frame: Frame, vp: StaffLayo
     const firstBar = plan.spaced ? plan.spaced.lineStarts[s]! : s * plan.barsPerSystem;
     const count = plan.spaced ? (plan.spaced.lineStarts[s + 1] ?? barCount) - firstBar : Math.min(plan.barsPerSystem, barCount - firstBar);
     const page = Math.floor(s / plan.perPage);
-    const top = offsetY + (s % plan.perPage) * (systemHeight + SYSTEM_GAP * S);
+    const top = offsetY + (s % plan.perPage) * (systemHeight + request.lineGap * S);
     // A line shows the key it starts in, and its bars start after that key's own room (core_09.AC57): the plan kept room
     // for the widest key of the piece, so a line in a smaller key gives its bars what it leaves.
     const lineKey = frame.keys.atBar(firstBar);

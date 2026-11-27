@@ -41,11 +41,13 @@ describe('photo import (ft_Y_04.AC8)', () => {
   });
 
   it('ft_Y_04.AC8 looks for Audiveris where its installers put it, the AUDIVERIS variable first', () => {
-    expect(audiverisCandidates('win32', { AUDIVERIS: 'D:\\A\\Audiveris.exe', ProgramFiles: 'C:\\Program Files', LOCALAPPDATA: 'C:\\Users\\x\\AppData\\Local' })).toEqual([
-      'D:\\A\\Audiveris.exe', 'C:\\Program Files\\Audiveris\\Audiveris.exe', 'C:\\Users\\x\\AppData\\Local\\Programs\\Audiveris\\Audiveris.exe', 'audiveris',
+    expect(audiverisCandidates('win32', { AUDIVERIS: 'D:\\A\\Audiveris.exe', ProgramFiles: 'C:\\Program Files', LOCALAPPDATA: 'C:\\Users\\x\\AppData\\Local', Path: 'C:\\bin' })).toEqual([
+      'D:\\A\\Audiveris.exe', 'C:\\Program Files\\Audiveris\\Audiveris.exe', 'C:\\Users\\x\\AppData\\Local\\Programs\\Audiveris\\Audiveris.exe', 'C:\\bin\\Audiveris.exe',
     ]);
     expect(audiverisCandidates('win32', {})[0]).toBe('C:\\Program Files\\Audiveris\\Audiveris.exe');
-    expect(audiverisCandidates('linux', {})).toEqual(['/opt/audiveris/bin/Audiveris', '/Applications/Audiveris.app/Contents/MacOS/Audiveris', 'audiveris']);
+    expect(audiverisCandidates('linux', { PATH: '/usr/bin:/home/x/bin' })).toEqual([
+      '/opt/audiveris/bin/Audiveris', '/Applications/Audiveris.app/Contents/MacOS/Audiveris', '/usr/bin/audiveris', '/usr/bin/Audiveris', '/home/x/bin/audiveris', '/home/x/bin/Audiveris',
+    ]);
     expect(audiverisArgs('in/s.jpg', 'out/x')).toEqual(['-batch', '-export', '-output', 'out/x', '--', 'in/s.jpg']);
   });
 
@@ -64,7 +66,10 @@ describe('photo import (ft_Y_04.AC8)', () => {
     expect(pickAudiveris(['D:\\x.exe', 'C:\\A.exe', 'audiveris'], has, { AUDIVERIS: 'D:\\x.exe' })).toEqual({ ok: false, reason: expect.stringContaining('does not exist') });
     expect(pickAudiveris(['C:\\a.bat'], has, { AUDIVERIS: 'C:\\a.bat' })).toEqual({ ok: false, reason: expect.stringContaining('Audiveris.exe') });
     expect(pickAudiveris(['D:\\y.exe', 'C:\\A.exe', 'audiveris'], has, {})).toEqual({ ok: true, exe: 'C:\\A.exe' });
-    expect(pickAudiveris(['D:\\y.exe'], has, {})).toEqual({ ok: true, exe: 'audiveris' });
+  });
+
+  it('ft_Y_04.AC27 Audiveris on no candidate path and not on the PATH is not found, and the answer says where to get it', () => {
+    expect(pickAudiveris(['D:\\y.exe', '/usr/bin/audiveris'], () => false, {})).toEqual({ ok: false, reason: expect.stringContaining('audiveris.github.io') });
   });
 
   it('ft_Y_04.AC8 a photo taken at an angle gets the advice to scan it flat (the first test photo)', () => {
