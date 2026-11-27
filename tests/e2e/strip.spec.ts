@@ -143,6 +143,26 @@ test.describe('the strip and the corners (ft_1_20, d282)', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_1_20.AC13 in the room the backpack opened over the player\'s card closes the card, and its empty line fits inside its panel', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'profile');
+    await waitForScene(page, 'profile');
+    const labelled = (label: string) => page.evaluate((l) => (window.__game.scene.getScene('profile') as unknown as { buttons: { labelFit(): { label: string } }[] }).buttons.findIndex((b) => b.labelFit().label === l), label);
+    const state = () => page.evaluate(() => {
+      const s = window.__game.scene.getScene('profile') as unknown as { cardOpen: boolean; menuOpen: boolean; menu: { buttons: { labelFit(): { label: string; overflow: number } }[] } | null };
+      return { card: s.cardOpen, menu: s.menuOpen, fits: (s.menu?.buttons ?? []).map((b) => b.labelFit()) };
+    });
+    await clickButton(page, 'profile', await labelled('Your card'));
+    await expect.poll(async () => (await state()).card).toBe(true);
+    await clickButton(page, 'profile', await labelled('Backpack'));
+    await expect.poll(async () => (await state()).menu).toBe(true);
+    const open = await state();
+    expect(open.card).toBe(false);
+    expect(open.fits).toEqual([{ label: 'Nothing in the backpack yet', overflow: expect.any(Number) }]);
+    expect(open.fits[0]!.overflow).toBeLessThanOrEqual(0);
+    expectNoErrors(errors);
+  });
+
   test('ft_1_20.AC14 in the room a contour lights round the shield under the pointer and goes when it leaves; an object wakes instead and gets none (ft_1_20.AC15)', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await startScene(page, 'profile');

@@ -151,6 +151,8 @@ const MENU_DEPTH = 1000;
 const STRIP_CELL_WIDTH = 30;
 /** Room between the backpack and the gear, so the two are not taken for each other. */
 const BACKPACK_GAP = 2;
+/** Room round the empty backpack's line in its menu cell, in cells. */
+const BACKPACK_LINE_PAD = 12;
 /** A long press opens the bubble after this long (ft_1_20, d282); moving the finger farther than `LONG_PRESS_SLIP` screen pixels cancels it. */
 /** The largest music sign (fine pixels) in a round option of the bubble and in a cell of the strip. */
 const BUBBLE_SIGN = 24;
@@ -222,6 +224,8 @@ export abstract class PixelScene extends Phaser.Scene {
    */
   protected px!: PixelView & { fine: number };
   /** The toolbar's buttons (Back, the screen's items, settings, the keyboard switch), also in `buttons`. */
+  /** The backpack in the top right corner as last drawn, if the screen has one. */
+  private backpackButton: PixelButton | null = null;
   protected toolbarButtons: { back: PixelButton | null; settings: PixelButton | null; keys: PixelButton | null; items: PixelButton[] } = { back: null, settings: null, keys: null, items: [] };
   /** False on a screen without an active player (the profile picker, admin): the toolbar leaves out the name, rank, XP and settings. */
   protected toolbarPlayer = true;
@@ -1143,6 +1147,7 @@ export abstract class PixelScene extends Phaser.Scene {
       shown.setAlpha(status.lit ? 1 : STATUS_UNLIT);
     }
     const kept = this.backpackItems();
+    this.backpackButton = null;
     if (kept) {
       left -= corners.settings.w + BACKPACK_GAP;
       const r = { ...corners.settings, x: left };
@@ -1150,13 +1155,19 @@ export abstract class PixelScene extends Phaser.Scene {
       const bag: PixelButton = this.buttonOn(layer, {
         ...rectCentre(r), label: t('band.backpack'), picture: BACKPACK,
         onClick: () => {
+          // what the screen has open over its picture closes first; that redraws the corners, so the menu hangs from the new bag
+          this.beforeBackpack();
           const items = this.backpackItems() ?? [];
+          const empty = t('band.backpackEmpty');
           const choices: MenuItem[] = items.length
             ? items.map((item) => ({ label: item.label, ...(item.icon ? { icon: item.icon } : {}), ...(item.fineIcon ? { fineIcon: true } : {}), ...(item.tooltip ? { tooltip: item.tooltip } : {}), onPick: item.onClick }))
-            : [{ label: t('band.backpackEmpty'), disabled: true, onPick: () => undefined }];
-          this.openMenu(bag, choices, { cell: items.length ? { w: 30, h: 30 } : { w: 120, h: 15 }, columns: Math.min(4, Math.max(1, items.length)), open: 'below' });
+            : [{ label: empty, disabled: true, onPick: () => undefined }];
+          // the empty backpack's line on one line, as wide as it needs: wrapped, it ran into the panel's frame
+          const cell = items.length ? { w: 30, h: 30 } : { w: Math.max(120, measure(drawnText(empty)) + BACKPACK_LINE_PAD), h: 15 };
+          this.openMenu(this.backpackButton ?? bag, choices, { cell, columns: Math.min(4, Math.max(1, items.length)), open: 'below' });
         },
       });
+      this.backpackButton = bag;
     }
     this.toolbarButtons = { ...this.toolbarButtons, back, settings };
   }
@@ -1684,6 +1695,9 @@ export abstract class PixelScene extends Phaser.Scene {
   protected stripSign(picture: Bitmap): Bitmap {
     return signOnly(picture, STRIP_SIGN, STRIP_SIGN);
   }
+
+  /** Called when the backpack is pressed, before it opens: a screen closes what it has open over its picture. */
+  protected beforeBackpack(): void {}
 
   /** Names `key` as the button's key: a key menu opens from it, and its name shows on it while `shortcutsShown`. */
   protected markKey(button: PixelButton, key: string, parent: Phaser.GameObjects.Container = this.root): void {

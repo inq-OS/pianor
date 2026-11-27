@@ -224,8 +224,15 @@ export class ProfileDashboardScene extends PixelScene {
   }
 
   private showCard(open: boolean): void {
+    // the card and the backpack's menu never lie one over the other: opening the card closes the backpack
+    if (open) this.closeMenu();
     this.cardOpen = open;
     this.redraw();
+  }
+
+  /** Opening the backpack closes the player's card. */
+  protected override beforeBackpack(): void {
+    if (this.cardOpen) this.showCard(false);
   }
 
   private showStand(open: boolean): void {
