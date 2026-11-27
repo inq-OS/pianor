@@ -1,7 +1,7 @@
 import earLevelsJson from '../../content/trainer/ear-levels.json';
 import { earAnswerChart } from '../core/trainer/earChart';
 import {
-  EAR_NEXT_PAUSE_MS, EAR_ROUND_STARS, earKeyAction, earLevelOf, earRowFor, isRepeatDue, pickQuestion, pointsForMisses, pressEar, roundStars,
+  EAR_NEXT_PAUSE_MS, EAR_ROUND_STARS, chooseEarStep, earKeyAction, earLevelOf, earRowFor, earStepOf, isRepeatDue, pickQuestion, pointsForMisses, pressEar, roundStars,
   startQuestion, starsNeeded, EAR_STAR_POINTS, type EarQuestion,
 } from '../core/trainer/earTrainer';
 import { loadEarLevels } from '../core/trainer/earLevels';
@@ -12,12 +12,12 @@ import { MS_PER_SECOND } from '../core/chart';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
 import { contextOf } from './context';
 import { ICONS } from './ui/pixel/iconArt';
-import { recolor } from './ui/pixel/bitmap';
+import { fromAscii, recolor } from './ui/pixel/bitmap';
 import { PixelBar, PixelImage, pixelStars } from './ui/pixel/PixelObjects';
 import { STAR_FULL } from './ui/pixel/sprites';
-import { TOOL_ICONS } from './ui/pixel/toolArt';
+import { iconWithNumber, TOOL_ICONS } from './ui/pixel/toolArt';
 import { C } from './ui/pixel/palette';
-import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
+import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
 import { StaffView } from './ui/staff/StaffView';
 import { startScene } from './scenes';
 import { watchKeyBash } from './practice/bashDoor';
@@ -29,13 +29,28 @@ const LEVEL_Y = 8;
 const LEVEL_BAR_WIDTH = 48;
 const LEVEL_BAR_HEIGHT = 5;
 /** The round's stars, twice the sprite size, centred above the staff. */
-const STARS_Y = 19;
+const STARS_Y = 14;
+/** A two-note question's progress under the stars: one slot per note, filled once that note is found (no name). */
+const SLOTS_Y = 35;
+const SLOT_GAP = 3;
+const SLOT_EMPTY = fromAscii(['kkkk', 'k..k', 'k..k', 'kkkk'], { k: C.ink });
+const SLOT_FOUND = fromAscii(['kkkk', 'kkkk', 'kkkk', 'kkkk'], { k: C.ink });
+/**
+ * A new ear level (AC5's one bigger moment): a card with "Ear level N" between two stars over the top of the staff, for this
+ * long, ms. AX-3 provisional: two seconds, long enough to read, short enough to leave the answer to be read.
+ */
+const LEVEL_UP_MS = 2000;
+const LEVEL_UP_DEPTH = 20;
+/** A cell of the step menu, layout cells: a row number. */
+const STEP_CELL = { w: 16, h: 16 };
 const STARS_ZOOM = 2;
 const STAR_GAP = 2;
 /** The answer's staff, under the stars. */
-const STAFF_TOP = 44;
+const STAFF_TOP = 48;
+/** The new level's card, over the top of the staff. */
+const LEVEL_UP_Y = STAFF_TOP + 6;
 /** The one miss with words, "right letter, wrong octave", under the stars while the question is open (no staff there yet). */
-const WRONG_OCTAVE_Y = 46;
+const WRONG_OCTAVE_Y = 50;
 /** MIDI velocity of the question's notes, a comfortable mezzo-forte. */
 const VELOCITY = 90;
 /** How often the repeat check runs, ms. The rule itself is exact; this only decides how soon a repeat is noticed. */
@@ -72,6 +87,14 @@ export class EarTrainerScene extends PixelScene {
   private sounding = new Set<number>();
   /** The finished question raised the ear level: the level line is gold until the next question (AC5's one bigger moment). */
   private levelUp = false;
+  /** Until when the new level's card shows, on the scene clock (ms); 0 when it does not. */
+  private levelUpUntil = 0;
+  private levelUpCard: Phaser.GameObjects.Container | null = null;
+  /**
+   * The step the student chose (a row of the table, from 1), or null to follow the ear level (ft_1_10.AC13). Kept for the visit
+   * only: each visit starts on the row the level earned (AX-1).
+   */
+  private chosenStep: number | null = null;
   /** The last press was the right letter in the wrong octave: the one fact said in words (AC3); cleared by the next press. */
   private wrongOctave = false;
   private unsubscribe: (() => void) | null = null;
@@ -80,6 +103,8 @@ export class EarTrainerScene extends PixelScene {
   private doneAtMs: number | null = null;
   /** When the open question starts to sound, on `keyClock` (ms); keys before it are not answers (ft_1_10.AC11). */
   private soundsAtMs = 0;
+  /** A two-note question's slots as last drawn, found or not (read by the end-to-end test). */
+  private shownSlots: boolean[] = [];
   /** The round's stars as last drawn, lit of total (read by the end-to-end test). */
   private shownStars: { lit: number; total: number } | null = null;
   private staff: StaffView | null = null;
@@ -119,6 +144,8 @@ export class EarTrainerScene extends PixelScene {
   protected override clear(): void {
     this.staff?.destroy();
     this.staff = null;
+    this.levelUpCard?.destroy(true);
+    this.levelUpCard = null;
   }
 
   /** The active player's ear points, saved (version 16). */
@@ -138,18 +165,44 @@ export class EarTrainerScene extends PixelScene {
     return earLevelOf(this.points).level;
   }
 
-  private get row() {
-    return earRowFor(table, this.level);
+  /** The row the questions come from: the chosen one, or the one the level earned (ft_1_10.AC13). */
+  private get step(): number {
+    return earStepOf(this.level, this.chosenStep, table.length);
   }
 
-  /** The screen's buttons are pictures on the toolbar (d088): play again, repeat, and the note length cycling 1, 2, 3 s. */
+  private get row() {
+    return earRowFor(table, this.step);
+  }
+
+  /**
+   * The screen's buttons are pictures on the toolbar (d088): play again, repeat, the note length (an hourglass and 1, 2 or 3 s,
+   * cycling) and the step (stairs and its number, opening the rows to choose from, ft_1_10.AC13).
+   */
   protected override toolbarItems(): ToolbarItem[] {
     const repeat = t(this.repeatOn ? 'ear.repeatOn' : 'ear.repeatOff');
     return [
       { label: displayText(t('ear.playAgain')), icon: ICONS.ear, iconOnly: true, tooltip: t('ear.playAgain'), main: true, onClick: () => this.play() },
       { label: displayText(repeat), icon: TOOL_ICONS.repeat, iconOnly: true, active: this.repeatOn, tooltip: repeat, onClick: () => this.toggleRepeat() },
-      { label: displayText(t('ear.length', { n: this.seconds })), tooltip: t('ear.lengthTip'), onClick: () => this.cycleLength() },
+      { label: displayText(t('ear.length', { n: this.seconds })), icon: iconWithNumber(TOOL_ICONS.orderDeadline, this.seconds), iconOnly: true, tooltip: t('ear.lengthTip'), onClick: () => this.cycleLength() },
+      {
+        label: displayText(t('theory.step', { n: this.step })), icon: iconWithNumber(TOOL_ICONS.steps, this.step), iconOnly: true, tooltip: t('ear.stepTip'), onClick: () => undefined,
+        menu: { items: () => this.stepItems(), cell: STEP_CELL, columns: table.length },
+      },
     ];
+  }
+
+  /** Every row of the table, up or down: levels never lock one (ft_1_10.AC13). The row in use is lit. */
+  private stepItems(): MenuItem[] {
+    return table.map((row, i) => ({
+      label: `${i + 1}`, active: i + 1 === this.step, tooltip: t(row.mode === 'two' ? 'ear.stepTwo' : 'ear.stepOne', { n: i + 1 }),
+      onPick: () => this.chooseStep(i + 1),
+    }));
+  }
+
+  /** A new step starts a new question from its row; the earned row follows the level again. */
+  private chooseStep(step: number): void {
+    this.chosenStep = chooseEarStep(step, this.level, table.length);
+    this.nextQuestion();
   }
 
   /** With the band (ft_1_20): play again and the length are actions; repeat is a worn item, lit while on. */
@@ -181,11 +234,40 @@ export class EarTrainerScene extends PixelScene {
     this.shownStars = { lit: roundStars(this.question.misses), total: EAR_ROUND_STARS };
     const starsWidth = (EAR_ROUND_STARS * (STAR_FULL.width + STAR_GAP) - STAR_GAP) * STARS_ZOOM;
     pixelStars(this, this.root, Math.round((width - starsWidth) / 2), STARS_Y, this.shownStars.lit, { total: EAR_ROUND_STARS, gap: STAR_GAP, zoom: STARS_ZOOM, ink: true });
+    // a two-note question: one slot per note under the stars, filled as each is found, with no name (the answer comes after)
+    this.shownSlots = this.notes.length > 1 ? this.notes.map((_, i) => i < this.question.index) : [];
+    const slotsWidth = this.shownSlots.length * (SLOT_EMPTY.width + SLOT_GAP) - SLOT_GAP;
+    this.shownSlots.forEach((found, i) => {
+      this.root.add(new PixelImage(this, Math.round((width - slotsWidth) / 2) + i * (SLOT_EMPTY.width + SLOT_GAP), SLOTS_Y, found ? SLOT_FOUND : SLOT_EMPTY));
+    });
 
     this.inkWriting = false;
     if (this.wrongOctave) this.label(0, WRONG_OCTAVE_Y, t('ear.wrongOctave'), C.white).centerAt(width / 2);
 
     if (this.question.done) this.drawAnswer(rows);
+    if (this.time.now < this.levelUpUntil) this.drawLevelUp();
+  }
+
+  /**
+   * The new level's card (AC5's one bigger moment, not by colour alone): "Ear level N" written big between two stars, over
+   * the top of the staff, above it in depth, for LEVEL_UP_MS.
+   */
+  private drawLevelUp(): void {
+    const { width } = this.px;
+    this.inkWriting = true;
+    const text = this.label(0, 0, t('ear.level', { n: this.level }), C.white, { big: true });
+    const textWidth = text.width * 2;
+    const inner = STAR_FULL.width * STARS_ZOOM * 2 + textWidth + 16;
+    const w = inner + 12, h = 28;
+    const x = Math.round((width - w) / 2);
+    const card = this.parchmentCard({ x, y: LEVEL_UP_Y, w, h }, 5);
+    text.setPosition(x + 6 + STAR_FULL.width * STARS_ZOOM + 8, LEVEL_UP_Y + 7);
+    const starY = LEVEL_UP_Y + Math.round((h - STAR_FULL.height * STARS_ZOOM) / 2);
+    const stars = [x + 6, x + w - 6 - STAR_FULL.width * STARS_ZOOM].map((sx) => new PixelImage(this, sx, starY, STAR_FULL).setScale(STARS_ZOOM));
+    this.inkWriting = false;
+    // over the staff, which draws above the screen's root
+    this.levelUpCard = this.add.container(this.root.x, this.root.y).setScale(this.px.scale).setDepth(LEVEL_UP_DEPTH);
+    this.levelUpCard.add([card, text, ...stars]);
   }
 
   /** The answer on the staff, the note names on the notes, after the question is found (ft_1_10.AC7). */
@@ -208,6 +290,7 @@ export class EarTrainerScene extends PixelScene {
     this.notes = pickQuestion(this.seed, this.questionNumber, this.row, previous);
     this.question = startQuestion(this.notes);
     this.levelUp = false;
+    this.levelUpUntil = 0;
     this.wrongOctave = false;
     this.doneAtMs = null;
     this.soundsAtMs = keyClock() + pauseMs;
@@ -276,6 +359,10 @@ export class EarTrainerScene extends PixelScene {
       const before = this.level;
       void contextOf(this).profiles.addEarPoints(pointsForMisses(result.question.misses));
       this.levelUp = this.level > before;
+      if (this.levelUp) {
+        this.levelUpUntil = this.time.now + LEVEL_UP_MS;
+        this.time.delayedCall(LEVEL_UP_MS, () => this.redraw());
+      }
     }
     this.redraw();
   }
