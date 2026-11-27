@@ -70,6 +70,13 @@ export class AdminDeleteScene extends PixelScene {
 
   private tap(id: string): void {
     if (this.deleting) return;
+    // the last player is never deleted: say so at the first tap, without first asking a question whose yes would be refused
+    if (contextOf(this).profiles.profiles.length <= 1) {
+      this.asking = null;
+      this.status = t('admin.keepOne');
+      this.redraw();
+      return;
+    }
     if (this.asking !== id) {
       this.asking = id;
       this.status = '';

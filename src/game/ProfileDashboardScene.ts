@@ -1,5 +1,6 @@
 import { firstPrintedBar } from '../core/chart';
 import { ART_DETAIL } from '../core/layout/frame';
+import { FOCUS_LAYOUT, type FocusLayout } from '../core/layout/focus';
 import { strings, t, type StringKey as TextKey } from '../core/text/strings';
 import { ROOM_OBJECTS, STRIP_ROWS, roomPlan, roomView, type RoomObject } from '../core/layout/room';
 import { rectCentre, type Rect } from '../core/layout/rect';
@@ -10,7 +11,7 @@ import { ICONS } from './ui/pixel/iconArt';
 import { C } from './ui/pixel/palette';
 import { drawnText, measure, renderText } from './ui/pixel/font';
 import { BAR_BUTTON_HEIGHT } from './ui/pixel/playBars';
-import { clipToWidth } from '../core/text/clip';
+import { wholeOrInitial } from '../core/text/clip';
 import { playerStats } from '../core/progression/playerStats';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { backpackOf } from './adventure/backpack';
@@ -92,7 +93,8 @@ const ROOM_SHAFT = { x: 196, y: 96, w: 124, h: 130 } as const;
 const TICK_MS = 500;
 /**
  * The player's name written into the rank shield (ft_1_20.AC13; the name is part of the shield,
- * not a separate bubble): in fine pixels, on the shield's own grid, in the band above its chevrons. A longer name is cut.
+ * not a separate bubble): in fine pixels, on the shield's own grid, in the band above its chevrons. A longer name shows its
+ * initial (AX-3 provisional).
  */
 const SHIELD_NAME = { top: 5, width: 36 } as const;
 /** The player's card: its width, the height of a line, its margin. */
@@ -120,6 +122,8 @@ const RING_MS = 120;
 
 export class ProfileDashboardScene extends PixelScene {
   protected override keyboardNavigation = true;
+  /** The room's things stand in no rows: Left and Right go through them in their order across the screen (ft_Y_13). */
+  protected override focusLayout: FocusLayout = FOCUS_LAYOUT.picture;
 
   /** The sky's look in the window: the phase when the room opened (ft_1_14 AC8). */
   private look: SceneLook | null = null;
@@ -954,8 +958,8 @@ export class ProfileDashboardScene extends PixelScene {
    * painted on it; `shield` is in fine pixels of the main area.
    */
   private nameOnShield(shield: Rect): void {
-    const full = drawnText(contextOf(this).profiles.profile.name);
-    const name = measure(full) > SHIELD_NAME.width ? clipToWidth(full, SHIELD_NAME.width, measure) : full;
+    // a name too long for the shield is never cut there: its initial stands for it, the whole name is on the card it opens
+    const name = wholeOrInitial(drawnText(contextOf(this).profiles.profile.name), SHIELD_NAME.width, measure);
     const letters = renderText(name, { color: C.goldLight, shadow: C.ink });
     // named, so a test can find it among the room's pictures
     this.fineImage(shield.x + Math.floor((shield.w - letters.width) / 2), shield.y + SHIELD_NAME.top, letters).setName('shieldName');

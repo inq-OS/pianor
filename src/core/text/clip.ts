@@ -12,3 +12,13 @@ export function clipToWidth(text: string, maxWidth: number, measure: (text: stri
   }
   return '';
 }
+
+/**
+ * `text` whole when it fits `maxWidth`, else its first letter alone (a monogram): for a place that must never show a name
+ * cut short, such as the room's rank shield (ft_1_20.AC13). Empty when not even the letter fits.
+ */
+export function wholeOrInitial(text: string, maxWidth: number, measure: (text: string) => number): string {
+  if (measure(text) <= maxWidth) return text;
+  const initial = Array.from(text.trimStart())[0] ?? '';
+  return measure(initial) <= maxWidth ? initial : '';
+}

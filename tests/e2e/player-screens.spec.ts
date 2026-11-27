@@ -243,8 +243,9 @@ test.describe('admin page (ft_1_07.AC6)', () => {
     await openAdmin(page);
     await clickButton(page, 'admin', 2); // Rename player
     await waitForScene(page, 'name');
-    // the book's cover carries no words: the ask is the name field's accessible name
-    await expect(page.locator('#name-field')).toHaveAttribute('aria-label', 'New name:');
+    // the ask, written over the plate, names the player renamed; it is the name field's accessible name too
+    await expect(page.locator('#name-field')).toHaveAttribute('aria-label', 'New name for TUVI');
+    expect(await sceneTexts(page, 'name')).toContain('New name for TUVI');
     // no instructions on the name box
     expect(await sceneTexts(page, 'name')).not.toContain('Tap the letters');
     await clickToolbar(page, 'back'); // the door (ft_1_20)

@@ -16,14 +16,17 @@ export const MAIN_MENU = {
   /** Lines on the sheet: one for each of the most players a device holds. */
   lines: 10,
   /** The board with the game's name: its size, and how far from the picture's left and top it hangs. */
-  name: { w: 78, h: 20, x: 9, y: 5 },
+  name: { w: 82, h: 20, x: 9, y: 5 },
   /** The sheet: its width, how far from the picture's left edge it hangs, and how far under the name's board. */
-  sheet: { w: 84, left: 6, gap: 2 },
+  sheet: { w: 88, left: 6, gap: 2 },
   /** The rolled top of the scroll, and the bare parchment under the roll before the two pictures. */
   roll: 5,
   head: 1,
-  /** A line of the list: a player's name, or the outlined free place. */
-  line: { w: 72, h: 12 },
+  /**
+   * A line of the list: a player's name, or the outlined free place; `margin` is the room the button keeps round its name.
+   * The line holds the longest name the name box takes in its widest letters whole, never cut (`nameFit.test.ts`).
+   */
+  line: { w: 80, h: 12, margin: 8 },
   /**
    * The row of pictures at the sheet's head: its height, the parchment between it and the first line (a flourish is drawn
    * there), and the width of the piano (a keyboard of five keys), the academic hat (WP-14, d145) and the gear.

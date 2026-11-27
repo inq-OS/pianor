@@ -20,6 +20,10 @@ const FIELD_HEIGHT = 24;
 const BIG_CAPS = 14;
 const BIG_LETTER = 12;
 const CARET_BLINK_MS = 530;
+/** The caret's dim half of a blink: it fades, never vanishes, so a still picture of the box always shows where to type. */
+const CARET_DIM = 0.35;
+/** The ask's top above the plate's, in cells: on the bare cover between its gilt border and the vine over the plate. */
+const PROMPT_ABOVE = 29;
 const BOTTOM_HEIGHT = 16;
 /** The bottom row's centre sits this far above the main area's foot (d110: 320 x 157 on the target screen). */
 const BOTTOM_FROM_FOOT = BOTTOM_HEIGHT / 2 + 13;
@@ -89,7 +93,10 @@ export class NameScene extends PixelScene {
     super.create();
   }
 
-  /** The text field a tablet's keyboard types into, focused at once so a computer's keys go there too. */
+  /**
+   * The text field a tablet's keyboard types into, focused at once so a computer's keys go there too; where the page
+   * cannot take the focus at once, the first press on the screen gives it.
+   */
   private makeField(): void {
     const field = document.createElement('input');
     field.type = 'text';
@@ -117,6 +124,11 @@ export class NameScene extends PixelScene {
     document.body.append(field);
     this.field = field;
     field.focus({ preventScroll: true });
+    // a page in a frame (or one the browser kept from focusing) has the field unfocused, and typing would be lost: a press
+    // anywhere on the screen focuses it, in the press itself, so a tablet's keyboard comes up too
+    const canvas = this.game.canvas;
+    const focusField = () => { if (document.activeElement !== field) field.focus({ preventScroll: true }); };
+    canvas.addEventListener('pointerdown', focusField);
     // the page moved under the field (a resize, a tablet's keyboard coming up): lay it over the box again
     const replace = () => this.redraw();
     window.addEventListener('resize', replace);
@@ -124,6 +136,7 @@ export class NameScene extends PixelScene {
     this.events.once('shutdown', () => {
       window.removeEventListener('resize', replace);
       window.visualViewport?.removeEventListener('resize', replace);
+      canvas.removeEventListener('pointerdown', focusField);
       field.remove();
       if (this.field === field) this.field = null;
     });
@@ -176,6 +189,9 @@ export class NameScene extends PixelScene {
     const plate = { x: fine(left - FIELD_PAD - cover.x), y: fine(fieldY - FIELD_PAD - cover.y), w: fine(fieldW), h: fine(FIELD_HEIGHT + REASON_ROOM) };
     this.fineImage(fine(cover.x), fine(cover.y), paintedOnce(`cover:${fine(cover.w)}x${fine(cover.h)}:${plate.x},${plate.y},${plate.w},${plate.h}`, () => paintCover(fine(cover.w), fine(cover.h), plate)), BOOK_PALETTE);
     this.placeField(left - FIELD_PAD, fieldY - FIELD_PAD, fieldW, FIELD_HEIGHT);
+    // the ask in gilt letters over the plate: what to write (a new player's name, or whom a rename is for)
+    const ask = this.request?.title ?? '';
+    if (ask) this.label(Math.round(width / 2 - measure(drawnText(ask)) / 2), fieldY - FIELD_PAD - PROMPT_ABOVE, ask, C.goldLight);
     this.inkWriting = true;
     // the name stands in the middle of the plate, as a name on a book's label does; raised when a reason is written under it
     const typedW = this.typed ? measure(drawnText(this.typed)) * 2 : 0;
@@ -184,10 +200,10 @@ export class NameScene extends PixelScene {
     if (this.typed) this.label(nameX, nameY, this.typed, C.white, { big: true });
     const caret = createBitmap(fine(1), fine(BIG_CAPS));
     caret.pixels.fill(C.redDark);
-    // the caret blinks, so the empty plate asks for letters without a word of instruction
+    // the caret blinks between full and faint, never gone, so the plate always shows where the letters go
     this.blink?.remove();
-    const shown = this.fineImage(fine(nameX + (this.typed ? typedW + 2 : 0)), fine(nameY), caret);
-    this.blink = this.time.addEvent({ delay: CARET_BLINK_MS, loop: true, callback: () => shown.setVisible(!shown.visible) });
+    const shown = this.fineImage(fine(nameX + (this.typed ? typedW + 2 : 0)), fine(nameY), caret).setName('caret');
+    this.blink = this.time.addEvent({ delay: CARET_BLINK_MS, loop: true, callback: () => shown.setAlpha(shown.alpha < 1 ? 1 : CARET_DIM) });
 
     const band = this.bandShown;
     // with the band (ft_1_20 rule 1) Delete and Done are its actions

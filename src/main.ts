@@ -67,6 +67,8 @@ async function startGame(): Promise<void> {
   // `?debug=1` (ft_Y_15): the debug log starts first, so an error while the game starts is in it; without it nothing runs
   const debug = appConfig.flags.debug ? startDebug() : null;
   setLanguage(appConfig.flags.language);
+  // the page says which language it is in, so the browser (a screen reader, its spelling) reads it right
+  document.documentElement.lang = appConfig.flags.language;
   setSceneryStill(appConfig.theme.reducedMotion);
 
   // Composition root: inputs exist at once (on-screen + computer keyboard); real MIDI joins when the browser allows it.

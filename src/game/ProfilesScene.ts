@@ -32,7 +32,7 @@ const NO_SAVE_GAP = 4;
 /** However little of the sky the day's cover leaves, at least this many clouds show. */
 const LEAST_CLOUDS = 3;
 /** The parchment a written name keeps free at its line's two ends, in layout cells: a name begins six cells in (`PixelButton`). */
-const NAME_MARGIN = 8;
+const NAME_MARGIN = MAIN_MENU.line.margin;
 /** A choice under the gear, written on a scrap of the same parchment: as wide as a line of the sheet. */
 const GEAR_ITEM = { w: MAIN_MENU.line.w, h: 15 } as const;
 
@@ -97,7 +97,7 @@ export class ProfilesScene extends PixelScene {
 
     players.forEach((summary, i) => {
       const line = layout.players[i]!, active = summary.id === profiles.profile.id;
-      // a name too long for its line (twelve wide letters, or an imported save's) is cut, never wrapped
+      // a name too long for its line (an imported save's: the line holds twelve of the widest letters) is cut, never wrapped
       const room = line.w - NAME_MARGIN;
       const width = (text: string) => measure(drawnText(text));
       const label = width(summary.name) > room ? clipToWidth(summary.name, room, width) : summary.name;
@@ -184,7 +184,7 @@ export function firstPlayerBox(): NameData {
 /** The name box for a new player (ft_1_07.AC10): a free name adds the player and opens their room; Back adds nobody. */
 function newPlayerBox(): NameData {
   return {
-    title: t('menu.newPlayer'),
+    title: t('name.ask'),
     save: (scene, name) => contextOf(scene).profiles.createPlayer(name).then((result) => {
       if (result === 'ok') startScene(scene, 'profile');
       return result === 'ok' ? null : t(result === 'taken' ? 'name.taken' : result === 'blank' ? 'admin.nameBlank' : 'admin.full', { n: MAX_PLAYERS });

@@ -77,7 +77,7 @@ export class AdminScene extends PixelScene {
     });
     this.button({
       x: MARGIN + ROW_WIDTH / 2, y: row(2), width: ROW_WIDTH, height: ROW_HEIGHT, label: t('admin.rename'),
-      onClick: () => startScene(this, 'name', renameBox(profiles.profile.id)),
+      onClick: () => startScene(this, 'name', renameBox(profiles.profile.id, profiles.profile.name)),
     });
     if (profiles.profiles.length > 1) {
       this.button({
@@ -101,10 +101,10 @@ export class AdminScene extends PixelScene {
   }
 }
 
-/** The name box for renaming a player: a refused name keeps the box open with the reason; a saved one returns here. */
-function renameBox(id: string): NameData {
+/** The name box for renaming a player, its ask naming them: a refused name keeps the box open with the reason; a saved one returns here. */
+function renameBox(id: string, name: string): NameData {
   return {
-    title: t('admin.renameAsk'),
+    title: t('admin.renameAsk', { name }),
     save: (scene, name) => contextOf(scene).profiles.renamePlayer(id, name).then((result) => {
       if (result === 'ok') startScene(scene, 'admin', { status: t('admin.renamed') });
       return result === 'ok' ? null : t(result === 'taken' ? 'name.taken' : result === 'blank' ? 'admin.nameBlank' : 'admin.failed');
