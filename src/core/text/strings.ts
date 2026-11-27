@@ -938,6 +938,7 @@ export const strings = {
   'staff.dyn.ff': 'very loud',
   'staff.legato': 'LEGATO',
   'practice.bubbleHint': 'More tools: right-click the music, or press More',
+  'practice.emptyPass': 'No notes played this pass.',
   'practice.start': 'Play the lit note when you are ready',
   'learn.resume.continue': 'Go on where you stopped',
   'learn.resume.over': 'Start over from bar 1',

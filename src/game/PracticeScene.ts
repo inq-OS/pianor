@@ -184,6 +184,8 @@ export interface PracticeData {
    * and the click that was running keeps running.
    */
   wrap?: { atMs: number };
+  /** The pass before ran to its end with no note played right (core_01 rule 22): Kiur says so, once, and nothing is scored. */
+  emptyPass?: boolean;
   /** A section's tempo ramp (core_03.AC5) and the laps counted towards its next step. Not saved: it lasts while the piece is open. */
   ramp?: TempoRamp;
   rampLaps?: number;
@@ -400,7 +402,7 @@ export class PracticeScene extends PixelScene {
     this.waitForStart = data.waitForStart === true;
     this.initialMissedBars = data.missedBars ?? 0;
     // while it plays the piece Kiur says nothing: the staff and the sound are the message (the clean-screen rule)
-    this.startMessage = this.listening ? '' : data.wrap ? this.lapMessage(data) : this.resetStart ? '' : this.openingLine(data, looping);
+    this.startMessage = this.listening ? '' : data.emptyPass ? t('practice.emptyPass') : data.wrap ? this.lapMessage(data) : this.resetStart ? '' : this.openingLine(data, looping);
     // the summary is said once, not again after a later restart
     // the wrap, the step-up note and the summary belong to this start only: a later restart (a tempo change, Whole
     // piece) must not wrap on from an old time or say them again
@@ -410,6 +412,7 @@ export class PracticeScene extends PixelScene {
     this.takeLearnCarry(data);
     delete this.startData.sectionSummary;
     delete this.startData.passSummary;
+    delete this.startData.emptyPass;
     delete this.startData.wrap;
     delete this.startData.rampedUp;
     delete this.startData.reset;
@@ -1206,7 +1209,7 @@ export class PracticeScene extends PixelScene {
     }
     // the clock ran to the end with no note played right: no pass, nothing saved or scored, the piece starts again
     if (!playedToTheEnd(result)) {
-      this.scene.restart({ ...this.startData, ...this.carry() });
+      this.scene.restart({ ...this.startData, ...this.carry(), emptyPass: true });
       return;
     }
     // The piece loops (ft_1_12.AC3): the pass is saved (XP as before; ft_1_13 moves it to the piece), its score shows past

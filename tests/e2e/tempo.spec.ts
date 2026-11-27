@@ -91,7 +91,7 @@ test.describe('tempo mode (slice c)', () => {
     expectNoErrors(errors);
   });
 
-  test('a Tempo pass where the clock runs to the end with no key played earns no pass, no stars and no XP', async ({ page }) => {
+  test('a Tempo pass where the clock runs to the end with no key played earns no pass, no stars and no XP, and says no note was played', async ({ page }) => {
     test.slow(); // a bar counted in, then the whole piece at its own speed
     const errors = await openGame(page);
     await page.evaluate(() => window.__game.registry.get('context').profiles.updatePlaySettings({ mode: 'tempo' }));
@@ -108,6 +108,8 @@ test.describe('tempo mode (slice c)', () => {
       return { rounds: scene.session.rounds.length, attempts: window.__game.registry.get('context').profiles.profile.attempts.length };
     });
     expect(after).toEqual({ rounds: 0, attempts: 0 });
+    // the piece starts again with one plain fact, so the restart does not look like a fault
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { startMessage: string }).startMessage)).toBe('No notes played this pass.');
     // nothing was played: Back goes straight to the pieces, with no score screen
     await page.keyboard.press('Escape');
     await waitForScene(page, 'menu');

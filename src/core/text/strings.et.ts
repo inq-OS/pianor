@@ -930,6 +930,7 @@ export const stringsEt: Record<StringKey, string> = {
   'staff.dyn.ff': 'VÄGA VALJULT',
   'staff.legato': 'LEGAATO',
   'practice.bubbleHint': 'Rohkem tööriistu: paremklõps nootidel või nupp Veel',
+  'practice.emptyPass': 'Sel korral ei mänginud sa ühtki nooti.',
   'practice.start': 'Mängi süttinud noot, kui oled valmis',
   'learn.resume.continue': 'Jätka sealt, kus pooleli jäi',
   'learn.resume.over': 'Alusta uuesti esimesest taktist',
