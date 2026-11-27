@@ -22,7 +22,7 @@ AX-0: each slice makes the student play the notes, not only see them. Key data (
 | C | **Scale switcher.** The student plays a scale up and down without stopping; every bar the name changes (first around the circle, C to G to D, then at random) and the cursor waits for the next note of the new scale | medium |
 | D | **Chord namer.** A pure `nameChord(pitches)` with the chord dictionary as content (`schemaVersion`), shown live for the keys held on slice A's screen and for the chord under the cursor in the piece maker (names like e7♭5; letters follow the B or H setting) | medium |
 
-Chord and key names in Estonian follow the way Estonian music teaching writes them (C-duur, a-moll; capitals on screen by the house rule): the builder settles the exact words with `write-ui-text`.
+Key names in Estonian follow the way Estonian music teaching writes them (C-duur, a-moll, Fis-duur, B-duur with H naming; d087); the key button and the switcher's header show the whole name.
 
 ## Slice A as built
 

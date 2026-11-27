@@ -81,9 +81,9 @@ Check: `src/core/admin/adminRecord.test.ts` "reads back what it stored, and neve
 
 **Every letter name the student sees follows the player's note naming: H for B natural, B for B flat.** Features: core_09, ft_0_17, ft_0_18, ft_1_02.
 
-Every pitch or key letter shown follows the active player's `noteNaming` (`src/core/text/noteName.ts`; default `H` for a new Estonian player): hint labels, the note-name trainer and the piece maker's key button (`keyLabel` in `src/core/editor/key.ts`: `H`, `Hm`, `B`, `Bm`; `keyNames`: "B duur / g moll"); new screens use these helpers. A key keeps its own letter and sign (C flat major stays `Cb`), unlike a note hint (core_09.AC6). Stored and written data stay standard (ABC `K:` via `abcKey`, chart spellings, MIDI).
+Every pitch or key letter shown follows the active player's `noteNaming` (`src/core/text/noteName.ts`; default `H` for a new Estonian player): in H naming only the letter B changes, B flat reads `B` and every other B reads `H` with its sign (H#; a double flat B reads `Bb`), and every other note keeps its letter and sign (Cb, Fb, E#), so a scale never shows a letter twice (core_09.AC6). Every key's name the player sees comes from `keyName` in `src/core/editor/key.ts`, a flat written as ♭: "F# major", "B♭ major" in English; in Estonian with H naming the Estonian syllables (Fis-duur, Es-duur, B-duur, H-duur, Ces-duur, gis-moll), with B naming the letters (B♭-duur). Stored and written data stay standard (ABC `K:` via `abcKey`, chart spellings, MIDI).
 
-Check: `src/core/editor/key.test.ts` "names the key on the key button with the player"; `src/core/text/noteName.test.ts` "never gives a natural B the letter B in H mode"
+Check: `src/core/editor/key.test.ts` "Estonian key names"; `src/core/text/noteName.test.ts` "never gives a natural B the letter B in H mode"
 
 ## d088
 

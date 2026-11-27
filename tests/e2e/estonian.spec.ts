@@ -31,7 +31,8 @@ test.describe('Estonian text (ft_0_18)', () => {
   test('a key is named the Estonian way with H naming, and a C flat scale reads seven different letters (d087, core_09.AC6)', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual', null, 'profiles');
     await openShapes(page);
-    expect(await page.evaluate(() => window.__game.registry.get('context').profiles.noteNaming as string)).toBe('H');
+    // the test players start with B naming; an Estonian school's player turns H on in the settings
+    await page.evaluate(() => (window.__game.registry.get('context').profiles as { updateNoteNaming(n: string): Promise<void> }).updateNoteNaming('H'));
 
     await chooseKey(page, 6, 'major');
     await expect.poll(() => sceneButton(page, 'shapeTrainer', 'Fis-duur')).toBeGreaterThanOrEqual(0);
