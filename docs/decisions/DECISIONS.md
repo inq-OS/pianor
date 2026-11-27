@@ -285,4 +285,8 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d303](game.md#d303) | The theory lesson book lists everything there is to learn, built or not: a topic with no lesson yet stands in it as a ghosted placeholder with its name only | ft_1_39 |
 | [d304](game.md#d304) | Kiur teaches the theory lessons in at most twelve stoic words a step, naming and pointing rather than describing; the first lessons are half steps, whole steps and the major scale | ft_1_39 |
 | [d305](game.md#d305) | The theory lessons' order is a skill tree of prerequisites over the catalog ids, cut into stages, with nothing locked | ft_1_39 |
+| [d307](game.md#d307) | In the room Esc never leaves for the player list; the corner Back asks "Change player?" once, with Yes and No, before going there | ft_1_07, ft_1_20 |
+| [d308](game.md#d308) | What is said in the room stands on a plate near its speaker with a small next mark; a press on a room object during a line closes the line and does what was pressed, and the teacher waits in the doorway until her check-up is played | ft_1_27, ft_1_34 |
+| [d309](game.md#d309) | A shut place on the map is pressable and its name bubble says when it opens: "opens at level N" from its level in `content/world/keri.json`, or "not open yet" for a place the maintainer has closed | ft_1_19, ft_1_18 |
+| [d310](art.md#d310) | Outdoors (the map and Keri's places) the faded corner door and gear stand on a dark plate that does not fade | ft_1_20 |
 <!-- /docs:index -->

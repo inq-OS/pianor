@@ -372,3 +372,11 @@ Check: untestable: a painting judgement, held by the art review
 A choice is a button among others that sets or picks something (a setting, a question with answers). Its picture shows the choice the way the student meets it in play, as the settings pictures do (`src/game/ui/pixel/settingArt.ts`); its name stays the button's tooltip and what tests read. Choices still drawn as words are changed when their screen is next worked on.
 
 Check: `src/game/ui/pixel/settingArt.test.ts` "every choice of %s has a picture of the same size, and no two choices look alike"
+
+## d310
+
+**Outdoors (the map and Keri's places) the faded corner door and gear stand on a dark plate that does not fade.** Features: ft_1_20.
+
+The plate is ink, two pixels round the picture with its corners cut, at 0.7 opacity (`CORNER_PLATE_ALPHA`, AX-3 provisional); the pictures on it still fade until the pointer or the focus is on them. On the blue sea and sky the way back otherwise vanished, worst at night; indoors the pictures stay as they were.
+
+Check: untestable: a look; the room-map screenshots of the change are the painter's to judge.
