@@ -696,8 +696,9 @@ export class SongScene extends PixelScene {
     if (!outline) return;
     const rowHeight = this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT;
     // the rows start under the door and the gear (ft_1_36.AC22), so a row's switch, pen or play button is never under a corner
+    // and one cell closer together, so a page still holds as many rows as the piece book's
     const top = this.bandShown ? Math.max(LIST_TOP + 4, this.cornerStrip.rows + 1) : LIST_TOP + 4;
-    const grid = cardGrid({ width, height, top, margin: BOOK_MARGIN, rowHeight, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
+    const grid = cardGrid({ width, height, top, margin: BOOK_MARGIN, rowHeight, rowGap: this.bandShown ? CARD_GAP - 1 : CARD_GAP, columnGap: BOOK_GUTTER });
     this.items = [null, ...shownRows(outline.rows, this.folded)];
     this.rowRects.clear();
     this.landing = null;
