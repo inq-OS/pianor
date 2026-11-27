@@ -44,8 +44,8 @@ export interface CostlyFinger {
   extra: number;
 }
 
-/** Points over the best before a written finger is reported. AX-3 provisional: about a thumb passing too many, or a finger on two keys. */
-export const COSTLY_FINGER = 8;
+/** Points over the best before a written finger is reported. AX-3 provisional: about a thumb passing too many (`THUMB_PASS` and rule 12). */
+export const COSTLY_FINGER = 6;
 
 const withoutFixed = (slices: readonly FingerSlice[], s: number): FingerSlice[] => slices.map((slice, i) => (i === s ? { ...slice, fixed: [] } : slice));
 
