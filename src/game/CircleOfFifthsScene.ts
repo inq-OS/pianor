@@ -8,6 +8,7 @@ import { circleScaleLayout } from '../core/trainer/staffFrame';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
 import { scaleChart } from '../core/trainer/scaleChart';
 import { t } from '../core/text/strings';
+import type { NoteNaming } from '../core/text/noteName';
 import { contextOf } from './context';
 import { CANCELLED, closeOverlay, settleOverlay } from './scenes';
 import { recolor } from './ui/pixel/bitmap';
@@ -82,14 +83,6 @@ export class CircleOfFifthsScene extends PixelScene {
     }));
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
       if (over.length > 0 || !this.layout) return;
-      // the screen's Back, dimmed under the overlay at the top left, closes the overlay as Esc does
-      const back = frameCorners(this.px.width).back;
-      const bx = (pointer.x - this.root.x) / this.px.scale - back.x;
-      const by = pointer.y / this.px.scale - back.y;
-      if (bx >= 0 && by >= 0 && bx < back.w && by < back.h) {
-        this.close();
-        return;
-      }
       const hit = circleHit(this.layout, (pointer.x - this.root.x) / this.px.scale, (pointer.y - this.root.y) / this.px.scale);
       if (hit) this.go(hit);
     });
@@ -217,7 +210,7 @@ export class CircleOfFifthsScene extends PixelScene {
     const otherTitle = other && keyName(other.fifths, other.mode, naming);
     const swapLabel = otherShort === null ? null : t('circle.also', { key: otherShort });
     const layout = circlePanelLayout({ width, rows: this.mainRows }, {
-      heading: { w: heading.width, h: heading.height }, swap: swapLabel === null ? null : renderText(drawnText(swapLabel, true), { color: C.ink }).width + 10,
+      heading: { w: heading.width, h: heading.height }, swap: swapLabel === null ? null : swapWidth(naming),
       ticks: ticks.map((tick) => tick.width), wheelMargin: WHEEL_MARGIN, button: { w: 22, h: BAR_BUTTON_HEIGHT },
     });
     this.parchmentCard(layout.panel);
@@ -239,6 +232,9 @@ export class CircleOfFifthsScene extends PixelScene {
     this.root.add(heading);
     this.button({ ...rectCentre(layout.listen), label: t('circle.listen'), icon: ICONS.ear, iconOnly: true, onClick: () => this.playScale() });
     this.button({ ...rectCentre(layout.close), label: t('circle.close'), icon: TOOL_ICONS.close, iconOnly: true, tooltip: t('circle.close'), onClick: () => this.close() });
+    // the door over the screen's own Back, at full brightness over the shade: it works here, and closes the overlay as Esc does
+    const door = frameCorners(width).back;
+    this.button({ ...rectCentre({ ...door, y: door.y - this.root.y / scale }), label: t('ui.back'), picture: ICONS.quit, tooltip: t('circle.close'), onClick: () => this.close() });
     if (layout.swap && swapLabel !== null && otherTitle !== null) {
       // keepCase: the key's name keeps its small letter for a minor and its flat sign
       this.button({ ...rectCentre(layout.swap), label: swapLabel, keepCase: true, tooltip: t('circle.alsoTip', { key: otherTitle }), onClick: () => this.swap() });
@@ -263,11 +259,11 @@ export class CircleOfFifthsScene extends PixelScene {
     return at < 0 ? null : 1 - at;
   }
 
-  /** A key's name with its middle at `at`, as written (`keepCase`: a minor's small letter); two spellings one above the other, a row apart (the helm's major ring is 15 rows deep), the line `dim` paler. */
+  /** A key's name with its middle at `at`, as written (`keepCase`: a minor's small letter); two spellings one above the other, a row apart (the helm's major ring is 15 rows deep), the line `dim` in mid brown, legible but second. */
   private name(value: string, at: { x: number; y: number }, color: number, dim: number | null = null): void {
     const lines = value.split('/');
     lines.forEach((line, i) => {
-      const text = new PixelText(this, 0, 0, withFlat(line), { color: i === dim ? C.buffDeep : color, keepCase: true });
+      const text = new PixelText(this, 0, 0, withFlat(line), { color: i === dim ? C.brown : color, keepCase: true });
       text.setPosition(Math.round(at.x - text.width / 2), Math.round(at.y - 3 + (i - (lines.length - 1) / 2) * 8));
       this.root.add(text);
     });
@@ -297,6 +293,18 @@ export class CircleOfFifthsScene extends PixelScene {
     this.staff = null;
     this.layout = null;
   }
+}
+
+/**
+ * The switch's width, the same for every key ("also G♭", "also F♯", "also c♯", ...): as wide as its widest label, so the
+ * piece maker's ticks after it stand still when the label changes.
+ */
+function swapWidth(naming: NoteNaming): number {
+  const widths = [-7, -6, -5, 5, 6, 7].flatMap((fifths) => (['major', 'minor'] as const).map((mode) => {
+    const label = t('circle.also', { key: keyTonic(fifths, mode, naming, language()) });
+    return renderText(drawnText(label, true), { color: C.ink }).width;
+  }));
+  return Math.max(...widths) + 10;
 }
 
 /** The wheel button that opens the circle (rule 1), the same on the toolbar and in the band's slots. */

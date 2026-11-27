@@ -92,8 +92,9 @@ test.describe('Circle of fifths', () => {
     expect(await message()).toBe('');
     await closeWithEsc(page, 'practice');
     await expect.poll(message).toBe('Play the lit note when you are ready');
-    // the screen's dimmed Back under the circle closes the circle, not the screen
+    // the door over the screen's Back is drawn bright on the circle (it works there) and closes the circle, not the screen
     await openCircle(page, 'practice');
+    expect(await sceneButton(page, 'circle', 'Back')).toBeGreaterThanOrEqual(0);
     const backAt = await page.evaluate(() => {
       // the Back button's rectangle is in art pixels of the screen's root
       const scene = window.__game.scene.getScene('practice') as unknown as { toolbarButtons: { back: { rect: { x: number; y: number; width: number; height: number } } | null }; root: { x: number; y: number }; px: { scale: number } };
