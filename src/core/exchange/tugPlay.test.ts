@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
 import type { WorldState } from '../island/worldState';
 import { DEFAULT_TUG_RULES, advanceTug, startTug, type TugState } from './tug';
-import { onTimeShare, studentShare, trainerLevel, trainerRules, tugAfter, tugFact, tugRecord, tugLevelFor, tugSetupOf, turnChartBars } from './tugPlay';
+import { onTimeShare, studentShare, trainerLevel, trainerRules, tugAfter, tugFact, tugFactLine, tugNeed, tugRecord, tugLevelFor, tugSetupOf, turnChartBars } from './tugPlay';
 
 const rules = DEFAULT_TUG_RULES;
 /** Four whole bars of quarter notes (C D E F in each). */
@@ -60,7 +60,44 @@ describe('the tug in a chart (ft_1_21.AC3)', () => {
 describe('after each exchange (ft_1_21.AC7)', () => {
   it('ft_1_21.AC7 the fact is the notes right first try of the notes in the phrase, and the first wrong key\'s reason', () => {
     expect(tugFact({ notes: 4, firstTryCorrect: 3 }, [])).toEqual({ right: 3, total: 4 });
-    expect(tugFact({ notes: 4, firstTryCorrect: 2 }, ['wrong-octave', 'neighbour'])).toEqual({ right: 2, total: 4, reason: 'wrong-octave' });
+    expect(tugFact({ notes: 4, firstTryCorrect: 2 }, ['wrong-octave', 'neighbour-key'])).toEqual({ right: 2, total: 4, reason: 'wrong-octave' });
+  });
+
+  it('ft_1_21.AC7 a neighbour key and a wrong letter each say their reason, as a wrong octave does', () => {
+    expect(tugFactLine(tugFact({ notes: 5, firstTryCorrect: 0 }, ['neighbour-key']), 'wait')).toBe('0 of 5 notes right. The key next door');
+    expect(tugFactLine(tugFact({ notes: 6, firstTryCorrect: 0 }, ['wrong-letter']), 'wait')).toBe('0 of 6 notes right. Another letter');
+    expect(tugFactLine(tugFact({ notes: 5, firstTryCorrect: 0 }, ['wrong-octave']), 'wait')).toBe('0 of 5 notes right. Right letter, wrong octave');
+    expect(tugFactLine(tugFact({ notes: 5, firstTryCorrect: 5 }, []), 'wait')).toBe('5 of 5 notes right');
+  });
+
+  it('ft_1_21.AC7 in Tempo mode a phrase with no wrong key says whether its notes off time came in late or early; a wrong key\'s reason comes first', () => {
+    const late = { played: 4, onTime: 1, early: 0, late: 3, missed: 0, meanAbsErrorMs: 200, score: 30 };
+    const early = { ...late, early: 2, late: 1 };
+    const even = { ...late, early: 1, late: 1, missed: 1 };
+    expect(tugFact({ notes: 4, firstTryCorrect: 4, timing: late }, [], 'tempo')).toEqual({ right: 1, total: 4, reason: 'late' });
+    expect(tugFactLine(tugFact({ notes: 4, firstTryCorrect: 4, timing: late }, [], 'tempo'), 'tempo')).toBe('1 of 4 notes on time. Came in late');
+    expect(tugFact({ notes: 4, firstTryCorrect: 4, timing: early }, [], 'tempo').reason).toBe('early');
+    // as many early as late: no word on which
+    expect(tugFact({ notes: 4, firstTryCorrect: 4, timing: even }, [], 'tempo').reason).toBeUndefined();
+    expect(tugFact({ notes: 4, firstTryCorrect: 3, timing: late }, ['wrong-letter'], 'tempo').reason).toBe('wrong-letter');
+    // Wait mode never speaks of time
+    expect(tugFact({ notes: 4, firstTryCorrect: 4, timing: late }, [], 'wait').reason).toBeUndefined();
+  });
+
+  it('ft_1_21.AC17 once the stall kill raises the share, the fact says how many notes the phrase needed', () => {
+    let s = startTug(tugSetupOf(fourBars, 'tug', 1), rules);
+    const shares = [1, 0, 1, 0, 1, 0, 1, 0, 1];
+    const needs: (number | undefined)[] = [];
+    for (const share of shares) {
+      while (s.plan.turns[s.turn]!.who === 'character') s = advanceTug(s, rules);
+      needs.push(tugNeed(s, rules, 5));
+      s = advanceTug(s, rules, { share, hands: {}, reasons: [] });
+    }
+    // the first four phrases need the level's own share (60 per cent): nothing extra is said
+    expect(needs.slice(0, 4)).toEqual([undefined, undefined, undefined, undefined]);
+    // then 65, 70, 75, 80, 85 per cent of 5 notes: 4, 4, 4, 4, 5
+    expect(needs.slice(4)).toEqual([4, 4, 4, 4, 5]);
+    expect(tugFactLine({ ...tugFact({ notes: 5, firstTryCorrect: 4 }, ['wrong-letter']), need: 5 }, 'wait')).toBe('4 of 5 notes right. Needed 5 of 5. Another letter');
   });
 });
 
@@ -87,7 +124,7 @@ describe('the levels in the scene (ft_1_21.AC6)', () => {
     expect(studentShare({ notes: 4, accuracy: 1, timing }, 'tempo')).toBe(0.75);
     expect(studentShare({ notes: 4, accuracy: 1 }, 'tempo')).toBe(0);
     const fact = tugFact({ notes: 4, firstTryCorrect: 4, timing }, [], 'tempo');
-    expect(fact).toEqual({ right: 3, total: 4 });
+    expect(fact).toEqual({ right: 3, total: 4, reason: 'early' });
     expect(fact.right / fact.total).toBe(studentShare({ notes: 4, accuracy: 1, timing }, 'tempo'));
   });
 });
