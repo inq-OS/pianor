@@ -1,6 +1,6 @@
 // Covers ft_1_20 (actions in a bubble, a pinned strip and a backpack, d282).
 import { describe, expect, it } from 'vitest';
-import { BUBBLE_SLOTS, SLIDER_CELLS, PIN_COLUMNS, sliderArc, sliderFraction, sliderPoint, sliderStep, PINCH_SLIDE, PIN_ROWS, TAP_SLIP, TWO_FINGER_TOGETHER_MS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, twoFingerTap, twoFingersSlid, wheelChoice } from './bubble';
+import { BUBBLE_SLOTS, PLATE_REACH, SAUSAGE_REACH, SLIDER_CELLS, PIN_COLUMNS, sliderArc, sliderFraction, sliderPoint, sliderStep, PINCH_SLIDE, PIN_ROWS, TAP_SLIP, TWO_FINGER_TOGETHER_MS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, twoFingerTap, twoFingersSlid, wheelChoice } from './bubble';
 import { rectBottom, rectRight, type Rect } from './rect';
 
 const SCREEN = { w: 320, h: 180 };
@@ -88,12 +88,54 @@ describe('the bubble (ft_1_20, d282)', () => {
   it('ft_1_20.AC20 near an edge the bubble moves only as far as its outer ring needs, and not at all where a turn is enough', () => {
     const shut = bubbleLayout({ at: { x: 160, y: 40 }, options: 8, screen: SCREEN });
     const open = bubbleLayout({ at: { x: 160, y: 40 }, options: 8, screen: SCREEN, open: { option: 0, choices: 8 } });
-    // the choices' top edge rests on the screen's top: moved no farther than that
-    expect(Math.min(...open.choices.map((c) => c.y))).toBeLessThanOrEqual(1);
+    // the choices' sausage rests on the screen's top: moved no farther than that
+    expect(Math.min(...open.choices.map((c) => c.y)) - SAUSAGE_REACH).toBeLessThanOrEqual(1);
     expect(open.centre.x).toBe(shut.centre.x);
     // a few choices turn round the bubble instead of moving it
     const few = bubbleLayout({ at: { x: 160, y: 60 }, options: 8, screen: SCREEN, open: { option: 0, choices: 2 } });
     expect(few.centre).toEqual(bubbleLayout({ at: { x: 160, y: 60 }, options: 8, screen: SCREEN }).centre);
+  });
+
+  // the screen of the piece maker: the top strip kept off, the pinned strip below (art cells)
+  const MAKER = { y: 19, w: 320, h: 144 };
+  const pad = (r: Rect, by: number): Rect => ({ x: r.x - by, y: r.y - by, w: r.w + 2 * by, h: r.h + 2 * by });
+  const within = (r: Rect, s: { y?: number; w: number; h: number }) => r.x >= 0 && r.y >= (s.y ?? 0) && rectRight(r) <= s.w && rectBottom(r) <= (s.y ?? 0) + s.h;
+  const holds = (r: Rect, p: { x: number; y: number }) => p.x >= r.x && p.x < rectRight(r) && p.y >= r.y && p.y < rectBottom(r);
+
+  it('ft_1_20.AC19 ft_1_20.AC20 draws every plate and the choices round them whole on the screen, not only the boxes a press counts in', () => {
+    for (const at of [{ x: 0, y: 0 }, { x: 319, y: 179 }, { x: 30, y: 50 }, { x: 300, y: 160 }, { x: 5, y: 120 }, { x: 160, y: 162 }]) {
+      for (const open of [undefined, ...[0, 1, 2, 3, 4, 5, 6, 7].flatMap((option) => [2, 3, 5, 6, 7, 8].map((choices) => ({ option, choices })))]) {
+        const b = bubbleLayout({ at, options: 8, screen: MAKER, ...(open ? { open } : {}) });
+        const where = JSON.stringify({ at, open });
+        for (const o of b.options) expect(within(pad(o, PLATE_REACH), MAKER), where).toBe(true);
+        expect(within(pad(b.close, PLATE_REACH), MAKER), where).toBe(true);
+        for (const c of b.choices) {
+          expect(within(pad(c, SAUSAGE_REACH), MAKER), where).toBe(true);
+          for (const o of b.options) expect(overlap(c, o), where).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('ft_1_20.AC20 the choices never lie over the thing the bubble was opened on, so its note stays in sight while they are tried', () => {
+    for (const at of [{ x: 30, y: 50 }, { x: 60, y: 45 }, { x: 160, y: 50 }, { x: 290, y: 140 }, { x: 30, y: 150 }]) {
+      for (const [option, choices] of [[0, 8], [4, 7], [5, 6], [1, 3], [3, 5]] as const) {
+        const b = bubbleLayout({ at, options: 8, screen: MAKER, open: { option, choices } });
+        for (const c of b.choices) expect(holds(pad(c, SAUSAGE_REACH), at), JSON.stringify({ at, option })).toBe(false);
+      }
+    }
+  });
+
+  it('ft_1_20.AC20 a long row of choices turns farther round the bubble before moving it, as long as it still reaches its option', () => {
+    // the fingers (slot 5, six choices) of a note near the left edge: turned round below, the bubble moves a cell or two at most
+    const shut = bubbleLayout({ at: { x: 30, y: 60 }, options: 8, screen: MAKER });
+    const open = bubbleLayout({ at: { x: 30, y: 60 }, options: 8, screen: MAKER, open: { option: 5, choices: 6 } });
+    expect(Math.abs(open.centre.x - shut.centre.x) + Math.abs(open.centre.y - shut.centre.y)).toBeLessThanOrEqual(4);
+    // the arc still reaches its option: the option's direction lies within the arc
+    const angle = (r: Rect) => Math.atan2(r.y + r.h / 2 - open.centre.y, r.x + r.w / 2 - open.centre.x);
+    const option = angle(open.options[5]!);
+    const turns = open.choices.map((c) => Math.abs(Math.atan2(Math.sin(angle(c) - option), Math.cos(angle(c) - option))));
+    expect(Math.min(...turns)).toBeLessThan(0.5);
   });
 
   it('ft_1_20.AC19 more options than slots: the last slot is More and turns to the rest', () => {
@@ -147,7 +189,7 @@ describe('the pinned strip (ft_1_20, d282)', () => {
 
   it('ft_1_20.AC19 keeps off the top strip a screen without a toolbar has: opened near the top it moves down below it', () => {
     const b = bubbleLayout({ at: { x: 160, y: 5 }, options: BUBBLE_SLOTS, screen: { y: 20, w: 320, h: 160 }, open: { option: 0, choices: 4 } });
-    expect(bubbleLayout({ at: { x: 160, y: 5 }, options: BUBBLE_SLOTS, screen: { y: 20, w: 320, h: 160 } }).area.y).toBe(20);
+    expect(bubbleLayout({ at: { x: 160, y: 5 }, options: BUBBLE_SLOTS, screen: { y: 20, w: 320, h: 160 } }).area.y).toBe(20 + PLATE_REACH);
     // with choices open over slot 0 it moves down as far as their outer ring needs
     expect(b.area.y).toBeGreaterThanOrEqual(20);
     expect(b.choices).toHaveLength(4);

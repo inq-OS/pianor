@@ -1397,8 +1397,8 @@ export abstract class PixelScene extends Phaser.Scene {
     const whole = { x: 0, y: 0, w: this.px.width, h: this.mainRows + (strip?.rows ?? 0) };
     const bounds = { ...whole, y: top, h: whole.h - top };
     const more = this.inventoryBand?.slots.find((s) => s.item.icon === TOOL_ICONS.more)?.rect;
-    // from More the bubble stands on the strip over More, never over the strip: the pointer goes straight up to it
-    if (at === null && strip) bounds.h = this.mainRows - top;
+    // the bubble never lies over the strip (from More it stands on the strip over More: the pointer goes straight up to it)
+    if (strip) bounds.h = this.mainRows - top;
     const centre = at ?? (more ? { x: more.x + more.w / 2, y: more.y } : { x: bounds.w / 2, y: bounds.y + bounds.h / 2 });
     const open = options.open !== undefined ? listed[paging.slots[options.open] as number] : undefined;
     const choices = ringChoices(open);

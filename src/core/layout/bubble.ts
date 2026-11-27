@@ -19,8 +19,22 @@ const CHOICE = 18;
 const OUTER = 56;
 /** The turn between neighbouring choices on the outer ring: 26 cells apart. */
 const OUTER_STEP = 2 * Math.asin(13 / OUTER);
-/** How many steps the outer ring may turn away from its option to stay on the screen. */
+/** How many steps the outer ring may turn away from its option at least; a longer row turns as far as it still reaches its option. */
 const TURN_STEPS = 2;
+/** How far an option's round plate reaches past its box (24 across over 20): the plate, not only the box, stays on the screen. */
+export const PLATE_REACH = 2;
+/** How far the sausage the choices lie in reaches past their boxes (`SAUSAGE_PAD` in bubbleArt.ts). */
+export const SAUSAGE_REACH = 3;
+/** The bubble's reach from its centre with its plates: what is kept on the screen. */
+const EDGE = HALF + PLATE_REACH;
+/**
+ * AX-3 provisional: how many cells of moving the bubble count the same as choices lying over the thing it was opened on
+ * (its note); the turn that covers it is taken only when the others would move the bubble farther than this.
+ */
+const COVER_COST = 32;
+/** How far, in steps of `AWAY_STEP` cells, the bubble may move on away from the thing pressed to leave it in sight. */
+const AWAY_STEP = 4;
+const AWAY_STEPS = 10;
 
 export interface BubbleLayout {
   /** The ring's centre: the pointer, moved only as far as the whole bubble needs to stay on the screen. */
@@ -44,22 +58,39 @@ export function bubbleLayout(input: { at: { x: number; y: number }; options: num
   const bottom = top + input.screen.h;
   const slotAngle = (i: number) => -Math.PI / 2 + (2 * Math.PI * i) / BUBBLE_SLOTS;
   const box = (c: { x: number; y: number }, angle: number, radius: number, size: number): Rect => ({ x: Math.round(c.x + radius * Math.cos(angle) - size / 2), y: Math.round(c.y + radius * Math.sin(angle) - size / 2), w: size, h: size });
-  let centre = { x: Math.round(clamp(input.at.x, HALF, input.screen.w - HALF)), y: Math.round(clamp(input.at.y, top + HALF, bottom - HALF)) };
+  const fit = (c: { x: number; y: number }) => ({ x: Math.round(clamp(c.x, EDGE, input.screen.w - EDGE)), y: Math.round(clamp(c.y, top + EDGE, bottom - EDGE)) });
+  let centre = fit(input.at);
   let choices: Rect[] = [];
   const n = input.open && input.open.option >= 0 && input.open.option < Math.min(BUBBLE_SLOTS, input.options) ? Math.max(0, input.open.choices) : 0;
   if (n > 0 && input.open) {
-    // the outer ring centred on the option's slot, or turned round the bubble a step or two (farther would leave its option
-    // behind); the turn nearest the slot that fits the screen, else the one that needs the bubble moved least, moved by that much
-    let best: { shift: { x: number; y: number }; middle: number } | null = null;
-    for (let k = 0; k <= 2 * TURN_STEPS; k++) {
+    // the outer ring centred on the option's slot, or turned round the bubble a step or two, a long row as far as it still
+    // reaches its option; the turn nearest the slot that fits the screen and leaves the thing pressed in sight, else the one
+    // that needs the bubble moved least, moved by that much (and kept whole on the screen)
+    const turns = Math.max(TURN_STEPS, Math.floor(n / 2));
+    const arcAt = (c: { x: number; y: number }, middle: number) => Array.from({ length: n }, (_, i) => box(c, middle + (i - (n - 1) / 2) * OUTER_STEP, OUTER, CHOICE));
+    const covers = (arc: Rect[]) => arc.some((r) => input.at.x >= r.x - SAUSAGE_REACH && input.at.x < r.x + r.w + SAUSAGE_REACH && input.at.y >= r.y - SAUSAGE_REACH && input.at.y < r.y + r.h + SAUSAGE_REACH);
+    const onScreen = (arc: Rect[]) => arc.every((r) => r.x - SAUSAGE_REACH >= 0 && rectRight(r) + SAUSAGE_REACH <= input.screen.w && r.y - SAUSAGE_REACH >= top && rectBottom(r) + SAUSAGE_REACH <= bottom);
+    let best: { centre: { x: number; y: number }; middle: number; cost: number } | null = null;
+    for (let k = 0; k <= 2 * turns; k++) {
       const middle = slotAngle(input.open.option) + (k % 2 === 1 ? 1 : -1) * Math.ceil(k / 2) * OUTER_STEP;
-      const arc = Array.from({ length: n }, (_, i) => box(centre, middle + (i - (n - 1) / 2) * OUTER_STEP, OUTER, CHOICE));
+      const arc = arcAt(centre, middle);
       const out = (lo: number, hi: number, min: number, max: number) => Math.max(0, min - lo) - Math.max(0, hi - max);
-      const shift = { x: out(Math.min(...arc.map((r) => r.x)), Math.max(...arc.map(rectRight)), 0, input.screen.w), y: out(Math.min(...arc.map((r) => r.y)), Math.max(...arc.map(rectBottom)), top, bottom) };
-      if (!best || Math.abs(shift.x) + Math.abs(shift.y) < Math.abs(best.shift.x) + Math.abs(best.shift.y)) best = { shift, middle };
+      const shift = { x: out(Math.min(...arc.map((r) => r.x)) - SAUSAGE_REACH, Math.max(...arc.map(rectRight)) + SAUSAGE_REACH, 0, input.screen.w), y: out(Math.min(...arc.map((r) => r.y)) - SAUSAGE_REACH, Math.max(...arc.map(rectBottom)) + SAUSAGE_REACH, top, bottom) };
+      const moved = fit({ x: centre.x + shift.x, y: centre.y + shift.y });
+      // where the row would lie over the thing pressed, the bubble may move on away from it (near a corner)
+      const away = { x: moved.x - input.at.x, y: moved.y - input.at.y };
+      const length = Math.hypot(away.x, away.y) || 1;
+      for (let step = 0; step <= AWAY_STEPS; step++) {
+        const c = step === 0 ? moved : fit({ x: moved.x + (away.x / length) * step * AWAY_STEP, y: moved.y + (away.y / length) * step * AWAY_STEP });
+        const at = arcAt(c, middle);
+        if (step > 0 && !onScreen(at)) continue;
+        const cost = Math.abs(c.x - centre.x) + Math.abs(c.y - centre.y) + (covers(at) ? COVER_COST : 0);
+        if (!best || cost < best.cost) best = { centre: c, middle, cost };
+        if (!covers(at)) break;
+      }
     }
-    centre = { x: centre.x + best!.shift.x, y: centre.y + best!.shift.y };
-    const arc = Array.from({ length: n }, (_, i) => box(centre, best!.middle + (i - (n - 1) / 2) * OUTER_STEP, OUTER, CHOICE));
+    centre = best!.centre;
+    const arc = arcAt(centre, best!.middle);
     // first to last reads left to right, or top to bottom where the arc stands upright
     const [a, z] = [arc[0]!, arc[n - 1]!];
     if (z.x - a.x < 0 || (z.x === a.x && z.y < a.y)) arc.reverse();
