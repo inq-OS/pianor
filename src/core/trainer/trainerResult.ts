@@ -1,8 +1,7 @@
 /**
- * The result of a trainer round in one objective line (AX-2.1), for the shape and chord trainers of ft_1_29: what was
- * played right, and the XP it earned ("9 of 15 notes, 90 XP", "Chords played: 4, 120 XP"). Kept general (a count, an
- * optional total, the unit) so the note-name trainer's line can be the same function later. Also the level a round's XP
- * reached, for the short "Level N" line. Pure: no DOM, no engine.
+ * The result of a trainer round in one objective line (AX-2.1), for every trainer that ends a round (note names ft_0_17,
+ * scales and chords ft_1_29): what was played right, and the XP it earned ("9 of 15 notes, 90 XP", "Chords played: 4,
+ * 120 XP"). Also the level a round's XP reached, for the short "Level N" line. Pure: no DOM, no engine.
  */
 import { t } from '../text/strings';
 

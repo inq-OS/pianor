@@ -133,10 +133,10 @@ test.describe('note-name trainer (ft_0_17)', () => {
     expect(await totalXp(page)).toBe(earned);
     expect(await hearts(page)).toEqual({ lit: 0, total: 3 });
     // the round's result in one objective line until the next round (AC11)
-    expect(await sceneTexts(page, 'noteTrainer')).toContain('1 correct, 10 XP');
+    expect(await sceneTexts(page, 'noteTrainer')).toContain('Right notes: 1, 10 XP');
     await clickButton(page, 'noteTrainer', await bandAction(page, 1));
     expect(await lives(page)).toBe(3);
-    expect(await sceneTexts(page, 'noteTrainer')).not.toContain('1 correct, 10 XP');
+    expect(await sceneTexts(page, 'noteTrainer')).not.toContain('Right notes: 1, 10 XP');
     // Again keeps the XP already saved (AC3)
     expect(await totalXp(page)).toBe(earned);
     expectNoErrors(errors);

@@ -1,6 +1,6 @@
 import stepsJson from '../../content/trainer/steps.json';
 import { createRound, NOTE_TRAINER_LIVES, pressKey, type PressVerdict, type TrainerRound } from '../core/trainer/noteTrainer';
-import { roundResultLine } from '../core/trainer/roundResult';
+import { roundResultLine } from '../core/trainer/trainerResult';
 import { loadTrainerSteps, rangeOf } from '../core/trainer/steps';
 import { noteTrainerLayout } from '../core/trainer/staffFrame';
 import { displayText } from '../core/text/language';
@@ -91,7 +91,7 @@ export class NoteTrainerScene extends PixelScene {
 
     // one line under the hearts: the round's result once it is over (AC11), else the words for a wrong octave, else a new level (AC12)
     // AX-3 provisional: which misses get words; chose only the wrong octave (as the ear trainer), because the name on the note already shows a wrong letter or a neighbour key (AX-0.2, AX-2)
-    const line = this.round.over ? roundResultLine(this.round.found, this.round.xp)
+    const line = this.round.over ? roundResultLine({ unit: 'notes', right: this.round.found, xp: this.round.xp })
       : this.wrong?.reason === 'wrong-octave' ? t('theory.wrongOctave')
         : this.levelUp !== null ? t('results.levelUp', { level: this.levelUp }) : null;
     if (line !== null) this.label(0, LINE_Y, line, C.white).centerAt(width / 2);

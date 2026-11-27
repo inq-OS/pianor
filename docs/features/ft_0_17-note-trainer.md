@@ -19,7 +19,7 @@ A trainer under "Practice theory": one note on the staff, the student names it b
 - Each right name's XP is saved to the active profile at once (`addTrainerXp` in `core/progression/profile.ts`, save version 15, d083), so Again keeps it; the round's XP on screen restarts at 0.
 - Provisional until a playtest: the step ranges, the XP per note, the clef rule for a step that straddles middle C, and the 40 ms window of a slipped chord (AX-3). TODO(architect, R2): confirm the slipped-chord window in a playtest on the real keyboard.
 - Steps 1 and 2 ask white keys only (`whiteKeys` in `content/trainer/steps.json`): a beginner meets the letter names first; black keys come in steps 3 and 4.
-- The round's result line is `roundResultLine` in `src/core/trainer/roundResult.ts`, for every trainer that ends a round.
+- The round's result line is `roundResultLine` in `src/core/trainer/trainerResult.ts`, for every trainer that ends a round.
 - Tests: `tests/e2e/note-trainer.spec.ts` (menu area).
 - TODO(builder, R2): the e2e test "the letter naming switches between B and H and is saved (AC4)" fails in the cloud on main since at least the lean pivot (the screen still shows B after the click). Find whether the click misses the B/H button or the screen is read before its redraw. Needs a human look: the room picture and the Windows screenshot baseline of the room.
 
@@ -35,5 +35,5 @@ A trainer under "Practice theory": one note on the staff, the student names it b
 - **ft_0_17.AC8** Keys pressed together (within 40 ms of a press's first key: a slipped finger or a chord) are one press: right if any key is right, else one miss and one life (AX-3 provisional). `pressKey` in `src/core/trainer/noteTrainer.ts`.
 - **ft_0_17.AC9** A right press after a wrong press has shown the note's name earns 0 XP (AX-1: the name was given away); the note still counts as found and the round goes on.
 - **ft_0_17.AC10** Steps 1 and 2 ask white keys only; the later steps every key in their range.
-- **ft_0_17.AC11** When the round is over, one objective line under the hearts says how many were right and the XP earned ("12 correct, 110 XP"), until the next round starts.
+- **ft_0_17.AC11** When the round is over, one objective line under the hearts says how many were right and the XP earned ("Right notes: 12, 110 XP"), until the next round starts.
 - **ft_0_17.AC12** When the trainer's XP reaches a new player level, a short line under the hearts says the level for the rest of the round (a real milestone, AX-2). `ProfileService.addTrainerXp` returns the level reached.
