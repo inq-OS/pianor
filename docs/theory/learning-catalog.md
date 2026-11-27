@@ -116,7 +116,7 @@ Ids are `<area letter><number>` and stay fixed once given; a lesson in the conte
 | F5 | Compound intervals | drawn | |
 | F6 | Inverting an interval | drawn | |
 | F7 | Consonance and dissonance | drawn | |
-| F8 | Intervals by ear | trained | ear trainer (ft_1_10), two notes |
+| F8 | Intervals by ear | needs a feature | the ear trainer (ft_1_10) plays two notes but never names the interval |
 
 ## G. Chords
 
@@ -128,7 +128,7 @@ Ids are `<area letter><number>` and stay fixed once given; a lesson in the conte
 | G4 | Chord symbols | trained | chord from its name |
 | G5 | Dominant seventh | trained | chord trainer |
 | G6 | Major seventh | trained | chord trainer |
-| G7 | Minor seventh | drawn | |
+| G7 | Minor seventh | trained | chord trainer |
 | G8 | Half-diminished seventh (m7b5) | trained | chord namer |
 | G9 | Diminished seventh | trained | chord namer |
 | G10 | Suspended chords (sus2, sus4) | drawn | |

@@ -42,11 +42,11 @@ AX-0: every step ends with the student playing; no page is only read, and every 
 | Stage | Topics (catalog ids) | Needs |
 |---|---|---|
 | 1 First steps | A1, A2, A4, A5, B1, B2, C1, C2 | A2 needs A1; B2 needs B1; C2 needs C1 |
-| 2 Both hands, first rhythms | B3, B4, C3, C8, D1, D2, D3, K1 | B4 needs B2, B3; D1 needs A1, A2; D2 needs D1; D3 needs D2; C8 needs C2 |
+| 2 Both hands, first rhythms | B3, B4, C3, C8, D1, D2, D3, K1 | B4 needs B2, B3; D1 needs A1, A2; D2 needs D1; D3 needs D1; C8 needs C2 |
 | 3 The major scale | E1, C4, C6, C12, B5, D4, F1, I1 | E1 needs D2, D3; F1 needs B4; C6 needs C8; I1 needs C6 |
 | 4 First chords | G1, E6, E2, E3, E4, F2, F3, M1, M2 | G1 needs E1, F1; E2 needs E1; E3, E4 need E2; F2 needs F1, D2 |
 | 5 Keys and harmony | E5, G3, H2, H3, C14, J1, N1, N2 | E5 needs E3, E4; H2 needs G1, E6; H3 needs H2 |
-| 6 Minor and sevenths | E7, E9, E10, E11, G5, G6, G7, G8, G9, G2, F4 | E7 needs E5; G5 needs G1, F2; G6 to G9 need G5 |
+| 6 Minor and sevenths | E7, E9, E10, E11, G5, G6, G7, G2, G8, G9, F4 | E7 needs E5; E9 to E11 need E7; G5 needs G1, F2; G6 to G9 need G5; G8, G9 need G2 too |
 | 7 and on | the rest of the catalog, each after what it needs | |
 
 Open projects that order learning this way: Exercism names each exercise's concepts and prerequisites in one checked config; Kwan joins learning goals by prerequisite links with mastery per goal; Skill Compass turns mastered topics into a list of what is next. Exercism locks; Pianor does not.
