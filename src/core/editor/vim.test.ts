@@ -174,4 +174,12 @@ describe('vim keys: moves and edits (ft_1_02e)', () => {
     expect(eraseBefore(chord, at(0, 0), 'quarter').edit.ok).toBe(false);
     expect(findNote(chord, at(0, 0))).not.toBeNull();
   });
+
+  it('ft_1_02e.AC5 Backspace in insert mode takes out a rest before the cursor as it does a note', () => {
+    const withRest: EditorPiece = { ...piece([n('RH', 0, 0, 'C')]), rests: [{ hand: 'RH', bar: 0, start: 480, length: 'quarter' }] };
+    const out = eraseBefore(withRest, at(0, 960), 'quarter');
+    expect(out.edit.ok && out.edit.piece.rests).toEqual([]);
+    expect(out.edit.ok && out.edit.piece.notes).toEqual(withRest.notes);
+    expect(out.cursor).toMatchObject({ bar: 0, start: 480 });
+  });
 });

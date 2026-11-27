@@ -223,3 +223,23 @@ describe('a slider on the outer ring (ft_1_20.AC26)', () => {
     expect(sliderStep(2, range)).toBe(1.5);
   });
 });
+
+describe('a bubble opened on a thing it acts on', () => {
+  it('ft_1_02d.AC52 opens beside the thing, never over it, and stays on the screen', () => {
+    for (const x of [20, 100, 160, 300]) {
+      const note = { x, y: 80, w: 4, h: 4 };
+      const b = bubbleLayout({ at: { x: x + 2, y: 82 }, options: BUBBLE_SLOTS, screen: SCREEN, beside: note });
+      expect(overlap(b.area, note)).toBe(false);
+      expect(inside(b.area)).toBe(true);
+      // level with it, so the hand moves sideways only
+      expect(b.centre.y).toBe(82);
+    }
+  });
+
+  it('ft_1_02d.AC52 opens on the right of the thing where there is room, on its left otherwise', () => {
+    const note = { x: 100, y: 80, w: 4, h: 4 };
+    expect(bubbleLayout({ at: { x: 102, y: 82 }, options: BUBBLE_SLOTS, screen: SCREEN, beside: note }).centre.x).toBeGreaterThan(104);
+    const late = { x: 290, y: 80, w: 4, h: 4 };
+    expect(bubbleLayout({ at: { x: 292, y: 82 }, options: BUBBLE_SLOTS, screen: SCREEN, beside: late }).centre.x).toBeLessThan(290);
+  });
+});

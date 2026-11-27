@@ -6,7 +6,7 @@ import type { StaffLayout } from '../layout/staff';
 import { toChart } from './chart';
 import { hitTest, placeClick, pointOf, targetOf } from './hitTest';
 import { EDITOR_LENGTHS, emptyPiece, placeNote, placeRest, restLengthFor, type EditorHands, type EditorLength, type EditorPiece } from './model';
-import { barBoxes, barsInRect, columnWidth, drawnWhileWriting, editorFrame, editorStaff, keyNameSpot, pageOfBar, repeatPreview, RESERVE_CHORD, snapBar, RESERVE_HIGH, RESERVE_LOW, shadowsFor, targetBox } from './staff';
+import { barBoxes, barsInRect, columnWidth, drawnWhileWriting, editorFrame, editorStaff, firstBarOfPage, keyNameSpot, pageOfBar, repeatPreview, RESERVE_CHORD, snapBar, RESERVE_HIGH, RESERVE_LOW, shadowsFor, targetBox } from './staff';
 
 /** The editor's staff area on 1280x720 and on the 1366x768 laptop at 4x, on 960x540 at 3x, and on a 1920x1080 screen. */
 const VIEWPORTS = [{ width: 1280, height: 296 }, { width: 1366, height: 344 }, { width: 960, height: 222 }, { width: 1920, height: 864 }];
@@ -129,6 +129,12 @@ describe('bars as wide as what is written in them', () => {
     expect(layout.systems.length).toBeGreaterThan(1);
     expect(layout.pageCount).toBe(Math.ceil(layout.systems.length / layout.linesPerPage));
     expect(pageOfBar(layout, 7)).toBe(layout.systems[layout.bars[7]!.system]!.page);
+    // Page Down puts the cursor on the first bar of the page it shows (ft_1_02d.AC15)
+    const last = layout.pageCount - 1;
+    const first = firstBarOfPage(layout, last);
+    expect(pageOfBar(layout, first)).toBe(last);
+    expect(pageOfBar(layout, first - 1)).toBe(last - 1);
+    expect(firstBarOfPage(layout, 0)).toBe(0);
     for (const system of layout.systems) {
       const bars = layout.bars.filter((b) => b.system === system.index);
       expect(bars.at(-1)!.x + bars.at(-1)!.width).toBeLessThanOrEqual(LAPTOP.width);

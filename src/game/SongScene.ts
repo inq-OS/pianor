@@ -490,9 +490,16 @@ export class SongScene extends PixelScene {
     startScene(this, 'editor', { song: { songId: song.id, nodeId } });
   }
 
-  /** Slot 0's choices: a new part or group after the selected row (at the end with none), and into a selected group. */
+  /**
+   * Slot 0's choices: a new part or group after the selected row (at the end with none), and into a selected group; on a
+   * group the part after it and the part inside it are named apart, and a row inside a group may add a part after its
+   * group, beside it (ft_1_36.AC23).
+   */
   private addChoices(song: Song, node: SongNode | undefined): MenuItem[] {
     const place = node ? { after: node.id } : ('end' as const);
+    const rows = contextOf(this).songs.resolved(song).rows;
+    const parent = node ? rows.find((r) => r.id === node.id)?.parent ?? null : null;
+    const parentRow = parent === null ? undefined : rows.find((r) => r.id === parent && r.kind === 'group');
     const blank = (): SongNode => {
       const name = freeNodeName(song, (n) => t('song.newPart', { n }));
       return { kind: 'blank', id: freeNodeId(song, name), name, bars: NEW_BLANK_BARS };
@@ -504,9 +511,10 @@ export class SongScene extends PixelScene {
     // each choice shows where the new row will stand while the pointer rests on it (d286)
     const choice = (label: string, at: Place, make: () => SongNode): MenuItem => this.addAt(song, label, at, make());
     return [
-      choice(t('song.addPart'), place, blank),
+      choice(t(node?.kind === 'group' ? 'song.addAfter' : 'song.addPart'), place, blank),
       choice(t('song.addGroup'), place, group),
       ...(node?.kind === 'group' ? [choice(t('song.addInside'), { inside: node.id }, blank)] : []),
+      ...(parentRow ? [choice(clipToWidth(t('song.addAfterGroup', { name: parentRow.name }), VALUE_CELL.w - 8, fits), { after: parentRow.id }, blank)] : []),
       // a new piece is written in the piece maker in the values it takes here, and added here when saved (rule 17)
       { label: t('song.addPiece'), onPick: () => startScene(this, 'editor', { song: { songId: song.id, at: place } }) },
       { label: t('song.addOwn'), onPick: () => this.choicesUnderRow(this.ownPieceChoices(song, place), 2, VALUE_CELL) },
@@ -706,7 +714,10 @@ export class SongScene extends PixelScene {
     this.inkWriting = true;
     if (!outline) return;
     const rowHeight = this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT;
-    const grid = cardGrid({ width, height, top: LIST_TOP + 4, margin: BOOK_MARGIN, rowHeight, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
+    // the rows start under the door and the gear (ft_1_36.AC22), so a row's switch, pen or play button is never under a corner
+    // and one cell closer together, so a page still holds as many rows as the piece book's
+    const top = this.bandShown ? Math.max(LIST_TOP + 4, this.cornerStrip.rows + 1) : LIST_TOP + 4;
+    const grid = cardGrid({ width, height, top, margin: BOOK_MARGIN, rowHeight, rowGap: this.bandShown ? CARD_GAP - 1 : CARD_GAP, columnGap: BOOK_GUTTER });
     this.items = [null, ...shownRows(outline.rows, this.folded)];
     this.rowRects.clear();
     this.landing = null;
@@ -802,6 +813,7 @@ export class SongScene extends PixelScene {
     const nameButton = this.button({
       x: (x + nameRight) / 2, y: mid, width: nameRight - x, height: CARD_HEIGHT / 2, look: 'ink', align: 'left',
       label, labelWidth: nameRight - x - 6, ...(mark ? { icon: mark } : {}),
+      // a name cut short is read whole in its tooltip (ft_1_36.AC23)
       ...wholeIfCut(label, `${row.number} ${row.name}`),
       onClick: () => this.pressRow(row.id),
     });
