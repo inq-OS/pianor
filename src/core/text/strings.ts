@@ -385,6 +385,7 @@ export const strings = {
   'menu.creditsButton': 'Credits',
   'menu.pieceMaker': 'Piece maker',
   'menu.settingsButton': 'Settings',
+  'menu.creditsAdmin': 'Credits and admin',
   'menu.newPiece': '+ New piece',
   'editor.untitled': 'My piece',
   'editor.titleLabel': 'Name of the piece',

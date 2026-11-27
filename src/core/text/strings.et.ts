@@ -380,6 +380,7 @@ export const stringsEt: Record<StringKey, string> = {
   'menu.creditsButton': 'Autorid',
   'menu.pieceMaker': 'Lugude tegija',
   'menu.settingsButton': 'Seaded',
+  'menu.creditsAdmin': 'Autorid ja haldus',
   'menu.newPiece': '+ Uus lugu',
   'editor.untitled': 'Minu lugu',
   'editor.titleLabel': 'Loo nimi',

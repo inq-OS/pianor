@@ -47,7 +47,7 @@ test.describe('icon buttons', () => {
 
   test('ft_1_08.AC4 the main menu\'s free place, bare piano and gear are pictures alone, their words in a bubble under the pointer', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
-    for (const label of ['New player', 'Piece maker', 'Settings']) {
+    for (const label of ['New player', 'Piece maker', 'Credits and admin']) {
       const index = await sceneButton(page, 'profiles', label);
       expect(index, label).toBeGreaterThanOrEqual(0);
       expect(await sceneTexts(page, 'profiles'), label).not.toContain(label);

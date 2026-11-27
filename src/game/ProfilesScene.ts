@@ -123,7 +123,7 @@ export class ProfilesScene extends PixelScene {
     // the academic hat: the teacher's screen, behind her own password (ft_1_26.AC1, d140, d145)
     this.button({ ...rectCentre(layout.hat), label: t('teacher.open'), picture: hatPicture(), onClick: () => startScene(this, teacherEntry(this)) });
     const gear: PixelButton = this.button({
-      ...rectCentre(layout.gear), label: t('menu.settingsButton'), icon: inked(ICONS.settings), iconOnly: true, look: 'ink',
+      ...rectCentre(layout.gear), label: t('menu.creditsAdmin'), icon: inked(ICONS.settings), iconOnly: true, look: 'ink',
       onClick: () => this.openMenu(gear, [
         { label: t('menu.creditsButton'), onPick: () => startScene(this, 'credits') },
         // straight in while the admin features are open (30 minutes after the password, ft_1_07.AC8)

@@ -443,7 +443,7 @@ export async function typeName(page: Page, name: string): Promise<void> {
 
 /** On the main menu Credits and Admin are under the gear: opens the gear's menu and picks `label` from it. */
 export async function pickUnderGear(page: Page, label: string): Promise<void> {
-  await clickButton(page, 'profiles', await profileButton(page, 'Settings'));
+  await clickButton(page, 'profiles', await profileButton(page, 'Credits and admin'));
   await clickButton(page, 'profiles', await profileButton(page, label));
 }
 

@@ -58,7 +58,7 @@ test.describe('main menu (ft_1_07.AC2)', () => {
     const texts = await sceneTexts(page, 'profiles');
     expect(texts).toEqual(expect.arrayContaining(['Pianor', 'TUVI', 'VINT', 'KIUR', 'PÄÄSU']));
     // no "Who is playing?" (the choice is implied), and the "+", the piano and the gear are pictures
-    for (const gone of ['Who is playing?', 'New player', 'Credits', 'Admin', 'Piece maker', 'Settings']) expect(texts).not.toContain(gone);
+    for (const gone of ['Who is playing?', 'New player', 'Credits', 'Admin', 'Piece maker', 'Credits and admin']) expect(texts).not.toContain(gone);
     // the four players come first, in order; TUVI is the active player of a new game and so the only marked line
     const active = await buttonActive(page, 'profiles');
     expect(active.slice(0, 4)).toEqual([true, false, false, false]);
@@ -66,7 +66,7 @@ test.describe('main menu (ft_1_07.AC2)', () => {
     expect(await profileButton(page, 'Piece maker')).toBe(5);
     // the academic hat between the piano and the gear opens the teacher's screen (ft_1_26.AC1, d145)
     expect(await profileButton(page, 'Teacher')).toBe(6);
-    expect(await profileButton(page, 'Settings')).toBe(7);
+    expect(await profileButton(page, 'Credits and admin')).toBe(7);
     expect(await profileButton(page, 'Free play')).toBe(-1);
     // Credits and Admin are under the gear, and nothing else
     expect(await profileButton(page, 'Credits')).toBe(-1);
