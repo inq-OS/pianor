@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isTester, openScenes } from './openScenes';
+import { isTester, openScenes, sceneGate } from './openScenes';
 
 const SCENES = [{ id: 'knoll', level: 1 }, { id: 'harbour', level: 3 }, { id: 'spit', level: 5 }];
 
@@ -37,5 +37,14 @@ describe('Keri as shipped', () => {
     const keri = loadWorld((await import('../../../content/world/keri.json')).default);
     expect(openScenes(keri.scenes ?? [], 10)).toEqual(['knoll']);
     expect(openScenes(keri.scenes ?? [], 10, true)).toContain('terrace');
+  });
+});
+
+describe('what a shut scene says on the map', () => {
+  it('ft_1_19.AC2 a scene shut by the level says the level that opens it, and one the maintainer has closed says only that it is not open yet', () => {
+    const scenes = [{ id: 'a', level: 1 }, { id: 'b', level: 3 }, { id: 'c', level: 2, closed: true }];
+    expect(scenes.map((s) => sceneGate(s, 1))).toEqual([{ open: true }, { open: false, opensAt: 3 }, { open: false, opensAt: null }]);
+    expect(sceneGate(scenes[2]!, 5)).toEqual({ open: false, opensAt: null });
+    expect(sceneGate(scenes[2]!, 1, true)).toEqual({ open: true });
   });
 });
