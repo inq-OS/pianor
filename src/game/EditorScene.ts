@@ -151,6 +151,8 @@ const LABEL_PAD = 10;
  * message bubble's top and the page buttons stand this far above the foot. The finger menu's cells.
  */
 const PIECE_PANEL = 20;
+/** The width of each answer to the question to leave without saving. */
+const LEAVE_WIDTH = 124;
 const FINGER_MENU_CELL = { w: 16, h: BAR_BUTTON_HEIGHT } as const;
 /** The lengths in the order the Length item cycles them (ft_1_20: one item that shows its note). */
 const LENGTH_ORDER: readonly EditorLength[] = EDITOR_LENGTHS;
@@ -338,6 +340,8 @@ export class EditorScene extends PixelScene {
    */
   private autoAt = new WeakMap<EditorPiece, boolean>();
   private meterAsk: Beats | null = null;
+  /** Whether the piece maker asks to leave without saving (`leave`): its panel is open and takes every key. */
+  private leaveAsk = false;
   /** Esc closed the question on a full first bar: it asks again when a later bar is entered. */
   private meterDismissed = false;
   private message = '';
@@ -867,7 +871,7 @@ export class EditorScene extends PixelScene {
     this.endLassoState();
     if (action === 'select' && this.grabRepeatHandle(p)) return;
     const hit = this.hit(p);
-    if (!hit || action === 'none' || this.meterAsk !== null) return;
+    if (!hit || action === 'none' || this.meterAsk !== null || this.leaveAsk) return;
     if (this.repeatPick) {
       // the bar the sign snaps to, as its preview shows (ft_1_02d.AC31)
       const bar = this.repeatBarAt(p) ?? this.barOf(hit);
@@ -1593,7 +1597,8 @@ export class EditorScene extends PixelScene {
       this.apply(setDynamic(this.piece, this.selected, mark), this.selected);
       this.showDynamic(mark);
     };
-    return [...DYNAMICS, undefined].map((mark) => ({ label: mark ?? '-', keepCase: true, icon: dynamicPicture(mark), fineIcon: true, active: mark === current, onPick: set(mark) }));
+    // no mark: the dashed empty picture, named in its tooltip (the marks keep their case: pp is not PP)
+    return [...DYNAMICS, undefined].map((mark) => ({ ...(mark ? { label: mark, keepCase: true, icon: dynamicPicture(mark), fineIcon: true } : { label: t('editor.dyn.off'), icon: TOOL_ICONS.blank }), active: mark === current, onPick: set(mark) }));
   }
 
   /** The staff the played notes go on: Auto, treble, bass, the one in use lit; the default is the next, so M then Enter does what a click does. */
@@ -1652,6 +1657,12 @@ export class EditorScene extends PixelScene {
       take();
       this.startKeyTour();
       return true;
+    }
+    // the question to leave without saving: Enter leaves, Esc stays; nothing else is done behind it
+    if (this.leaveAsk) {
+      if (e.code === 'Enter' || e.code === 'NumpadEnter') this.answerLeave(true);
+      else if (e.code === 'Escape') this.answerLeave(false);
+      return take();
     }
     // the A time's question: Enter takes the guess, Esc closes it (it asks again when the cursor leaves the first bar)
     if (this.meterAsk !== null) {
@@ -2658,9 +2669,26 @@ export class EditorScene extends PixelScene {
 
   // ------------------------------------------------------------------------------------------------------- actions
 
+  /**
+   * Back to where the piece maker was opened from; with changes not saved it asks first, in the game (`drawLeaveAsk`):
+   * Enter or its button leaves without saving, Esc or Keep editing stays.
+   */
   private leave(): void {
-    if (this.dirty() && !window.confirm(t('editor.leaveUnsaved'))) return;
-    this.goBack();
+    if (!this.dirty()) return this.goBack();
+    if (this.leaveAsk) return;
+    this.closeMenu();
+    this.leaveAsk = true;
+    this.panel = null;
+    this.redraw();
+    this.say(t('editor.leaveUnsaved'));
+  }
+
+  /** The question to leave is answered: leave without saving, or stay. */
+  private answerLeave(go: boolean): void {
+    this.leaveAsk = false;
+    if (go) return this.goBack();
+    this.say('');
+    this.redraw();
   }
 
   /** Back to the song page a song's row was written from, else to the piece book. */
@@ -3226,7 +3254,7 @@ export class EditorScene extends PixelScene {
   /**
    * The bubble (ft_1_20, d282) for what is under the pointer, each option in its fixed slot. On a note (it becomes the
    * selected note, unless it is in the selected bars, which the options then act on): 0 length, 1 accidental, 2 delete, 3 tie
-   * or slur, 4 dynamic, 5 fingers, 6 grace note, 7 copy; with bars selected also paste (`noteOptions`). On the time signature: 0
+   * or slur, 4 dynamic, 5 fingers, 6 grace note (paste with bars selected), 7 copy (`noteOptions`). On the time signature: 0
    * the time panel. On the clef or the key signature: 0 the key's circle. Elsewhere on the staff (the entry cursor moves
    * there): 0 notes or rests, 1 paste at that bar, 2 repeat, 3 the staff for played notes, 4 the short tap, 5 the cursor's
    * follow switch, 6 remove repeat, 7 the key's circle (from More). From More (`at` null): the note's options while one is
@@ -3234,11 +3262,11 @@ export class EditorScene extends PixelScene {
    */
   /** A bubble opens anywhere unless the time is being asked for; asked before the bubble opens, so it selects nothing. */
   protected override hasBubbleAt(): boolean {
-    return this.meterAsk === null;
+    return this.meterAsk === null && !this.leaveAsk;
   }
 
   protected override bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
-    if (this.meterAsk !== null) return null;
+    if (this.meterAsk !== null || this.leaveAsk) return null;
     const hit = at ? this.hit({ x: this.root.x + at.x * this.px.scale, y: this.root.y + at.y * this.px.scale }) : null;
     if (hit?.kind === 'time') return [{ label: t('editor.timePanel'), icon: TOOL_ICONS.timePanel, onClick: () => this.openPanel('time') }];
     // the key is changed where it is written: the circle only on the clef or the key signature (ft_1_02d.AC39)
@@ -3275,8 +3303,8 @@ export class EditorScene extends PixelScene {
 
   /**
    * The bubble on a note or the selected bars: what is done to them, each option only where it applies (ft_1_02d.AC35). On a
-   * note: 0 length, 1 accidental, 2 delete, 3 tie or slur, 4 dynamic, 5 fingers, 6 grace note, 7 copy, and with bars
-   * selected 8 paste (with something copied). With bars selected and no note under the pointer the note's options are gone,
+   * note: 0 length, 1 accidental, 2 delete, 3 tie or slur, 4 dynamic, 5 fingers, 6 grace note, 7 copy; with bars selected
+   * slot 6 is paste instead, so the eight fit one page and Copy never moves to a second. With bars selected and no note under the pointer the note's options are gone,
    * 1 is paste (its slot on an empty place) and 6 the repeat round the selected bars, so all fit one page. A repeat is never
    * offered on a note.
    */
@@ -3294,11 +3322,11 @@ export class EditorScene extends PixelScene {
         : paste,
       note || sel ? { label: t('editor.delete'), icon: TOOL_ICONS.trash, shortcut: EDITOR_KEYS.delete.label, onClick: () => (sel ? this.change(clearBars(this.piece, sel)) : this.deleteSelected()) } : null,
       arcs.length > 0 ? { label: t('editor.arc.menu'), icon: sel ? TOOL_ICONS.slur : itemPicture('tie'), fineIcon: !sel, shortcut: EDITOR_KEYS.ties.label, onClick: () => undefined, menu: { items: () => this.arcItems(), cell: ITEM_MENU_CELL, columns: arcs.length } } : null,
-      onNote({ label: note?.dynamic ?? '-', icon: dynamicPicture(note?.dynamic ?? 'mf'), fineIcon: true, keepCase: true, tooltip: t('editor.dyn.tip'), shortcut: EDITOR_KEYS.dynamics.label, onClick: () => undefined, menu: { items: () => this.dynamicItems(), cell: ITEM_MENU_CELL, columns: 7 } }),
+      onNote({ label: note?.dynamic ?? t('editor.dyn.off'), icon: note?.dynamic ? dynamicPicture(note.dynamic) : TOOL_ICONS.blank, ...(note?.dynamic ? { fineIcon: true, keepCase: true } : {}), tooltip: note?.dynamic ? t('editor.dyn.tip') : `${t('editor.dyn.off')}: ${t('editor.dyn.tip')}`, shortcut: EDITOR_KEYS.dynamics.label, onClick: () => undefined, menu: { items: () => this.dynamicItems(), cell: ITEM_MENU_CELL, columns: 7 } }),
       onNote({ label: t('editor.finger.menu'), icon: TOOL_ICONS.fingers, shortcut: EDITOR_KEYS.fingers.label, onClick: () => undefined, menu: { items: () => this.fingerItems(), cell: FINGER_MENU_CELL, columns: 6 } }),
-      note ? this.graceOption(note.grace !== undefined) : sel ? this.repeatOption() : null,
+      // with bars selected slot 6 is the bars' (paste on a note, the repeat off one); a grace note is set on a note alone
+      note ? (sel ? paste : this.graceOption(note.grace !== undefined)) : sel ? this.repeatOption() : null,
       note || sel ? { label: t('editor.copy'), icon: TOOL_ICONS.copy, shortcut: EDITOR_KEYS.copy.label, onClick: () => this.copyBar() } : null,
-      note ? paste : null,
     ];
   }
 
@@ -3410,9 +3438,11 @@ export class EditorScene extends PixelScene {
   private fingerItems(): MenuItem[] {
     // AUTO only when it would write or change a finger (ft_1_02d.AC39)
     const auto = autoFingers(this.piece, this.fingerLevel());
+    const now = this.selected ? findNote(this.piece, this.selected)?.finger : undefined;
     return [
-      ...([1, 2, 3, 4, 5] as const).map((finger) => ({ label: String(finger), keepCase: true, tooltip: t('editor.finger.tip'), onPick: () => this.setFingerTo(finger) })),
-      ...(auto.filled + auto.changed === 0 ? [] : [{ label: t('editor.finger.auto'), keepCase: true, tooltip: t('editor.finger.auto.tip'), preview: this.itemPreview('auto', () => ({ ok: true, piece: autoFingers(this.piece, this.fingerLevel()).piece })), onPick: () => this.autoFillFingers() }]),
+      ...([1, 2, 3, 4, 5] as const).map((finger) => ({ label: String(finger), keepCase: true, tooltip: t('editor.finger.tip'), active: finger === now, onPick: () => this.setFingerTo(finger) })),
+      // AUTO as the fingers' picture: the word is wider than a choice
+      ...(auto.filled + auto.changed === 0 ? [] : [{ label: t('editor.finger.auto'), icon: TOOL_ICONS.fingers, tooltip: `${t('editor.finger.auto')}: ${t('editor.finger.auto.tip')}`, preview: this.itemPreview('auto', () => ({ ok: true, piece: autoFingers(this.piece, this.fingerLevel()).piece })), onPick: () => this.autoFillFingers() }]),
     ];
   }
 
@@ -3438,7 +3468,8 @@ export class EditorScene extends PixelScene {
 
     const layer = this.overStaff();
     const make = (options: PixelButtonOptions) => this.buttonOn(layer, options);
-    if (this.meterAsk !== null) this.drawMeterAsk(layer, rows);
+    if (this.leaveAsk) this.drawLeaveAsk(layer, rows);
+    else if (this.meterAsk !== null) this.drawMeterAsk(layer, rows);
     else if (this.panel === 'time') this.drawTimePanel(layer, rows);
     this.drawKeyHelp(strip.rows);
     // the vim mode line at the top left of the staff (ft_1_02e), under the strip
@@ -3503,6 +3534,21 @@ export class EditorScene extends PixelScene {
     }
     const tickAt = choices.end + GROUP_GAP;
     this.buttonOn(layer, { x: tickAt + ICON_BUTTON_WIDTH / 2, y, width: ICON_BUTTON_WIDTH, height: BAR_BUTTON_HEIGHT, label: t('editor.meter.confirm'), icon: TOOL_ICONS.tick, iconOnly: true, tooltip: t('editor.meter.confirm'), onClick: () => this.confirmMeter(this.meterAsk!) });
+  }
+
+  /**
+   * The question to leave a piece not saved, on a panel over the staff's foot as the time's question (the piece maker says
+   * the question): Leave without saving and Keep editing, the safe one lit.
+   */
+  private drawLeaveAsk(layer: Phaser.GameObjects.Container, rows: number): void {
+    const bottom = rows - PIECE_PANEL;
+    const y = bottom + PIECE_PANEL / 2;
+    layer.add(new PixelImage(this, 0, bottom, panelBitmap(Math.max(5, this.px.width), PIECE_PANEL, 'panel')));
+    const choices = row(Math.floor((this.px.width - (2 * LEAVE_WIDTH + GROUP_GAP)) / 2), GROUP_GAP);
+    const go = choices.take(LEAVE_WIDTH);
+    this.buttonOn(layer, { x: go + LEAVE_WIDTH / 2, y, width: LEAVE_WIDTH, height: BAR_BUTTON_HEIGHT, label: t('editor.leave.discard'), onClick: () => this.answerLeave(true) });
+    const stay = choices.take(LEAVE_WIDTH);
+    this.buttonOn(layer, { x: stay + LEAVE_WIDTH / 2, y, width: LEAVE_WIDTH, height: BAR_BUTTON_HEIGHT, label: t('editor.leave.stay'), look: 'tab', onClick: () => this.answerLeave(false) }).setActive(true);
   }
 
   /**

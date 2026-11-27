@@ -168,6 +168,10 @@ test.describe('piece editor (preliminary)', () => {
     await clickButton(page, 'profiles', maker);
     await waitForScene(page, 'menu');
     await expect.poll(() => menuButton(page, '+ New piece')).toBeGreaterThanOrEqual(0);
+    // it says what it offers in words: the new piece, and where the pieces made will be
+    const texts = await sceneTexts(page, 'menu');
+    expect(texts).toContain('+ New piece');
+    if (!(await page.evaluate(() => window.__game.registry.get('context').pieces.list().some((p: { own?: boolean }) => p.own)))) expect(texts).toContain('The pieces you make are kept here.');
     // the piece maker saves no progress: it lists own pieces only and a card opens the editor, so no piece can be played from it
     expect(await menuButton(page, 'Practice')).toBe(-1);
     expect(await page.evaluate(() => window.__game.registry.get('context').profiles.progress.totalXp as number)).toBe(xpBefore);
@@ -1639,7 +1643,7 @@ test.describe('finger buttons and AUTO (ft_1_02d.AC13)', () => {
     await clickNote(page, 0, 480, 'D');
     // the fingers are a menu item of the band (ft_1_20): F opens it from the keyboard too
     const at = async (label: string) => {
-      const labels = await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { buttons: { objects: { text?: string }[] }[] }).buttons.map((b) => b.objects.map((o) => o.text ?? '').join('')));
+      const labels = await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { buttons: { options: { label: string } }[] }).buttons.map((b) => b.options.label));
       return labels.lastIndexOf(label);
     };
     const fingers = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { history: { present: { notes: { finger?: number }[] } } }).history.present.notes.map((n) => n.finger ?? null));
@@ -1652,6 +1656,27 @@ test.describe('finger buttons and AUTO (ft_1_02d.AC13)', () => {
     expect(await at('AUTO')).toBeGreaterThanOrEqual(0);
     await clickButton(page, 'editor', await at('AUTO'));
     expect(await fingers()).toEqual([1, 3]);
+    expectNoErrors(errors);
+  });
+});
+
+test.describe('the bubble shows the note as it is (ft_1_20)', () => {
+  test('the dynamic option of a note with none says none, its none choice is named and lit, and the finger in use is lit', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'C');
+    await clickNote(page, 0, 0, 'C');
+    const lit = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { menu: { buttons: { options: { label: string }; active: boolean }[] } | null }).menu?.buttons.filter((b) => b.active).map((b) => b.options.label) ?? []);
+    // no dynamic on the note: the option says so, never a mark the note does not have
+    const none = await editorButton(page, 'No dynamic mark');
+    expect(none).toBeGreaterThanOrEqual(0);
+    await clickButton(page, 'editor', none);
+    await expect.poll(lit).toContain('No dynamic mark');
+    await closeBubble(page, 'editor');
+    // the finger written on the note is lit among the fingers
+    await pickInBubble(page, 'Fingers', '3');
+    await clickButton(page, 'editor', await editorButton(page, 'Fingers'));
+    await expect.poll(lit).toContain('3');
     expectNoErrors(errors);
   });
 });
@@ -2357,6 +2382,57 @@ test.describe('piece maker: the cursor follows the pointer, the bubble offers wh
     await page.keyboard.press('Control+KeyC');
     await bubbleAt(page, { bar: 2, start: 0, step: 'A', octave: 5 });
     expect(await buttonDisabled(page, await lastButton(page, 'editor', 'Paste'))).toBe(false);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC35 on a note inside selected bars with something copied every option fits one page: Copy keeps slot 7, no More', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await eAndGQuarters(page);
+    await clickNote(page, 0, 0, 'E');
+    await lassoBars(page);
+    await page.keyboard.press('Control+KeyC');
+    await bubbleAt(page, { bar: 0, start: 480, step: 'G' });
+    const ring = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { menu: { ring: { options: { label: string } }[] } }).menu.ring.map((b) => b.options.label));
+    const labels = await ring();
+    expect(labels).not.toContain('More');
+    expect(labels).toContain('Paste');
+    expect(labels).toContain('Copy');
+    // Copy stands in the same slot as on a note alone (slot 7, the last), Paste in slot 6
+    const slots = await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { bubbleOptions(at: null): ({ label: string } | null)[] }).bubbleOptions(null).map((o) => o?.label ?? null));
+    expect(slots[7]).toBe('Copy');
+    expect(slots[6]).toBe('Paste');
+    expect(slots).toHaveLength(8);
+    expectNoErrors(errors);
+  });
+
+  test('leaving an unsaved piece asks in the game, never in a browser dialog: Esc stays, Enter leaves', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    let dialogs = 0;
+    page.on('dialog', (d) => {
+      dialogs += 1;
+      void d.dismiss();
+    });
+    await openEditor(page);
+    await eAndGQuarters(page);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => sceneWords(page, 'editor')).toContain('Leave without saving');
+    expect(await sceneWords(page, 'editor')).toContain('Keep editing');
+    expect(await activeScenes(page)).toContain('editor');
+    // Esc keeps the piece open, and the question goes
+    await page.keyboard.press('Escape');
+    await expect.poll(() => sceneWords(page, 'editor')).not.toContain('Leave without saving');
+    expect(await activeScenes(page)).toContain('editor');
+    // a press on the staff while it asks writes nothing
+    await page.keyboard.press('Escape');
+    await expect.poll(() => sceneWords(page, 'editor')).toContain('Leave without saving');
+    const notes = await page.evaluate(() => window.__game.scene.getScene('editor').history.present.notes.length);
+    await clickNote(page, 1, 0, 'C', 5);
+    expect(await page.evaluate(() => window.__game.scene.getScene('editor').history.present.notes.length)).toBe(notes);
+    // Enter leaves without saving
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'menu');
+    expect(dialogs).toBe(0);
     expectNoErrors(errors);
   });
 

@@ -526,10 +526,11 @@ export class PixelButton {
     const plate = width + 2 * this.overhang();
     if (!picture && this.look === 'bubble') return optionPlate(this.plateLook(), plate);
     if (!picture && this.look === 'bubbleClose') return closePlate(this.hover || this.down ? 'hover' : 'plain', plate, false);
-    // a choice lies on the sausage the scene draws under the row: only a patch under the one in use or the pointer
+    // a choice lies on the sausage the scene draws under the row: only a patch under the one in use or the pointer, and a sunk
+    // dark one under a greyed one, so its picture still reads
     if (!picture && this.look === 'bubbleChoice') {
       const look = this.plateLook();
-      return look === 'plain' || look === 'off' ? createBitmap(width, height) : choicePatch(look);
+      return look === 'plain' ? createBitmap(width, height) : choicePatch(look);
     }
     if (!picture && this.look === 'bandCell' && this.options.worn) return goldChip(width, height);
     if (!picture && this.look === 'bandCell') return stripCell(width, height, this.options.main && this.plateLook() === 'plain' ? 'main' : this.plateLook());

@@ -30,7 +30,8 @@ const PLATES: Readonly<Record<PlateLook, PlateColours>> = {
   down: { fill: C.panelDark, light: C.panelDark, shade: C.panelLight, outline: C.groove },
   // lit: the plate stays wood, its edge turns gold, so the picture keeps its colour and still reads
   on: { fill: C.panelLit, light: C.goldLight, shade: C.gold, outline: C.groove },
-  off: { fill: C.panel, light: C.panel, shade: C.panel, outline: C.panelDark },
+  // greyed: a sunk dark plate, so its paler picture still reads on it
+  off: { fill: C.panelDark, light: C.panelDark, shade: C.panelDark, outline: C.groove },
   // the piece maker's writer while a click on the staff writes with it: purple, as the staff's preview of the next note
   armed: { fill: C.purple, light: C.purpleLight, shade: C.purpleDark, outline: C.groove },
   // the main action (Play again, Done) at the strip's right end: a lighter wood with a honey edge, the same on every screen
