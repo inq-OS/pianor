@@ -3,10 +3,10 @@ import { ART_DETAIL } from '../core/layout/frame';
 import { strings, t, type StringKey as TextKey } from '../core/text/strings';
 import { ROOM_OBJECTS, STRIP_ROWS, roomPlan, roomView, type RoomObject } from '../core/layout/room';
 import { rectCentre, type Rect } from '../core/layout/rect';
-import { PixelButton, PixelImage } from './ui/pixel/PixelObjects';
+import { PixelBar, PixelButton, PixelImage } from './ui/pixel/PixelObjects';
+import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { KIUR_ZZZ_FROM, plantStage } from './ui/pixel/keri/roomLife';
 import { panelBitmap } from './ui/pixel/frames';
-import { ICONS } from './ui/pixel/iconArt';
 import { C } from './ui/pixel/palette';
 import { drawnText, measure, renderText } from './ui/pixel/font';
 import { BAR_BUTTON_HEIGHT } from './ui/pixel/playBars';
@@ -426,7 +426,7 @@ export class ProfileDashboardScene extends PixelScene {
     }
     // the shield opens the player's card; under the band alone the player's name is written into it (ft_1_20.AC13)
     const shield = { x: at.x + Math.floor(plan.shield.x / ART_DETAIL), y: at.y + Math.floor(plan.shield.y / ART_DETAIL), w: Math.ceil(plan.shield.w / ART_DETAIL), h: Math.ceil(plan.shield.h / ART_DETAIL) };
-    this.button({ ...rectCentre(shield), label: t('room.shield'), picture: createBitmap(shield.w, shield.h), onHover: (over) => contour.setVisible(over), onClick: () => this.showCard(true) });
+    this.button({ ...rectCentre(shield), label: t('room.shield'), tooltip: t('room.shield'), picture: createBitmap(shield.w, shield.h), onHover: (over) => contour.setVisible(over), onClick: () => this.showCard(true) });
     if (!this.toolbarShown) this.nameOnShield({ x: at.x * ART_DETAIL + plan.shield.x, y: at.y * ART_DETAIL + plan.shield.y, w: plan.shield.w, h: plan.shield.h });
     this.kiur(at, picture.kiur, (over) => {
       awake.setAlpha(over ? 1 : 0);
@@ -969,7 +969,10 @@ export class ProfileDashboardScene extends PixelScene {
   private card(): PixelButton[] {
     const context = contextOf(this);
     const stats = playerStats(context.profiles.profile, context.profiles.progress);
-    const xp = stats.xpForLevel === null ? t('menu.xpTop', { xp: stats.totalXp }) : t('menu.xp', { xp: stats.xpIntoLevel, next: stats.xpForLevel });
+    // the total XP, which only grows, and under it a bar toward the next level: the XP inside the level alone would look
+    // like XP lost at every level-up
+    const xp = stats.xpForLevel === null ? t('menu.xpTop', { xp: stats.totalXp }) : t('card.xpTotal', { xp: stats.totalXp });
+    const toNext = stats.xpForLevel === null ? null : t('card.toNext', { xp: stats.xpIntoLevel, next: stats.xpForLevel, level: stats.level + 1 });
     const lines: [string, string][] = [
       [t('card.xp'), xp],
       [t('card.pieces'), String(stats.piecesPlayed)],
@@ -980,7 +983,7 @@ export class ProfileDashboardScene extends PixelScene {
       [t('card.earPoints'), String(stats.earPoints)],
     ];
     const { width, height } = this.px;
-    const h = 2 * CARD_PAD + CARD_LINE * (lines.length + 1) + 2;
+    const h = 2 * CARD_PAD + CARD_LINE * (lines.length + 1 + (toNext === null ? 0 : 1)) + 2;
     const x = Math.floor((width - CARD_WIDTH) / 2);
     const y = Math.max(0, Math.floor((this.mainRows - h) / 2));
     // the room behind it darkens, and a press there closes the card
@@ -992,12 +995,20 @@ export class ProfileDashboardScene extends PixelScene {
     const name = this.label(x + CARD_PAD, y + CARD_PAD, context.profiles.profile.name, C.gold);
     this.label(name.x + name.width + 6, y + CARD_PAD, t('menu.level', { level: stats.level }), C.white);
     lines.forEach(([label, value], i) => {
-      const lineY = y + CARD_PAD + CARD_LINE * (i + 1) + 2;
+      // the bar toward the next level stands on its own line under the XP
+      const lineY = y + CARD_PAD + CARD_LINE * (i + 1 + (i > 0 && toNext !== null ? 1 : 0)) + 2;
       this.label(x + CARD_PAD, lineY, label, C.dim);
       const shown = this.label(0, lineY, value, C.white);
       shown.x = x + CARD_WIDTH - CARD_PAD - shown.width;
     });
-    const close = this.button({ x: x + CARD_WIDTH - CARD_PAD - CLOSE.width / 2 + 2, y: y + CARD_PAD + 2, ...CLOSE, label: t('card.close'), icon: ICONS.quit, iconOnly: true, onClick: () => this.showCard(false) });
+    if (toNext !== null && stats.xpForLevel !== null) {
+      const lineY = y + CARD_PAD + CARD_LINE * 2 + 2;
+      const words = this.label(0, lineY, toNext, C.white);
+      words.x = x + CARD_WIDTH - CARD_PAD - words.width;
+      const barX = x + CARD_PAD;
+      this.root.add(new PixelBar(this, barX, lineY + 1, Math.max(10, words.x - 6 - barX), 5, stats.xpIntoLevel / stats.xpForLevel));
+    }
+    const close = this.button({ x: x + CARD_WIDTH - CARD_PAD - CLOSE.width / 2 + 2, y: y + CARD_PAD + 2, ...CLOSE, label: t('card.close'), icon: TOOL_ICONS.close, iconOnly: true, tooltip: t('card.close'), onClick: () => this.showCard(false) });
     return [close];
   }
 }

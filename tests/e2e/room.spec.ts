@@ -293,6 +293,9 @@ test.describe('the player room', () => {
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Your card'));
     await expect.poll(() => sceneTexts(page, 'profile')).toContain('Level 1');
     expect((await sceneTexts(page, 'profile')).some((t) => /XP/.test(t))).toBe(true);
+    // the total XP, and a bar with the XP toward the next level, so a level-up never looks like XP lost
+    expect(await sceneTexts(page, 'profile')).toContain('0 XP');
+    expect((await sceneTexts(page, 'profile')).some((t) => /^0 \/ \d+ to level 2$/.test(t))).toBe(true);
     expectNoErrors(errors);
   });
 
