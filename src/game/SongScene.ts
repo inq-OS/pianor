@@ -37,7 +37,9 @@ const GAP = 2;
 /** The gap between a row's name and its play button. */
 const PLAY_GAP = 5;
 /** The widest name the strip's Play names. */
-const STRIP_NAME = 60;
+const STRIP_NAME = 120;
+/** A row is set this far in from its page's cell, so its switch, numbers and play button stay on the paper, as the piece book's cards do. */
+const ROW_INSET = 3;
 /** Each level of the outline is set in this far. */
 const INDENT = 6;
 /** A row that is off is drawn this pale over its whole height; the switch of the last written part on this faded. */
@@ -687,11 +689,12 @@ export class SongScene extends PixelScene {
     this.perPage = grid.perPage;
     this.items.slice(slice.first, slice.first + slice.count).forEach((item, i) => {
       const { x, y } = rectCentre(grid.pageCell(i, this.perPage));
-      const left = x - grid.cardWidth / 2;
+      const rowWidth = grid.cardWidth - 2 * ROW_INSET;
+      const left = x - rowWidth / 2;
       const top = y - rowHeight / 2;
-      this.rowRects.set(item === null ? '' : item.row.id, { left, top, width: grid.cardWidth, depth: item === null ? -1 : item.row.depth });
-      if (item === null) this.wholeRow(outline, left, top, grid.cardWidth);
-      else this.nodeRow(outline, item, left, top, grid.cardWidth);
+      this.rowRects.set(item === null ? '' : item.row.id, { left, top, width: rowWidth, depth: item === null ? -1 : item.row.depth });
+      if (item === null) this.wholeRow(outline, left, top, rowWidth);
+      else this.nodeRow(outline, item, left, top, rowWidth);
     });
     if (slice.paged) {
       this.pager(slice, (page) => {
@@ -722,13 +725,18 @@ export class SongScene extends PixelScene {
     }
     let x = left + 6;
     x = this.text(x, line, t('song.barRange', { first: 1, last: outline.bars }), C.umberDark) + 5;
-    this.text(x, line, `${t('song.tempo', { bpm: outline.values.bpm })} ${keyName(outline.values.key)} ${meterName(outline.values.meter)}`, C.umberDark);
-    pixelStars(this, this.root, left + width - 2 - STARS, line, profiles.recordFor(chartId)?.bestGrade ?? 0, { gap: 1, ink: true });
+    // the tempo, key and meter as far as they fit before the stars
+    const starsLeft = left + width - 2 - STARS;
+    const words = [t('song.tempo', { bpm: outline.values.bpm }), keyName(outline.values.key), meterName(outline.values.meter)];
+    // whole words only: the meter, then the key, give way before the stars rather than end in a cut
+    while (words.length > 1 && fits(words.join(' ')) > starsLeft - 4 - x) words.pop();
+    this.text(x, line, words.join(' '), C.umberDark);
+    pixelStars(this, this.root, starsLeft, line, profiles.recordFor(chartId)?.bestGrade ?? 0, { gap: 1, ink: true });
   }
 
   /** A notice on a row, from under its switch so a whole sentence fits the row. */
   private rowNotice(notice: string, line: number, left: number, width: number): void {
-    this.root.add(new PixelText(this, left + 4, line, clipToWidth(notice, width - 6, fits), { color: this.tickHint ? C.umberDark : C.redDark }).setName('songNotice'));
+    this.root.add(new PixelText(this, left + 2, line, clipToWidth(notice, width - 2, fits), { color: this.tickHint ? C.umberDark : C.redDark }).setName('songNotice'));
   }
 
   /** One row of the outline (rule 10). */

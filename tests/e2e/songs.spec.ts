@@ -152,6 +152,33 @@ test.describe('songs made of pieces', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_1_36.AC10 a song of many parts writes a name on its map block only where it fits on one line, and keeps it as the block\'s tooltip', async ({ page }) => {
+    const errors = await openGame(page);
+    await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', 'Ständchen'));
+    await waitForScene(page, 'song');
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'Play Ständchen'));
+    await waitForScene(page, 'practice');
+    const blocks = await page.evaluate(() => {
+      const drawn = (window.__game.scene.getScene('practice') as unknown as {
+        mapDrawn: { blocks: { id: string; name: string; w: number }[]; buttons: Map<string, { label: { visible: boolean; width: number }; options: { tooltip?: string } }> };
+      }).mapDrawn;
+      return drawn.blocks.map((b) => {
+        const button = drawn.buttons.get(b.id)!;
+        return { name: b.name, w: b.w, shown: button.label.visible, width: button.label.width, tooltip: button.options.tooltip ?? null };
+      });
+    });
+    expect(blocks.length).toBeGreaterThan(10);
+    // a name too long for its block is not wrapped over the map: it is left off and kept for the pointer
+    expect(blocks.some((b) => !b.shown)).toBe(true);
+    for (const b of blocks) {
+      if (b.shown) expect(b.width, b.name).toBeLessThanOrEqual(b.w);
+      else expect(b.tooltip).toBe(b.name);
+    }
+    expectNoErrors(errors);
+  });
+
   test('ft_1_36.AC6 the library files a song by its title, never its pieces, and turns it off as one; the songs list then leaves it out; its i button opens its info card', async ({ page }) => {
     const errors = await openGame(page);
     // the info card from the songs list: the song's title, closed by Escape
@@ -186,7 +213,7 @@ test.describe('songs made of pieces', () => {
       for (const song of context.songs.list() as { id: string }[]) await context.profiles.setPieceOn(`song:${song.id}`, false);
       (window.__game.scene.getScene('songs') as unknown as { scene: { restart(): void } }).scene.restart();
     });
-    await expect.poll(() => sceneTexts(page, 'songs')).toContain('All songs are off. Turn some on in Settings.');
+    await expect.poll(() => sceneTexts(page, 'songs')).toContain('All songs are off. Turn some on in All pieces.');
     expectNoErrors(errors);
   });
 
