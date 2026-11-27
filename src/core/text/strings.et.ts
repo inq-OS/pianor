@@ -1065,7 +1065,7 @@ export const stringsEt: Record<StringKey, string> = {
   'intro.kiur.bed': 'Ja mina. Vajuta mulle ja ma mängin sinuga kordamööda mis tahes lugu.',
   'intro.kiur.outside': 'Lähme vaatame saart.',
   'intro.kiur.map': 'See on Keri saar ülevalt vaadates.',
-  'intro.kiur.place': 'Siin elab üks tegelane. Vajuta paigale, et sinna minna, temaga rääkida, ta viis selgeks õppida ja seda kordamööda mängida. Kui su tase kasvab, avaneb rohkem paiku.',
+  'intro.kiur.place': 'Siin elab üks tegelane. Vajuta paigale, et sinna minna, temaga rääkida, ta viis selgeks õppida ja seda kordamööda mängida. Hiljem avaneb rohkem paiku.',
   'intro.kiur.house': 'Sinu maja. Vajuta sellele, et tuppa tagasi minna.',
   'intro.kiur.home': 'Oleme jälle kodus.',
   'intro.kiur.knock': 'Keegi on ukse taga. See on õpetaja!',

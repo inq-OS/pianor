@@ -1075,7 +1075,7 @@ export const strings = {
   'intro.kiur.bed': 'And me. Press me, and I take turns with you on any piece.',
   'intro.kiur.outside': 'Let us go out and look at the island.',
   'intro.kiur.map': 'This is Keri island, seen from above.',
-  'intro.kiur.place': 'A character lives here. Press the place to go there, talk, learn their tune and play it in turns. More places open as your level grows.',
+  'intro.kiur.place': 'A character lives here. Press the place to go there, talk, learn their tune and play it in turns. More places will open later.',
   'intro.kiur.house': 'Your house. Press it to go back to the room.',
   'intro.kiur.home': 'Back home.',
   'intro.kiur.knock': 'Someone is at the door. It is the teacher!',

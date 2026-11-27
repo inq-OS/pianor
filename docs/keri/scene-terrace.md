@@ -7,7 +7,7 @@ These notes are the painter's. The reference photographs of Keri and the referen
 
 ## What it is
 
-The wooden deck right before the main door of the warden's house ([docs/keri.md](../keri.md) section 10: the terrace with red benches is right in front of the warden's house main door, J7 mid-bottom). The terrace and the garden are two places: the garden is the south-east end of the house. Its place in the world model is the deck's seaward part, (-128, 32) m from the lighthouse (`scenes` in `content/world/keri.json`), by the landmark `terrace` the map draws. AX-3 provisional: it opens at level 2, as the docks, the crossroads and the harbour do.
+The wooden deck right before the main door of the warden's house ([docs/keri.md](../keri.md) section 10: the terrace with red benches is right in front of the warden's house main door, J7 mid-bottom). The terrace and the garden are two places: the garden is the south-east end of the house. Its place in the world model is the deck's seaward part, (-128, 32) m from the lighthouse (`scenes` in `content/world/keri.json`), by the landmark `terrace` the map draws. It is closed until the maintainer opens it (d113).
 
 The house is big, so it gets more than one scene (marked on the drone photograph): the terrace, looking away from the house, slightly south-west; the right wing of the house, looking east from near the door toward the lighthouse; and the left side of the house, the facade. This is the first. The other two are their own scenes and pull requests (Open, below).
 

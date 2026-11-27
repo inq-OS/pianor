@@ -166,13 +166,12 @@ describe('the painted map of Keri: its plan (ft_1_18.AC2)', () => {
     expect(room.y).toBeLessThan(rectBottom(house));
   });
 
-  it('ft_1_19.AC2 every scene of the world model has a button round its place, with the level that opens it, clear of the other buttons', () => {
+  it('ft_1_19.AC2 every scene of the world model has a button round its place, clear of the other buttons', () => {
     expect(plan.scenes.map((s) => s.id)).toEqual((KERI.scenes ?? []).map((s) => s.id));
     expect(plan.scenes.length).toBeGreaterThan(0);
     for (const scene of plan.scenes) {
       const at = fine(scene.at);
       const place = KERI.scenes!.find((s) => s.id === scene.id)!;
-      expect(scene.level).toBe(place.level);
       expect(inside(at, plan.middle)).toBe(true);
       for (const other of [plan.title, plan.compass, fine(plan.house)]) expect(overlap(at, other)).toBe(false);
       const p = plan.at(place);

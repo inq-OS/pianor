@@ -105,7 +105,7 @@ Check: `src/core/exchange/tug.test.ts` "level 1 plays the first half of the piec
 
 **Practice earns the piece XP and a piece level, not the player; levels lock no piece.** Features: ft_1_13, ft_0_10, ft_1_12, core_04.
 
-Each finished pass earns its piece ft_0_10's XP, recomputed from the saved results whenever the profile is read (`deriveProgress`, a pure function of the history, no save bump); the piece level comes from `pieceLevels` in `content/curriculum/progression.json`, provisionally `[0, 50, 150, 300, 500, 750, 1050, 1400, 1800, 2250]`. A new attempt saves an XP breakdown with `total: 0`; player XP is the sum of saved totals plus tugs plus trainer XP, so earlier XP is kept. No piece is locked by level (pieces shown are those turned on, ft_1_02c); player levels open scenes only (d113). The score screen shows session piece XP, piece level and bar, and a card shows the level of a played piece.
+Each finished pass earns its piece ft_0_10's XP, recomputed from the saved results whenever the profile is read (`deriveProgress`, a pure function of the history, no save bump); the piece level comes from `pieceLevels` in `content/curriculum/progression.json`, provisionally `[0, 50, 150, 300, 500, 750, 1050, 1400, 1800, 2250]`. A new attempt saves an XP breakdown with `total: 0`; player XP is the sum of saved totals plus tugs plus trainer XP, so earlier XP is kept. No piece is locked by level (pieces shown are those turned on, ft_1_02c), and player levels open nothing (d113). The score screen shows session piece XP, piece level and bar, and a card shows the level of a played piece.
 
 Check: `src/core/progression/pieceLevel.test.ts` "ft_1_13.AC1: a piece earns the ft_0_10 XP of each of its passes, and its level comes from the piece curve"; `src/core/progression/pieceLevel.test.ts` "ft_1_13.AC3: a level-up announces no unlocked pieces: player levels lock no piece"
 
@@ -135,11 +135,11 @@ Check: `src/core/layout/keriMap.test.ts` "ft_1_19.AC2 every scene of the world m
 
 ## d113
 
-**Levelling up opens scenes.** Features: ft_1_19, ft_1_18.
+**Scenes open when they are built; levels open and lock nothing.** Features: ft_1_19, ft_1_18.
 
-A scene carries a `level` in `content/world/keri.json` and is open when the level from total XP (`levelForXp`, `src/core/progression/xp.ts`) is at least that; the knoll (x -50, y -2 m from the lighthouse, good to about 15 m) is level 1. A scene not yet open is painted on the map but is no button. For each reference picture, the agent notes what it sees in `docs/keri/` (map, room, knoll) with improvement tips that are not built until picked.
+Every scene in `content/world/keri.json` is open to every player once it is built, unless it is marked `closed`, which keeps it to the tester until the maintainer opens it (`openScenes`, `src/core/world/openScenes.ts`); no player level opens or locks a scene, a piece or anything else. A closed scene is painted on the map but is no button. The knoll lies at x -50, y -2 m from the lighthouse (good to about 15 m). For each reference picture, the agent notes what it sees in `docs/keri/` (map, room, knoll) with improvement tips that are not built until picked.
 
-Check: `src/core/world/openScenes.test.ts` "ft_1_19.AC2 a scene is open when the student"
+Check: `src/core/world/openScenes.test.ts` "ft_1_19.AC2 every built scene is open to every player"
 
 ## d115
 
@@ -185,7 +185,7 @@ Check: `src/core/exchange/tug.test.ts` "content/challenge/rules.json parses and 
 
 **Characters are met by practising, talked to first, teach phrases for a phrase book, and give an item for a won tug; every character ties to music.** Features: ft_1_21, ft_1_22, ft_1_23, ft_1_19, ft_1_20, ft_1_07.
 
-The challenge is the tug of reputation (one marker, three steps each way; Kiur's practice tug changed by d160); question and answer is the advanced-level challenge. A character can appear only after enough practice in the room (from the practice records, never time spent), semi-randomly in an open scene, replacing d113 point 2 for characters; a lost tug is followed by a cool-down counted in real practice, never hours. Pressing a character opens a conversation first; a won tug gives an item into the band's inventory (ft_1_20). Every character ties to music: it teaches a phrase of its style (three tries, shown on the staff and heard), a phrase becomes "mine" only when played clean in the room on a later day, and learned phrases go in the phrase book (no class screen); phrases are original or public domain. The knowledge layer (a character's field, with control-question levels) is optional, per player, switched under admin, and gated by playing; the birth date is stored as year and month only in the local save, never in reports or logs, and sets the default text level (ft_1_23).
+The challenge is the tug of reputation (one marker, three steps each way; Kiur's practice tug changed by d160); question and answer is the advanced-level challenge. A character can appear only after enough practice in the room (from the practice records, never time spent), semi-randomly in an open scene; a lost tug is followed by a cool-down counted in real practice, never hours. Pressing a character opens a conversation first; a won tug gives an item into the band's inventory (ft_1_20). Every character ties to music: it teaches a phrase of its style (three tries, shown on the staff and heard), a phrase becomes "mine" only when played clean in the room on a later day, and learned phrases go in the phrase book (no class screen); phrases are original or public domain. The knowledge layer (a character's field, with control-question levels) is optional, per player, switched under admin, and gated by playing; the birth date is stored as year and month only in the local save, never in reports or logs, and sets the default text level (ft_1_23).
 
 Check: `src/core/island/presenceRules.test.ts` "needs the practice threshold, never time"; `src/core/exchange/teach.test.ts` "ft_1_22.AC3 the student has three tries"; `src/core/exchange/phraseBook.test.ts` "ft_1_22.AC5 lists every taught phrase by its character"
 
@@ -295,11 +295,11 @@ Check: untestable: product rule on what stays hidden, judged by the maintainer
 
 ## d192
 
-**A player named "tester" (letter case and spaces aside) has every scene open as soon as it is built, whatever the level.** Features: ft_1_19.
+**A player named "tester" (letter case and spaces aside) has every scene open as soon as it is built, a closed one included.** Features: ft_1_19.
 
-So a new scene can be tried before a player's progress opens it. Nothing is saved for it.
+So a new scene can be tried before the maintainer opens it to every player (d113). Nothing is saved for it.
 
-Check: `src/core/world/openScenes.test.ts` "opens every scene there is to the player called tester, whatever the level and the letter case"
+Check: `src/core/world/openScenes.test.ts` "opens every scene there is to the player called tester, a closed one included, whatever the letter case"
 
 ## d193
 
