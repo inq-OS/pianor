@@ -24,6 +24,14 @@ const PLACEHOLDER_ALPHA = 0.3;
 const LIT_ALPHA = 0.55;
 /** The soft box behind the lit prize: the staff cursor's box colour. */
 const LIT_FILL = 0xeceff1;
+/** The staff's parchment, as near as one colour gives it: what a faint clef is mixed onto. */
+const PARCHMENT = 0xf1dead;
+
+/** `ink` laid over `under` at `alpha`, as one solid colour. */
+function mixed(ink: number, under: number, alpha: number): number {
+  const channel = (shift: number) => Math.round(((ink >> shift) & 255) * alpha + ((under >> shift) & 255) * (1 - alpha));
+  return (channel(16) << 16) | (channel(8) << 8) | channel(0);
+}
 
 export function drawPrizes(scene: Phaser.Scene, column: PrizeColumn, origin: { x: number; y: number }, staffSpace: number, options: { withoutClef?: boolean } = {}): Phaser.GameObjects.Graphics {
   const S = staffSpace;
@@ -37,7 +45,7 @@ export function drawPrizes(scene: Phaser.Scene, column: PrizeColumn, origin: { x
     const alpha = p.lit ? LIT_ALPHA : PLACEHOLDER_ALPHA;
     if (p.kind === 'clef') {
       // lifted off the column while it grows on its way to the book (ft_1_32.AC22)
-      if (!options.withoutClef) clef(g, p, S, ink, alpha);
+      if (!options.withoutClef) clef(g, p, S, ink, mixed(STAFF_INK, p.lit ? LIT_FILL : PARCHMENT, alpha));
       continue;
     }
     const whole = p.kind === 'whole';
@@ -77,7 +85,7 @@ export function drawMedalClef(scene: Phaser.Scene, medal: Medal | null, centre: 
   const g = scene.add.graphics().setPosition(centre.x, centre.y);
   const w = PRIZE.clefBox.w * PRIZE.clefScale * S;
   const h = PRIZE.clefBox.h * PRIZE.clefScale * S;
-  clef(g, { x: -w / 2, y: -h / 2 }, S, medal ? MEDAL_INK[medal] : null, PLACEHOLDER_ALPHA);
+  clef(g, { x: -w / 2, y: -h / 2 }, S, medal ? MEDAL_INK[medal] : null, mixed(STAFF_INK, PARCHMENT, PLACEHOLDER_ALPHA));
   return g;
 }
 
@@ -86,8 +94,11 @@ export function clefSpaceFor(height: number): number {
   return height / (PRIZE.clefBox.h * PRIZE.clefScale);
 }
 
-/** The treble clef at `PRIZE.clefScale`: earned, its rim, its medal along the middle of the stroke and a shine; else a faint thin line. */
-function clef(g: Phaser.GameObjects.Graphics, p: Pick<PrizeGlyph, 'x' | 'y'>, S: number, ink: (typeof MEDAL_INK)[Medal] | null, alpha: number): void {
+/**
+ * The treble clef at `PRIZE.clefScale`: earned, its rim, its medal along the middle of the stroke and a shine; else a thin
+ * line in `faint`, one solid colour, since a see-through path darkens where its segments overlap and shows as beads.
+ */
+function clef(g: Phaser.GameObjects.Graphics, p: Pick<PrizeGlyph, 'x' | 'y'>, S: number, ink: (typeof MEDAL_INK)[Medal] | null, faint: number): void {
   const k = S * PRIZE.clefScale;
   const path = (width: number, colour: number, a: number, points = TREBLE_CLEF_STROKE) => {
     g.lineStyle(width, colour, a).beginPath();
@@ -95,7 +106,7 @@ function clef(g: Phaser.GameObjects.Graphics, p: Pick<PrizeGlyph, 'x' | 'y'>, S:
     g.strokePath();
   };
   if (!ink) {
-    path(S * 0.14, STAFF_INK, alpha);
+    path(S * 0.14, faint, 1);
     return;
   }
   path(S * 0.5, ink.edge, 1);
