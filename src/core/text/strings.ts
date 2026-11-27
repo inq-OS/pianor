@@ -87,7 +87,7 @@ export const strings = {
   'chords.solved': '{n} chords played',
   'chords.stepTip': 'Step: which chords come',
   'ear.level': 'Ear level {n}',
-  'ear.playAgain': 'Play again',
+  'ear.playAgain': 'Listen again',
   'ear.repeatOn': 'Repeat: on',
   'ear.repeatOff': 'Repeat: off',
   'ear.lengthTip': 'Note length',

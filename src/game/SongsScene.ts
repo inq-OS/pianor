@@ -80,7 +80,7 @@ export class SongsScene extends PixelScene {
 
   /** The bookmark back to the pieces, where the song bookmark stood in the piece book. */
   protected override bandActions(): ToolbarItem[] {
-    return [{ label: t('menu.allPieces'), icon: TOOL_ICONS.pieces, iconOnly: true, main: true, onClick: () => startScene(this, 'menu') }];
+    return [{ label: t('menu.group.all'), icon: TOOL_ICONS.bookOpen, iconOnly: true, main: true, onClick: () => startScene(this, 'menu') }];
   }
 
   protected draw(): void {
