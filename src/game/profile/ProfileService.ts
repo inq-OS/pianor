@@ -198,12 +198,15 @@ export class ProfileService {
     return this.persist();
   }
 
-  /** Save the XP of right names in the note-name trainer (ft_0_17.AC3): whole XP that only grows, and it counts towards the level. */
-  async addTrainerXp(xp: number): Promise<boolean> {
+  /**
+   * Save the XP of right names in a trainer (ft_0_17.AC3): whole XP that only grows, and it counts towards the level.
+   * `levelUp` is the player level the XP reached, null when none (ft_0_17.AC12); `saved` whether it was stored.
+   */
+  async addTrainerXp(xp: number): Promise<{ saved: boolean; levelUp: number | null }> {
     const outcome = addTrainerXp(this.active, xp, this.options.config);
     this.active = outcome.profile;
     this.derived = outcome.after;
-    return this.persist();
+    return { saved: await this.persist(), levelUp: outcome.levelUp };
   }
 
   /** The pitch trainer by ear's points (ft_1_10, version 16): whole points that only grow; not XP. */

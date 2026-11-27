@@ -22,6 +22,15 @@ describe('trainer XP (ft_0_17.AC3)', () => {
     expect(addTrainerXp(current, 0, config).after.totalXp).toBe(50);
   });
 
+  it('ft_0_17.AC12: reports the new player level when the XP reaches it, else none', () => {
+    const toLevel2 = config.levels[1]!;
+    const below = addTrainerXp(profile(), toLevel2 - 1, config);
+    expect(below.levelUp).toBeNull();
+    const reached = addTrainerXp(below.profile, 1, config);
+    expect(reached.levelUp).toBe(2);
+    expect(addTrainerXp(reached.profile, 1, config).levelUp).toBeNull();
+  });
+
   it('ignores negative and fractional amounts: the XP is whole and never taken away', () => {
     const outcome = addTrainerXp(profile(), -5, config);
     expect(outcome.after.totalXp).toBe(0);

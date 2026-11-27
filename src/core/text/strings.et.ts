@@ -69,6 +69,9 @@ export const stringsEt: Record<StringKey, string> = {
   'theory.again': 'Uus voor',
   'theory.naming': '{n}',
   'theory.namingTip': 'Tähenimed: B või H',
+  // a trainer's round result, one objective line (ft_0_17.AC11): one, and any other number
+  'trainer.roundResultOne': '{n} õige, {xp} XP',
+  'trainer.roundResult': '{n} õiget, {xp} XP',
   'theory.wrongOctave': 'Õige täht, vale oktav',
   'shapes.keyTip': 'Helistik: vali see kvindiringilt',
   'shapes.scale': 'Gamma',

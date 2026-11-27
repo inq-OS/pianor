@@ -71,6 +71,9 @@ export const strings = {
   'theory.again': 'New round',
   'theory.naming': '{n}',
   'theory.namingTip': 'Letter names: B or H',
+  // a trainer's round result, one objective line (ft_0_17.AC11): one, and any other number
+  'trainer.roundResultOne': '{n} correct, {xp} XP',
+  'trainer.roundResult': '{n} correct, {xp} XP',
   'theory.wrongOctave': 'Right letter, wrong octave',
   // the scales and chords trainer (ft_1_29 slice A)
   'shapes.keyTip': 'Key: choose it on the circle of fifths',
