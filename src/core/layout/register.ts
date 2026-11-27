@@ -9,13 +9,16 @@ export const REGISTER = {
   /** The book's cover from the screen's side and from the main area's top. */
   side: 3,
   top: 1,
-  /** Bare page between the cover's edge and the writing, on the left page and at the right page's outer edge. */
-  margin: 11,
-  edge: 8,
-  /** Bare page each side of the gutter. */
-  gutter: 7,
+  /**
+   * Bare page between the cover's edge and the writing, on the left page and at the right page's outer edge: past the
+   * pages' torn edges (`paintBook`), so no letter is written on them.
+   */
+  margin: 16,
+  edge: 14,
+  /** Bare page each side of the gutter: on the right page past the ribbon that comes out of it. */
+  gutter: 8,
   /** The heading's room at the top of a page (one big line), and the stack of leaves and the cover at the foot. */
-  title: 7,
+  title: 9,
   foot: 9,
   /** A ruled line of the table, and the room a pager takes at the foot. */
   row: 13,
