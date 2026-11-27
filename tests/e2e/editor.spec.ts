@@ -1179,7 +1179,7 @@ test.describe('piece maker: the left click, the bubble on a note or a rest, and 
     expect(await rests()).toBe(1);
     await rightClick(page, { bar: 0, start: 0, step: 'B' });
     await clickButton(page, 'editor', await lastButton(page, 'editor', 'Delete'));
-    expect(await rests()).toBe(0);
+    await expect.poll(rests).toBe(0);
     expectNoErrors(errors);
   });
 

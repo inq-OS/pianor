@@ -3261,18 +3261,26 @@ export class EditorScene extends PixelScene {
     return this.meterAsk === null;
   }
 
-  /** A bubble on a note opens beside its head, so the note it acts on stays in view (ft_1_02d.AC52). */
+  /** A bubble on a note or a placed rest opens beside it, so what it acts on stays in view (ft_1_02d.AC52). */
   protected override bubbleBeside(at: { x: number; y: number }): Rect | null {
     const hit = this.hit({ x: this.root.x + at.x * this.px.scale, y: this.root.y + at.y * this.px.scale });
-    const head = hit?.kind === 'note' ? this.layout?.notes.find((n) => n.index === hit.noteIndex) : undefined;
-    if (!head) return null;
-    // the head and a head's width round it, in art pixels
+    if (!this.layout || !this.chart || !hit) return null;
+    const S = this.layout.staffSpace;
+    let box: { x: number; y: number; rx: number; ry: number } | null = null;
+    if (hit.kind === 'note') {
+      const head = this.layout.notes.find((n) => n.index === hit.noteIndex);
+      // the head and a head's width round it
+      if (head) box = { x: head.x, y: head.y, rx: 2 * head.headRx, ry: head.headRy };
+    } else if (hit.kind === 'place' && this.restAt({ hand: this.handOf(hit.trackId), bar: hit.bar, start: hit.start })) {
+      // a rest stands round the staff's middle line
+      const middle = pointOf(this.layout, this.chart, { bar: hit.bar, start: hit.start, staff: hit.staff, position: 4 });
+      if (middle) box = { x: middle.x, y: middle.y, rx: S, ry: 1.5 * S };
+    }
+    if (!box) return null;
     const scale = this.px.scale;
-    const x1 = (this.staffLeft + head.x - 2 * head.headRx - this.root.x) / scale;
-    const x2 = (this.staffLeft + head.x + 2 * head.headRx - this.root.x) / scale;
-    const y1 = (this.staffTop + head.y - head.headRy - this.root.y) / scale;
-    const y2 = (this.staffTop + head.y + head.headRy - this.root.y) / scale;
-    return { x: Math.floor(x1), y: Math.floor(y1), w: Math.ceil(x2 - x1), h: Math.ceil(y2 - y1) };
+    const x1 = (this.staffLeft + box.x - box.rx - this.root.x) / scale;
+    const y1 = (this.staffTop + box.y - box.ry - this.root.y) / scale;
+    return { x: Math.floor(x1), y: Math.floor(y1), w: Math.ceil((2 * box.rx) / scale), h: Math.ceil((2 * box.ry) / scale) };
   }
 
   protected override bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
