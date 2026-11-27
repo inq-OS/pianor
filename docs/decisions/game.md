@@ -588,3 +588,11 @@ Check: untestable: lesson wording and order are content; ft_1_39's lesson linter
 A lesson is ready once every lesson it needs has a medal, and the suggested next lesson is the ready one in the lowest stage; the book stays sorted by area as the map of everything. A tree gives a curriculum that mixes subjects in a sensible order while the student may still open any lesson.
 
 Check: untestable: the tree becomes data with slice 2 of ft_1_39, whose loop check and ready rule get their tests then.
+
+## d306
+
+**A tug or a teaching is left by the corner Back as by Esc, nudges an idle turn once, and names why each wrong phrase missed.** Features: ft_1_21, ft_1_22.
+
+The corner Back stays pressable over a tug or a teaching and leaves it as Esc does, with nothing won or lost. After 20 seconds of the student's turn in Wait mode with no note played, the character says one short line once (`tug.yourTurn`). A student phrase's fact names the first wrong key's reason (wrong octave, neighbour key, wrong letter), else in Tempo mode whether its notes came in early or late; a way out and a reason keep a young student playing instead of stuck or guessing (AX-0, AX-2.1).
+
+Check: `tests/e2e/tug.spec.ts` "the corner Back is pressable over the tug and leaves it as Esc does, with nothing kept"; `tests/e2e/teach.spec.ts` "a try with no note played for a while: he says once whose turn it is, and the first note ends the line"; `src/core/exchange/tugPlay.test.ts` "ft_1_21.AC7 a neighbour key and a wrong letter each say their reason, as a wrong octave does"
