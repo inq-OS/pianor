@@ -127,6 +127,32 @@ describe('grace notes (core_09.AC34, d121)', () => {
   });
 });
 
+describe('grace groups and ornament signs (core_09.AC61, d306)', () => {
+  // 120 bpm: a quarter is 500 ms, a thirty-second 62.5 ms
+  const notes3 = [{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 62 }, { tick: 960, dur: 960, midi: 64 }];
+  const pitch = (midi: number) => graceAt(0, midi).pitch;
+
+  it('core_09.AC61 a grace group plays one grace after another, 60 ms each, the last ending at the main note', () => {
+    const notes = playbackNotes(chartWith(notes3, { graces: [graceAt(960, 67), graceAt(960, 65)] }));
+    expect(notes.filter((n) => n.grace).map((n) => [n.midi, n.startMs, n.endMs])).toEqual([[67, 880, 940], [65, 940, 1000]]);
+  });
+
+  it('core_09.AC61 an upper mordent sounds main, upper, main on its note; the first lights the note, the main notes around it are unchanged', () => {
+    const chart = chartWith(notes3, { ornaments: [{ track: 'rh', voice: 1, tick: 480, kind: 'upperMordent', upper: pitch(64) }] });
+    const notes = playbackNotes(chart);
+    expect(notes.map((n) => [n.midi, n.startMs, n.endMs])).toEqual([[60, 0, 500], [62, 500, 562.5], [64, 562.5, 625], [62, 625, 1000], [64, 1000, 2000]]);
+    expect(notes[1]).toMatchObject({ noteIndexes: [1] });
+    expect(notes[2]).toMatchObject({ noteIndexes: [], ornament: true });
+  });
+
+  it('core_09.AC61 a trill fills its note at any tempo and ends with the note', () => {
+    const chart = chartWith(notes3, { ornaments: [{ track: 'rh', voice: 1, tick: 960, kind: 'trill', upper: pitch(65) }] });
+    const trill = playbackNotes(chart, { tempoScale: 0.5 }).filter((n) => n.startMs >= 2000);
+    expect(trill.map((n) => n.midi).slice(0, 4)).toEqual([64, 65, 64, 65]);
+    expect(trill.at(-1)).toMatchObject({ midi: 64, endMs: 4000 });
+  });
+});
+
 describe('soundingAt', () => {
   const notes = playbackNotes(melody());
 

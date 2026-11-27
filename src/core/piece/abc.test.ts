@@ -546,15 +546,21 @@ describe('grace notes (core_09.AC31)', () => {
   // Covers core_09.AC31.
   it('reads {g}C as a plain grace note and {/g}C as a slashed one, before the main note', () => {
     const plain = items('{g}C D E F |]');
-    expect(plain[0]).toMatchObject({ kind: 'notes', tick: 0, dur: 480, notes: [{ midi: 60 }], grace: { note: { midi: 79, spelling: { step: 'G', alter: 0, octave: 5 } }, slash: false } });
+    expect(plain[0]).toMatchObject({ kind: 'notes', tick: 0, dur: 480, notes: [{ midi: 60 }], graces: [{ note: { midi: 79, spelling: { step: 'G', alter: 0, octave: 5 } }, slash: false }] });
     expect(plain[1]).toMatchObject({ tick: 480, dur: 480 });
-    expect(items('{/g}C D E F |]')[0]).toMatchObject({ grace: { slash: true } });
-    expect(items('{^F}G D E F |]')[0]).toMatchObject({ grace: { note: { midi: 66, spelling: { step: 'F', alter: 1, octave: 4 } } } });
+    expect(items('{/g}C D E F |]')[0]).toMatchObject({ graces: [{ slash: true }] });
+    expect(items('{^F}G D E F |]')[0]).toMatchObject({ graces: [{ note: { midi: 66, spelling: { step: 'F', alter: 1, octave: 4 } } }] });
   });
 
-  // Covers core_09.AC31.
-  it('refuses two notes in the braces, with their position', () => {
-    expect(only('{gCD}E F G A |]')).toMatchObject({ line: 7, column: 1, message: expect.stringContaining('takes one note') });
+  it('core_09.AC60 reads a grace group in the order written, with the accidentals held to the bar line', () => {
+    const [first] = items('{^FGA}B C D E |]');
+    expect(first).toMatchObject({ graces: [{ note: { midi: 66 } }, { note: { midi: 67 } }, { note: { midi: 69 } }] });
+    expect(items('{cBc}d C D E |]')[0]).toMatchObject({ graces: [{ note: { midi: 72 } }, { note: { midi: 71 } }, { note: { midi: 72 } }] });
+  });
+
+  it('core_09.AC60 refuses a group of five, two of one pitch in a row, and a second pair of braces, with their position', () => {
+    expect(only('{gfgfg}E F G A |]')).toMatchObject({ line: 7, column: 1, message: expect.stringContaining('at most 4') });
+    expect(only('{gg}E F G A |]')).toMatchObject({ line: 7, column: 1, message: expect.stringContaining('in a row') });
   });
 
   // Covers core_09.AC31.
@@ -573,7 +579,30 @@ describe('grace notes (core_09.AC31)', () => {
   it('refuses an unclosed brace, a grace with the main note pitch and a second grace on one note', () => {
     expect(only('{gC D E F |]')).toMatchObject({ line: 7, column: 1, message: expect.stringContaining('must end with "}"') });
     expect(only('{C}C D E F |]')).toMatchObject({ line: 7, column: 1, message: expect.stringContaining('same pitch') });
-    expect(only('{g}{/g}C D E F |]')).toMatchObject({ line: 7, column: 4, message: expect.stringContaining('one grace note') });
+    expect(only('{g}{/g}C D E F |]')).toMatchObject({ line: 7, column: 4, message: expect.stringContaining('one grace group') });
+  });
+});
+
+describe('ornament signs (core_09.AC60, d306)', () => {
+  it('core_09.AC60 reads !trill!, !uppermordent!, !pralltriller!, !lowermordent!, !mordent! and !turn! on the next note, with the neighbours spelled in the key', () => {
+    expect(items('!trill!C D E F |]')[0]).toMatchObject({ ornament: { kind: 'trill', upper: { midi: 62 } } });
+    expect(items('!uppermordent!C !pralltriller!D E F |]').map((i) => i.kind === 'notes' && i.ornament?.kind)).toEqual(['upperMordent', 'upperMordent', undefined, undefined]);
+    expect(items('!mordent!C !lowermordent!D E F |]')[0]).toMatchObject({ ornament: { kind: 'lowerMordent', lower: { midi: 59, spelling: { step: 'B', octave: 3 } } } });
+    const turn = items('!turn!E F G A |]', 'X:1\nT:Test\nM:4/4\nL:1/4\nQ:1/4=100\nK:G\n')[0];
+    expect(turn).toMatchObject({ ornament: { kind: 'turn', upper: { spelling: { step: 'F', alter: 1 } }, lower: { midi: 62 } } });
+  });
+
+  it('core_09.AC60 a neighbour takes the accidental written earlier in the bar', () => {
+    expect(items('^F !turn!G A B |]')[1]).toMatchObject({ ornament: { upper: { midi: 69 }, lower: { midi: 66 } } });
+  });
+
+  it('core_09.AC60 refuses a sign on a chord, a rest, the second note of a tie, with no note after it, and two signs on one note', () => {
+    expect(only('!trill![CE] F G A |]')).toMatchObject({ line: 7, column: 1, message: expect.stringContaining('single note') });
+    expect(only('!trill!z F G A |]')).toMatchObject({ line: 7, column: 1, message: expect.stringContaining('rest') });
+    expect(only('C-!trill!C D E |]')).toMatchObject({ line: 7, column: 3, message: expect.stringContaining('second note of a tie') });
+    expect(only('C D E F !trill!| G A B C |]')).toMatchObject({ line: 7, column: 9, message: expect.stringContaining('needs a note after it') });
+    expect(only('!trill!!turn!C D E F |]')).toMatchObject({ line: 7, column: 8, message: expect.stringContaining('one ornament') });
+    expect(only('!trill!^B, D E F |]')).toMatchObject({ line: 7, column: 1, message: expect.stringContaining('neighbour note that sounds above') });
   });
 });
 
@@ -594,6 +623,14 @@ describe('grace notes in the chart (core_09.AC31)', () => {
     expect(graced.chart!.bars).toEqual(plain.chart!.bars);
     expect(graced.chart!.meterMap).toEqual(plain.chart!.meterMap);
     expect(graced.chart!.tempoMap).toEqual(plain.chart!.tempoMap);
+  });
+
+  it('core_09.AC60 compiles a grace group in playing order and a sign with its neighbours, the notes unchanged', () => {
+    const out = compile('{/fe}d !trill!C D E |]');
+    expect(out.diagnostics).toEqual([]);
+    expect(out.chart!.graces!.map((g) => g.pitch.midi)).toEqual([77, 76]);
+    expect(out.chart!.ornaments).toEqual([{ track: out.chart!.notes[1]!.track, voice: 1, tick: 480, kind: 'trill', upper: { midi: 62, spelling: { step: 'D', alter: 0, octave: 4 } } }]);
+    expect(out.chart!.notes).toEqual(compile('d C D E |]').chart!.notes);
   });
 });
 

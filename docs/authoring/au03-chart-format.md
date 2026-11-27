@@ -29,6 +29,7 @@ The shape below is generated from the zod schema in `src/core/chart/schema.ts`, 
   repeats?: [{ startBar: int>=0, endBar: int>=0, endings?: { first: { startBar: int>=0, endBar: int>=0 }, second: { startBar: int>=0, endBar: int>=0 } } }]
   slurs?: [{ track: string, voice: int>=1, startTick: int>=0, endTick: int>=0 }]
   graces?: [{ track: string, voice: int>=1, tick: int>=0, pitch: { midi: int>=0, spelling: { step: "C" | "D" | "E" | "F" | "G" | "A" | "B", alter: int>=-2, octave: int>=-1 } }, slash: boolean }]
+  ornaments?: [{ track: string, voice: int>=1, tick: int>=0, kind: "trill" | "upperMordent" | "lowerMordent" | "turn", upper?: { midi: int>=0, spelling: { step: "C" | "D" | "E" | "F" | "G" | "A" | "B", alter: int>=-2, octave: int>=-1 } }, lower?: { midi: int>=0, spelling: { step: "C" | "D" | "E" | "F" | "G" | "A" | "B", alter: int>=-2, octave: int>=-1 } } }]
   tuplets?: [{ track: string, voice: int>=1, startTick: int>=0, endTick: int>=0, actual: int>=2, normal: int>=1 }]
   range: { low: int>=0, high: int>=0 }
 }
@@ -38,6 +39,10 @@ The shape below is generated from the zod schema in `src/core/chart/schema.ts`, 
 Bars, notes and phrases are **0-based** in the chart (`bar`, `startBar`, `endBar`); the meta file's `phrases[].bars` is 1-based and inclusive for humans, and the compiler converts. `rests` are explicit so the renderer does not have to infer them. `octave` is -1 to 9 so every MIDI number has a spelling. Implemented and validated in `src/core/chart/schema.ts`.
 
 `slurs` (optional, core_09.AC26, d120) lists written slurs as `{ track, voice, startTick, endTick }`: legato from the note starting at `startTick` to the note starting at `endTick`, in one track and voice. Both ends must be notes of that voice, the slur spans two or more different onsets, and slurs of one voice do not overlap. `unrollRepeats` copies a slur into each pass of a repeat, and computer playback holds each slurred note to the next note's onset. The file has no `schemaVersion` bump: older charts without `slurs` read unchanged.
+
+`graces` (optional, core_09.AC31, d121) lists grace notes as `{ track, voice, tick, pitch, slash }`, `tick` the start of the note they go before; several on one note are a group (at most four, core_09.AC60, [d306](../decisions/notation.md#d306)) in the order they are played, as they stand in the list. Two in a row differ in pitch, and the last differs from its note.
+
+`ornaments` (optional, core_09.AC60, [d306](../decisions/notation.md#d306)) lists ornament signs as `{ track, voice, tick, kind, upper?, lower? }` on the single note of that track and voice starting at `tick`, one a note: `kind` is `trill`, `upperMordent`, `lowerMordent` or `turn`, and `upper` and `lower` are the spelled neighbours it uses (a trill and an upper mordent the upper one, a lower mordent the lower one, a turn both), above and below the note. `unrollRepeats` copies them into each pass, and a section keeps those of its notes. No `schemaVersion` bump.
 
 `tuplets` (optional, core_09.AC49, [d163](../decisions/notation.md#d163)) lists written tuplets as `{ track, voice, startTick, endTick, actual, normal }`: the notes and rests of one track and voice from the one starting at `startTick` to the one starting at `endTick` (both members) are `actual` in the time of `normal`, so each note's `dur` is its played length, `normal / actual` of its written one (an eighth triplet: 160 ticks, written as an eighth). Both ends must start a note or rest of that voice and tuplets of one voice do not overlap. Only triplets (3:2) are compiled and drawn. `unrollRepeats` copies a tuplet into each pass, and a section keeps the tuplets of its bars. No `schemaVersion` bump: older charts without `tuplets` read unchanged.
 

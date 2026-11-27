@@ -11,7 +11,8 @@
 import { PPQ } from '../chart/time';
 import { printedAccidentals } from '../chart/key';
 import { abcPitch } from '../chart/pitch';
-import type { Chart, ChartNote } from '../chart/schema';
+import { MAX_GRACE_GROUP, type Chart, type ChartNote } from '../chart/schema';
+import { ORNAMENT_DECORATION } from '../chart/ornaments';
 import { abcBarLine } from '../editor/repeats';
 import { abcKey } from '../editor/key';
 import { cleanTitle } from '../editor/abc';
@@ -57,7 +58,10 @@ interface Onset {
   bar: number;
   notes: ChartNote[];
   tie: boolean;
-  grace?: NonNullable<Chart['graces']>[number];
+  /** The grace note or group before it, in playing order (core_09.AC60). */
+  graces?: NonNullable<Chart['graces']>[number][];
+  /** Its ornament sign (core_09.AC66). */
+  ornament?: NonNullable<Chart['ornaments']>[number];
   opens: boolean;
   closes: boolean;
 }
@@ -193,7 +197,7 @@ function crossesRepeat(frame: Frame, from: number, to: number): boolean {
   return false;
 }
 
-/** Ties, grace notes and slurs where the subset can hold them; the rest left out, each with a warning. */
+/** Ties, grace notes, ornament signs and slurs where the subset can hold them; the rest left out, each with a warning. */
 function placeMarks(chart: Chart, frame: Frame, hand: EditorHand, onsets: Onset[], place: Place, warnings: string[]): void {
   const track = frame.tracks.get(hand)!.id;
   const leftOut = (o: Onset, what: string) => warnings.push(problemLabel(place(hand, o.bar, o.tick, what)));
@@ -212,12 +216,14 @@ function placeMarks(chart: Chart, frame: Frame, hand: EditorHand, onsets: Onset[
     const i = indexAt.get(g.tick);
     if (g.track !== track || i === undefined) continue;
     const o = onsets[i]!;
-    if (o.grace) leftOut(o, 'a second grace note on one note is left out');
+    if (o.graces && o.graces.length >= MAX_GRACE_GROUP) leftOut(o, `a grace note past ${MAX_GRACE_GROUP} on one note is left out`);
     else if (o.notes.length > 1) leftOut(o, 'a grace note before a chord is left out');
     else if (onsets[i - 1]?.tie) leftOut(o, 'a grace note on the second note of a tie is left out');
-    else if (g.pitch.midi === o.notes[0]!.midi) leftOut(o, "a grace note of its main note's pitch is left out");
-    else o.grace = g;
+    else if (o.graces?.at(-1)?.pitch.midi === g.pitch.midi) leftOut(o, 'a grace note of the pitch of the grace before it is left out');
+    else if (isLastGrace(chart, g) && g.pitch.midi === o.notes[0]!.midi) leftOut(o, "a grace note of its main note's pitch is left out");
+    else o.graces = [...(o.graces ?? []), g];
   }
+  placeOrnaments(chart, track, onsets, indexAt, leftOut);
   const kept: [number, number][] = [];
   const slurs = (chart.slurs ?? []).filter((s) => s.track === track).sort((a, b) => a.startTick - b.startTick);
   for (const s of slurs) {
@@ -237,10 +243,28 @@ function placeMarks(chart: Chart, frame: Frame, hand: EditorHand, onsets: Onset[
   }
 }
 
+/** Ornament signs (core_09.AC66) on single notes that are not the second note of a tie; the rest left out with a warning. */
+function placeOrnaments(chart: Chart, track: string, onsets: Onset[], indexAt: ReadonlyMap<number, number>, leftOut: (o: Onset, what: string) => void): void {
+  for (const sign of chart.ornaments ?? []) {
+    const i = indexAt.get(sign.tick);
+    if (sign.track !== track || i === undefined) continue;
+    const o = onsets[i]!;
+    if (o.notes.length > 1) leftOut(o, 'an ornament on a chord is left out');
+    else if (onsets[i - 1]?.tie) leftOut(o, 'an ornament on the second note of a tie is left out');
+    else o.ornament = sign;
+  }
+}
+
+/** No grace of the chart follows `g` on its note: it is the one played right before the note. */
+function isLastGrace(chart: Chart, g: NonNullable<Chart['graces']>[number]): boolean {
+  const all = chart.graces ?? [];
+  return !all.slice(all.indexOf(g) + 1).some((o) => o.track === g.track && o.voice === g.voice && o.tick === g.tick);
+}
+
 /** The accidental written before each note, in the order the notes are written (each grace before its note). */
 function accidentalsOf(onsets: readonly Onset[], fifths: number): string[] {
   const written = onsets.flatMap((o) => [
-    ...(o.grace ? [{ ...o.grace.pitch.spelling, tick: o.tick, bar: o.bar }] : []),
+    ...(o.graces ?? []).map((g) => ({ ...g.pitch.spelling, tick: o.tick, bar: o.bar })),
     ...o.notes.map((n) => ({ ...n.spelling, tick: o.tick, bar: o.bar, tieNext: o.tie })),
   ]);
   return printedAccidentals(written, fifths).map((a) => (a === null ? '' : ACCIDENTALS[a]!));
@@ -261,11 +285,12 @@ function restsFor(ticks: number): string[] {
 /** One onset as ABC: dynamic, slur start, grace, fingerings and accidentals, the length, tie and slur end. */
 function onsetText(o: Onset, marks: () => string): string {
   let grace = '';
-  if (o.grace) grace = `{${o.grace.slash ? '/' : ''}${marks()}${abcPitch(o.grace.pitch.spelling.step, o.grace.pitch.spelling.octave)}}`;
+  if (o.graces) grace = `{${o.graces[0]!.slash ? '/' : ''}${o.graces.map((g) => `${marks()}${abcPitch(g.pitch.spelling.step, g.pitch.spelling.octave)}`).join('')}}`;
+  const sign = o.ornament ? `!${ORNAMENT_DECORATION[o.ornament.kind]}!` : '';
   const pitches = o.notes.map((n) => `${n.finger === undefined ? '' : `!${n.finger}!`}${marks()}${abcPitch(n.spelling.step, n.spelling.octave)}`);
   const dynamic = o.notes.find((n) => n.dynamic !== undefined)?.dynamic;
   const body = pitches.length > 1 ? `[${pitches.join('')}]` : pitches[0]!;
-  return `${dynamic ? `!${dynamic}!` : ''}${o.opens ? '(' : ''}${grace}${body}${ABC_LENGTHS.get(o.dur)}${o.tie ? '-' : ''}${o.closes ? ')' : ''}`;
+  return `${dynamic ? `!${dynamic}!` : ''}${o.opens ? '(' : ''}${grace}${sign}${body}${ABC_LENGTHS.get(o.dur)}${o.tie ? '-' : ''}${o.closes ? ')' : ''}`;
 }
 
 function voiceText(frame: Frame, onsets: readonly Onset[], fifths: number): string {

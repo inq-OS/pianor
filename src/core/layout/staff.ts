@@ -19,7 +19,7 @@ import { tieLinks } from '../chart/ties.ts';
 import { beatTicksOf, planBeams, type BeamInput, type BeamRun } from './beams.ts';
 import { chordNotesLabel, noteLabel, type NoteNaming } from '../text/noteName.ts';
 import { ACCIDENTAL_BOX, accidentalColumns, accidentalKind, keyChangeSigns, keySignaturePositions, signRooms } from './accidentals.ts';
-import type { NoteValue, StaffLayoutOptions, BarSpacing, StaffReserve, NoteGlyph, GraceGlyph, RestGlyph, BeamGlyph, TieGlyph, SlurGlyph, TupletGlyph, EndingGlyph, KeyAccidentalGlyph, StaffInfo, SystemLayout, BarLayout, BarRoom, TimeSignatureLayout, StaffLayout } from './staffTypes.ts';
+import type { NoteValue, StaffLayoutOptions, BarSpacing, StaffReserve, NoteGlyph, GraceGlyph, OrnamentGlyph, RestGlyph, BeamGlyph, TieGlyph, SlurGlyph, TupletGlyph, EndingGlyph, KeyAccidentalGlyph, StaffInfo, SystemLayout, BarLayout, BarRoom, TimeSignatureLayout, StaffLayout } from './staffTypes.ts';
 
 export type { NoteValue, StaffLayoutOptions, BarSpacing, NoteGlyph, BeamGlyph, TieGlyph, SlurGlyph, TupletGlyph, BarLayout, StaffLayout } from './staffTypes.ts';
 export { ACCIDENTAL_BOX, accidentalColumns, accidentalKind, keySignaturePositions, type AccidentalKind } from './accidentals.ts';
@@ -96,6 +96,8 @@ const GRACE_GAP = 0.4;
 const GRACE_CLEAR = 0.5;
 /** How far a grace's slash reaches either side of its stem, in staff spaces. */
 const GRACE_SLASH = 0.3;
+/** Staff spaces between the ink of two graces of one group (core_09.AC60). */
+const GRACE_STEP_GAP = 0.25;
 /** How far an eighth's flag reaches right of its stem at normal size, in staff spaces (as `StaffView` draws it). */
 const FLAG_REACH = 0.85;
 /** Gap between a tie and the grace in front of its tied-to note, in staff spaces. */
@@ -110,6 +112,10 @@ const TUPLET_DIGIT = 1.1;
 const TUPLET_GAP = 0.35;
 const TUPLET_ROOM = TUPLET_GAP + TUPLET_DIGIT + 0.2;
 const TUPLET_HOOK = 0.5;
+/** An ornament sign's box and its gap over the note or staff, in staff spaces (core_09.AC60). */
+export const ORNAMENT_BOX = { width: 2, height: 1.2 };
+const ORNAMENT_GAP = 0.5;
+const ORNAMENT_ROOM = ORNAMENT_GAP + ORNAMENT_BOX.height;
 /** How far a quarter or eighth rest reaches up and down from the middle line, in staff spaces. */
 const REST_REACH = 1.5;
 
@@ -184,11 +190,29 @@ interface AccidentalPlan {
  * The head, its ledger lines, an acciaccatura's slash and (on an up stem) its flag set the reach to the right; the left
  * reach is taken as at least the right one, which also covers the slash of a grace with its stem down.
  */
-function graceSides(alter: number | null, slash: boolean, position: number): { left: number; right: number; reach: number } {
+/** The graces of a staff by main note, each group in its playing order (core_09.AC60). */
+function graceGroupsOf(s: Pick<StaffSpec, 'graces'>): StaffSpec['graces'][] {
+  const byMain = new Map<number, StaffSpec['graces']>();
+  for (const g of s.graces) byMain.set(g.main, [...(byMain.get(g.main) ?? []), g]);
+  return [...byMain.values()];
+}
+
+/**
+ * The sides of the `k`th grace of a group: a single grace as `graceSides`; in a group of two or more the stems point up
+ * and are beamed (no flag), and the slash, when the group has one, crosses the first stem only.
+ */
+function graceSidesIn(group: StaffSpec['graces'], k: number, alter: number | null, clef: Clef): { left: number; right: number; reach: number } {
+  const g = group[k]!.grace;
+  const position = staffPosition(g.pitch.spelling, clef);
+  if (group.length === 1) return graceSides(alter, g.slash, position);
+  return graceSides(alter, g.slash && k === 0, position, true);
+}
+
+function graceSides(alter: number | null, slash: boolean, position: number, beamed = false): { left: number; right: number; reach: number } {
   const headR = GLYPH.head.rx * GRACE_SCALE;
   // as for a normal head, the accidental stands clear of the head's ledger line
   const reach = headReach(position, GLYPH.head.rx) * GRACE_SCALE;
-  const flagRight = slash && chordStemUp(position, position) ? headR + FLAG_REACH * GRACE_SCALE : 0;
+  const flagRight = slash && !beamed && chordStemUp(position, position) ? headR + FLAG_REACH * GRACE_SCALE : 0;
   const right = Math.max(reach, slash ? headR + GRACE_SLASH : 0, flagRight);
   const accidentalLeft = alter === null ? 0 : reach + (ACCIDENTAL_GAP + ACCIDENTAL_BOX[accidentalKind(alter)].width) * GRACE_SCALE;
   return { left: Math.max(right, accidentalLeft), right, reach };
@@ -265,10 +289,13 @@ function planAccidentals(chart: Chart, staves: readonly StaffSpec[]): Accidental
   // A grace's room (core_09.AC32) is all the ink left of its main note's column: the main chord's accidentals or heads
   // (`leftOf`), the gap, the grace with its accidental, and a clear margin. It holds the accidental room of that tick, so
   // it takes the larger of the two, never their sum.
+  // A grace group (core_09.AC60) stands side by side, so its room is the sum of its graces' ink and the gaps between them.
   for (const s of staves) {
-    for (const g of s.graces) {
-      const { left, right } = graceSides(graceAlterOf.get(g.index) ?? null, g.grace.slash, staffPosition(g.grace.pitch.spelling, s.track.clef));
-      const room = leftOf.get(g.main)! + GRACE_GAP + right + left + GRACE_CLEAR;
+    for (const group of graceGroupsOf(s)) {
+      const widths = group.map((g, k) => graceSidesIn(group, k, graceAlterOf.get(g.index) ?? null, s.track.clef));
+      const ink = widths.reduce((sum, w) => sum + w.left + w.right, 0) + (group.length - 1) * GRACE_STEP_GAP;
+      const g = group[0]!;
+      const room = leftOf.get(g.main)! + GRACE_GAP + ink + GRACE_CLEAR;
       const tick = g.grace.tick;
       roomByTick.set(tick, { bar: g.bar, room: Math.max(room, roomByTick.get(tick)?.room ?? 0) });
     }
@@ -356,12 +383,12 @@ interface Rooms {
 /** Staff spaces an ending's bracket and its number take above the staff (core_09.AC47). */
 const ENDING_ROOM = 1.6;
 
-type RoomGroup = { low: number; high: number; size: number; up?: boolean; tuplet?: TupletSide; lines?: number };
+type RoomGroup = { low: number; high: number; size: number; up?: boolean; tuplet?: TupletSide; lines?: number; sign?: true };
 
 function staffRooms(groups: readonly RoomGroup[], clef: Clef, eighths: boolean, scoreRoom: boolean): Rooms {
   let above = clef === 'treble' ? 1.5 : 1.2; // treble clef curls 1.5 above the top line; the cursor box reaches 1.2
   let below = clef === 'treble' ? 1.5 : 1.2;
-  for (const { low, high, size, up, tuplet, lines } of groups) {
+  for (const { low, high, size, up, tuplet, lines, sign } of groups) {
     // a chord's tempo scores stack above its finger spot, one step per further note
     const stack = scoreRoom ? (size - 1) * SCORE_STEP : 0;
     // A beamed run shares one stem direction (`up`, from the beam plan, core_09.AC40); a reserved note that may be beamed
@@ -370,7 +397,9 @@ function staffRooms(groups: readonly RoomGroup[], clef: Clef, eighths: boolean, 
     for (const up of directions) {
       const tip = stemTip(low, high, up) / 2; // height above the bottom line
       // a triplet's number (or bracket) stands beyond the notes on its side (core_09.AC50), and the hints beyond it
-      const highest = Math.max(high / 2 + 0.5, up ? tip : -Infinity) + (tuplet === 'above' ? TUPLET_ROOM : 0);
+      // an ornament sign (core_09.AC60) stands over the top line or the note, whichever is higher
+      const noteTop = Math.max(high / 2 + 0.5, up ? tip : -Infinity) + (tuplet === 'above' ? TUPLET_ROOM : 0);
+      const highest = sign ? Math.max(noteTop, 4) + ORNAMENT_ROOM : noteTop;
       const lowest = Math.min(low / 2 - 0.5, up ? Infinity : tip) - (tuplet === 'below' ? TUPLET_ROOM : 0);
       above = Math.max(above, highest + 0.7 + LABEL_HALF + stack - 4);
       below = Math.max(below, -(lowest - 0.7 - LABEL_HALF) + ((lines ?? 1) - 1) * LABEL_LINE);
@@ -637,11 +666,12 @@ function planFrame(chart: Chart, staves: readonly StaffSpec[], keys: KeyPlan, op
   // chord's stem starts at its far head, so it reaches further than a single note's
   const reserved = reserve ? reserveGroups(reserve) : [];
   const rooms = staves.map((s) => {
-    const graceGroups = s.graces.map(({ grace }) => {
+    const graceGroups = graceGroupsOf(s).flatMap((group) => group.map(({ grace }) => {
       const position = staffPosition(grace.pitch.spelling, s.track.clef);
-      return { low: position, high: position, size: 1 };
-    });
+      return { low: position, high: position, size: 1, ...(group.length > 1 ? { up: true } : {}) };
+    }));
     const groups = chordGroups(s.notes, s.track.clef);
+    const signed = new Set((chart.ornaments ?? []).filter((o) => o.track === s.track.id).map((o) => `${o.voice}/${o.tick}`));
     const upOf = runDirections(staffBeams(chart, groups, s.track.clef, s.twoVoiceBars), groups);
     const upOfGroup = (g: readonly { note: ChartNote; index: number }[]) => upOf.get(g[0]!.index) ?? voiceStemUp(s, g[0]!.note) ?? chordStemUpOf(g, s.track.clef);
     const sides = tupletSides(chart, groups, upOfGroup);
@@ -650,7 +680,8 @@ function planFrame(chart: Chart, staves: readonly StaffSpec[], keys: KeyPlan, op
     const own = staffRooms(
       groups.map((g): RoomGroup => {
         const side = sides.get(tupletIndexOf(chart, g[0]!.note));
-        return { low: staffPosition(g[0]!.note.spelling, s.track.clef), high: staffPosition(g[g.length - 1]!.note.spelling, s.track.clef), size: g.length, up: upOfGroup(g), ...(side ? { tuplet: side } : {}), ...(twoLines.has(g[0]!.note.tick) ? { lines: 2 } : {}) };
+        const sign = g.some((e) => signed.has(`${e.note.voice}/${e.note.tick}`));
+        return { low: staffPosition(g[0]!.note.spelling, s.track.clef), high: staffPosition(g[g.length - 1]!.note.spelling, s.track.clef), size: g.length, up: upOfGroup(g), ...(side ? { tuplet: side } : {}), ...(twoLines.has(g[0]!.note.tick) ? { lines: 2 } : {}), ...(sign ? { sign: true as const } : {}) };
       }).concat(reserved, graceGroups),
       // the treble clef curls further out than the bass clef, so a staff of either clef plans for it
       reserve?.anyClef === true ? 'treble' : s.track.clef, reserve !== undefined && reserve.shortestTicks < PPQ, options.scoreRoom === true);
@@ -1246,39 +1277,65 @@ function layoutStaffGraces(p: Placer, staffSpec: StaffSpec, staffIndex: number, 
   const { S, naming, accidentalPlan } = p;
   const clef = staffSpec.track.clef;
   const k = GRACE_SCALE;
-  return staffSpec.graces.map(({ grace, index, main }) => {
+  return graceGroupsOf(staffSpec).flatMap((group) => {
+    const main = group[0]!.main;
     const mainGlyph = notes.find((n) => n.index === main)!;
     const bar = p.bars[mainGlyph.bar]!;
     const staff = p.systems[bar.system]!.staves[staffIndex]!;
-    const position = staffPosition(grace.pitch.spelling, clef);
-    const alter = accidentalPlan.graceAlterOf.get(index) ?? null;
-    const sides = graceSides(alter, grace.slash, position);
-    const headRx = GLYPH.head.rx * k * S;
-    const headRy = GLYPH.head.ry * k * S;
-    const x = mainGlyph.column - (accidentalPlan.leftOf.get(main)! + GRACE_GAP + sides.right) * S;
-    const y = yOf(staff, position, S);
-    const up = chordStemUp(position, position);
-    const stemX = up ? x + headRx : x - headRx;
-    // the stem is the same length as a single head's, at the grace's scale
-    const stemEnd = y + (yOf(staff, stemTip(position, position, up), S) - y) * k;
-    const slash = grace.slash
-      ? { x1: stemX - GRACE_SLASH * S, y1: (y + stemEnd) / 2 + GRACE_SLASH * S, x2: stemX + GRACE_SLASH * S, y2: (y + stemEnd) / 2 - GRACE_SLASH * S }
-      : null;
-    const accidental = alter === null ? null : {
-      alter,
-      x: x - (sides.reach + (ACCIDENTAL_GAP + ACCIDENTAL_BOX[accidentalKind(alter)].width / 2) * k) * S,
-      y,
-    };
-    const lowest = Math.max(y + headRy, !up ? stemEnd : -Infinity);
-    return {
-      index, main, system: bar.system, staff: staffIndex, bar: mainGlyph.bar, x, y, position, scale: k, headRx, headRy,
-      stem: { x: stemX, y1: y, y2: stemEnd, up }, flag: grace.slash, slash,
-      ledgerLines: ledgerLinePositions(position).map((lp) => ({ y: yOf(staff, lp, S), x1: x - LEDGER_HALF * k * S, x2: x + LEDGER_HALF * k * S })),
-      accidental,
-      left: x - sides.left * S, right: x + sides.right * S,
-      label: noteLabel(grace.pitch.spelling, naming),
-      labelY: lowest + GLYPH.hintGap * k * S,
-    };
+    const beamed = group.length > 1;
+    // placed from the main note leftwards: the last grace nearest it, each earlier one past the ink of the one after it
+    let rightEdge = mainGlyph.column - (accidentalPlan.leftOf.get(main)! + GRACE_GAP) * S;
+    const placed: GraceGlyph[] = [];
+    const slashed = new Set<GraceGlyph>();
+    for (let j = group.length - 1; j >= 0; j--) {
+      const { grace, index } = group[j]!;
+      const position = staffPosition(grace.pitch.spelling, clef);
+      const alter = accidentalPlan.graceAlterOf.get(index) ?? null;
+      const sides = graceSidesIn(group, j, alter, clef);
+      const slashes = grace.slash && (!beamed || j === 0);
+      const headRx = GLYPH.head.rx * k * S;
+      const headRy = GLYPH.head.ry * k * S;
+      const x = rightEdge - sides.right * S;
+      rightEdge = x - sides.left * S - GRACE_STEP_GAP * S;
+      const y = yOf(staff, position, S);
+      const up = beamed ? true : chordStemUp(position, position);
+      const stemX = up ? x + headRx : x - headRx;
+      // the stem is the same length as a single head's, at the grace's scale
+      const stemEnd = y + (yOf(staff, stemTip(position, position, up), S) - y) * k;
+      const accidental = alter === null ? null : {
+        alter,
+        x: x - (sides.reach + (ACCIDENTAL_GAP + ACCIDENTAL_BOX[accidentalKind(alter)].width / 2) * k) * S,
+        y,
+      };
+      const glyph: GraceGlyph = {
+        index, main, system: bar.system, staff: staffIndex, bar: mainGlyph.bar, x, y, position, scale: k, headRx, headRy,
+        stem: { x: stemX, y1: y, y2: stemEnd, up }, flag: slashes && !beamed, slash: null,
+        ledgerLines: ledgerLinePositions(position).map((lp) => ({ y: yOf(staff, lp, S), x1: x - LEDGER_HALF * k * S, x2: x + LEDGER_HALF * k * S })),
+        accidental,
+        left: x - sides.left * S, right: x + sides.right * S,
+        label: noteLabel(grace.pitch.spelling, naming),
+        labelY: 0,
+      };
+      placed.unshift(glyph);
+      if (slashes) slashed.add(glyph);
+    }
+    // a group's stems end on one flat beam (two, as sixteenths) above the highest tip (core_09.AC60)
+    if (beamed) {
+      const tip = Math.min(...placed.map((g) => g.stem.y2));
+      for (const g of placed) g.stem.y2 = tip;
+      const thickness = GLYPH.beamThickness * k * S;
+      placed[0]!.beam = { x1: placed[0]!.stem.x, x2: placed.at(-1)!.stem.x, y: tip, thickness, second: tip + thickness + GLYPH.beamGap * k * S };
+    }
+    for (const g of placed) {
+      if (slashed.has(g)) {
+        // a group's slash crosses its first stem just under the beams
+        const mid = beamed ? g.stem.y2 + (g.y - g.stem.y2) * 0.35 : (g.y + g.stem.y2) / 2;
+        g.slash = { x1: g.stem.x - GRACE_SLASH * S, y1: mid + GRACE_SLASH * S, x2: g.stem.x + GRACE_SLASH * S, y2: mid - GRACE_SLASH * S };
+      }
+      const lowest = Math.max(g.y + g.headRy, !g.stem.up ? g.stem.y2 : -Infinity);
+      g.labelY = lowest + GLYPH.hintGap * k * S;
+    }
+    return placed;
   });
 }
 
@@ -1291,7 +1348,9 @@ function layoutStaffTies(p: Placer, staffSpec: StaffSpec, staffIndex: number, no
   const { S, chart } = p;
   const links = tieLinks(chart, new Set([staffSpec.track.id]));
   const glyphs = new Map(notes.map((g) => [g.index, g]));
-  const graceOf = new Map(graces.map((g) => [g.main, g]));
+  // the leftmost grace of a group (core_09.AC60) is the one the tie must stop before
+  const graceOf = new Map<number, GraceGlyph>();
+  for (const g of graces) if (!graceOf.has(g.main) || g.left < graceOf.get(g.main)!.left) graceOf.set(g.main, g);
   const height = S * 0.6;
   const lineEdges = (system: number) => {
     const onLine = p.bars.filter((b) => b.system === system);
@@ -1522,6 +1581,7 @@ export function layoutStaff(chart: Chart, options: StaffLayoutOptions): StaffLay
   const ties = perStaff.flatMap((st) => st.ties);
   const slurs = perStaff.flatMap((st) => st.slurs);
   const tuplets = perStaff.flatMap((st) => st.tuplets).sort((a, b) => a.index - b.index);
+  const ornaments = ornamentsOf(chart, noteGlyphs, beams, placed.systems, S);
 
   const { systems, bars, staffLines, barlines, braces, clefs, keySignature } = placed;
   const repeatSigns = repeatSignsOf(chart, systems, bars, keySignature, S);
@@ -1529,9 +1589,29 @@ export function layoutStaff(chart: Chart, options: StaffLayoutOptions): StaffLay
   return {
     ...(repeatSigns.length > 0 ? { repeatSigns } : {}),
     ...(endings.length > 0 ? { endings } : {}),
+    ...(ornaments.length > 0 ? { ornaments } : {}),
     staffSpace: S, fits: plan.fits, linesPerPage: plan.perPage, pageCount: Math.ceil(plan.systemCount / plan.perPage), clef: staves[0]!.track.clef, width: vp.width, height: vp.height,
     systems, bars, staffLines, barlines, braces, clefs, keySignature, timeSignature: timeSignatures[0]!, timeSignatures, notes: noteGlyphs, graces: graceGlyphs, rests: restGlyphs, beams, ties, slurs, tuplets,
   };
+}
+
+/**
+ * The ornament signs (core_09.AC60, d306): each centred over its note's head, `ORNAMENT_GAP` above the top line or above
+ * the note's head, up stem and the beam on it, whichever is higher. AX-3 provisional: TODO(architect, R2) in core_09: a sign under a
+ * slur or a triplet number above the same note is not moved clear of it yet.
+ */
+function ornamentsOf(chart: Chart, notes: readonly NoteGlyph[], beams: readonly BeamGlyph[], systems: readonly SystemLayout[], S: number): OrnamentGlyph[] {
+  const width = ORNAMENT_BOX.width * S;
+  const height = ORNAMENT_BOX.height * S;
+  return (chart.ornaments ?? []).flatMap((o, index) => {
+    const main = chart.notes.findIndex((n) => n.track === o.track && n.voice === o.voice && n.tick === o.tick);
+    const glyph = notes.find((n) => n.index === main);
+    if (!glyph) return [];
+    const staff = systems[glyph.system]!.staves[glyph.staff]!;
+    const beam = beams.find((b) => b.up && b.notes.includes(main));
+    const top = Math.min(staff.topLineY, glyph.y - glyph.headRy, glyph.stem?.up ? glyph.stem.y2 : Infinity, beam ? beam.y : Infinity);
+    return [{ index, main, system: glyph.system, staff: glyph.staff, kind: o.kind, x: glyph.x, y: top - ORNAMENT_GAP * S - height / 2, width, height }];
+  });
 }
 
 /**

@@ -164,7 +164,7 @@ export class Transport {
    * The grace notes of the piece's first note (d121, core_09.AC34): when it starts the piece on tick 0, its grace
    * is the count-in's last beat (in 4/4: tick, tick, tick, grace, then bar 1), sounding from that beat to the first note.
    * Empty before the start, with no count-in, and when the first note has no grace. AX-3 provisional: the grace takes the
-   * last beat's place instead of adding a beat.
+   * last beat's place instead of adding a beat. A grace group (core_09.AC61) plays its notes one after another in that beat.
    */
   countInGraces(): CountInGrace[] {
     const start = this.songStartMs;
@@ -174,7 +174,14 @@ export class Transport {
     if (played.length === 0 || Math.min(...played.map((n) => n.tick)) !== 0) return [];
     // the last click of the count-in on the metronome's own grid, so the two always agree
     const atMs = this.startedAtMs! + (this.countInBeats - 1) * msPerBeat(this.firstBpm * this.speed);
-    return (this.chart.graces ?? []).filter((g) => g.tick === 0 && playTracks.has(g.track)).map((g) => ({ midi: g.pitch.midi, atMs, endMs: start }));
+    // a grace group shares that beat out evenly, in its written order (core_09.AC61)
+    const firsts = (this.chart.graces ?? []).filter((g) => g.tick === 0 && playTracks.has(g.track));
+    return firsts.map((g) => {
+      const group = firsts.filter((o) => o.track === g.track && o.voice === g.voice);
+      const slot = (start - atMs) / group.length;
+      const k = group.indexOf(g);
+      return { midi: g.pitch.midi, atMs: atMs + k * slot, endMs: k === group.length - 1 ? start : atMs + (k + 1) * slot };
+    });
   }
 
   /** The time of the first click at or after `nowMs` on the beat grid of the count-in, or null before the start: for a click switched on mid-piece. */

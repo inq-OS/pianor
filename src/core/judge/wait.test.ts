@@ -429,6 +429,27 @@ describe('WaitMode with moveOnWrong: a tug from memory (level 1)', () => {
   });
 });
 
+describe('WaitMode: an ornament is optional, never wrong (core_09.AC65, d306)', () => {
+  // C, G with a turn (upper A 69, lower F 65), E
+  const pitch = (midi: number) => graceAt(0, midi).pitch;
+  const turned = chartWith([{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 67 }, { tick: 960, dur: 960, midi: 64 }], {
+    ornaments: [{ track: 'rh', voice: 1, tick: 480, kind: 'turn', upper: pitch(69), lower: pitch(65) }],
+  });
+
+  it('core_09.AC65 the turn played as written (A G F G) is no mistake: the G is judged once, the rest ignored', () => {
+    const events = drive(new WaitMode(turned), [on(60, 0), off(60, 100), on(69, 500), off(69, 550), on(67, 560), off(67, 600), on(65, 620), off(65, 660), on(67, 680), off(67, 720), on(64, 1000), off(64, 1500)]);
+    expect(judged(events).map((e) => [e.midi, e.verdict])).toEqual([[60, 'correct'], [67, 'correct'], [64, 'correct']]);
+    expect(piece(events)!.result).toMatchObject({ notes: 3, firstTryCorrect: 3, mistakes: 0 });
+  });
+
+  it('core_09.AC65 skipping the turn scores the same; a key the turn does not use is still wrong', () => {
+    expect(piece(playAll(new WaitMode(turned), turned))!.result).toMatchObject({ notes: 3, firstTryCorrect: 3, mistakes: 0 });
+    const mode = new WaitMode(turned);
+    drive(mode, [on(60, 0), off(60, 100), on(67, 500), off(67, 600)]);
+    expect(judged(mode.handle(on(62, 700))).map((e) => e.verdict)).toEqual(['wrong']);
+  });
+});
+
 describe('WaitMode: grace notes are never required and never wrong (core_09.AC33, d121)', () => {
   // C D E, with a grace F (65) before the E: F is no note of the piece
   const graced = chartWith([{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 62 }, { tick: 960, dur: 960, midi: 64 }], {

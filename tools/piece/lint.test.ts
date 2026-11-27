@@ -57,9 +57,9 @@ describe('levels.json', () => {
     expect(JSON.parse(readFileSync(LEVELS_PATH, 'utf-8')).note).toMatch(/PROVISIONAL/);
   });
 
-  it('switches all notation on at every level: chords, rests, ties, triplets, two voices a hand and hands together', () => {
+  it('switches all notation on at every level: chords, rests, ties, triplets, ornaments, two voices a hand and hands together', () => {
     for (const l of loadLevelsFile(LEVELS_PATH).levels) {
-      expect({ chords: l.chords, rests: l.rests, ties: l.ties, tuplets: l.tuplets, voices: l.voices, handsTogether: l.handsTogether }, `level ${l.level}`).toEqual({ chords: true, rests: true, ties: true, tuplets: true, voices: 2, handsTogether: true });
+      expect({ chords: l.chords, rests: l.rests, ties: l.ties, tuplets: l.tuplets, ornaments: l.ornaments, voices: l.voices, handsTogether: l.handsTogether }, `level ${l.level}`).toEqual({ chords: true, rests: true, ties: true, tuplets: true, ornaments: true, voices: 2, handsTogether: true });
     }
   });
 
@@ -138,6 +138,14 @@ describe('every hard rule has a failing and a passing piece', () => {
     expect(rules(early.diagnostics)).toContain('note-value');
     expect(early.diagnostics.map((d) => d.message).join('\n')).toMatch(/triplets are not allowed at level 4/);
     expect(errors(early.diagnostics).filter((d) => d.rule === 'note-value')).toHaveLength(9); // eight notes and a rest
+  });
+
+  it('core_09.AC64 an ornament sign passes where the level switch is on (every level) and fails with ornament where a teacher turns it off; a grace group passes', () => {
+    expect(errors(lint('!trill!C D E F | G4 | F E D D | C4 |]', { level: 1 }).diagnostics).map(formatDiagnostic)).toEqual([]);
+    const off = lint('!trill!C D E F | G4 | F E D D | C4 |]', { level: { ...level(1), ornaments: false } });
+    expect(rules(off.diagnostics)).toContain('ornament');
+    expect(off.diagnostics.map((d) => d.message).join('\n')).toMatch(/ornaments \(a trill, mordent or turn\) are not allowed at level 1/);
+    expect(errors(lint('{/ed}C D E F | G4 | F E D D | C4 |]', { level: 1 }).diagnostics).map(formatDiagnostic)).toEqual([]);
   });
 
   it('core_09.AC51 a triplet length outside a triplet fails note-value at every level, and an eighth triplet needs eighths in the level', () => {

@@ -1,6 +1,7 @@
 // Covers ft_Y_04.AC6, ft_Y_04.AC7.
 import { describe, expect, it } from 'vitest';
 import { musicXmlToChart } from '../import/musicxml';
+import { compilePiece } from '../piece/compile';
 import type { Chart } from '../chart/schema';
 import { beatOf, fromChart, problemLabel, type ImportProblem } from './fromChart';
 import { MAX_BARS, pieceProblem } from './model';
@@ -24,6 +25,19 @@ const convert = (text: string) => {
   return r;
 };
 const where = (ps: ImportProblem[]) => ps.map((p) => [p.bar, p.beat, p.hand]);
+
+describe('a chart with grace groups and ornament signs in the piece maker (core_09.AC66)', () => {
+  it('core_09.AC66 reports a grace group and an ornament sign, takes their notes plain and drops nothing silently', () => {
+    const compiled = compilePiece({
+      abc: 'X:1\nT:T\nM:4/4\nL:1/4\nQ:1/4=90\nK:C\n{ed}C !trill!D E F | G4 |]',
+      meta: JSON.stringify({ id: 'orn', title: 'Orn', level: 1, status: 'draft', hands: ['RH'], phrases: [], source: 'test', license: 'CC0-1.0', generator: { kind: 'hand' } }),
+    });
+    const r = fromChart(compiled.chart!);
+    if (!r.ok) throw new Error(r.reason);
+    expect(r.problems.map((p) => [p.bar, p.beat, p.what])).toEqual([[1, 1, 'a group of grace notes'], [1, 2, 'an ornament sign (trill, mordent or turn)']]);
+    expect(r.piece.notes.map((n) => n.grace)).toEqual([undefined, undefined, undefined, undefined, undefined]);
+  });
+});
 
 describe('a chart as a piece of the piece maker (ft_Y_04.AC6)', () => {
   it('ft_Y_04.AC6 keeps chords, accidentals, ties, slurs, dynamics, graces and repeats', () => {

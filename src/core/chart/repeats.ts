@@ -77,6 +77,7 @@ export function unrollRepeats(chart: Chart): PlayChart {
   const phrases: Chart['phrases'] = [];
   const slurs: NonNullable<Chart['slurs']> = [];
   const graces: ChartGrace[] = [];
+  const ornaments: NonNullable<Chart['ornaments']> = [];
   const tuplets: NonNullable<Chart['tuplets']> = [];
   let playStart = 0;
   for (const [firstBar, lastBar] of ranges) {
@@ -102,7 +103,9 @@ export function unrollRepeats(chart: Chart): PlayChart {
     for (const s of chart.slurs ?? []) {
       if (s.startTick >= writtenStart && s.endTick < writtenEnd) slurs.push({ ...s, startTick: s.startTick + shift, endTick: s.endTick + shift });
     }
-    for (const g of chart.graces ?? []) if (g.tick >= writtenStart && g.tick < writtenEnd) graces.push({ ...g, tick: g.tick + shift });
+    // graces and ornament signs go with their note
+    graces.push(...marksIn(chart.graces, writtenStart, writtenEnd, shift));
+    ornaments.push(...marksIn(chart.ornaments, writtenStart, writtenEnd, shift));
     // A tuplet lies inside one bar (core_09.AC49), so each pass that plays its bar plays it.
     for (const t of chart.tuplets ?? []) {
       if (t.startTick >= writtenStart && t.endTick < writtenEnd) tuplets.push({ ...t, startTick: t.startTick + shift, endTick: t.endTick + shift });
@@ -125,6 +128,7 @@ export function unrollRepeats(chart: Chart): PlayChart {
     rests,
     phrases,
     ...(chart.graces ? { graces } : {}),
+    ...(chart.ornaments ? { ornaments } : {}),
     ...(chart.tuplets ? { tuplets } : {}),
   };
   return { chart: play, writtenNote, writtenBar, segments };
@@ -160,4 +164,9 @@ export function writtenTick(play: PlayChart, tick: number): number {
 /** Play note indices (what Kuula or the judge names) as the written notes the staff draws, each once. */
 export function writtenNotes(play: PlayChart, playNotes: readonly number[]): number[] {
   return [...new Set(playNotes.map((p) => play.writtenNote[p]).filter((w) => w !== undefined))];
+}
+
+/** The marks on a note start from `start` up to `end`, moved by `shift` ticks. */
+function marksIn<T extends { tick: number }>(marks: readonly T[] | undefined, start: number, end: number, shift: number): T[] {
+  return (marks ?? []).filter((m) => m.tick >= start && m.tick < end).map((m) => ({ ...m, tick: m.tick + shift }));
 }

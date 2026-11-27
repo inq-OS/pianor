@@ -2,7 +2,7 @@ import { tieChain, tieLinks, type Chart } from '../chart';
 import type { Transport } from '../transport';
 import { classifyWrongNote } from './classify';
 import { ResultTracker } from './results';
-import { buildSteps, stepGraces, type PlayStep } from './steps';
+import { buildSteps, stepGraces, stepOrnaments, type PlayStep } from './steps';
 import { DEFAULT_HOLD_RULES, DEFAULT_TEMPO_WINDOWS, GRACE_EARLY_MS, followRate, fullHoldMs, holdAgainst, timingOf, type FollowRules, type HoldRules, type TempoWindows } from './timing';
 import { DEFAULT_TOGETHER_WINDOW_MS } from './wait';
 import {
@@ -88,6 +88,8 @@ export class TempoMode implements PlayMode {
   private readonly steps: PlayStep[];
   /** Per step, the grace pitches a press may give just before it without being wrong (d121). */
   private readonly graces: ReadonlySet<number>[];
+  /** Per step, the pitches its ornament signs use (d306). */
+  private readonly ornaments: ReadonlySet<number>[];
   private readonly tracker: ResultTracker;
   private readonly progress: NoteProgress[];
   private readonly timings: (NoteTiming | null)[];
@@ -122,6 +124,7 @@ export class TempoMode implements PlayMode {
   constructor(private readonly chart: Chart, private readonly transport: Transport, options: TempoModeOptions = {}) {
     this.steps = buildSteps(chart);
     this.graces = stepGraces(chart, this.steps);
+    this.ornaments = stepOrnaments(chart, this.steps);
     this.gradeHold = options.gradeHold !== false;
     this.holdRules = options.hold ?? DEFAULT_HOLD_RULES;
     this.tracker = new ResultTracker(chart, this.steps, true, this.gradeHold);
@@ -305,6 +308,7 @@ export class TempoMode implements PlayMode {
     if (match === undefined) {
       if (step.noteIndices.some((i) => this.chart.notes[i]!.midi === event.midi)) return events; // a repeat of a note already played
       if (this.isGracePress(event.midi, event.timeMs)) return events; // played or not as the student likes (d121)
+      if (this.isOrnamentPress(event.midi, event.timeMs)) return events; // an ornament is optional too (d306)
       const diagnosis = classifyWrongNote(event.midi, awaiting.map((i) => this.chart.notes[i]!.midi));
       this.wrongsInStep++;
       this.tracker.recordMistake(step.index);
@@ -363,6 +367,19 @@ export class TempoMode implements PlayMode {
       const at = this.timeOf(i);
       if (at - GRACE_EARLY_MS > timeMs) return false; // this step and every later one are too far ahead
       if (timeMs <= at && this.graces[i]!.has(midi)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * A press of `midi` at `timeMs` is a note of an ornament sign (core_09.AC65, d306): a pitch the sign uses, from
+   * `GRACE_EARLY_MS` before its note's time to the next step's time, on the step before the open one or the open one.
+   */
+  private isOrnamentPress(midi: number, timeMs: number): boolean {
+    for (let i = Math.max(0, this.stepIndex - 1); i <= this.stepIndex && i < this.steps.length; i++) {
+      if (!this.ornaments[i]!.has(midi)) continue;
+      const end = i + 1 < this.steps.length ? this.timeOf(i + 1) : Infinity;
+      if (timeMs >= this.timeOf(i) - GRACE_EARLY_MS && timeMs <= end) return true;
     }
     return false;
   }
