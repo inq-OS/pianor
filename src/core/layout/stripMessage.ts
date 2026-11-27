@@ -9,9 +9,14 @@ export interface StripMessageBox {
   y: number;
   w: number;
   h: number;
+  /** Whether it stands over a button of the strip: it then goes after `MESSAGE_OVER_BUTTONS_MS` or at the next press. */
+  covers: boolean;
   /** The width the text wraps at (`linesAt` tells how many lines the text takes at a width: the font's own wrap). */
   textWidth: number;
 }
+
+/** How long a message over the strip's buttons stays, unless a press or a key takes it away sooner. */
+export const MESSAGE_OVER_BUTTONS_MS = 4000;
 
 /** The text sits this far in from the box's left and right edges, and its frame adds this to its lines' height. */
 export const MESSAGE_PAD_X = 5;
@@ -29,5 +34,5 @@ export function stripMessageBox(input: { textWidth: number; lineHeight: number; 
   // the lines of the font have a gap under the last one that the box leaves out
   const h = Math.max(1, lines) * lineHeight + FRAME_EXTRA - 2;
   const y = h <= free.rows ? free.top + Math.floor((free.rows - h) / 2) : free.top + free.rows - h - 1;
-  return { x: right - w, y, w, h, textWidth };
+  return { x: right - w, y, w, h, covers: right - w < free.left || h > free.rows, textWidth };
 }

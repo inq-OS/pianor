@@ -61,7 +61,7 @@ import { clipToWidth } from '../core/text/clip';
 import { GESTURE_SIZE, HELP_ARROW, SKETCH_SIZE, gesturePicture, keyCap, staffSketch } from './ui/pixel/mouseArt';
 import { PixelImage, PixelText, type PixelButton, type PixelButtonOptions } from './ui/pixel/PixelObjects';
 import { CELL_HEIGHT, drawnText, LINE_HEIGHT, measure, wrap } from './ui/pixel/font';
-import { MESSAGE_PAD_X, stripMessageBox } from '../core/layout/stripMessage';
+import { MESSAGE_OVER_BUTTONS_MS, MESSAGE_PAD_X, stripMessageBox } from '../core/layout/stripMessage';
 import { ART_DETAIL } from '../core/layout/frame';
 import { BAR_BUTTON_HEIGHT, BAR_EDGE } from './ui/pixel/playBars';
 import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
@@ -377,6 +377,11 @@ export class EditorScene extends PixelScene {
   private timeGroups: { from: number; to: number; step: (direction: 1 | -1) => void }[] = [];
   /** With the band: the message in the strip at the foot (ft_1_02d.AC54), drawn once the strip is (`afterFrame`). */
   private messageBox: { image: PixelImage; text: PixelText; free: { left: number; right: number; top: number; rows: number } } | null = null;
+  /** The message said last stood over the strip's buttons and was taken away (its time ran out, or a press or key came, ft_1_02d.AC54). */
+  private messageDismissed = false;
+  private messageCoverTimer: Phaser.Time.TimerEvent | null = null;
+  /** The frame the last message was said in: the key or press that said it does not take it away. */
+  private messageFrame = -1;
   /**
    * The panel open over the staff's foot (the start screen gone): the time, the pick-up and the tempo,
    * from a click on the time signature (or I). Closed by Esc or another click there. A click on a clef opens the circle of
@@ -482,6 +487,9 @@ export class EditorScene extends PixelScene {
       this.ghostLabel?.setVisible(false);
       this.drawTarget(null);
     });
+    // a message over the strip's buttons goes at any press or key (ft_1_02d.AC54)
+    this.input.on('pointerdown', () => this.dismissCoveringMessage(true));
+    this.onWindowKey(() => this.dismissCoveringMessage(true));
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       // Phaser keeps a click on the canvas from moving the focus, so a click anywhere ends typing the title
       this.titleInput?.blur();
@@ -3165,14 +3173,23 @@ export class EditorScene extends PixelScene {
 
   /** What the status line says: a message for a moment, otherwise which levels the piece fits. */
   private say(text: string, forMs = 0): void {
-    this.message = text;
+    this.freshMessage(text);
     this.messageTimer?.remove();
     this.messageTimer = forMs > 0 ? this.time.delayedCall(forMs, () => {
       // a pick still waiting keeps its message once a message about something else has faded
-      this.message = this.pickMessage();
+      this.freshMessage(this.pickMessage());
       this.updateStatus();
     }) : null;
     this.updateStatus();
+  }
+
+  /** A new message: shown again even over the strip's buttons, for its own moment there (ft_1_02d.AC54). */
+  private freshMessage(text: string): void {
+    this.message = text;
+    this.messageDismissed = false;
+    this.messageFrame = this.game.loop.frame;
+    this.messageCoverTimer?.remove();
+    this.messageCoverTimer = null;
   }
 
   private updateStatus(): void {
@@ -3671,6 +3688,18 @@ export class EditorScene extends PixelScene {
     this.updateStatus();
   }
 
+  /** A message over the strip's buttons goes (a press or key then reaches the button under it, now seen); one on the free side stays. */
+  private dismissCoveringMessage(byPress = false): void {
+    const box = this.messageBox;
+    if (!box?.image.visible || box.image.x >= box.free.left) return;
+    if (byPress && this.messageFrame === this.game.loop.frame) return;
+    this.messageDismissed = true;
+    this.messageCoverTimer?.remove();
+    this.messageCoverTimer = null;
+    box.image.setVisible(false);
+    box.text.setVisible(false);
+  }
+
   /** The message in the strip: on its empty right side, growing left along it when longer (`stripMessageBox`). */
   private showMessage(message: string): void {
     const box = this.messageBox;
@@ -3680,6 +3709,13 @@ export class EditorScene extends PixelScene {
     if (message === '') return;
     const drawn = drawnText(message);
     const spot = stripMessageBox({ textWidth: measure(drawn), lineHeight: LINE_HEIGHT, linesAt: (w) => wrap(drawn, w).length, free: box.free, width: this.px.width });
+    // over the strip's buttons a message stays only a moment: they must not stay hidden (ft_1_02d.AC54)
+    if (spot.covers && this.messageDismissed) {
+      box.image.setVisible(false);
+      box.text.setVisible(false);
+      return;
+    }
+    if (spot.covers && !this.messageCoverTimer) this.messageCoverTimer = this.time.delayedCall(MESSAGE_OVER_BUTTONS_MS, () => this.dismissCoveringMessage());
     box.image.setBitmap(panelBitmap(spot.w, spot.h, 'bubble'));
     box.image.setPosition(spot.x, spot.y);
     box.text.setOptions({ color: C.ink, maxWidth: spot.textWidth });

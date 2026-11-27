@@ -1261,7 +1261,7 @@ test.describe('piece maker: the left click, the bubble on a note or a rest, and 
     expectNoErrors(errors);
   });
 
-  test('ft_1_02d.AC54 a message stands in the strip at the foot, never over the staff', async ({ page }) => {
+  test('ft_1_02d.AC54 a message stands in the strip at the foot, never over the staff, and over its buttons only for a moment', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
     await page.keyboard.press('Control+KeyX');
@@ -1272,6 +1272,16 @@ test.describe('piece maker: the left click, the bubble on a note or a rest, and 
     });
     expect(spot.visible).toBe(true);
     expect(spot.y).toBeGreaterThanOrEqual(spot.band!);
+    const shown = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { messageBox: { image: { visible: boolean } } | null }).messageBox?.image.visible);
+    // a message that waits (as a pick's does) over the buttons: the next key takes it away, and so does time
+    const sayLong = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { say(text: string): void }).say('Now click the note the tie or slur goes to, then the next one.'));
+    await sayLong();
+    await expect.poll(shown).toBe(true);
+    await page.keyboard.press('Shift');
+    await expect.poll(shown).toBe(false);
+    await sayLong();
+    await expect.poll(shown).toBe(true);
+    await expect.poll(shown, { timeout: 10000 }).toBe(false);
     expectNoErrors(errors);
   });
 });
@@ -1306,7 +1316,9 @@ test.describe('tie pick and selection', () => {
     await page.evaluate(() => { window.__game.scene.getScene('editor').time.timeScale = 1000; });
     await expect.poll(timer).toMatchObject({ done: true });
     await page.evaluate(() => { window.__game.scene.getScene('editor').time.timeScale = 1; });
-    expect(await status(page)).toContain('Now click the note the tie or slur goes to.');
+    // the message is said again (over the strip's buttons it then stays its own moment, ft_1_02d.AC54, which the
+    // fast clock has already run through)
+    expect(await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { message: string }).message)).toBe('Now click the note the tie or slur goes to.');
     expect(await page.evaluate(() => !!(window.__game.scene.getScene('editor') as unknown as { arcFrom: unknown }).arcFrom)).toBe(true);
     expectNoErrors(errors);
   });

@@ -1,6 +1,6 @@
 // Covers ft_1_02d.AC54: where the piece maker's message stands, in the strip at the foot and never over the staff.
 import { describe, expect, it } from 'vitest';
-import { stripMessageBox } from './stripMessage';
+import { MESSAGE_OVER_BUTTONS_MS, stripMessageBox } from './stripMessage';
 
 const free = { left: 187, right: 320, top: 163, rows: 17 };
 const box = (textWidth: number, lineHeight = 11) => stripMessageBox({ textWidth, lineHeight, linesAt: (w) => Math.ceil(textWidth / w), free, width: 320 });
@@ -31,4 +31,13 @@ describe('the message in the strip (ft_1_02d.AC54)', () => {
     expect(b.y + b.h).toBeLessThanOrEqual(free.top + free.rows);
     expect(b.textWidth).toBeLessThan(500);
   });
+
+  it('ft_1_02d.AC54 a message that covers a strip button says so, and is shown only for a moment; one on the free side does not', () => {
+    expect(box(80).covers).toBe(false);
+    expect(box(250).covers).toBe(true);
+    expect(box(500).covers).toBe(true);
+    expect(MESSAGE_OVER_BUTTONS_MS).toBeGreaterThanOrEqual(3000);
+    expect(MESSAGE_OVER_BUTTONS_MS).toBeLessThanOrEqual(5000);
+  });
 });
+
