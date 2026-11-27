@@ -335,6 +335,15 @@ export class MenuScene extends PixelScene {
    * The strip of the book (ft_1_12.AC11, ft_1_02c.AC9): the order, one button whose choices open as pictures from it, and
    * All pieces, the catalogue of every piece. Not in the piece maker.
    */
+  /** Picking for Kiur: the strip's free stretch says what the pick is for (the book looks as the piano's). AX-3 provisional: where. */
+  protected override afterFrame(free: { left: number; right: number; top: number; rows: number } | null): void {
+    if (!free || this.forKiur === null) return;
+    const text = t(this.forKiur === 'tug' ? 'menu.forKiur.tug' : 'menu.forKiur.learn');
+    const left = free.left + 6;
+    if (left + measure(drawnText(text)) > free.right - 4) return;
+    this.label(left, free.top + Math.max(0, Math.floor((free.rows - 8) / 2)), text, C.cream).setName('forKiur');
+  }
+
   protected override bandActions(): ToolbarItem[] {
     if (this.maker) return [];
     const order: ToolbarItem = {

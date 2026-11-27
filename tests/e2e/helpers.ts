@@ -227,7 +227,14 @@ export async function openFromStand(page: Page, name: string): Promise<void> {
 export async function goToMainMenu(page: Page): Promise<void> {
   await clickButton(page, 'menu', await menuButton(page, 'Back'));
   await waitForScene(page, 'profile');
+  await leaveRoom(page);
+}
+
+/** The room's corner Back, then Yes to its question (Change player?): the main menu. */
+export async function leaveRoom(page: Page): Promise<void> {
   await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Back'));
+  await expect.poll(() => sceneButton(page, 'profile', 'Yes')).toBeGreaterThanOrEqual(0);
+  await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Yes'));
   await waitForScene(page, 'profiles');
 }
 

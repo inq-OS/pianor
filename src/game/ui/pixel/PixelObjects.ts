@@ -241,6 +241,8 @@ export interface PixelButtonOptions {
    * Its label shows in a bubble above it after the pointer rests on it, and at once while it has the keyboard focus.
    */
   picture?: Bitmap;
+  /** The least row its name bubble starts at above it (`tooltipBox`'s `top`): under the corner buttons' strip (ft_1_20). */
+  tooltipTop?: number;
   /** Called when the pointer comes onto the button (true) and leaves it (false): the faded corner buttons light up (ft_1_20). */
   onHover?: (over: boolean) => void;
   onClick: () => void;
@@ -411,6 +413,12 @@ export class PixelButton {
     this.iconArt = icon;
     this.icon?.setBitmap(this.iconShown(icon));
     this.layout();
+  }
+
+  /** Show its name bubble now, as on hover (a press on a place that only says what it is). */
+  sayName(): void {
+    this.hideTooltip();
+    this.showTooltip();
   }
 
   /** Say something else in the tooltip bubble (the piece maker's Save says which levels the piece fits, ft_1_20). */
@@ -624,7 +632,7 @@ export class PixelButton {
     const size = { w: letters.width + 8, h: letters.letterBox.bottom - letters.letterBox.top + 8 };
     const screen = { w: Math.ceil(scene.scale.width / parent.scaleX), h: Math.ceil(scene.scale.height / parent.scaleY) };
     const { x, y, width, height } = this.box;
-    const at = tooltipBox({ x, y, w: width, h: height }, size, screen, this.options.picture ? 'above' : 'below');
+    const at = tooltipBox({ x, y, w: width, h: height }, size, screen, this.options.picture ? 'above' : 'below', this.options.tooltipTop);
     const bubble = new PixelImage(scene, at.x, at.y, panelBitmap(at.w, at.h, 'bubble'));
     letters.x = at.x + 4;
     letters.y = at.y + 4 - letters.letterBox.top;

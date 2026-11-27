@@ -1,5 +1,5 @@
 import keriJson from '../../content/world/keri.json';
-import { isTester, openScenes } from '../core/world/openScenes';
+import { isTester, sceneGate } from '../core/world/openScenes';
 import { ART_DETAIL } from '../core/layout/frame';
 import { keriMapPlan, keriMapView } from '../core/layout/keriMap';
 import { rectCentre, type Rect } from '../core/layout/rect';
@@ -14,7 +14,7 @@ import { INTRO } from './intro/introContent';
 import type { StringKey } from '../core/text/strings';
 import { SCENE_SCREENS } from './visit/islandVisit';
 import { blit, createBitmap, type Bitmap } from './ui/pixel/bitmap';
-import { LiveImage, PixelImage } from './ui/pixel/PixelObjects';
+import { LiveImage, PixelButton, PixelImage } from './ui/pixel/PixelObjects';
 import { drawBeam, type MapBeam } from './ui/pixel/keri/beam';
 import { motionAllowed } from './motion';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
@@ -73,6 +73,9 @@ function cut(source: Bitmap, box: Rect): Bitmap {
  */
 export class KeriMapScene extends PixelScene {
   protected override keyboardNavigation = true;
+  protected override focusCycle = true;
+  protected override pianoSign = true;
+  protected override cornerPlates = true;
   private look: SceneLook | null = null;
   /** The intro's tour of the map is still to run on this visit (`MapData.intro`). */
   private introDue = false;
@@ -199,13 +202,21 @@ export class KeriMapScene extends PixelScene {
     this.button({ ...rectCentre(house), label: t('map.house'), picture: createBitmap(house.w, house.h), onClick: () => this.back() });
     this.spots = { house };
     // the scenes that the student's level has opened (ft_1_19.AC2, d113): a clear button over each one's painted place
-    const open = openScenes(KERI.scenes ?? [], contextOf(this).profiles.progress.level.level, isTester(contextOf(this).profiles.profile.name));
+    // a shut one is a button too, whose name says when it opens (or that it is not open yet), on hover and on a press
+    const level = contextOf(this).profiles.progress.level.level, tester = isTester(contextOf(this).profiles.profile.name);
     for (const scene of PLAN.scenes) {
       const target = SCENE_SCREENS[scene.id];
-      if (!target || !open.includes(scene.id)) continue;
+      const place = KERI.scenes?.find((s) => s.id === scene.id);
+      if (!target || !place) continue;
+      const gate = sceneGate(place, level, tester);
       const box = fromCells(scene.at);
-      this.spots.place ??= box;
-      this.button({ ...rectCentre(box), label: target.label(), picture: createBitmap(box.w, box.h), onClick: () => startScene(this, target.scene) });
+      if (gate.open) {
+        this.spots.place ??= box;
+        this.button({ ...rectCentre(box), label: target.label(), picture: createBitmap(box.w, box.h), onClick: () => startScene(this, target.scene) });
+        continue;
+      }
+      const label = gate.opensAt === null ? t('map.notOpenYet', { place: target.label() }) : t('map.opensAt', { place: target.label(), level: gate.opensAt });
+      const shut: PixelButton = this.button({ ...rectCentre(box), label, picture: createBitmap(box.w, box.h), onClick: () => shut.sayName() });
     }
 
     // the map's few clouds all show, whatever the day's cover
