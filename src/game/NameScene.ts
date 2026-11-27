@@ -23,7 +23,7 @@ const CARET_BLINK_MS = 530;
 /** The caret's dim half of a blink: it fades, never vanishes, so a still picture of the box always shows where to type. */
 const CARET_DIM = 0.35;
 /** The ask's top above the plate's, in cells: on the bare cover between its gilt border and the vine over the plate. */
-const PROMPT_ABOVE = 29;
+const PROMPT_ABOVE = 32;
 const BOTTOM_HEIGHT = 16;
 /** The bottom row's centre sits this far above the main area's foot (d110: 320 x 157 on the target screen). */
 const BOTTOM_FROM_FOOT = BOTTOM_HEIGHT / 2 + 13;
