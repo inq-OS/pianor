@@ -171,7 +171,8 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
   test('the corner Back is pressable over the tug and leaves it as Esc does, with nothing kept', async ({ page }) => {
     const errors = await openTug(page);
     await round(page, PHRASE);
-    await expect.poll(async () => (await tug(page))?.saying ?? 'fact').toBeNull();
+    // the fact on it is gone: his next phrase plays
+    await expect.poll(async () => (await tug(page))?.saying).toBeNull();
     await clickButton(page, knoll, await sceneButton(page, knoll, 'Back'));
     await expect.poll(() => tug(page)).toBeNull();
     expect(await activeScenes(page)).toContain(knoll);
@@ -340,7 +341,7 @@ test.describe('Kiur the trainer in the room (ft_1_21.AC14)', () => {
     // no character met: he trains all the same
     await pressKiur(page);
     expect(await roomTug(page)).toMatchObject({ who: 'character', standing: 0, level: 1 });
-    expect(await roomRound(page, WRONG)).toMatchObject({ standing: -1, saying: '0 of 5 notes right. The key next door' });
+    expect(await roomRound(page, WRONG)).toMatchObject({ standing: -1, saying: '0 of 5 notes right. Another letter' });
     await roomRound(page, WRONG);
     await expect.poll(async () => (await roomTug(page))?.outcome).toBe('lost');
     await expect.poll(async () => (await roomTug(page))?.saying).toContain('Practice the piece more');
