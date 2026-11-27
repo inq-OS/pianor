@@ -288,6 +288,21 @@ test.describe('the two-finger tap on a touch screen (ft_1_20.AC25)', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_1_20.AC22 a long press on a bar opens the bubble, and the lift of that finger picks nothing nor starts from the bar', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'practice', { chartId: 'little-steps' });
+    await waitForScene(page, 'practice');
+    const bar = await artPoint(page, 'practice', 230, 60);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...bar, id: 0 }] });
+    await page.waitForTimeout(800);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(300);
+    expect(await bubbleOpen(page, 'practice')).toBe(true);
+    expect(await section(page)).toBeNull();
+    expectNoErrors(errors);
+  });
+
   test('ft_1_20.AC25 two fingers that slide apart are a pinch: the bubble closes again', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await startScene(page, 'practice', { chartId: 'little-steps' });

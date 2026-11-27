@@ -606,7 +606,11 @@ export abstract class PixelScene extends Phaser.Scene {
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       if (this.longPress && Math.hypot(p.x - this.longPress.x, p.y - this.longPress.y) > LONG_PRESS_SLIP) this.cancelLongPress();
     });
-    this.input.on('pointerup', () => this.cancelLongPress());
+    this.input.on('pointerup', () => {
+      this.cancelLongPress();
+      // the lift of the long press that opened the bubble has passed (whatever it was over): the next press is the bubble's
+      this.bubbleFreshTouch = false;
+    });
     this.listenForTwoFingers();
     this.onWindowKey((e) => this.bubbleKey(e));
     // the keyboard switch on the toolbar lights while the on-screen keyboard is shown, whoever changed it
