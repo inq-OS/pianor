@@ -1,6 +1,6 @@
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { activeScene, buttonPoint, clickButton, clickToolbar, expectNoErrors, openBubbleFromMore, openGame, waitForScene } from './helpers';
+import { LITTLE_STEPS, activeScene, boxesOverlap, buttonPoint, clickButton, clickToolbar, expectNoErrors, openBubbleFromMore, openGame, openPiece, playWithVirtualPiano, toScoreScreen, waitForScene } from './helpers';
 
 /**
  * The frame of every screen but the teacher's (ft_1_20, d282): a slim strip of pinned actions at the foot only where a screen
@@ -306,6 +306,23 @@ test.describe('the screens\' buttons in the strip and the bubble (ft_1_20.AC8)',
     expect(await labelled(page, 'editor', 'Piece')).toBe(-1);
     await expect(page.locator('#editor-title')).toBeVisible();
     expect(await activeScene(page)).toBe('editor');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_20.AC2 after a session the score screen\'s ribbon title lies clear of the door in the top left corner', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await playWithVirtualPiano(page, LITTLE_STEPS);
+    await toScoreScreen(page);
+    const f = await frame(page);
+    // the big title on its ribbon (the ribbon reaches 8 cells past the title's sides and 3 over it, `ribbon`)
+    const ribbon = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('results') as unknown as { root: { list: { pixelText?: boolean; visible: boolean; x: number; y: number; displayWidth: number; displayHeight: number; scaleX: number }[] } };
+      const title = scene.root.list.find((o) => o.pixelText === true && o.visible && o.scaleX === 2)!;
+      return { x: title.x - 8, y: title.y - 3, width: title.displayWidth + 16, height: title.displayHeight + 6 };
+    });
+    expect(f.back).not.toBeNull();
+    expect(boxesOverlap(ribbon, f.back!), JSON.stringify({ ribbon, back: f.back })).toBe(false);
     expectNoErrors(errors);
   });
 

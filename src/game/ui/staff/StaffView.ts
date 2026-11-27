@@ -367,6 +367,7 @@ export class StaffView {
     }
     this.drawStaff();
     this.setHints(this.hints);
+    this.drawLane(true);
   }
 
   /**
@@ -397,6 +398,7 @@ export class StaffView {
     }
     this.drawStaff();
     this.setHints(this.hints);
+    this.drawLane(true);
   }
 
   /**
@@ -616,9 +618,12 @@ export class StaffView {
     const g = this.laneGfx;
     g.clear();
     const S = this.layout.staffSpace;
+    // the words over a bar (a section's A with its tempo and lap, B, a part's name) sit on the lane's row: no dot under them
+    const words = [...this.markTexts, ...this.partTexts].map(({ text, system }) => ({ system, x1: text.x - this.origin.x - 0.2 * S, x2: text.x - this.origin.x + text.width + 0.2 * S, y1: text.y - this.origin.y - text.height / 2, y2: text.y - this.origin.y + text.height / 2 }));
+    const underWords = (dot: { system: number; x: number; y: number }) => words.some((w) => w.system === dot.system && dot.x >= w.x1 && dot.x <= w.x2 && dot.y >= w.y1 && dot.y <= w.y2);
     for (const { dots, look } of this.lanes) {
       for (const dot of dots) {
-        if (!this.onPage(dot.system)) continue;
+        if (!this.onPage(dot.system) || underWords(dot)) continue;
         const { role, strength } = dotLook(dot, look);
         if (strength <= 0) continue;
         const lift = this.liftOf(dot, look);

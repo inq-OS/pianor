@@ -150,4 +150,28 @@ test.describe('a wanderer in any scene', () => {
     expect((await state()).open).toBe(true);
     expectNoErrors(errors);
   });
+
+  test('keepsakes with no picture yet are listed in the backpack by their whole names, each inside its line', async ({ page }) => {
+    const errors = await openGame(page);
+    await page.evaluate(async () => {
+      const { profiles } = window.__game.registry.get('context');
+      const world = await profiles.worldOf(profiles.profile.id);
+      if (!(await profiles.saveWorld(profiles.profile.id, { ...world, items: ['oak-leaf', 'copper-coin', 'copper-coin', 'silver-coin', 'brass-button'] }))) throw new Error('the world was not saved');
+    });
+    await page.evaluate(() => window.__game.scene.stop('menu'));
+    await page.evaluate(() => window.__game.scene.start('knoll'));
+    await waitForScene(page, 'knoll');
+    await expect.poll(() => sceneButton(page, 'knoll', 'Backpack')).toBeGreaterThanOrEqual(0);
+    await clickButton(page, 'knoll', await sceneButton(page, 'knoll', 'Backpack'));
+    const lines = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('knoll') as unknown as { menu: { buttons: { options: { label: string }; labelFit(): { label: string; overflow: number } }[] } | null };
+      return (scene.menu?.buttons ?? []).map((b) => ({ name: b.options.label, ...b.labelFit() }));
+    });
+    expect(lines.map((l) => l.label)).toEqual(['Oak leaf', 'Old copper coin x2', 'Old silver coin', 'Brass button']);
+    for (const line of lines) {
+      expect(line.label, 'the whole name is written').toBe(line.name);
+      expect(line.overflow, line.name).toBeLessThanOrEqual(0);
+    }
+    expectNoErrors(errors);
+  });
 });

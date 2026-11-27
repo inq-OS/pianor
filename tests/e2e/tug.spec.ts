@@ -241,7 +241,7 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     expect(won).toMatchObject({ standing: 1, saying: '5 of 5 notes on time' });
     // Greensleeves has seven bars after its pick-up: his bars 5 and 6, then the short last phrase alone, the student's last bar
     const missed = await roundInTime(page, 'none');
-    expect(missed).toMatchObject({ standing: 0, saying: '0 of 1 notes on time' });
+    expect(missed).toMatchObject({ standing: 0, saying: '0 of 1 note on time' });
     await page.keyboard.press('Escape');
     await expect.poll(() => tug(page)).toBeNull();
     expectNoErrors(errors);

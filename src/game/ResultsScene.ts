@@ -26,6 +26,8 @@ const MASCOT_Y = 30;
 const STARS_GAP = 2;
 const STARS_WIDTH = (GRADE_STARS * (STAR_FULL.width + STARS_GAP) - STARS_GAP) * 2;
 const STARS_Y = 76;
+/** The ribbon reaches this far above its title (`ribbon`): with the band it clears the door by this much. */
+const RIBBON_ROOM = 1;
 /** Row steps down the numbers column: one line of text, and a line with a gap after it. */
 const LINE = 12;
 /** The graph starts this far under the last line. */
@@ -61,6 +63,8 @@ export class ResultsScene extends OutcomeScene {
   private summary: FreePlaySummary | null = null;
   /** The last pass (kept for the tests and the autoplay director). */
   private result: PieceResult | null = null;
+  /** How far the left column sits lower with the band, clear of the door in the corner (set in `draw`). */
+  private below = 0;
   private outcome: CompletionOutcome | null = null;
   /** The development graph as drawn (kept for the tests); null when there was no room for it. */
   protected graph: HistoryGraph | null = null;
@@ -90,18 +94,21 @@ export class ResultsScene extends OutcomeScene {
     this.inkWriting = true;
     // left: the celebration after a session; the piece's title and best stars when opened from its card (the stats, core_04)
     const milestone = this.milestone();
+    // with the band the door stands in the card's top left corner: the title, Kiur and the stars move down under it (the band
+    // holds the buttons, so the column's foot is free)
+    this.below = this.bandShown ? Math.max(0, this.cornerStrip.rows + RIBBON_ROOM - left.y) : 0;
     const title = session ? this.label(left.x, left.y, t(resultsTitleKey(milestone)), C.gold, { big: true, maxWidth: left.w / 2 }) : this.label(left.x, left.y, this.pieceTitle(this.chartId), C.gold, { maxWidth: left.w });
     const scale = session ? 2 : 1;
     const titleW = Math.ceil(title.width * scale), titleH = Math.ceil(title.height * scale);
     // the title in the middle of its column, so the ribbon's tails stay on the card
-    title.setPosition(Math.round(left.x + (left.w - titleW) / 2), left.y + 2);
+    title.setPosition(Math.round(left.x + (left.w - titleW) / 2), left.y + 2 + this.below);
     this.ribbon({ x: title.x, y: title.y, w: titleW, h: titleH });
     this.root.bringToTop(title);
-    const mascot = this.own(new Mascot(this, this.root, mascotX, MASCOT_Y, 2));
+    const mascot = this.own(new Mascot(this, this.root, mascotX, MASCOT_Y + this.below, 2));
     mascot.setMood(milestone ? 'cheer' : 'idle');
     const best = session ? (this.summary?.bestAccuracy ?? this.result?.accuracy ?? null) : null;
     const stars = best !== null ? passStarsFor(best) : session ? 0 : (profiles.recordFor(this.chartId)?.bestGrade ?? 0);
-    pixelStars(this, this.root, Math.round(left.x + (left.w - STARS_WIDTH) / 2), STARS_Y, stars, { gap: STARS_GAP, zoom: 2, ink: true });
+    pixelStars(this, this.root, Math.round(left.x + (left.w - STARS_WIDTH) / 2), STARS_Y + this.below, stars, { gap: STARS_GAP, zoom: 2, ink: true });
     // a piece learned bar by bar: a third button opens what its measured runs showed (ft_1_32.AC9)
     const measured = !session && (profiles.learnProgressOf(this.chartId).tests ?? []).length > 0;
     this.againAndBack(again, back, t(session ? 'results.again' : 'results.play'), () => startScene(this, 'practice', { chartId: this.chartId, ...(this.fromSong ? { fromSong: this.fromSong } : {}) }), measured ? {
@@ -181,7 +188,7 @@ export class ResultsScene extends OutcomeScene {
       }
       y = this.levelLines(x, y + 2, room, awarded.piece.after, awarded.piece.xp);
       // a piece level reached: the level line already says it, so only Kiur and the title celebrate (no text that repeats it)
-      if (awarded.piece.after.level > awarded.piece.before.level) this.sparkle(mascotX, MASCOT_Y);
+      if (awarded.piece.after.level > awarded.piece.before.level) this.sparkle(mascotX, MASCOT_Y + this.below);
     }
     return this.saveLine(x, y, room, outcome);
   }

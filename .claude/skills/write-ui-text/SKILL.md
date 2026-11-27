@@ -7,7 +7,7 @@ description: Use whenever you add or change any text the player sees in pianor (
 
 Rules: CLAUDE.md (string keys), [d081](../../../docs/decisions/game.md#d081), [d086](../../../docs/decisions/art.md#d086), [AX-2.1](../../../docs/axioms.md).
 
-1. **Never a literal in a scene or in art.** Add a key to `src/core/text/strings.ts` (English, the source of keys) and call `t('area.name', { param })`. Placeholders are `{name}`. English is in US spelling (practice, color, harbor; `strings.test.ts` checks the common ones); keys and code names may stay as they are.
+1. **Never a literal in a scene or in art.** Add a key to `src/core/text/strings.ts` (English, the source of keys) and call `t('area.name', { param })`. Placeholders are `{name}`; a word that follows a count is `{name|one|other}` ("1 note", "3 notes"; in Estonian too: "1 noot", "3 nooti"). English is in US spelling (practice, color, harbor; `strings.test.ts` checks the common ones); keys and code names may stay as they are.
 2. **Add the Estonian** in `src/core/text/strings.et.ts` in the same change; it is typed `Record<StringKey, string>`, so a missing key fails the typecheck. Estonian is the default language. If you are unsure of a word, write your best plain Estonian and say so in the PR; never leave the English there.
 3. **Case:** write sentence case in both catalogs. `displayText` at the render boundary (`PixelText`) turns Estonian into small capitals (d086); do not type capitals yourself. `keepCase` needs a reason in code.
 4. **Wording for a young student (AX-2.1):** say what happened ("wrong octave in bar 4", "3 of 4 bars right"), short and concrete. No praise without a basis in what was played, no shaming words. A bigger moment only for a real milestone.
