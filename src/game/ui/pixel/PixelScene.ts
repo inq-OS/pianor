@@ -48,6 +48,11 @@ export interface ToolbarItem {
   armed?: boolean;
   /** Always the picture only, 22 wide, with the label as its name (a hint switch); otherwise only when the bar is full. */
   iconOnly?: boolean;
+  /**
+   * A short value drawn beside the picture in a cell of the strip (the note trainer's step number), which takes the cells
+   * it needs; the label stays the item's name (its tooltip when it has none). Elsewhere the item shows as usual.
+   */
+  value?: string;
   /** The icon is on the fine grid (d110): an item's picture in a slot of the band (`itemArt.ts`). */
   fineIcon?: boolean;
   tooltip?: string;
@@ -150,6 +155,14 @@ const BACKPACK_GAP = 2;
 /** The largest music sign (fine pixels) in a round option of the bubble and in a cell of the strip. */
 const BUBBLE_SIGN = 24;
 const STRIP_SIGN = 22;
+/** Space between a strip cell's picture and its value (`ToolbarItem.value`), as the button keeps between its icon and label. */
+const VALUE_PAD = 3;
+
+/** How wide a strip item's picture is drawn, in art pixels: a fine one is cut to the strip's sign size. */
+function stripIconWidth(item: ToolbarItem): number {
+  return item.fineIcon ? STRIP_SIGN / ART_DETAIL : (item.icon?.width ?? 0);
+}
+
 /** The long press's ring starts to fill this long after the finger went down. */
 const LONG_PRESS_RING_FROM_MS = 150;
 /** More pulses on this many first visits of a screen. */
@@ -1057,6 +1070,7 @@ export abstract class PixelScene extends Phaser.Scene {
 
   /** How many cells of the strip an item takes: one for a picture, as many as its whole word needs (ft_1_20.AC18). */
   private stripSpan(item: ToolbarItem): number {
+    if (item.icon && item.value !== undefined) return cellSpan(stripIconWidth(item) + VALUE_PAD + measure(drawnText(item.value)) + CELL_PAD + 2, STRIP_CELL_WIDTH);
     return item.icon ? 1 : cellSpan(measure(drawnText(item.label)) + CELL_PAD + 2, STRIP_CELL_WIDTH);
   }
 
@@ -1592,11 +1606,13 @@ export abstract class PixelScene extends Phaser.Scene {
    */
   private bandButton(item: ToolbarItem, at: { x: number; y: number; width: number; height: number }, look: 'bandCell' | 'bandSlot', room: number): PixelButton {
     // a word is never cut short (ft_1_20.AC18): the strip gives it the cells it needs
-    const label = item.label;
-    const tooltip = item.tooltip;
+    // a cell with a value draws the picture and the value beside it; the item's name is then its tooltip
+    const valued = look === 'bandCell' && item.icon !== undefined && item.value !== undefined;
+    const label = valued ? item.value! : item.label;
+    const tooltip = item.tooltip ?? (valued ? item.label : undefined);
     const menu = item.menu;
     const button: PixelButton = this.button({
-      ...at, label, labelWidth: room, look, ...(item.icon ? { icon: item.fineIcon && look === 'bandCell' ? signOnly(item.icon, STRIP_SIGN, STRIP_SIGN) : item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}), ...(tooltip ? { tooltip } : {}),
+      ...at, label, labelWidth: room, look, ...(item.icon ? { icon: item.fineIcon && look === 'bandCell' ? signOnly(item.icon, STRIP_SIGN, STRIP_SIGN) : item.icon, iconOnly: !valued, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}), ...(tooltip ? { tooltip } : {}),
       ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}), ...(item.main ? { main: true } : {}),
       // a band item's menu opens above it, toward the staff, where the pointer goes next
       onClick: menu ? () => this.openMenu(button, menu.items(), { cell: menu.cell, columns: menu.columns, open: 'above' }) : item.onClick,
