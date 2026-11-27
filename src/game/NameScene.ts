@@ -21,7 +21,9 @@ const BIG_CAPS = 14;
 const BIG_LETTER = 12;
 const CARET_BLINK_MS = 530;
 /** The caret's dim half of a blink: it fades, never vanishes, so a still picture of the box always shows where to type. */
-const CARET_DIM = 0.35;
+const CARET_DIM = 0.6;
+/** The caret's width in fine pixels: a cell and a half, a stroke as bold as the big letters'. */
+const CARET_WIDTH = 3;
 /** The ask's top above the plate's, in cells: on the bare cover between its gilt border and the vine over the plate. */
 const PROMPT_ABOVE = 32;
 const BOTTOM_HEIGHT = 16;
@@ -198,7 +200,7 @@ export class NameScene extends PixelScene {
     const nameX = Math.round(width / 2 - typedW / 2);
     const nameY = this.refused ? fieldY : fieldY - FIELD_PAD + Math.round((FIELD_HEIGHT + REASON_ROOM - BIG_CAPS) / 2);
     if (this.typed) this.label(nameX, nameY, this.typed, C.white, { big: true });
-    const caret = createBitmap(fine(1), fine(BIG_CAPS));
+    const caret = createBitmap(CARET_WIDTH, fine(BIG_CAPS));
     caret.pixels.fill(C.redDark);
     // the caret blinks between full and faint, never gone, so the plate always shows where the letters go
     this.blink?.remove();

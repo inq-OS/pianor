@@ -24,7 +24,7 @@ test.describe('the name box and the names', () => {
     for (let i = 0; i < 4; i++) {
       const now = await caret(page);
       expect(now?.visible).toBe(true);
-      expect(now!.alpha).toBeGreaterThan(0.2);
+      expect(now!.alpha).toBeGreaterThanOrEqual(0.5);
       await page.waitForTimeout(300);
     }
     expectNoErrors(errors);
@@ -50,6 +50,12 @@ test.describe('the name box and the names', () => {
     const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
     await waitForScene(page, 'profiles');
     await addPlayer(page, 'ABCDEFGHIJKL');
+    // in the room it is too long for the shield's band: it hangs whole on a ribbon over the shield's point
+    await expect.poll(() => page.evaluate(() => {
+      const list = (window.__game.scene.getScene('profile') as unknown as { root: { list: { name: string; width: number }[] } }).root.list;
+      return list.some((o) => o.name === 'shieldRibbon');
+    })).toBe(true);
+    expect(await page.evaluate(() => ((window.__game.scene.getScene('profile') as unknown as { root: { list: { name: string; width: number }[] } }).root.list.find((o) => o.name === 'shieldName')?.width ?? 0))).toBeGreaterThan(60); // all twelve letters, far wider than the shield's 36
     await clickToolbar(page, 'back');
     await waitForScene(page, 'profiles');
     expect(await sceneTexts(page, 'profiles')).toContain('ABCDEFGHIJKL');
@@ -70,6 +76,16 @@ test.describe('the name box and the names', () => {
     }
     await clickButton(page, 'adminDelete', 0);
     await expect.poll(() => sceneTexts(page, 'adminDelete')).toContain('Keep at least one player.');
+    // it is written right under the name tapped, not at the list's foot
+    const gap = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('adminDelete') as unknown as { buttons: { rect: { y: number; height: number }; options: { label: string } }[]; root: { list: { text?: string; y: number }[] } };
+      const name = window.__game.registry.get('context').profiles.profiles[0].name as string;
+      const button = scene.buttons.find((b) => b.options.label === name)!.rect;
+      const text = scene.root.list.find((o) => o.text === 'Keep at least one player.')!;
+      return text.y - (button.y + button.height);
+    });
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeLessThanOrEqual(6);
     expect((await sceneTexts(page, 'adminDelete')).some((t) => /^Delete .+\?$/.test(t))).toBe(false);
     expect(await players(page)).toBe(1);
     expectNoErrors(errors);
