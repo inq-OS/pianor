@@ -22,7 +22,7 @@ export const strings = {
   'hand.LH': 'Left hand',
   'hand.both': 'Both hands',
   'menu.noPieces': 'No pieces yet.',
-  'menu.noneLearned': 'No piece is learned yet. Press Kiur and pick Learn first.',
+  'menu.noneLearned': 'No piece is learned yet. Learn one with Kiur first:',
   'menu.allOff': 'All pieces are off. Turn some on in Settings.',
   'menu.xp': '{xp} / {next} XP',
   'menu.xpTop': '{xp} XP (top level)',

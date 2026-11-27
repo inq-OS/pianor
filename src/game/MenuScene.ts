@@ -37,6 +37,7 @@ import { ART_DETAIL } from '../core/layout/frame';
 import { BOOK_PALETTE, paintBookmark } from './ui/pixel/paint/book';
 import type { Rect } from '../core/layout/rect';
 import { startScene } from './scenes';
+import { learnBook } from './ui/pixel/standArt';
 import { CLEF_FLIGHT, clefDrop, type Box } from '../core/layout/clefFlight';
 import { clefSpaceFor, drawMedalClef } from './practice/prizeGlyphs';
 import type { Medal as LearnMedal } from '../core/learn/progress';
@@ -391,6 +392,16 @@ export class MenuScene extends PixelScene {
     this.inkWriting = false;
   }
 
+  /**
+   * Kiur's Tug with no piece learned (ft_1_32 rule 15): under the line, Kiur's own Learn picture, which opens his Learn book
+   * here, so the student need not go back to the room for it.
+   */
+  private learnInstead(x: number, y: number): void {
+    const art = learnBook();
+    const w = art.width / ART_DETAIL + 4, h = art.height / ART_DETAIL + 4;
+    this.button({ x: x + w / 2, y: y + h / 2, width: w, height: h, label: t('room.kiur.learn'), icon: art, iconOnly: true, fineIcon: true, onClick: () => startScene(this, 'menu', { forKiur: 'learn' }) });
+  }
+
   /** The pieces in the order chosen (ft_1_12.AC11). */
   private ordered(pieces: readonly Piece[]): Piece[] {
     const { profiles } = contextOf(this);
@@ -475,7 +486,8 @@ export class MenuScene extends PixelScene {
     const marked = !this.maker && this.bookmark !== 'all';
     if (pieces.length === 0 && !marked) {
       const why = this.forKiur === 'tug' && listed.length > 0 ? 'menu.noneLearned' : offered.length > 0 ? 'menu.allOff' : 'menu.noPieces';
-      this.label(MARGIN, listTop + 16, t(why), C.dim, { maxWidth: width - 2 * MARGIN });
+      const line = this.label(MARGIN, listTop + 16, t(why), C.dim, { maxWidth: width - 2 * MARGIN });
+      if (why === 'menu.noneLearned') this.learnInstead(MARGIN, line.y + line.height + 6);
       return;
     }
 
@@ -491,8 +503,9 @@ export class MenuScene extends PixelScene {
       const picture = BOOKMARK_ICON[this.bookmark]();
       this.root.add(new PixelImage(this, margin + shift + 6, top + 10, picture).setName('emptyBookmark'));
       this.inkWriting = true;
-      this.label(margin + shift + 6, top + 16 + picture.height, t(this.forKiur === 'tug' ? 'menu.noneLearned' : 'menu.noneHere'), C.umberDark, { maxWidth: width / 2 - margin - shift - BOOK_GUTTER / 2 - 6 });
+      const line = this.label(margin + shift + 6, top + 16 + picture.height, t(this.forKiur === 'tug' ? 'menu.noneLearned' : 'menu.noneHere'), C.umberDark, { maxWidth: width / 2 - margin - shift - BOOK_GUTTER / 2 - 6 });
       this.inkWriting = false;
+      if (this.forKiur === 'tug') this.learnInstead(margin + shift + 6, line.y + line.height + 6);
       return;
     }
     this.inkWriting = true;
