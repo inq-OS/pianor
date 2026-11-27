@@ -1326,8 +1326,8 @@ export class PracticeScene extends PixelScene {
     // the screen may still be resuming here (Phaser runs the resume on its next step), so only a leave stops this
     if (this.leaving) return;
     if (choice === 'door') {
-      // a draft preview goes back where it came from, a character's teaching to its scene
-      if (this.preview || this.startData.teacher) {
+      // a draft preview goes back where it came from, a character's teaching to its scene, the intro's lesson to its stage in the room
+      if (this.preview || this.startData.teacher || this.intro) {
         this.leave();
         return;
       }

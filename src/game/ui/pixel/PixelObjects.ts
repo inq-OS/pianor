@@ -268,7 +268,9 @@ export class PixelButton {
   private tipTimer: Phaser.Time.TimerEvent | null = null;
 
   constructor(scene: Phaser.Scene, parent: Phaser.GameObjects.Container, private readonly options: PixelButtonOptions) {
-    const { width, height } = options;
+    // a box from a scaled figure can be a fraction of a pixel wide: its face is drawn in whole pixels (a texture has no half one)
+    const width = Math.max(1, Math.round(options.width));
+    const height = Math.max(1, Math.round(options.height));
     this.disabled = options.disabled === true;
     this.look = options.look ?? 'button';
     const left = Math.floor(options.x - width / 2);
