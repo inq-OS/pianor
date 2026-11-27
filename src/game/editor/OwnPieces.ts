@@ -6,7 +6,7 @@ import { levelsFileSchema, type Chart, type LevelDefinition } from '../../core/c
 import { toAbc, toMeta } from '../../core/editor/abc';
 import { editorPieceV1Schema, migrateEditorPieceV1 } from '../../core/editor/migrate';
 import { editorPieceSchema, playedPiece, setTitle, type EditorPiece } from '../../core/editor/model';
-import { freeTitle } from '../../core/editor/title';
+import { freeTitle, titleKey } from '../../core/editor/title';
 import { exportPieceFile, importPieceFile, ownIdFor, pieceFileName, type ImportRefusal } from '../../core/editor/pieceFile';
 import type { KeyValueStore } from '../../core/progression';
 import type { PieceProblem } from '../../core/text/labels';
@@ -158,13 +158,15 @@ export class OwnPieces {
   /**
    * Add the piece in a piece file as a new own piece (a new id when its title is taken: an import never replaces a piece).
    * `reservedIds` are the ids of the bundled pieces, which a file must not claim. A title another piece has (an own piece, or
-   * one of `takenTitles`, the game's pieces), in any case, gets the next free number (ft_1_02a.AC15).
+   * one of `takenTitles`, the game's pieces), in any case, gets the next free number (ft_1_02a.AC15); a blank title becomes
+   * `blankTitle`, as a piece is never saved under a blank title.
    */
-  async importFile(text: string, options: { reservedIds?: Iterable<string>; takenTitles?: Iterable<string> } = {}): Promise<ImportOutcome> {
+  async importFile(text: string, options: { reservedIds?: Iterable<string>; takenTitles?: Iterable<string>; blankTitle?: string } = {}): Promise<ImportOutcome> {
     const read = importPieceFile(text, options);
     if (!read.ok) return read;
     const { author } = read.file;
-    const piece = this.withFreeTitle(read.file.piece, options.takenTitles ?? []);
+    const named = titleKey(read.file.piece.title) === '' ? setTitle(read.file.piece, options.blankTitle ?? 'Imported piece') : read.file.piece;
+    const piece = this.withFreeTitle(named, options.takenTitles ?? []);
     const saved = await this.save(piece, { author });
     if (!saved.ok) return saved;
     return { ok: true, id: saved.id, title: piece.title, saved: saved.saved };

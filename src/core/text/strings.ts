@@ -682,6 +682,7 @@ export const strings = {
   'editor.book.previous': 'Previous page',
   'editor.book.next': 'Next page',
   'editor.imported': 'Added "{title}" to your pieces.',
+  'editor.importedTitle': 'Imported piece',
   'editor.importEmpty': 'Nothing was chosen.',
   'editor.import.not-json': 'That file is not a piece file.',
   'editor.import.not-a-piece-file': 'That file is not a Pianor piece.',

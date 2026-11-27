@@ -677,6 +677,7 @@ export const stringsEt: Record<StringKey, string> = {
   'editor.book.previous': 'Eelmine leht',
   'editor.book.next': 'Järgmine leht',
   'editor.imported': 'Lisasid loo "{title}" sinu lugude hulka.',
+  'editor.importedTitle': 'Imporditud lugu',
   'editor.importEmpty': 'Midagi ei valitud.',
   'editor.import.not-json': 'See fail ei ole loofail.',
   'editor.import.not-a-piece-file': 'See fail ei ole Pianori lugu.',

@@ -654,7 +654,7 @@ test.describe('piece editor (preliminary)', () => {
     const path = await file.path();
     const text = readFileSync(path, 'utf-8');
     expect(JSON.parse(text)).toMatchObject({ kind: 'pianor-piece', schemaVersion: 3, id: 'own-carry-me' });
-    await expect.poll(() => status(page)).toContain('Saved the file');
+    await expect.poll(() => status(page)).toContain('Saved the file own-carry-me.pianor-piece.json.');
 
     // Import adds the piece from the file as a new own piece, under a free title (ft_1_02a.AC15), and the piece being written stays as it is
     const chooser = page.waitForEvent('filechooser');
@@ -670,6 +670,59 @@ test.describe('piece editor (preliminary)', () => {
     await (await refused).setFiles({ name: 'oops.json', mimeType: 'application/json', buffer: Buffer.from('{ nope') });
     await expect.poll(() => status(page)).toContain('That file is not a piece file.');
     expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list())).toHaveLength(2);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02a.AC13 Export of a saved piece whose name was emptied exports nothing until it has a name again', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await setTitle(page, 'Sunny Day');
+    await eAndGQuarters(page);
+    await clickButton(page, 'editor', await editorButton(page, 'Save'));
+    await expect.poll(() => status(page)).toContain('Saved. It is in the menu now.');
+    await clickNote(page, 0, 960, 'C');
+    await setTitle(page, '');
+    let downloads = 0;
+    page.on('download', () => downloads++);
+    await clickButton(page, 'editor', await bubbleButton(page, 'Export'));
+    await expect.poll(() => status(page)).toContain('Give the piece a name, then press Enter.');
+    await letGameRun(page, 10, 500);
+    expect(downloads).toBe(0);
+    expect(await status(page)).not.toContain('Saved the file');
+    expectNoErrors(errors);
+  });
+
+  test('a typed name stays through Undo and Redo: typing it is no undo step', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await eAndGQuarters(page);
+    await setTitle(page, 'Sunny Day');
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.press('Control+z');
+    expect(await notes(page)).toEqual(['0:0:E:quarter']);
+    expect(await page.evaluate(() => window.__game.scene.getScene('editor').history.present.title)).toBe('Sunny Day');
+    expect(await page.inputValue('#editor-title')).toBe('Sunny Day');
+    await page.keyboard.press('Control+y');
+    expect(await notes(page)).toEqual(['0:0:E:quarter', '0:480:G:quarter']);
+    expect(await page.inputValue('#editor-title')).toBe('Sunny Day');
+    expect(await page.evaluate(() => window.__game.scene.getScene('editor').history.present.title)).toBe('Sunny Day');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02a.AC15 a piece file with a blank name is imported under a name, never a blank one', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await setTitle(page, 'Carry Me');
+    await eAndGQuarters(page);
+    const download = page.waitForEvent('download');
+    await clickButton(page, 'editor', await bubbleButton(page, 'Export'));
+    const file = JSON.parse(readFileSync(await (await download).path(), 'utf-8')) as { piece: { title: string } };
+    file.piece.title = '   ';
+    const chooser = page.waitForEvent('filechooser');
+    await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
+    await (await chooser).setFiles({ name: 'blank.pianor-piece.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(file)) });
+    await expect.poll(() => status(page)).toContain('Added "Imported piece" to your pieces.');
+    expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().map((r: { piece: { title: string } }) => r.piece.title))).toEqual(['Carry Me', 'Imported piece']);
     expectNoErrors(errors);
   });
 });
@@ -1953,6 +2006,7 @@ test.describe('the next length and the A time', () => {
     expect(await page.evaluate(() => document.activeElement?.id)).toBe('editor-title');
     const ring = () => page.evaluate(() => getComputedStyle(document.querySelector('#editor-title')!).borderTopColor);
     const red = await ring();
+    expect(red).toBe('rgb(215, 38, 61)');
     expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().length)).toBe(0);
     // a new name: the ring goes back, and Enter saves
     await page.fill('#editor-title', 'Twinkle for Me');
