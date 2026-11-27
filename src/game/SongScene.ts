@@ -40,6 +40,8 @@ const PLAY_GAP = 5;
 const STRIP_NAME = 120;
 /** A row is set this far in from its page's cell, so its switch, numbers and play button stay on the paper, as the piece book's cards do. */
 const ROW_INSET = 3;
+/** Each row stands this much nearer the spine than its cell's middle, its outer end further from the book's rim. */
+const TOWARD_SPINE = 3;
 /** Each level of the outline is set in this far. */
 const INDENT = 6;
 /** A row that is off is drawn this pale over its whole height; the switch of the last written part on this faded. */
@@ -715,7 +717,8 @@ export class SongScene extends PixelScene {
     this.items.slice(slice.first, slice.first + slice.count).forEach((item, i) => {
       const { x, y } = rectCentre(grid.pageCell(i, this.perPage));
       const rowWidth = grid.cardWidth - 2 * ROW_INSET;
-      const left = x - rowWidth / 2;
+      // moved toward the spine, so a row's switch and play button keep clear of the book's rim, its corners and the gear
+      const left = x - rowWidth / 2 + (x < width / 2 ? TOWARD_SPINE : -TOWARD_SPINE);
       const top = y - rowHeight / 2;
       this.rowRects.set(item === null ? '' : item.row.id, { left, top, width: rowWidth, depth: item === null ? -1 : item.row.depth });
       if (item === null) this.wholeRow(outline, left, top, rowWidth);
