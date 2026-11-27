@@ -651,3 +651,46 @@ test.describe('the telephone in the room (ft_1_34)', () => {
     expectNoErrors(errors);
   });
 });
+
+test.describe('presses in the room', () => {
+  test('ft_1_20.AC19 a right or middle click on a room object does not press it', async ({ page }) => {
+    const errors = await toRoom(page);
+    const piano = await buttonPoint(page, 'profile', await sceneButton(page, 'profile', 'Piano'));
+    await page.mouse.click(piano.x, piano.y, { button: 'right' });
+    await page.mouse.click(piano.x, piano.y, { button: 'middle' });
+    await letGameRun(page, 5, 300);
+    expect(await page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key))).toEqual(['profile']);
+    expectNoErrors(errors);
+  });
+
+  test('two presses on two room objects in one frame open one screen, never two at once', async ({ page }) => {
+    const errors = await toRoom(page);
+    const door = await sceneButton(page, 'profile', 'Door');
+    const piano = await sceneButton(page, 'profile', 'Piano');
+    // both presses land before the game steps again
+    await page.evaluate(({ door, piano }) => {
+      const buttons = window.__game.scene.getScene('profile').buttons as { options: { onClick(): void } }[];
+      buttons[door]!.options.onClick();
+      buttons[piano]!.options.onClick();
+    }, { door, piano });
+    await letGameRun(page, 10, 500);
+    const running = await page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key));
+    expect(running).toHaveLength(1);
+    expect(running).not.toContain('profile');
+    expectNoErrors(errors);
+  });
+  test('a double click on the map\'s Warden\'s house opens the room and does not also press the piano under the same spot', async ({ page }) => {
+    const errors = await toRoom(page);
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
+    await waitForScene(page, 'keriMap');
+    const house = await buttonPoint(page, 'keriMap', await sceneButton(page, 'keriMap', "Warden's house"));
+    // the first click opens the room; the second of the double click lands on the room as it opens
+    await page.mouse.click(house.x, house.y);
+    await waitForScene(page, 'profile');
+    await page.mouse.down({ clickCount: 2 });
+    await page.mouse.up({ clickCount: 2 });
+    await letGameRun(page, 10, 500);
+    expect(await page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key))).toEqual(['profile']);
+    expectNoErrors(errors);
+  });
+});

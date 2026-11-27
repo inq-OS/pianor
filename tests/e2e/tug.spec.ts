@@ -3,7 +3,7 @@ import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { activeScenes, buttonPoint, clickButton, expectNoErrors, letGameRun, openGame, playWithVirtualPiano, sceneButton, showMenuPageWith, waitForScene, type PageErrors } from './helpers';
 
-interface TugView { who: 'character' | 'student' | null; turn: number; standing: number; outcome?: 'won' | 'lost' | 'left'; saying: string | null; closing: boolean; level: number; mode: 'wait' | 'tempo' }
+interface TugView { who: 'character' | 'student' | null; turn: number; standing: number; outcome?: 'won' | 'lost' | 'left'; saying: string | null; page: number; closing: boolean; level: number; mode: 'wait' | 'tempo' }
 interface TalkState { showing: 'line' | 'student' | 'choices'; node: string }
 
 const knoll = 'knoll';
@@ -135,7 +135,8 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     await round(page, PHRASE);
     // won at +3: his closing line, then a press ends the tug in the scene
     await expect.poll(async () => (await tug(page))?.outcome).toBe('won');
-    await expect.poll(async () => (await tug(page))?.saying).toContain('Oak leaf');
+    // the closing line counts the lines, never more than were played (AX-2.1)
+    await expect.poll(async () => (await tug(page))?.saying).toBe('3 of 3 lines fell into place. Take this: Oak leaf.');
     await page.keyboard.press('Space');
     await expect.poll(() => tug(page)).toBeNull();
     expect(await activeScenes(page)).toContain(knoll);
@@ -206,6 +207,46 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     expect(missed).toMatchObject({ standing: 0, saying: '0 of 1 notes on time' });
     await page.keyboard.press('Escape');
     await expect.poll(() => tug(page)).toBeNull();
+    expectNoErrors(errors);
+  });
+  test('a closing line too long for one page shows every page: a press turns to the next, the last press ends the tug', async ({ page }) => {
+    const errors = await openTug(page);
+    for (let i = 0; i < 3; i++) await round(page, PHRASE);
+    await expect.poll(async () => (await tug(page))?.closing).toBe(true);
+    await page.keyboard.press('Space');
+    await expect.poll(() => tug(page)).toBeNull();
+    // level 2 waits for better plays of its piece: the gate's line ends with what to do, on its second page
+    await practise(page, 3, false, LEVEL_2, 'tempo');
+    await pickTug(page);
+    await expect.poll(async () => (await tug(page))?.saying ?? '').toContain('Practice it more in your room.');
+    expect(await tug(page)).toMatchObject({ closing: true, page: 0 });
+    await page.keyboard.press('Space');
+    await expect.poll(async () => (await tug(page))?.page).toBe(1);
+    await page.keyboard.press('Space');
+    await expect.poll(() => tug(page)).toBeNull();
+    expectNoErrors(errors);
+  });
+
+  test('after a won level 1, "Teach me" teaches the piece level 2 asks to learn, not the one already won', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual&actors=1&learn=1');
+    await page.evaluate(async () => {
+      const { profiles } = window.__game.registry.get('context');
+      const world = await profiles.worldOf(profiles.profile.id);
+      await profiles.saveWorld(profiles.profile.id, {
+        ...world,
+        flags: ['met-puuvaim', 'puuvaim-taught-said', 'known-puuvaim'],
+        met: { puuvaim: { firstDay: '1998-11-19', lastDay: '1998-11-19', taught: ['both-hands'], tugs: { won: 1, lost: 0, bestLevel: 1 } } },
+      });
+    });
+    await page.evaluate((k) => { window.__game.scene.stop('menu'); window.__game.scene.start(k); }, knoll);
+    await waitForScene(page, knoll);
+    await letGameRun(page, 3, 50);
+    expect(await page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { talkTo(id: string): Promise<boolean> }).talkTo('puuvaim'), knoll)).toBe(true);
+    for (let i = 0; i < 12 && (await talk(page))?.showing !== 'choices'; i++) await page.keyboard.press('Space');
+    await page.keyboard.press('1'); // "Teach me a tune!"
+    for (let i = 0; i < 6 && (await talk(page)) !== null && (await activeScenes(page)).includes(knoll); i++) await page.keyboard.press('Space');
+    await waitForScene(page, 'practice');
+    expect(await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { fullChart: { id: string } }).fullChart.id)).toBe(LEVEL_2.piece);
     expectNoErrors(errors);
   });
 });

@@ -53,10 +53,8 @@ test.describe('the stats of a piece on the score screen (ft_1_12.AC4)', () => {
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').chart.id as string)).toBe('little-steps#bars-2-3');
     await playWithVirtualPiano(page, [67, 65, 65, 64, 62, 60]);
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').startData.lap)).toBe(1);
-    // leaving after keys were played shows the score screen of the session (ft_1_12), with no pass to the end
+    // Esc while a section is practised goes back with no score screen
     await page.keyboard.press('Escape');
-    await waitForScene(page, 'results');
-    await clickButton(page, 'results', await bandAction(page, 'results', 1)); // More pieces
     await waitForScene(page, 'menu');
     await showMenuPageWith(page, 'Little Steps');
     await openStats(page, 'little-steps');

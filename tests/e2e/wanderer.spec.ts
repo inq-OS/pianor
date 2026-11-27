@@ -1,6 +1,6 @@
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { LITTLE_STEPS, clickButton, expectNoErrors, letGameRun, openGame, playWithVirtualPiano, sceneButton, waitForScene } from './helpers';
+import { LITTLE_STEPS, activeScenes, clickButton, expectNoErrors, letGameRun, openGame, playWithVirtualPiano, sceneButton, waitForScene } from './helpers';
 
 type Here = { ids: string[]; saying: string | null; asking: boolean };
 const here = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { wanderersHere: Here }).wanderersHere);
@@ -74,6 +74,72 @@ test.describe('a wanderer the teacher sends (ft_1_37)', () => {
     await page.evaluate(() => window.__game.scene.start('knoll'));
     await waitForScene(page, 'knoll');
     await expect.poll(actors).toBeGreaterThan(0);
+    expectNoErrors(errors);
+  });
+});
+
+/** Puts the traveller in scene `key` today without the day's draw, once the scene has read who stands there. */
+async function standTravellerIn(page: Page, key: string): Promise<void> {
+  await page.evaluate(() => window.__game.scene.stop('menu'));
+  await page.evaluate((k) => window.__game.scene.start(k), key);
+  await waitForScene(page, key);
+  await page.waitForFunction((k) => (window.__game.scene.getScene(k) as unknown as { today: unknown }).today !== null, key);
+  await page.evaluate((k) => {
+    const scene = window.__game.scene.getScene(k) as unknown as { today: unknown; redraw(): void };
+    scene.today = { characters: {}, wanderers: { traveller: { scene: k, piece: 'little-steps' } } };
+    scene.redraw();
+  }, key);
+}
+
+const traveller = (page: Page, key: string) => page.evaluate((k) => {
+  const scene = window.__game.scene.getScene(k) as unknown as { buttons: { options: { label: string }; getBounds?: unknown }[]; root: { list: { name: string; visible: boolean; y: number; scaleY: number }[] } };
+  const actor = scene.root.list.find((o) => o.name === 'actor:traveller' && o.visible);
+  return { pressable: scene.buttons.some((b) => b.options.label === 'Traveler'), scale: actor?.scaleY ?? null };
+}, key);
+
+test.describe('a wanderer in any scene', () => {
+  test('a wanderer in a scene whose first place is far out on the sea stands on a near place, full size and pressable', async ({ page }) => {
+    const errors = await openGame(page);
+    await standTravellerIn(page, 'docks');
+    await expect.poll(async () => (await traveller(page, 'docks')).pressable).toBe(true);
+    // the docks' first place is far out on the sea, drawn at 0.4: the traveller stands on the pier at full size (1 / ART_DETAIL)
+    expect((await traveller(page, 'docks')).scale).toBe(0.5);
+    expectNoErrors(errors);
+  });
+
+  test('Esc while a wanderer asks closes the ask and stays in the scene; Esc again leaves', async ({ page }) => {
+    const errors = await openGame(page);
+    await standTravellerIn(page, 'knoll');
+    expect(await press(page)).toBe(true);
+    expect((await here(page)).asking).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect.poll(async () => (await here(page)).asking).toBe(false);
+    expect(await activeScenes(page)).toContain('knoll');
+    await page.keyboard.press('Escape');
+    await expect.poll(() => activeScenes(page)).not.toContain('knoll');
+    expectNoErrors(errors);
+  });
+
+  test('the backpack opened while a line is said stays open when the line runs out', async ({ page }) => {
+    const errors = await openGame(page);
+    await page.evaluate(async () => {
+      const { profiles } = window.__game.registry.get('context');
+      const world = await profiles.worldOf(profiles.profile.id);
+      if (!(await profiles.saveWorld(profiles.profile.id, { ...world, items: ['glass-bead'] }))) throw new Error('the world was not saved');
+    });
+    await page.evaluate(() => window.__game.scene.stop('menu'));
+    await page.evaluate(() => window.__game.scene.start('knoll'));
+    await waitForScene(page, 'knoll');
+    await expect.poll(() => sceneButton(page, 'knoll', 'Backpack')).toBeGreaterThanOrEqual(0);
+    expect(await page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { lookAt(id: string): boolean }).lookAt('fire'))).toBe(true);
+    await clickButton(page, 'knoll', await sceneButton(page, 'knoll', 'Backpack'));
+    const state = () => page.evaluate(() => {
+      const scene = window.__game.scene.getScene('knoll') as unknown as { menuOpen: boolean; lookingAt: string | null };
+      return { open: scene.menuOpen, looking: scene.lookingAt };
+    });
+    expect(await state()).toEqual({ open: true, looking: 'fire' });
+    await expect.poll(async () => (await state()).looking, { timeout: 20000 }).toBeNull();
+    expect((await state()).open).toBe(true);
     expectNoErrors(errors);
   });
 });

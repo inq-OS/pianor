@@ -116,6 +116,16 @@ export function startAutoplay(options: AutoplayOptions): AutoplayHandle {
   const scenes = () => game.scene.getScenes(true) as unknown as SceneLike[];
   const scene = (key: string): SceneLike | undefined => scenes().find((s) => s.scene.key === key);
 
+  /** A closing line pressed a page at a time, each page read for a while, until `open` says it has closed. */
+  async function pressThrough(open: () => boolean, press: () => void): Promise<void> {
+    for (let page = 0; open(); page++) {
+      if (page > 10) throw new Error('The closing line did not close');
+      if (page > 0) await sleep(lingerMs);
+      press();
+      await sleep(100);
+    }
+  }
+
   async function waitUntil<T>(what: string, find: () => T | undefined | false | null, timeoutMs = 20000): Promise<T> {
     const until = performance.now() + timeoutMs;
     for (;;) {
@@ -415,7 +425,7 @@ export function startAutoplay(options: AutoplayOptions): AutoplayHandle {
         if (teach.outcome !== 'heard') throw new Error(`The phrase was not learned: ${teach.saying ?? ''}`);
         say('results', `Taught: ${teach.saying ?? ''}`);
         await sleep(lingerMs);
-        place.pressTalk();
+        await pressThrough(() => place.teachState !== null, () => place.pressTalk());
         break;
       }
       const phrase = place.teachPhrase;
@@ -454,7 +464,7 @@ export function startAutoplay(options: AutoplayOptions): AutoplayHandle {
         if (tug.outcome === undefined) throw new Error(`The tug did not start: ${tug.saying ?? ''}`);
         say('results', `The tug is ${tug.outcome}: ${tug.saying ?? ''}`);
         await sleep(lingerMs);
-        place.pressTalk();
+        await pressThrough(() => place.tugState !== null, () => place.pressTalk());
         break;
       }
       const phrase = place.tugPhrase;

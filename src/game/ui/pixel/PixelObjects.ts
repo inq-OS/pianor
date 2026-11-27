@@ -9,6 +9,9 @@ import { ART_DETAIL } from '../../../core/layout/frame';
 import { TOOLTIP_DELAY_MS, tooltipBox } from '../../../core/layout/tooltip';
 import { GRADE_STARS } from '../../../core/scoring/stars';
 
+/** A second click this soon after its screen opened belongs to the double click that opened it. */
+const DOUBLE_CLICK_MS = 600;
+
 /**
  * Phaser objects made from `Bitmap`s. A bitmap becomes a small canvas texture owned by the object, so its memory goes
  * with it. Everything is drawn at one art pixel per pixel and zoomed by whole numbers by the scene's root container
@@ -268,7 +271,9 @@ export class PixelButton {
   private tipTimer: Phaser.Time.TimerEvent | null = null;
 
   constructor(scene: Phaser.Scene, parent: Phaser.GameObjects.Container, private readonly options: PixelButtonOptions) {
-    const { width, height } = options;
+    // a box from a scaled figure can be a fraction of a pixel wide: its face is drawn in whole pixels (a texture has no half one)
+    const width = Math.max(1, Math.round(options.width));
+    const height = Math.max(1, Math.round(options.height));
     this.disabled = options.disabled === true;
     this.look = options.look ?? 'button';
     const left = Math.floor(options.x - width / 2);
@@ -310,13 +315,20 @@ export class PixelButton {
       if (options.picture && this.focused) this.showTooltip();
       this.set({ hover: false, down: false });
     });
-    this.panel.on('pointerdown', () => {
+    // only the main button presses (a finger is one too): a right press opens the bubble, never the button under it (ft_1_20.AC19)
+    this.panel.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.button !== 0) return;
       this.hideTooltip();
       if (!this.disabled) this.set({ down: true });
     });
-    this.panel.on('pointerup', () => {
+    this.panel.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       this.set({ down: false });
-      if (!this.disabled) options.onClick();
+      if (pointer.button !== 0 || this.disabled) return;
+      // the second click of a double click whose first opened this screen (a place on the map, then the piano under the same spot in the room)
+      const event = pointer.event as MouseEvent | undefined;
+      const opened = (scene as { screenOpenedAt?: number }).screenOpenedAt;
+      if (event && event.detail >= 2 && opened !== undefined && event.timeStamp - opened < DOUBLE_CLICK_MS) return;
+      options.onClick();
     });
   }
 
