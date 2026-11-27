@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "id": "half-step",
+  "topic": "D1",
+  "needs": ["A1", "A2"],
+  "show": { "line": "lessons.line.listen", "notes": [60, 62, 64, 65], "marks": [{ "from": 0, "to": 1, "kind": "whole" }, { "from": 1, "to": 2, "kind": "whole" }, { "from": 2, "to": 3, "kind": "half" }] },
+  "pitfall": { "line": "lessons.halfStep.pitfall", "notes": [64, 65, 71, 72], "marks": [{ "from": 0, "to": 1, "kind": "half" }, { "from": 2, "to": 3, "kind": "half" }], "reason": "neighbour-key" },
+  "try": { "line": "lessons.halfStep.try", "items": { "kind": "step", "semitones": 1, "direction": "up" } },
+  "playAlong": { "line": "lessons.line.playAlong", "notes": [64, 65, 64, 62, 60, 59, 60], "marks": [{ "from": 0, "to": 1, "kind": "half" }, { "from": 1, "to": 2, "kind": "half" }, { "from": 5, "to": 6, "kind": "half" }] },
+  "check": { "line": "lessons.halfStep.try", "items": { "kind": "step", "semitones": 1, "direction": "up" }, "count": 8 }
+}

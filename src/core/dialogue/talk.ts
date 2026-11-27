@@ -14,8 +14,6 @@ export interface TalkFacts {
   readonly met: readonly CharacterId[];
   /** Phrases a character has taught the player. */
   readonly taught: readonly PieceId[];
-  /** The player's level. */
-  readonly level: number;
   /** The per-player knowledge switch (d132). */
   readonly knowledge: boolean;
   /** The pieces the character may teach now (approved, or picked by the teacher); absent: every piece. A choice that leads straight to teaching another is not offered. */
@@ -48,7 +46,6 @@ export function conditionHolds(c: Condition, f: TalkFacts): boolean {
   if ('hasItem' in c) return f.items.includes(c.hasItem);
   if ('met' in c) return f.met.includes(c.met);
   if ('taught' in c) return f.taught.includes(c.taught);
-  if ('levelAtLeast' in c) return f.level >= c.levelAtLeast;
   if ('knowledge' in c) return f.knowledge === c.knowledge;
   if ('all' in c) return c.all.every((x) => conditionHolds(x, f));
   return c.any.some((x) => conditionHolds(x, f));

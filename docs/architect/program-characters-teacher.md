@@ -202,7 +202,7 @@ interface Choice { readonly text: StringKey; readonly next: NodeId; readonly whe
 type Condition =
   | { readonly flag: string } | { readonly notFlag: string }
   | { readonly hasItem: ItemId } | { readonly met: CharacterId }
-  | { readonly taught: PieceId } | { readonly levelAtLeast: number }
+  | { readonly taught: PieceId }
   | { readonly knowledge: boolean }               // the per-player knowledge switch (d132)
   | { readonly all: readonly Condition[] } | { readonly any: readonly Condition[] };
 

@@ -65,6 +65,29 @@ describe('the best fingering of a line (ft_1_30.AC2)', () => {
     expect(firsts(bestFingering('LH', line([60, 59, 57, 55, 53, 52, 50, 48])))).toEqual([1, 2, 3, 1, 2, 3, 4, 5]);
   });
 
+  it('passes the thumb only where a teacher does, in scales over two octaves and in other keys', () => {
+    const c2 = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77, 79, 81, 83, 84];
+    expect(firsts(bestFingering('RH', line(c2)))).toEqual([1, 2, 3, 1, 2, 3, 4, 1, 2, 3, 1, 2, 3, 4, 5]);
+    // the left hand going up: the teacher's 5 4 3 2 1 3 2 1 4 3 2 1 3 2 1 and 5 4 3 2 1 4 3 2 1 3 2 1 3 2 1 cost the same;
+    // either way the hand starts on 5, ends on the thumb and crosses over it three times, the fewest two octaves take
+    const left = firsts(bestFingering('LH', line(c2.map((p) => p - 24))));
+    expect([left[0], left.at(-1)]).toEqual([5, 1]);
+    expect(left.filter((f, i) => i > 0 && left[i - 1] === 1 && f !== 1)).toHaveLength(3);
+    expect(firsts(bestFingering('RH', line([65, 67, 69, 70, 72, 74, 76, 77])))).toEqual([1, 2, 3, 4, 1, 2, 3, 4]);
+    expect(firsts(bestFingering('RH', line([69, 71, 72, 74, 76, 77, 80, 81])))).toEqual([1, 2, 3, 1, 2, 3, 4, 5]);
+  });
+
+  it('starts B flat major off the thumb: 2 1 2 3 1 2 3 4', () => {
+    expect(firsts(bestFingering('RH', line([70, 72, 74, 75, 77, 79, 81, 82])))).toEqual([2, 1, 2, 3, 1, 2, 3, 4]);
+  });
+
+  it('plays a broken chord from its chord position: the C arpeggio, a broken chord and an Alberti bass', () => {
+    const eighths = (pitches: number[]) => pitches.map((p, i) => ({ pitches: [p], start: i * 240, end: (i + 1) * 240 }));
+    expect(firsts(bestFingering('RH', eighths([60, 64, 67, 72, 76, 79, 84])))).toEqual([1, 2, 3, 1, 2, 3, 5]);
+    expect(firsts(bestFingering('LH', eighths([48, 52, 55, 52])))).toEqual([5, 3, 1, 3]);
+    expect(firsts(bestFingering('LH', eighths([48, 55, 52, 55, 48, 55, 52, 55])))).toEqual([5, 1, 3, 1, 5, 1, 3, 1]);
+  });
+
   it('gives each search its own fingers: changing one result leaves the next search as it was', () => {
     const first = bestFingering('RH', line([60, 62, 64]));
     first.fingers[0]![0] = 5;
@@ -145,6 +168,16 @@ describe('chords (ft_1_30.AC5)', () => {
       expect(new Set(f).size).toBe(3);
     }
     expect(result.fingers[0]).toEqual([1, 3, 5]);
+  });
+
+  it('takes a chord in its own shape after a leap, not reaching toward the note before', () => {
+    const slices: FingerSlice[] = [
+      { pitches: [79], start: 0, end: QUARTER },
+      { pitches: [60, 64, 67], start: QUARTER, end: 2 * QUARTER },
+      { pitches: [60, 65, 69], start: 2 * QUARTER, end: 3 * QUARTER },
+    ];
+    expect(bestFingering('RH', slices).fingers.slice(1)).toEqual([[1, 3, 5], [1, 3, 5]]);
+    expect(bestFingering('RH', [{ ...slices[0]!, pitches: [84], end: QUARTER / 2 }, ...slices.slice(1)]).fingers[1]).toEqual([1, 3, 5]);
   });
 
   it('leaves a chord of more than five keys unfingered', () => {

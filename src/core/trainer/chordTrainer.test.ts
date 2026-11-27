@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import chordsJson from '../../../content/trainer/chords.json';
 import type { NoteEvent } from '../judge/types.ts';
-import { CHORD_LIVES, CHORD_XP_PER_NOTE, ChordRound, chordLabel, loadChordContent, parseChord, type ChordContent } from './chordTrainer.ts';
+import { CHORD_LIVES, CHORD_XP_PER_NOTE, ChordRound, chordLabel, loadChordContent, parseChord, wrongKeySpelling, type ChordContent } from './chordTrainer.ts';
 
 const content: ChordContent = loadChordContent(chordsJson);
 const on = (midi: number): NoteEvent => ({ kind: 'on', midi, velocity: 90, timeMs: 0, source: 'test' });
@@ -112,5 +112,33 @@ describe('ChordRound (ft_1_29.AC2)', () => {
     const asked = names('seed');
     for (let i = 1; i < asked.length; i++) expect(asked[i]).not.toBe(asked[i - 1]);
     expect(names('seed')).toEqual(asked);
+  });
+});
+
+describe('wrongKeySpelling (ft_1_29.AC2)', () => {
+  const spelled = (chord: string, midi: number) => {
+    const s = wrongKeySpelling(parseChord(content, chord), midi);
+    return `${s.step}${s.alter < 0 ? 'b' : s.alter > 0 ? '#' : ''}`;
+  };
+
+  it('ft_1_29.AC2 names a wrong black key with flats for a chord on the flat side of the circle of fifths', () => {
+    expect(spelled('F', 61)).toBe('Db');
+    expect(spelled('c', 68)).toBe('Ab');
+    expect(spelled('d', 61)).toBe('Db');
+    expect(spelled('g', 66)).toBe('Gb');
+    expect(spelled('Bb', 66)).toBe('Gb');
+    expect(spelled('f7', 66)).toBe('Gb');
+  });
+
+  it('ft_1_29.AC2 names it with sharps for a chord on the sharp side, and for C and a', () => {
+    expect(spelled('G', 61)).toBe('C#');
+    expect(spelled('e', 70)).toBe('A#');
+    expect(spelled('C', 61)).toBe('C#');
+    expect(spelled('a', 63)).toBe('D#');
+    expect(spelled('c#', 70)).toBe('A#');
+  });
+
+  it('ft_1_29.AC2 a white key keeps its letter', () => {
+    expect(spelled('Eb', 62)).toBe('D');
   });
 });

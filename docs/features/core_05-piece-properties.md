@@ -9,7 +9,7 @@ completeness: 60
 
 # core_05: Piece properties and hover card
 
-What a piece is, shown on an info card in the menu (an "i" button on an unlocked piece card, for mouse and touch alike). Index: [FEATURES.md](FEATURES.md).
+What a piece is, shown on an info card in the menu (an "i" button on a piece card, for mouse and touch alike). Index: [FEATURES.md](FEATURES.md).
 
 ## Rules
 
@@ -25,7 +25,7 @@ What a piece is, shown on an info card in the menu (an "i" button on an unlocked
 
 - **core_05.AC1** The features of a piece come from a tested pure function of the chart (`pieceFeatures` in `core/properties`): two hands, hands apart, black keys, rests, the fastest note value, a key, meter or tempo change and an odd meter, counting only what the student plays; 3/4 is not unconventional. The difficulty stars and the tags are put together with them by `pieceInfo`.
 - **core_05.AC2** The function gives sensible answers on the real pieces of `content/pieces/` (two hands only where a piece has both hands, rests and eighth notes where a piece is about them).
-- **core_05.AC3** In the menu an unlocked piece card has an "i" button that opens an info card with the piece's difficulty stars, its tags and its feature list; Close or a tap outside closes it and a tap outside does not press what is behind it. All text comes through string keys. The card also shows the piece's own BPM (`ft_1_02d.AC6`).
+- **core_05.AC3** In the menu every piece card has an "i" button that opens an info card with the piece's difficulty stars, its tags and its feature list; Close or a tap outside closes it and a tap outside does not press what is behind it. All text comes through string keys. The card also shows the piece's own BPM (`ft_1_02d.AC6`).
 - **core_05.AC5** A piece's styles come from the closed list in `content/pieces/styles.json` (`parseStyleList` in `core/properties/styles.ts`; each style has a name through a string key): `piece:lint` makes a style that is not on the list an error and a committed piece with no style a warning (an own piece in `private/pieces/` needs none), and the info card shows "Style:" with the names of the piece's styles and not its free tags.
 - **core_05.AC4** The card fits and reads well at 1366x768, 1024x600 and 960x540 (the smallest layout). [human]
 

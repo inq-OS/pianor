@@ -338,6 +338,13 @@ describe('a written finger far from the best (ft_1_30.AC8)', () => {
     expect(wrong.filter((d) => d.rule === 'fingering' && d.severity === 'error').map((d) => d.message).join()).toContain('finger 5 on C4');
   });
 
+  it('says nothing for a teacher’s fingering of a scale with a black key, an arpeggio or a chromatic line', () => {
+    const cost = (abc: string, key = 'C') => lint(abc, { level: free, key }).diagnostics.filter((d) => d.rule === 'fingering-cost');
+    expect(cost('!4!B !1!c !2!d !3!e | !1!f !2!g !3!a !4!b | b a g f | e d c B | B4 |]', 'Bb')).toEqual([]);
+    expect(cost("!1!C !2!E !3!G !1!c | !2!e !3!g !5!c'2 | c' g e c | G E C2 |]")).toEqual([]);
+    expect(cost('!1!C !3!^C !1!D !3!^D | !1!E !2!F !3!^F !1!G | G F E D | C4 |]')).toEqual([]);
+  });
+
   it('says nothing for a fingering a teacher would write', () => {
     const fine = lint('!1!C !2!D !3!E !4!F | !5!G2 F2 | F E D C | C4 |]', { level: free }).diagnostics;
     expect(fine.filter((d) => d.rule === 'fingering-cost')).toEqual([]);

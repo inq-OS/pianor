@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CIRCLE_STEPS, circleHit, circleLayout, keyAt, moveStep, spellingsOf, stepOfFifths, stepOfKey, tonicStep, withFlat } from './circleOfFifths';
+import { CIRCLE_STEPS, chooseKey, circleHit, circleLayout, keyAt, moveStep, spellingsOf, stepOfFifths, stepOfKey, tonicStep, withFlat } from './circleOfFifths';
 
 const AREA = { cx: 100, cy: 100, radius: 90 };
 
@@ -93,16 +93,56 @@ describe('circleHit (ft_1_28.AC5)', () => {
 
   it('finds the step and ring under each name', () => {
     for (const step of layout.steps) {
-      expect(circleHit(layout, step.majorAt.x, step.majorAt.y)).toEqual({ step: step.index, ring: 'major' });
-      expect(circleHit(layout, step.minorAt.x, step.minorAt.y)).toEqual({ step: step.index, ring: 'minor' });
-      expect(circleHit(layout, step.signAt.x, step.signAt.y)).toEqual({ step: step.index, ring: 'major' });
+      expect(circleHit(layout, step.majorAt.x, step.majorAt.y)).toMatchObject({ step: step.index, ring: 'major' });
+      expect(circleHit(layout, step.minorAt.x, step.minorAt.y)).toMatchObject({ step: step.index, ring: 'minor' });
+      expect(circleHit(layout, step.signAt.x, step.signAt.y)).toMatchObject({ step: step.index, ring: 'major' });
     }
+  });
+
+  it('ft_1_28.AC5 a click on the flat half of a two-spelling name or count chooses the flat key, the sharp half the sharp key', () => {
+    const bottom = layout.steps[6]!;
+    // F# stands above G flat in the name, 6 sharps left of 6 flats on the plate
+    expect(circleHit(layout, bottom.majorAt.x, bottom.majorAt.y - 3)).toEqual({ step: 6, ring: 'major', fifths: 6 });
+    expect(circleHit(layout, bottom.majorAt.x, bottom.majorAt.y + 3)).toEqual({ step: 6, ring: 'major', fifths: -6 });
+    expect(circleHit(layout, bottom.signAt.x - 3, bottom.signAt.y)).toEqual({ step: 6, ring: 'major', fifths: 6 });
+    expect(circleHit(layout, bottom.signAt.x + 3, bottom.signAt.y)).toEqual({ step: 6, ring: 'major', fifths: -6 });
+    // one name shown, no spelling picked by where the click is
+    expect(circleHit(layout, bottom.minorAt.x, bottom.minorAt.y)!.fifths).toBeUndefined();
+    expect(circleHit(layout, layout.steps[7]!.majorAt.x, layout.steps[7]!.majorAt.y)!.fifths).toBeUndefined();
   });
 
   it('finds nothing in the hub or outside the circle', () => {
     expect(circleHit(layout, 100, 100)).toBeNull();
     expect(circleHit(layout, 100, 5)).toBeNull();
     expect(circleHit(layout, 300, 100)).toBeNull();
+  });
+});
+
+describe('chooseKey (ft_1_28.AC5)', () => {
+  const major = (fifths: number) => ({ fifths, mode: 'major' as const });
+
+  it('takes the spelling the click picked', () => {
+    expect(chooseKey(major(0), { step: 6, ring: 'major', fifths: -6 })).toEqual(major(-6));
+    expect(chooseKey(major(-6), { step: 6, ring: 'major', fifths: 6 })).toEqual(major(6));
+  });
+
+  it('ft_1_28.AC5 a second click on the chosen step switches its spelling, so G flat, C flat and C sharp can be chosen', () => {
+    expect(chooseKey(major(-5), { step: 7, ring: 'major' })).toEqual(major(7));
+    expect(chooseKey(major(7), { step: 7, ring: 'major' })).toEqual(major(-5));
+    expect(chooseKey(major(5), { step: 5, ring: 'major' })).toEqual(major(-7));
+    expect(chooseKey({ fifths: 6, mode: 'minor' }, { step: 6, ring: 'minor' })).toEqual({ fifths: -6, mode: 'minor' });
+    expect(chooseKey({ fifths: -5, mode: 'minor' }, { step: 7, ring: 'minor' })).toEqual({ fifths: 7, mode: 'minor' });
+    // a step with one spelling is chosen again as it is
+    expect(chooseKey(major(1), { step: 1, ring: 'major' })).toEqual(major(1));
+  });
+
+  it('keeps the spelling when only the ring changes on the same step', () => {
+    expect(chooseKey(major(7), { step: 7, ring: 'minor' })).toEqual({ fifths: 7, mode: 'minor' });
+  });
+
+  it('takes the spelling with fewer signs on another step, the piece\'s spelling winning', () => {
+    expect(chooseKey(major(0), { step: 7, ring: 'major' })).toEqual(major(-5));
+    expect(chooseKey(major(0), { step: 7, ring: 'major' }, [7])).toEqual(major(7));
   });
 });
 

@@ -1,6 +1,5 @@
 import chordsJson from '../../content/trainer/chords.json';
-import { midiToSpelling } from '../core/chart/pitch';
-import { CHORD_LIVES, ChordRound, chordLabel, loadChordContent } from '../core/trainer/chordTrainer';
+import { CHORD_LIVES, ChordRound, chordLabel, loadChordContent, wrongKeySpelling } from '../core/trainer/chordTrainer';
 import { displayText } from '../core/text/language';
 import { noteLabel } from '../core/text/noteName';
 import { t } from '../core/text/strings';
@@ -66,9 +65,9 @@ export class ChordTrainerScene extends PixelScene {
     const state = this.round.state();
     for (const heart of heartRow(this, width, state.lives, CHORD_LIVES)) this.root.add(heart);
     if (this.wrong !== null) {
-      // the wrong key spelled as the chord's root leans: with flats for a flat chord
+      // the wrong key spelled on the side of the chord's key: with flats for F or c
       const chord = this.round.target();
-      const note = noteLabel(midiToSpelling(this.wrong, chord.root.alter < 0), naming).replace(/(?<=.)b/, '♭');
+      const note = noteLabel(wrongKeySpelling(chord, this.wrong), naming).replace(/(?<=.)b/, '♭');
       this.label(0, WORDS_Y, t('chords.notIn', { note, chord: chordLabel(chord, naming) }), C.white).centerAt(width / 2);
     } else if (state.solved > 0) {
       this.label(0, WORDS_Y, t('chords.solved', { n: state.solved }), C.white).centerAt(width / 2);

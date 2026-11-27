@@ -15,7 +15,7 @@ A trainer under "Practice theory": one note on the staff, the student names it b
 ## Rules
 
 - Pure rules (lives, XP, wrong-press reason, seeded targets) in `src/core/trainer/noteTrainer.ts`; steps in `content/trainer/steps.json`; the one-note chart in `src/core/trainer/noteChart.ts`; the screen is `src/game/NoteTrainerScene.ts`, entered from the stand's panel in the room (the note in cross hairs, "Note names"; ft_1_08.AC11).
-- The screen has almost no text (clean-screen review): no title, no hint, hearts for lives, the toolbar's XP bar, and the step (stairs and its number, cycling 1 to 4) and B/H as toolbar buttons. The B/H toggle saves `settings.noteNaming`; it is not a Settings row.
+- The screen has almost no text (clean-screen review): no title, no hint, hearts for lives, and the step (stairs and its number, cycling 1 to 4) and B/H as toolbar buttons. The B/H toggle saves `settings.noteNaming`; it is not a Settings row.
 - Each right name's XP is saved to the active profile at once (`addTrainerXp` in `core/progression/profile.ts`, save version 15, d083), so Again keeps it; the round's XP on screen restarts at 0.
 - Provisional until a playtest: the step ranges, the XP per note, and the clef rule for a step that straddles middle C (AX-3).
 - Tests: `tests/e2e/note-trainer.spec.ts` (menu area).

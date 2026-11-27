@@ -9,7 +9,7 @@ const met = (taught: string[]): WorldState['met'][string] => ({ firstDay: '1998-
 describe('a conversation and the player\'s world (ft_1_22.AC1, WP-08)', () => {
   it('ft_1_22.AC1 the facts are the world\'s flags, items, the characters met and every phrase taught, with the level', () => {
     const world: WorldState = { ...empty, flags: ['a'], items: ['golden-leaf'], met: { puuvaim: met(['puuvaim-1']), other: met(['other-1']) } };
-    expect(talkFactsOf(world, 3, false)).toEqual({ flags: ['a'], items: ['golden-leaf'], met: ['puuvaim', 'other'], taught: ['puuvaim-1', 'other-1'], level: 3, knowledge: false });
+    expect(talkFactsOf(world, false)).toEqual({ flags: ['a'], items: ['golden-leaf'], met: ['puuvaim', 'other'], taught: ['puuvaim-1', 'other-1'], knowledge: false });
   });
 
   it('ft_1_22.AC1 flag and item effects change the world once; outcomes and the rest leave it as it was', () => {

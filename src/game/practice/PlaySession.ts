@@ -529,5 +529,5 @@ const CHORDS = loadChordContent(chordsJson);
 function chordNamesOption(prefs: StaffPrefs): Pick<StaffLayoutOptions, 'chordNames'> {
   const show = prefs.chordLabels ?? 'notes';
   if (show === 'notes') return {};
-  return { chordNames: { show, name: (keys) => { const chord = nameChord(CHORDS, keys); return chord ? staffChordName(chord, prefs.noteNaming) : null; } } };
+  return { chordNames: { show, name: (keys, spellings) => { const chord = nameChord(CHORDS, keys, { spellings }); return chord ? staffChordName(chord, prefs.noteNaming) : null; } } };
 }

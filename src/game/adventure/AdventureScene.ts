@@ -752,7 +752,7 @@ export class AdventureScene extends PixelScene {
     // the scene may have closed, another talk opened or the view begun to pan while the world was read
     if (!this.sys.isActive() || this.talk || this.tug || this.teach || !this.world || this.panning || this.deep) return false;
     const before = this.world;
-    const facts = { ...talkFactsOf(meetCharacter(before, def.id, this.todayString()), profiles.progress.level.level, false), teachable: this.teachable(def) };
+    const facts = { ...talkFactsOf(meetCharacter(before, def.id, this.todayString()), false), teachable: this.teachable(def) };
     const save = () => { if (this.world && this.worldSaves) void profiles.saveWorld(id, this.world); };
     this.talkLayer ??= this.overlayLayer();
     this.talk = TalkView.open(this, this.talkLayer, conversation, def, facts, { area: { w: this.px.width, h: this.mainRows }, head }, {
