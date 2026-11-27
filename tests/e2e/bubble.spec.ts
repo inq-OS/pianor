@@ -265,6 +265,62 @@ test.describe('the bubble and the strip (ft_1_20, d282)', () => {
     expectNoErrors(errors);
   });
 
+  /** Whether any button of `key` shows its pressed look. */
+  const anyDown = (page: Page, key = 'practice') => page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { buttons: { down: boolean; options: { label: string } }[] }).buttons.filter((b) => b.down).map((b) => b.options.label), key);
+  const isDown = (page: Page, label: string) => page.evaluate((l) => (window.__game.scene.getScene('practice') as unknown as { buttons: { down: boolean; options: { label: string } }[] }).buttons.find((b) => b.options.label === l)?.down ?? null, label);
+
+  test('ft_1_20.AC22 a press that slides off a button loses its pressed look, gets it back on coming back, and a release off it fires nothing', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'practice', { chartId: 'little-steps' });
+    await waitForScene(page, 'practice');
+    const listen = await buttonPoint(page, 'practice', await sceneButton(page, 'practice', 'Listen'));
+    const staff = await artPoint(page, 'practice', 200, 60);
+    await page.mouse.move(listen.x, listen.y);
+    await page.mouse.down();
+    await expect.poll(() => isDown(page, 'Listen')).toBe(true);
+    await page.mouse.move(staff.x, staff.y, { steps: 4 });
+    await expect.poll(() => isDown(page, 'Listen')).toBe(false);
+    await page.mouse.move(listen.x, listen.y, { steps: 4 });
+    await expect.poll(() => isDown(page, 'Listen')).toBe(true);
+    await page.mouse.move(staff.x, staff.y, { steps: 4 });
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    expect(await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { listening: boolean }).listening)).toBe(false);
+    expect(await anyDown(page)).toEqual([]);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_20.AC19 a right click on the strip, a strip cell or the door opens the bubble whole on the screen, and never the browser\'s own menu', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'practice', { chartId: 'little-steps' });
+    await waitForScene(page, 'practice');
+    await page.evaluate(() => {
+      const w = window as unknown as { browserMenus: number };
+      w.browserMenus = 0;
+      window.addEventListener('contextmenu', (e) => { if (!e.defaultPrevented) w.browserMenus += 1; });
+    });
+    const rows = (await practice(page)).rows;
+    const places = [
+      { name: 'the strip between its cells', at: await artPoint(page, 'practice', 300, rows + 8) },
+      { name: 'a strip cell', at: await buttonPoint(page, 'practice', await sceneButton(page, 'practice', 'Listen')) },
+      { name: 'the door', at: await buttonPoint(page, 'practice', await sceneButton(page, 'practice', 'Back')) },
+    ];
+    for (const { name, at } of places) {
+      await page.mouse.click(at.x, at.y, { button: 'right' });
+      await expect.poll(() => bubbleOpen(page, 'practice'), name).toBe(true);
+      const inside = await page.evaluate(() => {
+        const s = window.__game.scene.getScene('practice') as unknown as { menu: { buttons: { rect: { x: number; y: number; width: number; height: number } }[] }; px: { width: number }; mainRows: number };
+        return s.menu.buttons.every((b) => b.rect.x >= 0 && b.rect.y >= 0 && b.rect.x + b.rect.width <= s.px.width && b.rect.y + b.rect.height <= s.mainRows + 17);
+      });
+      expect(inside, name).toBe(true);
+      expect(await activeScene(page), name).toBe('practice');
+      await page.keyboard.press('Escape');
+      await expect.poll(() => bubbleOpen(page, 'practice'), name).toBe(false);
+    }
+    expect(await page.evaluate(() => (window as unknown as { browserMenus: number }).browserMenus)).toBe(0);
+    expectNoErrors(errors);
+  });
+
   test('ft_1_20.AC19 the bubble stays whole on the screen when opened near a corner', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await startScene(page, 'practice', { chartId: 'little-steps' });
@@ -361,6 +417,27 @@ test.describe('the two-finger tap on a touch screen (ft_1_20.AC25)', () => {
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await page.waitForTimeout(300);
     expect(await bubbleOpen(page, 'practice')).toBe(true);
+    expect(await section(page)).toBeNull();
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_20.AC22 after a long press opened the bubble and the finger lifted, the next tap picks an option and no button stays pressed', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'practice', { chartId: 'little-steps' });
+    await waitForScene(page, 'practice');
+    const bar = await artPoint(page, 'practice', 230, 60);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...bar, id: 0 }] });
+    await page.waitForTimeout(800);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect.poll(() => bubbleOpen(page, 'practice')).toBe(true);
+    const pressed = () => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { buttons: { down: boolean; options: { label: string } }[] }).buttons.filter((b) => b.down).map((b) => b.options.label));
+    expect(await pressed()).toEqual([]);
+    const names = await buttonPoint(page, 'practice', await lastButton(page, 'practice', 'Note names'));
+    await page.touchscreen.tap(names.x, names.y);
+    await expect.poll(async () => (await practice(page)).names).toBe(true);
+    await page.waitForTimeout(200);
+    expect(await pressed()).toEqual([]);
     expect(await section(page)).toBeNull();
     expectNoErrors(errors);
   });

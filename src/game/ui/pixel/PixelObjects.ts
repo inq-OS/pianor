@@ -305,8 +305,10 @@ export class PixelButton {
     // A disabled button takes no press and no hover look; its tooltip still explains why it is off (when it has one).
     if (over > 0) this.panel.setInteractive({ hitArea: new Phaser.Geom.Rectangle(over, over, width, height), hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: !this.disabled });
     else this.panel.setInteractive({ useHandCursor: !this.disabled });
-    this.panel.on('pointerover', () => {
-      if (!this.disabled) this.set({ hover: true });
+    this.panel.on('pointerover', (pointer: Phaser.Input.Pointer) => {
+      // the press that began here and slid off shows pressed again when it comes back, as its release here fires it
+      const back = pointer.primaryDown && this.pressedAt === pointer.downTime;
+      if (!this.disabled) this.set({ hover: true, ...(back ? { down: true } : {}) });
       options.onHover?.(true);
       this.scheduleTooltip();
     });
