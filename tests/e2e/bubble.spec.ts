@@ -153,6 +153,56 @@ test.describe('the bubble and the strip (ft_1_20, d282)', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_1_20.AC19 a right click on a button opens the bubble and never presses the button under it', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'practice', { chartId: 'little-steps' });
+    await waitForScene(page, 'practice');
+    const listening = () => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { listening: boolean }).listening);
+    for (const label of ['Back', 'Listen']) {
+      const point = await buttonPoint(page, 'practice', await sceneButton(page, 'practice', label));
+      await page.mouse.click(point.x, point.y, { button: 'right' });
+      await page.waitForTimeout(200);
+      expect(await activeScene(page), label).toBe('practice');
+      expect(await listening(), label).toBe(false);
+      if (await bubbleOpen(page, 'practice')) await page.keyboard.press('Escape');
+      await page.mouse.click(point.x, point.y, { button: 'middle' });
+      await page.waitForTimeout(200);
+      expect(await activeScene(page), label).toBe('practice');
+      expect(await listening(), label).toBe(false);
+    }
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_20.AC19 a right click or a middle click on an option of the open bubble picks nothing', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'practice', { chartId: 'little-steps' });
+    await waitForScene(page, 'practice');
+    await openBubble(page, 'practice');
+    const point = await buttonPoint(page, 'practice', await lastButton(page, 'practice', 'Note names'));
+    await page.mouse.click(point.x, point.y, { button: 'right' });
+    await page.mouse.click(point.x, point.y, { button: 'middle' });
+    await page.waitForTimeout(200);
+    expect((await practice(page)).names).toBe(false);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_20.AC22 a press that slides off one option of the bubble onto another picks neither', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'practice', { chartId: 'little-steps' });
+    await waitForScene(page, 'practice');
+    await openBubble(page, 'practice');
+    const from = await buttonPoint(page, 'practice', await lastButton(page, 'practice', 'Fingers'));
+    const to = await buttonPoint(page, 'practice', await lastButton(page, 'practice', 'Note names'));
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(to.x, to.y, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    const p = await practice(page);
+    expect({ names: p.names, fingers: p.fingers }).toEqual({ names: false, fingers: false });
+    expectNoErrors(errors);
+  });
+
   test('ft_1_20.AC19 the bubble stays whole on the screen when opened near a corner', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await startScene(page, 'practice', { chartId: 'little-steps' });

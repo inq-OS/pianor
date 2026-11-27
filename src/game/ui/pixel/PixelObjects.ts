@@ -262,6 +262,8 @@ export class PixelButton {
   private ring: PixelImage | null = null;
   private hover = false;
   private down = false;
+  /** When the primary press now on this button began (the pointer's down time), or null: a release fires only that press. */
+  private pressedAt: number | null = null;
   private readonly box: { x: number; y: number; width: number; height: number };
   private readonly maxLabelWidth: number;
   private readonly icon: PixelImage | null;
@@ -318,12 +320,17 @@ export class PixelButton {
     // only the main button presses (a finger is one too): a right press opens the bubble, never the button under it (ft_1_20.AC19)
     this.panel.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (pointer.button !== 0) return;
+      this.pressedAt = pointer.downTime;
       this.hideTooltip();
       if (!this.disabled) this.set({ down: true });
     });
     this.panel.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       this.set({ down: false });
-      if (pointer.button !== 0 || this.disabled) return;
+      // only the press that began on this button fires it: never one that began elsewhere and slid on, nor one that opened
+      // the bubble under the finger (a long press) or the pointer (a right click)
+      const own = this.pressedAt === pointer.downTime;
+      this.pressedAt = null;
+      if (pointer.button !== 0 || this.disabled || !own) return;
       // the second click of a double click whose first opened this screen (a place on the map, then the piano under the same spot in the room)
       const event = pointer.event as MouseEvent | undefined;
       const opened = (scene as { screenOpenedAt?: number }).screenOpenedAt;
