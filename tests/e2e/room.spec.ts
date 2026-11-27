@@ -679,4 +679,18 @@ test.describe('presses in the room', () => {
     expect(running).not.toContain('profile');
     expectNoErrors(errors);
   });
+  test('a double click on the map\'s Warden\'s house opens the room and does not also press the piano under the same spot', async ({ page }) => {
+    const errors = await toRoom(page);
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
+    await waitForScene(page, 'keriMap');
+    const house = await buttonPoint(page, 'keriMap', await sceneButton(page, 'keriMap', "Warden's house"));
+    // the first click opens the room; the second of the double click lands on the room as it opens
+    await page.mouse.click(house.x, house.y);
+    await waitForScene(page, 'profile');
+    await page.mouse.down({ clickCount: 2 });
+    await page.mouse.up({ clickCount: 2 });
+    await letGameRun(page, 10, 500);
+    expect(await page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key))).toEqual(['profile']);
+    expectNoErrors(errors);
+  });
 });

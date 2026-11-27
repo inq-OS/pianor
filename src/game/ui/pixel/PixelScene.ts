@@ -585,6 +585,7 @@ export abstract class PixelScene extends Phaser.Scene {
   }
 
   create(): void {
+    this.screenOpenedAt = performance.now();
     const visit = ++this.visit;
     this.events.once('shutdown', () => { if (this.visit === visit) this.visit++; });
     this.focusIndex = -1;
@@ -1751,6 +1752,9 @@ export abstract class PixelScene extends Phaser.Scene {
 
   /** Set while `rebuild` draws the screen again for its strip's height, so it does so once. */
   private stripRedrawn = false;
+
+  /** When the screen opened (page time): the second click of a double click that opened it presses nothing here (`PixelButton`). */
+  screenOpenedAt = 0;
 
   private rebuild(): void {
     const previous = this.lastFocusRect;

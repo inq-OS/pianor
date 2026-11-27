@@ -9,6 +9,9 @@ import { ART_DETAIL } from '../../../core/layout/frame';
 import { TOOLTIP_DELAY_MS, tooltipBox } from '../../../core/layout/tooltip';
 import { GRADE_STARS } from '../../../core/scoring/stars';
 
+
+/** A second click this soon after its screen opened belongs to the double click that opened it. */
+const DOUBLE_CLICK_MS = 600;
 /**
  * Phaser objects made from `Bitmap`s. A bitmap becomes a small canvas texture owned by the object, so its memory goes
  * with it. Everything is drawn at one art pixel per pixel and zoomed by whole numbers by the scene's root container
@@ -320,7 +323,12 @@ export class PixelButton {
     });
     this.panel.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       this.set({ down: false });
-      if (pointer.button === 0 && !this.disabled) options.onClick();
+      if (pointer.button !== 0 || this.disabled) return;
+      // the second click of a double click whose first opened this screen (a place on the map, then the piano under the same spot in the room)
+      const event = pointer.event as MouseEvent | undefined;
+      const opened = (scene as { screenOpenedAt?: number }).screenOpenedAt;
+      if (event && event.detail >= 2 && opened !== undefined && event.timeStamp - opened < DOUBLE_CLICK_MS) return;
+      options.onClick();
     });
   }
 
