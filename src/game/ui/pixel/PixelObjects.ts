@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { blit, createBitmap, recolor, toRgba, type Bitmap } from './bitmap';
-import { barBitmap, focusRingBitmap, inkBarBitmap, inkStar, labelOverflow, panelBitmap, tinted, trayBitmap, type BarColors, type PanelKind, type TrayKind } from './frames';
+import { FOCUS_RING, barBitmap, focusRingBitmap, inkBarBitmap, inkStar, labelOverflow, panelBitmap, tinted, trayBitmap, type BarColors, type PanelKind, type TrayKind } from './frames';
 import { BUBBLE_ALPHA, choicePatch, closePlate, goldChip, OPTION_PLATE, OPTION_SIZE, optionFocus, optionPlate, stripCell, wornInk, type PlateLook } from './bubbleArt';
 import { C } from './palette';
 import { drawnText, letterBoxOf, LINE_GAP, LINE_HEIGHT, renderText, type TextOptions } from './font';
@@ -366,7 +366,7 @@ export class PixelButton {
     }
     const { x, y, width, height } = this.box;
     const over = this.overhang();
-    this.ring = this.isBubble() ? new PixelImage(this.panel.scene, x - over - 2, y - over - 2, optionFocus(width + 2 * over)) : new PixelImage(this.panel.scene, x - 2, y - 2, focusRingBitmap(width, height));
+    this.ring = this.isBubble() ? new PixelImage(this.panel.scene, x - over - 2, y - over - 2, optionFocus(width + 2 * over)) : new PixelImage(this.panel.scene, x - FOCUS_RING, y - FOCUS_RING, focusRingBitmap(width, height));
     this.panel.parentContainer?.add(this.ring);
     // a picture (or a button of only its icon, as the settings' choices) has no label on it: the keyboard shows its name at once
     if (this.unlabelled()) {
