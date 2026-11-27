@@ -1037,7 +1037,9 @@ export const stringsEt: Record<StringKey, string> = {
   'kiur.headsUp.teacher.landed': "Õpetaja paat jõudis kohale. Ta ootab sind klaveri juures.",
   'kiur.remind.trend': "{piece}: sellise harjutamisega jääb see tähtajaks eesmärgist {gap} punkti võrra alla.",
   'kiur.remind.now': "{piece}: eesmärgist {gap} punkti võrra all.",
-  'kiur.remind.unmeasured': "{piece}: seni {plays} mängukorda {need}-st. Siis näeme, kuidas läheb.",
+  'kiur.remind.unmeasured': "{piece}: seni {plays} mängukorda {need}-st. Pärast {need} ütlen, kui lähedal oled.",
+  'kiur.remind.overdue': 'Tähtaeg oli {days} päeva tagasi.',
+  'kiur.remind.overdueOne': 'Tähtaeg oli eile.',
   'kiur.shoulder': "{piece}: jääb tähtajaks eesmärgist {gap} punkti võrra alla. Lähme klaveri juurde?",
   // The teacher's check-up (ft_1_27.AC2; WP-15). {piece} is the piece's title.
   'teacherSays.arrive': "Tähtajani on {days} päeva. Mängi mulle see lugu: {piece}.",

@@ -1045,7 +1045,9 @@ export const strings = {
   'kiur.headsUp.teacher.landed': "The teacher's boat has landed. She is waiting for you at the piano.",
   'kiur.remind.trend': "{piece}: at this pace it will be {gap} under the goal by the deadline.",
   'kiur.remind.now': "{piece}: {gap} under the goal.",
-  'kiur.remind.unmeasured': "{piece}: {plays} of {need} plays so far. Then we can see how it goes.",
+  'kiur.remind.unmeasured': "{piece}: {plays} of {need} plays so far. After {need} I can say how close you are.",
+  'kiur.remind.overdue': 'The deadline was {days} days ago.',
+  'kiur.remind.overdueOne': 'The deadline was yesterday.',
   'kiur.shoulder': "{piece}: {gap} under the goal by the deadline. Shall we go to the piano?",
   // The teacher's check-up (ft_1_27.AC2; WP-15). {piece} is the piece's title.
   'teacherSays.arrive': "{days} days to the deadline. Play this for me: {piece}.",
