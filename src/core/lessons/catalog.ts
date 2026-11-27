@@ -6,15 +6,12 @@
 import { z } from 'zod';
 
 export const TOPIC_STATUSES = ['trained', 'drawn', 'needs drawing', 'needs a feature', 'idea'] as const;
-export type TopicStatus = (typeof TOPIC_STATUSES)[number];
 
 const topicSchema = z.object({ id: z.string().regex(/^[A-R]\d+$/), status: z.enum(TOPIC_STATUSES) });
 const areaSchema = z.object({ id: z.string().regex(/^[A-R]$/), topics: z.array(topicSchema).min(1) });
 const catalogSchema = z.object({ schemaVersion: z.literal(1), note: z.string().optional(), areas: z.array(areaSchema).min(1) });
 
 export type Catalog = z.infer<typeof catalogSchema>;
-export type CatalogArea = Catalog['areas'][number];
-export type CatalogTopic = CatalogArea['topics'][number];
 
 /** Validate the catalog: its shape, every topic id under its own area's letter, and no id twice. */
 export function loadCatalog(json: unknown): Catalog {

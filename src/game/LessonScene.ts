@@ -84,6 +84,7 @@ export class LessonScene extends PixelScene {
     this.showing = null;
     this.wrongUntil = 0;
     this.cardUntil = 0;
+    this.lostRun = 0;
   }
 
   override create(): void {
