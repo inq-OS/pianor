@@ -38,7 +38,7 @@ export function sheetsIn(names: readonly string[]): string[] {
 
 /**
  * Where Audiveris may be, first match wins: the `AUDIVERIS` environment variable, the installer's folders on Windows, the
- * Linux package's folder, then the name alone (found on the PATH).
+ * Linux package's folder, then each folder of the PATH.
  */
 export function audiverisCandidates(platform: string, env: Readonly<Record<string, string | undefined>>): string[] {
   const list: string[] = [];
@@ -50,9 +50,18 @@ export function audiverisCandidates(platform: string, env: Readonly<Record<strin
   } else {
     list.push('/opt/audiveris/bin/Audiveris', '/Applications/Audiveris.app/Contents/MacOS/Audiveris');
   }
-  list.push('audiveris');
+  // then the PATH, each folder looked into, so a missing program is said before any page is sent (ft_Y_04.AC27)
+  const windows = platform === 'win32';
+  const path = (windows ? env.Path ?? env.PATH : env.PATH) ?? '';
+  const names = windows ? ['Audiveris.exe'] : ['audiveris', 'Audiveris'];
+  for (const dir of path.split(windows ? ';' : ':').filter(Boolean)) {
+    for (const name of names) list.push(`${dir.replace(/[\\/]+$/, '')}${windows ? '\\' : '/'}${name}`);
+  }
   return list;
 }
+
+/** Where a person gets Audiveris, said when it is not found. */
+export const AUDIVERIS_HOME = 'https://audiveris.github.io/audiveris/';
 
 /** Audiveris's command line: transcribe without its window and export MusicXML (`.mxl`) into `outDir`. */
 export function audiverisArgs(input: string, outDir: string): string[] {
@@ -99,7 +108,8 @@ export function staleScores(files: readonly string[]): string[] {
 export function pickAudiveris(candidates: readonly string[], exists: (path: string) => boolean, env: Readonly<Record<string, string | undefined>>): { ok: true; exe: string } | { ok: false; reason: string } {
   if (env.AUDIVERIS && !exists(env.AUDIVERIS)) return { ok: false, reason: `AUDIVERIS is set to ${env.AUDIVERIS}, which does not exist` };
   if (env.AUDIVERIS && /\.(bat|cmd)$/i.test(env.AUDIVERIS)) return { ok: false, reason: `AUDIVERIS must name the program itself (Audiveris.exe), not a .bat or .cmd file` };
-  return { ok: true, exe: candidates.find((c) => c === 'audiveris' || exists(c)) ?? 'audiveris' };
+  const exe = candidates.find((c) => exists(c));
+  return exe ? { ok: true, exe } : { ok: false, reason: `Audiveris is not installed on this computer: get it from ${AUDIVERIS_HOME}, or set AUDIVERIS to the program` };
 }
 
 /**

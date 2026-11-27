@@ -3016,10 +3016,20 @@ export class EditorScene extends PixelScene {
     this.say(t('editor.exported', { file: file.name }), MESSAGE_MS);
   }
 
-  /** Choose a piece file and add its piece to the player's own pieces; the piece being written is left alone. */
+  /** Said once a session where the game's server lacks Audiveris: photos and PDFs are not offered, and where to get it (ft_Y_04.AC27). */
+  private static readerTold = false;
+
+  /**
+   * Choose a piece file and add its piece to the player's own pieces; the piece being written is left alone. The server is
+   * asked again first, so photos and PDFs are offered only while Audiveris is there to read them (ft_Y_04.AC27).
+   */
   private async importFile(): Promise<void> {
     const context = contextOf(this);
     let text: string | null;
+    const reader = await photoServer();
+    this.photoReady = reader.ok;
+    // a person who looked for a photo or a PDF found none to pick: when nothing was picked, say once why
+    const tell = !reader.ok && reader.missing === true && !EditorScene.readerTold;
     if (this.photoReady) {
       // on a computer with Audiveris, Import takes a photo or scan of a sheet too (ft_Y_04 slice 4)
       const file = await context.files.pickFile({ accept: '.json,application/json,image/jpeg,image/png,application/pdf,.pdf', id: 'editor-import-file' });
@@ -3027,6 +3037,10 @@ export class EditorScene extends PixelScene {
       if (file && /\.pdf$/i.test(file.name)) return this.importBook(file.name, file.bytes);
       text = file ? new TextDecoder().decode(file.bytes) : null;
     } else text = await context.files.pick({ accept: '.json,application/json', id: 'editor-import-file' });
+    if (text === null && tell) {
+      EditorScene.readerTold = true;
+      return this.say(t('editor.photo.noReader'), MESSAGE_MS * 4);
+    }
     if (text === null) return this.say(t('editor.importEmpty'), MESSAGE_MS);
     const result = await context.ownPieces.importFile(text, { reservedIds: context.pieces.bundledIds(), takenTitles: this.takenTitles(), blankTitle: t('editor.importedTitle') });
     if (!result.ok) {

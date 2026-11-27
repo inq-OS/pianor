@@ -607,6 +607,7 @@ export const stringsEt: Record<StringKey, string> = {
   'editor.import': 'Impordi',
   'editor.exported': 'Salvestasid faili {file}.',
   'editor.photo.none': 'Sellel lool pole fotot.',
+  'editor.photo.noReader': 'Fotosid ja PDF-e loeb programm Audiveris, mida selles arvutis pole: audiveris.github.io',
   'editor.photo.shift': 'Foto nihkus {shift} takti.',
   'editor.photo.reading': 'Loen noote fotolt, umbes minut...',
   'editor.photo.saveFirst': 'Salvesta enne see lugu, siis loe foto sisse.',

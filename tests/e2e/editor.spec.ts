@@ -1,4 +1,4 @@
-// Covers ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_02e.AC8, ft_1_02d.AC25, ft_1_02d.AC34, ft_1_02d.AC35, ft_1_02d.AC36, ft_1_02d.AC37, ft_1_02d.AC38, ft_1_02d.AC39, ft_1_02d.AC31, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_Y_04.AC26, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
+// Covers ft_Y_04.AC27, ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_02e.AC8, ft_1_02d.AC25, ft_1_02d.AC34, ft_1_02d.AC35, ft_1_02d.AC36, ft_1_02d.AC37, ft_1_02d.AC38, ft_1_02d.AC39, ft_1_02d.AC31, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_Y_04.AC26, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
 import { readFileSync } from 'node:fs';
 import { musicXmlToChart } from '../../src/core/import/musicxml';
 import { encode as encodePng } from 'fast-png';
@@ -1037,6 +1037,29 @@ test.describe('piece maker: a photo of a sheet (ft_Y_04 slices 4 and 5)', () => 
     await expect(photo).toBeHidden();
     await page.keyboard.press('KeyG');
     await expect(photo).toBeVisible();
+    expectNoErrors(errors);
+  });
+
+  test('ft_Y_04.AC27 Import offers photos and PDFs only while Audiveris is there, asked at each Import, and says once where to get it', async ({ page }) => {
+    let installed = false;
+    await page.route('**/__pianor/photo', (route) => route.fulfill({ json: installed ? { ok: true } : { ok: false, reason: 'Audiveris is not installed on this computer' } }));
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    const importOnce = async () => {
+      const chooser = page.waitForEvent('filechooser');
+      await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
+      const picked = await chooser;
+      const accept = await picked.element().getAttribute('accept');
+      await picked.setFiles([]);
+      return accept ?? '';
+    };
+    const told = async () => (await sceneTexts(page, 'editor')).filter((text) => text.includes('Audiveris')).length;
+    expect(await importOnce()).not.toContain('pdf');
+    await expect.poll(told).toBe(1);
+    await page.waitForTimeout(100);
+    // installed meanwhile: the next Import asks again and takes a PDF
+    installed = true;
+    expect(await importOnce()).toContain('pdf');
     expectNoErrors(errors);
   });
 
