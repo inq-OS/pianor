@@ -763,7 +763,8 @@ export class MenuScene extends PixelScene {
     // with no signs the title has its line to the end; a title too long for that is cut too. Either way it stops at the small
     // buttons' outer edge, so every title keeps the margin the buttons keep and none runs onto the page's edge
     const buttonsEnd = firstButton + 3 * STATS_OFFSET + HIDE_GAP + INFO_SIZE / 2;
-    const room = Math.min(signs.length === 0 ? lineEnd : signsStart - 4, buttonsEnd) - (left + 6);
+    const lineRoomEnd = signs.length === 0 ? lineEnd : signsStart - 4;
+    const room = Math.min(lineRoomEnd, buttonsEnd) - (left + 6);
     const title = clipToWidth(pieceTitle(piece.chart), room, (text) => measure(drawnText(text)));
     const titleEnd = left + 6 + measure(drawnText(title));
     const buttonWidth = (signs.length === 0 ? lineEnd : signsStart - 2) - left;
@@ -809,7 +810,8 @@ export class MenuScene extends PixelScene {
     const outer = this.outerEnd(left, width, mirrored);
     const levelPlaces = [
       { x: firstButton + 3 * STATS_OFFSET + HIDE_GAP + INFO_SIZE / 2 + 4, y: top + 20, limit: outer },
-      { x: titleEnd + LEVEL_GAP, y: top + 4, limit: Math.min(left + 6 + room, outer), end: true },
+      // the title stops at the small buttons' edge, but the short level may stand at the line's own end, before the signs
+      { x: titleEnd + LEVEL_GAP, y: top + 4, limit: Math.min(lineRoomEnd, outer), end: true },
     ];
     if (record) this.pieceLevel(button, record, flip, levelPlaces);
     // the five-star grade of the best play, stacked like interlocking rings: three over two, the two set in between (ft_1_12 rule 7)
