@@ -978,7 +978,7 @@ export const strings = {
   'talk.puuvaim.askLater': 'I will come later.',
   'piece.both-hands.about': 'This tune is new, made for this island. Your right hand sings the tune, your left hand holds the low notes under it, both at once. I play first, you play after me.',
   'piece.puuvaim-3.about': 'An English tune, more than four hundred years old. A story says a king wrote it, but nobody knows who did. It is in a minor key, so it sounds a little sad. I play first, you play after me.',
-  'talk.puuvaim.who': 'I am Tammehaldjas, the spirit of this old oak. Long ago people believed every old tree had its own guardian, a haldjas. They brought it gifts and spoke softly near it, so as not to wake it.',
+  'talk.puuvaim.who': 'I am the oak spirit of this old tree. Long ago people believed every old tree had its own guardian, a haldjas. They brought it gifts and spoke softly near it, so as not to wake it.',
   'talk.puuvaim.bye': 'Come back when the wind goes quiet.',
   'talk.puuvaim.taught': 'Now you know my tune. Practice it, and when the wind goes quiet again, come back.',
   'talk.puuvaim.teachHeard': 'You played my tune. Play it in your room on another day, and it is yours.',

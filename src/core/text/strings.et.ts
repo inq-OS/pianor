@@ -1008,7 +1008,7 @@ export const stringsEt: Record<StringKey, string> = {
   'talk.fisherman.hello': 'Tere hommikust! Sõudsin Pranglilt üle oma võrke vaatama.',
   'talk.fisherman.menu': 'Võrgud võivad natuke oodata.',
   'talk.fisherman.askWho': 'Kes sa oled?',
-  'talk.fisherman.who': 'Ma olen kalur Pranglilt, sellelt saarelt, mida sa lõunas näed. Pranglil lauldi tööd tehes vanu regilaule: üks laulab rea ette, teised laulavad järele.',
+  'talk.fisherman.who': 'Ma olen kalamees Pranglilt, sellelt saarelt, mida sa lõunas näed. Pranglil lauldi tööd tehes vanu regilaule: üks laulab rea ette, teised laulavad järele.',
   'talk.fisherman.askTeach': 'Õpeta mulle üks laul!',
   'talk.fisherman.askTug': 'Mängime kordamööda!',
   'talk.fisherman.askLater': 'Ma tulen hiljem.',

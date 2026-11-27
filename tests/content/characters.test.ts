@@ -58,6 +58,16 @@ describe('every character keeps the character rules (content/characters)', () =>
     });
   }
 
+  it('a character that says who it is says the name its button shows, in both languages', () => {
+    for (const def of characters) {
+      const who = `talk.${def.id}.who` as StringKey;
+      if (!(who in strings)) continue;
+      const name = `character.${def.id}.name` as StringKey;
+      expect(strings[who].toLowerCase(), `${def.id} in English`).toContain(strings[name].toLowerCase());
+      expect(stringsEt[who].toLowerCase(), `${def.id} in Estonian`).toContain(stringsEt[name].toLowerCase());
+    }
+  });
+
   it('ft_1_21.AC18 no prize is on two characters\' ladders', () => {
     expect(castProblems(characters)).toEqual([]);
   });
