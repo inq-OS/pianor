@@ -1142,6 +1142,77 @@ test.describe('piece maker: writing by playing keys (ft_1_02d)', () => {
   });
 });
 
+test.describe('piece maker: the left click, the bubble on a note or a rest, and the message (ft_1_02d)', () => {
+  /** What a click writes: notes or rests. */
+  const entry = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { entry: string }).entry);
+  async function rightClick(page: Page, place: { bar: number; start: number; step: Step; octave?: number }): Promise<void> {
+    await closeBubble(page, 'editor');
+    const at = await canvasPoint(page, place);
+    await page.mouse.click(at.x, at.y, { button: 'right' });
+    await expect.poll(() => bubbleOpen(page, 'editor')).toBe(true);
+  }
+
+  test('ft_1_02d.AC50 ft_1_02d.AC51 a left click on an empty place writes a note, on the note selects it, and on the space above makes a chord', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await selectNote(page, 0, 0, 'G');
+    expect(await notes(page)).toEqual(['0:0:G:quarter']);
+    // on the note itself: selected, not made longer
+    await selectNote(page, 0, 0, 'G');
+    expect(await notes(page)).toEqual(['0:0:G:quarter']);
+    expect(await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { selected: { step: string } | null }).selected?.step)).toBe('G');
+    // the A a step above the G joins it as a chord, it does not lengthen the G
+    await selectNote(page, 0, 0, 'A');
+    expect((await notes(page)).sort()).toEqual(['0:0:A:quarter', '0:0:G:quarter']);
+    // the middle button still writes too
+    await clickNote(page, 0, 480, 'E');
+    expect((await notes(page)).sort()).toEqual(['0:0:A:quarter', '0:0:G:quarter', '0:480:E:quarter']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC53 the bubble on a placed rest has Delete, which removes the rest', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { setEntry(kind: string): void }).setEntry('rest'));
+    await selectNote(page, 0, 0, 'B');
+    const rests = () => page.evaluate(() => (window.__game.scene.getScene('editor').history.present.rests ?? []).length);
+    expect(await rests()).toBe(1);
+    await rightClick(page, { bar: 0, start: 0, step: 'B' });
+    await clickButton(page, 'editor', await lastButton(page, 'editor', 'Delete'));
+    expect(await rests()).toBe(0);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC55 the length in the bubble of a note is that note\'s, and opening it keeps rests as the writer', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'G');
+    // the writer goes on to halves and rests
+    await page.keyboard.press('Digit2');
+    await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { setEntry(kind: string): void }).setEntry('rest'));
+    await rightClick(page, { bar: 0, start: 0, step: 'G' });
+    expect(await lastButton(page, 'editor', '1/4')).toBeGreaterThanOrEqual(0);
+    expect(await lastButton(page, 'editor', '1/2')).toBe(-1);
+    await clickButton(page, 'editor', await lastButton(page, 'editor', '1/4'));
+    expect(await entry(page)).toBe('rest');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC54 a message stands in the strip at the foot, never over the staff', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await page.keyboard.press('Control+KeyX');
+    await expect.poll(() => status(page)).toContain('Select bars first');
+    const spot = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('editor') as unknown as { messageBox: { image: { y: number; visible: boolean } } | null; bandTop: number | null };
+      return { y: scene.messageBox?.image.y, visible: scene.messageBox?.image.visible, band: scene.bandTop };
+    });
+    expect(spot.visible).toBe(true);
+    expect(spot.y).toBeGreaterThanOrEqual(spot.band!);
+    expectNoErrors(errors);
+  });
+});
+
 test.describe('tie pick and selection', () => {
   test('a pick stays armed through a refused edit: its message returns once the refusal fades, and a click selects the note at once', async ({ page }) => {
     const errors = await openGame(page, EDITOR);

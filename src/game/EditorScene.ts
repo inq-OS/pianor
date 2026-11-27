@@ -59,8 +59,8 @@ import { C, css, hexCss } from './ui/pixel/palette';
 import { clipToWidth } from '../core/text/clip';
 import { GESTURE_SIZE, HELP_ARROW, SKETCH_SIZE, gesturePicture, keyCap, staffSketch } from './ui/pixel/mouseArt';
 import { PixelImage, PixelText, type PixelButton, type PixelButtonOptions } from './ui/pixel/PixelObjects';
-import { SpeechBubble } from './ui/pixel/SpeechBubble';
-import { CELL_HEIGHT, drawnText, measure } from './ui/pixel/font';
+import { CELL_HEIGHT, drawnText, LINE_HEIGHT, measure, wrap } from './ui/pixel/font';
+import { MESSAGE_PAD_X, stripMessageBox } from '../core/layout/stripMessage';
 import { ART_DETAIL } from '../core/layout/frame';
 import { BAR_BUTTON_HEIGHT, BAR_EDGE } from './ui/pixel/playBars';
 import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
@@ -267,6 +267,8 @@ export class EditorScene extends PixelScene {
   private band: Phaser.GameObjects.Graphics | null = null;
   /** Where a left press started, for the lasso; null when no left button is down on the staff. */
   private lassoFrom: { x: number; y: number } | null = null;
+  /** The place a left press went down on: let go there without a drag, it writes a note (ft_1_02d.AC50). */
+  private clickPlace: Extract<Hit, { kind: 'place' }> | null = null;
   /** True once the press moved more than LASSO_START art pixels: it is a drag, not a click. */
   private lassoActive = false;
   private lassoBox: Phaser.GameObjects.Graphics | null = null;
@@ -370,7 +372,8 @@ export class EditorScene extends PixelScene {
   private meterText: PixelText | null = null;
   /** The time panel's three groups across the screen (art pixels), for the wheel over them. */
   private timeGroups: { from: number; to: number; step: (direction: 1 | -1) => void }[] = [];
-  private bubble: SpeechBubble | null = null;
+  /** With the band: the message in the strip at the foot (ft_1_02d.AC54), drawn once the strip is (`afterFrame`). */
+  private messageBox: { image: PixelImage; text: PixelText; free: { left: number; right: number; top: number; rows: number } } | null = null;
   /**
    * The panel open over the staff's foot (the start screen gone): the time, the pick-up and the tempo,
    * from a click on the time signature (or I). Closed by Esc or another click there. A click on a clef opens the circle of
@@ -401,6 +404,7 @@ export class EditorScene extends PixelScene {
     this.barAnchor = null;
     this.clipRange = null;
     this.lassoFrom = null;
+    this.clickPlace = null;
     this.lassoActive = false;
     this.lassoBox = null;
     this.repeatDrag = null;
@@ -580,7 +584,7 @@ export class EditorScene extends PixelScene {
     this.pickupText = null;
     this.meterText = null;
     this.timeGroups = [];
-    this.bubble = null;
+    this.messageBox = null;
     this.staffButton = null;
     this.shortTapButton = null;
     this.dynamicButton = null;
@@ -860,8 +864,9 @@ export class EditorScene extends PixelScene {
   }
 
   /**
-   * A press on the staff: the middle button (or Alt + left) places and changes notes, the left
-   * button selects, Shift + left extends the bar selection, a left drag is the lasso; the right button opens the bubble.
+   * A press on the staff: the middle button (or Alt + left) places and changes notes; a left click on an empty place
+   * writes a note there once it is let go without a drag (ft_1_02d.AC50), on a note it selects it; Shift + left extends
+   * the bar selection, a left drag is the lasso; the right button opens the bubble.
    */
   private press(p: Phaser.Input.Pointer): void {
     const event = p.event as MouseEvent | undefined;
@@ -888,7 +893,11 @@ export class EditorScene extends PixelScene {
     // a press on a clef or the key signature opens the circle of fifths to set the key, on the time signature the time panel
     if (hit.kind === 'key') return this.openCircle();
     if (hit.kind === 'time') return this.openPanel('time');
-    if (action === 'select') return this.selectSpot(hit);
+    // a left press on a place writes when it is let go, so a drag from it stays a lasso and writes nothing
+    if (action === 'select') {
+      this.clickPlace = hit;
+      return;
+    }
     this.placeAt(this.length, hit);
   }
 
@@ -902,7 +911,7 @@ export class EditorScene extends PixelScene {
     if (action === 'place') this.apply(ctrl ? shorten(this.piece, ref) : lengthen(this.piece, ref), ref);
   }
 
-  /** A left click on an empty spot: nothing stays selected, and the next played key goes there (the entry cursor). */
+  /** An empty spot picked without writing (the bubble of a free place): nothing stays selected, and the next played key goes there (the entry cursor). */
   private selectSpot(hit: Extract<Hit, { kind: 'place' }>): void {
     this.selected = null;
     this.keyCursor = this.cursorAtHit(hit);
@@ -910,7 +919,7 @@ export class EditorScene extends PixelScene {
     this.refreshStaff();
   }
 
-  /** The middle button on a place: a note or rest of the current length, joining a chord or taking a placed rest's place. */
+  /** The middle button, or a left click let go, on a place: a note or rest of the current length, joining a chord or taking a placed rest's place. */
   private placeAt(length: EditorLength, hit: Extract<Hit, { kind: 'place' }>): void {
     this.keyCursor = this.cursorAtHit(hit);
     // a length that does not fit gives way to the longest that does (autoLength): Alt + Enter asks for a whole
@@ -1004,8 +1013,9 @@ export class EditorScene extends PixelScene {
     this.endLasso(p);
   }
 
-  /** No lasso waits: no start point, not dragging, no frame drawn. */
+  /** No lasso waits: no start point, not dragging, no frame drawn, and no left click waits to write. */
   private endLassoState(): void {
+    this.clickPlace = null;
     this.lassoFrom = null;
     this.lassoActive = false;
     this.lassoBox?.clear();
@@ -1022,11 +1032,13 @@ export class EditorScene extends PixelScene {
     this.lassoBox.clear().lineStyle(1, DEFAULT_THEME.cursor, 0.9).strokeRect(Math.min(x, p.x), Math.min(y, p.y), Math.abs(p.x - x), Math.abs(p.y - y));
   }
 
-  /** The left button comes up: a lasso selects every bar it touched (both staves), and a click stays a click. */
+  /** The left button comes up: a lasso selects every bar it touched (both staves), and a click on a place writes there. */
   private endLasso(p: Phaser.Input.Pointer): void {
     const from = this.lassoFrom;
     const active = this.lassoActive;
+    const click = this.clickPlace;
     this.endLassoState();
+    if (click && !active) return this.placeAt(this.length, click);
     if (!from || !active || !this.layout) return;
     const range = barsInRect(this.layout, this.page, { x1: from.x - this.staffLeft, y1: from.y - this.staffTop, x2: p.x - this.staffLeft, y2: p.y - this.staffTop });
     if (!range) return;
@@ -1857,15 +1869,16 @@ export class EditorScene extends PixelScene {
    * The Length item's menu (the inventory holds one note and pressing it opens the choice of every
    * duration): every length as the note or rest a click writes, the one in use lit, those the bar cannot hold greyed.
    */
-  private lengthItems(kind: EntryMode): MenuItem[] {
-    // opening the notes' or the rests' menu writes with that item from now on
-    this.setEntry(kind);
+  private lengthItems(kind: EntryMode, ofNote?: EditorLength): MenuItem[] {
+    // opening the notes' or the rests' menu writes with that item from now on; the bubble on a note (`ofNote`, its length)
+    // changes that note and leaves notes or rests as they are (ft_1_02d.AC55)
+    if (ofNote === undefined) this.setEntry(kind);
     const allowed = lengthsFor(this.piece);
     // with a note selected a pick changes its length: a length that does not fit it there is greyed too (ft_1_02d.AC39)
     const selected = this.selected;
     const fits = (l: EditorLength) => allowed.includes(l) && (!selected || setLength(this.piece, selected, l).ok);
     return LENGTH_ORDER.map((l) => ({
-      label: t(`editor.length.${l}` as StringKey), icon: this.lengthPicture(l, kind), fineIcon: true, active: l === this.length, disabled: !fits(l), onPick: () => this.chooseLength(l),
+      label: t(`editor.length.${l}` as StringKey), icon: this.lengthPicture(l, kind), fineIcon: true, active: l === (ofNote ?? this.length), disabled: !fits(l), onPick: () => this.chooseLength(l),
     }));
   }
 
@@ -3049,9 +3062,9 @@ export class EditorScene extends PixelScene {
   }
 
   private updateStatus(): void {
-    // with the band: a message in the bubble over the staff's foot, the levels the piece fits in the Save cell's tooltip (no status line, ft_1_20.AC3)
-    if (this.bubble) {
-      this.bubble.show(this.message);
+    // with the band: a message in the strip at the foot, the levels the piece fits in the Save cell's tooltip (no status line, ft_1_20.AC3)
+    if (this.bandShown) {
+      this.showMessage(this.message);
       const fit = this.fitText();
       this.saveButton?.setTooltip(fit ? `${t('editor.save')}: ${fit}` : t('editor.save'));
       return;
@@ -3248,6 +3261,20 @@ export class EditorScene extends PixelScene {
     return this.meterAsk === null;
   }
 
+  /** A bubble on a note opens beside its head, so the note it acts on stays in view (ft_1_02d.AC52). */
+  protected override bubbleBeside(at: { x: number; y: number }): Rect | null {
+    const hit = this.hit({ x: this.root.x + at.x * this.px.scale, y: this.root.y + at.y * this.px.scale });
+    const head = hit?.kind === 'note' ? this.layout?.notes.find((n) => n.index === hit.noteIndex) : undefined;
+    if (!head) return null;
+    // the head and a head's width round it, in art pixels
+    const scale = this.px.scale;
+    const x1 = (this.staffLeft + head.x - 2 * head.headRx - this.root.x) / scale;
+    const x2 = (this.staffLeft + head.x + 2 * head.headRx - this.root.x) / scale;
+    const y1 = (this.staffTop + head.y - head.headRy - this.root.y) / scale;
+    const y2 = (this.staffTop + head.y + head.headRy - this.root.y) / scale;
+    return { x: Math.floor(x1), y: Math.floor(y1), w: Math.ceil(x2 - x1), h: Math.ceil(y2 - y1) };
+  }
+
   protected override bubbleOptions(at: { x: number; y: number } | null): (ToolbarItem | null)[] | null {
     if (this.meterAsk !== null) return null;
     const hit = at ? this.hit({ x: this.root.x + at.x * this.px.scale, y: this.root.y + at.y * this.px.scale }) : null;
@@ -3277,7 +3304,11 @@ export class EditorScene extends PixelScene {
       this.barSel = null;
       this.barAnchor = hit.bar;
       this.selectSpot(hit);
-      return trimSlots(this.placeOptions());
+      const options = this.placeOptions();
+      // on a rest the author placed, Delete takes the note's Delete slot (ft_1_02d.AC53)
+      const rest = this.restAt({ hand: this.handOf(hit.trackId), bar: hit.bar, start: hit.start });
+      if (rest) options[2] = { label: t('editor.delete'), icon: TOOL_ICONS.trash, shortcut: EDITOR_KEYS.delete.label, onClick: () => this.apply(removeRest(this.piece, rest), null) };
+      return trimSlots(options);
     }
     if (at === null && (this.selected || this.barSel)) return trimSlots(this.noteOptions());
     // More stands on no place: the key's circle has its slot there too
@@ -3299,7 +3330,8 @@ export class EditorScene extends PixelScene {
     const paste = sel ? this.pasteOption() : null;
     const onNote = <T,>(item: T): T | null => (note ? item : null);
     return [
-      onNote({ label: t(`editor.length.${this.length}` as StringKey), icon: this.lengthPicture(this.length, 'note'), fineIcon: true, onClick: () => undefined, menu: { items: () => this.lengthItems('note'), cell: ITEM_MENU_CELL, columns: LENGTH_ORDER.length } }),
+      // the clicked note's own length, and opening it keeps notes or rests as they are (ft_1_02d.AC55)
+      note ? { label: t(`editor.length.${note.length}` as StringKey), icon: this.lengthPicture(note.length, 'note'), fineIcon: true, onClick: () => undefined, menu: { items: () => this.lengthItems('note', note.length), cell: ITEM_MENU_CELL, columns: LENGTH_ORDER.length } } : null,
       note
         ? { label: t(`editor.acc.${sign}`), icon: itemPicture(sign), fineIcon: true, tooltip: t('editor.acc.tip'), shortcut: EDITOR_KEYS.accidentals.label, onClick: () => undefined, menu: { items: () => this.accidentalItems(), cell: ITEM_MENU_CELL, columns: 3 } }
         : paste,
@@ -3434,7 +3466,7 @@ export class EditorScene extends PixelScene {
    * under it. The time panel (time, pick-up, tempo) opens over the staff's foot; + and - after the last bar add or take bars.
    */
   private drawOverBand(): void {
-    const { width, scale } = this.px;
+    const { scale } = this.px;
     const rows = this.mainRows;
     const piece = this.piece;
     const strip = this.cornerStrip;
@@ -3493,9 +3525,34 @@ export class EditorScene extends PixelScene {
     }
     const titleAt = strip.left + ICON_BUTTON_WIDTH + GROUP_GAP;
     this.placeTitleInput(titleAt, titleRight - titleAt, y);
-    // what the piece maker says goes just under the strip, over the top of the sheet
-    this.bubble = new SpeechBubble(this, layer, { x: strip.left, y: strip.rows + 1, width: Math.min(width, strip.right) - strip.left }, '');
     this.refreshStaff();
+  }
+
+  /** What the piece maker says stands in the strip at the foot, never over the staff (ft_1_02d.AC54): made once the strip is drawn. */
+  protected override afterFrame(free: { left: number; right: number; top: number; rows: number } | null): void {
+    if (!this.bandShown || !free) return;
+    const layer = this.overStaff();
+    const image = new PixelImage(this, 0, 0, panelBitmap(5, 5, 'bubble')).setVisible(false);
+    const text = new PixelText(this, 0, 0, '', { color: C.ink }).setVisible(false);
+    layer.add([image, text]);
+    this.messageBox = { image, text, free };
+    this.updateStatus();
+  }
+
+  /** The message in the strip: on its empty right side, growing left along it when longer (`stripMessageBox`). */
+  private showMessage(message: string): void {
+    const box = this.messageBox;
+    if (!box) return;
+    box.image.setVisible(message !== '');
+    box.text.setVisible(message !== '');
+    if (message === '') return;
+    const drawn = drawnText(message);
+    const spot = stripMessageBox({ textWidth: measure(drawn), lineHeight: LINE_HEIGHT, linesAt: (w) => wrap(drawn, w).length, free: box.free, width: this.px.width });
+    box.image.setBitmap(panelBitmap(spot.w, spot.h, 'bubble'));
+    box.image.setPosition(spot.x, spot.y);
+    box.text.setOptions({ color: C.ink, maxWidth: spot.textWidth });
+    box.text.setText(message);
+    box.text.setPosition(spot.x + MESSAGE_PAD_X, spot.y + 2);
   }
 
   /**
