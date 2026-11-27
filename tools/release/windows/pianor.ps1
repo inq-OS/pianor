@@ -145,4 +145,11 @@ if ($busy) {
 }
 
 $script:Started = $false
-try { Serve-WithHttpListener } catch { if ($script:Started) { throw }; Serve-WithTcp }
+try {
+  try { Serve-WithHttpListener } catch { if ($script:Started) { throw }; Serve-WithTcp }
+} catch {
+  # neither local server could start (or one stopped): say why and keep the window open until the player has read it
+  Write-Host "Pianor could not start: $($_.Exception.Message)"
+  Read-Host 'Press Enter to close'
+  exit 1
+}

@@ -15,6 +15,8 @@ mkdir -p "$out/game"
 cp -r dist/. "$out/game/"
 # the hardware check page and its script are for developers
 rm -f "$out/game/spike.html" "$out/game/assets"/spike-*
+# the repository README's pictures (public/readme) are for the repository page, not the game
+rm -rf "$out/game/readme"
 cp tools/release/windows/pianor.ps1 "$out/"
 # cmd.exe and Windows PowerShell 5.1 want CRLF line ends; the repository keeps LF (.gitattributes)
 for f in tools/release/windows/*.cmd tools/release/windows/README.txt tools/release/windows/pianor.ps1; do
