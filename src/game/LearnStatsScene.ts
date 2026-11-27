@@ -6,7 +6,7 @@ import {
   barProfile, DAY_FILTERS, DEFAULT_STATS_FILTER, filterTests, focusHints, KIND_FILTERS, MEASURES, measureSeries, seriesTrend, type Focus, type Measure, type StatsFilter,
 } from '../core/learn/stats';
 import { baselineBpm } from '../core/learn/tempo';
-import { focusLine, MEANING_PAGES, measureValue } from '../core/text/learnStatsText';
+import { focusLine, MEANING_PAGES, meaningLine, measureValue } from '../core/text/learnStatsText';
 import { pieceTitle } from '../core/text/pieceTitle';
 import { t, type StringKey } from '../core/text/strings';
 import { dayString } from '../io/teacher/teacherDesk';
@@ -215,7 +215,7 @@ export class LearnStatsScene extends PixelScene {
     y += this.label(x, y, t(page === 0 ? 'learnStats.focusTitle' : 'learnStats.meaningTitle'), C.gold).height + HELP_LINE_GAP;
     const lines = page === 0
       ? (this.focus.length === 0 ? [t('learnStats.focus.none')] : this.focus.map((focus) => focusLine(focus, printed)))
-      : MEANING_PAGES[page - 1]!.map((key) => t(key));
+      : MEANING_PAGES[page - 1]!.map((key) => meaningLine(key));
     for (const line of lines) y += this.label(x, y, line, C.white, { maxWidth: room }).height + HELP_LINE_GAP;
     const turn = (to: number) => {
       this.help = to;

@@ -877,7 +877,7 @@ export const strings = {
   'learnStats.meaning.sd': 'Spread: how far the gaps between notes are from the usual gap, in percent (the standard deviation). A stop counts in full. Aim: falling, toward 10% or less.',
   'learnStats.meaning.mad': 'Wobble: the same spread with the stops left out (median deviation). It shows how even the playing itself is. Aim: under 15%.',
   'learnStats.meaning.drift': 'Drift: how the tempo changes from the start of a test to its end. Above 0 the player sped up, below 0 slowed down. Aim: close to 0.',
-  'learnStats.meaning.halts': 'Stops: gaps at least twice as long as written. Each one is a place the hands do not know yet. Aim: 0.',
+  'learnStats.meaning.halts': 'Stops: gaps at least {haltFactor} times as long as written. Each one is a place the hands do not know yet. Aim: 0.',
   'learnStats.meaning.hands': 'Hands: the wobble of each hand on its own, the right hand as dots and the left as rings. Aim: both low and close together.',
   'learnStats.meaning.bars': 'Bars: the speed of each bar against the rest of the test. A darker bar is played slower. Aim: one shade from end to end.',
   'learnStats.meaning.trend': 'Trend: the line through the tests says where a number is heading. A test with a stop does not bend it. It needs four tests.',

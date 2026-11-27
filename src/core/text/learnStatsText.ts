@@ -1,4 +1,5 @@
 import type { Focus, Measure } from '../learn/stats';
+import { TEMPO_RULES } from '../learn/tempo';
 import { t, type StringKey } from './strings';
 
 /** One thing to work on as a sentence (ft_1_32.AC10); `printed` gives the printed number of a piece's bar. */
@@ -30,6 +31,11 @@ export const MEANING_PAGES: readonly (readonly StringKey[])[] = [
   ['learnStats.meaning.halts', 'learnStats.meaning.hands'],
   ['learnStats.meaning.bars', 'learnStats.meaning.trend'],
 ];
+
+/** A page's meaning of a number as a sentence, with the tempo rules' own numbers in it (a stop's length). */
+export function meaningLine(key: StringKey): string {
+  return t(key, { haltFactor: TEMPO_RULES.haltFactor });
+}
 
 /** A value of a measure as written: percent for the shares, a plain number for the tempo and the stops. */
 export function measureValue(measure: Measure, value: number, signed = false): string {
