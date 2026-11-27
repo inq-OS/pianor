@@ -12,7 +12,7 @@ import type { Bitmap } from './ui/pixel/bitmap';
 import { C } from './ui/pixel/palette';
 import { Mascot } from './ui/pixel/PixelObjects';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
-import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, beatLaneSymbol, chordLabelsSymbol, durationSymbol, fingersSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, liveTempoSymbol, markersFromSymbol, markersSymbol, namingSymbol, paceClickSymbol, scoreSymbol, staffGapSymbol } from './ui/pixel/settingArt';
+import { SYMBOL_HEIGHT, SYMBOL_WIDTH, barNumbersSymbol, barsSymbol, beatLaneSymbol, chordLabelsSymbol, durationSymbol, fingersSymbol, learnHandsSymbol, learnStepSymbol, linesSymbol, liveTempoSymbol, markersFromSymbol, markersSymbol, namingSymbol, paceClickSymbol, scoreSymbol, staffGapSymbol } from './ui/pixel/settingArt';
 import { freshData, startScene } from './scenes';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 
@@ -220,8 +220,8 @@ export class SettingsScene extends PixelScene {
       this.gapTapped = true;
       return profiles.updateStaffGap(value);
     });
-    // A (auto), 2 or 4 bars: a number, not a picture
-    const bars = ([['auto', t('settings.auto'), t('settings.autoShort')], [2, '2', '2'], [4, '4', '4']] as const).map(([value, label, text]): Choice<StaffSettings['barsPerLine']> => ({ value, label, text }));
+    // auto, 2 or 4 bars: a scrap of staff cut into its bars, the number over two or four, a line-wide arrow over auto
+    const bars = ([['auto', t('settings.auto')], [2, '2'], [4, '4']] as const).map(([value, label]): Choice<StaffSettings['barsPerLine']> => ({ value, label, symbol: barsSymbol(value) }));
     this.setting(0, 1, t('settings.bars'), bars, staff.barsPerLine, (value) => profiles.updateStaffSettings({ barsPerLine: value }));
     const barNumberLabels: Record<BarNumberMode, string> = {
       off: t('settings.barNumbersOff'), first: t('settings.barNumbersFirst'), every: t('settings.barNumbersEvery'), every2: t('settings.barNumbersEvery2'), every4: t('settings.barNumbersEvery4'),
