@@ -81,8 +81,15 @@ export type SceneKey = keyof SceneData;
  * in `SceneData`, or a data type that includes it) can be started without any.
  */
 export function startScene<K extends SceneKey>(from: Phaser.Scene, key: K, ...data: undefined extends SceneData[K] ? [SceneData[K]?] : [SceneData[K]]): void {
+  // a screen already on its way out starts nothing more: two presses in one frame (the door, then the piano) would run two screens at once
+  if (leaving.has(from)) return;
+  leaving.add(from);
+  from.events.once('shutdown', () => leaving.delete(from));
   from.scene.start(key, freshData(data[0]));
 }
+
+/** The screens that started another one this step and are closing. */
+const leaving = new WeakSet<Phaser.Scene>();
 
 /**
  * The data a scene is started with, never `undefined`: Phaser keeps a scene's last data when it is started again without

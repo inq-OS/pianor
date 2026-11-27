@@ -63,6 +63,8 @@ export class TugView {
   /** What the character says now (a fact or its closing line), or nothing. */
   private saying: string | null = null;
   private closing = false;
+  /** The page of a long line shown now: a press on the closing line turns to the next before it ends the view. */
+  private page = 0;
   /** Who plays now: the character's phrase sounds, or the student's is listened to; null between turns. */
   private playingNow: 'character' | 'student' | null = null;
   /** The student's phrase while it is listened to (the self-playing demo plays it). */
@@ -119,8 +121,8 @@ export class TugView {
   }
 
   /** What the tug shows now, for the tests and the self-playing demo. */
-  get view(): { who: 'character' | 'student' | null; turn: number; standing: number; outcome: TugState['outcome']; saying: string | null; closing: boolean; level: 1 | 2 | 3; mode: 'wait' | 'tempo' } {
-    return { who: this.playingNow, turn: this.state.turn, standing: this.state.standing, outcome: this.state.outcome, saying: this.saying, closing: this.closing, level: this.level, mode: this.mode };
+  get view(): { who: 'character' | 'student' | null; turn: number; standing: number; outcome: TugState['outcome']; saying: string | null; page: number; closing: boolean; level: 1 | 2 | 3; mode: 'wait' | 'tempo' } {
+    return { who: this.playingNow, turn: this.state.turn, standing: this.state.standing, outcome: this.state.outcome, saying: this.saying, page: this.page, closing: this.closing, level: this.level, mode: this.mode };
   }
 
   /** Tempo mode: when the student's phrase plays (song time of its tick), for the tests and the self-playing demo. */
@@ -152,14 +154,14 @@ export class TugView {
   key(e: KeyboardEvent): boolean {
     if (this.done) return false;
     if (e.key === 'Escape') this.leave();
-    else if (e.key === ' ' || e.key === 'Enter') { if (!e.repeat && this.closing) this.finish(); }
+    else if (e.key === ' ' || e.key === 'Enter') { if (!e.repeat && this.closing) this.onwards(); }
     else if (e.key !== 'Tab') return false;
     return true;
   }
 
   /** A press on the screen: only the closing line takes it (a phrase is never skipped, AX-0). */
   press(): void {
-    if (this.closing) this.finish();
+    if (this.closing) this.onwards();
   }
 
   /** Esc: the tug ends here; nothing is won or lost (`leaveTug`). */
@@ -210,6 +212,7 @@ export class TugView {
 
   private play(): void {
     this.saying = null;
+    this.page = 0;
     const turn = this.state.plan.turns[this.state.turn]!;
     const phrase = this.phraseOf(this.state.turn);
     this.playingNow = turn.who;
@@ -295,6 +298,7 @@ export class TugView {
     const fact = tugFact(result, reasons, this.mode);
     const words = t(this.mode === 'tempo' ? 'tug.factTempo' : 'tug.fact', { right: fact.right, total: fact.total });
     this.saying = fact.reason === 'wrong-octave' ? `${words}. ${t('tug.wrongOctave')}` : words;
+    this.page = 0;
     this.draw();
     this.next(FACT_MS);
   }
@@ -322,8 +326,19 @@ export class TugView {
   private say(text: string): void {
     this.closing = true;
     this.saying = text;
+    this.page = 0;
     this.handlers.playing(true);
     this.draw();
+  }
+
+  /** A press on the closing line: its next page, or the end of the view after its last. */
+  private onwards(): void {
+    if (this.saying !== null && this.page + 1 < spokenPages(this.saying).length) {
+      this.page += 1;
+      this.draw();
+      return;
+    }
+    this.finish();
   }
 
   private finish(): void {
@@ -352,7 +367,7 @@ export class TugView {
     if (this.started) this.drawBoard();
     if (this.playingNow === 'character') this.drawRising();
     if (this.saying !== null) {
-      const words = spokenLine(spokenPages(this.saying)[0] ?? [], talkColour('character', this.character.id));
+      const words = spokenLine(spokenPages(this.saying)[this.page] ?? [], talkColour('character', this.character.id));
       const spot = lineSpot({ head: this.place.head, size: { w: words.width, h: words.height }, area });
       this.add(new PixelImage(this.scene, spot.x, spot.y, words).setName('tugLine'));
     }

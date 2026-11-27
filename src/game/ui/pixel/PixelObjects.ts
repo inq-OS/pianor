@@ -312,13 +312,15 @@ export class PixelButton {
       if (options.picture && this.focused) this.showTooltip();
       this.set({ hover: false, down: false });
     });
-    this.panel.on('pointerdown', () => {
+    // only the main button presses (a finger is one too): a right press opens the bubble, never the button under it (ft_1_20.AC19)
+    this.panel.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (pointer.button !== 0) return;
       this.hideTooltip();
       if (!this.disabled) this.set({ down: true });
     });
-    this.panel.on('pointerup', () => {
+    this.panel.on('pointerup', (pointer: Phaser.Input.Pointer) => {
       this.set({ down: false });
-      if (!this.disabled) options.onClick();
+      if (pointer.button === 0 && !this.disabled) options.onClick();
     });
   }
 

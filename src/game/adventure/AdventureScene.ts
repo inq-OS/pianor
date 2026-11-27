@@ -1058,8 +1058,12 @@ export class AdventureScene extends PixelScene {
    */
   private openTeach(def: CharacterDef, head: { x: number; y: number }, asked: string): boolean {
     const context = contextOf(this);
-    // the teacher's pick in place of its own (ft_1_37.AC4)
-    const piece = castTeachPiece(this.curriculum ?? undefined, def.id, asked);
+    // its own piece is the one its next tug needs while that is not learned yet (a won level 1 asks for level 2's piece),
+    // else the conversation's; the teacher's pick in place of either (ft_1_37.AC4)
+    const { profiles } = context;
+    const next = characterTug(def, 1, this.world, context.pieces)?.chart;
+    const own = next && !pieceLearned(next, profiles.learnProgressOf(next.id), profiles.learnSettings) ? next.id : asked;
+    const piece = castTeachPiece(this.curriculum ?? undefined, def.id, own);
     const chart = context.pieces.find(piece)?.chart;
     if (!chart || !this.talkLayer) return false;
     // the character teaches its piece bar by bar (ft_1_32.AC15): learning opens, and leaving it comes back here, where a
