@@ -102,6 +102,21 @@ test.describe('main menu (ft_1_07.AC2)', () => {
     expectNoErrors(errors);
   });
 
+  test('a name of twelve of the widest letters is written whole on its line of the main menu', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
+    await page.evaluate(async () => {
+      const profiles = window.__game.registry.get('context').profiles;
+      for (const name of ['WWWWWWWWWWWW', 'MMMMMMMMMMMM']) await profiles.createPlayer(name);
+    });
+    await clickButton(page, 'profiles', await profileButton(page, 'TUVI')); // redraw the menu by leaving and coming back
+    await waitForScene(page, 'profile');
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Back'));
+    await waitForScene(page, 'profiles');
+    const texts = await sceneTexts(page, 'profiles');
+    expect(texts).toEqual(expect.arrayContaining(['WWWWWWWWWWWW', 'MMMMMMMMMMMM']));
+    expectNoErrors(errors);
+  });
+
   test('ft_1_07.AC10 New player is gone once there are ten players', async ({ page }) => {
     const errors = await openGame(page);
     await openProfiles(page);
@@ -327,7 +342,8 @@ test.describe('admin page (ft_1_07.AC6)', () => {
       const errors = await openGame(page, '?device=virtual', lang, 'profiles');
       await clickButton(page, 'profiles', 4); // the "+" on the line after the four players
       await waitForScene(page, 'name');
-      await typeName(page, 'VINT');
+      await page.keyboard.type('VINT');
+      await page.keyboard.press('Enter');
       const reason = lang === 'en' ? 'This name is taken.' : 'See nimi on juba kasutusel.';
       await expect.poll(() => sceneTexts(page, 'name')).toContain(reason);
       const plate = (await page.locator('#name-field').boundingBox())!;
@@ -525,7 +541,7 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
     expect((await sceneTexts(page, 'teacherGate')).join(' ')).toContain('child lock');
     await page.keyboard.type('teacher');
     await page.keyboard.press('Enter');
-    await expect.poll(() => sceneTexts(page, 'teacherGate')).toContain('Wrong password. Try again.');
+    await expect.poll(async () => (await sceneTexts(page, 'teacherGate')).join(' ')).toContain('Wrong password. Try again.'); // wrapped on the page
     await page.keyboard.type('pianor');
     await page.keyboard.press('Enter');
     await waitForScene(page, 'teacher');
