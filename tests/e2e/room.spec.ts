@@ -66,16 +66,12 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_19.AC2 ft_1_19.AC5 the crossroads is shut on the map while it is closed; opened, its grass, sea and clouds move and Back returns to the map', async ({ page }) => {
+  test('ft_1_19.AC2 ft_1_19.AC5 the crossroads is open on the map: pressed, its grass, sea and clouds move and Back returns to the map', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
-    // painted on the map, but no button while it is closed (content/world/keri.json)
-    expect(await sceneButton(page, 'keriMap', 'Crossroads')).toBe(-1);
-    await page.evaluate(() => {
-      window.__game.scene.stop('keriMap');
-      window.__game.scene.start('crossroads');
-    });
+    // the maintainer opened it (content/world/keri.json has no closed on it)
+    await clickButton(page, 'keriMap', await sceneButton(page, 'keriMap', 'Crossroads'));
     await waitForScene(page, 'crossroads');
     // the grass and the sea (a gust in a loop of looks) and the drifting clouds move
     const moving = await page.evaluate(() => (window.__game.scene.getScene('crossroads') as unknown as { animators: unknown[] }).animators.length);
@@ -199,8 +195,8 @@ test.describe('the player room', () => {
     expect(first.clouds).toHaveLength(3);
     // the sea, the lamp, the gulls' flock (ft_1_19.AC13) and three clouds move
     expect(first.animators).toBe(6);
-    // the warden's house and the knoll (ft_1_19.AC2: the one scene a new player has open)
-    expect(first.buttons).toHaveLength(2);
+    // the warden's house, the knoll and the crossroads (ft_1_19.AC2: the scenes a new player has open)
+    expect(first.buttons).toHaveLength(3);
     for (const b of first.buttons) {
       expect(b.x).toBeGreaterThanOrEqual(0);
       expect(b.x + b.width).toBeLessThanOrEqual(first.size.width);

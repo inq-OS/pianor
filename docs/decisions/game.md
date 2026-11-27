@@ -135,11 +135,11 @@ Check: `src/core/layout/keriMap.test.ts` "ft_1_19.AC2 every scene of the world m
 
 ## d113
 
-**Scenes open when they are built; levels open and lock nothing.** Features: ft_1_19, ft_1_18.
+**A scene opens only once the maintainer confirms it; levels open and lock nothing.** Features: ft_1_19, ft_1_18.
 
-Every scene in `content/world/keri.json` is open to every player once it is built, unless it is marked `closed`, which keeps it to the tester until the maintainer opens it (`openScenes`, `src/core/world/openScenes.ts`); no player level opens or locks a scene, a piece or anything else. A closed scene is painted on the map but is no button. The knoll lies at x -50, y -2 m from the lighthouse (good to about 15 m). For each reference picture, the agent notes what it sees in `docs/keri/` (map, room, knoll) with improvement tips that are not built until picked.
+Every scene in `content/world/keri.json` is built `closed`, which keeps it to the tester; the `closed` mark comes off only once the maintainer confirms the scene ready, and only then can characters stand in it (`openScenes`, `src/core/world/openScenes.ts`); no player level opens or locks a scene, a piece or anything else. A closed scene is painted on the map but is no button. The knoll lies at x -50, y -2 m from the lighthouse (good to about 15 m). For each reference picture, the agent notes what it sees in `docs/keri/` (map, room, knoll) with improvement tips that are not built until picked.
 
-Check: `src/core/world/openScenes.test.ts` "ft_1_19.AC2 every built scene is open to every player"
+Check: `src/core/world/openScenes.test.ts` "ft_1_19.AC2 a scene not marked closed is open to every player"
 
 ## d115
 

@@ -1,5 +1,5 @@
 /**
- * Which scenes of Keri are open (ft_1_19, d113): every scene that is built, unless it is marked closed, and every scene for a
+ * Which scenes of Keri are open (ft_1_19, d113): every scene the maintainer confirmed ready (no `closed` mark), and every scene for a
  * tester. No level opens or locks a scene. Pure: the scenes come from the world model.
  */
 

@@ -4,7 +4,7 @@ import { isTester, openScenes } from './openScenes';
 const SCENES = [{ id: 'knoll' }, { id: 'harbour' }, { id: 'spit' }];
 
 describe('which scenes are open (ft_1_19)', () => {
-  it('ft_1_19.AC2 every built scene is open to every player: no level opens or locks a scene (d113)', () => {
+  it('ft_1_19.AC2 a scene not marked closed is open to every player: no level opens or locks a scene (d113)', () => {
     expect(openScenes(SCENES)).toEqual(['knoll', 'harbour', 'spit']);
     expect(openScenes(SCENES, false)).toEqual(['knoll', 'harbour', 'spit']);
   });
@@ -29,10 +29,10 @@ describe('a closed scene', () => {
 });
 
 describe('Keri as shipped', () => {
-  it('keeps every scene but the knoll closed to players, so the map is as it was', async () => {
+  it('opens to players only the scenes the maintainer confirmed: the knoll and the crossroads', async () => {
     const { loadWorld } = await import('./world');
     const keri = loadWorld((await import('../../../content/world/keri.json')).default);
-    expect(openScenes(keri.scenes ?? [])).toEqual(['knoll']);
+    expect(openScenes(keri.scenes ?? [])).toEqual(['knoll', 'crossroads']);
     expect(openScenes(keri.scenes ?? [], true)).toContain('terrace');
   });
 });

@@ -105,7 +105,7 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d110](art.md#d110) | The art canvas is a 640x360 fine grid under layout cells of 2 x 2 fine pixels | ft_0_13, ft_1_08 |
 | [d111](art.md#d111) | The room and the map of Keri are painted pictures made at build time; outdoor scenes are pixel art in shared flat-tone runs | ft_1_18, ft_1_19, ft_1_08, ft_1_09, ft_1_14 |
 | [d112](game.md#d112) | Keri's places are painted scenes, each one picture opened from the map | ft_1_19, ft_1_18, ft_1_14, ft_1_17 |
-| [d113](game.md#d113) | Scenes open when they are built; levels open and lock nothing | ft_1_19, ft_1_18 |
+| [d113](game.md#d113) | A scene opens only once the maintainer confirms it; levels open and lock nothing | ft_1_19, ft_1_18 |
 | [d114](art.md#d114) | Kiur is a tree pipit drawn from one small model on the fine grid | ft_0_13, ft_1_15, ft_1_08, ft_1_18 |
 | [d115](game.md#d115) | Actions and items share one model, and a painted place is used in its picture | ft_1_20, ft_0_13, ft_1_18, core_09 |
 | [d116](workflow.md#d116) | GitHub issues are for people; agents track their own work as tags in the docs | all |
