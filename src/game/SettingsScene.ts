@@ -45,10 +45,12 @@ const HINT_Y = 132;
 /** With the band: the buttons two rows shorter and edge to edge, so the four rows end inside the book above the band. */
 const BAND_SETTING_HEIGHT = SYMBOL_HEIGHT + 2;
 const BAND_ROW_STEP = BAND_SETTING_HEIGHT;
-/** With the band: the title's and the hint's line in the strip of the door and the gear, below the book's blue top rim. */
-const STRIP_TEXT_Y = 8;
+/** With the band: the title's and the hint's line in the strip of the door and the gear. */
+const STRIP_TEXT_Y = 6;
+/** With the band: the title two rows lower than the hint, below the book's blue top rim. */
+const STRIP_TITLE_Y = STRIP_TEXT_Y + 2;
 /** With the band: the room left between the door's plate and the title. */
-const TITLE_ROOM = 6;
+const TITLE_ROOM = 4;
 
 interface Choice<T> {
   value: T;
@@ -182,7 +184,7 @@ export class SettingsScene extends PixelScene {
     this.settingHeight = strip ? BAND_SETTING_HEIGHT : SETTING_HEIGHT;
     this.rowStep = strip ? BAND_ROW_STEP : ROW_STEP;
     this.firstRowY = strip ? strip.rows - 1 + this.settingHeight / 2 : FIRST_ROW_Y;
-    const title = this.label(strip ? strip.left + TITLE_ROOM : MARGIN, strip ? STRIP_TEXT_Y : TITLE_Y, t('settings.title'), C.gold);
+    const title = this.label(strip ? strip.left + TITLE_ROOM : MARGIN, strip ? STRIP_TITLE_Y : TITLE_Y, t('settings.title'), C.gold);
     const mascotX = strip ? strip.right - MASCOT_WIDTH : width - MASCOT_RIGHT - MASCOT_WIDTH;
     this.own(new Mascot(this, this.root, mascotX, strip ? 1 : MASCOT_Y));
 
