@@ -3,6 +3,7 @@
   "id": "high-and-low",
   "contentVersion": 1,
   "title": "High and Low",
+  "titles": { "et": "Kõrge ja madal" },
   "level": 1,
   "ppq": 480,
   "tempoMap": [
