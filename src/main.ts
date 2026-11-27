@@ -202,7 +202,8 @@ function guardScreenSize(game: Phaser.Game, holdInput: (held: boolean) => void):
   let covered = false;
   // the hidden screen takes no key press while covered: the scenes' window keys (Esc would end a piece) and the computer
   // keyboard's piano; a release still goes through, so a key held when the cover came is let go. F11 still reaches the
-  // browser, as nothing prevents its default
+  // browser, as nothing prevents its default. The scenes' window keys also listen in the capture phase, so this one
+  // must be added first: it is, here at the start, before any scene has been created
   window.addEventListener('keydown', (e) => {
     if (covered) e.stopImmediatePropagation();
   }, { capture: true });

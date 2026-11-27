@@ -2823,6 +2823,8 @@ export class EditorScene extends PixelScene {
     this.placeInSong(result.id);
     const song = this.song ? context.ownSongs.get(this.song.songId) : undefined;
     this.say(!result.saved ? t('editor.savedHere') : song ? t('editor.savedSong', { title: song.title }) : t('editor.saved'), MESSAGE_MS);
+    // a `:wq` that stopped to ask for the title leaves however the save then came (Enter in the title, or Save)
+    this.leaveIfSaved();
   }
 
   /** Save the piece if it has changes, then offer it as a file to take to another device. */
