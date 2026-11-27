@@ -171,9 +171,14 @@ function linkRow(node: SongLink, common: RowStart, target: SongRow | undefined, 
   };
 }
 
-/** A piece's named parts as rows under it, nested as they nest (core_06), each following the piece's values. */
+/**
+ * A piece's named parts as rows under it, nested as they nest (core_06), each following the piece's values. A piece
+ * whose one phrase is the whole piece gets none: that row would only say the piece again.
+ */
 function phraseRows(piece: SongRow, facts: PieceFacts, values: SongValues, rows: SongRow[]): void {
   const ordered = partsInOrder(facts.phrases);
+  const only = ordered.length === 1 ? ordered[0]! : undefined;
+  if (only && only.startBar <= 0 && only.endBar >= facts.bars - 1) return;
   const stack: { row: SongRow; endBar: number }[] = [];
   const childCount = new Map<string, number>();
   for (const phrase of ordered) {
