@@ -892,6 +892,50 @@ test.describe('piece maker: a PDF of many pages into a song (ft_Y_04 slice 6)', 
     expect(partsAsked).toEqual([{ id: 'own-old-waltz-p01', movement: 0, firstBar: 0, lastBar: 11 }, { id: 'own-old-waltz-p02', movement: 0, firstBar: 12, lastBar: 19 }]);
     expectNoErrors(errors);
   });
+
+  test('ft_Y_04.AC26 another PDF chosen after a reading is read anew, never shown with the first one\'s parts; Enter in the name goes back to a kept reading', async ({ page }) => {
+    const asked: string[] = [];
+    await page.route('**/__pianor/photo**', async (route) => {
+      const url = new URL(route.request().url());
+      const path = url.pathname;
+      if (path === '/__pianor/photo') return route.fulfill({ json: { ok: true } });
+      asked.push(`${route.request().method()} ${path}${url.search}`);
+      if (path === '/__pianor/photo/book') return route.fulfill({ json: { ok: true, book: 'book-old-waltz' } });
+      if (path.endsWith('/status')) return route.fulfill({ json: readBook() });
+      return route.fulfill({ json: { ok: true } });
+    });
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { photoReady: boolean }).photoReady)).toBe(true);
+    await page.fill('#editor-title', 'Kept Name');
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    const chooser = page.waitForEvent('filechooser');
+    await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
+    await (await chooser).setFiles({ name: 'Old_Waltz.pdf', mimeType: 'application/pdf', buffer: await syntheticPdf(page, 2) });
+    await expect(page.locator('#book-tool-read')).toHaveText('Read 2 pages');
+    await page.locator('#book-tool-read').click();
+    await expect(page.locator('.book-tool-part')).toHaveCount(2);
+    // back to the pages: Enter in the name goes back to the reading, and reads nothing again
+    await page.locator('#book-tool-back').click();
+    const reads = () => asked.filter((a) => a.includes('/read?')).length;
+    expect(reads()).toBe(1);
+    await page.locator('#book-tool-name').press('Enter');
+    await expect(page.locator('.book-tool-part')).toHaveCount(2);
+    expect(reads()).toBe(1);
+    // another PDF of as many pages is read anew
+    await page.locator('#book-tool-back').click();
+    const another = page.waitForEvent('filechooser');
+    await page.locator('#book-tool-choose').click();
+    await (await another).setFiles({ name: 'Other_Book.pdf', mimeType: 'application/pdf', buffer: await syntheticPdf(page, 2) });
+    await expect(page.locator('#book-tool-name')).toHaveValue('Other Book');
+    await expect(page.locator('#book-tool-read')).toHaveText('Read 2 pages');
+    await expect(page.locator('#book-tool-to-check')).toHaveCount(0);
+    // Ctrl + Z typed in the tool never undoes the piece maker's title behind it
+    await page.locator('#book-tool-note').click();
+    await page.keyboard.press('Control+z');
+    expect(await page.inputValue('#editor-title')).toBe('Kept Name');
+    expectNoErrors(errors);
+  });
 });
 
 /** A photo of one system of two staves, 400 by 300, with a bar line at 200: what the server's cleaning leaves (synthetic). */
