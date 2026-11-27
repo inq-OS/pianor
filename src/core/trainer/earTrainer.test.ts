@@ -140,20 +140,32 @@ describe('a question and its misses (AC3)', () => {
 
 describe('repeat time (AC6)', () => {
   it('repeats after twice the sounding time: sound plus an equal wait', () => {
-    expect(repeatAfterMs(1)).toBe(2000);
-    expect(repeatAfterMs(3)).toBe(6000);
+    expect(repeatAfterMs(1, 1)).toBe(2000);
+    expect(repeatAfterMs(3, 1)).toBe(6000);
+  });
+
+  it('counts the sounding time of all the notes: a two-note question waits twice as long', () => {
+    expect(repeatAfterMs(1, 2)).toBe(4000);
+    expect(repeatAfterMs(3, 2)).toBe(12000);
+    expect(isRepeatDue({ now: 3999, lastActivityMs: 0, seconds: 1, notes: 2, repeatOn: true })).toBe(false);
+    expect(isRepeatDue({ now: 4000, lastActivityMs: 0, seconds: 1, notes: 2, repeatOn: true })).toBe(true);
   });
 
   it('is due only with repeat on and no activity for that long', () => {
-    expect(isRepeatDue({ now: 2000, lastActivityMs: 0, seconds: 1, repeatOn: true })).toBe(true);
-    expect(isRepeatDue({ now: 1999, lastActivityMs: 0, seconds: 1, repeatOn: true })).toBe(false);
-    expect(isRepeatDue({ now: 9000, lastActivityMs: 0, seconds: 1, repeatOn: false })).toBe(false);
+    expect(isRepeatDue({ now: 2000, lastActivityMs: 0, seconds: 1, notes: 1, repeatOn: true })).toBe(true);
+    expect(isRepeatDue({ now: 1999, lastActivityMs: 0, seconds: 1, notes: 1, repeatOn: true })).toBe(false);
+    expect(isRepeatDue({ now: 9000, lastActivityMs: 0, seconds: 1, notes: 1, repeatOn: false })).toBe(false);
   });
 
   it('rejects a duration outside whole seconds 1 to 3', () => {
-    expect(() => repeatAfterMs(0)).toThrow(RangeError);
-    expect(() => repeatAfterMs(4)).toThrow(RangeError);
-    expect(() => repeatAfterMs(1.5)).toThrow(RangeError);
+    expect(() => repeatAfterMs(0, 1)).toThrow(RangeError);
+    expect(() => repeatAfterMs(4, 1)).toThrow(RangeError);
+    expect(() => repeatAfterMs(1.5, 1)).toThrow(RangeError);
+  });
+
+  it('rejects a question with no notes or a fraction of one', () => {
+    expect(() => repeatAfterMs(1, 0)).toThrow(RangeError);
+    expect(() => repeatAfterMs(1, 1.5)).toThrow(RangeError);
   });
 });
 

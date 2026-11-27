@@ -26,6 +26,22 @@ describe('hand shifts (ft_1_30.AC9)', () => {
     expect(shifts).toEqual([{ note: 3, direction: 'down', keys: 3 }]);
   });
 
+  it('a broken chord or an Alberti bass played from its chord position has none', () => {
+    expect(handShifts(chartOf([60, 64, 67, 64, 60, 64, 67, 64], 'RH', [1, 2, 3, 2, 1, 2, 3, 2]))).toEqual([]);
+    expect(handShifts(chartOf([60, 64, 67, 64, 60, 64, 67, 64]))).toEqual([]);
+    expect(handShifts(chartOf([48, 55, 52, 55, 48, 55, 52, 55], 'LH', [5, 1, 3, 1, 5, 1, 3, 1]))).toEqual([]);
+    expect(handShifts(chartOf([48, 55, 52, 55, 48, 55, 52, 55], 'LH'))).toEqual([]);
+  });
+
+  it('a thumb going under in a one-octave scale moves the hand once', () => {
+    expect(handShifts(chartOf([60, 62, 64, 65, 67, 69, 71, 72]))).toEqual([{ note: 3, direction: 'up', keys: 3 }]);
+  });
+
+  it('the C arpeggio moves the hand where the thumb goes under, not on every note', () => {
+    const shifts = handShifts(chartOf([60, 64, 67, 72, 76, 79], 'RH', [1, 2, 3, 1, 2, 3]));
+    expect(shifts).toEqual([{ note: 3, direction: 'up', keys: 7 }]);
+  });
+
   it('follows the fingers the author wrote', () => {
     // 1 on C, then 1 on G: the hand jumps up four keys
     const shifts = handShifts(chartOf([60, 67, 69, 71], 'RH', [1, 1]));

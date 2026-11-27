@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Chart } from '../chart';
 import { compilePiece } from '../piece/compile';
+import type { Spelling } from '../chart/pitch';
 import { layoutStaff, type StaffLayoutOptions } from './staff';
 
 const META = JSON.stringify({ id: 'ch', title: 'Ch', level: 1, status: 'draft', hands: ['RH'], phrases: [], source: 'test', license: 'CC0-1.0', generator: { kind: 'hand' } });
@@ -38,6 +39,17 @@ describe('chord names under a chord (core_09.AC59)', () => {
     const named = layout.notes.filter((n) => n.label !== '');
     expect(named.map((n) => n.label)).toEqual(['C/E/G\nC', 'C/E', 'C/Eb/Gb/Bb\nc7b5']);
     expect(named.map((n) => n.labelLines)).toEqual([2, 1, 2]);
+  });
+
+  it('core_09.AC59 the namer gets each key with its spelling as written, so the name can spell its root as the notes do', () => {
+    const got: { keys: number[]; spellings: Spelling[] }[] = [];
+    const spy = (keys: readonly number[], spellings: readonly Spelling[]) => {
+      got.push({ keys: [...keys], spellings: [...spellings] });
+      return null;
+    };
+    lay(compiled('[^D^F^A]4 |]'), { show: 'name', name: spy });
+    expect(got.at(-1)!.keys).toEqual([63, 66, 70]);
+    expect(got.at(-1)!.spellings.map((s) => `${s.step}${s.alter}`)).toEqual(['D1', 'F1', 'A1']);
   });
 
   it('core_09.AC59 a single note is never named as a chord', () => {

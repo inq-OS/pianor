@@ -298,7 +298,6 @@ export const stringsEt: Record<StringKey, string> = {
   'adminPassword.blank': 'Uus parool ei tohi olla tühi.',
   'profile.defaultName': 'Mängija {n}',
   'profile.blankName': 'Mängija',
-  'menu.locked': 'Mängimiseks jõua tasemele {level}',
   'menu.pieceLevel': 'Tase {level}',
   'practice.statsPane': 'Viimased mängud',
   'practice.paneLatest': '{percent}%',

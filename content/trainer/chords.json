@@ -10,7 +10,9 @@
     { "id": "diminished", "minor": true, "suffix": "dim", "intervals": [0, 3, 6] },
     { "id": "augmented", "minor": false, "suffix": "+", "intervals": [0, 4, 8] },
     { "id": "half-diminished", "minor": true, "suffix": "7b5", "intervals": [0, 3, 6, 10] },
-    { "id": "diminished-seventh", "minor": true, "suffix": "dim7", "intervals": [0, 3, 6, 9] }
+    { "id": "diminished-seventh", "minor": true, "suffix": "dim7", "intervals": [0, 3, 6, 9] },
+    { "id": "major-sixth", "minor": false, "suffix": "6", "intervals": [0, 4, 7, 9] },
+    { "id": "minor-sixth", "minor": true, "suffix": "6", "intervals": [0, 3, 7, 9] }
   ],
   "steps": [
     { "id": "c1", "name": "Triads on white keys", "chords": ["C", "F", "G", "a", "d", "e"] },

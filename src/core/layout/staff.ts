@@ -383,9 +383,9 @@ function staffRooms(groups: readonly RoomGroup[], clef: Clef, eighths: boolean, 
 function twoLineTicks(notes: readonly { note: ChartNote }[], chordNames: StaffLayoutOptions['chordNames']): Set<number> {
   const out = new Set<number>();
   if (chordNames?.show !== 'both') return out;
-  const byTick = new Map<number, number[]>();
-  for (const { note } of notes) byTick.set(note.tick, [...(byTick.get(note.tick) ?? []), note.midi]);
-  for (const [tick, keys] of byTick) if (keys.length > 1 && chordNames.name(keys) !== null) out.add(tick);
+  const byTick = new Map<number, ChartNote[]>();
+  for (const { note } of notes) byTick.set(note.tick, [...(byTick.get(note.tick) ?? []), note]);
+  for (const [tick, chord] of byTick) if (chord.length > 1 && chordNames.name(chord.map((n) => n.midi), chord.map((n) => n.spelling)) !== null) out.add(tick);
   return out;
 }
 
@@ -1013,13 +1013,27 @@ function chordGlyphs(
 function nameTheChord(p: Placer, members: readonly NoteGlyph[]): void {
   const holder = members.find((m) => m.label !== '');
   if (!p.chordNames || !holder || members.length < 2) return;
-  const name = p.chordNames.name(members.map((m) => p.chart.notes[m.index]!.midi));
+  const notes = members.map((m) => p.chart.notes[m.index]!);
+  const name = p.chordNames.name(notes.map((n) => n.midi), notes.map((n) => n.spelling));
   if (name === null) return;
   if (p.chordNames.show === 'name') holder.label = name;
   else {
     holder.label = `${holder.label}\n${name}`;
     holder.labelLines = 2;
   }
+}
+
+/**
+ * A name that falls among the ledger lines over the staff, under a high note (`highest` its staff position, `topY` the
+ * staff's top line), stands centred in the space between two of them, so no ledger line runs through its letters
+ * (ft_0_05.AC3); it moves at most half a staff space, up toward its note or down. Elsewhere it stays where it is.
+ */
+function clearOfLedgers(labelY: number, highest: number, topY: number, S: number): number {
+  const highestLedger = highest - (highest % 2); // ledger lines stand on the even positions above the top line (8)
+  const at = 8 + (topY - labelY) / (S / 2);
+  if (highestLedger < 10 || at <= 8 || at >= highestLedger) return labelY;
+  const space = 2 * Math.floor(at / 2) + 1;
+  return topY - ((space - 8) * S) / 2;
 }
 
 /** Hint labels sit beyond the stems and heads of the whole chord, wherever the stems ended up: names under it, the top finger above it. */
@@ -1029,8 +1043,10 @@ function placeHints(members: readonly NoteGlyph[], S: number, tuplet?: { top: nu
   const stems = members.flatMap((m) => (m.stem ? [m.stem] : []));
   const lowest = Math.max(...members.map((m) => m.y + m.headRy), ...stems.map((st) => (st.up ? -Infinity : st.y2)), tuplet?.bottom ?? -Infinity);
   const highest = Math.min(...members.map((m) => m.y - m.headRy), ...stems.map((st) => (st.up ? st.y2 : Infinity)), tuplet?.top ?? Infinity);
+  const top = members[0]!;
+  const labelY = clearOfLedgers(lowest + GLYPH.hintGap * S, Math.max(...members.map((m) => m.position)), top.y + ((top.position - 8) * S) / 2, S);
   for (const m of members) {
-    m.labelY = lowest + GLYPH.hintGap * S;
+    m.labelY = labelY;
     m.fingerY = highest - GLYPH.hintGap * S;
   }
   // Scores stack one step above the last, highest note first, so no two numbers of a chord share a spot.

@@ -161,7 +161,7 @@ export class StaffView {
   private gracesDrawn: { index: number; x: number; y: number; slash: boolean }[] = [];
   private readonly fingerTexts: Phaser.GameObjects.Text[] = [];
   /** Where the hand moves along the keyboard (ft_1_30.AC10): an arrow above the staff over the note, shown with the finger numbers. */
-  private shifts: { x: number; y: number; direction: 'up' | 'down'; system: number }[] = [];
+  private shifts: { x: number; y: number; direction: 'up' | 'down'; system: number; staff: number }[] = [];
   private shiftGfx: Phaser.GameObjects.Graphics | null = null;
   private shiftsDrawn = { up: 0, down: 0 };
   /** Mistake markers (ft_1_32.AC5): a circle over a note missed again and again, its shade 0 to 1 (light to full red). */
@@ -451,7 +451,9 @@ export class StaffView {
 
   /**
    * Arrows where the hand moves along the keyboard (ft_1_30.AC10), by chart note index: right for up the keyboard, left for
-   * down. Drawn above the staff over the note, in the hint grey, and shown only with the finger numbers; an empty map clears them.
+   * down. Drawn above the staff over the note, in the hint grey, and shown only with the finger numbers, over a note or
+   * chord whose finger number is shown (a written finger), so it never points at a hand place the student cannot see; an
+   * empty map clears them.
    */
   setHandShifts(shifts: ReadonlyMap<number, 'up' | 'down'>): void {
     const S = this.layout.staffSpace;
@@ -462,7 +464,7 @@ export class StaffView {
       if (direction === undefined || seen.has(n.index)) continue;
       seen.add(n.index);
       const top = this.layout.systems[n.system]!.staves[n.staff]!.topLineY;
-      this.shifts.push({ x: n.column, y: Math.min(top, n.y - S) - 1.2 * S, direction, system: n.system });
+      this.shifts.push({ x: n.column, y: Math.min(top, n.y - S) - 1.2 * S, direction, system: n.system, staff: n.staff });
     }
     if (!this.shiftGfx) this.shiftGfx = this.scene.add.graphics().setPosition(this.origin.x, this.origin.y);
     this.drawShifts();
@@ -522,8 +524,11 @@ export class StaffView {
     const S = this.layout.staffSpace;
     const colour = Phaser.Display.Color.HexStringToColor(this.theme.hint).color;
     g.fillStyle(colour, 1);
+    // the notes and chords that show a finger number, by where they stand
+    const where = (n: { system: number; staff: number; x: number }) => `${n.system}:${n.staff}:${n.x}`;
+    const fingered = new Set(this.layout.notes.filter((n) => (this.hints.chordFingers ? n.headFinger : n.finger) !== null).map((n) => where({ ...n, x: n.column })));
     for (const shift of this.shifts) {
-      if (!this.onPage(shift.system)) continue;
+      if (!this.onPage(shift.system) || !fingered.has(where(shift))) continue;
       const d = shift.direction === 'up' ? 1 : -1;
       const half = 0.9 * S;
       const head = 0.6 * S;

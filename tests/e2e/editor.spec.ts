@@ -470,7 +470,7 @@ test.describe('piece editor (preliminary)', () => {
     });
     await page.mouse.click(sign.x, sign.y);
     await waitForScene(page, 'circle');
-    await page.evaluate(() => (window.__game.scene.getScene('circle') as unknown as { choose(step: number, ring: string, play: boolean): void }).choose(1, 'major', false));
+    await page.evaluate(() => (window.__game.scene.getScene('circle') as unknown as { choose(key: { fifths: number; mode: string }, play: boolean): void }).choose({ fifths: 1, mode: 'major' }, false));
     await clickButton(page, 'circle', await sceneButton(page, 'circle', 'Set the key: G major'));
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('editor').history.present.fifths)).toBe(1);
 

@@ -119,10 +119,14 @@ export function pressEar(question: EarQuestion, midi: number): EarPressResult {
   return { verdict: done ? 'done' : 'next', question: { ...question, index, done } };
 }
 
-/** How long a question takes to repeat: twice its sounding time (sound plus an equal wait), in ms. */
-export function repeatAfterMs(seconds: number): number {
+/**
+ * How long a question waits to repeat after its last sound or press: twice its sounding time, in ms.
+ * The sounding time is all its notes one after another, `notes` times `seconds`.
+ */
+export function repeatAfterMs(seconds: number, notes: number): number {
   if (!Number.isInteger(seconds) || seconds < 1 || seconds > 3) throw new RangeError('duration must be whole seconds, 1 to 3');
-  return seconds * 2 * MS_PER_SECOND;
+  if (!Number.isInteger(notes) || notes < 1) throw new RangeError('a question needs a whole number of notes, 1 or more');
+  return notes * seconds * 2 * MS_PER_SECOND;
 }
 
 export interface RepeatInput {
@@ -131,13 +135,15 @@ export interface RepeatInput {
   /** End of the last sound or the last key press, ms, on the same clock. */
   lastActivityMs: number;
   seconds: number;
+  /** Notes in the question. */
+  notes: number;
   repeatOn: boolean;
 }
 
 /** Repeat is due when it is on and nothing happened for repeatAfterMs. */
 export function isRepeatDue(input: RepeatInput): boolean {
   if (!input.repeatOn) return false;
-  return input.now - input.lastActivityMs >= repeatAfterMs(input.seconds);
+  return input.now - input.lastActivityMs >= repeatAfterMs(input.seconds, input.notes);
 }
 
 /** Stars shown after every round (ft_1_10 AC10): all lit on the first try. */

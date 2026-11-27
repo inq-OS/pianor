@@ -564,6 +564,9 @@ export class EditorScene extends PixelScene {
     if (action !== 'toggle') this.say(t('editor.photo.shift', { shift: photo.shift > 0 ? `+${photo.shift}` : String(photo.shift) }), MESSAGE_MS);
   }
 
+  /** The piece `fingerLevel` last worked out a level for, and that level. */
+  private fingerLevelOf: { piece: EditorPiece; level: LevelDefinition } | null = null;
+
   /** The piece as written now: the working piece of the entry state (history only lags behind while keys are held). */
   private get piece(): EditorPiece {
     return this.entryState.piece;
@@ -983,13 +986,15 @@ export class EditorScene extends PixelScene {
    */
   private nameSelectedChord(): void {
     const at = this.selected;
-    const keys = at ? this.piece.notes.filter((n) => n.bar === at.bar && n.start === at.start).map(soundingMidi) : [];
+    const column = at ? this.piece.notes.filter((n) => n.bar === at.bar && n.start === at.start) : [];
+    const keys = column.map(soundingMidi);
     // a new column, or a note added to or taken from this one
-    const column = at ? `${at.bar}:${at.start}:${[...keys].sort((a, b) => a - b).join(',')}` : null;
-    if (column === this.namedColumn) return;
-    this.namedColumn = column;
+    const named = at ? `${at.bar}:${at.start}:${column.map((n) => `${soundingMidi(n)}${n.step}${n.alter}`).sort().join(',')}` : null;
+    if (named === this.namedColumn) return;
+    this.namedColumn = named;
     if (!at) return;
-    const chord = nameChord(CHORDS, keys);
+    // the root is spelled as its note is written (D# F# A# is d#, not eb)
+    const chord = nameChord(CHORDS, keys, { spellings: column.map((n) => ({ step: n.step, alter: n.alter, octave: n.octave })) });
     if (chord) this.say(t('editor.chordName', { chord: chordLabel(chord, contextOf(this).profiles.noteNaming) }), MESSAGE_MS);
   }
 
@@ -1900,14 +1905,20 @@ export class EditorScene extends PixelScene {
     this.apply({ ok: true, piece: autoFingers(edit.piece, this.fingerLevel(), scope).piece }, this.selected);
   }
 
-  /** The player's level, for AUTO fingers: its hand positions (content/curriculum/levels.json). */
+  /** The piece's own level, the one it is saved and practised at, for AUTO fingers and the arrows: its hand positions (content/curriculum/levels.json). */
   private fingerLevel(): LevelDefinition {
-    return LEVEL_TABLE.find((l) => l.level === contextOf(this).profiles.progress.level.level) ?? LEVEL_TABLE[0]!;
+    const piece = this.piece;
+    if (this.fingerLevelOf?.piece !== piece) {
+      // the lowest level the piece fits, as its meta file says (compileOwn); checked once per change, not per redraw
+      const level = piece.notes.length === 0 ? LEVEL_TABLE[0]!.level : compileOwn(piece, { id: this.id ?? DRAFT_ID, author: '' }).level;
+      this.fingerLevelOf = { piece, level: LEVEL_TABLE.find((l) => l.level === level) ?? LEVEL_TABLE[0]! };
+    }
+    return this.fingerLevelOf.level;
   }
 
   /**
    * AUTO: the fingers of the notes that have none, and the ones AUTO wrote before fitted again around the author's, the
-   * easiest fingering with the player's level's hand position first (ft_1_02d.AC13, AC23, ft_1_30).
+   * easiest fingering with the piece's level's hand position first (ft_1_02d.AC13, AC23, ft_1_30).
    */
   private autoFillFingers(): void {
     const result = autoFingers(this.piece, this.fingerLevel());
@@ -3125,7 +3136,7 @@ export class EditorScene extends PixelScene {
     }
     // the author writes a finger for every note of a chord, so the piece maker shows them all (ft_1_02d.AC33)
     this.staffView = new StaffView(this, drawn, undefined, { noteNames: true, fingers: true, chordFingers: true }, { x: this.staffLeft, y: this.staffTop }, numbers, { x: 0, width: this.scale.width });
-    this.staffView.setHandShifts(handShiftMap(this.chart, LEVEL_TABLE.find((l) => l.level === contextOf(this).profiles.progress.level.level)));
+    this.staffView.setHandShifts(handShiftMap(this.chart, this.fingerLevel()));
     this.staffView.showPage(this.page, false);
     const index = this.selected ? this.indexOf(this.selected) : -1;
     if (index >= 0) {

@@ -7,7 +7,7 @@ export interface Piece {
   status: 'draft' | 'approved';
   /** Curriculum level (what notes it uses). */
   level: number;
-  /** Player level needed to play it. */
+  /** Where it stands in the list, before the curriculum level (`offeredPieces` sorts by it); it locks nothing. */
   unlockLevel: number;
   source: string;
   /** Style ids from the meta file (the closed list of `content/pieces/styles.json`). */

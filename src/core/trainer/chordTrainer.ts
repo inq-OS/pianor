@@ -5,7 +5,7 @@
  * Pure: no DOM, no engine. Never saved.
  */
 import { z } from 'zod';
-import { STEP_SEMITONES, type Spelling, type Step } from '../chart/pitch';
+import { midiToSpelling, STEP_SEMITONES, type Spelling, type Step } from '../chart/pitch';
 import type { NoteEvent } from '../judge/types';
 import { Random } from '../random';
 import { noteLabel, type NoteNaming } from '../text/noteName';
@@ -80,6 +80,19 @@ export function chordLabel(chord: Chord, naming: NoteNaming): string {
   const root = noteLabel(chord.root, naming).replace('b', '♭');
   const letter = chord.minor ? root.slice(0, 1).toLowerCase() + root.slice(1) : root;
   return letter + chord.suffix.replace('b', '♭');
+}
+
+/** Each letter's place on the circle of fifths, C at 0: its major key's sharps, or flats when below 0. */
+const LETTER_FIFTHS: Readonly<Record<Step, number>> = { F: -1, C: 0, G: 1, D: 2, A: 3, E: 4, B: 5 };
+
+/**
+ * A wrong key spelled on the side of the chord's key (ft_1_29.AC2): the key signature of the chord's root as a major key
+ * (a major quality) or a minor key (a minor one). Flats for a key with flats (F, Bb, c, d), sharps otherwise (G, e, and C
+ * and a, which have neither), so the key between C and D reads Db against F and C# against G.
+ */
+export function wrongKeySpelling(chord: Chord, midi: number): Spelling {
+  const fifths = LETTER_FIFTHS[chord.root.step] + 7 * chord.root.alter - (chord.minor ? 3 : 0);
+  return midiToSpelling(midi, fifths < 0);
 }
 
 export type ChordPress =

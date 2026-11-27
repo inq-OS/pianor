@@ -45,7 +45,7 @@ export const STAR_FULL: Bitmap = fromAscii(STAR_ROWS, { k: C.ink, g: C.gold, h: 
 /** A star not earned yet: dark, never a cross or a gap that says "missed". */
 export const STAR_EMPTY: Bitmap = fromAscii(STAR_ROWS, { k: C.ink, g: C.lock, h: C.lock });
 
-/** A padlock: this piece is not open yet. */
+/** A padlock: the button that locks the admin and teacher pages again. */
 export const LOCK: Bitmap = fromAscii(
   [
     '..kkkkk..',

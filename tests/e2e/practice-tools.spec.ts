@@ -39,6 +39,8 @@ const buttonNames = (page: Page) =>
 const buttonLabels = (page: Page) =>
   page.evaluate(() => (window.__game.scene.getScene('practice').buttons as { options: { label: string } }[]).map((b) => b.options.label));
 
+/** The hand-shift arrows on Evening Chords' first page with the finger numbers on (ft_1_30.AC10). */
+const EVENING_ARROWS = { up: 4, down: 4 };
 const chartId = (page: Page) => page.evaluate(() => window.__game.scene.getScene('practice').chart.id as string);
 const percent = (page: Page) => page.evaluate(() => window.__game.scene.getScene('practice').percent as number);
 
@@ -364,17 +366,27 @@ test.describe('practice tools (core_02 and core_03)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_30.AC10: arrows above the notes where the hand moves show with the finger numbers, and hide without them', async ({ page }) => {
+  test('ft_1_30.AC10: arrows above the written fingers where the hand moves show with the finger numbers, and hide without them', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual&unlock=all');
-    await openPiece(page, 'Twinkle Twinkle Little Star');
     const arrows = () => page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView.handShiftsShown as { up: number; down: number });
+    const fingersOn = () => page.evaluate(() => window.__game.scene.getScene('practice').hints.fingers as boolean);
+    // Evening Chords writes its fingers: the hands move between its chords
+    await openPiece(page, 'Evening Chords');
     expect(await arrows()).toEqual({ up: 0, down: 0 });
     await page.keyboard.press('KeyF');
-    await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').hints.fingers)).toBe(true);
-    // Twinkle leaves the C position at A: the hand moves up for it and back down for F E D C
-    await expect.poll(arrows).toEqual({ up: 1, down: 1 });
+    await expect.poll(fingersOn).toBe(true);
+    await expect.poll(arrows).toEqual(EVENING_ARROWS);
     await page.keyboard.press('KeyF');
     await expect.poll(arrows).toEqual({ up: 0, down: 0 });
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_30.AC10: a piece with no written fingers shows no arrow with the finger numbers on, so none points at a finger the staff does not show', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual&unlock=all');
+    await openPiece(page, 'Twinkle Twinkle Little Star');
+    await page.keyboard.press('KeyF');
+    await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').hints.fingers as boolean)).toBe(true);
+    expect(await page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView.handShiftsShown)).toEqual({ up: 0, down: 0 });
     expectNoErrors(errors);
   });
 
