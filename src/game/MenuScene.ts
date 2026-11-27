@@ -28,6 +28,7 @@ import { STAR_FULL } from './ui/pixel/sprites';
 import { GRADE_STARS } from '../core/scoring/stars';
 import { BUBBLE, ICONS, NEW_PIECE_HEIGHT, PENCIL, newPieceArt } from './ui/pixel/iconArt';
 import { blit, createBitmap, flipX, recolor, type Bitmap } from './ui/pixel/bitmap';
+import { panelBitmap } from './ui/pixel/frames';
 import { measure, drawnText } from './ui/pixel/font';
 import { clipToWidth } from '../core/text/clip';
 import { HAT, hatPicture } from './ui/pixel/menuArt';
@@ -142,6 +143,8 @@ const RULE_COLOUR = C.umberLight;
 const LIST_TOP = 4;
 /** The line that says progress is not saved takes this much room above the cards. */
 const NO_SAVE_ROOM = 9;
+/** The rows of the plate under the line that says what Kiur's book is for: a line of capitals, ending above the first piece's title. */
+const KIUR_LINE_PLATE = 9;
 /** The "i" and "S" buttons on a card: big enough for a finger at the usual zoom (44 screen pixels at 4x). */
 const INFO_SIZE = 11;
 /** The "S" button sits this far left of the "i" button (centre to centre). */
@@ -191,6 +194,21 @@ export class MenuScene extends PixelScene {
   protected infoClose: PixelButton | null = null;
   /** Piece maker (from the main menu): the Make list is shown, and Back goes to the main menu. Kept across restarts. */
   private maker = false;
+  /**
+   * Picking for Kiur, the book says what for on a line at `y` over its top edge, between the door and the gear, so it is not
+   * taken for the piano's book. Drawn after the book, over it; the book keeps its size, so no row of pieces is lost.
+   */
+  private forKiurLine(y: number): void {
+    if (this.forKiur === null) return;
+    const x = this.titleX(MARGIN) + 3;
+    // on a plate of the desk's wood, so it reads over the book's edge
+    const plate = new PixelImage(this, x - 3, y - 1, createBitmap(1, 1));
+    this.root.add(plate);
+    const line = this.label(x, y, t(this.forKiur === 'tug' ? 'menu.forKiurTug' : 'menu.forKiurLearn'), C.gold, { maxWidth: this.cornerStrip.right - x - 3 }).setName('forKiur');
+    // short enough to clear the first piece's title under it
+    plate.setBitmap(panelBitmap(Math.ceil(line.width) + 6, KIUR_LINE_PLATE, 'panel'));
+  }
+
   /** Picking for Kiur (`MenuData.forKiur`): a piece picked is learned with him, or taken to the room for his tug. */
   private forKiur: 'learn' | 'tug' | null = null;
   /** The title line of each piece on this page (and New piece), in reading order: what the wheel moves along. */
@@ -472,12 +490,14 @@ export class MenuScene extends PixelScene {
     // one list for everything (ft_1_12): no mode tabs and no hint
     const listTop = LIST_TOP;
     if (!context.savesPersist) this.label(MARGIN, listTop - 1, t('menu.noSave'), C.gold, { shadow: false, maxWidth: width - 2 * MARGIN });
+    const kiurY = listTop - 3 + (context.savesPersist ? 0 : NO_SAVE_ROOM);
 
     // a bookmark with no pieces still shows the book and its bookmarks, so another can be opened
     const marked = !this.maker && this.bookmark !== 'all';
     if (pieces.length === 0 && !marked) {
       const why = this.forKiur === 'tug' && listed.length > 0 ? 'menu.noneLearned' : offered.length > 0 ? 'menu.allOff' : 'menu.noPieces';
       this.label(MARGIN, listTop + 16, t(why), C.dim, { maxWidth: width - 2 * MARGIN });
+      this.forKiurLine(kiurY);
       return;
     }
 
@@ -486,6 +506,7 @@ export class MenuScene extends PixelScene {
     // the list is written in an open book on the desk, a column on each page
     this.openBook({ x: BOOK_SIDE, y: top - 2, w: width - 2 * BOOK_SIDE, h: height - top + 1 });
     if (!this.maker) this.bookmarks(top + TAB_TOP);
+    this.forKiurLine(kiurY);
     const margin = BOOK_MARGIN;
     const shift = this.maker ? MAKER_SHIFT : LEFT_SHIFT;
     if (pieces.length === 0) {

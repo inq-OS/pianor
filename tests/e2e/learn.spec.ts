@@ -61,6 +61,20 @@ test('ft_1_32.AC13 the piano is a sandbox: a piece picked there plays in full wi
   expectNoErrors(errors);
 });
 
+test('the piece book opened by Kiur\'s Learn or Tug says over it which one it is for, and the piano\'s book does not', async ({ page }) => {
+  const errors = await openGame(page, '?device=virtual&learn=1');
+  expect(await sceneTexts(page, 'menu')).not.toEqual(expect.arrayContaining([expect.stringMatching(/Kiur/)]));
+  await askKiur(page);
+  await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Learn'));
+  await waitForScene(page, 'menu');
+  expect(await sceneTexts(page, 'menu')).toContain('Pick a piece to learn with Kiur');
+  await askKiur(page);
+  await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Tug'));
+  await waitForScene(page, 'menu');
+  expect(await sceneTexts(page, 'menu')).toContain("Pick a learned piece for Kiur's tug");
+  expectNoErrors(errors);
+});
+
 test('ft_1_32.AC14 Kiur\'s Tug lists only the learned pieces, and his tug opens on one picked', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
   const tugBook = async () => {
