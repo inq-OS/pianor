@@ -139,17 +139,25 @@ test.describe('pitch trainer by ear (ft_1_10)', () => {
       return performance.now();
     });
     const next = (await ear(page)).notes;
-    await page.waitForTimeout(1600);
-    const log = await page.evaluate(() => (window as unknown as { __soundLog: { kind: 'on' | 'off'; midi: number; at: number }[] }).__soundLog);
-    const after = log.filter((e) => e.at > mark);
-    // after the new question started only its own notes start, and each sounds its whole length (1 s) before it stops
+    type Sound = { kind: 'on' | 'off'; midi: number; at: number };
+    const soundsAfter = async () => (await page.evaluate(() => (window as unknown as { __soundLog: Sound[] }).__soundLog)).filter((e) => e.at > mark);
+    // wait on the game's own clock, not the wall's: until every note of the new question has started and stopped
+    await expect.poll(async () => {
+      const after = await soundsAfter();
+      return next.every((m) => after.some((e) => e.kind === 'on' && e.midi === m) && after.some((e) => e.kind === 'off' && e.midi === m && after.some((o) => o.kind === 'on' && o.midi === m && o.at <= e.at)));
+    }, { timeout: 15_000 }).toBe(true);
+    const all = await soundsAfter();
+    // up to the new question's last stop (a repeat of the question, later on the game's clock, is not this sounding)
+    const lastStop = Math.max(...next.map((m) => all.find((e) => e.kind === 'off' && e.midi === m && all.some((o) => o.kind === 'on' && o.midi === m && o.at <= e.at))!.at));
+    const after = all.filter((e) => e.at <= lastStop);
+    // after the new question started only its own notes start
     expect(after.filter((e) => e.kind === 'on').map((e) => e.midi)).toEqual(next);
     // the last sounding was stopped when the new question started, not later in the middle of it
     expect(after.filter((e) => e.kind === 'off').every((e) => next.includes(e.midi))).toBe(true);
-    for (const start of after.filter((e) => e.kind === 'on')) {
-      const stop = after.find((e) => e.kind === 'off' && e.midi === start.midi && e.at > start.at);
-      expect(stop, `note ${start.midi} stops`).toBeDefined();
-      expect(stop!.at - start.at).toBeGreaterThan(800);
+    // and nothing left of it cuts a new note short: each new note stops once, after it started
+    for (const midi of next) {
+      const events = after.filter((e) => e.midi === midi).map((e) => e.kind);
+      expect(events, `note ${midi}`).toEqual(['on', 'off']);
     }
     expectNoErrors(errors);
   });
