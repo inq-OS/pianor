@@ -760,8 +760,10 @@ export class MenuScene extends PixelScene {
     ];
     // the signs at the title line's outer end, clear of the turned corner; a title too long for the room before them is cut on one line
     const signsStart = lineEnd - 6 - signs.reduce((a, b) => a + b + SIGN_GAP, 0) + SIGN_GAP;
-    // with no signs the title has its line to the end; a title too long for that is cut too
-    const room = (signs.length === 0 ? lineEnd : signsStart - 4) - (left + 6);
+    // with no signs the title has its line to the end; a title too long for that is cut too. Either way it stops at the small
+    // buttons' outer edge, so every title keeps the margin the buttons keep and none runs onto the page's edge
+    const buttonsEnd = firstButton + 3 * STATS_OFFSET + HIDE_GAP + INFO_SIZE / 2;
+    const room = Math.min(signs.length === 0 ? lineEnd : signsStart - 4, buttonsEnd) - (left + 6);
     const title = clipToWidth(pieceTitle(piece.chart), room, (text) => measure(drawnText(text)));
     const titleEnd = left + 6 + measure(drawnText(title));
     const buttonWidth = (signs.length === 0 ? lineEnd : signsStart - 2) - left;

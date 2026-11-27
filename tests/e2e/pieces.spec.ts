@@ -196,6 +196,29 @@ test.describe('taking a piece out of the book (ft_1_02c.AC8, AC9)', () => {
     }
     expectNoErrors(errors);
   });
+
+  test('ft_1_02c a long title is cut at the small buttons\' outer edge on both pages, never running on to the page\'s edge', async ({ page }) => {
+    const errors = await openGame(page);
+    // each card's title as drawn, and the outer edge of its hide button, the card's outermost small button
+    const cards = await page.evaluate(() => {
+      type Box = { x: number; y: number; width: number; height: number };
+      type Button = { rect: Box; objects: { x: number; width: number; visible: boolean; text?: string }[]; options: { look?: string; label: string } };
+      const menu = window.__game.scene.getScene('menu') as unknown as { hideButtons: Map<string, Button>; buttons: Button[]; px: { width: number } };
+      return [...menu.hideButtons.values()].map((hide) => {
+        const left = hide.rect.x < menu.px.width / 2;
+        // the title stands on the line above the small buttons, on the same page
+        const title = menu.buttons.find((b) => b.options.look === 'ink' && b.rect.y < hide.rect.y && hide.rect.y - b.rect.y < 30 && (b.rect.x < menu.px.width / 2) === left)!;
+        const text = title.objects.find((o) => o.text !== undefined && o.visible)!;
+        return { left, label: title.options.label, textLeft: text.x, textRight: text.x + text.width, hideLeft: hide.rect.x, hideRight: hide.rect.x + hide.rect.width };
+      });
+    });
+    expect(cards.some((c) => c.label.endsWith('…'))).toBe(true);
+    for (const c of cards) {
+      if (c.left) expect(c.textLeft, c.label).toBeGreaterThanOrEqual(c.hideLeft);
+      else expect(c.textRight, c.label).toBeLessThanOrEqual(c.hideRight);
+    }
+    expectNoErrors(errors);
+  });
 });
 
 test.describe('the parts of a piece from the song list (core_06)', () => {
