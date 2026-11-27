@@ -887,6 +887,8 @@ export class EditorScene extends PixelScene {
     }
     if (this.askMeter(this.barOf(hit) ?? 0)) return;
     if (action === 'select') this.lassoFrom = { x: p.x, y: p.y };
+    // a tie or slur pick shows its curve, not a shadow note: a left click off a note only ends it (d286)
+    const picking = this.pickWaits();
     if (this.barPress(hit, action)) return;
     const ctrl = !!event?.ctrlKey || !!event?.metaKey;
     if (hit.kind === 'note') return this.pressNote(hit.noteIndex, action, ctrl);
@@ -895,6 +897,7 @@ export class EditorScene extends PixelScene {
     if (hit.kind === 'time') return this.openPanel('time');
     // a left press on a place writes when it is let go, so a drag from it stays a lasso and writes nothing
     if (action === 'select') {
+      if (picking) return this.selectSpot(hit);
       this.clickPlace = hit;
       return;
     }
@@ -3470,8 +3473,8 @@ export class EditorScene extends PixelScene {
   /**
    * The piece maker over the band (ft_1_20.AC8): no rows of buttons; the staff gets every row above the band, and the rows'
    * buttons are the band's actions and items. In the strip between the door and the gear: Save, the title, the page buttons
-   * while the piece has more than one page, Import and Export; the staff starts under that strip, the message bubble just
-   * under it. The time panel (time, pick-up, tempo) opens over the staff's foot; + and - after the last bar add or take bars.
+   * while the piece has more than one page, Import and Export; the staff starts under that strip (the message is in the
+   * strip at the foot, `afterFrame`). The time panel (time, pick-up, tempo) opens over the staff's foot; + and - after the last bar add or take bars.
    */
   private drawOverBand(): void {
     const { scale } = this.px;
