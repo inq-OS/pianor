@@ -146,6 +146,8 @@ const MENU_DEPTH = 1000;
 const STRIP_CELL_WIDTH = 30;
 /** Room between the backpack and the gear, so the two are not taken for each other. */
 const BACKPACK_GAP = 2;
+/** The backpack as a list of names: the narrowest line, the room round a name, and the most lines in one column. */
+const BAG_LINE = { min: 60, pad: 14, rows: 7 } as const;
 /** A long press opens the bubble after this long (ft_1_20, d282); moving the finger farther than `LONG_PRESS_SLIP` screen pixels cancels it. */
 /** The largest music sign (fine pixels) in a round option of the bubble and in a cell of the strip. */
 const BUBBLE_SIGN = 24;
@@ -1094,10 +1096,15 @@ export abstract class PixelScene extends Phaser.Scene {
         ...rectCentre(r), label: t('band.backpack'), picture: BACKPACK,
         onClick: () => {
           const items = this.backpackItems() ?? [];
+          // while every item has its picture the bag is a grid of pictures, each named in its tooltip; once one has none
+          // yet, its name must be read, so the bag is a list of names, each line as wide as the longest one
+          const named = items.some((item) => !item.icon);
           const choices: MenuItem[] = items.length
-            ? items.map((item) => ({ label: item.label, ...(item.icon ? { icon: item.icon } : {}), ...(item.fineIcon ? { fineIcon: true } : {}), ...(item.tooltip ? { tooltip: item.tooltip } : {}), onPick: item.onClick }))
+            ? items.map((item) => ({ label: item.label, ...(item.icon && !named ? { icon: item.icon } : {}), ...(item.fineIcon && !named ? { fineIcon: true } : {}), ...(item.tooltip ? { tooltip: item.tooltip } : {}), onPick: item.onClick }))
             : [{ label: t('band.backpackEmpty'), disabled: true, onPick: () => undefined }];
-          this.openMenu(bag, choices, { cell: items.length ? { w: 30, h: 30 } : { w: 120, h: 15 }, columns: Math.min(4, Math.max(1, items.length)), open: 'below' });
+          const lineWidth = Math.max(BAG_LINE.min, ...choices.map((c) => measure(drawnText(c.label)) + BAG_LINE.pad));
+          const columns = !items.length ? 1 : named ? (items.length > BAG_LINE.rows ? 2 : 1) : Math.min(4, items.length);
+          this.openMenu(bag, choices, { cell: items.length && !named ? { w: 30, h: 30 } : { w: lineWidth, h: 15 }, columns, open: 'below' });
         },
       });
     }
