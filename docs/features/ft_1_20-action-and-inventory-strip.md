@@ -66,7 +66,7 @@ A held mark is put on a note by clicking it (a tie: the first note, then the one
 
 ### The room
 
-`ProfileDashboardScene`: the name is written on the rank shield, whole when it fits its band (about six letters) and otherwise as its initial, never cut short (`wholeOrInitial`; AX-3 provisional: the initial; the whole name is on the card); the shield opens the player's card (`core/progression/playerStats.ts`). The note plant on the piano (`PLANT_STAGES` in `keri/roomLife.ts`) replaces an XP bar. Pressable groups are named in `PRESSABLE_GROUPS` (`keri/roomSet.ts`); `RoomPainter.hover` (`keri/roomPicture.ts`) draws the shield's contour. An overlay (Kiur at the door) keeps the plain frame.
+`ProfileDashboardScene`: the name is written on the rank shield, whole when it fits its band (about six letters) and otherwise whole on a blue ribbon hung over the shield's point, never cut short (`nameRibbon`, `rankArt.ts`; AX-3 provisional: the ribbon); the shield opens the player's card (`core/progression/playerStats.ts`). The note plant on the piano (`PLANT_STAGES` in `keri/roomLife.ts`) replaces an XP bar. Pressable groups are named in `PRESSABLE_GROUPS` (`keri/roomSet.ts`); `RoomPainter.hover` (`keri/roomPicture.ts`) draws the shield's contour. An overlay (Kiur at the door) keeps the plain frame.
 
 ## Acceptance criteria
 
@@ -103,7 +103,7 @@ Work tags ([todo-tags.md](../automation/todo-tags.md)); the closed issue in brac
 - TODO(builder, R2): with an option's choices open on the outer ring, a press between radius 38 and the ring picks the nearest choice by its angle (or nothing), never an option's slice or a close, so a short miss toward the centre cannot fire Delete.
 - TODO(builder, R2): with choices open, the keyboard focus starts on the choice in use and the arrows walk the outer ring in its order; Esc returns to the option.
 - TODO(builder, R2): a choice's preview on the note shows after the pointer rests on it for about 120 ms, so crossing the outer ring does not flash the others.
-- TODO(architect, R2): AX-3 provisional: a name longer than the shield's band shows as its initial on the shield; a wider place for it (a ribbon under the shield) is the painter's to propose.
+- TODO(architect, R2): AX-3 provisional: a name longer than the shield's band goes on a ribbon over the shield's point; its look is the painter's to settle.
 - TODO(builder, R2): the backpack opens into the open bag (`openBackpack`): the corner's backpack itself grows into it, its top right corner staying where the small one's is, its items lie in `openBagPlaces` with no box, and rows beyond three scroll by the wheel, a drag or the side strap's arrows.
 - TODO(builder, R2): items as a pure model in `src/core/` (id, kind held, worn or opening, target kind, string and picture keys); the piece maker's marks (length, rest, accidentals, tie, tie to a note, dynamics), now items in the band that act on the selected note, also become held items that ride on the pointer and are put on a note with a click (AC4). Waits on the painter's cursor that carries an item.
 - TODO(painter, R2): the settings book's bookmark crosses its last right-hand row. Seen on the builder's screenshots.

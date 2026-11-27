@@ -107,3 +107,36 @@ export function rankBadge(level: number): Bitmap {
   outline(b);
   return b;
 }
+
+/** The ribbon's room round its letters, and the length of each forked tail, in art pixels. */
+const RIBBON_PAD = { x: 3, y: 2 } as const;
+const RIBBON_TAIL = 4;
+
+/**
+ * A ribbon hung under the rank shield, carrying a name too long for the shield's band (ft_1_20.AC13): the shield's blue,
+ * outlined in ink, with a forked tail of the darker blue at each end; `letters` (drawn by the caller in the shield's gold)
+ * lie in its middle. Returns the ribbon and where the letters go on it. AX-3 provisional: the ribbon's look.
+ */
+export function nameRibbon(letters: Bitmap): { ribbon: Bitmap; at: { x: number; y: number } } {
+  const bodyW = letters.width + 2 * RIBBON_PAD.x + 2;
+  const h = letters.height + 2 * RIBBON_PAD.y + 2;
+  const w = bodyW + 2 * RIBBON_TAIL;
+  const ribbon = createBitmap(w, h);
+  const set = (x: number, y: number, c: number) => { ribbon.pixels[y * w + x] = c; };
+  const mid = (h - 1) / 2;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const tail = x < RIBBON_TAIL ? RIBBON_TAIL - x : x >= w - RIBBON_TAIL ? x - (w - RIBBON_TAIL) + 1 : 0;
+      if (tail > 0) {
+        // the tails hang one pixel lower, forked: a notch cut in from the outer end
+        if (y === 0 || Math.abs(y - mid) < tail - 1) continue;
+        const edge = y === 1 || y === h - 1 || Math.abs(y - mid) < tail || tail === RIBBON_TAIL;
+        set(x, y, edge ? C.ink : C.blueDark);
+        continue;
+      }
+      const edge = y === 0 || y === h - 1 || x === RIBBON_TAIL || x === w - RIBBON_TAIL - 1;
+      set(x, y, edge ? C.ink : C.blue);
+    }
+  }
+  return { ribbon, at: { x: RIBBON_TAIL + 1 + RIBBON_PAD.x, y: 1 + RIBBON_PAD.y } };
+}

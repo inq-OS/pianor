@@ -1,6 +1,6 @@
 // Covers d088 (a long player name on the toolbar).
 import { describe, expect, it } from 'vitest';
-import { clipToWidth, wholeOrInitial } from './clip';
+import { clipToWidth } from './clip';
 
 /** Every letter 5 art pixels wide with a 1-pixel gap, the dot 1 wide: like the pixel font's capitals. */
 const measure = (text: string) => Math.max(0, Array.from(text).reduce((w, ch) => w + (ch === '.' ? 1 : 5) + 1, 0) - 1);
@@ -29,14 +29,5 @@ describe('clipToWidth', () => {
 
   it('gives an empty text when not even one letter and the dot fit', () => {
     expect(clipToWidth('TUVI', 3, measure)).toBe('');
-  });
-});
-
-describe('wholeOrInitial', () => {
-  it('ft_1_20.AC13 a name that fits is written whole; a longer one is its first letter, never a name cut short', () => {
-    expect(wholeOrInitial('TUVI', 36, measure)).toBe('TUVI');
-    expect(wholeOrInitial('KRISTJAN', 36, measure)).toBe('K');
-    expect(wholeOrInitial('ÕIEKE', measure('ÕIEK'), measure)).toBe('Õ');
-    expect(wholeOrInitial('KIUR', 3, measure)).toBe('');
   });
 });

@@ -11,7 +11,7 @@ import { ICONS } from './ui/pixel/iconArt';
 import { C } from './ui/pixel/palette';
 import { drawnText, measure, renderText } from './ui/pixel/font';
 import { BAR_BUTTON_HEIGHT } from './ui/pixel/playBars';
-import { wholeOrInitial } from '../core/text/clip';
+import { nameRibbon } from './ui/pixel/rankArt';
 import { playerStats } from '../core/progression/playerStats';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { backpackOf } from './adventure/backpack';
@@ -93,10 +93,10 @@ const ROOM_SHAFT = { x: 196, y: 96, w: 124, h: 130 } as const;
 const TICK_MS = 500;
 /**
  * The player's name written into the rank shield (ft_1_20.AC13; the name is part of the shield,
- * not a separate bubble): in fine pixels, on the shield's own grid, in the band above its chevrons. A longer name shows its
- * initial (AX-3 provisional).
+ * not a separate bubble): in fine pixels, on the shield's own grid, in the band above its chevrons. A longer name goes
+ * whole on a ribbon over the shield's point (`ribbonUp` fine pixels above its foot; AX-3 provisional).
  */
-const SHIELD_NAME = { top: 5, width: 36 } as const;
+const SHIELD_NAME = { top: 5, width: 36, ribbonUp: 12 } as const;
 /** The player's card: its width, the height of a line, its margin. */
 const CARD_WIDTH = 220;
 const CARD_LINE = 10;
@@ -958,11 +958,19 @@ export class ProfileDashboardScene extends PixelScene {
    * painted on it; `shield` is in fine pixels of the main area.
    */
   private nameOnShield(shield: Rect): void {
-    // a name too long for the shield is never cut there: its initial stands for it, the whole name is on the card it opens
-    const name = wholeOrInitial(drawnText(contextOf(this).profiles.profile.name), SHIELD_NAME.width, measure);
+    const name = drawnText(contextOf(this).profiles.profile.name);
     const letters = renderText(name, { color: C.goldLight, shadow: C.ink });
     // named, so a test can find it among the room's pictures
-    this.fineImage(shield.x + Math.floor((shield.w - letters.width) / 2), shield.y + SHIELD_NAME.top, letters).setName('shieldName');
+    if (measure(name) <= SHIELD_NAME.width) {
+      this.fineImage(shield.x + Math.floor((shield.w - letters.width) / 2), shield.y + SHIELD_NAME.top, letters).setName('shieldName');
+      return;
+    }
+    // a name too long for the shield's band is never cut: it is written whole on a ribbon hung over the shield's point
+    const { ribbon, at } = nameRibbon(letters);
+    const x = Math.max(0, Math.min(this.px.width * ART_DETAIL - ribbon.width, shield.x + Math.floor((shield.w - ribbon.width) / 2)));
+    const y = shield.y + shield.h - SHIELD_NAME.ribbonUp;
+    this.fineImage(x, y, ribbon).setName('shieldRibbon');
+    this.fineImage(x + at.x, y + at.y, letters).setName('shieldName');
   }
 
   /**
