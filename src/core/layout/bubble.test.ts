@@ -1,6 +1,6 @@
 // Covers ft_1_20 (actions in a bubble, a pinned strip and a backpack, d282).
 import { describe, expect, it } from 'vitest';
-import { BUBBLE_SLOTS, PLATE_REACH, SAUSAGE_REACH, SLIDER_CELLS, PIN_COLUMNS, sliderArc, sliderFraction, sliderPoint, sliderStep, PINCH_SLIDE, PIN_ROWS, TAP_SLIP, TWO_FINGER_TOGETHER_MS, bubbleLayout, bubblePage, cellSpan, keyBadgeBox, pinFlow, pinRows, twoFingerTap, twoFingersSlid, wheelChoice } from './bubble';
+import { BUBBLE_SLOTS, PLATE_REACH, SAUSAGE_REACH, SLIDER_CELLS, PIN_COLUMNS, sliderArc, sliderFraction, sliderPoint, sliderStep, PINCH_SLIDE, PIN_ROWS, TAP_SLIP, TWO_FINGER_TOGETHER_MS, bubbleLayout, bubblePage, bubbleTooltipBox, cellSpan, keyBadgeBox, pinFlow, pinRows, twoFingerTap, twoFingersSlid, wheelChoice } from './bubble';
 import { rectBottom, rectRight, type Rect } from './rect';
 
 const SCREEN = { w: 320, h: 180 };
@@ -284,44 +284,67 @@ describe('a slider on the outer ring (ft_1_20.AC26)', () => {
 });
 
 describe('an option\'s key on a bubble opened from the keyboard (ft_1_20)', () => {
-  const plateHit = (r: Rect, other: Rect) => {
-    // the round plate (24 across) of `other` against the badge's box
-    const cx = other.x + other.w / 2, cy = other.y + other.h / 2;
-    const nx = Math.max(r.x, Math.min(cx, rectRight(r))), ny = Math.max(r.y, Math.min(cy, rectBottom(r)));
-    return Math.hypot(nx - cx, ny - cy) < 12;
-  };
+  const overlap = (a: Rect, b: Rect) => a.x < rectRight(b) && b.x < rectRight(a) && a.y < rectBottom(b) && b.y < rectBottom(a);
+  // an option's picture: at most 14 wide and 10 high, centred on its plate
+  const picture = (r: Rect): Rect => ({ x: r.x + r.w / 2 - 7, y: r.y + r.h / 2 - 5, w: 14, h: 10 });
+  const screen = { w: 320, h: 180 };
+  const layout = bubbleLayout({ at: { x: 160, y: 90 }, options: BUBBLE_SLOTS, screen });
 
-  it('stands just outside its own plate and focus ring, away from the centre, touching no other option\'s plate and no other key', () => {
-    const screen = { w: 320, h: 180 };
-    const layout = bubbleLayout({ at: { x: 160, y: 90 }, options: BUBBLE_SLOTS, screen });
-    const badges = layout.options.map((_, i) => keyBadgeBox(layout, i, { w: 13, h: 9 }, screen));
-    badges.forEach((badge, i) => {
-      const own = layout.options[i]!;
-      // clear of its own plate's focus ring (28 across)
-      const ox = own.x + own.w / 2, oy = own.y + own.h / 2;
-      expect(Math.hypot(Math.max(badge.x, Math.min(ox, rectRight(badge))) - ox, Math.max(badge.y, Math.min(oy, rectBottom(badge))) - oy)).toBeGreaterThanOrEqual(13.5);
-      const away = Math.hypot(badge.x + badge.w / 2 - layout.centre.x, badge.y + badge.h / 2 - layout.centre.y);
-      expect(away).toBeGreaterThan(Math.hypot(own.x + own.w / 2 - layout.centre.x, own.y + own.h / 2 - layout.centre.y));
-      layout.options.forEach((other, j) => {
-        if (j !== i) expect(plateHit(badge, other)).toBe(false);
+  it('sits on the same spot of every plate, its lower right, covering no other option\'s picture and no other key', () => {
+    for (const size of [{ w: 7, h: 9 }, { w: 13, h: 9 }]) {
+      const badges = layout.options.map((_, i) => keyBadgeBox(layout, i, size, screen));
+      badges.forEach((badge, i) => {
+        const own = layout.options[i]!;
+        expect({ dx: rectRight(badge) - (own.x + own.w / 2), dy: rectBottom(badge) - (own.y + own.h / 2) }).toEqual({ dx: 12, dy: 12 });
+        expect(overlap(badge, picture(layout.close))).toBe(false);
+        layout.options.forEach((other, j) => {
+          if (j !== i) expect(overlap(badge, picture(other))).toBe(false);
+        });
+        badges.forEach((b, j) => {
+          if (j !== i) expect(overlap(b, badge)).toBe(false);
+        });
       });
-      badges.forEach((b, j) => {
-        if (j !== i) expect(b.x < rectRight(badge) && badge.x < rectRight(b) && b.y < rectBottom(badge) && badge.y < rectBottom(b)).toBe(false);
-      });
-    });
+    }
   });
 
   it('stays on the screen when the bubble opens in a corner', () => {
-    const screen = { w: 320, h: 180 };
     for (const at of [{ x: 0, y: 0 }, { x: 320, y: 180 }, { x: 0, y: 180 }, { x: 320, y: 0 }]) {
-      const layout = bubbleLayout({ at, options: BUBBLE_SLOTS, screen });
-      layout.options.forEach((_, i) => {
-        const b = keyBadgeBox(layout, i, { w: 13, h: 9 }, screen);
+      const corner = bubbleLayout({ at, options: BUBBLE_SLOTS, screen });
+      corner.options.forEach((_, i) => {
+        const b = keyBadgeBox(corner, i, { w: 13, h: 9 }, screen);
         expect(b.x).toBeGreaterThanOrEqual(0);
         expect(b.y).toBeGreaterThanOrEqual(0);
         expect(rectRight(b)).toBeLessThanOrEqual(screen.w);
         expect(rectBottom(b)).toBeLessThanOrEqual(screen.h);
       });
     }
+  });
+});
+
+describe('an option\'s name on the bubble (ft_1_20)', () => {
+  const overlap = (a: Rect, b: Rect) => a.x < rectRight(b) && b.x < rectRight(a) && a.y < rectBottom(b) && b.y < rectBottom(a);
+  const screen = { y: 13, w: 320, h: 167 };
+  const size = { w: 90, h: 15 };
+
+  it('stands outside the ring, above it, hiding no option, the Close target or a key', () => {
+    const layout = bubbleLayout({ at: { x: 160, y: 110 }, options: BUBBLE_SLOTS, screen });
+    const tip = bubbleTooltipBox(layout, size, screen);
+    expect(rectBottom(tip)).toBeLessThanOrEqual(layout.centre.y);
+    for (const r of [...layout.options, layout.close]) expect(overlap(tip, { x: r.x - 2, y: r.y - 2, w: r.w + 4, h: r.h + 4 })).toBe(false);
+    layout.options.forEach((_, i) => expect(overlap(tip, keyBadgeBox(layout, i, { w: 13, h: 9 }, screen))).toBe(false));
+  });
+
+  it('goes under the ring when there is no room above, and stays on the screen', () => {
+    const layout = bubbleLayout({ at: { x: 10, y: 20 }, options: BUBBLE_SLOTS, screen });
+    const tip = bubbleTooltipBox(layout, size, screen);
+    expect(tip.y).toBeGreaterThan(layout.centre.y);
+    for (const r of layout.options) expect(overlap(tip, r)).toBe(false);
+    expect(tip.x).toBeGreaterThanOrEqual(0);
+  });
+
+  it('keeps clear of an option\'s choices open on the outer ring', () => {
+    const layout = bubbleLayout({ at: { x: 160, y: 110 }, options: BUBBLE_SLOTS, screen, open: { option: 0, choices: 5 } });
+    const tip = bubbleTooltipBox(layout, size, screen);
+    for (const r of [...layout.options, ...layout.choices]) expect(overlap(tip, r)).toBe(false);
   });
 });

@@ -236,6 +236,8 @@ export interface PixelButtonOptions {
    * Tablets have no hover, so a tooltip is a bonus, never the only way to know what a button does (ft_1_08.AC5).
    */
   tooltip?: string;
+  /** Where the tooltip's bubble (`size` cells, on a `screen` this large) stands, when not under or over the button: a bubble option's name outside the ring (`bubbleTooltipBox`). */
+  tooltipAt?: (size: { w: number; h: number }, screen: { w: number; h: number }) => { x: number; y: number; w: number; h: number };
   /**
    * The button is this picture alone, centred in its box, with no panel and no label drawn (a room object, ft_1_08.AC7).
    * Its label shows in a bubble above it after the pointer rests on it, and at once while it has the keyboard focus.
@@ -639,7 +641,7 @@ export class PixelButton {
     const size = { w: letters.width + 8, h: letters.letterBox.bottom - letters.letterBox.top + 8 };
     const screen = { w: Math.ceil(scene.scale.width / parent.scaleX), h: Math.ceil(scene.scale.height / parent.scaleY) };
     const { x, y, width, height } = this.box;
-    const at = tooltipBox({ x, y, w: width, h: height }, size, screen, this.options.picture ? 'above' : 'below');
+    const at = this.options.tooltipAt?.(size, screen) ?? tooltipBox({ x, y, w: width, h: height }, size, screen, this.options.picture ? 'above' : 'below');
     const bubble = new PixelImage(scene, at.x, at.y, panelBitmap(at.w, at.h, 'bubble'));
     letters.x = at.x + 4;
     letters.y = at.y + 4 - letters.letterBox.top;

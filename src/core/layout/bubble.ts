@@ -114,22 +114,37 @@ export function bubbleLayout(input: { at: { x: number; y: number }; options: num
   return { centre, area, options, choices, close };
 }
 
-/** Where an option's key may start, from the bubble's centre: past its plate (24 across) and the keyboard's focus ring round it (2 more). */
-const BADGE_RADIUS = RING + OPTION / 2 + 4;
+/** Half a round plate (24 across): an option's key has its lower right corner on the corner of the plate's square. */
+const PLATE_HALF = OPTION / 2 + 2;
+/** How far the ring reaches from its centre: an option's plate and the keyboard's focus ring round it, and one cell more. */
+const RING_REACH = RING + PLATE_HALF + 3;
+/** How far an open option's choices reach on the outer ring, and one cell more. */
+const CHOICES_REACH = OUTER + CHOICE / 2 + 1;
 
 /**
- * Where option `slot`'s key (`size` cells) is drawn on a bubble opened from the keyboard: just outside its plate and focus
- * ring on the side away from the centre, so it covers neither a neighbour nor the Close target, and kept on the screen.
+ * Where option `slot`'s key (`size` cells) is drawn on a bubble opened from the keyboard: the same spot on every plate, its
+ * lower right, the key's lower right corner on the corner of the plate's square, so it is read as that plate's and covers
+ * no other option's picture; kept on the screen.
  */
-export function keyBadgeBox(layout: Pick<BubbleLayout, 'centre' | 'options'>, slot: number, size: { w: number; h: number }, screen: { w: number; h: number }): Rect {
+export function keyBadgeBox(layout: Pick<BubbleLayout, 'options'>, slot: number, size: { w: number; h: number }, screen: { w: number; h: number }): Rect {
   const option = layout.options[slot]!;
-  const dx = option.x + option.w / 2 - layout.centre.x, dy = option.y + option.h / 2 - layout.centre.y;
-  const d = Math.hypot(dx, dy) || 1;
-  const ux = dx / d, uy = dy / d;
-  // the box's own reach toward the centre along that line, so its nearest corner is outside the ring
-  const radius = BADGE_RADIUS + Math.abs(ux) * size.w / 2 + Math.abs(uy) * size.h / 2;
-  const x = Math.round(layout.centre.x + ux * radius - size.w / 2), y = Math.round(layout.centre.y + uy * radius - size.h / 2);
+  const cx = option.x + option.w / 2, cy = option.y + option.h / 2;
+  const x = Math.round(cx + PLATE_HALF - size.w), y = Math.round(cy + PLATE_HALF - size.h);
   return { x: clamp(x, 0, screen.w - size.w), y: clamp(y, 0, screen.h - size.h), w: size.w, h: size.h };
+}
+
+/**
+ * Where an option's name (its tooltip, `size` cells) is shown on the bubble: outside the ring, above it, or under it where
+ * the screen has no room above, centred on the bubble, so it never hides an option or its key; past the outer ring while an
+ * option's choices are open there.
+ */
+export function bubbleTooltipBox(layout: Pick<BubbleLayout, 'centre' | 'choices'>, size: { w: number; h: number }, screen: { y?: number; w: number; h: number }): Rect {
+  const top = screen.y ?? 0;
+  const reach = layout.choices.length > 0 ? CHOICES_REACH : RING_REACH;
+  const above = Math.round(layout.centre.y - reach - size.h);
+  const below = Math.round(layout.centre.y + reach);
+  const y = above >= top ? above : below + size.h <= top + screen.h ? below : clamp(above, top, top + screen.h - size.h);
+  return { x: clamp(Math.round(layout.centre.x - size.w / 2), 0, screen.w - size.w), y, w: size.w, h: size.h };
 }
 
 /**

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { pagerBoxes } from '../../../core/layout/cardGrid';
 import type { PageSlice } from '../../../core/layout/paging';
 import { ART_DETAIL, FRAME_ROWS, VINE_ROWS, frameCorners, frameView, toolbarLayout, type FrameView } from '../../../core/layout/frame';
-import { BUBBLE_SLOTS, SLIDER_CELLS, bubbleLayout, bubblePage, cellSpan, keyBadgeBox, pinFlow, pinRows, sliderArc, sliderFraction, sliderPoint, sliderStep, twoFingerTap, twoFingersSlid, wheelChoice, type BubbleLayout, type SliderArc } from '../../../core/layout/bubble';
+import { BUBBLE_SLOTS, SLIDER_CELLS, bubbleLayout, bubblePage, bubbleTooltipBox, cellSpan, keyBadgeBox, pinFlow, pinRows, sliderArc, sliderFraction, sliderPoint, sliderStep, twoFingerTap, twoFingersSlid, wheelChoice, type BubbleLayout, type SliderArc } from '../../../core/layout/bubble';
 import type { PixelView } from '../../../core/layout/pixelView';
 import { rectCentre, type Rect } from '../../../core/layout/rect';
 import { dropMenuLayout } from '../../../core/layout/dropMenu';
@@ -1523,14 +1523,18 @@ export abstract class PixelScene extends Phaser.Scene {
     // the options in slot order, for the arrows
     const ring: PixelButton[] = [];
     // the options' keys are drawn last, over every plate, so a neighbour drawn after never covers one
-    const badges: (() => void)[] = [];
+    const badges: ((layer: Phaser.GameObjects.Container) => void)[] = [];
     const make = (r: Rect, item: ToolbarItem, onClick: () => void, onHover?: (over: boolean) => void, look: 'bubble' | 'bubbleClose' | 'bubbleChoice' = 'bubble'): PixelButton => {
+      // opened from the keyboard, the bubble shows each option's key on its plate's lower right (a choice's in its corner);
+      // for the mouse the key is in the tooltip; not while an option's choices are open on the outer ring
+      const keyShown = item.shortcut !== undefined && (options.keyboard || this.shortcutsShown) && (look !== 'bubble' || layout.choices.length === 0);
       const button = new PixelButton(this, container, {
         ...(onHover ? { onHover } : {}),
         ...rectCentre(r), label: item.label, labelWidth: r.w - CELL_PAD, look,
         // a music sign on its scrap of parchment is too big for a round option: the sign alone, in the option's colour
         ...(item.icon ? { icon: item.fineIcon ? signOnly(item.icon, BUBBLE_SIGN, BUBBLE_SIGN) : item.icon, iconOnly: true, ...(item.fineIcon ? { fineIcon: true } : {}) } : {}),
-        tooltip: item.tooltip ?? item.label, ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}),
+        // the name outside the ring, so it hides no option; without the key a badge already shows
+        tooltip: keyShown ? item.label : item.tooltip ?? item.label, tooltipAt: (size, screen) => bubbleTooltipBox(layout, size, { ...bounds, w: Math.min(bounds.w, screen.w) }), ...(item.disabled ? { disabled: true } : {}), ...(item.keepCase ? { keepCase: true } : {}),
         // the lift of a finger that opened the bubble by a two-finger tap picks nothing, even over an option
         onClick: () => {
           if (this.bubbleTouchLifts > 0) {
@@ -1542,12 +1546,9 @@ export abstract class PixelScene extends Phaser.Scene {
       });
       if (item.active) button.setActive(true);
       if (item.armed) button.setArmed(true);
-      // opened from the keyboard, the bubble shows each option's key on its rim, away from the centre (a choice's in its
-      // corner); for the mouse the key is in the tooltip
-      // (not while an option's choices are open on the outer ring, where the keys would stand)
-      if (item.shortcut && (options.keyboard || this.shortcutsShown) && (look !== 'bubble' || layout.choices.length === 0)) {
-        const key = item.shortcut;
-        badges.push(() => (look === 'bubble' ? this.bubbleKeyBadge(container, button, r, layout.centre, key, { w: whole.w, h: whole.h }) : this.keyBadge(container, button, key)));
+      if (keyShown) {
+        const key = item.shortcut!;
+        badges.push((layer) => (look === 'bubble' ? this.bubbleKeyBadge(layer, button, r, key, { w: whole.w, h: whole.h }) : this.keyBadge(layer, button, key)));
       }
       buttons.push(button);
       return button;
@@ -1586,7 +1587,12 @@ export abstract class PixelScene extends Phaser.Scene {
       if (choice.active) button.setActive(true);
     });
     make(layout.close, { label: t('band.close'), icon: TOOL_ICONS.close, onClick: () => undefined }, () => this.closeMenu(), undefined, 'bubbleClose');
-    for (const badge of badges) badge();
+    // the keys on a layer of their own over the bubble, so the focus ring and an option's name never cover one
+    if (badges.length > 0) {
+      const keys = this.add.container(this.root.x, this.root.y).setScale(this.px.scale).setDepth(MENU_DEPTH + 1);
+      container.once('destroy', () => keys.destroy(true));
+      for (const badge of badges) badge(keys);
+    }
     const optionPreviews = paging.slots.flatMap((slot) => (typeof slot === 'number' && listed[slot]?.preview ? [listed[slot].preview] : []));
     const reopen = (focus: string | undefined) => this.openBubble(at, { ...options, ...(focus !== undefined ? { focus } : {}) });
     this.menu = { container, buttons, focusBefore: this.focusNow(), bubble: true, reopen, ring, previews: [...optionPreviews, ...choices.flatMap((choice) => (choice?.preview ? [choice.preview] : []))], ...(held.slider ? { slider: held.slider } : {}) };
@@ -1686,13 +1692,13 @@ export abstract class PixelScene extends Phaser.Scene {
   }
 
   /**
-   * A bubble option's key, white on a dark box, on the rim of its plate away from the bubble's centre (`keyBadgeBox`), so it
-   * covers no other option; a Shift key is written with the Shift arrow (Shift+R as ⇧R), short enough for a plate.
+   * A bubble option's key, white on a dark box, on the lower right of its own plate (`keyBadgeBox`), so it covers no other
+   * option's picture; a Shift key is written with the Shift arrow (Shift+R as ⇧R), short enough for a plate.
    */
-  private bubbleKeyBadge(parent: Phaser.GameObjects.Container, button: PixelButton, r: Rect, centre: { x: number; y: number }, key: string, screen: { w: number; h: number }): void {
+  private bubbleKeyBadge(parent: Phaser.GameObjects.Container, button: PixelButton, r: Rect, key: string, screen: { w: number; h: number }): void {
     const text = new PixelText(this, 0, 0, key.replace(/^Shift\+/, '⇧'), { color: C.white, keepCase: true });
     const inked = { w: text.letterBox.right - text.letterBox.left + 2, h: text.letterBox.bottom - text.letterBox.top + 2 };
-    const at = keyBadgeBox({ centre, options: [r] }, 0, inked, screen);
+    const at = keyBadgeBox({ options: [r] }, 0, inked, screen);
     text.setPosition(at.x + 1 - text.letterBox.left, at.y + 1 - text.letterBox.top);
     const box = createBitmap(inked.w, inked.h);
     box.pixels.fill(C.ink);
