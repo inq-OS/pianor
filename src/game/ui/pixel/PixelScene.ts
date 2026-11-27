@@ -8,7 +8,7 @@ import { rectCentre, type Rect } from '../../../core/layout/rect';
 import { dropMenuLayout } from '../../../core/layout/dropMenu';
 import { t } from '../../../core/text/strings';
 import { clipToWidth } from '../../../core/text/clip';
-import { initialFocus, moveFocus, refocus, type FocusMove } from '../../../core/layout/focus';
+import { FOCUS_LAYOUT, initialFocus, moveFocus, refocus, type FocusLayout, type FocusMove } from '../../../core/layout/focus';
 import { panelBitmap } from './frames';
 import { ICONS } from './iconArt';
 import { TOOL_ICONS } from './toolArt';
@@ -260,6 +260,8 @@ export abstract class PixelScene extends Phaser.Scene {
   protected buttons: PixelButton[] = [];
   /** Menu-like screens set this to let the keyboard move between buttons (arrows), press one (Enter, Space) and go back (Esc). */
   protected keyboardNavigation = false;
+  /** How the arrows weigh the buttons' places: rows and columns, or things standing over a picture in no rows (the room). */
+  protected focusLayout: FocusLayout = FOCUS_LAYOUT.grid;
   /** Index into `buttons` of the focused button, or -1. The ring shows only after the first navigation key. */
   protected focusIndex = -1;
   private focusShown = false;
@@ -779,7 +781,7 @@ export abstract class PixelScene extends Phaser.Scene {
       return;
     }
     if (move) {
-      this.focusIndex = moveFocus(rects(), this.focusIndex, move);
+      this.focusIndex = moveFocus(rects(), this.focusIndex, move, true, this.focusLayout);
       this.paintFocus();
     } else {
       this.focusables()[this.focusIndex]?.press();
