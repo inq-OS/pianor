@@ -65,7 +65,9 @@ export function loadLessons(jsons: readonly unknown[], catalog: Catalog, isKey: 
     }
     for (const step of [lesson.show, lesson.pitfall, lesson.playAlong]) {
       for (const mark of step.marks) {
-        if (mark.from >= step.notes.length || mark.to >= step.notes.length) throw new Error(`lesson ${lesson.id}: a mark past its notes`);
+        const from = step.notes[mark.from], to = step.notes[mark.to];
+        if (from === undefined || to === undefined) throw new Error(`lesson ${lesson.id}: a mark past its notes`);
+        if (Math.abs(to - from) !== (mark.kind === 'half' ? 1 : 2)) throw new Error(`lesson ${lesson.id}: a ${mark.kind} step mark between ${from} and ${to}`);
       }
     }
     return lesson;
@@ -73,22 +75,28 @@ export function loadLessons(jsons: readonly unknown[], catalog: Catalog, isKey: 
 }
 
 /**
- * `AX-3 provisional:` where items are asked: the right hand from middle C, the shown note and the answer both between
+ * `AX-3 provisional:` where step items are asked: the right hand from middle C, the shown note and the answer both between
  * B3 and D5, so the student reads them on the treble staff with no more than one ledger line.
  */
 const STEP_STARTS = { up: { low: 60, high: 72 }, down: { low: 62, high: 74 } } as const;
-/** `AX-3 provisional:` the major scales asked: tonics whose scale fits one octave up from them in the right hand. */
-const SCALE_TONICS = [60, 67, 65, 62, 69, 64, 70, 63] as const;
+/**
+ * `AX-3 provisional:` the major scales asked, one octave up from the tonic in the right hand (up to A5): only the sharp keys
+ * C, G, D, A and E for now, since lesson notes are bare MIDI and read with sharps (TODO(builder, R2) in ft_1_39).
+ */
+const SCALE_TONICS = [60, 67, 62, 69, 64] as const;
 
-/** `count` items of a generator, drawn by `seed` (the same seed gives the same items), never the same question twice in a row. */
-export function lessonItems(items: LessonItems, seed: string, count: number): LessonItem[] {
+/**
+ * `count` items of a generator, drawn by `seed` (the same seed gives the same items), never the same question twice in a row;
+ * `after` is the shown start of the question just before them, if any.
+ */
+export function lessonItems(items: LessonItems, seed: string, count: number, after: number | null = null): LessonItem[] {
   const random = Random.derive('lesson', seed);
   const starts: readonly number[] =
     items.kind === 'majorScale'
       ? SCALE_TONICS
       : Array.from({ length: STEP_STARTS[items.direction].high - STEP_STARTS[items.direction].low + 1 }, (_, i) => STEP_STARTS[items.direction].low + i);
   const out: LessonItem[] = [];
-  let previous: number | null = null;
+  let previous: number | null = after;
   for (let i = 0; i < count; i++) {
     const start = random.pick(starts.filter((s) => s !== previous));
     previous = start;

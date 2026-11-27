@@ -68,7 +68,7 @@ Lessons are content (`content/lessons/`, zod-validated, `schemaVersion`), each n
 - The catalog is `content/lessons/catalog.json` (`src/core/lessons/catalog.ts`); `tools/docs/learningCatalog.test.ts` keeps it equal to the catalog page, id by id and status by status. Every area and topic has a name under `lessons.area.<letter>` and `lessons.topic.<id>`, in English and Estonian.
 - A lesson is one file in `content/lessons/` (`src/core/lessons/lesson.ts`): its topic and needs, Show (notes and marks), Pitfall (notes, marks and the wrong-note reason that brings its card back), Try and Check (an item generator: a half or whole step from a note, or a major scale from its tonic), Play-along (notes and marks). The first three: `half-step.json` (D1), `whole-step.json` (D2), `major-scale.json` (E1).
 - `LessonRun` (`src/core/lessons/run.ts`) runs the six steps: what is awaited, the lit keys, Try's clean run and its fading light (`LESSON_RULES.fade`), the check's first tries and the medal (`medalOf` of ft_1_32), and 10 theory XP for each right note after the show.
-- `AX-3 provisional:` items are asked in the right hand between B3 and D5; the scales asked are C, G, F, D, A, E, B flat and E flat major; the major scale's check asks 4 scales, the steps' 8 items; the light is on at once for Try's first 2 items, after two wrong presses for the next 2, then off; the pitfall of all three lessons is the neighbour key.
+- `AX-3 provisional:` step items are asked in the right hand between B3 and D5; the scales asked are C, G, D, A and E major, one octave up (flat keys wait until items are spelled, a TODO in `lesson.ts`); the major scale's check asks 4 scales, the steps' 8 items; the light is on at once for Try's first 2 items, after two wrong presses for the next 2, then off; the pitfall of all three lessons is the neighbour key.
 
 ## Acceptance criteria
 
@@ -82,5 +82,6 @@ Lessons are content (`content/lessons/`, zod-validated, `schemaVersion`), each n
 ## TODO
 
 - TODO(builder, R2): slice 0's previews and ergonomics review are done (second pass after the review). Still open from the review, for slice 1: Left and Right keys turn the book's pages, Enter opens the suggested lesson, Esc leaves; a press on a placeholder shows a short "not yet"; the "?" of a Try item pulses while it waits; a wrong note visibly empties the clean-run counter; the door uses the game's door picture.
+- TODO(builder, R2): lesson items are bare MIDI, read with sharps, so the major scale asks only C, G, D, A and E; spell the items (`src/core/lessons/lesson.ts`), then add F, B flat and E flat major.
 - TODO(builder, R2): with slice 2, `piece:lint`-style checking of the tree: every needed id exists in the catalog and there is no loop; test first.
 - NEEDS-HUMAN: the EZ-220 silent-light test (ft_Y_06) decides whether Try can light the real keyboard.

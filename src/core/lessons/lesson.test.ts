@@ -29,6 +29,7 @@ describe('lessons as content (ft_1_39.AC6)', () => {
     expect(() => loadLessons([{ ...halfStep, show: { ...halfStep.show, line: 'lessons.no.such.line' } }], catalog, known)).toThrow(/lessons\.no\.such\.line/);
     expect(() => loadLessons([{ ...halfStep, show: { ...halfStep.show, marks: [{ from: 0, to: 99, kind: 'half' }] } }], catalog, known)).toThrow(/mark/);
     expect(() => loadLessons([{ ...halfStep, schemaVersion: 2 }], catalog, known)).toThrow();
+    expect(() => loadLessons([{ ...halfStep, show: { ...halfStep.show, marks: [{ from: 0, to: 1, kind: 'half' }] } }], catalog, known)).toThrow(/half step mark/);
   });
 
   it('ft_1_39.AC2 has no level, range or lock field: a lesson opens for every player', () => {
@@ -50,6 +51,12 @@ describe('lessonItems', () => {
     const items = lessonItems(step(1, 'up'), 'x', 40);
     for (let i = 1; i < items.length; i++) expect(items[i]!.shown).not.toEqual(items[i - 1]!.shown);
     for (const item of items) for (const k of [...item.shown, ...item.answer]) expect(k >= 59 && k <= 74, String(k)).toBe(true);
+  });
+
+  it('does not start with the question asked just before it', () => {
+    for (let after = 60; after <= 72; after++) {
+      for (const seed of ['a', 'b', 'c']) expect(lessonItems(step(1, 'up'), seed, 1, after)[0]!.shown).not.toEqual([after]);
+    }
   });
 
   it('asks the E and H half steps among the others, the classic mistake (pitfall)', () => {

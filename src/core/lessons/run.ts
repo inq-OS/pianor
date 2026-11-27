@@ -158,7 +158,8 @@ export class LessonRun {
   /** Try goes on until the clean run: items come in batches, each from its own seed. */
   private moreTryItems(): void {
     this.tryRound += 1;
-    this.items = lessonItems(this.lesson.try.items, `${this.seed}#try#${this.tryRound}`, LESSON_RULES.tryRun * 2);
+    const last = this.items.at(-1)?.shown[0] ?? null;
+    this.items = lessonItems(this.lesson.try.items, `${this.seed}#try#${this.tryRound}`, LESSON_RULES.tryRun * 2, last);
     this.itemIndex = 0;
   }
 
