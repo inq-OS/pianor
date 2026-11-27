@@ -23,7 +23,7 @@ function panelFor(screen: { width: number; height: number }, fifths: number, mod
     const names = keyNames(f, naming);
     return mode === 'major' ? t('circle.major', { key: withFlat(names.major) }) : t('circle.minor', { key: withFlat(names.minor.toLowerCase()) });
   };
-  const heading = renderText(drawnText(name(fifths), true), {});
+  const heading = renderText(drawnText(name(fifths), true), { color: 0 });
   const ticks = choosing ? spellingsOf(stepOfFifths(fifths)).map((f) => Math.max(22, (f === 0 ? 14 : signatureIcon(f).width) + 8)) : [];
   return circlePanelLayout({ width: view.width, rows: Math.floor(screen.height / view.scale) - FRAME_ROWS }, {
     heading: { w: heading.width, h: heading.height }, ticks, choosing, wheelMargin: WHEEL_MARGIN, button: { w: 22, h: BAR_BUTTON_HEIGHT },
