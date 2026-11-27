@@ -1,4 +1,4 @@
-// Covers ft_1_36.AC1, ft_1_36.AC14, ft_1_36.AC15, ft_1_36.AC21, ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20, ft_1_36.AC22, ft_1_36.AC23.
+// Covers ft_1_36.AC1, ft_1_36.AC14, ft_1_36.AC15, ft_1_36.AC21, ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20, ft_1_36.AC22, ft_1_36.AC23, ft_1_36.AC24.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { activeScenes, allMenuTitles, clickButton, clickToolbar, expectNoErrors, lastButton, menuButton, openBubbleFromMore, openGame, pressInBubble, sceneButton, sceneTexts, waitForScene } from './helpers';
@@ -552,6 +552,44 @@ test.describe('songs made of pieces', () => {
     await clickToolbar(page, 'back');
     await waitForScene(page, 'song');
     await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Part 1', '2 Flute', '3 Group 1', '3.1 Bells']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC24 Save asks where among many own songs in title order, six a page with < and >, all on the screen', async ({ page }) => {
+    const errors = await openGame(page);
+    await page.evaluate(async () => {
+      const own = window.__game.registry.get('context').ownSongs as { create(title: string, blank: string): Promise<unknown> };
+      for (const n of [10, 2, 12, 1, 11, 3, 4, 5, 6, 7, 8, 9]) await own.create(`Song ${n}`, 'Verse');
+      window.__game.scene.stop('menu');
+      window.__game.scene.start('editor', {});
+    });
+    await waitForScene(page, 'editor');
+    await page.fill('#editor-title', 'Bells');
+    const point = await page.evaluate(() => {
+      const at = window.__game.scene.getScene('editor').pointForNote({ hand: 'RH', octave: 4, bar: 0, start: 0, step: 'C' }) as { x: number; y: number };
+      const canvas = document.querySelector('canvas')!;
+      const rect = canvas.getBoundingClientRect();
+      return { x: rect.left + (at.x / canvas.width) * rect.width, y: rect.top + (at.y / canvas.height) * rect.height };
+    });
+    await page.mouse.click(point.x, point.y, { button: 'middle' });
+    let save = await lastButton(page, 'editor', 'Save');
+    if (save < 0 && (await openBubbleFromMore(page, 'editor'))) save = await lastButton(page, 'editor', 'Save');
+    await clickButton(page, 'editor', save);
+    /** The open where-list: its labels, whether each is greyed, and whether every choice is inside the canvas. */
+    const where = () => page.evaluate(() => {
+      const scene = window.__game.scene.getScene('editor') as unknown as { menu: { buttons: { disabled: boolean; options: { label: string }; screenCenter(): { x: number; y: number } }[] } | null };
+      const canvas = document.querySelector('canvas')!;
+      const buttons = scene.menu?.buttons ?? [];
+      return {
+        labels: buttons.map((b) => b.options.label + (b.disabled ? ' (off)' : '')),
+        inside: buttons.every((b) => { const c = b.screenCenter(); return c.y > 0 && c.y < canvas.height; }),
+      };
+    });
+    await expect.poll(async () => (await where()).labels).toEqual(['On its own', 'Into Song 1', 'Into Song 2', 'Into Song 3', 'Into Song 4', 'Into Song 5', 'Into Song 6', '< (off)', '>']);
+    expect((await where()).inside).toBe(true);
+    await clickButton(page, 'editor', await lastButton(page, 'editor', '>'));
+    await expect.poll(async () => (await where()).labels).toEqual(['On its own', 'Into Song 7', 'Into Song 8', 'Into Song 9', 'Into Song 10', 'Into Song 11', 'Into Song 12', '<', '> (off)']);
+    expect((await where()).inside).toBe(true);
     expectNoErrors(errors);
   });
 

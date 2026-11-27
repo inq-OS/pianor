@@ -83,6 +83,7 @@ Slice 3:
 - **ft_1_36.AC17** An own song exported and imported gives the same song and pieces, as new own pieces with free ids.
 - **ft_1_36.AC21** Saving a new piece asks once where it goes, on its own or at a picked place in an own song (a new group made on the way); it is saved as one own piece whichever piece maker saved it; an own piece moved into a song leaves the piece book and returns to it when removed from the song, its record untouched.
 - **ft_1_36.AC23** Add on a group names its two places apart (a part after it, a part inside it), and a row inside a group also offers a part after its group; a row's name cut short shows whole in its tooltip.
+- **ft_1_36.AC24** Save's question of where a piece goes lists the own songs in title order with numbers by value (Song 2 before Song 10), six a page with < and > under them, all on the screen; the songs list sorts the same way.
 - **ft_1_36.AC18** Is the song page clear to a parent writing a song and to the student choosing parts? [human]
 
 Slice 4:

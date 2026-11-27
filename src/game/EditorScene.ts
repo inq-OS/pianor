@@ -2832,20 +2832,29 @@ export class EditorScene extends PixelScene {
   /**
    * A new piece of its own, saved for the first time while the player has own songs: Save asks once, under its button,
    * where the piece goes (rule 17): on its own in the piece book, or into a song, whose page then asks for its place.
+   * The songs come in title order, six a page with < and > under them (ft_1_36.AC24), so the list stays on the screen.
    * False when there is nothing to ask.
    */
-  private askWhere(): boolean {
+  private askWhere(page = 0): boolean {
     const songs = contextOf(this).ownSongs.list();
     const anchor = this.saveButton;
     if (this.id || this.song || this.whereChosen || songs.length === 0 || !anchor) return false;
+    const perPage = 6;
+    const pages = Math.ceil(songs.length / perPage);
+    const at = Math.min(pages - 1, Math.max(0, page));
+    const turn = (to: number): MenuItem => ({
+      label: to < at ? '<' : '>', tooltip: t(to < at ? 'editor.pagePrevious' : 'editor.pageNext'), disabled: to < 0 || to >= pages,
+      onPick: () => void this.askWhere(to),
+    });
     const items: MenuItem[] = [
       { label: t('editor.saveAlone'), onPick: () => this.saveWhere(null) },
-      ...songs.map((song): MenuItem => {
+      ...songs.slice(at * perPage, (at + 1) * perPage).map((song): MenuItem => {
         // a long song title is cut to the cell, with the whole of it in the tooltip, so it never runs over the next choice
         const label = t('editor.saveInto', { title: song.title });
         const shown = clipToWidth(label, WHERE_CELL_WIDTH - LABEL_PAD, (text) => measure(drawnText(text)));
         return { label: shown, keepCase: true, ...(shown !== label ? { tooltip: label } : {}), onPick: () => this.saveWhere(song.id) };
       }),
+      ...(pages > 1 ? [turn(at - 1), turn(at + 1)] : []),
     ];
     this.openMenu(anchor, items, { cell: { w: WHERE_CELL_WIDTH, h: BAR_BUTTON_HEIGHT }, columns: 1, open: 'below' });
     return true;
