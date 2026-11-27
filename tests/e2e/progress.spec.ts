@@ -39,12 +39,12 @@ test.describe('earning XP and levels', () => {
     await waitForScene(page, 'menu');
     await showMenuPageWith(page, 'Little Steps');
     expect(await sceneTexts(page, 'menu')).toEqual(expect.arrayContaining(['Level 2'])); // the card's piece level (the player's is in the room, ft_1_20.AC13)
-    // the level is never written over the card's small buttons, in the two-page book either
+    // the level is never written over the card's small buttons nor the left page's bookmarks, in the two-page book either
     const overlaps = await page.evaluate(() => {
       type Rect = { x: number; y: number; width: number; height: number };
       type Small = Map<string, { rect: Rect }>;
-      const menu = window.__game.scene.getScene('menu') as unknown as { root: { list: (Rect & { text?: string })[] }; infoButtons: Small; statsButtons: Small; partsButtons: Small };
-      const small = [menu.infoButtons, menu.statsButtons, menu.partsButtons].flatMap((m) => [...m.values()].map((b) => b.rect));
+      const menu = window.__game.scene.getScene('menu') as unknown as { root: { list: (Rect & { text?: string })[] }; infoButtons: Small; statsButtons: Small; partsButtons: Small; hideButtons: Small; bookmarkButtons: Small };
+      const small = [menu.infoButtons, menu.statsButtons, menu.partsButtons, menu.hideButtons, menu.bookmarkButtons].flatMap((m) => [...m.values()].map((b) => b.rect));
       const levels = menu.root.list.filter((o) => o.text === 'Level 2');
       if (levels.length === 0 || small.length === 0) return -1;
       return levels.flatMap((l) => small.filter((r) => l.x < r.x + r.width && r.x < l.x + l.width && l.y < r.y + r.height && r.y < l.y + l.height)).length;

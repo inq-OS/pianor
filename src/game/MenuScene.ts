@@ -789,9 +789,10 @@ export class MenuScene extends PixelScene {
     });
     const { info, stats } = this.cardButtons(piece, button, at, mirrored);
     // past the small buttons, else at the title line's outer end, well apart from the title so it never reads as part of it
+    const outer = this.outerEnd(left, width, mirrored);
     const levelPlaces = [
-      { x: firstButton + 3 * STATS_OFFSET + HIDE_GAP + INFO_SIZE / 2 + 4, y: top + 20, limit: left + width - 1 },
-      { x: titleEnd + LEVEL_GAP, y: top + 4, limit: left + 6 + room, end: true },
+      { x: firstButton + 3 * STATS_OFFSET + HIDE_GAP + INFO_SIZE / 2 + 4, y: top + 20, limit: outer },
+      { x: titleEnd + LEVEL_GAP, y: top + 4, limit: Math.min(left + 6 + room, outer), end: true },
     ];
     if (record) this.pieceLevel(button, record, flip, levelPlaces);
     // the five-star grade of the best play, stacked like interlocking rings: three over two, the two set in between (ft_1_12 rule 7)
@@ -804,6 +805,11 @@ export class MenuScene extends PixelScene {
     button.attach(...earned, ...signImages);
     this.fadeIfArmed(piece.chart.id, button, info, stats);
     return button;
+  }
+
+  /** Where a card's free room ends toward the page's outer edge (laid out as on the right page): clear of the left page's bookmarks. */
+  private outerEnd(left: number, width: number, mirrored: boolean): number {
+    return left + width - (mirrored && !this.maker ? LEFT_SHIFT + 2 : 1);
   }
 
   /** A curriculum piece's days left, over a bar of how near the deadline is, at `cursor` on the title's line, before its hat. */
