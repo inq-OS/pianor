@@ -222,10 +222,18 @@ const ARROW_ON = [
   '..........#.....', '..........##....', '..........###...', '..........####..', '###############.', '################', '###############.', '..........####..', '..........###...', '..........##....', '..........#.....',
 ];
 
-/** An arrow that leaves the end of the music, arches over it and comes down at its start, 42 x 9, and its head, 8 x 4: start over. */
+/**
+ * An arrow that leaves the final bar line, arches over the music and comes down at its start, 45 x 12, both corners
+ * rounded alike, and its head, 8 x 4: start over. Its left leg stops at row 8; the head takes over below.
+ */
+const ARROW_BACK_WIDTH = 45;
 const ARROW_BACK = [
-  '..########################################', '.#########################################', '###.....................................##', '##......................................##', '##......................................##',
-  '##......................................##', '##......................................##', '##......................................##', '##',
+  '..' + '#'.repeat(ARROW_BACK_WIDTH - 4) + '..',
+  '.' + '#'.repeat(ARROW_BACK_WIDTH - 2) + '.',
+  '###' + '.'.repeat(ARROW_BACK_WIDTH - 6) + '###',
+  ...Array.from({ length: 5 }, () => '##' + '.'.repeat(ARROW_BACK_WIDTH - 4) + '##'),
+  '##' + '.'.repeat(ARROW_BACK_WIDTH - 4) + '##',
+  ...Array.from({ length: 3 }, () => '.'.repeat(ARROW_BACK_WIDTH - 2) + '##'),
 ];
 const ARROW_BACK_HEAD = ['########', '.######.', '..####..', '...##...'];
 
@@ -256,11 +264,15 @@ export function resumeSymbol(choice: 'continue' | 'over'): Bitmap {
     shape(b, middle + 5, top + 1, ARROW_ON, C.blue);
     return b;
   }
-  note(b, 31, top + 6);
-  note(b, 38, top + 9);
-  note(b, 44, top + 6);
-  shape(b, 4, 0, ARROW_BACK, C.blue);
-  shape(b, 1, ARROW_BACK.length, ARROW_BACK_HEAD, C.blue);
+  note(b, 30, top + 6);
+  note(b, 36, top + 9);
+  note(b, 42, top + 6);
+  // the right leg comes up out of the final bar line; the left one ends in the head over the first note
+  const right = RESUME_WIDTH - 2;
+  shape(b, right + 1 - ARROW_BACK_WIDTH, 0, ARROW_BACK, C.blue);
+  shape(b, 1, 9, ARROW_BACK_HEAD, C.blue);
+  barLine(b, right, top);
+  hline(b, right - 3, right, top);
   return b;
 }
 

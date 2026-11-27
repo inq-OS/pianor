@@ -210,6 +210,6 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   learn: art(['wwwwwwwwww', '.wwwwwwwww', 'w.w.....ww', '.ww.www.ww', '.ww.....ww', '.wwwwwwwww', '.wwwwwwwww', '..wwwwwwww', 'w.wwwwwwww', '.wwwwwwwww']),
   // four bars rising, the last one gold: the stats pane of the latest plays (ft_1_12)
   statsPane: art(['.........gg', '.........gg', '......ww.gg', '......ww.gg', '...ww.ww.gg', '...ww.ww.gg', 'ww.ww.ww.gg', 'ww.ww.ww.gg', 'wwwwwwwwwww']),
-  // a line graph over a gold dotted line, as the learning stats draw the runs over the piece's own tempo (ft_1_32.AC9)
-  learnGraph: art(['w..........', 'w.........w', 'w........w.', 'w...w...w..', 'w..w.w.w...', 'w.w...w....', 'ww.........', 'wg.g.g.g.g.', 'wwwwwwwwwww']),
+  // a line graph over a gold dotted line held a row clear of the axis, as the learning stats draw the runs over the piece's own tempo (ft_1_32.AC9)
+  learnGraph: art(['w..........', 'w.........w', 'w........w.', 'w...w...w..', 'w..w.w.w...', 'w.w...w....', 'ww.........', 'wg.g.g.g.g.', 'w..........', 'wwwwwwwwwww']),
 };
