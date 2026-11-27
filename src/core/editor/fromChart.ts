@@ -243,14 +243,18 @@ class Taker {
 }
 
 /** The chart as an editor piece, or why it cannot be one at all. */
-export function fromChart(chart: Chart, options: { title?: string } = {}): FromChartResult {
+/**
+ * `pickup`: the short first bar is a pick-up known from the whole score (a book's movement whose last bar holds the rest of
+ * its bar, ft_Y_04.AC28): taken as a whole bar with its notes at the end, as a pick-up is played, and not listed to check.
+ */
+export function fromChart(chart: Chart, options: { title?: string; pickup?: boolean } = {}): FromChartResult {
   const warnings: string[] = [];
   const title = (options.title ?? chart.title).trim().slice(0, TITLE_MAX) || 'Imported piece';
   const frame = frameOf(chart, title, warnings);
   if ('reason' in frame) return { ok: false, reason: frame.reason };
   const taker = new Taker(chart, frame, warnings);
   taker.notes();
-  taker.shortFirstBar();
+  if (!options.pickup) taker.shortFirstBar();
   taker.ties();
   taker.graces();
   taker.slurs();
