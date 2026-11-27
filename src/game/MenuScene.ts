@@ -698,7 +698,7 @@ export class MenuScene extends PixelScene {
     const place = places.find((p) => p.x + width <= p.limit);
     if (!place) return;
     const x = place.end ? place.limit - width : place.x;
-    const level = new PixelText(this, flip(x, width), place.y, text, { color: C.umberDark }).setName('pieceLevel');
+    const level = new PixelText(this, flip(x, width), place.y, text, { color: C.umberDeep }).setName('pieceLevel');
     this.root.add(level);
     button.attach(level);
   }
