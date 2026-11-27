@@ -1,4 +1,4 @@
-// Covers ft_Y_04.AC27, ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_02e.AC8, ft_1_02d.AC25, ft_1_02d.AC34, ft_1_02d.AC35, ft_1_02d.AC36, ft_1_02d.AC37, ft_1_02d.AC38, ft_1_02d.AC39, ft_1_02d.AC31, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_Y_04.AC26, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
+// Covers ft_Y_04.AC27, ft_Y_04.AC29, ft_Y_04.AC30, ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_02e.AC8, ft_1_02d.AC25, ft_1_02d.AC34, ft_1_02d.AC35, ft_1_02d.AC36, ft_1_02d.AC37, ft_1_02d.AC38, ft_1_02d.AC39, ft_1_02d.AC31, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_Y_04.AC26, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
 import { readFileSync } from 'node:fs';
 import { musicXmlToChart } from '../../src/core/import/musicxml';
 import { encode as encodePng } from 'fast-png';
@@ -812,9 +812,13 @@ async function syntheticPdf(page: Page, pages: number): Promise<Buffer> {
   return pdf;
 }
 
-/** synthetic: what the computer answers after reading pages 1 and 2: 20 bars, a new page at bar 13, the bars' places on the pages. */
-function readBook(): unknown {
-  const measures = Array.from({ length: 20 }, (_, i) => `<measure number="${i + 1}">${i === 12 ? '<print new-page="yes"/>' : i % 4 === 0 && i > 0 ? '<print new-system="yes"/>' : ''}${i === 0 ? '<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><sound tempo="90"/>' : ''}<note><pitch><step>${'CDEFGAB'[i % 7]}</step><octave>4</octave></pitch><duration>4</duration></note></measure>`);
+/**
+ * synthetic: what the computer answers after reading pages 1 and 2: 20 bars, a new page at bar 13, the bars' places on the
+ * pages; with `misread`, that bar of the book (from 1) holds a note too many.
+ */
+function readBook(misread?: number): unknown {
+  const note = (i: number) => `<note><pitch><step>${'CDEFGAB'[i % 7]}</step><octave>4</octave></pitch><duration>4</duration></note>`;
+  const measures = Array.from({ length: 20 }, (_, i) => `<measure number="${i + 1}">${i === 12 ? '<print new-page="yes"/>' : i % 4 === 0 && i > 0 ? '<print new-system="yes"/>' : ''}${i === 0 ? '<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><sound tempo="90"/>' : ''}${note(i)}${misread === i + 1 ? note(i + 1) : ''}</measure>`);
   const read = musicXmlToChart(`<score-partwise><part-list/><part id="P1">${measures.join('')}</part></score-partwise>`, 'book');
   if (!read.ok) throw new Error(read.reason);
   const layout = { width: 2480, height: 3508, systems: [0, 1, 2].map((s) => ({ staves: [{ top: 300 + s * 900, bottom: 400 + s * 900 }, { top: 600 + s * 900, bottom: 700 + s * 900 }], bars: [0, 1, 2, 3].map((b) => ({ x1: 200 + b * 500, x2: 700 + b * 500 })) })) };
@@ -934,6 +938,42 @@ test.describe('piece maker: a PDF of many pages into a song (ft_Y_04 slice 6)', 
     await page.locator('#book-tool-note').click();
     await page.keyboard.press('Control+z');
     expect(await page.inputValue('#editor-title')).toBe('Kept Name');
+    expectNoErrors(errors);
+  });
+
+  test('ft_Y_04.AC29 ft_Y_04.AC30 a part names its bars to fill as the book counts them; a page left out redraws no page picture', async ({ page }) => {
+    await page.route('**/__pianor/photo**', async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === '/__pianor/photo/book') return route.fulfill({ json: { ok: true, book: 'book-old-waltz' } });
+      if (path.endsWith('/status')) return route.fulfill({ json: readBook(16) });
+      return route.fulfill({ json: { ok: true } });
+    });
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { photoReady: boolean }).photoReady)).toBe(true);
+    const chooser = page.waitForEvent('filechooser');
+    await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
+    await (await chooser).setFiles({ name: 'Old_Waltz.pdf', mimeType: 'application/pdf', buffer: await syntheticPdf(page, 3) });
+    await expect(page.locator('#book-tool-read')).toHaveText('Read 3 pages');
+    // the pages' pictures are drawn once: a page left out and taken back keeps every picture as it was
+    await page.evaluate(() => document.querySelectorAll('#book-tool-pages canvas').forEach((c) => c.setAttribute('data-first', 'yes')));
+    await page.locator('#book-tool-page-3').click();
+    await page.locator('#book-tool-page-2').click();
+    await page.locator('#book-tool-page-2').click();
+    await expect(page.locator('#book-tool-pages canvas[data-first="yes"]')).toHaveCount(3);
+    await expect(page.locator('#book-tool-page-3')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('#book-tool-page-2')).toHaveAttribute('aria-pressed', 'true');
+    // a name typed while on the pages stays in its field
+    await page.locator('#book-tool-name').fill('Waltz Book');
+    await page.locator('#book-tool-page-1').click();
+    await page.locator('#book-tool-page-1').click();
+    await expect(page.locator('#book-tool-name')).toHaveValue('Waltz Book');
+    await page.locator('#book-tool-read').click();
+    // the second part starts at bar 13: its misread bar is bar 16 of the book, as in the list and on the paper
+    await expect(page.locator('.book-tool-part')).toHaveCount(2);
+    await expect(page.locator('.book-tool-part').nth(1)).toContainText('bars 13 to 20');
+    await expect(page.locator('.book-tool-part').nth(1)).toContainText('Bars to fill by hand: 16.');
+    await expect(page.locator('.book-tool-part').first()).not.toContainText('Bars to fill by hand');
     expectNoErrors(errors);
   });
 });
