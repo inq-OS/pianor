@@ -6,7 +6,7 @@ import type { NoteEvent } from '../judge/types.ts';
 import { strings } from '../text/strings.ts';
 import { loadCatalog } from './catalog.ts';
 import { loadLessons, type Lesson } from './lesson.ts';
-import { LESSON_RULES, LessonRun } from './run.ts';
+import { LESSON_RULES, LessonRun, type LessonPress } from './run.ts';
 
 const [lesson] = loadLessons([halfStep], loadCatalog(catalogJson), (k) => k in strings) as [Lesson];
 const on = (midi: number): NoteEvent => ({ kind: 'on', midi, velocity: 90, timeMs: 0, source: 'test' });
@@ -15,9 +15,9 @@ const on = (midi: number): NoteEvent => ({ kind: 'on', midi, velocity: 90, timeM
 function playRight(run: LessonRun) {
   const item = run.current();
   if (!item) throw new Error('nothing awaited');
-  let last;
+  let last: LessonPress = { verdict: 'ignored' };
   for (const midi of item.answer.slice(item.played)) last = run.press(on(midi));
-  return last!;
+  return last;
 }
 /** A key that is not the awaited one and not its neighbour. */
 const wrongFor = (run: LessonRun) => run.current()!.answer[run.current()!.played]! + 5;

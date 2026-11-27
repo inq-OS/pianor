@@ -1083,6 +1083,8 @@ export const stringsEt: Record<StringKey, string> = {
   'lessons.title': 'Teooria',
   'lessons.notYet': 'Veel kirjutamata',
   'lessons.next': 'Järgmine',
+  'lessons.previousPage': 'Eelmine lehekülg',
+  'lessons.nextPage': 'Järgmine lehekülg',
   'lessons.mark.half': 'Pooltoon',
   'lessons.mark.whole': 'Täistoon',
   'lessons.line.listen': 'Kuula ja vaata',

@@ -1093,6 +1093,8 @@ export const strings = {
   'lessons.title': 'Theory',
   'lessons.notYet': 'Not written yet',
   'lessons.next': 'Next',
+  'lessons.previousPage': 'Previous page',
+  'lessons.nextPage': 'Next page',
   'lessons.mark.half': 'Half step',
   'lessons.mark.whole': 'Whole step',
   'lessons.line.listen': 'Listen and watch',
@@ -1307,3 +1309,6 @@ export function t(key: StringKey, params: Record<string, string | number> = {}):
   const catalog: Record<StringKey, string> = language() === 'en' ? strings : stringsEt;
   return catalog[key].replace(/\{(\w+)\}/g, (match, name: string) => (name in params ? String(params[name]) : match));
 }
+
+/** True when `key` is a string key (content names its lines by key, checked when it loads). */
+export const isStringKey = (key: string): key is StringKey => key in strings;
