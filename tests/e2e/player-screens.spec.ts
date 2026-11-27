@@ -4,7 +4,7 @@
 // buttons and the paths it did not reach.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, textBox, boxInside, typeName, waitForScene } from './helpers';
+import { addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, leaveRoom, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, textBox, boxInside, typeName, waitForScene } from './helpers';
 
 /** The main menu: from the piece list, the room's Quit goes there (`goToMainMenu`). */
 const openProfiles = async (page: Page) => {
@@ -126,8 +126,7 @@ test.describe('main menu (ft_1_07.AC2)', () => {
     });
     await clickButton(page, 'profiles', await profileButton(page, 'TUVI')); // redraw the menu by leaving and coming back
     await waitForScene(page, 'profile');
-    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Back'));
-    await waitForScene(page, 'profiles');
+    await leaveRoom(page);
     expect(await profileCount(page)).toBe(10);
     expect(await profileButton(page, 'New player')).toBe(-1);
     expectNoErrors(errors);
@@ -183,11 +182,10 @@ test.describe('saves that cannot be kept', () => {
 });
 
 test.describe('the room (ft_1_07.AC3, ft_1_07.AC4)', () => {
-  test('Back on the room goes back to the main menu', async ({ page }) => {
+  test('Back on the room asks Change player? and Yes goes back to the main menu', async ({ page }) => {
     const errors = await openGame(page);
     await openDashboard(page, 'VINT');
-    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Back'));
-    await waitForScene(page, 'profiles');
+    await leaveRoom(page);
     expectNoErrors(errors);
   });
 

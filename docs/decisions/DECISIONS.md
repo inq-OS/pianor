@@ -287,4 +287,8 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d305](game.md#d305) | The theory lessons' order is a skill tree of prerequisites over the catalog ids, cut into stages, with nothing locked | ft_1_39 |
 | [d306](game.md#d306) | A tug or a teaching is left by the corner Back as by Esc, nudges an idle turn once, and names why each wrong phrase missed | ft_1_21, ft_1_22 |
 | [d307](game.md#d307) | A player's name takes the Estonian letters with Q, W, X and Y, and one space or hyphen between letters; the name box asks "Your name?" | ft_1_07 |
+| [d308](game.md#d308) | In the room Esc never leaves for the player list; the corner Back asks "Change player?" once, with Yes and No, before going there | ft_1_07, ft_1_20 |
+| [d309](game.md#d309) | What is said in the room stands on a plate near its speaker with a small next mark; a press on a room object during a line closes the line and does what was pressed, and the teacher waits in the doorway until her check-up is played | ft_1_27, ft_1_34 |
+| [d310](game.md#d310) | A shut place on the map is pressable and its name bubble says when it opens: "opens at level N" from its level in `content/world/keri.json`, or "not open yet" for a place the maintainer has closed | ft_1_19, ft_1_18 |
+| [d311](art.md#d311) | Outdoors (the map and Keri's places) the faded corner door and gear stand on a dark plate that does not fade | ft_1_20 |
 <!-- /docs:index -->

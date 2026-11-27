@@ -5,7 +5,7 @@
  */
 import type { DayString, PieceId } from '../contracts';
 import type { Curriculum } from '../curriculum/curriculum';
-import type { EvaluationRules } from '../curriculum/evaluate';
+import { dayNumber, type EvaluationRules } from '../curriculum/evaluate';
 import { runScore, wholePiecePlays } from '../curriculum/fromLog';
 import type { PieceStatus } from '../curriculum/play';
 import type { PracticeLog } from '../progression/practiceLog';
@@ -63,8 +63,21 @@ export function roomTalk(input: RoomTalkInput): RoomTalk {
   const boat = teacherBoat(day, teacherDays(owed, day), input.presenceRules);
   const today = boat?.progress === 1 ? (checkup !== null ? boat : next !== null ? { progress: TODAY_COMING } : null) : boat;
   const heads = headsUps({}, today);
-  const kiur = kiurSays({ occasion: input.occasion, advice, remindedToday: input.remindedToday, headsUps: heads, visit: input.visit, minPlays: input.minPlays });
-  return { kiur, checkup, next };
+  const said = kiurSays({ occasion: input.occasion, advice, remindedToday: input.remindedToday, headsUps: heads, visit: input.visit, minPlays: input.minPlays });
+  return { kiur: overdue(said, curriculum, day), checkup, next };
+}
+
+/**
+ * A reminder of a piece whose deadline has passed is followed by how long ago it was, so it does not read the same weeks
+ * later (AX-2.1: the measured fact, no blame). AX-3 provisional: the wording.
+ */
+function overdue(lines: readonly KiurLine[], curriculum: Curriculum, day: DayString): KiurLine[] {
+  return lines.flatMap((l) => {
+    const deadline = l.line.startsWith('kiur.remind.') ? curriculum.pieces.find((p) => p.piece === l.piece)?.deadline : undefined;
+    const days = deadline === undefined ? 0 : dayNumber(day) - dayNumber(deadline);
+    if (days <= 0) return [l];
+    return [l, days === 1 ? { line: 'kiur.remind.overdueOne', params: {} } : { line: 'kiur.remind.overdue', params: { days } }];
+  });
 }
 
 /** Whether these lines hold a reminder, so the caller counts Kiur as having reminded today (a heads-up does not count). */

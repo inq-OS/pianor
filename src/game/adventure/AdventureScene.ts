@@ -99,6 +99,7 @@ const DEMO_CAST: readonly { actor: string; state: ActorState }[] = [
  */
 export class AdventureScene extends PixelScene {
   protected override keyboardNavigation = true;
+  protected override cornerPlates = true;
   private look: SceneLook | null = null;
   /** Shown by the screensaver (ft_1_17.AC4): any input goes back to the room, and Back does too. */
   private visiting = false;

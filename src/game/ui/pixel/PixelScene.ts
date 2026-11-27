@@ -8,7 +8,7 @@ import { rectCentre, type Rect } from '../../../core/layout/rect';
 import { dropMenuLayout } from '../../../core/layout/dropMenu';
 import { t } from '../../../core/text/strings';
 import { clipToWidth } from '../../../core/text/clip';
-import { initialFocus, moveFocus, refocus, type FocusMove } from '../../../core/layout/focus';
+import { cycleFocus, initialFocus, moveFocus, refocus, type FocusMove } from '../../../core/layout/focus';
 import { panelBitmap } from './frames';
 import { ICONS } from './iconArt';
 import { TOOL_ICONS } from './toolArt';
@@ -26,7 +26,7 @@ import { CARD_PALETTE, RIBBON_TAIL, paintCard, paintRibbon } from './paint/card'
 import { BOOK_PALETTE, REGISTER_PALETTE, paintBook } from './paint/book';
 import { RULING_PALETTE, inkField, paintRuling } from './paint/register';
 import { REGISTER, registerLayout, type RegisterLayout } from '../../../core/layout/register';
-import { contextOf } from '../../context';
+import { contextOf, MIDI_CHANGED } from '../../context';
 import { motionAllowed } from '../../motion';
 import { measure, drawnText, wrap } from './font';
 import type { WindWay } from './paint/motion';
@@ -120,6 +120,11 @@ const CELL_PAD = 4;
  * hovered, faded when not); full while the pointer or the keyboard focus is on them. AX-3 provisional: the exact amount.
  */
 const CORNER_FADED = 0.45;
+/**
+ * Outdoors (`cornerPlates`) the corner pictures stand on a dark plate that does not fade, so the way back shows on the blue
+ * sea and sky at every hour. AX-3 provisional: the plate's strength.
+ */
+const CORNER_PLATE_ALPHA = 0.7;
 
 /** One choice in a drop-down menu (`openMenu`): a picture with its name as the tooltip, or a short label. */
 export interface MenuItem {
@@ -267,6 +272,20 @@ export abstract class PixelScene extends Phaser.Scene {
   protected buttons: PixelButton[] = [];
   /** Menu-like screens set this to let the keyboard move between buttons (arrows), press one (Enter, Space) and go back (Esc). */
   protected keyboardNavigation = false;
+  /**
+   * A screen of scattered objects (the room, the map) sets this: left and right step through every button across the screen
+   * (`cycleFocus`), so none is out of the arrows' reach; up and down still move to the nearest. Not while a menu is open.
+   */
+  protected focusCycle = false;
+  /** An outdoor screen (the map, Keri's places) sets this: the corner door and gear stand on a dark plate (`CORNER_PLATE_ALPHA`). */
+  protected cornerPlates = false;
+  /** The corner buttons in a step through the screen (`focusCycle`): the way back first, the right corner's last. */
+  private cornerGroups = new Map<PixelButton, -1 | 1>();
+  /**
+   * A screen the student comes back to between plays (the room, the map) sets this: while no piano is connected a small
+   * dim piano shows left of the gear (`cornerStatus`), its tooltip saying what to do; nothing while one is.
+   */
+  protected pianoSign = false;
   /** Index into `buttons` of the focused button, or -1. The ring shows only after the first navigation key. */
   protected focusIndex = -1;
   private focusShown = false;
@@ -619,6 +638,12 @@ export abstract class PixelScene extends Phaser.Scene {
       this.scale.off('resize', rebuild);
       this.teardown();
     });
+    // the piano's sign follows the piano being plugged in and out
+    if (this.pianoSign) {
+      const changed = () => { if (this.sys.isActive()) this.redraw(); };
+      this.game.events.on(MIDI_CHANGED, changed);
+      this.events.once('shutdown', () => this.game.events.off(MIDI_CHANGED, changed));
+    }
     // handled navigation keys stop in `onNavigationKey`, so the arrows do not also shift the computer keyboard's octave
     if (this.keyboardNavigation) this.onWindowKey((e) => this.onNavigationKey(e));
     this.rebuild();
@@ -777,7 +802,10 @@ export abstract class PixelScene extends Phaser.Scene {
     if (!move && !activate) return;
     e.preventDefault();
     e.stopImmediatePropagation();
-    const rects = () => this.focusables().map((b) => ({ ...b.rect, disabled: b.disabled }));
+    const rects = () => this.focusables().map((b) => {
+      const group = this.cornerGroups.get(b);
+      return { ...b.rect, disabled: b.disabled, ...(group ? { group } : {}) };
+    });
     // the first key only shows where the focus is, so it never presses or moves anything by surprise
     if (!this.focusShown) {
       this.focusShown = true;
@@ -786,7 +814,8 @@ export abstract class PixelScene extends Phaser.Scene {
       return;
     }
     if (move) {
-      this.focusIndex = moveFocus(rects(), this.focusIndex, move);
+      const across = this.focusCycle && !this.menuOpen && (move === 'left' || move === 'right');
+      this.focusIndex = across ? cycleFocus(rects(), this.focusIndex, move === 'right' ? 1 : -1) : moveFocus(rects(), this.focusIndex, move);
       this.paintFocus();
     } else {
       this.focusables()[this.focusIndex]?.press();
@@ -805,7 +834,9 @@ export abstract class PixelScene extends Phaser.Scene {
 
   /** Make a button and keep it, so it is removed when the scene is drawn again. */
   protected button(options: PixelButtonOptions): PixelButton {
-    const button = new PixelButton(this, this.root, options);
+    // a picture's name under the corner buttons never covers them (the door's name over the gear)
+    const top = options.picture && this.bandShown && options.tooltipTop === undefined ? { tooltipTop: this.cornerStrip.rows } : {};
+    const button = new PixelButton(this, this.root, { ...options, ...top });
     this.buttons.push(button);
     return button;
   }
@@ -1042,7 +1073,8 @@ export abstract class PixelScene extends Phaser.Scene {
 
   /** A status picture left of the gear (the piano on the practice screen): lit while all is well, what it means in its tooltip; none by default. */
   protected cornerStatus(): { label: string; icon: Bitmap; lit: boolean } | null {
-    return null;
+    if (!this.pianoSign || contextOf(this).midi?.getStatus().state === 'connected') return null;
+    return { label: t(contextOf(this).keyboardSwitch.shown() ? 'midi.notConnected' : 'midi.notConnectedHidden'), icon: ICONS.freePlay, lit: false };
   }
 
   /** The strip's rows on this screen (none without a strip). */
@@ -1076,7 +1108,14 @@ export abstract class PixelScene extends Phaser.Scene {
     // over the staff too: a screen whose staff fills the main area (practice, the piece maker) would hide them
     const layer = this.overStaff();
     const touch = this.sys.game.device.input.touch && !this.sys.game.device.os.desktop;
+    // the plate hugs the picture, two pixels round it, centred in its corner as the picture is
+    const plate = (r: Rect, icon: Bitmap): void => {
+      if (!this.cornerPlates) return;
+      const w = icon.width + 4, h = icon.height + 4;
+      layer.add(new PixelImage(this, r.x + Math.floor((r.w - w) / 2), r.y + Math.floor((r.h - h) / 2), cornerPlate(w, h)).setAlpha(CORNER_PLATE_ALPHA).setName('cornerPlate'));
+    };
     const corner = (r: Rect, label: string, icon: Bitmap, onClick: () => void): PixelButton => {
+      plate(r, icon);
       // the picture alone, no button behind it; never faded on a touch screen, which has no hover to show it
       const button: PixelButton = this.buttonOn(layer, { ...rectCentre(r), label, picture: icon, onHover: (over) => button.setAlpha(over || touch ? 1 : CORNER_FADED), onClick });
       button.setAlpha(touch ? 1 : CORNER_FADED);
@@ -1086,14 +1125,19 @@ export abstract class PixelScene extends Phaser.Scene {
     const back = this.hasBack ? corner(corners.back, t('ui.back'), ICONS.quit, () => (this.backAction ?? (() => this.back()))()) : null;
     const showSettings = this.scene.key !== 'settings' && this.toolbarPlayer;
     const settings = showSettings ? corner(corners.settings, t('menu.settingsButton'), ICONS.settings, () => this.openSettingsScreen()) : null;
+    this.cornerGroups = new Map();
+    if (back) this.cornerGroups.set(back, -1);
+    if (settings) this.cornerGroups.set(settings, 1);
     let left = corners.settings.x;
     const status = this.cornerStatus();
     if (status) {
       left -= corners.settings.w + BACKPACK_GAP;
       const r = { ...corners.settings, x: left };
+      plate(r, status.icon);
       // a picture, not a button: it does nothing when pressed, its tooltip says what it means
-      const shown = this.buttonOn(layer, { ...rectCentre(r), label: status.label, tooltip: status.label, picture: status.lit ? status.icon : recolor(status.icon, { [C.white]: C.lock }), onClick: () => undefined });
+      const shown: PixelButton = this.buttonOn(layer, { ...rectCentre(r), label: status.label, tooltip: status.label, picture: status.lit ? status.icon : recolor(status.icon, { [C.white]: C.lock }), onClick: () => undefined });
       shown.setAlpha(status.lit ? 1 : CORNER_FADED);
+      this.cornerGroups.set(shown, 1);
     }
     const kept = this.backpackItems();
     if (kept) {
@@ -1115,6 +1159,7 @@ export abstract class PixelScene extends Phaser.Scene {
           this.openMenu(bag, choices, { cell: items.length && !named ? { w: 30, h: 30 } : { w: lineWidth, h: 15 }, columns, open: 'below' });
         },
       });
+      this.cornerGroups.set(bag, 1);
     }
     this.toolbarButtons = { ...this.toolbarButtons, back, settings };
   }
@@ -1664,7 +1709,7 @@ export abstract class PixelScene extends Phaser.Scene {
   }
 
   /** The pointer in art pixels, as the buttons and the band are laid out. */
-  private artPoint(pointer: { x: number; y: number }): { x: number; y: number } {
+  protected artPoint(pointer: { x: number; y: number }): { x: number; y: number } {
     return { x: (pointer.x - this.root.x) / this.px.scale, y: (pointer.y - this.root.y) / this.px.scale };
   }
 
@@ -1833,4 +1878,16 @@ function inkOf(color: number): number {
   if (color === C.white || color === C.cream || color === C.dim) return C.featherStreak;
   if (color === C.gold || color === C.goldLight || color === C.orange) return C.redDark;
   return color;
+}
+
+/** The dark plate under a corner picture outdoors: night-blue ink with its corners cut, so it reads as a small rounded plate. */
+function cornerPlate(w: number, h: number): Bitmap {
+  const plate = createBitmap(w, h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const corner = (x === 0 || x === w - 1) && (y === 0 || y === h - 1);
+      if (!corner) plate.pixels[y * w + x] = C.ink;
+    }
+  }
+  return plate;
 }

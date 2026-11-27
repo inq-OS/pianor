@@ -26,6 +26,9 @@ export const strings = {
   'hand.LH': 'Left hand',
   'hand.both': 'Both hands',
   'menu.noPieces': 'No pieces yet.',
+  // the piece book opened from Kiur says what the pick is for, on the strip at its foot
+  'menu.forKiur.tug': "Pick a piece for Kiur's tug",
+  'menu.forKiur.learn': 'Pick a piece to learn with Kiur',
   'menu.noneLearned': 'No piece is learned yet. Press Kiur and pick Learn first.',
   'menu.allOff': 'All pieces are off. Turn some on in Settings.',
   'menu.xp': '{xp} / {next} XP',
@@ -39,6 +42,9 @@ export const strings = {
   'map.scene.docks': 'The jetty',
   'map.scene.port': 'The harbor',
   'map.scene.terrace': 'The terrace',
+  // a place on the map the player's level has not opened yet: its name bubble says when it opens
+  'map.opensAt': '{place}: opens at level {level}',
+  'map.notOpenYet': '{place}: not open yet',
   // the harbour's two views (ft_1_19): a press on the water dives under it, a press near the top rises again
   'scene.dive': 'Dive in',
   'scene.rise': 'Back up',
@@ -54,6 +60,12 @@ export const strings = {
   'room.kiur.learnFirst': 'We tug {piece} once you have learned it. Press me and pick Learn.',
   // the player's card behind the shield in the room (ft_1_20.AC13): the shield's name and the card's lines
   'room.shield': 'Your card',
+  // the teacher in the doorway while her check-up waits (ft_1_27.AC2): a press starts it
+  'room.teacher': 'Teacher',
+  // the corner Back in the room asks before the player list
+  'room.leave.ask': 'Change player?',
+  'room.leave.yes': 'Yes',
+  'room.leave.no': 'No',
   'card.close': 'Close',
   'card.xp': 'XP',
   'card.pieces': 'Pieces played',
@@ -1057,7 +1069,9 @@ export const strings = {
   'kiur.headsUp.teacher.landed': "The teacher's boat has landed. She is waiting for you at the piano.",
   'kiur.remind.trend': "{piece}: at this pace it will be {gap} under the goal by the deadline.",
   'kiur.remind.now': "{piece}: {gap} under the goal.",
-  'kiur.remind.unmeasured': "{piece}: {plays} of {need} {need|play|plays} so far. Then we can see how it goes.",
+  'kiur.remind.unmeasured': "{piece}: {plays} of {need} {need|play|plays} so far. After {need} I can say how close you are.",
+  'kiur.remind.overdue': 'The deadline was {days} days ago.',
+  'kiur.remind.overdueOne': 'The deadline was yesterday.',
   'kiur.shoulder': "{piece}: {gap} under the goal by the deadline. Shall we go to the piano?",
   // The teacher's check-up (ft_1_27.AC2; WP-15). {piece} is the piece's title.
   'teacherSays.arrive': "{days} days to the deadline. Play this for me: {piece}.",

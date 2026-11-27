@@ -604,3 +604,27 @@ Check: `tests/e2e/tug.spec.ts` "the corner Back is pressable over the tug and le
 A space or hyphen is never first, never next to another and is dropped from the end on Done, so Mari-Liis, Anna Maria and William can be typed and two names never differ by spaces alone. The plate asks the question over the name, so a student or a parent on a new install knows what goes there.
 
 Check: `src/core/text/nameEntry.test.ts` "ft_1_07.AC6 keeps a space or a hyphen between letters, never at the start and never two in a row"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 a name takes Q, W and one space or hyphen between letters, and drops one left at its end"
+
+## d308
+
+**In the room Esc never leaves for the player list; the corner Back asks "Change player?" once, with Yes and No, before going there.** Features: ft_1_07, ft_1_20.
+
+Esc in the room only closes what is open over it (a line, a panel, the question), so a chain of Esc from a scene ends in the room; the painted door stays the way out to the map. No is the keyboard's first answer, and Esc or a press beside the question answers No. A child who wants to go out never lands on the player list by one press.
+
+Check: `tests/e2e/room.spec.ts` "Esc never takes the room to the player list, and the corner Back asks Change player? where No or Esc stays and Yes leaves"
+
+## d309
+
+**What is said in the room stands on a plate near its speaker with a small next mark; a press on a room object during a line closes the line and does what was pressed, and the teacher waits in the doorway until her check-up is played.** Features: ft_1_27, ft_1_34.
+
+A press elsewhere, Space or Enter turns the line; the telephone's message is said beside the telephone; a line keeps below the corner buttons. Leaving her line or Kiur's (Esc, or a press on an object) keeps the teacher in the doorway, and a press on her starts the check-up. The room's speech is over a busy picture, and a child going for the door must reach it.
+
+Check: `tests/e2e/room.spec.ts` "ft_1_27.AC2 Esc on Kiur's reminder on the deadline day leaves the teacher waiting in the doorway, and a press on her starts the check-up"; `tests/e2e/room.spec.ts` "a press on the door while Kiur speaks closes his line and opens the map, and a press beside the objects turns the line"; `tests/e2e/room.spec.ts` "the telephone's message is said on a plate beside the telephone"
+
+## d310
+
+**A shut place on the map is pressable and its name bubble says when it opens: "opens at level N" from its level in `content/world/keri.json`, or "not open yet" for a place the maintainer has closed.** Features: ft_1_19, ft_1_18.
+
+The bubble shows on hover, with the keyboard focus and on a press; a press opens nothing. A closed place gets no level, because no level opens it (AX-2.1: no promise the game does not keep).
+
+Check: `src/core/world/openScenes.test.ts` "ft_1_19.AC2 a scene shut by the level says the level that opens it, and one the maintainer has closed says only that it is not open yet"; `tests/e2e/room.spec.ts` "ft_1_19.AC2 a press on a shut place on the map says it is not open yet, and opens nothing"

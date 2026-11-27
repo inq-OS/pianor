@@ -12,6 +12,8 @@ export interface FocusRect {
   width: number;
   height: number;
   disabled?: boolean;
+  /** In a step through the screen (`cycleFocus`): -1 before the rest (the way back in its corner), 1 after it (the corners on the right). */
+  group?: -1 | 1;
 }
 
 const centre = (r: FocusRect) => ({ x: r.x + r.width / 2, y: r.y + r.height / 2 });
@@ -68,6 +70,19 @@ export function moveFocus(rects: readonly FocusRect[], current: number, move: Fo
   });
   if (best >= 0) return best;
   return wrap && far >= 0 ? far : current;
+}
+
+/**
+ * The index focused after one step (`1` on, `-1` back) through every enabled button in order across the screen: by its
+ * `group`, then the centre's x, then its y, wrapping at the ends. For a screen of scattered objects (the room, the map), where the nearest
+ * button in a direction can leave some unreachable. With no valid current focus the first enabled button is chosen.
+ */
+export function cycleFocus(rects: readonly FocusRect[], current: number, step: 1 | -1): number {
+  const from = rects[current];
+  if (from === undefined || !enabled(from)) return initialFocus(rects);
+  const order = rects.map((r, i) => ({ i, c: centre(r), on: enabled(r) })).filter((r) => r.on).sort((a, b) => (rects[a.i]!.group ?? 0) - (rects[b.i]!.group ?? 0) || a.c.x - b.c.x || a.c.y - b.c.y);
+  const at = order.findIndex((r) => r.i === current);
+  return order[(at + step + order.length) % order.length]!.i;
 }
 
 /**
