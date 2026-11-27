@@ -1,9 +1,9 @@
 import type Phaser from 'phaser';
 import { ART_DETAIL } from '../core/layout/frame';
-import { NAME_LETTERS, NAME_MAX, deleteLetter, nameFrom, typeLetter } from '../core/text/nameEntry';
+import { NAME_LETTERS, NAME_MAX, NAME_SEPARATORS, deleteLetter, finishedName, nameFrom, typeLetter } from '../core/text/nameEntry';
 import { t } from '../core/text/strings';
 import { createBitmap } from './ui/pixel/bitmap';
-import { drawnText, measure } from './ui/pixel/font';
+import { LINE_HEIGHT, drawnText, measure, wrap } from './ui/pixel/font';
 import { C } from './ui/pixel/palette';
 import { BOOK_PALETTE, paintCover } from './ui/pixel/paint/book';
 import { paintedOnce } from './ui/pixel/paintedOnce';
@@ -26,8 +26,12 @@ const BOTTOM_FROM_FOOT = BOTTOM_HEIGHT / 2 + 13;
 const ACTION_WIDTH = 40;
 /** The closed book's left edge (its spine) from the screen's side, in cells; it is as far in on the right. */
 const COVER_X = 6;
-/** Room on the plate under the name for why a name was refused, in cells. */
-const REASON_ROOM = 10;
+/** Room on the plate over the name for its question ("Your name?"), in cells. */
+const QUESTION_ROOM = 10;
+/** Room on the plate under the name for one line of why a name was refused, in cells; a longer reason makes the plate taller. */
+const REASON_ROOM = 12;
+/** The gap between the name's foot and the reason, in cells. */
+const REASON_GAP = 3;
 
 /** What the picker asks, and what happens to the typed name. */
 export interface NameData {
@@ -43,7 +47,8 @@ export interface NameData {
 
 /**
  * A name box a student can use (ft_1_07, AC6): the name is typed on the computer keyboard into a big box with a red caret,
- * with a delete button and a done button; only the letters of `NAME_LETTERS` are taken. The name is typed here, never in
+ * with a delete button and a done button; only the letters of `NAME_LETTERS` are taken, with a space or hyphen between
+ * them, and the plate asks "Your name?" over it. The name is typed here, never in
  * the browser's box. Done hands the name to `save`, which leaves on success or says why the
  * name was refused (shown between the bottom buttons); Back leaves without saving. Used to rename a player (admin) and to
  * name a new one (ft_1_07.AC10). The letters and the length rule live in `core/text/nameEntry`.
@@ -153,7 +158,7 @@ export class NameScene extends PixelScene {
       e.stopImmediatePropagation();
       return;
     }
-    if (!NAME_LETTERS.includes(letter) && e.key !== 'Backspace' && !done) return;
+    if (!NAME_LETTERS.includes(letter) && !NAME_SEPARATORS.includes(letter) && e.key !== 'Backspace' && !done) return;
     e.preventDefault();
     e.stopImmediatePropagation();
     if (done) this.finish();
@@ -169,18 +174,26 @@ export class NameScene extends PixelScene {
     // the piano holds, closed
     const fieldW = Math.min(width - 2 * MARGIN, NAME_MAX * BIG_LETTER + 2 * FIELD_PAD);
     const left = Math.round((width - fieldW) / 2) + FIELD_PAD;
-    const fieldY = Math.round((height - FIELD_HEIGHT) / 2) - FIELD_PAD;
+    // why the name was refused stands under it on the plate, one line or more: the plate grows to hold them all
+    const reasonWidth = fieldW - 2 * FIELD_PAD;
+    const reasonLines = this.refused ? Math.max(1, wrap(drawnText(this.refused), reasonWidth).length) : 1;
+    const plateH = QUESTION_ROOM + FIELD_HEIGHT + REASON_ROOM + (reasonLines - 1) * LINE_HEIGHT;
+    // the plate's top: the name's box (the field) stands under the question
+    const plateY = Math.round((height - plateH) / 2) - FIELD_PAD;
+    const fieldY = plateY + QUESTION_ROOM + FIELD_PAD;
     const fine = (v: number) => v * ART_DETAIL;
     // a massive book, too big for the desk: its foot runs off the bottom of the screen
     const cover = { x: COVER_X, y: SHEET.y, w: width - 2 * COVER_X, h: height - SHEET.y };
-    const plate = { x: fine(left - FIELD_PAD - cover.x), y: fine(fieldY - FIELD_PAD - cover.y), w: fine(fieldW), h: fine(FIELD_HEIGHT + REASON_ROOM) };
+    const plate = { x: fine(left - FIELD_PAD - cover.x), y: fine(plateY - cover.y), w: fine(fieldW), h: fine(plateH) };
     this.fineImage(fine(cover.x), fine(cover.y), paintedOnce(`cover:${fine(cover.w)}x${fine(cover.h)}:${plate.x},${plate.y},${plate.w},${plate.h}`, () => paintCover(fine(cover.w), fine(cover.h), plate)), BOOK_PALETTE);
-    this.placeField(left - FIELD_PAD, fieldY - FIELD_PAD, fieldW, FIELD_HEIGHT);
+    this.placeField(left - FIELD_PAD, plateY, fieldW, plateH);
     this.inkWriting = true;
-    // the name stands in the middle of the plate, as a name on a book's label does; raised when a reason is written under it
+    // the plate asks for the name, so a young student or a parent on a new install knows what goes there
+    this.label(0, plateY + FIELD_PAD, t('name.question'), C.dim).centerAt(width / 2);
+    // the name stands in the middle of the plate, as a name on a book's label does
     const typedW = this.typed ? measure(drawnText(this.typed)) * 2 : 0;
     const nameX = Math.round(width / 2 - typedW / 2);
-    const nameY = this.refused ? fieldY : fieldY - FIELD_PAD + Math.round((FIELD_HEIGHT + REASON_ROOM - BIG_CAPS) / 2);
+    const nameY = fieldY;
     if (this.typed) this.label(nameX, nameY, this.typed, C.white, { big: true });
     const caret = createBitmap(fine(1), fine(BIG_CAPS));
     caret.pixels.fill(C.redDark);
@@ -193,8 +206,7 @@ export class NameScene extends PixelScene {
     // with the band (ft_1_20 rule 1) Delete and Done are its actions
     const [del, done] = this.actions();
     if (!band) this.button({ x: MARGIN + ACTION_WIDTH / 2, y: bottomY, width: ACTION_WIDTH, height: BOTTOM_HEIGHT, look: 'ink', inkBox: true, iconOnly: true, ...del! });
-    // why the name was refused stands under the box
-    if (this.refused) this.label(left, fieldY + FIELD_HEIGHT - 2, this.refused, C.dim, { maxWidth: fieldW - 2 * FIELD_PAD });
+    if (this.refused) this.label(left, nameY + BIG_CAPS + REASON_GAP, this.refused, C.gold, { maxWidth: reasonWidth }).centerAt(width / 2);
     if (!band) this.button({ x: width - MARGIN - ACTION_WIDTH / 2, y: bottomY, width: ACTION_WIDTH, height: BOTTOM_HEIGHT, look: 'ink', inkBox: true, iconOnly: true, ...done! });
   }
 
@@ -227,6 +239,9 @@ export class NameScene extends PixelScene {
   private finish(): void {
     if (!this.request || this.saving) return;
     this.saving = true;
+    // a space or hyphen left at the end is no part of the name
+    this.typed = finishedName(this.typed);
+    if (this.field) this.field.value = this.typed;
     void this.request.save(this, this.typed)
       .catch(() => t('admin.failed'))
       .then((refused) => {

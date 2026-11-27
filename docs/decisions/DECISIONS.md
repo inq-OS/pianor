@@ -285,4 +285,5 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d303](game.md#d303) | The theory lesson book lists everything there is to learn, built or not: a topic with no lesson yet stands in it as a ghosted placeholder with its name only | ft_1_39 |
 | [d304](game.md#d304) | Kiur teaches the theory lessons in at most twelve stoic words a step, naming and pointing rather than describing; the first lessons are half steps, whole steps and the major scale | ft_1_39 |
 | [d305](game.md#d305) | The theory lessons' order is a skill tree of prerequisites over the catalog ids, cut into stages, with nothing locked | ft_1_39 |
+| [d306](game.md#d306) | A player's name takes the Estonian letters with Q, W, X and Y, and one space or hyphen between letters; the name box asks "Your name?" | ft_1_07 |
 <!-- /docs:index -->

@@ -4,7 +4,7 @@
 // buttons and the paths it did not reach.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene } from './helpers';
+import { addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, textBox, boxInside, typeName, waitForScene } from './helpers';
 
 /** The main menu: from the piece list, the room's Quit goes there (`goToMainMenu`). */
 const openProfiles = async (page: Page) => {
@@ -94,7 +94,7 @@ test.describe('main menu (ft_1_07.AC2)', () => {
     const before = await profileCount(page);
     await clickButton(page, 'profiles', await profileButton(page, 'New player'));
     await typeName(page, 'VINT');
-    await expect.poll(() => sceneTexts(page, 'name')).toContain('Another player has this name.');
+    await expect.poll(() => sceneTexts(page, 'name')).toContain('This name is taken.');
     expect(await profileCount(page)).toBe(before);
     await clickToolbar(page, 'back'); // the door (ft_1_20)
     await waitForScene(page, 'profiles');
@@ -296,6 +296,46 @@ test.describe('admin page (ft_1_07.AC6)', () => {
     await waitForScene(page, 'admin');
     expect(await playerName(page)).toBe('MÕRI');
     expectNoErrors(errors);
+  });
+
+  test('ft_1_07.AC6 a name takes Q, W and one space or hyphen between letters, and drops one left at its end', async ({ page }) => {
+    const errors = await openGame(page);
+    await openProfiles(page);
+    await clickButton(page, 'profiles', await profileButton(page, 'New player'));
+    await waitForScene(page, 'name');
+    // the plate asks what goes on it
+    expect(await sceneTexts(page, 'name')).toContain('Your name?');
+    await page.keyboard.type('mari--liis');
+    await expect.poll(() => sceneTexts(page, 'name')).toContain('MARI-LIIS');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'profile');
+    expect(await playerName(page)).toBe('MARI-LIIS');
+    await clickToolbar(page, 'back');
+    await waitForScene(page, 'profiles');
+    await clickButton(page, 'profiles', await profileButton(page, 'New player'));
+    await waitForScene(page, 'name');
+    await page.keyboard.type(' william ');
+    await expect.poll(() => sceneTexts(page, 'name')).toContain('WILLIAM ');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'profile');
+    expect(await playerName(page)).toBe('WILLIAM');
+    expectNoErrors(errors);
+  });
+
+  test('a refused name says why on the name plate, inside its frame, in both languages', async ({ page }) => {
+    for (const lang of ['en', 'et'] as const) {
+      const errors = await openGame(page, '?device=virtual', lang, 'profiles');
+      await clickButton(page, 'profiles', 4); // the "+" on the line after the four players
+      await waitForScene(page, 'name');
+      await typeName(page, 'VINT');
+      const reason = lang === 'en' ? 'This name is taken.' : 'See nimi on juba kasutusel.';
+      await expect.poll(() => sceneTexts(page, 'name')).toContain(reason);
+      const plate = (await page.locator('#name-field').boundingBox())!;
+      const cell = (await page.locator('canvas').boundingBox())!.width / 320;
+      const inside = { x: plate.x + 2 * cell, y: plate.y + 2 * cell, width: plate.width - 4 * cell, height: plate.height - 4 * cell };
+      for (const text of [reason, lang === 'en' ? 'Your name?' : 'Sinu nimi?', 'VINT']) expect(boxInside((await textBox(page, 'name', text))!, inside), `${lang}: ${text}`).toBe(true);
+      expectNoErrors(errors);
+    }
   });
 
   test('a blank name is refused on the picker and the player keeps the old name', async ({ page }) => {

@@ -184,6 +184,7 @@ export const stringsEt: Record<StringKey, string> = {
   'admin.renameAsk': 'Uus nimi:',
   'name.delete': 'KUSTUTA',
   'name.done': 'VALMIS',
+  'name.question': 'Sinu nimi?',
   'admin.renamed': 'Nimi muudetud.',
   'admin.nameBlank': 'Nimi ei tohi olla tühi.',
   'admin.delete': 'Kustuta mängija',

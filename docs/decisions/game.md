@@ -513,7 +513,7 @@ Check: `src/core/editor/entryPrefs.test.ts` "ft_1_02d.AC34 the cursor following 
 
 **A name is typed on the computer keyboard into the game's name box; the box has no letter buttons.** Features: ft_1_07.
 
-The box is big, with a red caret where the next letter goes, and takes only the Estonian name letters, up to 12; Backspace deletes and Enter is Done, and Delete and Done stay as picture buttons. A see-through text field lies over the box and is focused, so a tablet's own keyboard comes up on a tap and types into it; the game draws the name and keeps only the name letters.
+The box is big, with a red caret where the next letter goes, and takes only the name letters (d306), up to 12; Backspace deletes and Enter is Done, and Delete and Done stay as picture buttons. A see-through text field lies over the box and is focused, so a tablet's own keyboard comes up on a tap and types into it; the game draws the name and keeps only the name letters.
 
 Check: `src/core/text/nameEntry.test.ts` "ft_1_07.AC6 keeps the name letters in capitals, drops anything else and stops at the longest name"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 a tablet types into the see-through field over the name box: it is focused, keeps only name letters and its caret stays at the end"
 
@@ -588,3 +588,11 @@ Check: untestable: lesson wording and order are content; ft_1_39's lesson linter
 A lesson is ready once every lesson it needs has a medal, and the suggested next lesson is the ready one in the lowest stage; the book stays sorted by area as the map of everything. A tree gives a curriculum that mixes subjects in a sensible order while the student may still open any lesson.
 
 Check: untestable: the tree becomes data with slice 2 of ft_1_39, whose loop check and ready rule get their tests then.
+
+## d306
+
+**A player's name takes the Estonian letters with Q, W, X and Y, and one space or hyphen between letters; the name box asks "Your name?".** Features: ft_1_07.
+
+A space or hyphen is never first, never next to another and is dropped from the end on Done, so Mari-Liis, Anna Maria and William can be typed and two names never differ by spaces alone. The plate asks the question over the name, so a student or a parent on a new install knows what goes there.
+
+Check: `src/core/text/nameEntry.test.ts` "ft_1_07.AC6 keeps a space or a hyphen between letters, never at the start and never two in a row"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 a name takes Q, W and one space or hyphen between letters, and drops one left at its end"
