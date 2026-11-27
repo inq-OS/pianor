@@ -402,7 +402,7 @@ export class PracticeScene extends PixelScene {
     this.waitForStart = data.waitForStart === true;
     this.initialMissedBars = data.missedBars ?? 0;
     // while it plays the piece Kiur says nothing: the staff and the sound are the message (the clean-screen rule)
-    this.startMessage = this.listening ? '' : data.emptyPass ? t('practice.emptyPass') : data.wrap ? this.lapMessage(data) : this.resetStart ? '' : this.openingLine(data, looping);
+    this.startMessage = this.listening ? '' : data.wrap ? this.lapMessage(data) : this.resetStart ? '' : this.openingLine(data, looping);
     // the summary is said once, not again after a later restart
     // the wrap, the step-up note and the summary belong to this start only: a later restart (a tempo change, Whole
     // piece) must not wrap on from an old time or say them again
@@ -428,6 +428,8 @@ export class PracticeScene extends PixelScene {
    */
   private openingLine(data: PracticeData, looping: boolean): string {
     if (this.learn) return '';
+    // an empty Tempo pass (core_01 rule 22): the one fact, so the start again does not look like a fault
+    if (data.emptyPass) return t('practice.emptyPass');
     return data.sectionSummary ?? (looping ? (data.passSummary ?? '') : t('practice.start'));
   }
 
