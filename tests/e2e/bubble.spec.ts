@@ -221,6 +221,29 @@ test.describe('the bubble and the strip (ft_1_20, d282)', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_Y_13 closing a bubble opened from the keyboard gives the focus back to what had it, or to nothing', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'practice', { chartId: 'little-steps' });
+    await waitForScene(page, 'practice');
+    // nothing had the focus: none after Esc
+    await page.keyboard.press('Shift+F10');
+    await expect.poll(() => bubbleOpen(page, 'practice')).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => bubbleOpen(page, 'practice')).toBe(false);
+    expect(await focusedLabel(page)).toBeNull();
+    // a worn option switched with Enter, then Esc: still none
+    await page.keyboard.press('Shift+F10');
+    await page.keyboard.press('ArrowLeft');
+    expect(await focusedLabel(page)).toBe('Fingers');
+    await page.keyboard.press('Enter');
+    await expect.poll(async () => (await practice(page)).fingers).toBe(true);
+    await expect.poll(() => bubbleOpen(page, 'practice')).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => bubbleOpen(page, 'practice')).toBe(false);
+    expect(await focusedLabel(page)).toBeNull();
+    expectNoErrors(errors);
+  });
+
   test('ft_1_20.AC19 the bubble stays whole on the screen when opened near a corner', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await startScene(page, 'practice', { chartId: 'little-steps' });

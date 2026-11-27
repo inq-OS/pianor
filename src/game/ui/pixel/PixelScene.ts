@@ -123,6 +123,9 @@ const CELL_PAD = 4;
 /** How solid the piano's status picture left of the gear is while no piano is connected. AX-3 provisional: the exact amount. */
 const STATUS_UNLIT = 0.45;
 
+/** The button that had the keyboard focus when a menu opened, by itself and by its label and place; null: none had it. */
+type FocusBefore = { button: PixelButton; label: string; rect: { x: number; y: number; width: number; height: number } } | null;
+
 /** One choice in a drop-down menu (`openMenu`): a picture with its name as the tooltip, or a short label. */
 export interface MenuItem {
   label: string;
@@ -277,7 +280,7 @@ export abstract class PixelScene extends Phaser.Scene {
   private visit = 0;
   /** The open drop-down menu, if any: its container and its choices (which are also in `buttons` while it is open). */
   /** The open menu; `previews` are its choices' previews, taken away when it closes (a closing menu sends no pointer-out). */
-  private menu: { container: Phaser.GameObjects.Container; buttons: PixelButton[]; focusBefore: number; bubble?: boolean; ring?: PixelButton[]; previews?: ((on: boolean) => void)[]; slider?: OpenSlider } | null = null;
+  private menu: { container: Phaser.GameObjects.Container; buttons: PixelButton[]; focusBefore: FocusBefore; bubble?: boolean; ring?: PixelButton[]; previews?: ((on: boolean) => void)[]; slider?: OpenSlider } | null = null;
   /** F1 in the piece maker: every band item with a key shows it in its corner. */
   protected shortcutsShown = false;
   /** The band's buttons by their key, as last drawn: a key opens its item's menu from the item. */
@@ -720,7 +723,7 @@ export abstract class PixelScene extends Phaser.Scene {
       if (item.shortcut) this.keyBadge(container, button, item.shortcut);
       buttons.push(button);
     });
-    this.menu = { container, buttons, focusBefore: this.focusIndex, previews: items.flatMap((item) => (item?.preview ? [item.preview] : [])) };
+    this.menu = { container, buttons, focusBefore: this.focusNow(), previews: items.flatMap((item) => (item?.preview ? [item.preview] : [])) };
     this.buttons.push(...buttons);
     // the keyboard starts on the choice in use
     if (this.keyboardNavigation) {
@@ -743,10 +746,37 @@ export abstract class PixelScene extends Phaser.Scene {
     this.buttons = this.buttons.filter((b) => !menu.buttons.includes(b));
     menu.buttons.forEach((b) => b.destroy());
     menu.container.destroy(true);
-    if (this.keyboardNavigation) {
-      this.focusIndex = menu.focusBefore;
-      this.paintFocus();
+    this.restoreFocus(menu.focusBefore);
+  }
+
+  /** What has the keyboard focus now, to give it back when a menu or the bubble closes. */
+  private focusNow(): FocusBefore {
+    const button = this.focusedButton;
+    return button ? { button, label: button.labelText, rect: button.rect } : null;
+  }
+
+  /**
+   * Gives the focus back to what had it before a menu or the bubble opened: the same button, or the one with its label
+   * nearest its place when the screen was drawn again meanwhile; with nothing focused before, nothing is focused after.
+   */
+  private restoreFocus(before: FocusBefore): void {
+    const all = this.focusables();
+    if (!before) {
+      this.focusShown = false;
+      this.focusIndex = -1;
+    } else {
+      let index = all.indexOf(before.button);
+      if (index < 0) {
+        const centre = (r: { x: number; y: number; width: number; height: number }) => ({ x: r.x + r.width / 2, y: r.y + r.height / 2 });
+        const c = centre(before.rect);
+        const named = all.map((b, i) => ({ b, i })).filter(({ b }) => b.labelText === before.label);
+        const distance = (b: PixelButton) => Math.hypot(centre(b.rect).x - c.x, centre(b.rect).y - c.y);
+        index = named.sort((p, q) => distance(p.b) - distance(q.b))[0]?.i ?? refocus(before.rect, all.map((b) => ({ ...b.rect, disabled: b.disabled })));
+      }
+      this.focusShown = index >= 0;
+      this.focusIndex = index;
     }
+    this.paintFocus();
   }
 
   private lastFocusRect: { x: number; y: number; width: number; height: number } | null = null;
@@ -1413,7 +1443,7 @@ export abstract class PixelScene extends Phaser.Scene {
    * there, each in its fixed slot; `open` shows that slot's choices in a row beside the ring. A pick does it and closes the
    * bubble; a worn option switches and opens the bubble again where it was; More in the last slot turns to the next options.
    */
-  openBubble(at: { x: number; y: number } | null, options: { open?: number; keyboard?: boolean; page?: number } = {}): void {
+  openBubble(at: { x: number; y: number } | null, options: { open?: number; keyboard?: boolean; page?: number; focus?: string } = {}): void {
     const target = at;
     const listed = [...(this.bubbleOptions(target) ?? [])];
     // the pinned actions the strip had no room for take the empty slots
@@ -1525,7 +1555,7 @@ export abstract class PixelScene extends Phaser.Scene {
     paging.slots.forEach((slot, i) => {
       const r = layout.options[i]!;
       if (slot === 'more') {
-        const turn = () => this.openBubble(at, { page: this.bubblePageNo + 1 });
+        const turn = () => this.openBubble(at, { page: this.bubblePageNo + 1, ...(options.keyboard ? { keyboard: true } : {}) });
         ring.push(make(r, { label: t('band.more'), icon: TOOL_ICONS.more, onClick: () => undefined }, turn));
         sectorPick[i] = turn;
         return;
@@ -1534,13 +1564,13 @@ export abstract class PixelScene extends Phaser.Scene {
       if (!item) return;
       const pick = () => {
         if (item.menu || item.slider) {
-          this.openBubble(at, options.open === i ? {} : { open: i });
+          this.openBubble(at, { ...(options.open === i ? {} : { open: i }), ...(options.keyboard ? { keyboard: true, focus: item.label } : {}) });
           return;
         }
         this.closeMenu();
         item.onClick();
         // a worn option leaves the bubble open, so several can be set in a row
-        if (item.worn) this.time.delayedCall(0, () => this.openBubble(at));
+        if (item.worn) this.time.delayedCall(0, () => this.openBubble(at, options.keyboard ? { keyboard: true, focus: item.label } : {}));
       };
       ring.push(make(r, item, pick, item.preview));
       if (!item.disabled) sectorPick[i] = pick;
@@ -1558,9 +1588,9 @@ export abstract class PixelScene extends Phaser.Scene {
     make(layout.close, { label: t('band.close'), icon: TOOL_ICONS.close, onClick: () => undefined }, () => this.closeMenu(), undefined, 'bubbleClose');
     for (const badge of badges) badge();
     const optionPreviews = paging.slots.flatMap((slot) => (typeof slot === 'number' && listed[slot]?.preview ? [listed[slot].preview] : []));
-    this.menu = { container, buttons, focusBefore: this.focusIndex, bubble: true, ring, previews: [...optionPreviews, ...choices.flatMap((choice) => (choice?.preview ? [choice.preview] : []))], ...(held.slider ? { slider: held.slider } : {}) };
+    this.menu = { container, buttons, focusBefore: this.focusNow(), bubble: true, ring, previews: [...optionPreviews, ...choices.flatMap((choice) => (choice?.preview ? [choice.preview] : []))], ...(held.slider ? { slider: held.slider } : {}) };
     this.buttons.push(...buttons);
-    if (options.keyboard || this.keyboardNavigation) this.focusOn(ring.find((b) => !b.disabled) ?? buttons[0]);
+    if (options.keyboard || this.keyboardNavigation) this.focusOn(ring.find((b) => !b.disabled && options.focus !== undefined && b.labelText === options.focus) ?? ring.find((b) => !b.disabled) ?? buttons[0]);
   }
 
   /**

@@ -344,6 +344,11 @@ export class PixelButton {
     this.objects.push(...extra);
   }
 
+  /** The button's label as it was given (an icon-only button keeps one too): what it is, across a redraw. */
+  get labelText(): string {
+    return this.options.label;
+  }
+
   /** The button's rectangle in art pixels, for placing things on it. */
   get rect(): { x: number; y: number; width: number; height: number } {
     return this.box;
