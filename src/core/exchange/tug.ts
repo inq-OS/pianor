@@ -178,7 +178,7 @@ const LOST_TUG_MIN_XP = 1;
  * What a tug pays (ft_1_21.AC8): a won tug the full prize; a lost one half the prize times the furthest standing reached
  * toward the character over `steps`, rounded down, and at least one XP (a lost challenge still earns XP, AX-1.1), never
  * taking anything away; leaving nothing. A practice tug with Kiur pays nothing either way (AC14).
- * AX-3 provisional: the one-XP floor of a loss. TODO(architect, R2): settle it with the other tug numbers.
+ * AX-3 provisional: the one-XP floor of a loss; TODO(architect, R2) in ft_1_21.
  */
 export function tugPrize(
   result: { readonly kind: ExchangeKind; readonly outcome: ExchangeResult['outcome']; readonly best: number },
