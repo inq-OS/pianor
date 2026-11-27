@@ -589,7 +589,7 @@ A lesson is ready once every lesson it needs has a medal, and the suggested next
 
 Check: untestable: the tree becomes data with slice 2 of ft_1_39, whose loop check and ready rule get their tests then.
 
-## d307
+## d308
 
 **In the room Esc never leaves for the player list; the corner Back asks "Change player?" once, with Yes and No, before going there.** Features: ft_1_07, ft_1_20.
 
@@ -597,7 +597,7 @@ Esc in the room only closes what is open over it (a line, a panel, the question)
 
 Check: `tests/e2e/room.spec.ts` "Esc never takes the room to the player list, and the corner Back asks Change player? where No or Esc stays and Yes leaves"
 
-## d308
+## d309
 
 **What is said in the room stands on a plate near its speaker with a small next mark; a press on a room object during a line closes the line and does what was pressed, and the teacher waits in the doorway until her check-up is played.** Features: ft_1_27, ft_1_34.
 
@@ -605,7 +605,7 @@ A press elsewhere, Space or Enter turns the line; the telephone's message is sai
 
 Check: `tests/e2e/room.spec.ts` "ft_1_27.AC2 Esc on Kiur's reminder on the deadline day leaves the teacher waiting in the doorway, and a press on her starts the check-up"; `tests/e2e/room.spec.ts` "a press on the door while Kiur speaks closes his line and opens the map, and a press beside the objects turns the line"; `tests/e2e/room.spec.ts` "the telephone's message is said on a plate beside the telephone"
 
-## d309
+## d310
 
 **A shut place on the map is pressable and its name bubble says when it opens: "opens at level N" from its level in `content/world/keri.json`, or "not open yet" for a place the maintainer has closed.** Features: ft_1_19, ft_1_18.
 

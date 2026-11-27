@@ -47,7 +47,7 @@ The agent does not invent places on Keri or what lives there. Still to come from
 
 - KERI-TODO: which other places are scenes (first answer: the grassy knoll, between the warden's house and the lighthouse, photographs 18 to 20; the next scene after the knoll, docks and crossroads) and what each looks like (the knoll has photograph 21).
 - KERI-TODO: who the characters are: speaking spirits and nature from Estonian folk belief, visitors of the kinds that really come to Keri, ghosts of its past (ft_1_21); the cast after Puuvaim and the fisherman, and how each looks, is the maintainer's call.
-- A shut scene on the map is painted as it is, and its name bubble says it opens at level N, or that it is not open yet while the maintainer keeps it closed ([d309](../decisions/game.md#d309)); a press opens nothing.
+- A shut scene on the map is painted as it is, and its name bubble says it opens at level N, or that it is not open yet while the maintainer keeps it closed ([d310](../decisions/game.md#d310)); a press opens nothing.
 - KERI-TODO: whether a shut scene should also look shut on the map (dim, or another mark): painted as an open one for now.
 - KERI-TODO: the letters A, B and D on photograph 19 (C is guessed to be the jetty on the north shore): what do they mark?
 - NEEDS-HUMAN: the look on the laptop, with the student (AC7); the screenshot baselines have no picture of the knoll yet.

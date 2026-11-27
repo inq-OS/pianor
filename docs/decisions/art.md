@@ -373,7 +373,7 @@ A choice is a button among others that sets or picks something (a setting, a que
 
 Check: `src/game/ui/pixel/settingArt.test.ts` "every choice of %s has a picture of the same size, and no two choices look alike"
 
-## d310
+## d311
 
 **Outdoors (the map and Keri's places) the faded corner door and gear stand on a dark plate that does not fade.** Features: ft_1_20.
 
