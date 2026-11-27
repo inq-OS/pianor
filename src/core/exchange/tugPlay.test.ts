@@ -121,9 +121,9 @@ describe('the finished tug in the world and the XP (ft_1_21.AC8, AC9, AC15)', ()
     expect(tugAfter(met, 'puuvaim', practiceLost, 'golden-leaf', '1998-11-20T10:00:00.000Z')).toEqual(met);
   });
 
-  it('ft_1_21.AC9 the XP is kept as a tug record: the full prize won, part of half of it lost', () => {
+  it('ft_1_21.AC9 the XP is kept as a tug record: the full prize won, part of half of it lost, at least 1 XP', () => {
     expect(tugRecord(won, 'puuvaim', rules)).toEqual({ characterId: 'puuvaim', pieceId: 'puuvaim-1', won: true, potentialXp: 30, exchanges: 3, xp: 30 });
-    expect(tugRecord(lost, 'puuvaim', rules)).toMatchObject({ won: false, xp: 0, exchanges: 3 });
+    expect(tugRecord(lost, 'puuvaim', rules)).toMatchObject({ won: false, xp: 1, exchanges: 3 });
   });
 
   it('ft_1_21.AC8 a lost tug that came close pays half the prize times the best standing over 3', () => {

@@ -66,6 +66,9 @@ export class EarTrainerScene extends PixelScene {
   private question!: EarQuestion;
   /** The time the last sound ended or the student last pressed a key, on the scene clock (ms). */
   private lastActivityMs = 0;
+  /** The question's notes still to start or stop, and the ones sounding now: a new sounding stops them first. */
+  private soundTimers: Phaser.Time.TimerEvent[] = [];
+  private sounding = new Set<number>();
   /** The finished question raised the ear level: the level line is gold until the next question (AC5's one bigger moment). */
   private levelUp = false;
   /** The last press was the right letter in the wrong octave: the one fact said in words (AC3); cleared by the next press. */
@@ -215,9 +218,19 @@ export class EarTrainerScene extends PixelScene {
   private play(delayMs = 0): void {
     const { piano } = contextOf(this).audio;
     const step = this.seconds * MS_PER_SECOND;
+    // a question sounds alone: what is left of the last sounding (Play again, or the question before) stops first
+    this.stopSounding();
     this.notes.forEach((midi, i) => {
-      this.time.delayedCall(delayMs + i * step, () => piano.noteOn(midi, VELOCITY));
-      this.time.delayedCall(delayMs + (i + 1) * step, () => piano.noteOff(midi));
+      this.soundTimers.push(
+        this.time.delayedCall(delayMs + i * step, () => {
+          this.sounding.add(midi);
+          piano.noteOn(midi, VELOCITY);
+        }),
+        this.time.delayedCall(delayMs + (i + 1) * step, () => {
+          this.sounding.delete(midi);
+          piano.noteOff(midi);
+        }),
+      );
     });
     this.lastActivityMs = this.time.now + delayMs + this.notes.length * step;
   }
@@ -266,11 +279,21 @@ export class EarTrainerScene extends PixelScene {
     this.redraw();
   }
 
+  /** Cancels the notes of a sounding not yet started or stopped, and stops the ones sounding; the student's own keys keep sounding. */
+  private stopSounding(): void {
+    for (const timer of this.soundTimers) timer.remove();
+    this.soundTimers = [];
+    const { piano } = contextOf(this).audio;
+    for (const midi of this.sounding) piano.noteOff(midi);
+    this.sounding.clear();
+  }
+
   private stopListening(): void {
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.repeatTimer?.remove();
     this.repeatTimer = null;
+    this.stopSounding();
   }
 
   private leave(): void {

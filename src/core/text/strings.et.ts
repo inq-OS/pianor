@@ -1049,7 +1049,7 @@ export const stringsEt: Record<StringKey, string> = {
   'intro.skipShort': 'Lõpeta',
   'intro.kiur.hello': 'Tere! Mina olen Kiur. See on sinu tuba Keri saarel. Ma näitan sulle, mis siin on.',
   'intro.kiur.piano': 'Klaver. Siin valid loo ja mängid seda noodist.',
-  'intro.kiur.shield': 'Sinu kilp. Iga mängitud lugu annab XP-d ja sellega kasvab su tase.',
+  'intro.kiur.shield': 'Sinu kilp. Harjutused ja köievedu annavad XP-d ja sellega kasvab su tase.',
   'intro.kiur.stand': 'Noodipult. Harjutused: noodinimed ja noodid kõrva järgi.',
   'intro.kiur.door': 'Uks saarele. Seal elavad tegelased, kes õpetavad sulle viise ja mängivad neid sinuga kordamööda.',
   'intro.kiur.bed': 'Ja mina. Vajuta mulle ja ma mängin sinuga kordamööda mis tahes lugu.',

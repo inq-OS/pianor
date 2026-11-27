@@ -1059,7 +1059,7 @@ export const strings = {
   'intro.skipShort': 'Skip',
   'intro.kiur.hello': 'Hello! I am Kiur. This is your room on Keri island. Let me show you what is here.',
   'intro.kiur.piano': 'The piano. Here you pick a piece and play it from the notes.',
-  'intro.kiur.shield': 'Your shield. Every piece you play earns XP, and your level grows with it.',
+  'intro.kiur.shield': 'Your shield. Exercises and tugs earn XP, and your level grows with it.',
   'intro.kiur.stand': 'The stand. Exercises: note names, and notes by ear.',
   'intro.kiur.door': 'The door to the island. Out there live characters who teach you tunes and play them with you, taking turns.',
   'intro.kiur.bed': 'And me. Press me, and I take turns with you on any piece.',
