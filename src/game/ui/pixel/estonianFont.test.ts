@@ -26,7 +26,7 @@ describe('the pixel font for Estonian letters (ft_0_18, d086)', () => {
     setLanguage('et');
     const missing = new Set<string>();
     for (const text of Object.values(stringsEt)) {
-      for (const ch of drawnText(text.replace(/\{\w+\}/g, '0'))) if (!hasGlyph(ch)) missing.add(ch);
+      for (const ch of drawnText(text.replace(/\{\w+\|([^|{}]*)\|([^|{}]*)\}/g, '$1 $2').replace(/\{\w+\}/g, '0'))) if (!hasGlyph(ch)) missing.add(ch);
     }
     expect([...missing]).toEqual([]);
   });
