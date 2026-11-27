@@ -51,7 +51,6 @@ export const strings = {
   // the player's card behind the shield in the room (ft_1_20.AC13): the shield's name and the card's lines
   'room.shield': 'Your card',
   'card.close': 'Close',
-  'card.xp': 'XP',
   'card.xpTotal': '{xp} XP',
   'card.toNext': '{xp} / {next} to level {level}',
   'card.pieces': 'Pieces played',

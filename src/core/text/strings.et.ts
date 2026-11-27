@@ -50,7 +50,6 @@ export const stringsEt: Record<StringKey, string> = {
   'room.kiur.learnFirst': 'Köievedu loos {piece} tuleb siis, kui oled selle selgeks õppinud. Vajuta mulle ja vali Õpi.',
   'room.shield': 'Sinu kaart',
   'card.close': 'Sulge',
-  'card.xp': 'XP',
   'card.xpTotal': '{xp} XP',
   'card.toNext': '{xp} / {next} tasemeni {level}',
   'card.pieces': 'Mängitud lood',
