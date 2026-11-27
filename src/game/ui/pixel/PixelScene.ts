@@ -736,6 +736,13 @@ export abstract class PixelScene extends Phaser.Scene {
     return this.focusShown ? this.focusables()[this.focusIndex] : undefined;
   }
 
+  /** Hide the focus ring: the keys go back to the screen (a press on one of its own places, such as a song page's row). */
+  protected hideFocus(): void {
+    if (!this.focusShown) return;
+    this.focusShown = false;
+    this.paintFocus();
+  }
+
   /** Put the focus ring on `button` (one of `focusables`), shown at once: the wheel moves the focus like the arrows. */
   protected focusOn(button: PixelButton | undefined): void {
     const index = button ? this.focusables().indexOf(button) : -1;
@@ -748,9 +755,10 @@ export abstract class PixelScene extends Phaser.Scene {
   private onNavigationKey(e: KeyboardEvent): void {
     // a screen paused under an overlay (d070) takes no keys: they are the overlay's
     if (this.sys.isPaused()) return;
-    // a key typed into a text field (a title, a name) is the field's own
-    const target = e.target as { tagName?: string } | null;
-    if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return;
+    // a key typed into a text field (a title) is the field's own, unless the field leaves the moving keys to the screen
+    // (the name box, whose see-through field only takes letters: `data-screen-keys="move"`)
+    const target = e.target as { tagName?: string; dataset?: Record<string, string | undefined> } | null;
+    if ((target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') && target.dataset?.screenKeys !== 'move') return;
     const moves: Record<string, FocusMove> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
     if (!this.menuOpen && this.screenKey?.(e) === true) {
       e.preventDefault();

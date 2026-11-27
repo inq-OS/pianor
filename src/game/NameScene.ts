@@ -99,6 +99,8 @@ export class NameScene extends PixelScene {
     field.setAttribute('autocapitalize', 'characters');
     field.setAttribute('autocorrect', 'off');
     field.setAttribute('enterkeyhint', 'done');
+    // the field is see-through and the name is drawn by the scene: Esc, Tab and the arrows move about the screen (PixelScene)
+    field.dataset.screenKeys = 'move';
     field.setAttribute('aria-label', this.request?.title ?? '');
     // see-through: the game draws the box, the letters and the caret; 16px so a phone or tablet does not zoom in on focus
     field.style.cssText = 'position:absolute;opacity:0;border:0;padding:0;margin:0;font-size:16px;background:transparent;color:transparent;caret-color:transparent;z-index:5';

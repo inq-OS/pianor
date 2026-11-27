@@ -866,9 +866,11 @@ export class PracticeScene extends PixelScene {
       // a link's curled arrow only where it fits beside the name; a blank is hatched instead
       const kind = b.look === 'link' ? TOOL_ICONS.link : undefined;
       const mark = kind && b.w >= fits(b.name) + 2 * (kind.width + MAP_MARK_ROOM) ? kind : undefined;
+      // the name only where it fits on one line; a narrower block keeps it for the pointer's bubble, never wrapped over the map
+      const named = fits(b.name) <= b.w - 4;
       const button = this.button({
         x: MAP_SIDE + b.x + b.w / 2, y: top + 1 + MAP_BLOCK_ROWS / 2, width: Math.max(1, b.w - 1), height: MAP_BLOCK_ROWS, label: b.name, labelWidth: Math.max(1, b.w - 4),
-        ...(mark ? { icon: mark } : {}), onClick: () => this.turnToPart(b),
+        ...(named ? {} : { iconOnly: true, tooltip: b.name }), ...(mark && named ? { icon: mark } : {}), onClick: () => this.turnToPart(b),
       });
       if (b.look === 'off') button.setAlpha(MAP_OFF_FADE);
       else if (b.look === 'blank') button.setAlpha(MAP_BLANK_FADE);

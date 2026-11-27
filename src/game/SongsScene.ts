@@ -24,6 +24,8 @@ const LIST_TOP = 4;
 const BOOK_SIDE = 3;
 const BOOK_MARGIN = 14;
 const BOOK_GUTTER = 18;
+/** A row is set this far in from its page's cell. */
+const ROW_INSET = 3;
 /** The small buttons of a row: a finger wide at the usual zoom, as the book's own. */
 const SMALL = 11;
 const SMALL_GAP = 3;
@@ -98,8 +100,9 @@ export class SongsScene extends PixelScene {
     const capacity = slice.paged ? grid.perPage : grid.singlePageMax;
     rows.slice(slice.first, slice.first + slice.count).forEach((song, i) => {
       const { x, y } = rectCentre(grid.pageCell(i, capacity));
-      if (song) this.songRow(song, x, y - row / 4, grid.cardWidth);
-      else this.newSongRow(x, y, grid.cardWidth);
+      // set in from the page's cell, so the row stays on the paper (as the piece book's cards do)
+      if (song) this.songRow(song, x, y - row / 4, grid.cardWidth - 2 * ROW_INSET);
+      else this.newSongRow(x, y, grid.cardWidth - 2 * ROW_INSET);
     });
     if (list.length === 0) {
       const { x, y } = rectCentre(grid.pageCell(1, capacity));
@@ -172,7 +175,7 @@ export class SongsScene extends PixelScene {
     this.root.add(factsText);
     const record = profiles.recordFor(songChartId(song.id));
     const stars = pixelStars(this, this.root, left + 6, top + 19, record?.bestGrade ?? 0, { gap: 1, ink: true });
-    const line = `${t('songs.written', { written: resolved.barsWritten, planned: resolved.bars })}, ${t('songs.parts', { count: parts })}`;
+    const line = `${t('songs.written', { written: resolved.barsWritten, planned: resolved.bars })}, ${(parts === 1 ? t('songs.onePart') : t('songs.parts', { count: parts }))}`;
     const written = new PixelText(this, left + 6, top + 31, clipToWidth(line, width - 12, (text) => measure(drawnText(text))), { color: C.umberDark }).setName('songWritten');
     this.root.add(written);
     button.attach(factsText, written, ...stars);

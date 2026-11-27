@@ -1,6 +1,6 @@
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { activeScene, expectNoErrors, letGameRun, openGame } from './helpers';
+import { activeScene, expectNoErrors, letGameRun, openGame, openPiece, waitForScene } from './helpers';
 import { TARGET_VIEW } from './targetView';
 
 /**
@@ -50,6 +50,26 @@ test('a window too small to play in shows only the line asking for F11, and the 
   await letGameRun(page, 2);
   expect(await activeScene(page)).toBe(scene);
   expect(await page.evaluate(() => window.__game.registry.get('context').profiles.progress.totalXp as number)).toBe(xp);
+  expectNoErrors(errors);
+});
+
+test('the hidden screen takes no key while covered: a note played or Esc pressed then does nothing', async ({ page }) => {
+  const errors = await openGame(page);
+  await openPiece(page, 'Little Steps');
+  await waitForScene(page, 'practice');
+  const step = () => page.evaluate(() => window.__game.scene.getScene('practice').playSession.controller.getState().stepIndex as number);
+  const before = await step();
+  await page.setViewportSize(TINY);
+  await expect.poll(() => guard(page)).toMatchObject({ shown: true, paused: true });
+  // the first note of Little Steps (middle C), on the MIDI keyboard and on the computer keyboard, then Esc
+  await page.evaluate(() => { window.__virtualDevice!.press(60); window.__virtualDevice!.release(60); });
+  await page.keyboard.press('z');
+  await page.keyboard.press('Escape');
+  await page.setViewportSize(TARGET_VIEW.viewport);
+  await expect.poll(() => guard(page)).toMatchObject({ shown: false, paused: false });
+  await letGameRun(page, 2);
+  expect(await activeScene(page)).toBe('practice');
+  expect(await step()).toBe(before);
   expectNoErrors(errors);
 });
 

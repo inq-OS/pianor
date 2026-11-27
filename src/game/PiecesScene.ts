@@ -16,6 +16,7 @@ import { CABINET_PALETTE, drawerLabelBox, paintCabinet, paintDrawerFront, paintD
 import { paintedOnce } from './ui/pixel/paintedOnce';
 import { startScene } from './scenes';
 import type { MenuData } from './MenuScene';
+import type { SettingsData } from './SettingsScene';
 
 const MARGIN = 12;
 /** The list starts this far down, or lower when a notice takes more than one line; it keeps this much room under the notice. */
@@ -30,6 +31,8 @@ const STATE_INSET = 6;
 /** `back`: the catalogue was opened from the book (ft_1_02c.AC9), and Back goes to that book again, not to Settings. */
 export interface PiecesData {
   back?: MenuData;
+  /** Opened from Settings: the settings screen as it was (where it goes back to, its page), given back on the way out. */
+  settings?: SettingsData;
 }
 
 /** One index card: a piece, or a whole song filed by its title and turned on and off as one (ft_1_36 rule 13). */
@@ -58,9 +61,11 @@ export class PiecesScene extends PixelScene {
 
   /** The book the catalogue was opened from, if any (ft_1_02c.AC9). */
   private fromBook: MenuData | null = null;
+  private fromSettings: SettingsData = {};
 
   init(data?: PiecesData): void {
     this.fromBook = data?.back ?? null;
+    this.fromSettings = data?.settings ?? {};
     this.page = 0;
     this.open = null;
     this.notice = 'hint';
@@ -74,7 +79,7 @@ export class PiecesScene extends PixelScene {
       return;
     }
     if (this.fromBook) startScene(this, 'menu', this.fromBook);
-    else startScene(this, 'settings');
+    else startScene(this, 'settings', this.fromSettings);
   }
 
   /** The drawer that holds the piece with this title, its label and its place in the cabinet (for the end-to-end tests), or null. */

@@ -4,10 +4,10 @@ import { rectCentre } from '../core/layout/rect';
 import { keyName, meterName, pieceOutline, rowPlay, shownRows, startFolded, type ShownRow } from '../core/song/outline';
 import { pieceFactsOf, type ResolvedSong, type RowValue, type SongRow } from '../core/song/resolve';
 import { walkSong, type Song, type SongNode, type SongValues } from '../core/song/schema';
-import { addNode, freeNodeId, moveNode, removeNode, renameNode, setValue, linkTargets, NEW_BLANK_BARS, type MoveKind, type Place } from '../core/song/edit';
+import { addNode, canAdd, freeNodeId, freeNodeName, moveNode, removeNode, renameNode, setValue, linkTargets, NEW_BLANK_BARS, type MoveKind, type Place } from '../core/song/edit';
 import { canRedo, canUndo, push, redo, startHistory, undo, type History } from '../core/editor/history';
 import { openTextField } from './ui/textField';
-import { keepsLastPartOn, labelOn, setLabelOn, setPartOn } from '../core/song/switches';
+import { keepOnePartOn, keepsLastPartOn, labelOn, setLabelOn, setPartOn } from '../core/song/switches';
 import { clipToWidth } from '../core/text/clip';
 import { pieceTitle } from '../core/text/pieceTitle';
 import { strings, t, type StringKey } from '../core/text/strings';
@@ -37,7 +37,9 @@ const GAP = 2;
 /** The gap between a row's name and its play button. */
 const PLAY_GAP = 5;
 /** The widest name the strip's Play names. */
-const STRIP_NAME = 60;
+const STRIP_NAME = 120;
+/** A row is set this far in from its page's cell, so its switch, numbers and play button stay on the paper, as the piece book's cards do. */
+const ROW_INSET = 3;
 /** Each level of the outline is set in this far. */
 const INDENT = 6;
 /** A row that is off is drawn this pale over its whole height; the switch of the last written part on this faded. */
@@ -237,6 +239,8 @@ export class SongScene extends PixelScene {
 
   /** A press on a row's name: it is selected; while a piece is being placed, the places by that row open (rule 17). */
   private pressRow(id: string | null): void {
+    // a press on a row gives the keys back to the rows (rule 10)
+    this.hideFocus();
     this.select(id);
     this.askPlace();
   }
@@ -471,11 +475,11 @@ export class SongScene extends PixelScene {
   private addChoices(song: Song, node: SongNode | undefined): MenuItem[] {
     const place = node ? { after: node.id } : ('end' as const);
     const blank = (): SongNode => {
-      const name = t('song.newPart', { n: walkSong(song.nodes).filter(({ node: n }) => n.kind === 'blank').length + 1 });
+      const name = freeNodeName(song, (n) => t('song.newPart', { n }));
       return { kind: 'blank', id: freeNodeId(song, name), name, bars: NEW_BLANK_BARS };
     };
     const group = (): SongNode => {
-      const name = t('song.newGroup', { n: walkSong(song.nodes).filter(({ node: n }) => n.kind === 'group').length + 1 });
+      const name = freeNodeName(song, (n) => t('song.newGroup', { n }));
       return { kind: 'group', id: freeNodeId(song, name), name, nodes: [blank()] };
     };
     // each choice shows where the new row will stand while the pointer rests on it (d286)
@@ -494,6 +498,8 @@ export class SongScene extends PixelScene {
   /** A row added at `place`, shown where it lands while the pointer rests on it (d286), selected once picked. */
   private addAt(song: Song, label: string, place: Place, made: SongNode): MenuItem {
     const next = addNode(song, place, made);
+    // a group past the fourth level is not offered (rule 1): greyed, as an option that cannot apply there
+    if (!canAdd(song, place, made)) return { label, disabled: true, onPick: () => undefined };
     return {
       label,
       preview: (on) => this.showLanding(on ? next : null, made.id),
@@ -532,11 +538,12 @@ export class SongScene extends PixelScene {
     if (id !== null && !node) return [];
     const name = this.pieceName(pieceId);
     const piece: SongNode = { kind: 'piece', id: freeNodeId(song, name), piece: pieceId };
-    const groupName = t('song.newGroup', { n: walkSong(song.nodes).filter(({ node: n }) => n.kind === 'group').length + 1 });
+    const groupName = freeNodeName(song, (n) => t('song.newGroup', { n }));
     const group: SongNode = { kind: 'group', id: freeNodeId(addNode(song, 'end', piece), groupName), name: groupName, nodes: [piece] };
     const place: Place = node ? { after: node.id } : 'end';
     const choice = (label: string, at: Place, made: SongNode): MenuItem => {
       const next = addNode(song, at, made);
+      if (!canAdd(song, at, made)) return { label, disabled: true, onPick: () => undefined };
       return {
         label,
         preview: (on) => this.showLanding(on ? next : null, made.id),
@@ -635,6 +642,9 @@ export class SongScene extends PixelScene {
       return;
     }
     this.commit(next);
+    // the part removed may have been the last written one on: then the first written part left is turned on (rule 5)
+    const off = keepOnePartOn(contextOf(this).songs.resolved(next).rows, this.off);
+    if (off.length !== this.off.length) this.saveOff(off);
     this.say(t('song.removed', { name }), null);
   }
 
@@ -687,11 +697,12 @@ export class SongScene extends PixelScene {
     this.perPage = grid.perPage;
     this.items.slice(slice.first, slice.first + slice.count).forEach((item, i) => {
       const { x, y } = rectCentre(grid.pageCell(i, this.perPage));
-      const left = x - grid.cardWidth / 2;
+      const rowWidth = grid.cardWidth - 2 * ROW_INSET;
+      const left = x - rowWidth / 2;
       const top = y - rowHeight / 2;
-      this.rowRects.set(item === null ? '' : item.row.id, { left, top, width: grid.cardWidth, depth: item === null ? -1 : item.row.depth });
-      if (item === null) this.wholeRow(outline, left, top, grid.cardWidth);
-      else this.nodeRow(outline, item, left, top, grid.cardWidth);
+      this.rowRects.set(item === null ? '' : item.row.id, { left, top, width: rowWidth, depth: item === null ? -1 : item.row.depth });
+      if (item === null) this.wholeRow(outline, left, top, rowWidth);
+      else this.nodeRow(outline, item, left, top, rowWidth);
     });
     if (slice.paged) {
       this.pager(slice, (page) => {
@@ -722,13 +733,18 @@ export class SongScene extends PixelScene {
     }
     let x = left + 6;
     x = this.text(x, line, t('song.barRange', { first: 1, last: outline.bars }), C.umberDark) + 5;
-    this.text(x, line, `${t('song.tempo', { bpm: outline.values.bpm })} ${keyName(outline.values.key)} ${meterName(outline.values.meter)}`, C.umberDark);
-    pixelStars(this, this.root, left + width - 2 - STARS, line, profiles.recordFor(chartId)?.bestGrade ?? 0, { gap: 1, ink: true });
+    // the tempo, key and meter as far as they fit before the stars
+    const starsLeft = left + width - 2 - STARS;
+    const words = [t('song.tempo', { bpm: outline.values.bpm }), keyName(outline.values.key), meterName(outline.values.meter)];
+    // whole words only: the meter, then the key, give way before the stars rather than end in a cut
+    while (words.length > 1 && fits(words.join(' ')) > starsLeft - 4 - x) words.pop();
+    this.text(x, line, words.join(' '), C.umberDark);
+    pixelStars(this, this.root, starsLeft, line, profiles.recordFor(chartId)?.bestGrade ?? 0, { gap: 1, ink: true });
   }
 
   /** A notice on a row, from under its switch so a whole sentence fits the row. */
   private rowNotice(notice: string, line: number, left: number, width: number): void {
-    this.root.add(new PixelText(this, left + 4, line, clipToWidth(notice, width - 6, fits), { color: this.tickHint ? C.umberDark : C.redDark }).setName('songNotice'));
+    this.root.add(new PixelText(this, left + 2, line, clipToWidth(notice, width - 2, fits), { color: this.tickHint ? C.umberDark : C.redDark }).setName('songNotice'));
   }
 
   /** One row of the outline (rule 10). */
