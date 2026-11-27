@@ -22,12 +22,15 @@ import type { Dynamic } from '../../../core/chart/dynamics';
 import { ACCIDENTAL_STROKES, BASS_CLEF_BALL, BASS_CLEF_DOTS, BASS_CLEF_STROKE, BRACE_PATH, DIGITS, QUARTER_REST_STROKE, TREBLE_CLEF_STROKE, type Pt } from './glyphs';
 import { STAFF_FONT } from './staffFont';
 
-export type NoteState = 'pending' | 'correct' | 'wrong';
+/** A note's play state: `retried` is right, but only after a wrong key in its step (drawn apart from a first-try note, AX-2.1). */
+export type NoteState = 'pending' | 'correct' | 'retried' | 'wrong';
 
 export interface StaffTheme {
   paper: number;
   ink: number;
   correct: number;
+  /** A note right only after a wrong key: not the first-try green, so a pass with misses does not look perfect. */
+  retried: number;
   wrong: number;
   cursor: number;
   cursorFill: number;
@@ -51,6 +54,8 @@ export const DEFAULT_THEME: StaffTheme = {
   paper: PARCHMENT_PAPER,
   ink: STAFF_INK,
   correct: 0x1f9d55,
+  // the orange of a mistimed note in Tempo mode: right in the end, not at the first try
+  retried: SCORE_COLOURS.mistimedWorst,
   wrong: SCORE_COLOURS.missed,
   cursor: 0x2b6cff,
   // Halfway between the old highlight (0xdbe7ff) and the paper, so the box is softer.
@@ -688,11 +693,12 @@ export class StaffView {
 
   /**
    * Show play progress from the judge: `progress` is indexed by chart note, `cursorNotes` are the notes awaited now
-   * (one per hand in a two-hand step; each is highlighted on its own staff).
+   * (one per hand in a two-hand step; each is highlighted on its own staff). `retried` marks, by chart note, the notes
+   * right only after a wrong key (Wait mode): they keep their own colour.
    */
-  applyProgress(progress: readonly NoteProgress[], cursorNotes: NoteSelection): void {
+  applyProgress(progress: readonly NoteProgress[], cursorNotes: NoteSelection, retried?: readonly boolean[]): void {
     this.layout.notes.forEach((n, slot) => {
-      this.states[slot] = progress[n.index] === 'correct' ? 'correct' : 'pending';
+      this.states[slot] = progress[n.index] !== 'correct' ? 'pending' : retried?.[n.index] === true ? 'retried' : 'correct';
     });
     this.cursors = toSet(cursorNotes);
     this.followCursor();
@@ -973,7 +979,7 @@ export class StaffView {
     if (scored !== null && scored !== undefined) return scored;
     if (this.isPast(note.system, note.x)) return PAST_GREY;
     const state = this.states[slot];
-    return state === 'correct' ? this.theme.correct : state === 'wrong' ? this.theme.wrong : this.theme.ink;
+    return state === 'correct' ? this.theme.correct : state === 'retried' ? this.theme.retried : state === 'wrong' ? this.theme.wrong : this.theme.ink;
   }
 
   private drawNotes(): void {
@@ -1030,6 +1036,12 @@ export class StaffView {
       this.playedName = this.scene.add.text(this.origin.x + mark.x, this.origin.y + mark.y + PLAYED_NAME_GAP * S, name, style).setOrigin(0.5).setAlpha(PLAYED_ALPHA);
     }
     this.drawNotes();
+  }
+
+  /** The colour a chart note is drawn in now, for tests: null for a note not on the staff. */
+  noteColourOf(noteIndex: number): number | null {
+    const slot = this.layout.notes.findIndex((n) => n.index === noteIndex);
+    return slot < 0 ? null : this.noteColor(slot);
   }
 
   /** The played key's name, for tests: null when none is shown. */
@@ -1123,13 +1135,14 @@ export class StaffView {
     strokePolyline(this.notesGfx.lineStyle(Math.max(2, S * 0.1), this.theme.ink, 1), slurPoints(slur));
   }
 
-  /** The beams of a run of eighths and sixteenths, in the colour of its notes once all are right. */
+  /** The beams of a run of eighths and sixteenths, in the colour of its notes once all are right (the retried colour if one was). */
   private drawBeam(beam: BeamGlyph): void {
     const S = this.layout.staffSpace;
     const slots = beam.notes.map((index) => this.layout.notes.findIndex((n) => n.index === index));
     const wrong = beam.notes.some((index) => this.wrong.has(index));
-    const correct = slots.every((slot) => this.states[slot] === 'correct');
-    const color = this.resting(beam.system, beam.staff) ? PAST_GREY : wrong ? this.theme.wrong : correct ? this.theme.correct : this.theme.ink;
+    const done = slots.every((slot) => this.states[slot] === 'correct' || this.states[slot] === 'retried');
+    const retried = slots.some((slot) => this.states[slot] === 'retried');
+    const color = this.resting(beam.system, beam.staff) ? PAST_GREY : wrong ? this.theme.wrong : done ? (retried ? this.theme.retried : this.theme.correct) : this.theme.ink;
     const half = Math.max(2, S * 0.13) / 2;
     const top = beam.up ? beam.y : beam.y - beam.thickness;
     this.notesGfx.fillStyle(color, 1).fillRect(beam.x1 - half, top, beam.x2 - beam.x1 + half * 2, beam.thickness);

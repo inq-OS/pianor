@@ -144,6 +144,20 @@ test.describe('playing a whole piece without a real keyboard', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_0_08.AC1 a note right only after a wrong key keeps its own colour, a first-try note turns green', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    const colour = (note: number) => page.evaluate((n) => window.__game.scene.getScene('practice').playSession.staffView?.noteColourOf(n) ?? null, note);
+    const step = () => page.evaluate(() => window.__game.scene.getScene('practice').playSession.controller.getState().stepIndex as number);
+    await playWithKeys(page, [65, 60]); // a wrong F4, then the awaited C4
+    await expect.poll(step).toBe(1);
+    await playWithKeys(page, LITTLE_STEPS.slice(1, 2)); // the second note at the first try
+    await expect.poll(step).toBe(2);
+    expect(await colour(0)).toBe(0xff7a00); // the retried orange (DEFAULT_THEME.retried)
+    expect(await colour(1)).toBe(0x1f9d55); // the first-try green (DEFAULT_THEME.correct)
+    expectNoErrors(errors);
+  });
+
   test('hints switched on with real clicks are recorded in the results', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');

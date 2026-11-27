@@ -10,11 +10,13 @@ export interface PlayStateParts {
   lastJudged: NoteJudged | null;
   /** Tempo mode only: leave it out in Wait mode, so the state has no `timings` key. */
   timings?: readonly (NoteTiming | null)[];
+  /** Wait mode only: per chart note, right only after a wrong key in its step. */
+  retried?: readonly boolean[];
 }
 
 /** The read-only `PlayState` a view draws from: copies, so a caller cannot change the judge. */
 export function playStateOf(parts: PlayStateParts): PlayState {
-  const { stepIndex, steps, pressed, progress, held, lastJudged, timings } = parts;
+  const { stepIndex, steps, pressed, progress, held, lastJudged, timings, retried } = parts;
   const step = steps[stepIndex];
   const state: PlayState = {
     done: step === undefined,
@@ -26,5 +28,6 @@ export function playStateOf(parts: PlayStateParts): PlayState {
     lastJudged,
   };
   if (timings) state.timings = [...timings];
+  if (retried) state.retried = [...retried];
   return state;
 }
