@@ -6,6 +6,7 @@ import type { BarNumber } from '../../../core/layout/barNumbers';
 import type { Playhead } from '../../../core/layout/playhead';
 import type { DurationMarks } from '../../../core/layout/durationHelp';
 import { SCORE_COLOURS, STAFF_INK, scoreColour } from '../../../core/layout/scoreColour';
+import { MARKER_RING, markerRingY } from '../../../core/learn/markers';
 import { wordFits } from '../../../core/layout/dynamicWords';
 import type { PlayedMark } from '../../../core/layout/playedMark';
 import { dotLook, laneLift, paceColour, type LaneDot, type LaneLook } from '../../../core/layout/beatLane';
@@ -483,7 +484,7 @@ export class StaffView {
       if (shade === undefined || shade <= 0 || seen.has(n.index)) continue;
       seen.add(n.index);
       const top = this.layout.systems[n.system]!.staves[n.staff]!.topLineY;
-      this.markers.push({ x: n.column, y: Math.min(top, n.y - S) - 2.4 * S, shade: Math.min(1, shade), system: n.system });
+      this.markers.push({ x: n.column, y: markerRingY(top, n.y, S), shade: Math.min(1, shade), system: n.system });
     }
     if (!this.markerGfx) this.markerGfx = this.scene.add.graphics().setPosition(this.origin.x, this.origin.y);
     this.drawMarkers();
@@ -504,7 +505,7 @@ export class StaffView {
     for (const m of this.markers) {
       if (!this.onPage(m.system)) continue;
       g.lineStyle(Math.max(1.5, 0.28 * S), markerColour(m.shade), 1);
-      g.strokeCircle(m.x, m.y, 0.55 * S);
+      g.strokeCircle(m.x, m.y, MARKER_RING.radius * S);
       this.markersDrawn++;
     }
   }

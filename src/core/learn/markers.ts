@@ -24,6 +24,21 @@ export function markerKeyOfNote(chart: Chart, index: number, firstBar = 0): stri
   return markerKey({ bar: note.bar + firstBar, tick: note.tick - chart.bars[note.bar]!.startTick, track: note.track, midi: note.midi });
 }
 
+/**
+ * The ring over a missed note, in staff spaces: its radius, how far above the staff (or above a note over it) it stands,
+ * and, where the sheet has no room up there (a note on the page's first line), how far above it stands instead, between
+ * the beat lane and the staff; `edge` is the room the lane and its dots keep under the sheet's top.
+ */
+export const MARKER_RING = { radius: 0.5, above: 2.4, near: 0.7, edge: 1.3 } as const;
+
+/** The y of the ring's centre over a note whose staff's top line is at `topLineY` and whose head is at `noteY` (layout pixels). */
+export function markerRingY(topLineY: number, noteY: number, staffSpace: number): number {
+  const S = staffSpace;
+  const over = Math.min(topLineY, noteY - S);
+  const far = over - MARKER_RING.above * S;
+  return far - MARKER_RING.radius * S >= MARKER_RING.edge * S ? far : over - MARKER_RING.near * S;
+}
+
 /** 0 for fewer than `from` misses, else rising in even steps to 1 at `from + fullAfter` misses. */
 export function markerShade(misses: number, from: number, fullAfter: number): number {
   if (misses < from) return 0;
