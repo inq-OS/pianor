@@ -927,6 +927,14 @@ export abstract class PixelScene extends Phaser.Scene {
     return { rows: Math.max(back.y + back.h, settings.y + settings.h) + 1, left: back.x + back.w + 2, right: settings.x - extra * (settings.w + BACKPACK_GAP) - 2 };
   }
 
+  /**
+   * The door in the top left corner (the screen's Back) where the frame draws it, or undefined: an overlay that takes every
+   * press over the screen (a tug, a teaching) leaves it pressable, so Back still leaves as Esc does.
+   */
+  protected get cornerDoor(): Rect | undefined {
+    return this.screenFrame.band && !this.screenFrame.toolbar && this.hasBack ? frameCorners(this.px.width).back : undefined;
+  }
+
   /** Where a screen's title starts: `margin`, or right of the door when the band puts the door in the top left corner (ft_1_20). */
   protected titleX(margin: number): number {
     return this.bandShown ? Math.max(margin, this.cornerStrip.left + 2) : margin;

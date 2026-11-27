@@ -1039,6 +1039,7 @@ export class AdventureScene extends PixelScene {
       rules: this.curriculum ? tugRulesFor(TUG_RULES, castSettingOf(this.curriculum, def.id, DEFAULT_PRESENCE_RULES).neediness) : TUG_RULES,
       place: { area: { w: this.px.width, h: this.mainRows }, head },
       devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome },
+      ...(this.cornerDoor ? { door: this.cornerDoor } : {}),
     }, {
       playing: (on) => this.figures.get(def.id)?.(on ? 'talk' : 'idle'),
       ended: (state) => {
@@ -1082,6 +1083,7 @@ export class AdventureScene extends PixelScene {
       place: { area: { w: this.px.width, h: this.mainRows }, head },
       devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard },
       staff: (c) => this.teachStaff(c),
+      ...(this.cornerDoor ? { door: this.cornerDoor } : {}),
     }, {
       playing: (on) => this.figures.get(def.id)?.(on ? 'talk' : 'idle'),
       ended: (state) => {

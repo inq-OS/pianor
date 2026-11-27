@@ -1,12 +1,13 @@
 import type Phaser from 'phaser';
 import { playbackLengthMs, playbackNotes, sliceChart, type Chart } from '../../core/chart';
-import { advanceTug, leaveTug, startTug, type TugRules, type TugSetup, type TugState } from '../../core/exchange/tug';
-import { studentShare, tugFact, tugSetupOf, turnChartBars } from '../../core/exchange/tugPlay';
+import { advanceTug, leaveTug, startTug, tugPrize, type TugRules, type TugSetup, type TugState } from '../../core/exchange/tug';
+import { studentShare, tugFact, tugFactLine, tugNeed, tugSetupOf, turnChartBars } from '../../core/exchange/tugPlay';
 import { TempoMode, WaitMode, type NoteJudged, type PieceResult } from '../../core/judge';
 import { clickPlan } from '../../core/transport/practiceSpeed';
 import { Transport } from '../../core/transport/transport';
 import { BOARD_ROWS } from '../../core/layout/frame';
 import { lineSpot } from '../../core/layout/talk';
+import type { Rect } from '../../core/layout/rect';
 import { ragPlace, risingNotes, TUG, tugBoard, turnNoteBob } from '../../core/layout/tug';
 import { strings, t, type StringKey } from '../../core/text/strings';
 import type { MetronomeSound, PianoSound, SongClock } from '../../io/audio';
@@ -18,6 +19,7 @@ import { motionAllowed } from '../motion';
 import { spokenLine, spokenPages, talkColour } from '../ui/pixel/talkArt';
 import { outlinedNote, RAG_KNOT, TOKEN_SIZE, tugBoardPicture, tugRag, tugToken } from '../ui/pixel/tugArt';
 import type { TalkPlace } from './talkView';
+import { NUDGE_MS, overlayCatcher } from './overlayExit';
 
 /** How long the fact after a student's phrase stays before the next turn, and the pause after the character's phrase. */
 const FACT_MS = 2500;
@@ -79,6 +81,9 @@ export class TugView {
   private transport: Transport | null = null;
   /** What moves while the tug plays (the rag, the bobbing note, the rising notes), stepped every frame by `update`. */
   private movers: ((ms: number) => void)[] = [];
+  /** The student's turn waits with no note played: the character says once whose turn it is. */
+  private nudge: Phaser.Time.TimerEvent | null = null;
+  private nudged = false;
 
   private constructor(
     private readonly scene: Phaser.Scene,
@@ -94,6 +99,8 @@ export class TugView {
     kind: TugSetup['kind'],
     /** The name of the prize a win gives (its ladder's rung for this level, ft_1_21.AC18), for the closing line's `{prize}`. */
     private readonly prize: string,
+    /** The screen's corner Back, left pressable over the tug: it leaves as Esc does. */
+    private readonly door: Rect | undefined,
   ) {
     const setup = tugSetupOf(chart, kind, level);
     this.pickup = setup.pickup;
@@ -111,10 +118,10 @@ export class TugView {
   static open(
     scene: Phaser.Scene,
     layer: Phaser.GameObjects.Container,
-    input: { chart: Chart; character: { readonly id: string }; level: 1 | 2 | 3; rules: TugRules; place: TalkPlace; devices: TugDevices; notYet?: string; kind?: TugSetup['kind']; prize?: string },
+    input: { chart: Chart; character: { readonly id: string }; level: 1 | 2 | 3; rules: TugRules; place: TalkPlace; devices: TugDevices; notYet?: string; kind?: TugSetup['kind']; prize?: string; door?: Rect },
     handlers: TugHandlers,
   ): TugView {
-    const view = new TugView(scene, layer, input.chart, input.character, input.rules, input.place, input.devices, handlers, input.level, input.kind ?? 'tug', input.prize ?? '');
+    const view = new TugView(scene, layer, input.chart, input.character, input.rules, input.place, input.devices, handlers, input.level, input.kind ?? 'tug', input.prize ?? '', input.door);
     if (input.notYet === undefined) view.play();
     else view.say(input.notYet);
     return view;
@@ -203,6 +210,7 @@ export class TugView {
     this.listeningTo = null;
     this.timer?.remove();
     this.timer = null;
+    this.stopNudge();
     this.player.stop();
     if (this.mode === 'tempo') this.devices.metronome.stop();
     this.controller?.dispose();
@@ -269,9 +277,37 @@ export class TugView {
     const reasons: string[] = [];
     this.controller = new PracticeController(phrase, this.devices.keyboard, {
       onChange: () => undefined,
-      onJudged: (event: NoteJudged) => { if (event.verdict === 'wrong') reasons.push(event.reason); },
+      onJudged: (event: NoteJudged) => {
+        this.played();
+        if (event.verdict === 'wrong') reasons.push(event.reason);
+      },
       onCompleted: (result: PieceResult) => this.afterStudent(result, reasons),
     }, undefined, mode);
+    // Wait mode waits for the student for ever: after a while with no note, the character says once whose turn it is
+    if (mode instanceof WaitMode && !this.nudged) {
+      this.nudge = this.scene.time.delayedCall(NUDGE_MS, () => {
+        this.nudge = null;
+        if (this.done || this.playingNow !== 'student') return;
+        this.nudged = true;
+        this.saying = t('tug.yourTurn');
+        this.page = 0;
+        this.draw();
+      });
+    }
+  }
+
+  /** A note was played: the nudge is not needed, and once said it goes. */
+  private played(): void {
+    this.stopNudge();
+    if (this.nudged && this.saying !== null && !this.closing && this.playingNow === 'student') {
+      this.saying = null;
+      this.draw();
+    }
+  }
+
+  private stopNudge(): void {
+    this.nudge?.remove();
+    this.nudge = null;
   }
 
   private afterCharacter(): void {
@@ -291,13 +327,15 @@ export class TugView {
     // the phrase is over: stop listening (the controller ignores its own callbacks once disposed)
     this.controller?.dispose();
     this.controller = null;
+    this.stopNudge();
     this.playingNow = null;
     this.listeningTo = null;
     this.transport = null;
+    // what the phrase needed, said once the stall kill raised it (AC17), read before the phrase counts
+    const need = tugNeed(this.state, this.rules, result.notes);
     this.state = advanceTug(this.state, this.rules, { share: studentShare(result, this.mode), hands: {}, reasons });
     const fact = tugFact(result, reasons, this.mode);
-    const words = t(this.mode === 'tempo' ? 'tug.factTempo' : 'tug.fact', { right: fact.right, total: fact.total });
-    this.saying = fact.reason === 'wrong-octave' ? `${words}. ${t('tug.wrongOctave')}` : words;
+    this.saying = tugFactLine(need === undefined ? fact : { ...fact, need }, this.mode);
     this.page = 0;
     this.draw();
     this.next(FACT_MS);
@@ -319,7 +357,10 @@ export class TugView {
     const key = knownKey(`talk.${this.character.id}.${won ? 'tugWon' : 'tugLost'}`);
     if (key === null) return this.finish();
     const student = this.state.results;
-    this.say(t(key, { right: student.filter((r) => r.passed).length, total: student.length, prize: this.prize }));
+    const line = t(key, { right: student.filter((r) => r.passed).length, total: student.length, prize: this.prize });
+    // the XP it pays, said with it (AX-2.1); a practice tug pays none and says none
+    const xp = tugPrize({ kind: this.state.setup.kind, outcome: this.state.outcome!, best: this.state.best }, this.rules.levels[this.level - 1]!.prize, this.rules);
+    this.say(xp > 0 ? `${line} ${t('results.xp', { xp })}` : line);
   }
 
   /** The character says `text`, and a press ends the view. */
@@ -361,13 +402,14 @@ export class TugView {
     this.clear();
     if (this.done) return;
     const { area } = this.place;
-    // a press anywhere is the tug's: the scene and the band under it take none while it is open
-    const catcher = this.add(this.scene.add.zone(0, -area.h, area.w, area.h * 3).setOrigin(0).setInteractive());
-    catcher.on('pointerup', () => this.press());
+    // a press anywhere is the tug's, the corner Back's aside: the scene and the band under it take none while it is open
+    overlayCatcher(this.scene, (o) => this.add(o), area, this.door, () => this.press());
     if (this.started) this.drawBoard();
     if (this.playingNow === 'character') this.drawRising();
     if (this.saying !== null) {
-      const words = spokenLine(spokenPages(this.saying)[this.page] ?? [], talkColour('character', this.character.id));
+      const pages = spokenPages(this.saying);
+      // a page with more after it ends in a small arrow: a press turns to the next
+      const words = spokenLine(pages[this.page] ?? [], talkColour('character', this.character.id), this.page + 1 < pages.length);
       const spot = lineSpot({ head: this.place.head, size: { w: words.width, h: words.height }, area });
       this.add(new PixelImage(this.scene, spot.x, spot.y, words).setName('tugLine'));
     }
