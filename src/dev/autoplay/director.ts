@@ -247,6 +247,10 @@ export function startAutoplay(options: AutoplayOptions): AutoplayHandle {
       return s && s.playSession && s.buttons && s.buttons.length > 0 ? s : undefined;
     });
     say('playing', `${chart.title}: ${scenario.mode} mode, ${scenario.player.style} player, seed ${scenario.seed}`);
+    // the laps played before this performance: a pass done restarts the screen with one more (its score shows only for a
+    // moment, which a busy page can miss, ft_1_12.AC3)
+    const lapOf = () => (scene(playKey) as (SceneLike & { startData?: { lap?: number } }) | undefined)?.startData?.lap ?? 0;
+    const lapBefore = lapOf();
     if (scenario.mode === 'tempo') {
       await performInTempo(chart, () => play.playSession?.transport);
     } else {
@@ -257,7 +261,7 @@ export function startAutoplay(options: AutoplayOptions): AutoplayHandle {
     const passed = await waitUntil('the pass score', () => {
       if (scene(resultsKey)) return true;
       const s = scene(playKey) as (SceneLike & { pendingPass?: unknown; leave?: () => void }) | undefined;
-      return s && s.pendingPass ? s : undefined;
+      return s && (s.pendingPass || lapOf() > lapBefore) ? s : undefined;
     }, 40000);
     if (passed !== true) passed.leave?.();
   }
