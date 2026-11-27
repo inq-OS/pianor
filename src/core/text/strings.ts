@@ -98,6 +98,7 @@ export const strings = {
   'songs.allOff': 'All songs are off. Turn some on in All pieces.',
   'songs.written': '{written} of {planned} bars',
   'songs.parts': '{count} parts',
+  'songs.onePart': '1 part',
   'song.barRange': '{first}-{last}',
   'song.tempo': '♩{bpm}',
   'song.switchOn': 'In the song',

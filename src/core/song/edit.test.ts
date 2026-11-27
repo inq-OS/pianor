@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addNode, freeNodeId, linkTargets, moveNode, newSong, removeNode, renameNode, setValue, valuesAt, writeBlank } from './edit.ts';
+import { addNode, canAdd, freeNodeId, freeNodeName, linkTargets, moveNode, newSong, removeNode, renameNode, setValue, valuesAt, writeBlank } from './edit.ts';
 import { resolveSong } from './resolve.ts';
 import { songSchema, walkSong, type Song, type SongNode } from './schema.ts';
 
@@ -16,6 +16,27 @@ function sample(): Song {
 }
 
 describe('making and editing a song (ft_1_36 rule 12)', () => {
+  it('a new part or group takes the first number no row of the song is named with', () => {
+    const song = { ...sample(), nodes: [blank('a', 'Part 1'), { kind: 'group' as const, id: 'g', name: 'Group 2', nodes: [blank('b', 'Part 3')] }] };
+    expect(freeNodeName(song, (n) => `Group ${n}`)).toBe('Group 1');
+    expect(freeNodeName(song, (n) => `Part ${n}`)).toBe('Part 2');
+    expect(freeNodeName({ ...song, nodes: [] }, (n) => `Part ${n}`)).toBe('Part 1');
+  });
+
+  it('ft_1_36.AC1 a group is never added deeper than four levels', () => {
+    let song: Song = { ...sample(), nodes: [blank('x')] };
+    let inside = 'x';
+    for (let depth = 1; depth <= 4; depth++) {
+      const group: SongNode = { kind: 'group', id: `g${depth}`, name: `G${depth}`, nodes: [blank(`p${depth}`)] };
+      const place = depth === 1 ? ('end' as const) : { inside };
+      expect(canAdd(song, place, group)).toBe(true);
+      song = addNode(song, place, group);
+      inside = `g${depth}`;
+    }
+    expect(canAdd(song, { inside }, { kind: 'group', id: 'g5', name: 'G5', nodes: [blank('p5')] })).toBe(false);
+    expect(canAdd(song, { inside }, blank('p6'))).toBe(true);
+  });
+
   it('ft_1_36.AC14 a new song takes its title, the defaults and one blank, and passes the song schema', () => {
     const song = newSong('own-song', 'My song', 'Part');
     expect(song.title).toBe('My song');
