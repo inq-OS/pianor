@@ -79,6 +79,11 @@ export function playbackLengthMs(chart: Chart, options: PlaybackOptions = {}): n
   return tickToMs(chart.tempoMap, chart.bars.at(-1)!.endTick, chart.ppq) / tempoScale;
 }
 
+/** When the last of `notes` stops sounding (ms), 0 for none: the piece maker's Listen ends there, not after its empty bars. */
+export function lastSoundMs(notes: readonly PlaybackNote[]): number {
+  return notes.reduce((end, n) => Math.max(end, n.endMs), 0);
+}
+
 /** Chart notes sounding at `ms` (a note sounds from its start up to, not including, its end). */
 export function soundingAt(notes: readonly PlaybackNote[], ms: number): number[] {
   return notes.filter((n) => n.startMs <= ms && ms < n.endMs).flatMap((n) => n.noteIndexes);
