@@ -24,6 +24,8 @@ const LIST_TOP = 4;
 const BOOK_SIDE = 3;
 const BOOK_MARGIN = 14;
 const BOOK_GUTTER = 18;
+/** A row is set this far in from its page's cell. */
+const ROW_INSET = 3;
 /** The small buttons of a row: a finger wide at the usual zoom, as the book's own. */
 const SMALL = 11;
 const SMALL_GAP = 3;
@@ -98,8 +100,9 @@ export class SongsScene extends PixelScene {
     const capacity = slice.paged ? grid.perPage : grid.singlePageMax;
     rows.slice(slice.first, slice.first + slice.count).forEach((song, i) => {
       const { x, y } = rectCentre(grid.pageCell(i, capacity));
-      if (song) this.songRow(song, x, y - row / 4, grid.cardWidth);
-      else this.newSongRow(x, y, grid.cardWidth);
+      // set in from the page's cell, so the row stays on the paper (as the piece book's cards do)
+      if (song) this.songRow(song, x, y - row / 4, grid.cardWidth - 2 * ROW_INSET);
+      else this.newSongRow(x, y, grid.cardWidth - 2 * ROW_INSET);
     });
     if (list.length === 0) {
       const { x, y } = rectCentre(grid.pageCell(1, capacity));

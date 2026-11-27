@@ -95,7 +95,7 @@ export const strings = {
   'ear.length': '{n} s',
   'menu.songs': 'Songs',
   'songs.none': 'No songs yet.',
-  'songs.allOff': 'All songs are off. Turn some on in Settings.',
+  'songs.allOff': 'All songs are off. Turn some on in All pieces.',
   'songs.written': '{written} of {planned} bars',
   'songs.parts': '{count} parts',
   'song.barRange': '{first}-{last}',
