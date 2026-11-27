@@ -457,7 +457,8 @@ test.describe('practice tools (core_02 and core_03)', () => {
 
   test('core_03.AC5 the ramp panel fits in Estonian, over the staff and above the band, with its longest values', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual', 'et');
-    await openPiece(page, 'Little Steps');
+    // in Estonian the piece book shows the chart's Estonian title
+    await openPiece(page, 'Väikesed sammud');
     await page.keyboard.press('Shift+KeyR');
     await page.keyboard.press('Digit2');
     await page.keyboard.press('Digit3');
