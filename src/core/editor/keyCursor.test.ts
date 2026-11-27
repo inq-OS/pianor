@@ -1,7 +1,7 @@
 // Covers ft_1_02d.AC15 (the keyboard cursor of the piece maker).
 import { describe, expect, it } from 'vitest';
-import { moveBar, moveInTime, movePitch, otherStaff, startKeyCursor, timeStops } from './keyCursor';
-import { emptyPiece, type EditorHand, type EditorNote, type EditorPiece } from './model';
+import { moveBar, moveInTime, moveOnGrowing, movePitch, otherStaff, startKeyCursor, timeStops } from './keyCursor';
+import { MAX_BARS, emptyPiece, type EditorHand, type EditorNote, type EditorPiece } from './model';
 
 const n = (hand: EditorHand, bar: number, start: number, step: EditorNote['step'], octave = 4, length: EditorNote['length'] = 'quarter'): EditorNote => ({
   hand, bar, start, length, step, octave, alter: 0,
@@ -79,5 +79,25 @@ describe('the keyboard cursor (ft_1_02d.AC15)', () => {
     // inside a whole note of the bass the cursor goes to that note's start, a place it can stop at
     const held = piece([n('LH', 2, 0, 'C', 3, 'whole')]);
     expect(otherStaff(held, at('RH', 'F', 4), 'quarter', -1)).toMatchObject({ hand: 'LH', bar: 2, start: 0 });
+  });
+});
+
+describe('moving on at the end of the piece (ft_1_02d.AC17)', () => {
+  it('ft_1_02d.AC17 Ctrl + Enter at the last place of the last bar adds four empty bars and moves on into the first of them', () => {
+    const full = piece([0, 480, 960, 1440].map((start) => n('RH', 3, start, 'C')));
+    const out = moveOnGrowing(full, { hand: 'RH', bar: 3, start: 1440, step: 'C', octave: 4 }, 'quarter');
+    expect(out.piece.bars).toBe(8);
+    expect(out.piece.notes).toEqual(full.notes);
+    expect(out.cursor).toEqual({ hand: 'RH', bar: 4, start: 0, step: 'C', octave: 4 });
+  });
+
+  it('ft_1_02d.AC17 elsewhere it only moves on, and a piece that has every bar it may have stays as it is', () => {
+    const p = piece([n('RH', 0, 0, 'C')]);
+    const out = moveOnGrowing(p, { hand: 'RH', bar: 0, start: 0, step: 'C', octave: 4 }, 'quarter');
+    expect(out.piece).toBe(p);
+    expect(out.cursor).toMatchObject({ bar: 0, start: 480 });
+    const longest = piece([n('RH', MAX_BARS - 1, 0, 'C', 4, 'whole')], { bars: MAX_BARS });
+    const end = { hand: 'RH' as const, bar: MAX_BARS - 1, start: 0, step: 'C' as const, octave: 4 };
+    expect(moveOnGrowing(longest, end, 'quarter')).toEqual({ piece: longest, cursor: end });
   });
 });

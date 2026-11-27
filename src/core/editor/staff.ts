@@ -156,6 +156,12 @@ export function pageOfBar(layout: StaffLayout, bar: number): number {
   return at ? layout.systems[at.system]!.page : 0;
 }
 
+/** The first bar on `page` (Page Up and Down put the keyboard cursor there); 0 when the page has none. */
+export function firstBarOfPage(layout: StaffLayout, page: number): number {
+  const bar = layout.bars.findIndex((b) => layout.systems[b.system]!.page === page);
+  return Math.max(0, bar);
+}
+
 /**
  * The box to highlight for an action's target (`targetOf`): on its hand's staff, from half-way to the column before its
  * start (or the bar's start) to half-way to the first column after its time (or the bar's end), a staff space beyond the lines. Null without columns (bars of equal width).
