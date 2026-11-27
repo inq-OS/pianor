@@ -79,6 +79,8 @@ export class BookTool {
   private closed = false;
   private poll: number | null = null;
   private readonly escape = (e: KeyboardEvent) => {
+    // the browser's own undo and redo would reach the piece maker's title field behind the tool: only the tool's fields take them
+    if ((e.ctrlKey || e.metaKey) && ['KeyZ', 'KeyY'].includes(e.code) && !(e.target instanceof Node && this.root.contains(e.target))) e.preventDefault();
     if (e.key !== 'Escape') return;
     e.preventDefault();
     // in the close view of a page, Esc goes back to the parts first
@@ -131,6 +133,11 @@ export class BookTool {
     this.left.clear();
     this.thumbs = [];
     this.book = '';
+    // a reading belongs to its PDF: another PDF is read anew, never shown with the last one's parts
+    this.done = null;
+    this.readPages = '';
+    this.movements = [];
+    this.starts = [];
     this.bytes = file.bytes;
     this.showPages();
     for (let n = 1; n <= pdf.count && !this.closed && this.pdf === pdf; n++) {
@@ -178,11 +185,13 @@ export class BookTool {
     title.oninput = () => (this.title = title.value);
     const count = this.chosen().length;
     const canRead = count > 0 && ready === pdf.count;
-    title.onkeydown = (e) => {
-      if (e.key === 'Enter' && canRead) void this.read();
-    };
-    // the reading is kept while the same pages are chosen: back to it without reading again
+    // the reading is kept while the same pages are chosen: back to it without reading again (Enter too)
     const same = this.done !== null && this.readPages === this.chosen().join(',');
+    title.onkeydown = (e) => {
+      if (e.key !== 'Enter') return;
+      if (same) this.showCheck();
+      else if (canRead) void this.read();
+    };
     this.bar.replaceChildren(
       ...this.buttons({ label: t('editor.book.choose'), id: 'book-tool-choose', act: () => void this.choose() }),
       el('label', { style: 'margin:0 6px 0 12px' }, t('editor.book.nameLabel')),
@@ -217,6 +226,8 @@ export class BookTool {
       const sent = picture ? await sendPage(this.book, n, picture) : { ok: false as const, reason: t('editor.book.cannotOpen') };
       if (!sent.ok) return this.failed(sent.reason);
     }
+    // closed while the last page was on its way: no reading is started that nothing would stop
+    if (this.closed) return;
     const started = await readBook(this.book, pages);
     if (!started.ok) return this.failed(started.reason);
     this.showReading(pages.length);

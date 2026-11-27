@@ -332,7 +332,10 @@ export class EditorScene extends PixelScene {
    * written in 4/4 and no length is guessed; `meterAsk` is the time the piece maker asks to confirm, its panel open.
    */
   private meterAuto = false;
-  /** Whether the time was A (Auto) at each step of the history, so Undo and Redo bring it back with the step (ft_1_02d.AC21). */
+  /**
+   * Whether the time was A (Auto) at each step of the history, so Undo and Redo bring it back with the step (ft_1_02d.AC21).
+   * A step with no record (none is expected: every push records one) leaves the time as it is.
+   */
   private autoAt = new WeakMap<EditorPiece, boolean>();
   private meterAsk: Beats | null = null;
   /** Esc closed the question on a full first bar: it asks again when a later bar is entered. */
