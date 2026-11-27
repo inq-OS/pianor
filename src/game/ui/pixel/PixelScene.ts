@@ -612,7 +612,7 @@ export abstract class PixelScene extends Phaser.Scene {
       this.bubbleFreshTouch = false;
     });
     this.listenForTwoFingers();
-    this.onWindowKey((e) => this.bubbleKey(e));
+    this.listenForBubbleKeys();
     // the keyboard switch on the toolbar lights while the on-screen keyboard is shown, whoever changed it
     const keys = contextOf(this).keyboardSwitch;
     const stop = keys.onChange(() => this.lightKeys(keys.shown()));
@@ -634,8 +634,25 @@ export abstract class PixelScene extends Phaser.Scene {
    * handled, so Phaser's own keyboard plugin would skip them, and it can also miss keys that come quickly.
    */
   protected onWindowKey(handler: (event: KeyboardEvent) => void): void {
+    // the open bubble's keys come before any the screen listens for (Space picks an option there, never starts over)
+    this.listenForBubbleKeys();
     window.addEventListener('keydown', handler, true);
     this.events.once('shutdown', () => window.removeEventListener('keydown', handler, true));
+  }
+
+  /** Whether the bubble's key listener is on the window for this run of the scene. */
+  private bubbleKeysOn = false;
+
+  /** Puts the bubble's key listener on the window, once a run and ahead of every other key listener of the scene. */
+  private listenForBubbleKeys(): void {
+    if (this.bubbleKeysOn) return;
+    this.bubbleKeysOn = true;
+    const handler = (e: KeyboardEvent) => this.bubbleKey(e);
+    window.addEventListener('keydown', handler, true);
+    this.events.once('shutdown', () => {
+      window.removeEventListener('keydown', handler, true);
+      this.bubbleKeysOn = false;
+    });
   }
 
   /** What Esc does on a keyboard-navigable screen; screens that bind Esc themselves leave it alone. */

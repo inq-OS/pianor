@@ -153,6 +153,10 @@ test.describe('the bubble and the strip (ft_1_20, d282)', () => {
     expectNoErrors(errors);
   });
 
+  /** Whether practice was started over (the space-bar reset), and the label of the focused button. */
+  const restarted = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { startData: { reset?: boolean } }).startData.reset === true);
+  const focusedLabel = (page: Page, key = 'practice') => page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { focusedButton?: { options: { label: string } } }).focusedButton?.options.label ?? null, key);
+
   test('ft_1_20.AC19 a right click on a button opens the bubble and never presses the button under it', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await startScene(page, 'practice', { chartId: 'little-steps' });
@@ -200,6 +204,20 @@ test.describe('the bubble and the strip (ft_1_20, d282)', () => {
     await page.waitForTimeout(200);
     const p = await practice(page);
     expect({ names: p.names, fingers: p.fingers }).toEqual({ names: false, fingers: false });
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_20.AC22 Space on a focused option of the bubble picks it and does not start the piece over', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'practice', { chartId: 'little-steps' });
+    await waitForScene(page, 'practice');
+    await page.keyboard.press('Shift+F10');
+    await expect.poll(() => bubbleOpen(page, 'practice')).toBe(true);
+    await page.keyboard.press('ArrowLeft');
+    expect(await focusedLabel(page)).toBe('Fingers');
+    await page.keyboard.press('Space');
+    await expect.poll(async () => (await practice(page)).fingers).toBe(true);
+    expect(await restarted(page)).toBe(false);
     expectNoErrors(errors);
   });
 
