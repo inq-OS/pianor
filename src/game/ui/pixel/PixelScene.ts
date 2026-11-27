@@ -60,6 +60,11 @@ export interface ToolbarItem {
    * `onClick` is then not called.
    */
   menu?: { items: () => readonly (MenuItem | null)[]; cell: { w: number; h: number }; columns: number };
+  /**
+   * The wheel over the item in the strip (ft_1_20.AC16): by default an item with choices steps through them; `false` leaves
+   * it alone (a choice a stray scroll must not change, practice's way to play); a function is told one notch up (1) or down (-1).
+   */
+  wheel?: false | ((direction: 1 | -1) => void);
   /** Hears the button made for the item, so a screen can change its label, picture or light later without drawing again. */
   ref?: (button: PixelButton) => void;
   /** The key that does what the item does (the piece maker): drawn on the item while `shortcutsShown`, and always in the bubble. */
@@ -829,6 +834,11 @@ export abstract class PixelScene extends Phaser.Scene {
   /** Just before the toolbar's Settings button leaves for the settings screen: a screen with unsaved work keeps it here. */
   protected beforeSettings(): void {}
 
+  /** What this screen is started with again when Settings goes back to it: its last start's data, unless it keeps more (practice keeps the note it stood on). */
+  protected settingsReturnData(): object | undefined {
+    return this.sys.settings.data;
+  }
+
   /** The screen's own buttons on the toolbar (d088), left to right; none by default. */
   protected toolbarItems(): ToolbarItem[] {
     return [];
@@ -855,7 +865,7 @@ export abstract class PixelScene extends Phaser.Scene {
   /** What the Settings button does, on the toolbar or in the band. */
   private openSettingsScreen(): void {
     this.beforeSettings();
-    this.scene.start('settings', { returnTo: { key: this.scene.key, data: this.sys.settings.data } });
+    this.scene.start('settings', { returnTo: { key: this.scene.key, data: this.settingsReturnData() } });
   }
 
   /** The player's name, rank and XP as texts, measured but not yet placed, or null on a screen without a player. */
@@ -1666,7 +1676,9 @@ export abstract class PixelScene extends Phaser.Scene {
     if (!inventory || dy === 0 || this.menuOpen || !this.pointerOnInventory(pointer)) return;
     const { x, y } = this.artPoint(pointer);
     const over = inventory.slots.find(({ rect: r }) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
-    if (over?.item.menu && !over.item.disabled) {
+    if (!over || over.item.wheel === false) return;
+    if (over.item.wheel) over.item.wheel(dy < 0 ? 1 : -1);
+    else if (over.item.menu && !over.item.disabled) {
       const choices = over.item.menu.items();
       const next = wheelChoice(choices, dy);
       if (next !== null) choices[next]!.onPick();
