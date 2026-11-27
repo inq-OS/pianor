@@ -748,15 +748,23 @@ test.describe('the way out of the room, and what the room and the map say', () =
 
   test('a press on the door while Kiur speaks closes his line and opens the map, and a press beside the objects turns the line', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
-    await onCurriculum(page, 30);
+    await onCurriculum(page, 0);
     await clickButton(page, 'profiles', 0);
     await waitForScene(page, 'profile');
     await expect.poll(() => roomTalk(page)).not.toBeNull();
-    // the reminder runs over two pages: a press on the bare floor turns the page
-    const first = await roomTalk(page);
+    // on the deadline day Kiur's reminder, then the teacher's line: a press on the bare floor goes on to hers
+    expect((await roomTalk(page))!.who).toBe('kiur');
     await page.mouse.click(Math.round(page.viewportSize()!.width / 2), Math.round(page.viewportSize()!.height * 0.85));
-    await expect.poll(async () => (await roomTalk(page))?.page).toBe(first!.page + 1);
-    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
+    await expect.poll(async () => (await roomTalk(page))?.who).toBe('teacher');
+    // the door above the teacher, who stands in its foot
+    const door = await sceneButton(page, 'profile', 'Door');
+    const top = await page.evaluate((i) => {
+      const scene = window.__game.scene.getScene('profile') as unknown as { buttons: { rect: Box; screenCenter(): { x: number; y: number } }[]; px: { scale: number } };
+      const b = scene.buttons[i]!, c = b.screenCenter(), canvas = document.querySelector('canvas')!, r = canvas.getBoundingClientRect();
+      const y = c.y - (b.rect.height / 2 - 4) * scene.px.scale;
+      return { x: r.left + (c.x / canvas.width) * r.width, y: r.top + (y / canvas.height) * r.height };
+    }, door);
+    await page.mouse.click(top.x, top.y);
     await waitForScene(page, 'keriMap');
     expectNoErrors(errors);
   });
