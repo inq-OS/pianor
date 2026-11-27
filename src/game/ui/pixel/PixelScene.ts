@@ -280,7 +280,7 @@ export abstract class PixelScene extends Phaser.Scene {
   private visit = 0;
   /** The open drop-down menu, if any: its container and its choices (which are also in `buttons` while it is open). */
   /** The open menu; `previews` are its choices' previews, taken away when it closes (a closing menu sends no pointer-out). */
-  private menu: { container: Phaser.GameObjects.Container; buttons: PixelButton[]; focusBefore: FocusBefore; bubble?: boolean; ring?: PixelButton[]; previews?: ((on: boolean) => void)[]; slider?: OpenSlider } | null = null;
+  private menu: { container: Phaser.GameObjects.Container; buttons: PixelButton[]; focusBefore: FocusBefore; bubble?: boolean; reopen?: (focus: string | undefined) => void; ring?: PixelButton[]; previews?: ((on: boolean) => void)[]; slider?: OpenSlider } | null = null;
   /** F1 in the piece maker: every band item with a key shows it in its corner. */
   protected shortcutsShown = false;
   /** The band's buttons by their key, as last drawn: a key opens its item's menu from the item. */
@@ -620,7 +620,7 @@ export abstract class PixelScene extends Phaser.Scene {
     const keys = contextOf(this).keyboardSwitch;
     const stop = keys.onChange(() => this.lightKeys(keys.shown()));
     this.events.once('shutdown', stop);
-    const rebuild = () => this.rebuild();
+    const rebuild = () => this.rebuild({ keepBubble: true });
     this.scale.on('resize', rebuild);
     this.events.once('shutdown', () => {
       this.scale.off('resize', rebuild);
@@ -1588,7 +1588,8 @@ export abstract class PixelScene extends Phaser.Scene {
     make(layout.close, { label: t('band.close'), icon: TOOL_ICONS.close, onClick: () => undefined }, () => this.closeMenu(), undefined, 'bubbleClose');
     for (const badge of badges) badge();
     const optionPreviews = paging.slots.flatMap((slot) => (typeof slot === 'number' && listed[slot]?.preview ? [listed[slot].preview] : []));
-    this.menu = { container, buttons, focusBefore: this.focusNow(), bubble: true, ring, previews: [...optionPreviews, ...choices.flatMap((choice) => (choice?.preview ? [choice.preview] : []))], ...(held.slider ? { slider: held.slider } : {}) };
+    const reopen = (focus: string | undefined) => this.openBubble(at, { ...options, ...(focus !== undefined ? { focus } : {}) });
+    this.menu = { container, buttons, focusBefore: this.focusNow(), bubble: true, reopen, ring, previews: [...optionPreviews, ...choices.flatMap((choice) => (choice?.preview ? [choice.preview] : []))], ...(held.slider ? { slider: held.slider } : {}) };
     this.buttons.push(...buttons);
     if (options.keyboard || this.keyboardNavigation) this.focusOn(ring.find((b) => !b.disabled && options.focus !== undefined && b.labelText === options.focus) ?? ring.find((b) => !b.disabled) ?? buttons[0]);
   }
@@ -1847,9 +1848,19 @@ export abstract class PixelScene extends Phaser.Scene {
   /** When the screen opened (page time): the second click of a double click that opened it presses nothing here (`PixelButton`). */
   screenOpenedAt = 0;
 
-  private rebuild(): void {
+  private rebuild(options: { keepBubble?: boolean } = {}): void {
     const previous = this.lastFocusRect;
+    // a new window size draws the open bubble again where it was, the focus on the same option (ft_1_20.AC19)
+    const kept = options.keepBubble && this.menu?.reopen ? { reopen: this.menu.reopen, focus: this.focusedButton?.labelText, before: this.menu.focusBefore } : null;
     this.teardown();
+    this.afterRebuild(previous);
+    if (kept) {
+      kept.reopen(kept.focus);
+      if (this.menu) this.menu.focusBefore = kept.before;
+    }
+  }
+
+  private afterRebuild(previous: { x: number; y: number; width: number; height: number } | null): void {
     const { width, height } = this.scale;
     // an overlay (d070) keeps the plain frame: it draws over the whole paused screen under it
     const strip = this.framed && !this.keepsToolbar && !this.wholeScreen;
@@ -1867,7 +1878,8 @@ export abstract class PixelScene extends Phaser.Scene {
     // it is drawn once more with the strip it has
     if (strip && !this.stripRedrawn && this.stripRows() !== view.band?.rows) {
       this.stripRedrawn = true;
-      this.rebuild();
+      this.teardown();
+      this.afterRebuild(previous);
       this.stripRedrawn = false;
       return;
     }

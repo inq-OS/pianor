@@ -244,6 +244,27 @@ test.describe('the bubble and the strip (ft_1_20, d282)', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_1_20.AC19 the open bubble stays open when the window changes size, still whole on the screen', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'practice', { chartId: 'little-steps' });
+    await waitForScene(page, 'practice');
+    const staff = await artPoint(page, 'practice', 300, 80);
+    await page.mouse.click(staff.x, staff.y, { button: 'right' });
+    await expect.poll(() => bubbleOpen(page, 'practice')).toBe(true);
+    const size = page.viewportSize()!;
+    await page.setViewportSize({ width: size.width - 200, height: size.height - 100 });
+    await page.waitForTimeout(300);
+    expect(await bubbleOpen(page, 'practice')).toBe(true);
+    const inside = await page.evaluate(() => {
+      const s = window.__game.scene.getScene('practice') as unknown as { menu: { buttons: { rect: { x: number; y: number; width: number; height: number } }[] }; px: { width: number }; mainRows: number };
+      return s.menu.buttons.every((b) => b.rect.x >= 0 && b.rect.y >= 0 && b.rect.x + b.rect.width <= s.px.width && b.rect.y + b.rect.height <= s.mainRows + 17);
+    });
+    expect(inside).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => bubbleOpen(page, 'practice')).toBe(false);
+    expectNoErrors(errors);
+  });
+
   test('ft_1_20.AC19 the bubble stays whole on the screen when opened near a corner', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await startScene(page, 'practice', { chartId: 'little-steps' });
