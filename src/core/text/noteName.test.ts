@@ -44,12 +44,21 @@ describe('noteLabel: hint label from the spelling, without octave (core_09.AC6)'
     expect(noteLabel(sp('B', -1), 'B')).toBe('Bb');
   });
 
-  it('reads a sharp or flat that lands on a natural as that natural in H mode: B# and H# are C, E# is F, Cb is H, Fb is E', () => {
-    expect(noteLabel(sp('B', 1), 'H')).toBe('C');
-    expect(noteLabel(sp('E', 1), 'H')).toBe('F');
-    expect(noteLabel(sp('C', -1), 'H')).toBe('H');
-    expect(noteLabel(sp('F', -1), 'H')).toBe('E');
+  it('keeps every other letter and its sign in H mode, so a scale never shows a letter twice: Cb, Fb, E#, B# reads "H#", Bbb reads "Bb"', () => {
+    expect(noteLabel(sp('C', -1), 'H')).toBe('Cb');
+    expect(noteLabel(sp('F', -1), 'H')).toBe('Fb');
+    expect(noteLabel(sp('E', 1), 'H')).toBe('E#');
+    expect(noteLabel(sp('B', 1), 'H')).toBe('H#');
+    expect(noteLabel(sp('B', 2), 'H')).toBe('H##');
+    expect(noteLabel(sp('B', -2), 'H')).toBe('Bb');
     expect(noteLabel(sp('B', 1), 'B')).toBe('B#');
+  });
+
+  it('names the C flat and C sharp major scales with seven different letters in H mode', () => {
+    const cFlat = (['C', 'D', 'E', 'F', 'G', 'A', 'B'] as const).map((step) => noteLabel(sp(step, -1), 'H'));
+    expect(cFlat).toEqual(['Cb', 'Db', 'Eb', 'Fb', 'Gb', 'Ab', 'B']);
+    const cSharp = (['C', 'D', 'E', 'F', 'G', 'A', 'B'] as const).map((step) => noteLabel(sp(step, 1), 'H'));
+    expect(cSharp).toEqual(['C#', 'D#', 'E#', 'F#', 'G#', 'A#', 'H#']);
   });
 
   it('keeps the other flats and sharps with their signs in H mode', () => {
@@ -63,8 +72,8 @@ describe('noteLabel: hint label from the spelling, without octave (core_09.AC6)'
         const s = midiToSpelling(midi);
         const name = noteLabel(s, 'H');
         expect(name).toMatch(/^[A-H](#|b)?$/);
-        // H is a natural B, or Cb (the same pitch), and nothing else
-        if ((s.step === 'B' && s.alter === 0) || (s.step === 'C' && s.alter === -1)) expect(name).toBe('H');
+        // H is a natural B and nothing else
+        if (s.step === 'B' && s.alter === 0) expect(name).toBe('H');
         else expect(name).not.toBe('H');
       }),
     );
