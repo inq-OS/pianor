@@ -1919,8 +1919,10 @@ export class PracticeScene extends PixelScene {
   private setPercent(percent: number): void {
     if (this.locked) return; // the check-up, the intro and learning play as given (ft_1_27.AC2, ft_1_31.AC3, ft_1_32)
     this.stopMetronome();
+    // kept at once: a second press before the restart happens (a double click) steps on from this one
+    this.percent = clampTempoPercent(percent);
     // a new tempo percent starts the click speed afresh
-    this.scene.restart({ ...this.startData, percent: clampTempoPercent(percent), ...this.carry(), clickOffset: 0 });
+    this.scene.restart({ ...this.startData, percent: this.percent, ...this.carry(), clickOffset: 0 });
   }
 
   /** Shift+= / Shift+-: the click 5 BPM faster or slower. Wait mode only; in Tempo mode the click is the pulse of the music. */

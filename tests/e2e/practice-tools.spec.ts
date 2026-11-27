@@ -313,6 +313,21 @@ test.describe('practice tools (core_02 and core_03)', () => {
     expectNoErrors(errors);
   });
 
+  test('two presses of + before the screen starts over both count (a double click)', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('practice');
+      const plus = (scene.buttons as { options: { label: string }; press(): void }[]).find((b) => b.options.label === '+')!;
+      plus.press();
+      plus.press();
+    });
+    await expect.poll(() => percent(page)).toBe(120);
+    await waitForScene(page, 'practice');
+    expect(await percent(page)).toBe(120);
+    expectNoErrors(errors);
+  });
+
   test('Shift+M toggles the click, plain M is still a note, Shift+= and Shift+- change the click speed', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
