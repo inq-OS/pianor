@@ -377,3 +377,32 @@ test('a play of the whole piece in learning is saved as a pass of the piece itse
   expect(await record('little-steps#bars-1-4')).toBe(0);
   expectNoErrors(errors);
 });
+
+test('ft_1_32.AC22 Esc at the learned moment goes on as a key does: the book opens and the clef drops onto the piece', async ({ page }) => {
+  const errors = await openGame(page, '?device=virtual&learn=1');
+  await learnPiece(page, 'Little Steps');
+  const [steps, runs] = await page.evaluate(() => {
+    const { plan } = (window.__game.scene.getScene('practice') as unknown as { learn: { plan: { runs: number }[] } }).learn;
+    return [plan.length, plan[plan.length - 1]!.runs];
+  });
+  await page.keyboard.press('Escape');
+  await waitForScene(page, 'menu');
+  // the piece one run from learned; asked again for its pace once already, so any pace counts
+  await page.evaluate(({ step, streak }) => {
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return window.__game.registry.get('context').profiles.saveLearnProgress('little-steps', {
+      step, wholeStreak: streak, recall: false, confirm: false, misses: 0, unsteady: 1, medals: [], lastDay: today, bpm: [100], stepBars: 1,
+    });
+  }, { step: steps - 1, streak: runs - 1 });
+  await learnPieceAsked(page, 'Little Steps');
+  await page.keyboard.press('Escape'); // go on
+  await waitForScene(page, 'practice');
+  await playWithKeys(page, (await shown(page)).midis);
+  await expect.poll(() => progress(page), { timeout: 10_000 }).toMatchObject({ step: steps });
+  // the learned moment: the clef grown, waiting
+  await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { learnedGoOn: unknown }).learnedGoOn !== null), { timeout: 10_000 }).toBe(true);
+  await page.keyboard.press('Escape');
+  await waitForScene(page, 'menu');
+  expectNoErrors(errors);
+});

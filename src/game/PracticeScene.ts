@@ -928,6 +928,11 @@ export class PracticeScene extends PixelScene {
   }
 
   private leave(): void {
+    // the learned moment waits for a key or a press: Esc and Back go on as a key does (ft_1_32 rule 5)
+    if (this.learnedGoOn) {
+      this.learnedGoOn();
+      return;
+    }
     // while a pass's score shows the scene is already "leaving" for the next pass; Back still ends the session then
     if (this.leaving && this.loopTimer === null) return;
     this.leaving = true;
