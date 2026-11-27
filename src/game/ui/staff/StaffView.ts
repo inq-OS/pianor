@@ -358,11 +358,12 @@ export class StaffView {
       const number = this.barNumbers.find((n) => n.index === index);
       const cell = (0.8 * S) / 5;
       const numberWidth = number === undefined ? 0 : String(number.number).length * 4 * cell - cell + 0.4 * S;
-      const before = used.get(index) ?? 0;
-      used.set(index, before + 1);
-      const x = this.origin.x + bar.x + 0.25 * S + numberWidth + before * 1.1 * S;
+      // a second mark on the same bar (A and B of a one-bar section) starts after the first one's whole text, its tempo and lap too
+      const x = used.get(index) ?? this.origin.x + bar.x + 0.25 * S + numberWidth;
       const y = this.origin.y + this.layout.systems[bar.system]!.topLineY - 1.95 * S;
-      this.markTexts.push({ text: this.scene.add.text(x, y, text, style).setOrigin(0, 0.5), system: bar.system });
+      const label = this.scene.add.text(x, y, text, style).setOrigin(0, 0.5);
+      used.set(index, x + label.width + 0.6 * S);
+      this.markTexts.push({ text: label, system: bar.system });
     }
     this.drawStaff();
     this.setHints(this.hints);
@@ -1038,9 +1039,18 @@ export class StaffView {
     g.lineStyle(this.lineWidth(), this.theme.ink, PLAYED_ALPHA);
     for (const ledger of mark.ledgerLines) g.lineBetween(ledger.x1, ledger.y, ledger.x2, ledger.y);
     g.fillStyle(color, PLAYED_ALPHA).fillEllipse(mark.x, mark.y, mark.rx * 2, mark.ry * 2);
+    if (mark.beyond) {
+      // pinned at the limit: a small arrow right of the head says the key lies further out that way
+      const S = this.layout.staffSpace;
+      const ax = mark.x + mark.rx + S * 0.6;
+      const dir = mark.beyond === 'above' ? -1 : 1;
+      const tip = mark.y + dir * S * 0.9;
+      const base = mark.y - dir * S * 0.1;
+      g.fillTriangle(ax - S * 0.4, base, ax + S * 0.4, base, ax, tip);
+    }
     if (mark.accidental !== null) {
       g.setAlpha(PLAYED_ALPHA);
-      this.drawAccidental(g, mark.accidental, mark.x - mark.rx * 2.4, mark.y, color);
+      this.drawAccidental(g, mark.accidental, mark.accidentalX, mark.y, color);
       g.setAlpha(1);
     }
   }

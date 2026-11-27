@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import fc from 'fast-check';
 import { JUDGE_EVENT_VERSION, type NoteJudged, type PieceResult, type WrongReason } from '../judge/types';
-import { emptyFreePlay, recordFreePlayNote, recordFreePlayRound, summarizeFreePlay } from './freePlay';
+import { emptyFreePlay, playedToTheEnd, recordFreePlayNote, recordFreePlayRound, summarizeFreePlay } from './freePlay';
 
 const hints = { noteNames: false, fingers: false };
 
@@ -103,5 +103,23 @@ describe('free play session', () => {
       if (rounds > 0) expect(summary.bestAccuracy!).toBeGreaterThanOrEqual(summary.lastAccuracy!);
       for (const a of summary.roundAccuracy) expect(a >= 0 && a <= 1).toBe(true);
     }));
+  });
+});
+
+describe('playedToTheEnd', () => {
+  const timing = (played: number, missed: number) => ({ played, onTime: played, early: 0, late: 0, missed, meanAbsErrorMs: played === 0 ? null : 10, score: played === 0 ? 0 : 80 });
+
+  it('a Tempo pass where the clock ran to the end with no note played right is not played to the end', () => {
+    expect(playedToTheEnd({ ...round(0, 8), timing: timing(0, 8) })).toBe(false);
+    expect(playedToTheEnd({ ...round(0, 8, 3), timing: timing(0, 8) })).toBe(false);
+  });
+
+  it('a Tempo pass with one note played right is played to the end', () => {
+    expect(playedToTheEnd({ ...round(1, 8), timing: timing(1, 7) })).toBe(true);
+  });
+
+  it('a Wait pass that reached its end is played to the end, also when every note came after a wrong key', () => {
+    expect(playedToTheEnd(round(0, 8, 8))).toBe(true);
+    expect(playedToTheEnd(round(8, 8))).toBe(true);
   });
 });

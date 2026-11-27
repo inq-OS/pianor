@@ -61,8 +61,8 @@ const KEY_STEP = 1.15;
 const KEY_CHANGE_LEFT = 0.6;
 /** More room a key change leaves when a repeat starts in its bar, for the repeat sign after the signs. */
 const KEY_CHANGE_REPEAT = 1.2;
-/** The time signature follows the key signature after this gap; without a key it starts at 5 spaces, as before. */
-const KEY_TIME_GAP = 0.5;
+/** The clear gap from the ink of the key signature's last sign to the time signature's digits; without a key it starts at 5 spaces, as before. */
+const KEY_TIME_GAP = 0.4;
 /** From the time signature to the first bar's inner edge (7 spaces in all with no key, as before). */
 const TIME_TO_BARS = 2;
 /** Gap between an accidental and the ink to its right, and the distance between two columns of a chord's accidentals. */
@@ -114,7 +114,12 @@ const TUPLET_HOOK = 0.5;
 const REST_REACH = 1.5;
 
 /** Where the time signature starts, in staff spaces from the staff's left edge: after the key signature when there is one. */
-const timeSignatureX = (fifths: number) => (fifths === 0 ? 5 : KEY_START + KEY_STEP * Math.abs(fifths) + KEY_TIME_GAP);
+const timeSignatureX = (fifths: number) => {
+  if (fifths === 0) return 5;
+  const lastSign = KEY_START + KEY_HALF + KEY_STEP * (Math.abs(fifths) - 1);
+  const digitHalf = (GLYPH.timeSignature.digitHeight * 3) / 10; // a digit is 3 cells of a 5-cell height wide, as the view draws it
+  return lastSign + ACCIDENTAL_BOX.sharp.width / 2 + KEY_TIME_GAP + digitHalf;
+};
 
 /** The room a bar gives its accidentals at `tick`, in staff spaces: each accidental's room opens from its `from` to its `at` (ramp). */
 export function accidentalRoomAt(bar: Pick<BarLayout, 'rooms'>, tick: number): number {

@@ -80,6 +80,20 @@ test.describe('menu', () => {
     expect(await page.evaluate(() => window.__game.scene.getScene('menu').page as number)).toBe(1);
     expectNoErrors(errors);
   });
+
+  test('a piece card pressed and Esc at once opens only the piece, not the room behind it as well', async ({ page }) => {
+    const errors = await openGame(page);
+    const index = await showMenuPageWith(page, 'Little Steps');
+    // the press and the Esc in one go, before the game moves to the next frame: the move to the piece is still queued
+    await page.evaluate((i) => {
+      (window.__game.scene.getScene('menu').buttons[i] as { press(): void }).press();
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+    }, index);
+    await waitForScene(page, 'practice');
+    await page.waitForFunction((f) => window.__game.loop.frame >= f + 10, await page.evaluate(() => window.__game.loop.frame));
+    expect(await activeScenes(page)).toEqual(['practice']);
+    expectNoErrors(errors);
+  });
 });
 
 test.describe('playing a whole piece without a real keyboard', () => {
