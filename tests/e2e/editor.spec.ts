@@ -1508,10 +1508,12 @@ test.describe('fingers (ft_1_02d.AC4)', () => {
 });
 
 test.describe('slim tool row with menus', () => {
-  test('the middle button places a note, Alt + left click places too, a plain left click places nothing', async ({ page }) => {
+  test('ft_1_02d.AC50 the middle button places a note, Alt + left click places too, and so does a plain left click', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
     await selectNote(page, 0, 0, 'E');
+    expect(await notes(page)).toEqual(['0:0:E:quarter']);
+    await page.keyboard.press('Control+KeyZ');
     expect(await notes(page)).toEqual([]);
     await clickNote(page, 0, 0, 'E');
     expect(await notes(page)).toEqual(['0:0:E:quarter']);
