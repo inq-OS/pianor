@@ -612,7 +612,7 @@ export const strings = {
   'editor.import': 'Import',
   'editor.exported': 'Saved the file {file}.',
   'editor.photo.none': 'This piece has no photo.',
-  'editor.photo.noReader': 'Photos and PDFs are read by the program Audiveris, not on this computer: audiveris.github.io',
+  'editor.photo.noReader': 'Photos and PDFs need Audiveris: audiveris.github.io',
   'editor.photo.shift': 'Photo moved by {shift} bars.',
   'editor.photo.reading': 'Reading the sheet from the photo, about a minute...',
   'editor.photo.saveFirst': 'Save this piece first, then import the photo.',
