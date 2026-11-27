@@ -144,13 +144,6 @@ export class NameScene extends PixelScene {
 
   private onTyped(e: KeyboardEvent): void {
     if (e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
-    // Esc is Back even while the field holds the keys (the screen's navigation leaves a field's keys alone)
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      this.back();
-      return;
-    }
     const letter = e.key.length === 1 ? e.key.toLocaleUpperCase('et') : '';
     const done = e.key === 'Enter' && this.typed.length > 0;
     // with the field focused its own typing writes the name (a tablet's keyboard sends no key names, and `nameFrom` drops

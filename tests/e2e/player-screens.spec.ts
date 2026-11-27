@@ -238,18 +238,6 @@ test.describe('admin page (ft_1_07.AC6)', () => {
     expectNoErrors(errors);
   });
 
-  test('Esc on the name box is Back, although the name field holds the keys: to the admin page, nothing renamed', async ({ page }) => {
-    const errors = await openGame(page);
-    await openAdmin(page);
-    await clickButton(page, 'admin', 2); // Rename player
-    await waitForScene(page, 'name');
-    await expect(page.locator('#name-field')).toBeFocused();
-    await page.keyboard.press('Escape');
-    await waitForScene(page, 'admin');
-    expect(await playerName(page)).toBe('TUVI');
-    expectNoErrors(errors);
-  });
-
   test('Back from the name picker returns to the admin page and renames nothing', async ({ page }) => {
     const errors = await openGame(page);
     await openAdmin(page);
