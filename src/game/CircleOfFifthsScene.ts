@@ -1,5 +1,6 @@
-import { chooseKey, circleHit, circleLayout, keyAt, moveStep, spellingsOf, stepOfKey, tonicStep, withFlat, type CircleKey, type CircleLayout, type CircleRing, type CircleTarget } from '../core/layout/circleOfFifths';
+import { chooseKey, circleHit, circleLayout, circlePanelLayout, keyAt, moveStep, spellingsOf, stepOfKey, tonicStep, withFlat, type CircleKey, type CircleLayout, type CircleRing, type CircleTarget } from '../core/layout/circleOfFifths';
 import { pitchClass } from '../core/chart/pitch';
+import { rectCentre } from '../core/layout/rect';
 import { keyNames } from '../core/editor/key';
 import { circleScaleLayout } from '../core/trainer/staffFrame';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
@@ -27,14 +28,9 @@ export interface CircleData {
 
 /** How dark the paused screen under the overlay gets, in the room's dusk (as Kiur's door, art-direction rule 26). */
 const DIM_ALPHA = 0.7;
-/** The panel's margin inside the main area, and the room inside the panel, in art pixels. */
-const PANEL_MARGIN = 3;
-const PAD = 5;
 /** One note of the scale as the game plays it: about 100 beats a minute (AX-3 provisional). */
 const NOTE_MS = 600;
 const VELOCITY = 80;
-/** The scale's staff starts this far under the panel's top, below the key's name. */
-const STAFF_TOP = 30;
 
 /**
  * The circle of fifths (ft_1_28): an overlay (d070) over the paused practice screen, note-name trainer or piece maker. Twelve
@@ -184,59 +180,55 @@ export class CircleOfFifthsScene extends PixelScene {
     const naming = profiles.noteNaming;
     // the paused screen stays visible, in shade, toolbar included
     this.root.add(this.add.rectangle(0, -this.mainTop / scale, width, height + this.mainTop / scale, PALETTE[C.duskDeep], DIM_ALPHA).setOrigin(0, 0));
-    const panel = { x: PANEL_MARGIN, y: PANEL_MARGIN, w: width - 2 * PANEL_MARGIN, h: this.mainRows - 2 * PANEL_MARGIN };
-    this.parchmentCard(panel);
 
-    // the wheel on the left, as big as the panel's height allows
-    const radius = Math.floor((panel.h - 2 * PAD) / 2) - WHEEL_MARGIN;
-    const cx = panel.x + PAD + WHEEL_MARGIN + radius;
-    const cy = panel.y + Math.floor(panel.h / 2);
-    const layout = circleLayout({ cx, cy, radius }, naming, this.prefer);
-    this.layout = layout;
-    const marked = this.pieceKey ? stepOfKey(this.pieceKey) : null;
-    const wheel = paintWheel(layout, { selected: this.selected, marked });
-    this.root.add(new PixelImage(this, cx - (wheel.width - 1) / 2, cy - (wheel.height - 1) / 2, wheel));
-    for (const step of layout.steps) {
-      this.name(step.major, step.majorAt, C.ink);
-      this.name(step.minor, step.minorAt, C.featherStreak);
-      this.signs(step.signs, step.signAt);
-    }
-
-    // beside it: the chosen key's name, a Listen button, and its scale on a staff with its signature
-    const right = cx + radius + WHEEL_MARGIN + PAD + 4;
-    const rightW = panel.x + panel.w - PAD - right;
+    // beside the wheel: the chosen key's name, a Listen button, and its scale on a staff with its signature
     const names = keyNames(this.selectedKey.fifths, naming);
     const title = this.selectedKey.mode === 'major' ? t('circle.major', { key: withFlat(names.major) }) : t('circle.minor', { key: withFlat(names.minor.toLowerCase()) });
     // keepCase: the key's name is written as on the circle, the b of a flat and the small letter of a minor key included
-    const heading = new PixelText(this, right, panel.y + PAD + 2, title, { color: C.ink, keepCase: true }).setScale(2);
-    this.root.add(heading);
-    const buttonY = panel.y + PAD + 8;
-    const closeX = panel.x + panel.w - PAD - 11;
-    // opened to choose (rule 8): a tick with the signature for each spelling of the step chosen, before Close; two where the
+    const heading = new PixelText(this, 0, 0, title, { color: C.ink, keepCase: true });
+    // opened to choose (rule 8): a tick with the signature for each spelling of the step chosen, sharps first; two where the
     // step has two (F sharp or G flat), so every one of the fifteen signatures can be set
-    const spellings = this.choosing ? spellingsOf(this.selected.step).sort((x, y) => y - x) : [];
-    let left = closeX - 11;
-    for (const fifths of [...spellings].reverse()) {
+    const ticks = (this.choosing ? spellingsOf(this.selected.step).sort((x, y) => y - x) : []).map((fifths) => {
       const key: CircleKey = { fifths, mode: this.selectedKey.mode };
       const spelled = keyNames(fifths, naming);
       const name = key.mode === 'major' ? t('circle.major', { key: withFlat(spelled.major) }) : t('circle.minor', { key: withFlat(spelled.minor.toLowerCase()) });
       // C major and a minor have no signs to show: a tick says the same
       const picture = fifths === 0 ? TOOL_ICONS.tick : signatureIcon(fifths);
-      const w = Math.max(22, picture.width + 8);
-      left -= w + 2;
-      this.button({ x: left + w / 2, y: buttonY, width: w, height: BAR_BUTTON_HEIGHT, label: t('circle.use', { key: name }), icon: picture, iconOnly: true, tooltip: t('circle.use', { key: name }), onClick: () => this.take(key) });
-    }
-    const listenX = Math.min(right + heading.width * 2 + 6 + 11, left - 2 - 11);
-    this.button({ x: listenX, y: buttonY, width: 22, height: BAR_BUTTON_HEIGHT, label: t('circle.listen'), icon: ICONS.ear, iconOnly: true, onClick: () => this.playScale() });
-    this.button({ x: closeX, y: buttonY, width: 22, height: BAR_BUTTON_HEIGHT, label: t('circle.close'), icon: TOOL_ICONS.circle, iconOnly: true, onClick: () => this.close() });
-
-    const staffTop = panel.y + STAFF_TOP;
-    const staffRows = panel.h - STAFF_TOP - PAD;
-    // one staff for every key, so choosing another key never moves or resizes it
-    const staffLayout = circleScaleLayout(this.selectedKey.fifths, this.selectedKey.mode, {
-      viewport: { width: rightW * scale, height: staffRows * scale }, ...staffSpaceLimits(this.scale.zoom), barsPerLine: 2, staffGap: profiles.staffGap, noteNaming: naming,
+      return { key, name, picture, width: Math.max(22, picture.width + 8) };
     });
-    this.staff = new StaffView(this, staffLayout, undefined, { noteNames: false, fingers: false }, { x: this.root.x + right * scale, y: this.root.y + staffTop * scale });
+    const layout = circlePanelLayout({ width, rows: this.mainRows }, {
+      heading: { w: heading.width, h: heading.height }, ticks: ticks.map((tick) => tick.width), choosing: this.choosing, wheelMargin: WHEEL_MARGIN, button: { w: 22, h: BAR_BUTTON_HEIGHT },
+    });
+    this.parchmentCard(layout.panel);
+
+    // the wheel on the left, as big as the panel's height allows
+    const { cx, cy, radius } = layout.wheel;
+    const circle = circleLayout({ cx, cy, radius }, naming, this.prefer);
+    this.layout = circle;
+    const marked = this.pieceKey ? stepOfKey(this.pieceKey) : null;
+    const wheel = paintWheel(circle, { selected: this.selected, marked });
+    this.root.add(new PixelImage(this, cx - (wheel.width - 1) / 2, cy - (wheel.height - 1) / 2, wheel));
+    for (const step of circle.steps) {
+      this.name(step.major, step.majorAt, C.ink);
+      this.name(step.minor, step.minorAt, C.featherStreak);
+      this.signs(step.signs, step.signAt);
+    }
+
+    heading.setPosition(layout.heading.x, layout.heading.y).setScale(layout.heading.scale);
+    this.root.add(heading);
+    this.button({ ...rectCentre(layout.listen), label: t('circle.listen'), icon: ICONS.ear, iconOnly: true, onClick: () => this.playScale() });
+    this.button({ ...rectCentre(layout.close), label: t('circle.close'), icon: TOOL_ICONS.circle, iconOnly: true, onClick: () => this.close() });
+    ticks.forEach((tick, i) => {
+      const label = t('circle.use', { key: tick.name });
+      this.button({ ...rectCentre(layout.ticks[i]!), label, icon: tick.picture, iconOnly: true, tooltip: label, onClick: () => this.take(tick.key) });
+    });
+
+    // one staff for every key, so choosing another key never moves or resizes it
+    const room = layout.staff;
+    const staffLayout = circleScaleLayout(this.selectedKey.fifths, this.selectedKey.mode, {
+      viewport: { width: room.w * scale, height: room.h * scale }, ...staffSpaceLimits(this.scale.zoom), barsPerLine: 2, staffGap: profiles.staffGap, noteNaming: naming,
+    });
+    this.staff = new StaffView(this, staffLayout, undefined, { noteNames: false, fingers: false }, { x: this.root.x + room.x * scale, y: this.root.y + room.y * scale });
   }
 
   /** A key's name with its middle at `at`, as written (`keepCase`: a minor's small letter); two spellings one above the other, a row apart (the helm's major ring is 15 rows deep). */

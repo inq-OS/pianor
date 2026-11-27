@@ -5,6 +5,7 @@
  */
 import { keyNames, type KeyMode } from '../editor/key';
 import type { NoteNaming } from '../text/noteName';
+import { rectBottom, type Rect } from './rect';
 
 export const CIRCLE_STEPS = 12;
 
@@ -189,4 +190,65 @@ export function stepOfKey(key: CircleKey): number {
 /** A key's name with its flat written as the flat sign (♭), the same shape as on the staff, so "Bb" never reads as two letters; the letter stays as it is. */
 export function withFlat(name: string): string {
   return name.slice(0, 1) + name.slice(1).replaceAll('b', '♭');
+}
+
+/** The panel's margin inside the main area, and the room inside the panel, in art pixels. */
+const PANEL_MARGIN = 3;
+const PANEL_PAD = 5;
+/** The scale's staff starts this far under the panel's top, below the key's name (and under the ticks' row when choosing). */
+const STAFF_TOP = 30;
+/** Room between the wheel and the words beside it, and between two buttons. */
+const BESIDE_GAP = 4;
+const BUTTON_GAP = 2;
+
+/** What the overlay's panel holds: the wheel on the left; beside it the key's name with Listen, Close, the ticks and the scale's staff. */
+export interface CirclePanelLayout {
+  readonly panel: Rect;
+  readonly wheel: { readonly cx: number; readonly cy: number; readonly radius: number };
+  /** The chosen key's name: where it starts, and its scale (2, or 1 where 2 would run into Listen). */
+  readonly heading: Rect & { readonly scale: 1 | 2 };
+  readonly listen: Rect;
+  readonly close: Rect;
+  /** The ticks (opened to choose), left to right as their widths were given, on their own row under the name. */
+  readonly ticks: readonly Rect[];
+  /** The room for the scale's staff: it stands still whatever key is chosen (ft_1_28.AC6). */
+  readonly staff: Rect;
+}
+
+/**
+ * The overlay laid out in a main area `width` art pixels wide and `rows` high. `heading` is the size of the key's name at
+ * scale 1, `ticks` the widths of the ticks (none when it only shows), `choosing` whether the ticks' row is kept (so the
+ * staff stands at one place for every key), `wheelMargin` the room the painted helm takes past its rim. The name has its
+ * own room: Listen stands right after it and Close at the right end, the ticks on a row of their own under them, so no
+ * button ever covers the name (a d# minor and its two ticks included).
+ */
+export function circlePanelLayout(
+  main: { width: number; rows: number },
+  options: { heading: { w: number; h: number }; ticks: readonly number[]; choosing: boolean; wheelMargin: number; button: { w: number; h: number } },
+): CirclePanelLayout {
+  const { heading, ticks, choosing, wheelMargin, button } = options;
+  const panel: Rect = { x: PANEL_MARGIN, y: PANEL_MARGIN, w: main.width - 2 * PANEL_MARGIN, h: main.rows - 2 * PANEL_MARGIN };
+  const radius = Math.floor((panel.h - 2 * PANEL_PAD) / 2) - wheelMargin;
+  const cx = panel.x + PANEL_PAD + wheelMargin + radius;
+  const cy = panel.y + Math.floor(panel.h / 2);
+  const left = cx + radius + wheelMargin + PANEL_PAD + BESIDE_GAP;
+  const right = panel.x + panel.w - PANEL_PAD;
+  const top = panel.y + PANEL_PAD;
+  const close: Rect = { x: right - button.w, y: top + 1, w: button.w, h: button.h };
+  // the name at scale 2 where Listen still fits between it and Close, else at scale 1
+  const scale: 1 | 2 = left + heading.w * 2 + 6 + button.w + BUTTON_GAP <= close.x ? 2 : 1;
+  const name = { x: left, y: top + 2, w: heading.w * scale, h: heading.h * scale, scale };
+  const listen: Rect = { x: Math.min(left + name.w + 6, close.x - BUTTON_GAP - button.w), y: close.y, w: button.w, h: button.h };
+  // the ticks' row is under the tallest the name can be, so it never moves with the name's scale
+  const rowY = Math.max(top + 2 + heading.h * 2, rectBottom(close)) + BUTTON_GAP;
+  let x = right;
+  const placed = [...ticks].reverse().map((w) => {
+    x -= w;
+    const rect: Rect = { x, y: rowY, w, h: button.h };
+    x -= BUTTON_GAP;
+    return rect;
+  }).reverse();
+  const staffY = choosing ? Math.max(panel.y + STAFF_TOP, rowY + button.h + BUTTON_GAP) : panel.y + STAFF_TOP;
+  const staff: Rect = { x: left, y: staffY, w: right - left, h: panel.y + panel.h - PANEL_PAD - staffY };
+  return { panel, wheel: { cx, cy, radius }, heading: name, listen, close, ticks: placed, staff };
 }
