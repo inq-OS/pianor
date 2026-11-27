@@ -1040,6 +1040,7 @@ export const strings = {
   'wanderer.traveller.name': 'Traveler',
   'wanderer.ask': 'Would you play me {piece}?',
   'wanderer.play': 'Play it',
+  'wanderer.notNow': 'Not now',
   'wanderer.kept': '{right} of {notes} notes right the first time. Here, take this: {item}.',
   'wanderer.notYet': '{right} of {notes} notes right the first time. Play it for me again?',
   'wanderer.again': '{right} of {notes} notes right the first time. I gave you something already today.',

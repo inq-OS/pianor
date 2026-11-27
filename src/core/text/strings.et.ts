@@ -1032,6 +1032,7 @@ export const stringsEt: Record<StringKey, string> = {
   'wanderer.traveller.name': 'Rändur',
   'wanderer.ask': 'Kas mängiksid mulle {piece}?',
   'wanderer.play': 'Mängi',
+  'wanderer.notNow': 'Mitte praegu',
   'wanderer.kept': '{right} nooti {notes}-st õiged esimese korraga. Võta see: {item}.',
   'wanderer.notYet': '{right} nooti {notes}-st õiged esimese korraga. Mängid mulle veel kord?',
   'wanderer.again': '{right} nooti {notes}-st õiged esimese korraga. Andsin sulle täna juba midagi.',

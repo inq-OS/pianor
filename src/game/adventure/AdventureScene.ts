@@ -15,6 +15,7 @@ import { SCENE_SCREENS, watchVisit, type VisitData } from '../visit/islandVisit'
 import { blit, createBitmap, type Bitmap } from '../ui/pixel/bitmap';
 import { stripArt } from '../ui/pixel/keri/stripArt';
 import { C, PALETTE } from '../ui/pixel/palette';
+import { ICONS } from '../ui/pixel/iconArt';
 import { PixelImage, PixelText, type RgbaArt } from '../ui/pixel/PixelObjects';
 import { SCHOOL, bubblesAt, fishAt, jellyAt, schoolAt, type SwimPlace } from '../ui/pixel/swimMotion';
 import { PixelScene } from '../ui/pixel/PixelScene';
@@ -68,6 +69,8 @@ import { type LifeLayer, type PictureFigure, type SceneDive, type SceneLife, typ
 const PAN_MS = 900;
 
 const NAME_ABOVE = 9;
+/** Rows under the pictures of the wanderer's board for their words. */
+const WANDERER_WORD_ROWS = 11;
 /** A second press this soon after a wanderer's ask showed is a double tap, never an answer (d293). */
 const DOUBLE_TAP_MS = 600;
 
@@ -901,27 +904,37 @@ export class AdventureScene extends PixelScene {
   }
 
   /**
-   * The wanderer's ask as a choice (d286, every selection a picture): a board over the scene with the open music book, Play
-   * it in its bubble, which opens the piano on the piece; a press beside the board is Not now and closes the ask. A press on
-   * the book within `DOUBLE_TAP_MS` of the board showing is a double tap on the wanderer, and is ignored.
+   * The wanderer's ask as a choice (d286, every selection a picture): a board over the scene with two pictures, each with its
+   * word under it: the open music book, Play it, which opens the piano on the piece; the door, Not now, which closes the ask
+   * (as a press beside the board does). A press on either within `DOUBLE_TAP_MS` of the board showing is a double tap on the
+   * wanderer, and is ignored. AX-3 provisional: the words under the pictures.
    */
   private wandererBoard(at: Rect, id: string, piece: string): void {
-    const { panel, cells } = standPanel(at, 1);
+    const { panel, cells } = standPanel(at, 2);
+    const answered = () => this.time.now - this.wandererAskedAt >= DOUBLE_TAP_MS;
     const outside = this.add.rectangle(0, 0, this.px.width, this.px.height, 0x000000, 0).setOrigin(0, 0).setInteractive();
-    outside.on('pointerup', () => { if (this.time.now - this.wandererAskedAt >= DOUBLE_TAP_MS) this.closeWanderer(); });
+    outside.on('pointerup', () => { if (answered()) this.closeWanderer(); });
     this.root.add(outside);
-    this.root.add(new PixelImage(this, panel.x, panel.y, panelBitmap(panel.w, panel.h, 'panel')).setInteractive().setName('wandererPanel'));
-    const cell = cells[0]!;
-    const [rest, lit] = (['card', 'cardHover'] as const).map((kind) => {
-      const frame = new PixelImage(this, cell.x, cell.y, panelBitmap(cell.w, cell.h, kind));
-      this.root.add(frame);
-      return frame;
-    }) as [PixelImage, PixelImage];
-    lit.setVisible(false);
-    const art = learnBook();
-    this.fineImage(cell.x * ART_DETAIL + Math.floor((cell.w * ART_DETAIL - art.width) / 2), cell.y * ART_DETAIL + Math.floor((cell.h * ART_DETAIL - art.height) / 2), art).setName('wanderer:play');
-    const light = (over: boolean) => { rest.setVisible(!over); lit.setVisible(over); };
-    this.button({ ...rectCentre(cell), label: t('wanderer.play'), picture: createBitmap(cell.w, cell.h), onHover: light, onClick: () => { if (this.time.now - this.wandererAskedAt >= DOUBLE_TAP_MS) this.playForWanderer(id, piece); } });
+    this.root.add(new PixelImage(this, panel.x, panel.y, panelBitmap(panel.w, panel.h + WANDERER_WORD_ROWS, 'panel')).setInteractive().setName('wandererPanel'));
+    const choices = [
+      { cell: cells[0]!, word: t('wanderer.play'), name: 'wanderer:play', fine: learnBook(), coarse: null, pick: () => this.playForWanderer(id, piece) },
+      { cell: cells[1]!, word: t('wanderer.notNow'), name: 'wanderer:notNow', fine: null, coarse: ICONS.quit, pick: () => this.closeWanderer() },
+    ];
+    for (const choice of choices) {
+      const { cell } = choice;
+      const [rest, lit] = (['card', 'cardHover'] as const).map((kind) => {
+        const frame = new PixelImage(this, cell.x, cell.y, panelBitmap(cell.w, cell.h, kind));
+        this.root.add(frame);
+        return frame;
+      }) as [PixelImage, PixelImage];
+      lit.setVisible(false);
+      if (choice.fine) this.fineImage(cell.x * ART_DETAIL + Math.floor((cell.w * ART_DETAIL - choice.fine.width) / 2), cell.y * ART_DETAIL + Math.floor((cell.h * ART_DETAIL - choice.fine.height) / 2), choice.fine).setName(choice.name);
+      if (choice.coarse) this.root.add(new PixelImage(this, cell.x + Math.floor((cell.w - choice.coarse.width) / 2), cell.y + Math.floor((cell.h - choice.coarse.height) / 2), choice.coarse).setName(choice.name));
+      // the word under the picture, so the choice is read without the pointer over it
+      this.label(0, cell.y + cell.h + 2, choice.word, C.white).setName(`${choice.name}:word`).centerAt(cell.x + cell.w / 2);
+      const light = (over: boolean) => { rest.setVisible(!over); lit.setVisible(over); };
+      this.button({ ...rectCentre({ ...cell, h: cell.h + WANDERER_WORD_ROWS }), label: choice.word, picture: createBitmap(cell.w, cell.h + WANDERER_WORD_ROWS), onHover: light, onClick: () => { if (answered()) choice.pick(); } });
+    }
   }
 
   /** Not now: the ask closes, and the wanderer stays for another press. */
