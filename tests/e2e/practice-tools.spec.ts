@@ -255,6 +255,20 @@ test.describe('practice tools (core_02 and core_03)', () => {
     expectNoErrors(errors);
   });
 
+  test('in a one-bar section B stands after the whole of A with its tempo and lap, not on top of it', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await press(page, 'Section');
+    await tapBar(page, 1);
+    await tapBar(page, 1);
+    await expect.poll(() => chartId(page)).toBe('little-steps#bars-2-2');
+    const marks = await page.evaluate(() => (window.__game.scene.getScene('practice').playSession.staffView.markTexts as { text: { text: string; x: number; width: number } }[])
+      .map((m) => ({ text: m.text.text, x: m.text.x, width: m.text.width })));
+    expect(marks.map((m) => m.text)).toEqual(['A  70 BPM, lap 1', 'B']);
+    expect(marks[1]!.x).toBeGreaterThan(marks[0]!.x + marks[0]!.width);
+    expectNoErrors(errors);
+  });
+
   test('a piece starts at the tempo percent where this player last played it', async ({ page }) => {
     test.slow();
     const errors = await openGame(page);
@@ -279,6 +293,38 @@ test.describe('practice tools (core_02 and core_03)', () => {
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').picking)).toBeNull();
     await letGameRun(page, 20, 300); // a leave would have started by now
     expect((await page.evaluate(() => window.__game.scene.getScenes(true).map((s: { scene: { key: string } }) => s.scene.key)))).toContain('practice');
+    expectNoErrors(errors);
+  });
+
+  test('Escape while a section is practised gives no score screen: back to the pieces (core_03 rule 4)', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await press(page, 'Section');
+    await tapBar(page, 1);
+    await expect.poll(() => sceneTexts(page, 'practice')).toContain('Now tap its last bar.');
+    await tapBar(page, 2);
+    await expect.poll(() => chartId(page)).toBe('little-steps#bars-2-3');
+    await playWithVirtualPiano(page, [67, 65, 65, 64, 62, 60]); // a lap
+    await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').startData.lap)).toBe(1);
+    await playWithVirtualPiano(page, [67, 65]); // and some keys of the next
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'menu');
+    expect(await page.evaluate(() => window.__game.scene.getScenes(true).map((s: { scene: { key: string } }) => s.scene.key))).toEqual(['menu']);
+    expectNoErrors(errors);
+  });
+
+  test('two presses of + before the screen starts over both count (a double click)', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('practice');
+      const plus = (scene.buttons as { options: { label: string }; press(): void }[]).find((b) => b.options.label === '+')!;
+      plus.press();
+      plus.press();
+    });
+    await expect.poll(() => percent(page)).toBe(120);
+    await waitForScene(page, 'practice');
+    expect(await percent(page)).toBe(120);
     expectNoErrors(errors);
   });
 

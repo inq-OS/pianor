@@ -62,6 +62,8 @@ export class PhotoTool {
   private title = '';
   private readonly resize = () => this.drawPhoto();
   private readonly escape = (e: KeyboardEvent) => {
+    // the browser's own undo and redo would reach the piece maker's title field behind the tool: only the tool's fields take them
+    if ((e.ctrlKey || e.metaKey) && ['KeyZ', 'KeyY'].includes(e.code) && !(e.target instanceof Node && this.root.contains(e.target))) e.preventDefault();
     if (e.key !== 'Escape') return;
     e.preventDefault();
     this.close();

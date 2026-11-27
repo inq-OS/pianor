@@ -38,7 +38,7 @@ import { nameChord } from '../core/trainer/chordNamer';
 import { chordLabel, loadChordContent } from '../core/trainer/chordTrainer';
 import {
   BARS_DEFAULT, BPM_MAX, soundingMidi, EDITOR_LENGTHS, cycleLength, emptyPiece, findNote, lengthen, lengthenRest, lengthsFor, stepChord, placeNote, placeRest, placedRests, removeNote, removeRest, setAlter, nextAlter, longestFit, setDynamic, nextDynamic, setBeats, setPickup, onBothStaves, setKey, setFinger, bpmOf, setBpm, stepBpm, setLength, setTitle, shorten, shortenRest, stepBars,
-  type Edit, type EditorHand, type EditorLength, type EditorPiece, type NoteRef,
+  type Edit, type EditorHand, type EditorLength, type EditorPiece, type NoteRef, type RestRef,
   midiOf,
 } from '../core/editor/model';
 import type { Alter } from '../core/chart/key';
@@ -332,6 +332,11 @@ export class EditorScene extends PixelScene {
    * written in 4/4 and no length is guessed; `meterAsk` is the time the piece maker asks to confirm, its panel open.
    */
   private meterAuto = false;
+  /**
+   * Whether the time was A (Auto) at each step of the history, so Undo and Redo bring it back with the step (ft_1_02d.AC21).
+   * A step with no record (none is expected: every push records one) leaves the time as it is.
+   */
+  private autoAt = new WeakMap<EditorPiece, boolean>();
   private meterAsk: Beats | null = null;
   /** Esc closed the question on a full first bar: it asks again when a later bar is entered. */
   private meterDismissed = false;
@@ -435,6 +440,7 @@ export class EditorScene extends PixelScene {
     this.history = startHistory(opened ?? (data.song ? this.blankPiece(data.song) : null) ?? emptyPiece({ title: t('editor.untitled'), hands: 'both', beats: 4, bars: BARS_DEFAULT }));
     this.length = 'quarter';
     this.meterAuto = false;
+    this.autoAt.set(this.history.present, false);
   }
 
   override create(): void {
@@ -1153,6 +1159,13 @@ export class EditorScene extends PixelScene {
    * note or the bar line, or makes the note there that long (ft_1_02d.AC22).
    */
   private enterKey(c: KeyCursor, shift: boolean, ctrl: boolean, alt = false): void {
+    // on a placed rest Enter makes it a step longer and Ctrl + Enter moves on, as on a note (ft_1_02d.AC17, AC22)
+    const rest = shift ? undefined : this.restAt(c);
+    if (rest) {
+      if (ctrl) return this.setKeyCursor(moveInTime(this.piece, c, 1, this.length), true);
+      this.keyCursor = c;
+      return this.apply(lengthenRest(this.piece, rest), null);
+    }
     if (!shift && !ctrl && findNote(this.piece, c)) {
       this.keyCursor = c;
       return this.apply(alt ? longestFit(this.piece, c) : lengthen(this.piece, c), c);
@@ -1275,8 +1288,24 @@ export class EditorScene extends PixelScene {
     if (lengthsFor(this.piece).includes(next)) this.chooseLength(next);
   }
 
+  /**
+   * A key while the title is typed: true when it stays the field's. Esc gives the keys back to the piece maker (and goes no
+   * further: it would leave the piece maker); the piece maker's own Ctrl + S, O, E and F1 leave the field and do their work,
+   * never the browser's.
+   */
+  private titleKey(e: KeyboardEvent): boolean {
+    if (document.activeElement !== this.titleInput) return false;
+    const own = e.key === 'F1' || ((e.ctrlKey || e.metaKey) && ['KeyS', 'KeyO', 'KeyE'].includes(e.code));
+    if (e.key !== 'Escape' && !own) return true;
+    this.titleInput?.blur();
+    if (e.key !== 'Escape') return false;
+    e.preventDefault();
+    e.stopPropagation();
+    return true;
+  }
+
   private key(e: KeyboardEvent): void {
-    if (!this.scene.isActive() || document.activeElement === this.titleInput) return; // typing the title
+    if (!this.scene.isActive() || this.titleKey(e)) return;
     // the computer keyboard is no piano here (ft_1_02d.AC14): the piano's listener comes after this one and never hears its keys
     if (PIANO_KEYS.test(e.code)) e.stopPropagation();
     if (this.keyMenu && this.keyMenuKey(e)) return;
@@ -1680,6 +1709,7 @@ export class EditorScene extends PixelScene {
     if (this.repeatPick) this.disarm();
     if ((this.arcFrom && !findNote(edit.piece, this.arcFrom)) || (this.graceFor && !findNote(edit.piece, this.graceFor))) this.disarm();
     this.history = push(this.history, edit.piece);
+    this.autoAt.set(this.history.present, this.meterAuto);
     this.resync();
     this.selected = select && findNote(this.piece, select) ? select : null;
     this.say(this.pickMessage());
@@ -2129,7 +2159,15 @@ export class EditorScene extends PixelScene {
   }
 
   private deleteSelected(): void {
-    if (this.selected) this.apply(removeNote(this.piece, this.selected), null);
+    if (this.selected) return this.apply(removeNote(this.piece, this.selected), null);
+    // a placed rest under the keyboard cursor goes too (a rest is never selected, so the cursor names it)
+    const rest = this.keyCursor ? this.restAt(this.keyCursor) : undefined;
+    if (rest) this.apply(removeRest(this.piece, rest), null);
+  }
+
+  /** The placed rest that starts at this place of its hand, if any. */
+  private restAt(c: Pick<KeyCursor, 'hand' | 'bar' | 'start'>): RestRef | undefined {
+    return placedRests(this.piece).find((r) => r.hand === c.hand && r.bar === c.bar && r.start === c.start);
   }
 
   // ------------------------------------------------------------------------------------------- writing by playing keys
@@ -2187,7 +2225,9 @@ export class EditorScene extends PixelScene {
 
   /** The working piece becomes the present of history, when it differs from it. */
   private flushEntry(): void {
-    if (this.entryState.piece !== this.history.present) this.history = push(this.history, this.entryState.piece);
+    if (this.entryState.piece === this.history.present) return;
+    this.history = push(this.history, this.entryState.piece);
+    this.autoAt.set(this.history.present, this.meterAuto);
   }
 
   /** An edit that is not a played key (a mouse edit, undo, redo, the title) starts the entry state again from the piece shown. */
@@ -2587,6 +2627,7 @@ export class EditorScene extends PixelScene {
     debugLog.log('edit', 'undo');
     if (!canUndo(this.history)) return this.say(t('editor.nothingToUndo'), MESSAGE_MS);
     this.history = undo(this.history);
+    this.meterAuto = this.autoAt.get(this.history.present) ?? this.meterAuto;
     this.resync();
     this.selected = null;
     this.barSel = null;
@@ -2600,6 +2641,7 @@ export class EditorScene extends PixelScene {
     debugLog.log('edit', 'redo');
     if (!canRedo(this.history)) return this.say(t('editor.nothingToRedo'), MESSAGE_MS);
     this.history = redo(this.history);
+    this.meterAuto = this.autoAt.get(this.history.present) ?? this.meterAuto;
     this.resync();
     this.selected = null;
     this.barSel = null;
@@ -3068,10 +3110,10 @@ export class EditorScene extends PixelScene {
     const numbers = barNumbersToShow('every', this.chart.bars.length, 0, firstPrintedBar(this.chart));
     // free time is where the next note goes: only the rests the author placed are drawn
     const drawn = drawnWhileWriting(this.layout, this.chart, this.piece);
-    // the selected bars are a band behind the staff, drawn before it; the selection ends where the piece ends
+    // the selected bars are a band over the parchment (under the pointer's target box); the selection ends where the piece ends
     if (this.barSel && this.barSel.to >= this.piece.bars) this.barSel = null;
     this.band?.destroy();
-    this.band = this.add.graphics().setX(this.staffLeft);
+    this.band = this.add.graphics().setX(this.staffLeft).setDepth(7);
     if (this.barSel) {
       for (const box of barBoxes(this.layout, this.barSel)) {
         if (box.page === this.page) this.band.fillStyle(DEFAULT_THEME.cursor, 0.18).fillRect(box.x1, this.staffTop + box.y1, box.x2 - box.x1, box.y2 - box.y1);
@@ -3490,6 +3532,7 @@ export class EditorScene extends PixelScene {
     this.meterAsk = null;
     this.meterAuto = false;
     this.history = push(this.history, edit.piece);
+    this.autoAt.set(this.history.present, false);
     this.resync();
     this.redraw();
   }
@@ -3527,7 +3570,12 @@ export class EditorScene extends PixelScene {
     });
     input.addEventListener('input', () => {
       // typing the title is not an edit to undo: it changes the piece in place; a changed title is no longer the taken one
-      this.history = mapEvery(this.history, (piece) => setTitle(piece, input.value));
+      this.history = mapEvery(this.history, (piece) => {
+        const named = setTitle(piece, input.value);
+        const auto = this.autoAt.get(piece);
+        if (auto !== undefined) this.autoAt.set(named, auto);
+        return named;
+      });
       if (this.titleTaken && titleProblem(input.value, this.takenTitles()) !== 'taken') {
         this.titleTaken = false;
         this.markTitleField();

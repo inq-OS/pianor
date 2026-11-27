@@ -230,12 +230,20 @@ export function goldChip(width: number, height: number): Bitmap {
 export function wornChip(picture: Bitmap): Bitmap {
   const w = Math.max(PIN_CELL_SIZE.h, picture.width + 4), h = PIN_CELL_SIZE.h;
   const b = goldChip(w, h);
+  blit(b, wornInk(picture), (w - picture.width) >> 1, (h - picture.height) >> 1);
+  return b;
+}
+
+/**
+ * A worn option's picture as the gold chip shows it: its colours in the groove's ink, and its own ink (an outline, the
+ * numbers on the fingers) left clear so the gold shows through. Tinting the ink too would turn a filled picture into a block.
+ */
+export function wornInk(picture: Bitmap): Bitmap {
   const ink = createBitmap(picture.width, picture.height);
   picture.pixels.forEach((p, i) => {
     if (p !== 0 && p !== C.ink) ink.pixels[i] = C.groove;
   });
-  blit(b, ink, (w - picture.width) >> 1, (h - picture.height) >> 1);
-  return b;
+  return ink;
 }
 
 const BAG = { k: C.ink, d: C.brownDark, n: C.brown, l: C.brownLight, g: C.gold, y: C.goldLight } as const;
