@@ -335,6 +335,39 @@ test.describe('the screens\' buttons in the strip and the bubble (ft_1_20.AC8)',
     expectNoErrors(errors);
   });
 
+  test('ft_1_20.AC8 the piece maker\'s writer cell keeps its small sign and its purple ground after its length changes by the wheel or its menu', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'editor', {});
+    await waitForScene(page, 'editor');
+    // the writer cell's picture as drawn: the sign alone, no bigger than the strip's sign room (22 fine pixels), and still armed
+    const writer = () =>
+      page.evaluate(() => {
+        const b = (window.__game.scene.getScene('editor') as unknown as { lengthItem: { iconArt: { width: number; height: number }; armed: boolean } }).lengthItem;
+        return { size: Math.max(b.iconArt.width, b.iconArt.height), armed: b.armed };
+      });
+    expect(await writer()).toEqual({ size: expect.any(Number), armed: true });
+    expect((await writer()).size).toBeLessThanOrEqual(22);
+    const length = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { length: string }).length);
+    const item = await buttonPoint(page, 'editor', await labelled(page, 'editor', 'Notes'));
+    await page.mouse.move(item.x, item.y);
+    await page.mouse.wheel(0, 100);
+    await expect.poll(length).not.toBe('quarter');
+    expect((await writer()).armed).toBe(true);
+    expect((await writer()).size).toBeLessThanOrEqual(22);
+    await press(page, 'editor', 'Notes');
+    await press(page, 'editor', '1/8');
+    await expect.poll(length).toBe('eighth');
+    expect((await writer()).armed).toBe(true);
+    expect((await writer()).size).toBeLessThanOrEqual(22);
+    // the rests key (0) turns the writer to rests: still armed, its sign a rest's, its word Rests
+    await page.mouse.move(5, 5);
+    await page.keyboard.press('Digit0');
+    await expect.poll(() => labelled(page, 'editor', 'Rests')).toBeGreaterThanOrEqual(0);
+    expect((await writer()).armed).toBe(true);
+    expect((await writer()).size).toBeLessThanOrEqual(22);
+    expectNoErrors(errors);
+  });
+
   test('ft_1_20.AC9 the score screen\'s two buttons are the strip\'s actions', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await startScene(page, 'results', { chartId: 'little-steps' });

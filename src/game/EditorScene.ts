@@ -369,7 +369,6 @@ export class EditorScene extends PixelScene {
   /** With the band (ft_1_20): the notes' item, the Save button (its tooltip says which levels the piece fits) and the Kiur-less message bubble under the top strip. */
   private lengthItem: PixelButton | null = null;
   /** With the band: the rests' item beside the notes' one (two items, each scrolled like the other). */
-  private restItem: PixelButton | null = null;
   private saveButton: PixelButton | null = null;
   private barsText: PixelText | null = null;
   private pickupText: PixelText | null = null;
@@ -577,7 +576,6 @@ export class EditorScene extends PixelScene {
 
   protected override clear(): void {
     this.lengthItem = null;
-    this.restItem = null;
     this.saveButton = null;
     this.barsText = null;
     this.pickupText = null;
@@ -1826,9 +1824,9 @@ export class EditorScene extends PixelScene {
   private toggleEntry(): void {
     this.entry = this.entry === 'note' ? 'rest' : 'note';
     if (this.bandShown) {
-      // with the band, the item a click writes with is on a purple ground
-      this.lengthItem?.setArmed(this.entry === 'note');
-      this.restItem?.setArmed(this.entry === 'rest');
+      // with the band the writer cell, always armed (purple), turns to what a click writes now
+      this.lengthItem?.setLabel(t(`editor.entry.${this.entry}`));
+      this.lengthItem?.setTooltip(t(`editor.entry.${this.entry}.tip`));
     } else {
       this.entryButton?.setLabel(t(`editor.entry.${this.entry}`));
       this.entryButton?.setIcon(this.entry === 'rest' ? REST_ICONS.quarter : NOTE_ICONS.quarter);
@@ -1857,8 +1855,8 @@ export class EditorScene extends PixelScene {
   /** The Length item (with the band) shows the length a click writes, as a note or a rest. */
   private showLength(): void {
     if (this.bandShown) {
-      this.lengthItem?.setIcon(this.lengthPicture(this.length, 'note'));
-      this.restItem?.setIcon(this.lengthPicture(this.length, 'rest'));
+      // the strip cell shows the sign alone, as it was built (`stripSign`): the whole scrap would cover the cell
+      this.lengthItem?.setIcon(this.stripSign(this.lengthPicture(this.length)));
       return;
     }
     this.lengthItem?.setIcon(this.lengthPicture(this.length));

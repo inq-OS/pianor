@@ -1680,6 +1680,11 @@ export abstract class PixelScene extends Phaser.Scene {
     return button;
   }
 
+  /** A fine item picture as a strip cell shows it: its sign alone, as `bandButton` draws it (a new picture after a change). */
+  protected stripSign(picture: Bitmap): Bitmap {
+    return signOnly(picture, STRIP_SIGN, STRIP_SIGN);
+  }
+
   /** Names `key` as the button's key: a key menu opens from it, and its name shows on it while `shortcutsShown`. */
   protected markKey(button: PixelButton, key: string, parent: Phaser.GameObjects.Container = this.root): void {
     this.shortcutButtons.set(key, button);
