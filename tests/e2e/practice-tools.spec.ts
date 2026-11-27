@@ -296,6 +296,23 @@ test.describe('practice tools (core_02 and core_03)', () => {
     expectNoErrors(errors);
   });
 
+  test('Escape while a section is practised gives no score screen: back to the pieces (core_03 rule 4)', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await press(page, 'Section');
+    await tapBar(page, 1);
+    await expect.poll(() => sceneTexts(page, 'practice')).toContain('Now tap its last bar.');
+    await tapBar(page, 2);
+    await expect.poll(() => chartId(page)).toBe('little-steps#bars-2-3');
+    await playWithVirtualPiano(page, [67, 65, 65, 64, 62, 60]); // a lap
+    await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').startData.lap)).toBe(1);
+    await playWithVirtualPiano(page, [67, 65]); // and some keys of the next
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'menu');
+    expect(await page.evaluate(() => window.__game.scene.getScenes(true).map((s: { scene: { key: string } }) => s.scene.key))).toEqual(['menu']);
+    expectNoErrors(errors);
+  });
+
   test('Shift+M toggles the click, plain M is still a note, Shift+= and Shift+- change the click speed', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');

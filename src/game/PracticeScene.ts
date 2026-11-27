@@ -963,7 +963,9 @@ export class PracticeScene extends PixelScene {
       // the score screen (ft_1_12.AC4) once a key was played; nothing played: straight back to the piece list
       const summary = summarizeFreePlay(this.session, contextOf(this).audio.clock.nowMs());
       const pending = this.pendingPass;
-      if (!summary.played && !pending) {
+      // a section gives no score screen either (core_03 rule 4): only a whole pass of the piece played before it does
+      const sectionOnly = isSection(this.chart) && this.passes.length === 0 && this.lastResult === null;
+      if ((!summary.played || sectionOnly) && !pending) {
         goBackFrom(this, this.startData.fromSong);
         return;
       }
