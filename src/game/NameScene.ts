@@ -3,7 +3,7 @@ import { ART_DETAIL } from '../core/layout/frame';
 import { NAME_LETTERS, NAME_MAX, deleteLetter, nameFrom, typeLetter } from '../core/text/nameEntry';
 import { t } from '../core/text/strings';
 import { createBitmap } from './ui/pixel/bitmap';
-import { drawnText, measure } from './ui/pixel/font';
+import { LINE_GAP, LINE_HEIGHT, drawnText, measure, wrap } from './ui/pixel/font';
 import { C } from './ui/pixel/palette';
 import { BOOK_PALETTE, paintCover } from './ui/pixel/paint/book';
 import { paintedOnce } from './ui/pixel/paintedOnce';
@@ -34,6 +34,8 @@ const ACTION_WIDTH = 40;
 const COVER_X = 6;
 /** Room on the plate under the name for why a name was refused, in cells. */
 const REASON_ROOM = 10;
+/** The ink rule on the plate's paper runs this far inside the plate, in cells: what is written stays inside it. */
+const PLATE_RULE = 3;
 
 /** What the picker asks, and what happens to the typed name. */
 export interface NameData {
@@ -66,6 +68,8 @@ export class NameScene extends PixelScene {
   private field: HTMLInputElement | null = null;
   private typed = '';
   private saving = false;
+  /** The name plate as last drawn, in cells, and how far its ink rule runs inside it (read by the tests). */
+  plateBox: { x: number; y: number; w: number; h: number; rule: number } | null = null;
   /** Why the last Done was refused; cleared by the next letter. */
   private refused = '';
 
@@ -160,7 +164,7 @@ export class NameScene extends PixelScene {
   private onTyped(e: KeyboardEvent): void {
     if (e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
     const letter = e.key.length === 1 ? e.key.toLocaleUpperCase('et') : '';
-    const done = e.key === 'Enter' && this.typed.length > 0;
+    const done = e.key === 'Enter';
     // with the field focused its own typing writes the name (a tablet's keyboard sends no key names, and `nameFrom` drops
     // what is no name letter): every printable key and Backspace only goes no further, so the computer-key piano plays no
     // note, a digit included; Esc, Tab and the arrows still move about the screen
@@ -188,7 +192,13 @@ export class NameScene extends PixelScene {
     const fine = (v: number) => v * ART_DETAIL;
     // a massive book, too big for the desk: its foot runs off the bottom of the screen
     const cover = { x: COVER_X, y: SHEET.y, w: width - 2 * COVER_X, h: height - SHEET.y };
-    const plate = { x: fine(left - FIELD_PAD - cover.x), y: fine(fieldY - FIELD_PAD - cover.y), w: fine(fieldW), h: fine(FIELD_HEIGHT + REASON_ROOM) };
+    // why a name was refused is written under the name inside the plate's rule: a reason of more lines makes the plate deeper
+    const reasonW = fieldW - 2 * FIELD_PAD;
+    const reasonTop = fieldY + BIG_CAPS + PLATE_RULE;
+    const reasonLines = this.refused ? wrap(drawnText(this.refused), reasonW).length : 0;
+    const plateH = Math.max(FIELD_HEIGHT + REASON_ROOM, reasonTop + reasonLines * LINE_HEIGHT - LINE_GAP + PLATE_RULE - (fieldY - FIELD_PAD));
+    this.plateBox = { x: left - FIELD_PAD, y: fieldY - FIELD_PAD, w: fieldW, h: plateH, rule: PLATE_RULE };
+    const plate = { x: fine(left - FIELD_PAD - cover.x), y: fine(fieldY - FIELD_PAD - cover.y), w: fine(fieldW), h: fine(plateH) };
     this.fineImage(fine(cover.x), fine(cover.y), paintedOnce(`cover:${fine(cover.w)}x${fine(cover.h)}:${plate.x},${plate.y},${plate.w},${plate.h}`, () => paintCover(fine(cover.w), fine(cover.h), plate)), BOOK_PALETTE);
     this.placeField(left - FIELD_PAD, fieldY - FIELD_PAD, fieldW, FIELD_HEIGHT);
     // the ask in gilt letters over the plate: what to write (a new player's name, or whom a rename is for)
@@ -212,7 +222,7 @@ export class NameScene extends PixelScene {
     const [del, done] = this.actions();
     if (!band) this.button({ x: MARGIN + ACTION_WIDTH / 2, y: bottomY, width: ACTION_WIDTH, height: BOTTOM_HEIGHT, look: 'ink', inkBox: true, iconOnly: true, ...del! });
     // why the name was refused stands under the box
-    if (this.refused) this.label(left, fieldY + FIELD_HEIGHT - 2, this.refused, C.dim, { maxWidth: fieldW - 2 * FIELD_PAD });
+    if (this.refused) this.label(left, reasonTop, this.refused, C.dim, { maxWidth: reasonW });
     if (!band) this.button({ x: width - MARGIN - ACTION_WIDTH / 2, y: bottomY, width: ACTION_WIDTH, height: BOTTOM_HEIGHT, look: 'ink', inkBox: true, iconOnly: true, ...done! });
   }
 

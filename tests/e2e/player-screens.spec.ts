@@ -4,7 +4,7 @@
 // buttons and the paths it did not reach.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene } from './helpers';
+import { activeScene, addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene } from './helpers';
 
 /** The main menu: from the piece list, the room's Quit goes there (`goToMainMenu`). */
 const openProfiles = async (page: Page) => {
@@ -298,6 +298,45 @@ test.describe('admin page (ft_1_07.AC6)', () => {
     expect(await playerName(page)).toBe('MÕRI');
     expectNoErrors(errors);
   });
+
+  test('Enter on a blank name is refused on the picker as Done is', async ({ page }) => {
+    const errors = await openGame(page);
+    await openAdmin(page);
+    await clickButton(page, 'admin', 2); // Rename player
+    await waitForScene(page, 'name');
+    await page.keyboard.press('Enter');
+    await expect.poll(() => sceneTexts(page, 'name')).toContain('The name cannot be empty.');
+    expect(await activeScene(page)).toBe('name');
+    expect(await playerName(page)).toBe('TUVI');
+    expectNoErrors(errors);
+  });
+
+  for (const lang of ['en', 'et'] as const) {
+    test(`why a name was refused is written inside the name plate's rule, in ${lang}`, async ({ page }) => {
+      const errors = await openGame(page, '?device=virtual', lang, 'profiles');
+      await clickButton(page, 'profiles', await profileButton(page, lang === 'en' ? 'New player' : 'Uus mängija'));
+      await waitForScene(page, 'name');
+      await page.keyboard.type('tuvi');
+      await page.keyboard.press('Enter');
+      await expect.poll(async () => (await sceneTexts(page, 'name')).length).toBeGreaterThan(1);
+      const placed = await page.evaluate(() => {
+        type Text = { pixelText?: boolean; visible: boolean; text: string; x: number; y: number; scaleX: number; scaleY: number; letterBox: { left: number; top: number; right: number; bottom: number } };
+        const scene = window.__game.scene.getScene('name') as unknown as { root: { list: Text[] }; plateBox: { x: number; y: number; w: number; h: number; rule: number } };
+        const p = scene.plateBox;
+        const inside = { left: p.x + p.rule, top: p.y + p.rule, right: p.x + p.w - p.rule, bottom: p.y + p.h - p.rule };
+        return scene.root.list
+          .filter((o) => o.pixelText === true && o.visible && o.text.trim() !== '' && o.text !== 'TUVI')
+          .map((o) => {
+            const box = { left: o.x + o.letterBox.left * o.scaleX, top: o.y + o.letterBox.top * o.scaleY, right: o.x + o.letterBox.right * o.scaleX, bottom: o.y + o.letterBox.bottom * o.scaleY };
+            return { text: o.text, inside: box.left >= inside.left && box.top >= inside.top && box.right <= inside.right && box.bottom <= inside.bottom };
+          });
+      });
+      expect(placed.length).toBe(1);
+      if (lang === 'en') expect(placed[0]!.text.replace(/\n/g, ' ')).toBe('Another player has this name.');
+      expect(placed).toEqual([{ text: placed[0]!.text, inside: true }]);
+      expectNoErrors(errors);
+    });
+  }
 
   test('a blank name is refused on the picker and the player keeps the old name', async ({ page }) => {
     const errors = await openGame(page);
