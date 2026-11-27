@@ -120,6 +120,8 @@ const CELL_PAD = 4;
  * hovered, faded when not); full while the pointer or the keyboard focus is on them. AX-3 provisional: the exact amount.
  */
 const CORNER_FADED = 0.45;
+/** The cells a corner's plate reaches above and below its button's box (frameCorners' boxes start two cells down). */
+const CORNER_PLATE_GROW = 1;
 /** A book page's turned-up corner (the pager, ft_1_12 rule 1) takes a press this many cells on a side, its corner on the page's. */
 const FOLD = { size: 17 } as const;
 /** A book page's number stands this many cells over the page's foot. */
@@ -1111,8 +1113,9 @@ export abstract class PixelScene extends Phaser.Scene {
     const layer = this.overStaff();
     // over a card they stand on a plate of the band's wood, solid like the band's buttons
     const solid = (this.sys.game.device.input.touch && !this.sys.game.device.os.desktop) || this.cornersOnCard;
+    // the plate reaches a cell past the button's box above and below, so its inner field, inside the two-cell bevel, holds the 14-cell gear
     const plate = (r: Rect) => {
-      if (this.cornersOnCard) layer.add(new PixelImage(this, r.x, r.y, stripCell(r.w, r.h)));
+      if (this.cornersOnCard) layer.add(new PixelImage(this, r.x, r.y - CORNER_PLATE_GROW, stripCell(r.w, r.h + 2 * CORNER_PLATE_GROW)));
     };
     const corner = (r: Rect, label: string, icon: Bitmap, onClick: () => void): PixelButton => {
       plate(r);

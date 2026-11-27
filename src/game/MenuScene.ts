@@ -277,6 +277,8 @@ export class MenuScene extends PixelScene {
 
   constructor() {
     super('menu');
+    // the book reaches under the door and the gear: they stand on a plate of their own, as on every card screen
+    this.cornersOnCard = true;
   }
 
   init(data?: MenuData): void {
