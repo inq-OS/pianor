@@ -103,7 +103,8 @@ test.describe('the learning stats of a piece (ft_1_32)', () => {
     await press(page, 'Tests: all');
     await press(page, 'Tests: chunks');
     expect((await shown(page)).graph).toMatchObject({ shown: 0 });
-    expect(await sceneTexts(page, 'learn-stats')).toContain('No tests for this choice yet');
+    // said once, in the graph, never also beside the filters where it wraps under the graph
+    expect((await sceneTexts(page, 'learn-stats')).filter((text) => text === 'No tests for this choice yet')).toHaveLength(1);
     await page.keyboard.press('Escape');
     await waitForScene(page, 'results');
     expectNoErrors(errors);

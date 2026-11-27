@@ -127,15 +127,17 @@ export class LearnStatsScene extends PixelScene {
     });
     this.button({ ...rectCentre(layout.kind), label: t(`learnStats.kind.${this.filter.kind}`), onClick: () => choose({ kind: next(KIND_FILTERS, this.filter.kind) }) });
     this.button({ ...rectCentre(layout.days), label: t(`learnStats.days.${this.filter.days}`), onClick: () => choose({ days: next(DAY_FILTERS, this.filter.days) }) });
-    this.label(layout.summary.x, layout.summary.y, this.summary(tests), C.white, { maxWidth: layout.summary.w });
+    // no value for the choice: the graph says so, once
+    const summary = this.summary(tests);
+    if (summary !== null) this.label(layout.summary.x, layout.summary.y, summary, C.white, { maxWidth: layout.summary.w });
   }
 
-  /** The latest run's value of the chosen measure, and where the measure is heading. */
-  private summary(tests: readonly LearnTest[]): string {
+  /** The latest run's value of the chosen measure, and where the measure is heading; null with no value. */
+  private summary(tests: readonly LearnTest[]): string | null {
     const measure = this.filter.measure;
     const series = measureSeries(tests, measure);
     const latest = [...series].reverse().find((point) => point.value !== null);
-    if (!latest || latest.value === null) return t('learnStats.none');
+    if (!latest || latest.value === null) return null;
     if (measure === 'hands') return t('learnStats.hands', { right: latest.value, left: latest.other ?? 0 });
     const trend = seriesTrend(series.map((point) => point.value));
     const value = measureValue(measure, latest.value);
