@@ -115,11 +115,8 @@ const OVER_STAFF_DEPTH = 20;
 const TOOLBAR_ICON_WIDTH = 22;
 /** Room a band cell keeps round its word (the frame and a margin); a longer word shows its picture instead. */
 const CELL_PAD = 4;
-/**
- * How solid the door and the gear in the top corners are while the pointer is elsewhere (clear when
- * hovered, faded when not); full while the pointer or the keyboard focus is on them. AX-3 provisional: the exact amount.
- */
-const CORNER_FADED = 0.45;
+/** How solid the piano's status picture left of the gear is while no piano is connected. AX-3 provisional: the exact amount. */
+const STATUS_UNLIT = 0.45;
 
 /** One choice in a drop-down menu (`openMenu`): a picture with its name as the tooltip, or a short label. */
 export interface MenuItem {
@@ -257,8 +254,6 @@ export abstract class PixelScene extends Phaser.Scene {
   private bubbleTouchLifts = 0;
   /** Whether the fingers now on the screen, or the last ones, came down two or more at once (a gesture, never a tap). */
   private manyFingers = false;
-  /** The door and the gear over the top corners with the band and no toolbar: faded until the pointer or the focus is on them. */
-  private corners: PixelButton[] = [];
   /** Everything of the scene goes in here, positions in art pixels. */
   protected root!: Phaser.GameObjects.Container;
   /** Buttons made with `button` (so a test can find and press them). */
@@ -796,9 +791,6 @@ export abstract class PixelScene extends Phaser.Scene {
     this.lastFocusRect = all[this.focusIndex]?.rect ?? null;
     this.buttons.forEach((b) => b.setFocused(false));
     all.forEach((b, i) => b.setFocused(this.focusShown && i === this.focusIndex));
-    // the door and the gear are clear while the keyboard is on them, as under the pointer
-    const focused = this.focusShown ? all[this.focusIndex] : undefined;
-    this.corners.forEach((c) => c.setAlpha(c === focused ? 1 : CORNER_FADED));
   }
 
   /** Make a button and keep it, so it is removed when the scene is drawn again. */
@@ -1060,19 +1052,16 @@ export abstract class PixelScene extends Phaser.Scene {
     return item.icon ? 1 : cellSpan(measure(drawnText(item.label)) + CELL_PAD + 2, STRIP_CELL_WIDTH);
   }
 
-  /** The door and the gear over the top corners (rule 3), faded until the pointer or the focus is on them, and the backpack. */
+  /**
+   * The door and the gear over the top corners (rule 3), and the backpack. Each is the toolbar's own boxed button on its wooden
+   * plate, solid at all times: over a book or a picture a bare picture was lost, and Back looks the same on every screen.
+   */
   private drawCorners(): void {
     const corners = frameCorners(this.px.width);
     // over the staff too: a screen whose staff fills the main area (practice, the piece maker) would hide them
     const layer = this.overStaff();
-    const touch = this.sys.game.device.input.touch && !this.sys.game.device.os.desktop;
-    const corner = (r: Rect, label: string, icon: Bitmap, onClick: () => void): PixelButton => {
-      // the picture alone, no button behind it; never faded on a touch screen, which has no hover to show it
-      const button: PixelButton = this.buttonOn(layer, { ...rectCentre(r), label, picture: icon, onHover: (over) => button.setAlpha(over || touch ? 1 : CORNER_FADED), onClick });
-      button.setAlpha(touch ? 1 : CORNER_FADED);
-      if (!touch) this.corners.push(button);
-      return button;
-    };
+    const corner = (r: Rect, label: string, icon: Bitmap, onClick: () => void): PixelButton =>
+      this.buttonOn(layer, { ...rectCentre(r), label, icon, iconOnly: true, onClick });
     const back = this.hasBack ? corner(corners.back, t('ui.back'), ICONS.quit, () => (this.backAction ?? (() => this.back()))()) : null;
     const showSettings = this.scene.key !== 'settings' && this.toolbarPlayer;
     const settings = showSettings ? corner(corners.settings, t('menu.settingsButton'), ICONS.settings, () => this.openSettingsScreen()) : null;
@@ -1083,7 +1072,7 @@ export abstract class PixelScene extends Phaser.Scene {
       const r = { ...corners.settings, x: left };
       // a picture, not a button: it does nothing when pressed, its tooltip says what it means
       const shown = this.buttonOn(layer, { ...rectCentre(r), label: status.label, tooltip: status.label, picture: status.lit ? status.icon : recolor(status.icon, { [C.white]: C.lock }), onClick: () => undefined });
-      shown.setAlpha(status.lit ? 1 : CORNER_FADED);
+      shown.setAlpha(status.lit ? 1 : STATUS_UNLIT);
     }
     const kept = this.backpackItems();
     if (kept) {
@@ -1807,7 +1796,6 @@ export abstract class PixelScene extends Phaser.Scene {
     this.buttons = [];
     this.shortcutButtons.clear();
     this.toolbarButtons = { back: null, settings: null, keys: null, items: [] };
-    this.corners = [];
     this.others = [];
     this.root?.destroy(true);
   }

@@ -5,7 +5,7 @@ import { activeScene, buttonPoint, clickButton, clickToolbar, expectNoErrors, op
 /**
  * The frame of every screen but the teacher's (ft_1_20, d282): a slim strip of pinned actions at the foot only where a screen
  * pins some, with no text on it; the rest in the bubble. Back (the door) and Settings (the gear) stay in the top corners where
- * the toolbar had them, faded until the pointer is on them. The player is in the room: the name on the shield, the shield
+ * the toolbar had them, each a solid boxed button on its own plate. The player is in the room: the name on the shield, the shield
  * opens the player's card.
  */
 const SCREENS = [
@@ -76,22 +76,48 @@ test.describe('the strip and the corners (ft_1_20, d282)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_20.AC3 the gear is clear while the pointer is on it and faded once it leaves, with its name in a bubble', async ({ page }) => {
+  test('ft_1_20.AC6 the door and the gear stand solid on their own plate over every screen, the door the same as on the teacher\'s toolbar, and each names itself in a bubble', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
+    type Corner = { alpha: number; icon: number[]; iconOnly: boolean; picture: boolean; look: string };
+    type Drawn = { objects: { alpha: number }[]; options: { icon?: { pixels: ArrayLike<number> }; iconOnly?: boolean; picture?: unknown; look?: string } } | null;
+    const corners = (key: string) =>
+      page.evaluate((k) => {
+        const scene = window.__game.scene.getScene(k) as unknown as { toolbarButtons: { back: Drawn; settings: Drawn } };
+        const one = (b: Drawn): Corner | null => b && {
+          alpha: Math.min(...b.objects.map((o) => o.alpha)), icon: Array.from(b.options.icon?.pixels ?? []), iconOnly: b.options.iconOnly === true,
+          picture: b.options.picture !== undefined, look: b.options.look ?? 'button',
+        };
+        return { back: one(scene.toolbarButtons.back), settings: one(scene.toolbarButtons.settings) };
+      }, key);
+    await page.evaluate(() => window.__game.registry.get('context').teacher.lock.check('pianor'));
+    await startScene(page, 'teacher', {});
+    await waitForScene(page, 'teacher');
+    const toolbarDoor = (await corners('teacher')).back!;
+    for (const [key, data] of [['menu', {}], ['songs', {}], ['pieces', {}], ['settings', {}], ['results', { chartId: 'little-steps' }], ['beat-lanes', { chartId: 'little-steps' }]] as const) {
+      await startScene(page, key, data);
+      await waitForScene(page, key);
+      const c = await corners(key);
+      for (const b of [c.back, c.settings].filter((x): x is Corner => x !== null)) {
+        // solid with the pointer elsewhere: a boxed button on its plate, not a bare faded picture over the book
+        expect(b.alpha, key).toBe(1);
+        expect(b.picture, key).toBe(false);
+        expect(b.iconOnly, key).toBe(true);
+      }
+      // one look for Back on every screen: the toolbar's boxed door
+      expect(c.back, key).toEqual(toolbarDoor);
+    }
     await startScene(page, 'menu');
     await waitForScene(page, 'menu');
-    expect(await gearAlpha(page)).toBeLessThan(1);
     const index = await page.evaluate(() => {
       const scene = window.__game.scene.getScene('menu') as unknown as { buttons: unknown[]; toolbarButtons: { settings: unknown } };
       return scene.buttons.indexOf(scene.toolbarButtons.settings);
     });
     const point = await buttonPoint(page, 'menu', index);
     await page.mouse.move(point.x, point.y);
-    await expect.poll(() => gearAlpha(page)).toBe(1);
     await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('menu') as unknown as { toolbarButtons: { settings: { tooltipShown: string | null } } }).toolbarButtons.settings.tooltipShown)).toBe('Settings');
     const canvas = (await page.locator('canvas').boundingBox())!;
     await page.mouse.move(canvas.x + 5, canvas.y + 300);
-    await expect.poll(() => gearAlpha(page)).toBeLessThan(1);
+    expect(await gearAlpha(page)).toBe(1);
     expectNoErrors(errors);
   });
 
