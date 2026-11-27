@@ -2389,10 +2389,16 @@ test.describe('piece maker: the cursor follows the pointer, the bubble offers wh
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
     await eAndGQuarters(page);
-    await clickNote(page, 0, 0, 'E');
-    await lassoBars(page);
+    await selectNote(page, 0, 0, 'E');
+    // Shift + click on the note's bar selects the bar and keeps the note selected
+    const g = await canvasPoint(page, { bar: 0, start: 480, step: 'G' });
+    await page.keyboard.down('Shift');
+    await page.mouse.click(g.x, g.y);
+    await page.keyboard.up('Shift');
     await page.keyboard.press('Control+KeyC');
     await bubbleAt(page, { bar: 0, start: 480, step: 'G' });
+    // the note's own options are there too, so nine would have been offered before
+    expect((await keyState(page)).selected).not.toBeNull();
     const ring = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { menu: { ring: { options: { label: string } }[] } }).menu.ring.map((b) => b.options.label));
     const labels = await ring();
     expect(labels).not.toContain('More');
@@ -2406,7 +2412,7 @@ test.describe('piece maker: the cursor follows the pointer, the bubble offers wh
     expectNoErrors(errors);
   });
 
-  test('leaving an unsaved piece asks in the game, never in a browser dialog: Esc stays, Enter leaves', async ({ page }) => {
+  test('leaving an unsaved piece asks in the game, never in a browser dialog: Enter keeps editing, a second Esc leaves', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     let dialogs = 0;
     page.on('dialog', (d) => {
@@ -2419,8 +2425,8 @@ test.describe('piece maker: the cursor follows the pointer, the bubble offers wh
     await expect.poll(() => sceneWords(page, 'editor')).toContain('Leave without saving');
     expect(await sceneWords(page, 'editor')).toContain('Keep editing');
     expect(await activeScenes(page)).toContain('editor');
-    // Esc keeps the piece open, and the question goes
-    await page.keyboard.press('Escape');
+    // Enter takes the safe answer: the piece stays open, and the question goes
+    await page.keyboard.press('Enter');
     await expect.poll(() => sceneWords(page, 'editor')).not.toContain('Leave without saving');
     expect(await activeScenes(page)).toContain('editor');
     // a press on the staff while it asks writes nothing
@@ -2429,8 +2435,8 @@ test.describe('piece maker: the cursor follows the pointer, the bubble offers wh
     const notes = await page.evaluate(() => window.__game.scene.getScene('editor').history.present.notes.length);
     await clickNote(page, 1, 0, 'C', 5);
     expect(await page.evaluate(() => window.__game.scene.getScene('editor').history.present.notes.length)).toBe(notes);
-    // Enter leaves without saving
-    await page.keyboard.press('Enter');
+    // a second Esc leaves without saving
+    await page.keyboard.press('Escape');
     await waitForScene(page, 'menu');
     expect(dialogs).toBe(0);
     expectNoErrors(errors);

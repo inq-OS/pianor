@@ -1660,8 +1660,9 @@ export class EditorScene extends PixelScene {
     }
     // the question to leave without saving: Enter leaves, Esc stays; nothing else is done behind it
     if (this.leaveAsk) {
-      if (e.code === 'Enter' || e.code === 'NumpadEnter') this.answerLeave(true);
-      else if (e.code === 'Escape') this.answerLeave(false);
+      // Enter takes the safe answer, the one lit; Esc a second time leaves, as a second press of the door does
+      if (e.code === 'Enter' || e.code === 'NumpadEnter') this.answerLeave(false);
+      else if (e.code === 'Escape') this.answerLeave(true);
       return take();
     }
     // the A time's question: Enter takes the guess, Esc closes it (it asks again when the cursor leaves the first bar)
@@ -2671,11 +2672,12 @@ export class EditorScene extends PixelScene {
 
   /**
    * Back to where the piece maker was opened from; with changes not saved it asks first, in the game (`drawLeaveAsk`):
-   * Enter or its button leaves without saving, Esc or Keep editing stays.
+   * Enter or Keep editing stays; a second Esc, :q or door, or its button, leaves without saving.
    */
   private leave(): void {
     if (!this.dirty()) return this.goBack();
-    if (this.leaveAsk) return;
+    // asked already: the second Esc, :q or press of the door leaves (a press again confirms, as deleting a player)
+    if (this.leaveAsk) return this.answerLeave(true);
     this.closeMenu();
     this.leaveAsk = true;
     this.panel = null;
@@ -3538,7 +3540,7 @@ export class EditorScene extends PixelScene {
 
   /**
    * The question to leave a piece not saved, on a panel over the staff's foot as the time's question (the piece maker says
-   * the question): Leave without saving and Keep editing, the safe one lit.
+   * the question): Leave without saving, drawn as an outline, and Keep editing, the filled one Enter takes.
    */
   private drawLeaveAsk(layer: Phaser.GameObjects.Container, rows: number): void {
     const bottom = rows - PIECE_PANEL;
@@ -3546,9 +3548,9 @@ export class EditorScene extends PixelScene {
     layer.add(new PixelImage(this, 0, bottom, panelBitmap(Math.max(5, this.px.width), PIECE_PANEL, 'panel')));
     const choices = row(Math.floor((this.px.width - (2 * LEAVE_WIDTH + GROUP_GAP)) / 2), GROUP_GAP);
     const go = choices.take(LEAVE_WIDTH);
-    this.buttonOn(layer, { x: go + LEAVE_WIDTH / 2, y, width: LEAVE_WIDTH, height: BAR_BUTTON_HEIGHT, label: t('editor.leave.discard'), onClick: () => this.answerLeave(true) });
+    this.buttonOn(layer, { x: go + LEAVE_WIDTH / 2, y, width: LEAVE_WIDTH, height: BAR_BUTTON_HEIGHT, label: t('editor.leave.discard'), look: 'tab', onClick: () => this.answerLeave(true) });
     const stay = choices.take(LEAVE_WIDTH);
-    this.buttonOn(layer, { x: stay + LEAVE_WIDTH / 2, y, width: LEAVE_WIDTH, height: BAR_BUTTON_HEIGHT, label: t('editor.leave.stay'), look: 'tab', onClick: () => this.answerLeave(false) }).setActive(true);
+    this.buttonOn(layer, { x: stay + LEAVE_WIDTH / 2, y, width: LEAVE_WIDTH, height: BAR_BUTTON_HEIGHT, label: t('editor.leave.stay'), onClick: () => this.answerLeave(false) });
   }
 
   /**

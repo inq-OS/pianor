@@ -172,9 +172,12 @@ export function choicesSausage(centre: { x: number; y: number }, choices: readon
   return { picture, x: x0, y: y0 };
 }
 
-/** A round patch under one choice in the sausage, `CHOICE_SIZE` across: lighter under the pointer, gold-rimmed for the one in use. */
+/** A round patch under one choice in the sausage, `CHOICE_SIZE` across: lighter under the pointer, gold-rimmed for the one in use, sunk and struck through for a greyed one. */
 export function choicePatch(look: PlateLook): Bitmap {
-  return barePlate(CHOICE_SIZE, CHOICE_SIZE, disc(CHOICE_SIZE), PLATES[look]);
+  const patch = barePlate(CHOICE_SIZE, CHOICE_SIZE, disc(CHOICE_SIZE), PLATES[look]);
+  // a greyed choice is also struck through, corner to corner under its picture, so it reads as "not here" without its colour
+  if (look === 'off') for (let i = 3; i < CHOICE_SIZE - 3; i++) patch.pixels[i * CHOICE_SIZE + (CHOICE_SIZE - 1 - i)] = C.honeyDark;
+  return patch;
 }
 
 /**
