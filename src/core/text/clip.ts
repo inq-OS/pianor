@@ -16,3 +16,8 @@ export function clipToWidth(text: string, maxWidth: number, measure: (text: stri
   }
   return '';
 }
+
+/** A button's tooltip for a text drawn cut: the whole text, so it can still be read; none when it was not cut. */
+export function wholeIfCut(shown: string, whole: string): { tooltip?: string } {
+  return shown === whole ? {} : { tooltip: whole };
+}

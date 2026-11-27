@@ -164,6 +164,38 @@ test.describe('taking a piece out of the book (ft_1_02c.AC8, AC9)', () => {
     expect(await allMenuTitles(page)).toEqual(all);
     expectNoErrors(errors);
   });
+
+  test('ft_1_02c.AC8 a card\'s small buttons read P, S, i on both pages, and the hide stands apart at the card\'s outer end', async ({ page }) => {
+    const errors = await openGame(page);
+    // every card on the first spread: its small buttons' centres left to right, by kind, and which page it is on
+    const cards = await page.evaluate(() => {
+      type Small = Map<string, { rect: { x: number; width: number } }>;
+      const menu = window.__game.scene.getScene('menu') as unknown as { partsButtons: Small; statsButtons: Small; infoButtons: Small; hideButtons: Small; px: { width: number } };
+      return [...menu.infoButtons.keys()].map((id) => {
+        const kinds = { P: menu.partsButtons, S: menu.statsButtons, i: menu.infoButtons, hide: menu.hideButtons };
+        const at = Object.entries(kinds).flatMap(([kind, map]) => {
+          const b = map.get(id);
+          return b ? [{ kind, x: b.rect.x, w: b.rect.width }] : [];
+        }).sort((a, b) => a.x - b.x);
+        return { left: at[0]!.x < menu.px.width / 2, at };
+      });
+    });
+    expect(cards.some((c) => c.left)).toBe(true);
+    expect(cards.some((c) => !c.left)).toBe(true);
+    for (const card of cards) {
+      const order = card.at.map((b) => b.kind);
+      // the same order on both pages; the hide at the outer end: the left page's left, the right page's right
+      expect(order.filter((k) => k !== 'hide')).toEqual(['P', 'S', 'i'].filter((k) => order.includes(k)));
+      if (!order.includes('hide')) continue;
+      expect(order.indexOf('hide')).toBe(card.left ? 0 : order.length - 1);
+      // a wider gap between the hide and its neighbour than between the others
+      const gap = (a: { x: number; w: number }, b: { x: number }) => b.x - (a.x + a.w);
+      const hideGap = card.left ? gap(card.at[0]!, card.at[1]!) : gap(card.at[card.at.length - 2]!, card.at[card.at.length - 1]!);
+      const others = card.at.filter((b) => b.kind !== 'hide');
+      for (let k = 1; k < others.length; k++) expect(hideGap).toBeGreaterThan(gap(others[k - 1]!, others[k]!));
+    }
+    expectNoErrors(errors);
+  });
 });
 
 test.describe('the parts of a piece from the song list (core_06)', () => {

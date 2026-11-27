@@ -1,6 +1,6 @@
 // Covers d088 (a long player name on the toolbar).
 import { describe, expect, it } from 'vitest';
-import { CUT_MARK, clipToWidth } from './clip';
+import { CUT_MARK, clipToWidth, wholeIfCut } from './clip';
 
 /** Every letter and the ellipsis 5 art pixels wide with a 1-pixel gap: like the pixel font's capitals. */
 const measure = (text: string) => Math.max(0, Array.from(text).reduce((w) => w + 5 + 1, 0) - 1);
@@ -30,5 +30,10 @@ describe('clipToWidth', () => {
 
   it('gives an empty text when not even one letter and the ellipsis fit', () => {
     expect(clipToWidth('TUVI', 3, measure)).toBe('');
+  });
+
+  it('gives a cut text its whole words as a tooltip, and a whole one none', () => {
+    expect(wholeIfCut('Twinkle Twinkle Littl…', 'Twinkle Twinkle Little Star')).toEqual({ tooltip: 'Twinkle Twinkle Little Star' });
+    expect(wholeIfCut('Little Steps', 'Little Steps')).toEqual({});
   });
 });
