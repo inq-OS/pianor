@@ -114,6 +114,24 @@ export function bubbleLayout(input: { at: { x: number; y: number }; options: num
   return { centre, area, options, choices, close };
 }
 
+/** Where an option's key may start, from the bubble's centre: past its plate (24 across) and the keyboard's focus ring round it (2 more). */
+const BADGE_RADIUS = RING + OPTION / 2 + 4;
+
+/**
+ * Where option `slot`'s key (`size` cells) is drawn on a bubble opened from the keyboard: just outside its plate and focus
+ * ring on the side away from the centre, so it covers neither a neighbour nor the Close target, and kept on the screen.
+ */
+export function keyBadgeBox(layout: Pick<BubbleLayout, 'centre' | 'options'>, slot: number, size: { w: number; h: number }, screen: { w: number; h: number }): Rect {
+  const option = layout.options[slot]!;
+  const dx = option.x + option.w / 2 - layout.centre.x, dy = option.y + option.h / 2 - layout.centre.y;
+  const d = Math.hypot(dx, dy) || 1;
+  const ux = dx / d, uy = dy / d;
+  // the box's own reach toward the centre along that line, so its nearest corner is outside the ring
+  const radius = BADGE_RADIUS + Math.abs(ux) * size.w / 2 + Math.abs(uy) * size.h / 2;
+  const x = Math.round(layout.centre.x + ux * radius - size.w / 2), y = Math.round(layout.centre.y + uy * radius - size.h / 2);
+  return { x: clamp(x, 0, screen.w - size.w), y: clamp(y, 0, screen.h - size.h), w: size.w, h: size.h };
+}
+
 /**
  * Which option goes in which slot (ft_1_20.AC19): the options by their index; with more than `BUBBLE_SLOTS` the last slot is
  * More, which turns to the next page (wrapping round).

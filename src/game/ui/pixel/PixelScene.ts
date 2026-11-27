@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { pagerBoxes } from '../../../core/layout/cardGrid';
 import type { PageSlice } from '../../../core/layout/paging';
 import { ART_DETAIL, FRAME_ROWS, VINE_ROWS, frameCorners, frameView, toolbarLayout, type FrameView } from '../../../core/layout/frame';
-import { BUBBLE_SLOTS, SLIDER_CELLS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, sliderArc, sliderFraction, sliderPoint, sliderStep, twoFingerTap, twoFingersSlid, wheelChoice, type BubbleLayout, type SliderArc } from '../../../core/layout/bubble';
+import { BUBBLE_SLOTS, SLIDER_CELLS, bubbleLayout, bubblePage, cellSpan, keyBadgeBox, pinFlow, pinRows, sliderArc, sliderFraction, sliderPoint, sliderStep, twoFingerTap, twoFingersSlid, wheelChoice, type BubbleLayout, type SliderArc } from '../../../core/layout/bubble';
 import type { PixelView } from '../../../core/layout/pixelView';
 import { rectCentre, type Rect } from '../../../core/layout/rect';
 import { dropMenuLayout } from '../../../core/layout/dropMenu';
@@ -1471,6 +1471,8 @@ export abstract class PixelScene extends Phaser.Scene {
     const buttons: PixelButton[] = [];
     // the options in slot order, for the arrows
     const ring: PixelButton[] = [];
+    // the options' keys are drawn last, over every plate, so a neighbour drawn after never covers one
+    const badges: (() => void)[] = [];
     const make = (r: Rect, item: ToolbarItem, onClick: () => void, onHover?: (over: boolean) => void, look: 'bubble' | 'bubbleClose' | 'bubbleChoice' = 'bubble'): PixelButton => {
       const button = new PixelButton(this, container, {
         ...(onHover ? { onHover } : {}),
@@ -1489,8 +1491,13 @@ export abstract class PixelScene extends Phaser.Scene {
       });
       if (item.active) button.setActive(true);
       if (item.armed) button.setArmed(true);
-      // opened from the keyboard, the bubble shows each option's key in its corner; for the mouse the key is in the tooltip
-      if (item.shortcut && (options.keyboard || this.shortcutsShown)) this.keyBadge(container, button, item.shortcut);
+      // opened from the keyboard, the bubble shows each option's key on its rim, away from the centre (a choice's in its
+      // corner); for the mouse the key is in the tooltip
+      // (not while an option's choices are open on the outer ring, where the keys would stand)
+      if (item.shortcut && (options.keyboard || this.shortcutsShown) && (look !== 'bubble' || layout.choices.length === 0)) {
+        const key = item.shortcut;
+        badges.push(() => (look === 'bubble' ? this.bubbleKeyBadge(container, button, r, layout.centre, key, { w: whole.w, h: whole.h }) : this.keyBadge(container, button, key)));
+      }
       buttons.push(button);
       return button;
     };
@@ -1528,6 +1535,7 @@ export abstract class PixelScene extends Phaser.Scene {
       if (choice.active) button.setActive(true);
     });
     make(layout.close, { label: t('band.close'), icon: TOOL_ICONS.close, onClick: () => undefined }, () => this.closeMenu(), undefined, 'bubbleClose');
+    for (const badge of badges) badge();
     const optionPreviews = paging.slots.flatMap((slot) => (typeof slot === 'number' && listed[slot]?.preview ? [listed[slot].preview] : []));
     this.menu = { container, buttons, focusBefore: this.focusIndex, bubble: true, ring, previews: [...optionPreviews, ...choices.flatMap((choice) => (choice?.preview ? [choice.preview] : []))], ...(held.slider ? { slider: held.slider } : {}) };
     this.buttons.push(...buttons);
@@ -1623,6 +1631,22 @@ export abstract class PixelScene extends Phaser.Scene {
   /** The name F1 shows for a key: its own, unless a screen reads its keys another way (the piece maker's vim keys). */
   protected keyName(key: string): string {
     return key;
+  }
+
+  /**
+   * A bubble option's key, white on a dark box, on the rim of its plate away from the bubble's centre (`keyBadgeBox`), so it
+   * covers no other option; a Shift key is written with the Shift arrow (Shift+R as ⇧R), short enough for a plate.
+   */
+  private bubbleKeyBadge(parent: Phaser.GameObjects.Container, button: PixelButton, r: Rect, centre: { x: number; y: number }, key: string, screen: { w: number; h: number }): void {
+    const text = new PixelText(this, 0, 0, key.replace(/^Shift\+/, '⇧'), { color: C.white, keepCase: true });
+    const inked = { w: text.letterBox.right - text.letterBox.left + 2, h: text.letterBox.bottom - text.letterBox.top + 2 };
+    const at = keyBadgeBox({ centre, options: [r] }, 0, inked, screen);
+    text.setPosition(at.x + 1 - text.letterBox.left, at.y + 1 - text.letterBox.top);
+    const box = createBitmap(inked.w, inked.h);
+    box.pixels.fill(C.ink);
+    const back = new PixelImage(this, at.x, at.y, box);
+    parent.add([back, text]);
+    button.attach(back, text);
   }
 
   /** A key's name in the top left corner of a button, white on a dark box so it reads on any cell, gone with the button. */

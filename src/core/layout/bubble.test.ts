@@ -1,6 +1,6 @@
 // Covers ft_1_20 (actions in a bubble, a pinned strip and a backpack, d282).
 import { describe, expect, it } from 'vitest';
-import { BUBBLE_SLOTS, PLATE_REACH, SAUSAGE_REACH, SLIDER_CELLS, PIN_COLUMNS, sliderArc, sliderFraction, sliderPoint, sliderStep, PINCH_SLIDE, PIN_ROWS, TAP_SLIP, TWO_FINGER_TOGETHER_MS, bubbleLayout, bubblePage, cellSpan, pinFlow, pinRows, twoFingerTap, twoFingersSlid, wheelChoice } from './bubble';
+import { BUBBLE_SLOTS, PLATE_REACH, SAUSAGE_REACH, SLIDER_CELLS, PIN_COLUMNS, sliderArc, sliderFraction, sliderPoint, sliderStep, PINCH_SLIDE, PIN_ROWS, TAP_SLIP, TWO_FINGER_TOGETHER_MS, bubbleLayout, bubblePage, cellSpan, keyBadgeBox, pinFlow, pinRows, twoFingerTap, twoFingersSlid, wheelChoice } from './bubble';
 import { rectBottom, rectRight, type Rect } from './rect';
 
 const SCREEN = { w: 320, h: 180 };
@@ -280,5 +280,48 @@ describe('a slider on the outer ring (ft_1_20.AC26)', () => {
     expect(sliderStep(1, range)).toBe(1.5);
     expect(sliderStep(0.5, range)).toBeCloseTo(0.8);
     expect(sliderStep(2, range)).toBe(1.5);
+  });
+});
+
+describe('an option\'s key on a bubble opened from the keyboard (ft_1_20)', () => {
+  const plateHit = (r: Rect, other: Rect) => {
+    // the round plate (24 across) of `other` against the badge's box
+    const cx = other.x + other.w / 2, cy = other.y + other.h / 2;
+    const nx = Math.max(r.x, Math.min(cx, rectRight(r))), ny = Math.max(r.y, Math.min(cy, rectBottom(r)));
+    return Math.hypot(nx - cx, ny - cy) < 12;
+  };
+
+  it('stands just outside its own plate and focus ring, away from the centre, touching no other option\'s plate and no other key', () => {
+    const screen = { w: 320, h: 180 };
+    const layout = bubbleLayout({ at: { x: 160, y: 90 }, options: BUBBLE_SLOTS, screen });
+    const badges = layout.options.map((_, i) => keyBadgeBox(layout, i, { w: 13, h: 9 }, screen));
+    badges.forEach((badge, i) => {
+      const own = layout.options[i]!;
+      // clear of its own plate's focus ring (28 across)
+      const ox = own.x + own.w / 2, oy = own.y + own.h / 2;
+      expect(Math.hypot(Math.max(badge.x, Math.min(ox, rectRight(badge))) - ox, Math.max(badge.y, Math.min(oy, rectBottom(badge))) - oy)).toBeGreaterThanOrEqual(13.5);
+      const away = Math.hypot(badge.x + badge.w / 2 - layout.centre.x, badge.y + badge.h / 2 - layout.centre.y);
+      expect(away).toBeGreaterThan(Math.hypot(own.x + own.w / 2 - layout.centre.x, own.y + own.h / 2 - layout.centre.y));
+      layout.options.forEach((other, j) => {
+        if (j !== i) expect(plateHit(badge, other)).toBe(false);
+      });
+      badges.forEach((b, j) => {
+        if (j !== i) expect(b.x < rectRight(badge) && badge.x < rectRight(b) && b.y < rectBottom(badge) && badge.y < rectBottom(b)).toBe(false);
+      });
+    });
+  });
+
+  it('stays on the screen when the bubble opens in a corner', () => {
+    const screen = { w: 320, h: 180 };
+    for (const at of [{ x: 0, y: 0 }, { x: 320, y: 180 }, { x: 0, y: 180 }, { x: 320, y: 0 }]) {
+      const layout = bubbleLayout({ at, options: BUBBLE_SLOTS, screen });
+      layout.options.forEach((_, i) => {
+        const b = keyBadgeBox(layout, i, { w: 13, h: 9 }, screen);
+        expect(b.x).toBeGreaterThanOrEqual(0);
+        expect(b.y).toBeGreaterThanOrEqual(0);
+        expect(rectRight(b)).toBeLessThanOrEqual(screen.w);
+        expect(rectBottom(b)).toBeLessThanOrEqual(screen.h);
+      });
+    }
   });
 });

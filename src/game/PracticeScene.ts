@@ -1556,9 +1556,9 @@ export class PracticeScene extends PixelScene {
         // a stray scroll never changes how the student plays: the wheel leaves the mode alone
         menu: { items: () => this.modeChoices(), cell: { w: 22, h: 22 }, columns: 5 }, wheel: false,
       },
-      { label: '-', tooltip: t('practice.slower'), disabled: this.percent <= TEMPO_PERCENT.min, onClick: () => this.setPercent(this.percent - TEMPO_PERCENT.step), wheel: tempoWheel },
+      { label: '-', icon: TOOL_ICONS.slower, tooltip: t('practice.slower'), disabled: this.percent <= TEMPO_PERCENT.min, onClick: () => this.setPercent(this.percent - TEMPO_PERCENT.step), wheel: tempoWheel },
       { label: t('practice.percent', { n: Math.round(this.percent) }), tooltip: bpm, keepCase: true, onClick: () => this.setPercent(100), wheel: tempoWheel },
-      { label: '+', tooltip: t('practice.faster'), disabled: this.percent >= TEMPO_PERCENT.max, onClick: () => this.setPercent(this.percent + TEMPO_PERCENT.step), wheel: tempoWheel },
+      { label: '+', icon: TOOL_ICONS.faster, tooltip: t('practice.faster'), disabled: this.percent >= TEMPO_PERCENT.max, onClick: () => this.setPercent(this.percent + TEMPO_PERCENT.step), wheel: tempoWheel },
     ];
   }
 
@@ -1588,9 +1588,9 @@ export class PracticeScene extends PixelScene {
     const section = this.startData.section;
     const sectionName = t(section ? 'practice.whole' : 'practice.section');
     return [
-      { label: sectionName, icon: TOOL_ICONS.section, tooltip: hotkeyLabel(sectionName, 'section'), active: this.picking !== null || section !== undefined, onClick: () => (section ? this.backToWhole() : this.startPicking()) },
+      { label: sectionName, icon: TOOL_ICONS.section, shortcut: HOTKEYS.section.letter, tooltip: hotkeyLabel(sectionName, 'section'), active: this.picking !== null || section !== undefined, onClick: () => (section ? this.backToWhole() : this.startPicking()) },
       this.rampShown ? { label: t('practice.ramp'), icon: TOOL_ICONS.steps, active: this.rampOpen, onClick: () => this.toggleRamp() } : this.laneItem(),
-      { label: t('practice.click'), icon: TOOL_ICONS.click, active: this.clickOn, tooltip: hotkeyLabel(t('practice.click'), 'click'), onClick: () => this.toggleClick() },
+      { label: t('practice.click'), icon: TOOL_ICONS.click, active: this.clickOn, shortcut: HOTKEYS.click.letter, tooltip: hotkeyLabel(t('practice.click'), 'click'), onClick: () => this.toggleClick() },
       { ...circleItem(() => this.openCircle()), disabled: this.listening },
       this.preview ? null : { label: t('practice.statsPane'), icon: TOOL_ICONS.statsPane, active: this.paneShown, onClick: () => this.toggleStatsPane() },
       // the analysis of the whole piece: where it is tricky and what to practise (core_10)

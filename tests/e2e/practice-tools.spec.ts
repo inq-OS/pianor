@@ -46,7 +46,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
   test('the strip has the tempo percent, the bubble the click and the section button @smoke', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
-    expect(await sceneTexts(page, 'practice')).toEqual(expect.arrayContaining(['-', '100%', '+']));
+    expect(await sceneWords(page, 'practice')).toEqual(expect.arrayContaining(['-', '100%', '+']));
     expect(await openBubbleFromMore(page, 'practice')).toBe(true);
     expect(await buttonNames(page)).toEqual(expect.arrayContaining(['Click [Shift+M]', 'Section [Shift+R]'])); // the metronome and A | -> | B
     expectNoErrors(errors);
@@ -338,6 +338,16 @@ test.describe('practice tools (core_02 and core_03)', () => {
     await page.mouse.move(back.x, back.y);
     await page.mouse.wheel(0, 100); // down: slower
     await expect.poll(() => percent(page)).toBe(120);
+    expectNoErrors(errors);
+  });
+
+  test('a bubble opened with Shift+F10 shows the key of every option that has one: the section, the click, note names and fingers', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await page.keyboard.press('Shift+F10');
+    await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').menuOpen as boolean)).toBe(true);
+    expect(await sceneTexts(page, 'practice')).toEqual(expect.arrayContaining(['⇧R', '⇧M', 'A', 'F']));
+    await page.keyboard.press('Escape');
     expectNoErrors(errors);
   });
 

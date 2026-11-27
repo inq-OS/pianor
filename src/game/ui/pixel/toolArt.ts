@@ -7,7 +7,7 @@ import { C } from './palette';
  * hints; for the editor's toolbar (d088) a floppy disk for Save and an arrow into or out of a tray for Import and
  * Export; a loop for start over and the trainers' new round, an ear with a loop for the ear trainer's repeat, stairs for the note trainer's step, and undo, redo, a bin, play, stop, backspace and a tick for the piece maker and the name box. Original, drawn for this project (the Kenney pack page refused the download, and these are a few pixels each). Each fits inside a 14 pixel bar button with its frame (10 rows at most).
  */
-export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'listenRepeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'speed' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort' | 'hide' | 'pointerFollow' | 'pointerStill' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen' | 'head' | 'songs' | 'folded' | 'unfolded' | 'link' | 'blank' | 'add' | 'rename' | 'move' | 'meter' | 'write';
+export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'listenRepeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'speed' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort' | 'hide' | 'pointerFollow' | 'pointerStill' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen' | 'head' | 'songs' | 'folded' | 'unfolded' | 'link' | 'blank' | 'add' | 'slower' | 'faster' | 'rename' | 'move' | 'meter' | 'write';
 
 const LEGEND = { k: C.ink, w: C.white, g: C.gold, G: C.goldDark, s: C.skin } as const;
 
@@ -158,6 +158,9 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   blank: art(['ww.w.ww', 'w.....w', '.......', 'w.....w', '.......', 'w.....w', 'ww.w.ww']),
   // making a song (ft_1_36 rule 12): add a row, name it, move it
   add: art(['...w...', '...w...', '...w...', 'wwwwwww', '...w...', '...w...', '...w...']),
+  /** Practice's tempo a step slower and faster (the strip's - and +): strokes two pixels thick, so they read as well as the percent between them. */
+  slower: art(['wwwwwwwwww', 'wwwwwwwwww']),
+  faster: art(['....ww....', '....ww....', '....ww....', '....ww....', 'wwwwwwwwww', 'wwwwwwwwww', '....ww....', '....ww....', '....ww....', '....ww....']),
   rename: art(['.....ww', '....w.w', '...w.w.', '..w.w..', '.w.w...', 'ww.....', 'www....']),
   move: art(['...w...', '..www..', '.w.w.w.', '...w...', '.w.w.w.', '..www..', '...w...']),
   /** A row's meter (slot 4 of the song page's bubble): a 3 over a 4, as a time signature. */
