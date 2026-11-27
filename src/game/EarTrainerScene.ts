@@ -15,7 +15,7 @@ import { ICONS } from './ui/pixel/iconArt';
 import { fromAscii, recolor } from './ui/pixel/bitmap';
 import { PixelBar, PixelImage, pixelStars } from './ui/pixel/PixelObjects';
 import { STAR_FULL } from './ui/pixel/sprites';
-import { iconWithNumber, TOOL_ICONS } from './ui/pixel/toolArt';
+import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { C } from './ui/pixel/palette';
 import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
 import { StaffView } from './ui/staff/StaffView';
@@ -31,13 +31,15 @@ const LEVEL_BAR_HEIGHT = 5;
 /** The round's stars, twice the sprite size, centred above the staff. */
 const STARS_Y = 14;
 /** A two-note question's progress under the stars: one slot per note, filled once that note is found (no name). */
-const SLOTS_Y = 35;
-const SLOT_GAP = 3;
-const SLOT_EMPTY = fromAscii(['kkkk', 'k..k', 'k..k', 'kkkk'], { k: C.ink });
-const SLOT_FOUND = fromAscii(['kkkk', 'kkkk', 'kkkk', 'kkkk'], { k: C.ink });
+const SLOTS_Y = 33;
+const SLOT_GAP = 4;
+/** A slot, in the round stars' manner: an ink outline, empty while the note is to find, filled gold once it is found. */
+const SLOT_ROWS = ['.kkkkkk.', 'kffffffk', 'kffffffk', 'kffffffk', 'kffffffk', 'kffffffk', 'kffffffk', '.kkkkkk.'];
+const SLOT_EMPTY = fromAscii(SLOT_ROWS.map((r) => r.replace(/f/g, '.')), { k: C.ink });
+const SLOT_FOUND = fromAscii(SLOT_ROWS.map((r, y) => (y === 1 ? r.replace('ff', 'hh') : r)), { k: C.ink, f: C.gold, h: C.goldLight });
 /**
- * A new ear level (AC5's one bigger moment): a card with "Ear level N" between two stars over the top of the staff, for this
- * long, ms. AX-3 provisional: two seconds, long enough to read, short enough to leave the answer to be read.
+ * A new ear level (AC5's one bigger moment): "Ear level N" between two gold stars on the top card, beside the
+ * round's stars and clear of the staff, for this long, ms (the next question takes it away sooner). AX-3 provisional: two seconds, long enough to read, short enough to leave the answer to be read.
  */
 const LEVEL_UP_MS = 2000;
 const LEVEL_UP_DEPTH = 20;
@@ -47,8 +49,6 @@ const STARS_ZOOM = 2;
 const STAR_GAP = 2;
 /** The answer's staff, under the stars. */
 const STAFF_TOP = 48;
-/** The new level's card, over the top of the staff. */
-const LEVEL_UP_Y = STAFF_TOP + 6;
 /** The one miss with words, "right letter, wrong octave", under the stars while the question is open (no staff there yet). */
 const WRONG_OCTAVE_Y = 50;
 /** MIDI velocity of the question's notes, a comfortable mezzo-forte. */
@@ -183,18 +183,19 @@ export class EarTrainerScene extends PixelScene {
     return [
       { label: displayText(t('ear.playAgain')), icon: ICONS.ear, iconOnly: true, tooltip: t('ear.playAgain'), main: true, onClick: () => this.play() },
       { label: displayText(repeat), icon: TOOL_ICONS.repeat, iconOnly: true, active: this.repeatOn, tooltip: repeat, onClick: () => this.toggleRepeat() },
-      { label: displayText(t('ear.length', { n: this.seconds })), icon: iconWithNumber(TOOL_ICONS.orderDeadline, this.seconds), iconOnly: true, tooltip: t('ear.lengthTip'), onClick: () => this.cycleLength() },
+      { label: displayText(t('ear.lengthTip')), value: displayText(t('ear.length', { n: this.seconds })), icon: TOOL_ICONS.orderDeadline, tooltip: t('ear.lengthTip'), onClick: () => this.cycleLength() },
       {
-        label: displayText(t('theory.step', { n: this.step })), icon: iconWithNumber(TOOL_ICONS.steps, this.step), iconOnly: true, tooltip: t('ear.stepTip'), onClick: () => undefined,
+        label: displayText(t('theory.step', { n: this.step })), value: String(this.step), icon: TOOL_ICONS.steps, tooltip: t('ear.stepTip'), onClick: () => undefined,
         menu: { items: () => this.stepItems(), cell: STEP_CELL, columns: table.length },
       },
     ];
   }
 
-  /** Every row of the table, up or down: levels never lock one (ft_1_10.AC13). The row in use is lit. */
+  /** Every row of the table, up or down: levels never lock one (ft_1_10.AC13). The row in use is lit; the one the ear level earned has a pip. */
   private stepItems(): MenuItem[] {
+    const earned = earStepOf(this.level, null, table.length);
     return table.map((row, i) => ({
-      label: `${i + 1}`, active: i + 1 === this.step, tooltip: t(row.mode === 'two' ? 'ear.stepTwo' : 'ear.stepOne', { n: i + 1 }),
+      label: `${i + 1}`, active: i + 1 === this.step, marked: i + 1 === earned, tooltip: t(row.mode === 'two' ? 'ear.stepTwo' : 'ear.stepOne', { n: i + 1 }),
       onPick: () => this.chooseStep(i + 1),
     }));
   }
@@ -245,29 +246,27 @@ export class EarTrainerScene extends PixelScene {
     if (this.wrongOctave) this.label(0, WRONG_OCTAVE_Y, t('ear.wrongOctave'), C.white).centerAt(width / 2);
 
     if (this.question.done) this.drawAnswer(rows);
-    if (this.time.now < this.levelUpUntil) this.drawLevelUp();
+    if (this.time.now < this.levelUpUntil) this.drawLevelUp(Math.round((width + starsWidth) / 2));
   }
 
   /**
-   * The new level's card (AC5's one bigger moment, not by colour alone): "Ear level N" written big between two stars, over
-   * the top of the staff, above it in depth, for LEVEL_UP_MS.
+   * The new level's moment (AC5's one bigger moment, not by colour alone): "Ear level N" between two gold stars, written on
+   * the top card to the right of the round's stars, so the answer on the staff stays in view, for LEVEL_UP_MS.
    */
-  private drawLevelUp(): void {
+  private drawLevelUp(starsRight: number): void {
     const { width } = this.px;
     this.inkWriting = true;
-    const text = this.label(0, 0, t('ear.level', { n: this.level }), C.white, { big: true });
-    const textWidth = text.width * 2;
-    const inner = STAR_FULL.width * STARS_ZOOM * 2 + textWidth + 16;
-    const w = inner + 12, h = 28;
-    const x = Math.round((width - w) / 2);
-    const card = this.parchmentCard({ x, y: LEVEL_UP_Y, w, h }, 5);
-    text.setPosition(x + 6 + STAR_FULL.width * STARS_ZOOM + 8, LEVEL_UP_Y + 7);
-    const starY = LEVEL_UP_Y + Math.round((h - STAR_FULL.height * STARS_ZOOM) / 2);
-    const stars = [x + 6, x + w - 6 - STAR_FULL.width * STARS_ZOOM].map((sx) => new PixelImage(this, sx, starY, STAR_FULL).setScale(STARS_ZOOM));
+    const text = this.label(0, 0, t('ear.level', { n: this.level }), C.white);
     this.inkWriting = false;
-    // over the staff, which draws above the screen's root
+    const gap = 5;
+    const w = STAR_FULL.width * 2 + text.displayWidth + gap * 2;
+    // centred in the room between the round's stars and the card's right end, level with the stars' middle
+    const x = Math.max(starsRight + gap, Math.round((starsRight + width - 8 - w) / 2));
+    const middle = STARS_Y + Math.round((STAR_FULL.height * STARS_ZOOM) / 2);
+    text.setPosition(x + STAR_FULL.width + gap, middle - Math.round(text.displayHeight / 2));
+    const stars = [x, x + w - STAR_FULL.width].map((sx) => new PixelImage(this, sx, middle - Math.ceil(STAR_FULL.height / 2), STAR_FULL));
     this.levelUpCard = this.add.container(this.root.x, this.root.y).setScale(this.px.scale).setDepth(LEVEL_UP_DEPTH);
-    this.levelUpCard.add([card, text, ...stars]);
+    this.levelUpCard.add([text, ...stars]);
   }
 
   /** The answer on the staff, the note names on the notes, after the question is found (ft_1_10.AC7). */

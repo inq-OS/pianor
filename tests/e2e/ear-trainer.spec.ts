@@ -12,8 +12,8 @@ const ear = (page: Page) => page.evaluate(() => {
   const scene = window.__game.scene.getScene('earTrainer') as unknown as EarView;
   return { notes: scene.notes, questionNumber: scene.questionNumber, misses: scene.question.misses, done: scene.question.done, stars: [scene.shownStars.lit, scene.shownStars.total], slots: scene.shownSlots, step: scene.step, levelUpCard: scene.levelUpCard !== null };
 });
-/** Every text on the screen with no question found: the ear level (the note length and the step are numbers in their pictures). */
-const ONLY_TEXTS = ['Ear level 1'];
+/** Every text on the screen with no question found: the ear level, and the note length and the step beside their pictures (ft_1_10.AC13). */
+const ONLY_TEXTS = ['Ear level 1', '1 s', '1'];
 const STEP = 'Step: one note or two, and which keys';
 /** A note name on the staff (H or B naming, a sharp or flat after it). */
 const isNoteName = (text: string) => /^[A-H](#|b|♯|♭)?$/.test(text);
@@ -232,6 +232,12 @@ test.describe('pitch trainer by ear (ft_1_10)', () => {
     expect((await ear(page)).levelUpCard).toBe(false);
     await playWithVirtualPiano(page, (await ear(page)).notes);
     expect((await ear(page)).levelUpCard).toBe(true);
+    // the card stands on the top card, clear of the staff with the answer on it
+    const clear = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('earTrainer') as unknown as { levelUpCard: { getBounds(): { bottom: number } }; staff: { layout?: unknown } | null; mainTop: number; px: { scale: number } };
+      return scene.levelUpCard.getBounds().bottom <= scene.mainTop + 48 * scene.px.scale;
+    });
+    expect(clear).toBe(true);
     expect((await sceneTexts(page, 'earTrainer')).filter((text) => text === 'Ear level 2')).toHaveLength(2);
     await expect.poll(async () => (await ear(page)).levelUpCard, { timeout: 10_000 }).toBe(false);
     expectNoErrors(errors);

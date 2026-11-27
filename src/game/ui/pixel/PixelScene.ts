@@ -14,7 +14,7 @@ import { ICONS } from './iconArt';
 import { TOOL_ICONS } from './toolArt';
 import { signOnly } from './itemArt';
 import { PALETTE, C } from './palette';
-import { createBitmap, recolor, type Bitmap } from './bitmap';
+import { createBitmap, fromAscii, recolor, type Bitmap } from './bitmap';
 import { LiveImage, PixelBar, PixelButton, PixelImage, PixelText, type PixelButtonOptions, type RgbaArt } from './PixelObjects';
 import { BACKPACK, BUBBLE_ALPHA, choicePatch, choicesSausage, CHOICE_SIZE, stripBitmap, wornChip } from './bubbleArt';
 import { LiveWaterPlayer } from './liveWater';
@@ -133,6 +133,8 @@ export interface MenuItem {
   tooltip?: string;
   /** The value in use now: drawn lit, so the menu shows where you are. */
   active?: boolean;
+  /** The choice the student's level earned (the ear trainer's step): a small gold pip in the cell's top right corner. */
+  marked?: boolean;
   /** Shown but cannot be picked (a length the bar cannot hold). */
   disabled?: boolean;
   keepCase?: boolean;
@@ -144,6 +146,9 @@ export interface MenuItem {
   preview?: (on: boolean) => void;
   onPick: () => void;
 }
+
+/** The pip of a menu's earned choice (`MenuItem.marked`): a gold diamond outlined in ink, readable on a lit cell too. */
+const MARK_PIP = fromAscii(['..k..', '.kgk.', 'kgggk', '.kgk.', '..k..'], { k: C.ink, g: C.gold });
 
 /** A drop-down is drawn over everything of its screen, the staff too (the staff draws at depth 8 to 10). */
 const MENU_DEPTH = 1000;
@@ -707,6 +712,12 @@ export abstract class PixelScene extends Phaser.Scene {
         },
       });
       if (item.active) button.setActive(true);
+      if (item.marked) {
+        const cell = layout.cells[i]!;
+        const pip = new PixelImage(this, cell.x + cell.w - MARK_PIP.width - 1, cell.y + 1, MARK_PIP);
+        container.add(pip);
+        button.attach(pip);
+      }
       if (item.shortcut) this.keyBadge(container, button, item.shortcut);
       buttons.push(button);
     });

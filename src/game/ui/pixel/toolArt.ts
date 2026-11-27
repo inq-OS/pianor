@@ -173,7 +173,7 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   write: art(['...w....ww', '...w...ww.', '...w..ww..', '...w.ww...', '...www....', '.wwww.....', 'wwwww.....', '.www......']),
   meter: art(['www', '..w', '.ww', '..w', 'www', 'w.w', 'w.w', 'www', '..w', '..w']),
   repeat: art(REPEAT),
-  /** The note trainer's step: stairs, beside the step's number. */
+  /** A trainer's step: stairs, beside the step's number or name (the strip's `ToolbarItem.value`). */
   steps: art(['.......www', '.......www', '....wwwwww', '....wwwwww', '.wwwwwwwww', '.wwwwwwwww']),
   noteNames: art(NOTE),
   noteNamesOn: noteWithName(),
@@ -218,18 +218,3 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   // four bars rising, the last one gold: the stats pane of the latest plays (ft_1_12)
   statsPane: art(['.........gg', '.........gg', '......ww.gg', '......ww.gg', '...ww.ww.gg', '...ww.ww.gg', 'ww.ww.ww.gg', 'ww.ww.ww.gg', 'wwwwwwwwwww']),
 };
-
-/**
- * A picture with a whole number after it, in white 3 x 5 digits on its bottom line: a strip cell shows only its picture, so a
- * setting's value goes in it (the ear trainer's note length, its step).
- */
-export function iconWithNumber(icon: Bitmap, n: number): Bitmap {
-  if (!Number.isInteger(n) || n < 0) throw new RangeError('n must be a whole number, 0 or more');
-  const digits = [...`${n}`];
-  const height = Math.max(icon.height, 5);
-  const b = createBitmap(icon.width + 2 + digits.length * 4 - 1, height);
-  blit(b, icon, 0, height - icon.height);
-  digits.forEach((d, i) => blit(b, recolorInk(art(DIGITS[d]!)), icon.width + 2 + i * 4, height - 5));
-  return b;
-}
-
