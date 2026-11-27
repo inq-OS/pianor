@@ -1022,6 +1022,19 @@ function nameTheChord(p: Placer, members: readonly NoteGlyph[]): void {
   }
 }
 
+/**
+ * A name that falls among the ledger lines over the staff, under a high note (`highest` its staff position, `topY` the
+ * staff's top line), stands centred in the space between two of them, so no ledger line runs through its letters
+ * (ft_0_05.AC3); it moves at most half a staff space, up toward its note or down. Elsewhere it stays where it is.
+ */
+function clearOfLedgers(labelY: number, highest: number, topY: number, S: number): number {
+  const highestLedger = highest - (highest % 2); // ledger lines stand on the even positions above the top line (8)
+  const at = 8 + (topY - labelY) / (S / 2);
+  if (highestLedger < 10 || at <= 8 || at >= highestLedger) return labelY;
+  const space = 2 * Math.floor(at / 2) + 1;
+  return topY - ((space - 8) * S) / 2;
+}
+
 /** Hint labels sit beyond the stems and heads of the whole chord, wherever the stems ended up: names under it, the top finger above it. */
 function placeHints(members: readonly NoteGlyph[], S: number, tuplet?: { top: number; bottom: number }): void {
   // every stem counts: a chord has one, a tick of two voices one per voice (d164); a triplet's number or bracket on this
@@ -1029,8 +1042,10 @@ function placeHints(members: readonly NoteGlyph[], S: number, tuplet?: { top: nu
   const stems = members.flatMap((m) => (m.stem ? [m.stem] : []));
   const lowest = Math.max(...members.map((m) => m.y + m.headRy), ...stems.map((st) => (st.up ? -Infinity : st.y2)), tuplet?.bottom ?? -Infinity);
   const highest = Math.min(...members.map((m) => m.y - m.headRy), ...stems.map((st) => (st.up ? st.y2 : Infinity)), tuplet?.top ?? Infinity);
+  const top = members[0]!;
+  const labelY = clearOfLedgers(lowest + GLYPH.hintGap * S, Math.max(...members.map((m) => m.position)), top.y + ((top.position - 8) * S) / 2, S);
   for (const m of members) {
-    m.labelY = lowest + GLYPH.hintGap * S;
+    m.labelY = labelY;
     m.fingerY = highest - GLYPH.hintGap * S;
   }
   // Scores stack one step above the last, highest note first, so no two numbers of a chord share a spot.

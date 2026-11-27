@@ -17,7 +17,7 @@ Own-built renderer in `src/game/ui/staff`: treble clef first, then bass; ledger 
 
 - **ft_0_05.AC1** A demo scene renders the sample piece at several sizes without overlap.
 - **ft_0_05.AC2** Geometry tests cover the pure layout function (positions are computed apart from drawing).
-- **ft_0_05.AC3** Middle C and ledger lines are correct.
+- **ft_0_05.AC3** Middle C and ledger lines are correct; a note name among the ledger lines over the staff stands in the space between two of them, never on a line.
 - **ft_0_05.AC4** Every staff lies on a sheet of parchment ([d119](../decisions/notation.md#d119)): a pale skin with a torn edge on a desk, painted for the staff's size. A torn edge never comes nearer the staff's standing ink than its plan allows (with no room the sheet runs off that side), and where notes are written the skin keeps the ink at more than 7 to 1. No staff is made smaller for the sheet.
 
 ## TODO

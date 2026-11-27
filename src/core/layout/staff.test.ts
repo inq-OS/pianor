@@ -1426,3 +1426,26 @@ describe('a piece that starts with a pick-up (d120)', () => {
     for (const w of widths) expect(w).toBeCloseTo(widths[0]!, 6);
   });
 });
+
+describe('note names above the staff (ft_0_05.AC3)', () => {
+  // the ink of a name's letter reaches this far up and down from its centre, in staff spaces (a 1.1-space pixel font's capital)
+  const INK = 0.4;
+  const cases: { clef: 'treble' | 'bass'; step: string; octave: number }[] = [
+    ...['A', 'B'].map((step) => ({ clef: 'treble' as const, step, octave: 5 })),
+    ...['C', 'D', 'E', 'F', 'G', 'A', 'B'].flatMap((step) => [6, 7].map((octave) => ({ clef: 'treble' as const, step, octave }))).filter((c) => c.octave < 7 || c.step === 'C'),
+    ...['C', 'D', 'E', 'F', 'G'].map((step) => ({ clef: 'bass' as const, step, octave: 4 })),
+  ];
+  for (const { clef, step, octave } of cases) {
+    for (const dur of [1920, 960]) {
+      it(`keeps the name of ${step}${octave} (${dur === 1920 ? 'whole' : 'half'} note, ${clef} clef) off its ledger lines and under its head (ft_0_05.AC3)`, () => {
+        const layout = layoutStaff(chartOf({ bars: 1, clef, events: [{ tick: 0, dur, step, octave }] }), { viewport: BIG, staffSpace: SPACE });
+        const n = layout.notes[0]!;
+        expect(n.ledgerLines.length).toBeGreaterThan(0);
+        for (const ledger of n.ledgerLines) expect(Math.abs(n.labelY - ledger.y)).toBeGreaterThanOrEqual((INK + 0.05) * SPACE);
+        const top = layout.systems[0]!.staves[0]!.topLineY;
+        if (n.labelY < top) expect(top - n.labelY).toBeGreaterThanOrEqual((INK + 0.05) * SPACE);
+        expect(n.labelY - INK * SPACE).toBeGreaterThanOrEqual(n.y + n.headRy - 0.01);
+      });
+    }
+  }
+});
