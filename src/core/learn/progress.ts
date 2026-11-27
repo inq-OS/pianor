@@ -50,6 +50,11 @@ export interface LearnProgress {
   handsApart?: boolean;
   /** When the piece was learned (ISO 8601): only plays after it raise a bar to gold (`goldenBars`). Absent before, and in progress kept before the field. */
   learnedAt?: string;
+  /**
+   * The clef the piece had won when its learning began again (`relearn`, ft_1_32.AC24): the book keeps it while the piece is
+   * learned again, and the clef never goes lower than it. Absent: the piece was never learned again.
+   */
+  clef?: Medal;
 }
 
 /** The measures of one measured run, as kept: whole numbers, the shares in percent. */
@@ -115,6 +120,7 @@ export const learnProgressSchema = z.object({
   stepBars: z.union([z.literal(1), z.literal(2)]).exactOptional(),
   learnedAt: z.string().min(1).exactOptional(),
   handsApart: z.boolean().exactOptional(),
+  clef: medalSchema.exactOptional(),
 });
 
 /**
@@ -150,6 +156,7 @@ export const learnSettingsSchema = z.object({
     dots: z.object({ ghost: z.number().min(0).max(1), beat: z.number().min(0).max(1), top: z.number().min(0).max(1), bottom: z.number().min(0).max(1) }),
     wave: z.object({ height: z.number().min(0).max(LANE_LIMITS.height), reach: z.number().min(0).max(LANE_LIMITS.reach) }),
     blink: z.boolean().optional(),
+    follow: z.literal('click').optional(),
   })).max(LANE_LIMITS.lanes).optional(),
   /**
    * A click at the student's own pace in a learning run (core_13 rule 6), started afresh at every key. Absent or false: off,
@@ -444,5 +451,24 @@ export function startOver(progress: LearnProgress, settings: LearnSettings, toda
   return {
     ...START_PROGRESS, lastDay: today, stepBars: settings.stepBars, handsApart: settings.handsApart ?? false,
     ...(progress.bpm ? { bpm: progress.bpm } : {}), ...(progress.tests ? { tests: progress.tests } : {}),
+    // a piece learned before and being learned again stays learned, with its clef (ft_1_32.AC24)
+    ...(progress.learnedAt === undefined ? {} : { learnedAt: progress.learnedAt }), ...(progress.clef ? { clef: progress.clef } : {}),
   };
+}
+
+/**
+ * A learned piece learned again from the first step on `today` (ft_1_32.AC24, rule 23), the player asked Kiur for it: planned
+ * with the player's settings now, as `startOver`. The piece stays learned (`learnedAt`, the day of its last run when it was
+ * learned before that was kept) and keeps `clef`, the clef it had won: nothing earned is taken away (AX-2).
+ */
+export function relearn(progress: LearnProgress, clef: Medal, settings: LearnSettings, today: DayString): LearnProgress {
+  const learnedAt = progress.learnedAt ?? progress.lastDay ?? today;
+  return { ...startOver(progress, settings, today), learnedAt, clef: progress.clef ? best(progress.clef, clef) : clef };
+}
+
+const MEDAL_RANK: Record<Medal, number> = { bronze: 0, silver: 1, gold: 2 };
+
+/** The better of two medals. */
+export function best(a: Medal, b: Medal): Medal {
+  return MEDAL_RANK[a] >= MEDAL_RANK[b] ? a : b;
 }

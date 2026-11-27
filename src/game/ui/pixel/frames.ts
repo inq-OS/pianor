@@ -111,16 +111,23 @@ export function tinted(picture: Bitmap, colour: number, outline: number = C.groo
   return out;
 }
 
-/** The ring drawn around the button that has the keyboard focus: two light gold pixels all round, with the corners cut. It is `width + 4` by `height + 4`, so it sits just outside the button. */
+/** How far the focus ring stands out round its button, in art pixels: an ink line, then two of light gold. */
+export const FOCUS_RING = 3;
+
+/**
+ * The ring drawn around the button that has the keyboard focus (ft_Y_13): an ink line outside two light gold pixels, all
+ * round, the corners cut, so it shows on a light ground (parchment) by its ink and on a dark one by its gold. It is
+ * `width + 2 * FOCUS_RING` by `height + 2 * FOCUS_RING`, so it sits just outside the button.
+ */
 export function focusRingBitmap(width: number, height: number): Bitmap {
-  const w = width + 4;
-  const h = height + 4;
+  const w = width + 2 * FOCUS_RING;
+  const h = height + 2 * FOCUS_RING;
   const bitmap = createBitmap(w, h);
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      const ring = x < 2 || y < 2 || x >= w - 2 || y >= h - 2;
+      const depth = Math.min(x, y, w - 1 - x, h - 1 - y);
       const corner = (x === 0 || x === w - 1) && (y === 0 || y === h - 1);
-      if (ring && !corner) bitmap.pixels[y * w + x] = C.goldLight;
+      if (depth < FOCUS_RING && !corner) bitmap.pixels[y * w + x] = depth === 0 ? C.ink : C.goldLight;
     }
   }
   return bitmap;

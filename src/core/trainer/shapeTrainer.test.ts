@@ -4,7 +4,7 @@ import { chartSchema } from '../chart/schema.ts';
 import { noteName } from '../chart/pitch.ts';
 import { buildSteps } from '../judge/steps.ts';
 import type { NoteEvent } from '../judge/types.ts';
-import { SHAPE_LIVES, SHAPE_XP_PER_NOTE, ShapeRound, nextShapeKey, shapeChart, type ShapeChoice } from './shapeTrainer.ts';
+import { SHAPE_LIVES, SHAPE_XP_PER_NOTE, ShapeRound, nextShapeKey, shapeChart, wrongWordsKey, type ShapeChoice } from './shapeTrainer.ts';
 
 const C_MAJOR: ShapeChoice = { fifths: 0, mode: 'major', shape: 'scale', hand: 'RH' };
 let clock = 0;
@@ -82,7 +82,7 @@ describe('ShapeRound (ft_1_29.AC1)', () => {
     expect(round.state().outcome).toBe('playing');
     const last = round.press(on(60));
     expect(last.verdict).toBe('correct');
-    expect(round.state()).toMatchObject({ outcome: 'won', lives: SHAPE_LIVES, xp: 15 * SHAPE_XP_PER_NOTE });
+    expect(round.state()).toMatchObject({ outcome: 'won', lives: SHAPE_LIVES, xp: 15 * SHAPE_XP_PER_NOTE, right: 15 });
   });
 
   it('a wrong key costs a life, says why, and the cursor stays; the third ends the round and keeps the XP', () => {
@@ -94,7 +94,7 @@ describe('ShapeRound (ft_1_29.AC1)', () => {
     expect(round.play().awaiting).toHaveLength(1);
     round.press(on(48)); // C3 for D4: a wrong letter one octave off
     round.press(on(61));
-    expect(round.state()).toMatchObject({ lives: 0, outcome: 'lost', xp: SHAPE_XP_PER_NOTE });
+    expect(round.state()).toMatchObject({ lives: 0, outcome: 'lost', xp: SHAPE_XP_PER_NOTE, right: 1 });
     // after the round nothing is judged
     expect(round.press(on(62)).verdict).toBe('over');
     expect(round.state().xp).toBe(SHAPE_XP_PER_NOTE);
@@ -103,6 +103,24 @@ describe('ShapeRound (ft_1_29.AC1)', () => {
   it('a wrong octave of the awaited note says so', () => {
     const round = new ShapeRound(shapeChart(C_MAJOR));
     expect(round.press(on(72))).toMatchObject({ verdict: 'wrong', reason: 'wrong-octave' });
+  });
+
+  it('ft_1_29.AC1 every wrong key says why in words: the wrong octave, the key next door or a wrong letter, too high or too low', () => {
+    const round = new ShapeRound(shapeChart(C_MAJOR));
+    const words = (key: number) => {
+      const result = round.press(on(key));
+      round.press(off(key));
+      return result.verdict === 'wrong' ? wrongWordsKey(result.reason, result.direction) : null;
+    };
+    // C4 is awaited
+    expect(words(72)).toBe('theory.wrongOctave');
+    expect(words(61)).toBe('shapes.neighbourHigher');
+    expect(words(66)).toBe('shapes.letterHigher');
+  });
+
+  it('a key next door below, or a wrong letter below, says too low', () => {
+    expect(wrongWordsKey('neighbour-key', 'lower')).toBe('shapes.neighbourLower');
+    expect(wrongWordsKey('wrong-letter', 'lower')).toBe('shapes.letterLower');
   });
 
   it('the chord of a triad counts once all three keys are down, in any order, and a key held again costs nothing', () => {

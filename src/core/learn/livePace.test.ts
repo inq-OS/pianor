@@ -1,9 +1,9 @@
-// Covers core_13.AC5, core_13.AC6.
+// Covers core_13.AC1, core_13.AC5, core_13.AC6.
 import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
 import { WaitMode } from '../judge/wait';
 import type { JudgeEvent } from '../judge/types';
-import { learnPace, paceClick } from './livePace';
+import { learnPace, paceClick, waveQuarterMs } from './livePace';
 
 // two bars of quarter notes at 120 BPM: C D E F | G A B C
 const midis = [60, 62, 64, 65, 67, 69, 71, 72];
@@ -54,5 +54,18 @@ describe('paceClick', () => {
 
   it('core_13.AC6 has no click before a pace is known', () => {
     expect(paceClick(learnPace(chart, played([1000, 2000]), null))).toBeNull();
+  });
+});
+
+describe('waveQuarterMs', () => {
+  it('core_13.AC1 runs the wave at the click\'s tempo while it clicks', () => {
+    expect(waveQuarterMs(120, learnPace(chart, played([1000, 2000, 3000]), null))).toBe(500);
+  });
+
+  it('core_13.AC1 runs the wave at the student\'s own pace with the click off, and none before a pace is known', () => {
+    expect(waveQuarterMs(null, learnPace(chart, played([1000, 2000, 3000]), null))).toBe(1000);
+    expect(waveQuarterMs(null, learnPace(chart, played([1000, 2000]), 90))).toBeCloseTo(666.67, 1);
+    expect(waveQuarterMs(null, learnPace(chart, played([1000, 2000]), null))).toBeNull();
+    expect(waveQuarterMs(null, null)).toBeNull();
   });
 });

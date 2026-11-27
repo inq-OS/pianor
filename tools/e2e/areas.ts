@@ -26,15 +26,15 @@ export const E2E_AREAS: E2eArea[] = [
   },
   {
     name: 'staff',
-    specs: ['twohands', 'settings', 'grace-notes'],
+    specs: ['twohands', 'chords', 'settings', 'grace-notes'],
     sources: ['src/game/SettingsScene.ts', 'src/game/StaffDemoScene.ts', 'src/game/ui/staff/', 'src/core/layout/'],
   },
   {
     name: 'menu',
-    specs: ['progress', 'player-screens', 'icon-buttons', 'room', 'pieces', 'pieceInfo', 'piece-stats', 'songs', 'keyboard-navigation', 'adventure-script', 'teacher-arrival', 'intro', 'hotspots', 'talk', 'fisherman', 'tug', 'teach', 'wanderer', 'estonian', 'note-trainer', 'ear-trainer', 'shape-trainer', 'chord-trainer'],
+    specs: ['progress', 'player-screens', 'entry', 'icon-buttons', 'room', 'pieces', 'pieceInfo', 'piece-stats', 'songs', 'keyboard-navigation', 'adventure-script', 'teacher-arrival', 'intro', 'hotspots', 'talk', 'fisherman', 'tug', 'teach', 'wanderer', 'estonian', 'note-trainer', 'ear-trainer', 'shape-trainer', 'chord-trainer', 'lessons'],
     sources: [
       'src/game/MenuScene.ts', 'src/game/KeriMapScene.ts', 'src/game/adventure/', 'content/scenes/', 'content/actors/', 'content/scripts/', 'content/characters/', 'content/conversations/', 'content/challenge/', 'content/items/', 'src/core/item/', 'src/core/dialogue/', 'src/core/exchange/', 'src/core/scene/', 'src/game/visit/', 'src/core/visit/', 'src/game/room/', 'src/core/world/', 'content/world/', 'src/game/PiecesScene.ts', 'src/game/SongsScene.ts', 'src/game/SongScene.ts', 'src/game/songCatalogue.ts', 'src/core/song/', 'content/songs/', 'src/game/CreditsScene.ts', 'src/game/menu/', 'src/game/profile/',
-      'src/game/ProfilesScene.ts', 'src/game/ProfileDashboardScene.ts', 'src/game/IntroScene.ts', 'src/game/intro/', 'src/core/intro/', 'content/intro/', 'src/game/NoteTrainerScene.ts', 'src/game/ShapeTrainerScene.ts', 'src/game/ChordTrainerScene.ts', 'src/core/trainer/', 'content/trainer/', 'src/game/AdminScene.ts', 'src/game/NameScene.ts',
+      'src/game/ProfilesScene.ts', 'src/game/ProfileDashboardScene.ts', 'src/game/IntroScene.ts', 'src/game/intro/', 'src/core/intro/', 'content/intro/', 'src/game/NoteTrainerScene.ts', 'src/game/ShapeTrainerScene.ts', 'src/game/ChordTrainerScene.ts', 'src/game/LessonBookScene.ts', 'src/game/LessonScene.ts', 'src/game/lessonContent.ts', 'src/core/lessons/', 'content/lessons/', 'src/core/trainer/', 'content/trainer/', 'src/game/AdminScene.ts', 'src/game/NameScene.ts',
       'src/game/pieceList.ts', 'src/profileSetup.ts', 'src/core/progression/', 'src/core/properties/', 'content/curriculum/',
     ],
   },

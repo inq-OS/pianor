@@ -1,0 +1,38 @@
+{
+  "id": "au-clair-de-la-lune",
+  "title": "Au Clair de la Lune",
+  "titles": { "et": "Selge kuuvalgus" },
+  "level": 3,
+  "status": "approved",
+  "hands": [
+    "RH"
+  ],
+  "phrases": [
+    {
+      "name": "First phrase",
+      "bars": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "Second phrase",
+      "bars": [
+        3,
+        4
+      ]
+    }
+  ],
+  "styles": [
+    "folk"
+  ],
+  "tags": [
+    "c-position",
+    "thirds"
+  ],
+  "source": "traditional French folk song (18th century), public domain; first phrase",
+  "license": "public-domain",
+  "generator": {
+    "kind": "manual"
+  }
+}

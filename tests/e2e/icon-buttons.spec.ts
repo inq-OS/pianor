@@ -47,7 +47,7 @@ test.describe('icon buttons', () => {
 
   test('ft_1_08.AC4 the main menu\'s free place, bare piano and gear are pictures alone, their words in a bubble under the pointer', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
-    for (const label of ['New player', 'Piece maker', 'Settings']) {
+    for (const label of ['New player', 'Piece maker', 'Credits and admin']) {
       const index = await sceneButton(page, 'profiles', label);
       expect(index, label).toBeGreaterThanOrEqual(0);
       expect(await sceneTexts(page, 'profiles'), label).not.toContain(label);
@@ -55,6 +55,38 @@ test.describe('icon buttons', () => {
       await page.mouse.move(point.x, point.y);
       await expect.poll(() => tooltipOf(page, 'profiles', index), { message: label }).toBe(label);
     }
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_20.AC2 one picture means one action: the same action keeps its picture across screens, a different one gets its own', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    /** Each pinned action's picture on `key`, by its name. */
+    const pictures = async (key: string, data: object = {}): Promise<Record<string, string>> => {
+      await page.evaluate(({ k, d }) => (window.__game.scene.getScenes(true)[0] as unknown as { scene: { start(key: string, data: unknown): void } }).scene.start(k, d), { k: key, d: data });
+      await waitForScene(page, key);
+      return page.evaluate((k) => {
+        const scene = window.__game.scene.getScene(k) as unknown as { stripActions(): { label: string; icon?: { width: number; height: number; pixels: ArrayLike<number> } }[] };
+        return Object.fromEntries(scene.stripActions().filter((a) => a.icon).map((a) => [a.label, `${a.icon!.width}x${a.icon!.height}:${Array.from(a.icon!.pixels).join('')}`]));
+      }, key);
+    };
+    const practice = await pictures('practice', { chartId: 'little-steps' });
+    const ear = await pictures('earTrainer');
+    const results = await pictures('results', { chartId: 'little-steps' });
+    const book = await pictures('menu');
+    const settings = await pictures('settings');
+    const songs = await pictures('songs');
+    // hearing the music again is Listen's ear; starting the piece over is the loop; the ear trainer's own repeat is neither
+    expect(ear['Listen again']).toBe(practice['Listen']);
+    // the score screen's main action: Play again, or Play before the piece was ever played
+    expect(results['Play again'] ?? results['Play']).toBe(practice['Start again']);
+    const repeat = ear['Repeat: on'] ?? ear['Repeat: off'];
+    expect(repeat).toBeDefined();
+    expect(repeat).not.toBe(practice['Start again']);
+    expect(repeat).not.toBe(practice['Listen']);
+    // the piece list (the catalogue) is one picture; the way back to the piece book is the book's own bookmark
+    expect(settings['Choose pieces']).toBe(book['All pieces']);
+    expect(results['More pieces']).not.toBe(book['All pieces']);
+    expect(results['More pieces']).toBe(songs['All pieces in the book']);
     expectNoErrors(errors);
   });
 });

@@ -4,7 +4,7 @@ import { strings } from '../text/strings';
 import { conversationSchema, type Conversation, type ConversationNode } from './conversation';
 import { conditionHolds, continueTalk, lintConversation, startTalk, type TalkFacts } from './talk';
 
-const facts: TalkFacts = { flags: [], items: [], met: [], taught: [], level: 1, knowledge: false };
+const facts: TalkFacts = { flags: [], items: [], met: [], taught: [], knowledge: false };
 
 function conv(nodes: Record<string, ConversationNode>, start = Object.keys(nodes)[0]!): Conversation {
   return { schemaVersion: 1, id: 'test', start, nodes };
@@ -13,9 +13,9 @@ function conv(nodes: Record<string, ConversationNode>, start = Object.keys(nodes
 const say = (line: string, rest: Partial<ConversationNode> = {}): ConversationNode => ({ speaker: 'character', line, ...rest });
 
 describe('conditionHolds (ft_1_22.AC1)', () => {
-  const f: TalkFacts = { flags: ['a'], items: ['shell'], met: ['kiur'], taught: ['echo'], level: 3, knowledge: true };
+  const f: TalkFacts = { flags: ['a'], items: ['shell'], met: ['kiur'], taught: ['echo'], knowledge: true };
 
-  it('reads flags, items, met, taught, level and the knowledge switch', () => {
+  it('reads flags, items, met, taught and the knowledge switch', () => {
     expect(conditionHolds({ flag: 'a' }, f)).toBe(true);
     expect(conditionHolds({ flag: 'b' }, f)).toBe(false);
     expect(conditionHolds({ notFlag: 'b' }, f)).toBe(true);
@@ -23,8 +23,6 @@ describe('conditionHolds (ft_1_22.AC1)', () => {
     expect(conditionHolds({ met: 'kiur' }, f)).toBe(true);
     expect(conditionHolds({ met: 'other' }, f)).toBe(false);
     expect(conditionHolds({ taught: 'echo' }, f)).toBe(true);
-    expect(conditionHolds({ levelAtLeast: 3 }, f)).toBe(true);
-    expect(conditionHolds({ levelAtLeast: 4 }, f)).toBe(false);
     expect(conditionHolds({ knowledge: true }, f)).toBe(true);
     expect(conditionHolds({ knowledge: false }, f)).toBe(false);
   });
@@ -252,7 +250,7 @@ describe('Puuvaim\'s conversation: learn before show (ft_1_22.AC3, d135)', async
   });
 
   it('ft_1_22.AC3 the first talk after teaching sends the student to practise and ends; from the next one he offers the tug', () => {
-    const taught = { ...facts, flags: ['met-puuvaim', 'known-puuvaim'], taught: ['puuvaim-1'] };
+    const taught = { ...facts, flags: ['met-puuvaim', 'known-puuvaim'], taught: ['both-hands'] };
     const first = startTalk(puuvaim, taught)!;
     expect(first).toMatchObject({ node: 'taught', end: true, outcome: { leave: true } });
     expect(first.facts.flags).toContain('puuvaim-taught-said');

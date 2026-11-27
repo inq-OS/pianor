@@ -291,7 +291,9 @@ function checkMusicality({ chart, playTracks, playNotes, warn }: LintContext): v
   const tonic = tonicStep(key.fifths, key.mode);
   for (const track of playTracks.values()) {
     const last = playNotes.filter((e) => e.note.track === track.id).sort((a, b) => a.note.tick - b.note.tick || a.note.midi - b.note.midi).at(-1);
-    if (last && last.note.spelling.step !== tonic) warn('no-cadence', `the ${track.id.toUpperCase()} part ends on ${name(last.note)}, not on the tonic ${tonic}`, at(last));
+    // a part that ends on a chord ends on the tonic when any key of that chord is the tonic (core_09.AC58)
+    const ending = playNotes.filter((e) => e.note.track === track.id && e.note.tick === last?.note.tick);
+    if (last && !ending.some((e) => e.note.spelling.step === tonic)) warn('no-cadence', `the ${track.id.toUpperCase()} part ends on ${name(last.note)}, not on the tonic ${tonic}`, at(last));
   }
   const signatures = chart.bars.map((bar) =>
     [...chart.notes, ...chart.rests]

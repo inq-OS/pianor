@@ -296,3 +296,28 @@ export function tugRope(): Bitmap {
   pen(cx - 1, 19, C.redLight);
   return rimmed(bitmap, (c) => (c === C.red || c === C.redLight ? C.redDark : c === C.redDark ? C.ink : C.groove));
 }
+
+/**
+ * The lesson book (ft_1_39): a cream page with three white keys and the black key between the first two, a red bracket over
+ * the white key and the black key beside it: a half step, the first lesson. AX-3 provisional: a first sketch from shapes;
+ * the painter draws the real one (the TODO in ft_1_39).
+ */
+export function lessonKeys(): Bitmap {
+  const { bitmap, pen } = canvas();
+  const { w, h } = STAND_ART;
+  // the page
+  for (let y = 4; y < h - 2; y++) for (let x = 4; x < w - 4; x++) pen(x, y, C.down);
+  // three white keys, 14 wide, from the page's foot up
+  const left = 11, keyW = 14, top = 20, foot = h - 6;
+  for (let k = 0; k < 3; k++) for (let y = top; y < foot; y++) for (let x = left + k * keyW; x < left + (k + 1) * keyW - 1; x++) pen(x, y, C.white);
+  // the black key between the first two
+  for (let y = top; y < top + 15; y++) for (let x = left + keyW - 4; x < left + keyW + 4; x++) pen(x, y, C.ink);
+  rimmed(bitmap, (c) => (c === C.down ? C.brownLight : c === C.white ? C.dim : C.ink));
+  // the bracket: over the first white key's middle and the black key's
+  const a = left + 5, b = left + keyW, y0 = 12;
+  for (let x = a; x <= b; x++) { pen(x, y0, C.red); pen(x, y0 + 1, C.red); }
+  for (const x of [a, b]) for (let y = y0; y < y0 + 5; y++) { pen(x, y, C.red); pen(x + 1, y, C.red); }
+  // a glint on the page's upper left
+  pen(6, 6, C.white);
+  return bitmap;
+}

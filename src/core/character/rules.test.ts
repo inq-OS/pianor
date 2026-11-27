@@ -52,7 +52,7 @@ describe('characterProblems: the rules every character keeps (d169)', () => {
     expect(characterProblems({ ...def, phrases: { 1: [] }, prizes: ['leaf'] }, facts())).toEqual(['tree: level 1 teaches no piece']);
   });
 
-  it('each piece is a real public-domain piece, not one made for the game', () => {
+  it('each piece is a real public-domain piece, not one made for the game unless approved', () => {
     const made = (source: string, license = 'public-domain') => facts({ piece: () => ({ bars: 4, source, license }) });
     expect(characterProblems(def, made('original', 'CC0-1.0'))).toEqual([
       'tree: level 1: piece tree-1 is not a real public-domain piece (source "original", licence CC0-1.0)',
@@ -62,6 +62,12 @@ describe('characterProblems: the rules every character keeps (d169)', () => {
     // a line written in the manner of a named folk tradition, under an open licence (d263)
     expect(characterProblems(def, made('in the manner of an Estonian runo song (regilaul); written for Pianor', 'CC0-1.0'))).toEqual([]);
     expect(characterProblems(def, made('in the manner of an Estonian runo song', 'CC-BY-4.0'))).toHaveLength(2);
+  });
+
+  it('an original piece the maintainer approved may be taught too, a draft one may not', () => {
+    const original = (status: 'draft' | 'approved') => facts({ piece: () => ({ bars: 4, source: 'original', license: 'CC0-1.0', status }) });
+    expect(characterProblems(def, original('approved'))).toEqual([]);
+    expect(characterProblems(def, original('draft'))).toHaveLength(2);
   });
 
   it('each piece has its background in one line, said where the talk teaches it, and the talk teaches a lesson on its specialty', () => {

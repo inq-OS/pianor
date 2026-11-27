@@ -5,6 +5,7 @@
  * takes its tempo, key and meter from its first written part; a part that differs sets its own. Pure.
  */
 import { sliceChart } from '../chart/section';
+import { PPQ } from '../chart/time';
 import type { Chart } from '../chart/schema';
 import { fromChart, type ImportProblem } from '../editor/fromChart';
 import { BPM_DEFAULT, type EditorPiece } from '../editor/model';
@@ -48,15 +49,33 @@ export type BookPart = PartRange & { readonly movement: number; readonly name: s
 export function bookParts(movements: readonly BookMovement[], starts: readonly (readonly number[])[], title: string, nameOf: (n: number) => string): BookPart[] {
   const parts: BookPart[] = [];
   movements.forEach((movement, m) => {
+    const pickup = printedPickup(movement.chart);
     for (const range of partsOf(layoutOf(movement), starts[m] ?? [0])) {
       const name = range.name ?? nameOf(parts.length + 1);
-      const made = fromChart(sliceChart(movement.chart, range.firstBar, range.lastBar), { title: `${title}: ${name}` });
+      const made = fromChart(sliceChart(movement.chart, range.firstBar, range.lastBar), { title: `${title}: ${name}`, pickup: pickup && range.firstBar === 0 });
       parts.push(made.ok
         ? { ...range, movement: m, name, piece: made.piece, problems: made.problems, warnings: made.warnings }
         : { ...range, movement: m, name, reason: made.reason });
     }
   });
   return parts;
+}
+
+/**
+ * Whether a movement opens with a pick-up as printed: a first bar of whole beats short of the meter whose last bar holds the
+ * rest of its bar (ft_Y_04.AC28). The part it starts then takes it as a pick-up, not as a bar read short.
+ */
+function printedPickup(chart: Chart): boolean {
+  const meter = chart.meterMap[0];
+  const first = chart.bars[0];
+  const last = chart.bars.at(-1);
+  if (!meter || !first || !last || chart.bars.length < 2) return false;
+  const bar = (meter.num * PPQ * 4) / meter.den;
+  const short = first.endTick - first.startTick;
+  if (short <= 0 || short >= bar || short % PPQ !== 0) return false;
+  // the reader fills a short last bar up to the meter: what its notes hold tells the rest of the bar
+  const held = Math.max(last.startTick, ...chart.notes.filter((n) => n.bar === last.index).map((n) => n.tick + n.dur)) - last.startTick;
+  return held === bar - short;
 }
 
 /** The values a written part plays in. */

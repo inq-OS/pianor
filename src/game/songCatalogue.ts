@@ -1,6 +1,7 @@
 import type { Chart } from '../core/chart/schema';
 import { pieceFactsOf, resolveSong, type ResolvedSong } from '../core/song/resolve';
 import { songSchema, walkSong, type Song } from '../core/song/schema';
+import { compareTitles } from '../core/text/titleOrder';
 import { songChart, songIdOfChart, type SongChart } from '../core/song/songChart';
 import type { Piece } from './pieceList';
 
@@ -38,7 +39,7 @@ export class SongCatalogue {
 
   list(): Song[] {
     const own = this.sources.own?.() ?? [];
-    return [...this.bundled(), ...own].sort((a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id));
+    return [...this.bundled(), ...own].sort((a, b) => compareTitles(a.title, b.title) || a.id.localeCompare(b.id));
   }
 
   /** Whether the song is the player's own, which the song page edits (a bundled song is read only, rule 12). */

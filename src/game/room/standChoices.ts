@@ -1,6 +1,6 @@
 import type { StringKey } from '../../core/text/strings';
 import type { Bitmap } from '../ui/pixel/bitmap';
-import { chordBoard, listeningEar, noteInSight, scaleSteps } from '../ui/pixel/standArt';
+import { chordBoard, lessonKeys, listeningEar, noteInSight, scaleSteps } from '../ui/pixel/standArt';
 
 /**
  * What the stand in the room opens (ft_1_08.AC11; all non-piano trainers and minigames are reached
@@ -11,7 +11,7 @@ import { chordBoard, listeningEar, noteInSight, scaleSteps } from '../ui/pixel/s
 export interface StandChoice {
   readonly id: string;
   /** The scene the picture opens. */
-  readonly scene: 'noteTrainer' | 'earTrainer' | 'shapeTrainer' | 'chordTrainer';
+  readonly scene: 'noteTrainer' | 'earTrainer' | 'shapeTrainer' | 'chordTrainer' | 'lessonBook';
   /** The trainer's name, shown in the delayed bubble of its picture and never written under it. */
   readonly name: StringKey;
   /** Its picture on the fine grid, `STAND_ART` in size. */
@@ -27,4 +27,6 @@ export const STAND_CHOICES: readonly StandChoice[] = [
   { id: 'shapes', scene: 'shapeTrainer', name: 'room.shapes', picture: scaleSteps },
   // chord from its name (ft_1_29 slice B): three notes stacked on one stem, on a board
   { id: 'chords', scene: 'chordTrainer', name: 'room.chords', picture: chordBoard },
+  // the lesson book (ft_1_39): a page with two keys side by side and a bracket over them, a half step
+  { id: 'lessons', scene: 'lessonBook', name: 'room.lessons', picture: lessonKeys },
 ];

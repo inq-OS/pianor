@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { keyName, meterName, pieceOutline, rowPlay, shownRows, startFolded } from './outline.ts';
 import { resolveSong, type PieceFacts } from './resolve.ts';
 import { songSchema } from './schema.ts';
-import { keepsLastPartOn, labelOn, setLabelOn, setPartOn } from './switches.ts';
+import { keepOnePartOn, keepsLastPartOn, labelOn, setLabelOn, setPartOn } from './switches.ts';
 
 const facts = (title: string, bars: number, phrases: [number, number][] = []): PieceFacts => ({
   title, bars, bpm: 80, key: { fifths: 0, mode: 'major' }, meter: { num: 4, den: 4 },
@@ -48,6 +48,15 @@ describe('the song page outline', () => {
     expect(rowPlay(outline.rows[1]!, outline.rows)).toEqual({ kind: 'phrase', piece: 'p1', first: 2, last: 3 });
   });
 
+  it('ft_1_36.AC7 gives a piece whose one phrase is the whole piece no rows under it, so it does not fold', () => {
+    const whole: Record<string, PieceFacts> = { w: facts('Whole', 4, [[0, 3]]), h: facts('Half', 4, [[0, 1]]) };
+    const two = songSchema.parse({ ...song, nodes: [{ kind: 'piece', id: 'a', piece: 'w' }, { kind: 'piece', id: 'b', piece: 'h' }] });
+    const all = resolveSong(two, (id) => whole[id]).rows;
+    expect(all.map((r) => r.number)).toEqual(['1', '2', '2.1']);
+    expect(shownRows(all, startFolded(all)).map((s) => [s.row.number, s.folds])).toEqual([['1', false], ['2', true]]);
+    expect(pieceOutline('w', whole.w!).rows).toEqual([]);
+  });
+
   it('names keys and meters as a row shows them', () => {
     expect([keyName({ fifths: 0, mode: 'major' }), keyName({ fifths: 2, mode: 'major' }), keyName({ fifths: -1, mode: 'minor' }), keyName({ fifths: 3, mode: 'minor' })]).toEqual(['C', 'D', 'Dm', 'F#m']);
     expect(meterName({ num: 3, den: 4 })).toBe('3/4');
@@ -66,6 +75,16 @@ describe('the switches of a song', () => {
     // a blank may be turned off, a phrase has no switch
     expect(setPartOn(all, [], 'b', false).changed).toBe(true);
     expect(setPartOn(all, [], 'a#0', false).changed).toBe(false);
+  });
+
+  it('ft_1_36.AC11 after a row leaves the song, a written part is still on: the first one is turned back on when none is', () => {
+    const all = rows();
+    // the parts that are on were removed: only c is written, and its group is off
+    const left = all.filter((r) => r.id !== 'a' && r.id !== 'l');
+    expect(keepOnePartOn(left, ['g', 'c'])).toEqual([]);
+    expect(keepOnePartOn(all, ['a', 'l'])).toEqual(['a', 'l']);
+    // nothing written: nothing to turn on
+    expect(keepOnePartOn(all.filter((r) => r.kind === 'blank' || r.kind === 'group'), ['b'])).toEqual(['b']);
   });
 
   it('ft_1_36.AC20 turns every part with a label on or off at once, keeping the last written part on', () => {

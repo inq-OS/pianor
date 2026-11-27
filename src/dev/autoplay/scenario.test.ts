@@ -22,8 +22,8 @@ describe('scenario files', () => {
   });
 
   it('ft_1_21.AC10 the challenge scenario practises Puuvaim\'s piece and meets him in the knoll; it names both and plays enough to open the tug', () => {
-    expect(findScenario('challenge')).toMatchObject({ activity: 'challenge', piece: 'puuvaim-1', scene: 'knoll', mode: 'wait', after: 'again', maxRuns: 3 });
-    const challenge = { ...base, activity: 'challenge', piece: 'puuvaim-1', scene: 'knoll', after: 'again', maxRuns: 3 };
+    expect(findScenario('challenge')).toMatchObject({ activity: 'challenge', piece: 'both-hands', scene: 'knoll', mode: 'wait', after: 'again', maxRuns: 3 });
+    const challenge = { ...base, activity: 'challenge', piece: 'both-hands', scene: 'knoll', after: 'again', maxRuns: 3 };
     expect(scenarioSchema.parse(challenge).activity).toBe('challenge');
     expect(() => scenarioSchema.parse({ ...challenge, scene: undefined })).toThrow(/piece and scene are needed/);
     expect(() => scenarioSchema.parse({ ...challenge, piece: undefined })).toThrow(/piece and scene are needed/);
@@ -55,7 +55,7 @@ describe('scenario files', () => {
     expect(() => scenarioSchema.parse({ ...base, player: { style: 'messy', skips: 1 } })).toThrow(/needs Tempo mode/);
     expect(scenarioSchema.parse({ ...base, player: { style: 'messy', skips: 0 } }).player.style).toBe('messy');
     expect(() => scenarioSchema.parse({ ...base, mode: 'tempo', speed: 2 })).toThrow(/speed must be 1/);
-    expect(() => scenarioSchema.parse({ ...base, mode: 'tempo', activity: 'challenge', piece: 'puuvaim-1', scene: 'knoll', after: 'again', maxRuns: 3 })).toThrow(/Wait mode/);
+    expect(() => scenarioSchema.parse({ ...base, mode: 'tempo', activity: 'challenge', piece: 'both-hands', scene: 'knoll', after: 'again', maxRuns: 3 })).toThrow(/Wait mode/);
     expect(() => scenarioSchema.parse({ ...base, id: 'Not Valid' })).toThrow();
     expect(() => scenarioSchema.parse({ ...base, mode: 'free' })).toThrow();
     expect(() => scenarioSchema.parse({ ...base, speed: 0 })).toThrow();

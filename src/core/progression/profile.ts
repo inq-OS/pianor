@@ -151,6 +151,11 @@ export const profileSettingsSchema = z.object({
   durationHelp: durationHelpSchema.optional(),
   /** Show the finger of every note of a chord, each beside its head. Optional, no version bump (d069.3): absent reads as off. */
   chordFingers: z.boolean().optional(),
+  /**
+   * What the hint label under a chord says (core_09.AC59): its notes, its name, or both. Optional, no version bump (d069.3):
+   * absent reads as the notes.
+   */
+  chordLabels: z.enum(['notes', 'name', 'both']).optional(),
   /** Show the finger numbers on the practice screen from the start. Off, or absent in older saves. Counts as a hint (XP). */
   showFingers: z.boolean().optional(),
   /** Learning a piece bar by bar (ft_1_32): the step size and the mistake markers. Optional, no version bump (d069.3): absent reads as the defaults. */
@@ -259,12 +264,15 @@ export function deriveProgress(profile: ProfileData, config: ProgressionConfig):
 
 /**
  * Add the XP of right names in the note-name trainer (ft_0_17.AC3). Whole XP, never negative, so the total only grows; the
- * trainer's rules decided the amount (`core/trainer`). Level-ups are reported like a tug's.
+ * trainer's rules decided the amount (`core/trainer`). `levelUp` is the player level the XP reached, null when it reached
+ * none (ft_0_17.AC12).
  */
-export function addTrainerXp(profile: ProfileData, xp: number, config: ProgressionConfig): { profile: ProfileData; before: ProgressSummary; after: ProgressSummary } {
+export function addTrainerXp(profile: ProfileData, xp: number, config: ProgressionConfig): { profile: ProfileData; before: ProgressSummary; after: ProgressSummary; levelUp: number | null } {
   const before = deriveProgress(profile, config);
   const next: ProfileData = { ...profile, trainerXp: profile.trainerXp + Math.max(0, Math.round(xp)) };
-  return { profile: next, before, after: deriveProgress(next, config) };
+  const after = deriveProgress(next, config);
+  const up = levelEvents(before, after)[0];
+  return { profile: next, before, after, levelUp: up?.type === 'LevelUp' ? up.to : null };
 }
 
 /**

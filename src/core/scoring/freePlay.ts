@@ -1,4 +1,4 @@
-import type { NoteJudged, PieceResult, WrongReason } from '../judge/types';
+import type { NoteJudged, PieceResult, PlayStats, WrongReason } from '../judge/types';
 
 /**
  * A Free play session: the piece played round after round for fun, with no XP and nothing saved. This is what the
@@ -38,6 +38,15 @@ export function recordFreePlayNote(session: FreePlaySession, event: NoteJudged, 
   const startedAtMs = session.startedAtMs ?? nowMs;
   if (event.verdict === 'correct') return { ...session, startedAtMs, notesRight: session.notesRight + 1 };
   return { ...session, startedAtMs, wrong: { ...session.wrong, [event.reason]: session.wrong[event.reason] + 1 } };
+}
+
+/**
+ * Whether a pass that reached its last bar was played to the end: in Tempo mode the clock runs on without the player, so a
+ * pass with no note played right is no pass (no completion, no stars, no XP: AX-1, AX-2.1). A Wait pass only ends once
+ * every note was played right, so it always is.
+ */
+export function playedToTheEnd(result: PlayStats): boolean {
+  return result.timing === undefined || result.timing.played > 0;
 }
 
 /** A round played to the end. */

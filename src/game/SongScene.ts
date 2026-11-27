@@ -1,14 +1,15 @@
 import { cardGrid } from '../core/layout/cardGrid';
+import { BOOK_PAGE } from '../core/layout/bookPages';
 import { pageOf } from '../core/layout/paging';
 import { rectCentre } from '../core/layout/rect';
 import { keyName, meterName, pieceOutline, rowPlay, shownRows, startFolded, type ShownRow } from '../core/song/outline';
 import { pieceFactsOf, type ResolvedSong, type RowValue, type SongRow } from '../core/song/resolve';
 import { walkSong, type Song, type SongNode, type SongValues } from '../core/song/schema';
-import { addNode, freeNodeId, moveNode, removeNode, renameNode, setValue, linkTargets, NEW_BLANK_BARS, type MoveKind, type Place } from '../core/song/edit';
+import { addNode, canAdd, freeNodeId, freeNodeName, moveNode, removeNode, renameNode, setValue, linkTargets, NEW_BLANK_BARS, type MoveKind, type Place } from '../core/song/edit';
 import { canRedo, canUndo, push, redo, startHistory, undo, type History } from '../core/editor/history';
 import { openTextField } from './ui/textField';
-import { keepsLastPartOn, labelOn, setLabelOn, setPartOn } from '../core/song/switches';
-import { clipToWidth } from '../core/text/clip';
+import { keepOnePartOn, keepsLastPartOn, labelOn, setLabelOn, setPartOn } from '../core/song/switches';
+import { clipToWidth, wholeIfCut } from '../core/text/clip';
 import { pieceTitle } from '../core/text/pieceTitle';
 import { strings, t, type StringKey } from '../core/text/strings';
 import { contextOf } from './context';
@@ -28,16 +29,16 @@ const CARD_HEIGHT = 32;
 const BAND_CARD_ROW = 28;
 const CARD_GAP = 2;
 const LIST_TOP = 4;
-const BOOK_SIDE = 3;
-const BOOK_MARGIN = 14;
-const BOOK_GUTTER = 18;
+const BOOK_SIDE = 1;
 /** A switch, a fold triangle and a play button: a finger wide at the usual zoom, as the book's own small buttons. */
 const SMALL = 11;
 const GAP = 2;
 /** The gap between a row's name and its play button. */
 const PLAY_GAP = 5;
 /** The widest name the strip's Play names. */
-const STRIP_NAME = 60;
+const STRIP_NAME = 120;
+/** A row is set this far in from its page's cell, so its switch, numbers and play button stay on the paper, as the piece book's cards do. */
+const ROW_INSET = 1;
 /** Each level of the outline is set in this far. */
 const INDENT = 6;
 /** A row that is off is drawn this pale over its whole height; the switch of the last written part on this faded. */
@@ -174,7 +175,8 @@ export class SongScene extends PixelScene {
    * Up and Down walk the rows (turning the page at its end), Right and Left unfold and fold, Space switches, Enter plays,
    * Page Up and Page Down turn the page. The first key only shows the selection. A key that does nothing on the rows (Up on
    * the first, Down on the last, Left or Right on a row that does not fold) goes to the focus ring, which reaches the strip,
-   * the pager and the corners; while the ring is shown, the keys are its own until a press on a row.
+   * the pager and the corners; while the ring is shown, the keys are its own until a press on a row, all but Page Up and
+   * Page Down, which always turn the page and give the keys back to the rows.
    */
   protected override screenKey(e: KeyboardEvent): boolean {
     const outline = this.outline();
@@ -184,7 +186,7 @@ export class SongScene extends PixelScene {
       if (node) this.remove(this.history.present, node);
       return node !== undefined;
     }
-    if (!outline || this.focusedButton) return false;
+    if (!outline || (this.focusedButton && !this.pageKeyTakesBack(e))) return false;
     const ours = ['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft', ' ', 'Enter', 'PageUp', 'PageDown'];
     if (!ours.includes(e.key)) return false;
     if (!this.keysShown) {
@@ -224,6 +226,14 @@ export class SongScene extends PixelScene {
     }
   }
 
+  /** Page Up and Page Down, while the focus ring is shown: it goes, so they turn the page; false for any other key. */
+  private pageKeyTakesBack(e: KeyboardEvent): boolean {
+    if (e.key !== 'PageUp' && e.key !== 'PageDown') return false;
+    this.hideFocus();
+    this.keysShown = true;
+    return true;
+  }
+
   private selectedRow(outline: ResolvedSong): SongRow | undefined {
     return this.selected === null ? undefined : outline.rows.find((r) => r.id === this.selected);
   }
@@ -237,6 +247,8 @@ export class SongScene extends PixelScene {
 
   /** A press on a row's name: it is selected; while a piece is being placed, the places by that row open (rule 17). */
   private pressRow(id: string | null): void {
+    // a press on a row gives the keys back to the rows (rule 10)
+    this.hideFocus();
     this.select(id);
     this.askPlace();
   }
@@ -252,9 +264,17 @@ export class SongScene extends PixelScene {
     this.redraw();
   }
 
-  /** A press on a row's switch (rule 5): the last written part on stays on, and says why. */
+  /**
+   * A press on a row's switch (rule 5): the last written part on stays on, and says why. A part inside a group that is off
+   * is off with it: its box is empty and a press says which group to turn on, keeping the part's own switch as it was.
+   */
   private toggle(outline: ResolvedSong, row: SongRow): void {
     if (row.kind === 'phrase' || !('songId' in this.opened)) return;
+    const group = offGroup(outline.rows, row);
+    if (group) {
+      this.say(t('song.groupOff'), row.id);
+      return;
+    }
     const step = setPartOn(outline.rows, this.off, row.id, !row.switchOn);
     if (!step.changed) {
       this.say(t('song.lastPart'), row.id);
@@ -467,23 +487,31 @@ export class SongScene extends PixelScene {
     startScene(this, 'editor', { song: { songId: song.id, nodeId } });
   }
 
-  /** Slot 0's choices: a new part or group after the selected row (at the end with none), and into a selected group. */
+  /**
+   * Slot 0's choices: a new part or group after the selected row (at the end with none), and into a selected group; on a
+   * group the part after it and the part inside it are named apart, and a row inside a group may add a part after its
+   * group, beside it (ft_1_36.AC23).
+   */
   private addChoices(song: Song, node: SongNode | undefined): MenuItem[] {
     const place = node ? { after: node.id } : ('end' as const);
+    const rows = contextOf(this).songs.resolved(song).rows;
+    const parent = node ? rows.find((r) => r.id === node.id)?.parent ?? null : null;
+    const parentRow = parent === null ? undefined : rows.find((r) => r.id === parent && r.kind === 'group');
     const blank = (): SongNode => {
-      const name = t('song.newPart', { n: walkSong(song.nodes).filter(({ node: n }) => n.kind === 'blank').length + 1 });
+      const name = freeNodeName(song, (n) => t('song.newPart', { n }));
       return { kind: 'blank', id: freeNodeId(song, name), name, bars: NEW_BLANK_BARS };
     };
     const group = (): SongNode => {
-      const name = t('song.newGroup', { n: walkSong(song.nodes).filter(({ node: n }) => n.kind === 'group').length + 1 });
+      const name = freeNodeName(song, (n) => t('song.newGroup', { n }));
       return { kind: 'group', id: freeNodeId(song, name), name, nodes: [blank()] };
     };
     // each choice shows where the new row will stand while the pointer rests on it (d286)
     const choice = (label: string, at: Place, make: () => SongNode): MenuItem => this.addAt(song, label, at, make());
     return [
-      choice(t('song.addPart'), place, blank),
+      choice(t(node?.kind === 'group' ? 'song.addAfter' : 'song.addPart'), place, blank),
       choice(t('song.addGroup'), place, group),
       ...(node?.kind === 'group' ? [choice(t('song.addInside'), { inside: node.id }, blank)] : []),
+      ...(parentRow ? [choice(clipToWidth(t('song.addAfterGroup', { name: parentRow.name }), VALUE_CELL.w - 8, fits), { after: parentRow.id }, blank)] : []),
       // a new piece is written in the piece maker in the values it takes here, and added here when saved (rule 17)
       { label: t('song.addPiece'), onPick: () => startScene(this, 'editor', { song: { songId: song.id, at: place } }) },
       { label: t('song.addOwn'), onPick: () => this.choicesUnderRow(this.ownPieceChoices(song, place), 2, VALUE_CELL) },
@@ -494,6 +522,8 @@ export class SongScene extends PixelScene {
   /** A row added at `place`, shown where it lands while the pointer rests on it (d286), selected once picked. */
   private addAt(song: Song, label: string, place: Place, made: SongNode): MenuItem {
     const next = addNode(song, place, made);
+    // a group past the fourth level is not offered (rule 1): greyed, as an option that cannot apply there
+    if (!canAdd(song, place, made)) return { label, disabled: true, onPick: () => undefined };
     return {
       label,
       preview: (on) => this.showLanding(on ? next : null, made.id),
@@ -532,11 +562,12 @@ export class SongScene extends PixelScene {
     if (id !== null && !node) return [];
     const name = this.pieceName(pieceId);
     const piece: SongNode = { kind: 'piece', id: freeNodeId(song, name), piece: pieceId };
-    const groupName = t('song.newGroup', { n: walkSong(song.nodes).filter(({ node: n }) => n.kind === 'group').length + 1 });
+    const groupName = freeNodeName(song, (n) => t('song.newGroup', { n }));
     const group: SongNode = { kind: 'group', id: freeNodeId(addNode(song, 'end', piece), groupName), name: groupName, nodes: [piece] };
     const place: Place = node ? { after: node.id } : 'end';
     const choice = (label: string, at: Place, made: SongNode): MenuItem => {
       const next = addNode(song, at, made);
+      if (!canAdd(song, at, made)) return { label, disabled: true, onPick: () => undefined };
       return {
         label,
         preview: (on) => this.showLanding(on ? next : null, made.id),
@@ -635,6 +666,9 @@ export class SongScene extends PixelScene {
       return;
     }
     this.commit(next);
+    // the part removed may have been the last written one on: then the first written part left is turned on (rule 5)
+    const off = keepOnePartOn(contextOf(this).songs.resolved(next).rows, this.off);
+    if (off.length !== this.off.length) this.saveOff(off);
     this.say(t('song.removed', { name }), null);
   }
 
@@ -673,11 +707,15 @@ export class SongScene extends PixelScene {
     const { width, height } = this.px;
     const outline = this.outline();
     this.sky();
-    this.openBook({ x: BOOK_SIDE, y: LIST_TOP - 2, w: width - 2 * BOOK_SIDE, h: height - LIST_TOP + 1 });
+    // the book runs on under the band, its foot out of sight (as the settings' book): its pages reach the band, so a page
+    // holds as many rows as the piece book's
+    const bookTop = LIST_TOP - 2;
+    const book = { x: BOOK_SIDE, y: bookTop, w: width - 2 * BOOK_SIDE, h: Math.max(height - LIST_TOP + 1, this.mainRows - 1 + BOOK_PAGE.foot - bookTop) };
+    this.openBook(book);
     this.inkWriting = true;
     if (!outline) return;
     const rowHeight = this.bandShown ? BAND_CARD_ROW : CARD_HEIGHT;
-    const grid = cardGrid({ width, height, top: LIST_TOP + 4, margin: BOOK_MARGIN, rowHeight, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
+    const grid = cardGrid({ width, ...this.bookGrid(book), rowHeight, rowGap: CARD_GAP });
     this.items = [null, ...shownRows(outline.rows, this.folded)];
     this.rowRects.clear();
     this.landing = null;
@@ -687,14 +725,16 @@ export class SongScene extends PixelScene {
     this.perPage = grid.perPage;
     this.items.slice(slice.first, slice.first + slice.count).forEach((item, i) => {
       const { x, y } = rectCentre(grid.pageCell(i, this.perPage));
-      const left = x - grid.cardWidth / 2;
+      const rowWidth = grid.cardWidth - 2 * ROW_INSET;
+      const left = x - rowWidth / 2;
       const top = y - rowHeight / 2;
-      this.rowRects.set(item === null ? '' : item.row.id, { left, top, width: grid.cardWidth, depth: item === null ? -1 : item.row.depth });
-      if (item === null) this.wholeRow(outline, left, top, grid.cardWidth);
-      else this.nodeRow(outline, item, left, top, grid.cardWidth);
+      this.rowRects.set(item === null ? '' : item.row.id, { left, top, width: rowWidth, depth: item === null ? -1 : item.row.depth });
+      if (item === null) this.wholeRow(outline, left, top, rowWidth);
+      else this.nodeRow(outline, item, left, top, rowWidth);
     });
+    // the piece book's pager: its page numbers and turned-up corners (rule 10)
     if (slice.paged) {
-      this.pager(slice, (page) => {
+      this.bookPager(slice, book, (page) => {
         this.page = page;
         this.redraw();
       });
@@ -709,9 +749,10 @@ export class SongScene extends PixelScene {
     const title = song ? song.title : piece ? pieceTitle(piece.chart) : outline.title;
     this.lit(left, top, width, this.selected === null);
     const chartId = song ? songChartId(song.id) : 'chartId' in this.opened ? this.opened.chartId : '';
+    const shown = clipToWidth(title, width - SMALL - 16, fits);
     const name = this.button({
       x: left + (width - SMALL - GAP) / 2, y: top + CARD_HEIGHT / 4, width: width - SMALL - GAP, height: CARD_HEIGHT / 2, look: 'ink', align: 'left',
-      label: clipToWidth(title, width - SMALL - 16, fits), labelWidth: width - SMALL - 12, onClick: () => this.pressRow(null),
+      label: shown, labelWidth: width - SMALL - 12, ...wholeIfCut(shown, title), onClick: () => this.pressRow(null),
     });
     name.setActive(this.selected === null);
     this.playButton(left + width - SMALL / 2 - 2, top + CARD_HEIGHT / 4, t('song.play', { name: title }), true, () => this.play(outline, undefined));
@@ -722,13 +763,18 @@ export class SongScene extends PixelScene {
     }
     let x = left + 6;
     x = this.text(x, line, t('song.barRange', { first: 1, last: outline.bars }), C.umberDark) + 5;
-    this.text(x, line, `${t('song.tempo', { bpm: outline.values.bpm })} ${keyName(outline.values.key)} ${meterName(outline.values.meter)}`, C.umberDark);
-    pixelStars(this, this.root, left + width - 2 - STARS, line, profiles.recordFor(chartId)?.bestGrade ?? 0, { gap: 1, ink: true });
+    // the tempo, key and meter as far as they fit before the stars
+    const starsLeft = left + width - 2 - STARS;
+    const words = [t('song.tempo', { bpm: outline.values.bpm }), keyName(outline.values.key), meterName(outline.values.meter)];
+    // whole words only: the meter, then the key, give way before the stars rather than end in a cut
+    while (words.length > 1 && fits(words.join(' ')) > starsLeft - 4 - x) words.pop();
+    this.text(x, line, words.join(' '), C.umberDark);
+    pixelStars(this, this.root, starsLeft, line, profiles.recordFor(chartId)?.bestGrade ?? 0, { gap: 1, ink: true });
   }
 
   /** A notice on a row, from under its switch so a whole sentence fits the row. */
   private rowNotice(notice: string, line: number, left: number, width: number): void {
-    this.root.add(new PixelText(this, left + 4, line, clipToWidth(notice, width - 6, fits), { color: this.tickHint ? C.umberDark : C.redDark }).setName('songNotice'));
+    this.root.add(new PixelText(this, left + 2, line, clipToWidth(notice, width - 2, fits), { color: this.tickHint ? C.umberDark : C.redDark }).setName('songNotice'));
   }
 
   /** One row of the outline (rule 10). */
@@ -739,15 +785,8 @@ export class SongScene extends PixelScene {
     const faded: { setAlpha(a: number): unknown }[] = [];
     let x = left + 2 + row.depth * INDENT;
     const mid = top + CARD_HEIGHT / 4;
-    // the switch: a box, ticked while the part is in the song
     if (inSong && row.kind !== 'phrase') {
-      const last = keepsLastPartOn(outline.rows, this.off, row.id);
-      const box = this.button({
-        x: x + SMALL / 2, y: mid, width: SMALL, height: SMALL, look: 'ink', inkBox: true, label: t(row.switchOn ? 'song.switchOn' : 'song.switchOff'),
-        ...(row.switchOn ? { icon: TOOL_ICONS.tick, iconOnly: true } : { icon: createBitmap(1, 1), iconOnly: true }),
-        onClick: () => this.toggle(outline, row),
-      });
-      if (last) box.setAlpha(OFF_FADE);
+      this.switchBox(outline, row, x, mid);
       x += SMALL + GAP + 1;
     }
     // the fold triangle, answering over the row's whole height
@@ -764,18 +803,22 @@ export class SongScene extends PixelScene {
     const right = left + width - 2;
     // a wide gap before the play button, so a press near the end of a name never starts play (rule 6)
     const nameRight = right - SMALL - PLAY_GAP;
-    const hidden = item.hidden > 0 ? ` ${t('song.hidden', { count: item.hidden })}` : '';
-    const room = nameRight - x - 8 - (mark ? mark.width + 2 : 0);
-    const label = clipToWidth(`${row.number} ${row.name}${hidden}`, room, fits);
+    // a folded row's count of the rows it hides, in pale ink apart from the name, so it never reads as part of it
+    const hidden = item.hidden > 0 ? t('song.hidden', { count: item.hidden }) : '';
+    const room = nameRight - x - 8 - (mark ? mark.width + 2 : 0) - (hidden ? fits(hidden) + 5 : 0);
+    const label = clipToWidth(`${row.number} ${row.name}`, room, fits);
     const nameButton = this.button({
       x: (x + nameRight) / 2, y: mid, width: nameRight - x, height: CARD_HEIGHT / 2, look: 'ink', align: 'left',
       label, labelWidth: nameRight - x - 6, ...(mark ? { icon: mark } : {}),
+      // a name cut short is read whole in its tooltip (ft_1_36.AC23)
+      ...wholeIfCut(label, `${row.number} ${row.name}`),
       onClick: () => this.pressRow(row.id),
     });
     nameButton.setActive(this.selected === row.id);
     faded.push(nameButton);
-    // the labels, as small tabs after the name while they fit
     let tx = x + 6 + (mark ? mark.width + 2 : 0) + fits(label) + 4;
+    if (hidden) tx = this.text(tx + 1, top + 4, hidden, C.umberLight, faded) + 5;
+    // the labels, as small tabs after the name while they fit
     for (const word of row.labels) {
       const text = labelText(word);
       if (tx + fits(text) + 4 > nameRight) break;
@@ -806,6 +849,20 @@ export class SongScene extends PixelScene {
       faded.push(...pixelStars(this, this.root, right - STARS, line, contextOf(this).profiles.recordFor(row.piece)?.bestGrade ?? 0, { gap: 1, ink: true }));
     }
     if (!row.on) faded.forEach((o) => o.setAlpha(OFF_FADE));
+  }
+
+  /**
+   * A row's switch: a box, ticked while the part is in the song. A part inside a group that is off shows an empty box
+   * while the group is off, its own switch kept for when the group is on again.
+   */
+  private switchBox(outline: ResolvedSong, row: SongRow, x: number, y: number): void {
+    const ticked = row.switchOn && row.on;
+    const box = this.button({
+      x: x + SMALL / 2, y, width: SMALL, height: SMALL, look: 'ink', inkBox: true, label: t(ticked ? 'song.switchOn' : row.switchOn ? 'song.switchGroupOff' : 'song.switchOff'),
+      ...(ticked ? { icon: TOOL_ICONS.tick, iconOnly: true } : { icon: createBitmap(1, 1), iconOnly: true }),
+      onClick: () => this.toggle(outline, row),
+    });
+    if (keepsLastPartOn(outline.rows, this.off, row.id)) box.setAlpha(OFF_FADE);
   }
 
   /** The button at a row's right end: play (rule 6), or on a blank of an own song a pen that writes it in the piece maker (rule 11). */
@@ -883,6 +940,17 @@ export class SongScene extends PixelScene {
 }
 
 const fits = (text: string): number => measure(drawnText(text));
+
+/** The nearest group above `row` that is switched off, which takes the row out of the song with it; undefined when none is. */
+function offGroup(rows: readonly SongRow[], row: SongRow): SongRow | undefined {
+  for (let id = row.parent; id !== null;) {
+    const parent = rows.find((r) => r.id === id);
+    if (!parent) return undefined;
+    if (!parent.switchOn) return parent;
+    id = parent.parent;
+  }
+  return undefined;
+}
 
 /** How wide a row's value is drawn: an own value with the crossed-out one it replaces, a follower's alone. */
 function valueWidth<T>(value: RowValue<T>, format: (v: T) => string): number {

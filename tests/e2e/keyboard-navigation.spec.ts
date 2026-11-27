@@ -1,7 +1,7 @@
 // Covers ft_Y_13.AC2, ft_Y_13.AC3, ft_Y_13.AC5.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { activeScenes, expectNoErrors, openGame, sceneTexts, showMenuPageWith, waitForScene } from './helpers';
+import { activeScenes, clickButton, expectNoErrors, openAdminPage, openGame, profileButton, sceneButton, sceneTexts, showMenuPageWith, waitForScene } from './helpers';
 
 /** The index of the button of a scene that shows the focus ring, or -1. */
 const focused = (page: Page, scene: string) =>
@@ -91,7 +91,7 @@ test.describe('keyboard navigation', () => {
 
   test('ft_Y_13.AC2 Space presses the focused button and Escape goes back from the credits', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
-    await focusByKeys(page, 'profiles', 'Settings', ['ArrowRight', 'ArrowDown']); // the gear, the last on the sheet: Credits is the first choice under it
+    await focusByKeys(page, 'profiles', 'Credits and admin', ['ArrowRight', 'ArrowDown']); // the gear, the last on the sheet: Credits is the first choice under it
     await page.keyboard.press(' ');
     await focusByKeys(page, 'profiles', 'Credits', ['ArrowUp', 'ArrowDown']);
     await page.keyboard.press(' ');
@@ -101,10 +101,32 @@ test.describe('keyboard navigation', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_Y_13.AC2 Escape leaves the name box while its field has the focus, and the arrows show the focus there', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
+    await clickButton(page, 'profiles', await profileButton(page, 'New player'));
+    await waitForScene(page, 'name');
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('name-field');
+    await page.keyboard.press('ArrowDown');
+    expect(await focused(page, 'name')).toBeGreaterThanOrEqual(0);
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'profiles');
+    expectNoErrors(errors);
+  });
+
+  test('ft_Y_13.AC2 Escape goes back from the admin pages to the admin hub', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
+    await openAdminPage(page);
+    await clickButton(page, 'admin', await sceneButton(page, 'admin', 'Pages'));
+    await waitForScene(page, 'adminPages');
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'admin');
+    expectNoErrors(errors);
+  });
+
   test('ft_Y_13.AC2 with a piece info card open the keys reach only its Close button, and Escape closes it', async ({ page }) => {
     const errors = await openGame(page);
-    await showMenuPageWith(page, 'Hot Cross Buns');
-    const open = () => page.evaluate(() => window.__game.scene.getScene('menu').infoButtons.get('hot-cross-buns').press());
+    await showMenuPageWith(page, 'Au Clair de la Lune');
+    const open = () => page.evaluate(() => window.__game.scene.getScene('menu').infoButtons.get('au-clair-de-la-lune').press());
     await open();
     expect(await sceneTexts(page, 'menu')).toContain('How hard: Beginner');
 

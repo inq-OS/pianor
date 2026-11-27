@@ -1,4 +1,4 @@
-// Covers ft_Y_04.AC22.
+// Covers ft_Y_04.AC22, ft_Y_04.AC28.
 import { describe, expect, it } from 'vitest';
 import { songSchema, songTreeProblems } from '../song/schema';
 import { bookParts, bookSong, layoutOf, type BookMovement } from './book';
@@ -6,7 +6,7 @@ import { musicXmlToChart } from './musicxml';
 import { proposeStarts } from './songParts';
 
 /** synthetic: a score of one piano staff, `bars` bars of one note each, with changes at given bars. */
-function movement(bars: number, opts: { beats?: number; beatType?: number; keyAt?: number; meterAt?: number; tieInto?: number; repeat?: [number, number] } = {}): BookMovement {
+function movement(bars: number, opts: { beats?: number; beatType?: number; keyAt?: number; meterAt?: number; tieInto?: number; repeat?: [number, number]; pickup?: number; lastShort?: boolean } = {}): BookMovement {
   const beats = opts.beats ?? 4;
   const beatType = opts.beatType ?? 4;
   const length = beatType === 8 ? beats / 2 : beats;
@@ -14,7 +14,9 @@ function movement(bars: number, opts: { beats?: number; beatType?: number; keyAt
     let head = i === 0 ? `<attributes><divisions>2</divisions><key><fifths>0</fifths></key><time><beats>${beats}</beats><beat-type>${beatType}</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><sound tempo="96"/>` : '';
     if (opts.keyAt === i) head += '<attributes><key><fifths>2</fifths></key></attributes>';
     if (opts.meterAt === i) head += '<attributes><time><beats>3</beats><beat-type>4</beat-type></time></attributes>';
-    const meterNow = opts.meterAt !== undefined && i >= opts.meterAt ? 3 : length;
+    const full = opts.meterAt !== undefined && i >= opts.meterAt ? 3 : length;
+    // a pick-up of `pickup` beats, and (with `lastShort`) a last bar holding the rest of its bar, as printed
+    const meterNow = opts.pickup !== undefined && i === 0 ? opts.pickup : opts.pickup !== undefined && opts.lastShort && i === bars - 1 ? full - opts.pickup : full;
     const tie = opts.tieInto === i + 1 ? '<tie type="start"/>' : opts.tieInto === i ? '<tie type="stop"/>' : '';
     const left = opts.repeat?.[0] === i ? '<barline location="left"><repeat direction="forward"/></barline>' : '';
     const right = opts.repeat?.[1] === i ? '<barline location="right"><bar-style>light-heavy</bar-style><repeat direction="backward"/></barline>' : '';
@@ -52,6 +54,16 @@ describe('a book read into the parts of an own song (ft_Y_04.AC22)', () => {
       { kind: 'piece', id: 'part-2', piece: 'own-waltz-p02', name: 'Part 2' },
       { kind: 'piece', id: 'part-3', piece: 'own-waltz-p03', name: 'Part 3', key: { fifths: 2, mode: 'major' } },
     ]);
+  });
+
+  it('ft_Y_04.AC28 a printed pick-up, whose last bar holds the rest of its bar, leaves no bar to fill in the part it starts', () => {
+    const book = [movement(20, { pickup: 1, lastShort: true })];
+    const parts = bookParts(book, [[0, 10]], 'Hymn', nameOf);
+    expect(parts.map((p) => ('problems' in p ? p.problems : null))).toEqual([[], []]);
+    // a short first bar with no last bar to pair it (a bar read short) is still named to check
+    const misread = [movement(20, { pickup: 1 })];
+    const flagged = bookParts(misread, [[0, 10]], 'Hymn', nameOf);
+    expect(flagged.map((p) => ('problems' in p ? p.problems.map((q) => q.bar) : null))).toEqual([[1], []]);
   });
 
   it('a part the piece maker cannot hold, or one not saved, stays a blank of its bars; movements become groups', () => {

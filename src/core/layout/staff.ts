@@ -17,7 +17,7 @@ import { tupletOf, writtenDurOf } from '../chart/tuplets.ts';
 import { NOTE_TICKS, PPQ, fullBarTicks, noteLengthOf } from '../chart/time.ts';
 import { tieLinks } from '../chart/ties.ts';
 import { beatTicksOf, planBeams, type BeamInput, type BeamRun } from './beams.ts';
-import { noteLabel, type NoteNaming } from '../text/noteName.ts';
+import { chordNotesLabel, noteLabel, type NoteNaming } from '../text/noteName.ts';
 import { ACCIDENTAL_BOX, accidentalColumns, accidentalKind, keyChangeSigns, keySignaturePositions, signRooms } from './accidentals.ts';
 import type { NoteValue, StaffLayoutOptions, BarSpacing, StaffReserve, NoteGlyph, GraceGlyph, OrnamentGlyph, RestGlyph, BeamGlyph, TieGlyph, SlurGlyph, TupletGlyph, EndingGlyph, KeyAccidentalGlyph, StaffInfo, SystemLayout, BarLayout, BarRoom, TimeSignatureLayout, StaffLayout } from './staffTypes.ts';
 
@@ -61,8 +61,8 @@ const KEY_STEP = 1.15;
 const KEY_CHANGE_LEFT = 0.6;
 /** More room a key change leaves when a repeat starts in its bar, for the repeat sign after the signs. */
 const KEY_CHANGE_REPEAT = 1.2;
-/** The time signature follows the key signature after this gap; without a key it starts at 5 spaces, as before. */
-const KEY_TIME_GAP = 0.5;
+/** The clear gap from the ink of the key signature's last sign to the time signature's digits; without a key it starts at 5 spaces, as before. */
+const KEY_TIME_GAP = 0.4;
 /** From the time signature to the first bar's inner edge (7 spaces in all with no key, as before). */
 const TIME_TO_BARS = 2;
 /** Gap between an accidental and the ink to its right, and the distance between two columns of a chord's accidentals. */
@@ -78,6 +78,8 @@ const SYSTEM_GAP = 0.8;
 /** The short gap between the staves of a grand staff, from the bottom line of one to the top line of the other. */
 const SHORT_GAP = 2;
 const LABEL_HALF = 0.55; // half the height of a hint label, in staff spaces
+/** From one line of a two-line hint label to the next (a chord's name under its notes, core_09.AC59), in staff spaces. */
+export const LABEL_LINE = 2 * LABEL_HALF + 0.1;
 const SCORE_STEP = 1.4; // between two stacked tempo scores of a chord, in staff spaces
 /** How far under the hint labels a dynamic mark sits, in staff spaces (core_09.AC15). */
 const DYNAMIC_DROP = 1.6;
@@ -118,7 +120,12 @@ const ORNAMENT_ROOM = ORNAMENT_GAP + ORNAMENT_BOX.height;
 const REST_REACH = 1.5;
 
 /** Where the time signature starts, in staff spaces from the staff's left edge: after the key signature when there is one. */
-const timeSignatureX = (fifths: number) => (fifths === 0 ? 5 : KEY_START + KEY_STEP * Math.abs(fifths) + KEY_TIME_GAP);
+const timeSignatureX = (fifths: number) => {
+  if (fifths === 0) return 5;
+  const lastSign = KEY_START + KEY_HALF + KEY_STEP * (Math.abs(fifths) - 1);
+  const digitHalf = (GLYPH.timeSignature.digitHeight * 3) / 10; // a digit is 3 cells of a 5-cell height wide, as the view draws it
+  return lastSign + ACCIDENTAL_BOX.sharp.width / 2 + KEY_TIME_GAP + digitHalf;
+};
 
 /** The room a bar gives its accidentals at `tick`, in staff spaces: each accidental's room opens from its `from` to its `at` (ramp). */
 export function accidentalRoomAt(bar: Pick<BarLayout, 'rooms'>, tick: number): number {
@@ -376,12 +383,12 @@ interface Rooms {
 /** Staff spaces an ending's bracket and its number take above the staff (core_09.AC47). */
 const ENDING_ROOM = 1.6;
 
-type RoomGroup = { low: number; high: number; size: number; up?: boolean; tuplet?: TupletSide; sign?: true };
+type RoomGroup = { low: number; high: number; size: number; up?: boolean; tuplet?: TupletSide; lines?: number; sign?: true };
 
 function staffRooms(groups: readonly RoomGroup[], clef: Clef, eighths: boolean, scoreRoom: boolean): Rooms {
   let above = clef === 'treble' ? 1.5 : 1.2; // treble clef curls 1.5 above the top line; the cursor box reaches 1.2
   let below = clef === 'treble' ? 1.5 : 1.2;
-  for (const { low, high, size, up, tuplet, sign } of groups) {
+  for (const { low, high, size, up, tuplet, lines, sign } of groups) {
     // a chord's tempo scores stack above its finger spot, one step per further note
     const stack = scoreRoom ? (size - 1) * SCORE_STEP : 0;
     // A beamed run shares one stem direction (`up`, from the beam plan, core_09.AC40); a reserved note that may be beamed
@@ -395,10 +402,20 @@ function staffRooms(groups: readonly RoomGroup[], clef: Clef, eighths: boolean, 
       const highest = sign ? Math.max(noteTop, 4) + ORNAMENT_ROOM : noteTop;
       const lowest = Math.min(low / 2 - 0.5, up ? Infinity : tip) - (tuplet === 'below' ? TUPLET_ROOM : 0);
       above = Math.max(above, highest + 0.7 + LABEL_HALF + stack - 4);
-      below = Math.max(below, -(lowest - 0.7 - LABEL_HALF));
+      below = Math.max(below, -(lowest - 0.7 - LABEL_HALF) + ((lines ?? 1) - 1) * LABEL_LINE);
     }
   }
   return { above: above + 0.3, below };
+}
+
+/** The ticks where a staff strikes a chord whose name stands on a second label line (core_09.AC59). */
+function twoLineTicks(notes: readonly { note: ChartNote }[], chordNames: StaffLayoutOptions['chordNames']): Set<number> {
+  const out = new Set<number>();
+  if (chordNames?.show !== 'both') return out;
+  const byTick = new Map<number, ChartNote[]>();
+  for (const { note } of notes) byTick.set(note.tick, [...(byTick.get(note.tick) ?? []), note]);
+  for (const [tick, chord] of byTick) if (chord.length > 1 && chordNames.name(chord.map((n) => n.midi), chord.map((n) => n.spelling)) !== null) out.add(tick);
+  return out;
 }
 
 interface Plan {
@@ -425,10 +442,23 @@ interface Request {
   barsPerLine: number | undefined;
   keepBarWidth: boolean;
   linesPerPage: number | undefined;
+  /** From one line's room to the next line's, in staff spaces (`lineGap`). */
+  lineGap: number;
+}
+
+/**
+ * The gap between two lines on a page, in staff spaces: `SYSTEM_GAP`, less one arrow room on a grand staff. Its cursor
+ * arrow stands under the lower staff and over the upper one, and only one line has the cursor, so the arrow under a line
+ * and the arrow over the next share one room and meet tip to tip: the room goes to bigger notes (AX-0). A dynamic mark
+ * under the lower staff's notes reaches into that room, so a piece with one, or a staff with a reserve for notes still to
+ * be written, keeps both rooms.
+ */
+export function lineGap(grand: boolean, dynamicUnderLowerStaff: boolean): number {
+  return grand && !dynamicUnderLowerStaff ? SYSTEM_GAP - ARROW_ROOM : SYSTEM_GAP;
 }
 
 /** Height of `systems` systems in staff spaces, margins included. */
-const blockUnits = (systems: number, systemUnits: number) => 2 * MARGIN_Y + systems * systemUnits + (systems - 1) * SYSTEM_GAP;
+const blockUnits = (systems: number, systemUnits: number, gap: number) => 2 * MARGIN_Y + systems * systemUnits + (systems - 1) * gap;
 
 function planAt(staffSpace: number, r: Request, vp: { width: number; height: number }): Plan {
   const availWidth = vp.width - (2 * MARGIN_X + r.preamble) * staffSpace;
@@ -444,7 +474,7 @@ function planAt(staffSpace: number, r: Request, vp: { width: number; height: num
     systemCount = Math.ceil(r.barCount / barsPerSystem);
   }
   const perPage = Math.min(r.linesPerPage ?? systemCount, systemCount);
-  const height = blockUnits(perPage, r.systemUnits) * staffSpace;
+  const height = blockUnits(perPage, r.systemUnits, r.lineGap) * staffSpace;
   return { staffSpace, barsPerSystem, systemCount, perPage, fits: maxBars >= Math.max(1, barsPerSystem) && height <= vp.height };
 }
 
@@ -465,7 +495,7 @@ function planSpaced(staffSpace: number, r: Request, spacing: readonly BarSpacing
   const systemCount = Math.max(1, lineStarts.length);
   // a page keeps the places of all its lines, also while fewer lines are written: the first line never moves
   const perPage = r.linesPerPage ?? systemCount;
-  const height = blockUnits(perPage, r.systemUnits) * staffSpace;
+  const height = blockUnits(perPage, r.systemUnits, r.lineGap) * staffSpace;
   return {
     staffSpace, barsPerSystem: Math.max(...lineStarts.map((start, k) => (lineStarts[k + 1] ?? r.barCount) - start)), systemCount, perPage,
     spaced: { lineStarts, barUnits }, fits: barUnits.every((u) => u <= availUnits) && height <= vp.height,
@@ -645,11 +675,13 @@ function planFrame(chart: Chart, staves: readonly StaffSpec[], keys: KeyPlan, op
     const upOf = runDirections(staffBeams(chart, groups, s.track.clef, s.twoVoiceBars), groups);
     const upOfGroup = (g: readonly { note: ChartNote; index: number }[]) => upOf.get(g[0]!.index) ?? voiceStemUp(s, g[0]!.note) ?? chordStemUpOf(g, s.track.clef);
     const sides = tupletSides(chart, groups, upOfGroup);
+    // a chord named on a second line under its notes needs a second line of room (core_09.AC59)
+    const twoLines = twoLineTicks(s.notes, options.chordNames);
     const own = staffRooms(
       groups.map((g): RoomGroup => {
         const side = sides.get(tupletIndexOf(chart, g[0]!.note));
         const sign = g.some((e) => signed.has(`${e.note.voice}/${e.note.tick}`));
-        return { low: staffPosition(g[0]!.note.spelling, s.track.clef), high: staffPosition(g[g.length - 1]!.note.spelling, s.track.clef), size: g.length, up: upOfGroup(g), ...(side ? { tuplet: side } : {}), ...(sign ? { sign: true as const } : {}) };
+        return { low: staffPosition(g[0]!.note.spelling, s.track.clef), high: staffPosition(g[g.length - 1]!.note.spelling, s.track.clef), size: g.length, up: upOfGroup(g), ...(side ? { tuplet: side } : {}), ...(twoLines.has(g[0]!.note.tick) ? { lines: 2 } : {}), ...(sign ? { sign: true as const } : {}) };
       }).concat(reserved, graceGroups),
       // the treble clef curls further out than the bass clef, so a staff of either clef plans for it
       reserve?.anyClef === true ? 'treble' : s.track.clef, reserve !== undefined && reserve.shortestTicks < PPQ, options.scoreRoom === true);
@@ -700,6 +732,8 @@ function planFrame(chart: Chart, staves: readonly StaffSpec[], keys: KeyPlan, op
     barsPerLine: options.barsPerLine === undefined ? undefined : Math.max(1, Math.floor(options.barsPerLine)),
     keepBarWidth: options.keepBarWidth === true,
     linesPerPage: options.linesPerPage === undefined ? undefined : Math.max(1, Math.floor(options.linesPerPage)),
+    // a reserve stands for notes not written yet (the editor), which may carry a dynamic: the size must not change when one is
+    lineGap: lineGap(grand, reserve !== undefined || staves[last]!.notes.some((e) => e.note.dynamic !== undefined)),
   };
   let plan: Plan;
   if (options.spacing) {
@@ -755,7 +789,7 @@ function layoutSystems(staves: readonly StaffSpec[], frame: Frame, vp: StaffLayo
   const barCount = request.barCount;
   const systemHeight = systemUnits * S;
   // A page is centred like a whole piece; every page uses the places of a full page, so lines never move between pages.
-  const totalHeight = blockUnits(plan.perPage, systemUnits) * S;
+  const totalHeight = blockUnits(plan.perPage, systemUnits, request.lineGap) * S;
   const offsetY = Math.max(0, (vp.height - totalHeight) / 2) + MARGIN_Y * S;
   const staffLeft = MARGIN_X * S;
   const staffRight = vp.width - MARGIN_X * S;
@@ -772,7 +806,7 @@ function layoutSystems(staves: readonly StaffSpec[], frame: Frame, vp: StaffLayo
     const firstBar = plan.spaced ? plan.spaced.lineStarts[s]! : s * plan.barsPerSystem;
     const count = plan.spaced ? (plan.spaced.lineStarts[s + 1] ?? barCount) - firstBar : Math.min(plan.barsPerSystem, barCount - firstBar);
     const page = Math.floor(s / plan.perPage);
-    const top = offsetY + (s % plan.perPage) * (systemHeight + SYSTEM_GAP * S);
+    const top = offsetY + (s % plan.perPage) * (systemHeight + request.lineGap * S);
     // A line shows the key it starts in, and its bars start after that key's own room (core_09.AC57): the plan kept room
     // for the widest key of the piece, so a line in a smaller key gives its bars what it leaves.
     const lineKey = frame.keys.atBar(firstBar);
@@ -822,6 +856,8 @@ interface Placer {
   S: number;
   /** The hint label naming (B or H), from the player's settings. */
   naming: NoteNaming;
+  /** Chord names in the labels (core_09.AC59), or undefined for the notes only. */
+  chordNames: StaffLayoutOptions['chordNames'];
   chart: Chart;
   barTicks: number;
   bars: readonly BarLayout[];
@@ -835,7 +871,7 @@ interface Placer {
 
 const yOf = (staff: StaffInfo, position: number, S: number) => staff.bottomLineY - (position * S) / 2;
 
-function makePlacer(chart: Chart, staves: readonly StaffSpec[], frame: Frame, placed: Systems, naming: NoteNaming): Placer {
+function makePlacer(chart: Chart, staves: readonly StaffSpec[], frame: Frame, placed: Systems, naming: NoteNaming, chordNames: StaffLayoutOptions['chordNames']): Placer {
   const S = frame.plan.staffSpace;
   const { barTicks } = frame;
   // A bar is "open" when something in it is shorter than the bar, on any staff. Only in a bar where every event on every
@@ -867,7 +903,7 @@ function makePlacer(chart: Chart, staves: readonly StaffSpec[], frame: Frame, pl
       bar.columns = (spacing[bar.index]?.columns ?? []).map((c) => ({ tick: c.tick, x: xAt(bar, startTick + c.tick, false) }));
     }
   }
-  return { S, naming, chart, barTicks, bars: placed.bars, systems: placed.systems, accidentalPlan: frame.accidentalPlan, xAt, open };
+  return { S, naming, chordNames, chart, barTicks, bars: placed.bars, systems: placed.systems, accidentalPlan: frame.accidentalPlan, xAt, open };
 }
 
 /** The stem direction a chord gets on its own: from its lowest and highest heads. */
@@ -1005,14 +1041,45 @@ function chordGlyphs(
       headFinger: note.finger ?? null,
       fingerX,
       labelY: 0,
+      labelLines: 1,
       fingerY: 0,
       dynamic: null,
       scoreY: 0,
     };
   });
-  // a chord's names are joined with a slash (C#/E/G), so a sharp or flat does not run into the next name
-  if (group.length > 1) members[0]!.label = group.map((e) => noteLabel(e.note.spelling, naming)).join('/');
+  // a chord's names are one label, low to high, joined with a space (C# E G)
+  if (group.length > 1) members[0]!.label = chordNotesLabel(group.map((e) => e.note.spelling), naming);
   return members;
+}
+
+/**
+ * The name of the chord one staff strikes on a tick (core_09.AC59), in the label that names its notes: instead of them
+ * (`name`) where the namer knows the chord, or on a second line under them (`both`). A single note is never named.
+ */
+function nameTheChord(p: Placer, members: readonly NoteGlyph[]): void {
+  const holder = members.find((m) => m.label !== '');
+  if (!p.chordNames || !holder || members.length < 2) return;
+  const notes = members.map((m) => p.chart.notes[m.index]!);
+  const name = p.chordNames.name(notes.map((n) => n.midi), notes.map((n) => n.spelling));
+  if (name === null) return;
+  if (p.chordNames.show === 'name') holder.label = name;
+  else {
+    holder.label = `${holder.label}\n${name}`;
+    holder.labelLines = 2;
+  }
+}
+
+/**
+ * A name that falls among the ledger lines over the staff, under a high note (`highest` its staff position, `topY` the
+ * staff's top line), stands centred in the space between two of them, so no ledger line runs through its letters
+ * (ft_0_05.AC3); it moves at most half a staff space, up toward its note or down. Elsewhere it stays where it is.
+ */
+function clearOfLedgers(labelY: number, highest: number, topY: number, S: number): number {
+  const highestLedger = highest - (highest % 2); // ledger lines stand on the even positions above the top line (8)
+  const at = 8 + (topY - labelY) / (S / 2);
+  if (highestLedger < 10 || at <= 8 || at >= highestLedger) return labelY;
+  const space = 2 * Math.floor(at / 2) + 1;
+  return topY - ((space - 8) * S) / 2;
 }
 
 /** Hint labels sit beyond the stems and heads of the whole chord, wherever the stems ended up: names under it, the top finger above it. */
@@ -1022,8 +1089,10 @@ function placeHints(members: readonly NoteGlyph[], S: number, tuplet?: { top: nu
   const stems = members.flatMap((m) => (m.stem ? [m.stem] : []));
   const lowest = Math.max(...members.map((m) => m.y + m.headRy), ...stems.map((st) => (st.up ? -Infinity : st.y2)), tuplet?.bottom ?? -Infinity);
   const highest = Math.min(...members.map((m) => m.y - m.headRy), ...stems.map((st) => (st.up ? st.y2 : Infinity)), tuplet?.top ?? Infinity);
+  const top = members[0]!;
+  const labelY = clearOfLedgers(lowest + GLYPH.hintGap * S, Math.max(...members.map((m) => m.position)), top.y + ((top.position - 8) * S) / 2, S);
   for (const m of members) {
-    m.labelY = lowest + GLYPH.hintGap * S;
+    m.labelY = labelY;
     m.fingerY = highest - GLYPH.hintGap * S;
   }
   // Scores stack one step above the last, highest note first, so no two numbers of a chord share a spot.
@@ -1129,16 +1198,17 @@ function layoutStaffNotes(p: Placer, staffSpec: StaffSpec, staffIndex: number, r
     if (members.length > 0 && chords.filter((c) => chart.notes[c[0]!.index]!.tick === tick).length > 1) {
       const sorted = [...members].sort((a, b) => a.position - b.position);
       const named = sorted.filter((g) => !continuations.has(g.index));
-      const names = named.map((g) => noteLabel(chart.notes[g.index]!.spelling, p.naming));
+      const label = chordNotesLabel(named.map((g) => chart.notes[g.index]!.spelling), p.naming);
       const top = sorted[sorted.length - 1]!;
       for (const g of sorted) {
         g.label = '';
         if (g !== top) g.finger = null;
       }
       // the names go on the lowest head that has one (a tied-to head names nothing)
-      if (named.length > 0) named[0]!.label = names.join('/');
+      if (named.length > 0) named[0]!.label = label;
       top.finger = continuations.has(top.index) ? null : chart.notes[top.index]!.finger ?? null;
     }
+    nameTheChord(p, members);
     // the triplet marks of every chord of the tick (core_09.AC50)
     const inks = members.flatMap((m) => tupletInk.get(m.index) ?? []);
     const ink = inks.length > 0 ? { top: Math.min(...inks.map((i) => i.top)), bottom: Math.max(...inks.map((i) => i.bottom)) } : undefined;
@@ -1147,7 +1217,7 @@ function layoutStaffNotes(p: Placer, staffSpec: StaffSpec, staffIndex: number, r
   // A dynamic mark sits under the hint labels of its note (core_09.AC15); the chord's mark is on its lowest note only.
   for (const g of notes) {
     const dynamic = chart.notes[g.index]!.dynamic;
-    if (dynamic !== undefined) g.dynamic = { text: dynamic, x: g.column, y: g.labelY + DYNAMIC_DROP * S };
+    if (dynamic !== undefined) g.dynamic = { text: dynamic, x: g.column, y: g.labelY + ((g.labelLines - 1) * LABEL_LINE + DYNAMIC_DROP) * S };
   }
   return { notes, beams, graces, tuplets };
 }
@@ -1331,7 +1401,7 @@ function slurPointsOf(g: NoteGlyph, up: boolean, S: number): SlurPoint[] {
     return points;
   }
   // below: the heads, the note name under the head, a dynamic mark under that, and a stem that points down
-  const points: SlurPoint[] = [{ x: g.x, y: g.y + g.headRy + clear }, { x: g.column, y: g.labelY + LABEL_HALF * S + clear }];
+  const points: SlurPoint[] = [{ x: g.x, y: g.y + g.headRy + clear }, { x: g.column, y: g.labelY + ((g.labelLines - 1) * LABEL_LINE + LABEL_HALF) * S + clear }];
   if (g.stem && !g.stem.up) points.push({ x: g.stem.x, y: g.stem.y2 + clear });
   if (g.dynamic) points.push({ x: g.dynamic.x, y: g.dynamic.y + LABEL_HALF * S + clear });
   return points;
@@ -1478,7 +1548,7 @@ export function layoutStaff(chart: Chart, options: StaffLayoutOptions): StaffLay
     yNum: st.topLineY + GLYPH.timeSignature.numY * S, yDen: st.topLineY + GLYPH.timeSignature.denY * S, digitHeight: GLYPH.timeSignature.digitHeight * S,
   }));
 
-  const placer = makePlacer(chart, staves, frame, placed, options.noteNaming ?? 'B');
+  const placer = makePlacer(chart, staves, frame, placed, options.noteNaming ?? 'B', options.chordNames);
   const perStaff = staves.map((staffSpec, staffIndex) => {
     const rests = layoutStaffRests(placer, staffSpec, staffIndex);
     const notesAndBeams = layoutStaffNotes(placer, staffSpec, staffIndex, rests);

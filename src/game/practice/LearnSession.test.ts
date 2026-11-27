@@ -1,4 +1,4 @@
-// Covers ft_1_32.AC5 (the markers the practice screen draws), ft_1_32.AC7 (the confirmation play is measured).
+// Covers ft_1_32.AC5 (the markers the practice screen draws), ft_1_32.AC7 (the confirmation play is measured), core_13.AC5 (the pace carried between runs).
 import { TEMPO_RULES } from '../../core/learn/tempo';
 import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
@@ -48,6 +48,20 @@ describe('LearnSession', () => {
     times.forEach((timeMs, i) => session.push(mode.handle({ kind: 'on', midi: midis[i]!, velocity: 80, timeMs, source: 'test' }), session.chart));
     return session.outcomeOf(session.chart, false);
   }
+
+  it('core_13.AC5 starts a run from the pace carried over before it has three keys, and carries its own pace on', () => {
+    const { session } = open();
+    const run = session();
+    expect(run.paceToCarry).toBeNull();
+    run.carriedBpm = 75;
+    playRun(run, [0]);
+    expect(run.pace?.beatMs).toBe(800); // 75 BPM: before the run has a pace of its own
+    expect(run.paceToCarry).toBe(75);
+    const next = session();
+    next.carriedBpm = 75;
+    playRun(next, [0, 500, 1000]);
+    expect(next.paceToCarry).toBe(120); // its own pace, three keys a half second apart
+  });
 
   it('does not measure a growing step, measures the confirmation play, and asks an uneven one again', async () => {
     const { kept, session } = open();
@@ -123,8 +137,42 @@ describe('LearnSession', () => {
     expect(hands).toEqual(['RH', 'LH', undefined]);
   });
 
+  it('ft_1_32.AC24 a learned piece opened from Kiur is learned again from the first step; from the piano it plays in full', async () => {
+    const learned: LearnProgress = { ...START_PROGRESS, step: 2, lastDay: '1998-11-21', stepBars: 1 as const, handsApart: false, medals: ['gold' as const, 'silver' as const], learnedAt: '1998-11-21T10:00:00.000Z' };
+    const kept = { progress: learned };
+    const profileOf: LearnProfile = {
+      learnSettings: DEFAULT_LEARN_SETTINGS, learnProgressOf: () => kept.progress, practiceFor: () => [], recordFor: () => undefined,
+      saveLearnProgress: (_, progress) => { kept.progress = progress; return Promise.resolve(true); },
+    };
+    expect(LearnSession.open(profileOf, piece, '1998-11-22')).toBeNull();
+    const again = LearnSession.open(profileOf, piece, '1998-11-22', undefined, true)!;
+    expect(again).not.toBeNull();
+    expect(again.run).toMatchObject({ kind: 'step', firstBar: 0, lastBar: 0 });
+    expect(again.halfway).toBe(false);
+    expect(again.learned).toBe(false);
+    // the prize column keeps the clef won before while the piece is learned again, as the book does (rule 23)
+    expect(again.rewards().piece).toBe('silver');
+    // nothing is kept until a run is played: leaving at once leaves the piece as it was
+    expect(kept.progress).toBe(learned);
+    await again.finish('perfect');
+    expect(kept.progress).toMatchObject({ step: 1, learnedAt: learned.learnedAt, clef: 'silver' });
+    // learned again with runs that did not count: the clef stays at the one won before
+    const last = LearnSession.open(profileOf, piece, '1998-11-22', undefined, true)!;
+    for (let run = 0; run < 6; run++) await last.finish('stopped');
+    for (let run = 0; run < 3; run++) await last.finish('perfect');
+    expect(last.learned).toBe(true);
+    expect(last.rewards().piece).toBe('silver');
+  });
+
   it('counts nothing with note names shown', () => {
     expect(open().session().outcomeOf(piece, true)).toEqual({ outcome: 'hinted' });
+  });
+
+  it('ft_1_32.AC3 counts nothing when note names were shown at any moment of the run, even turned off before its end', () => {
+    const run = open().session();
+    run.namesShown();
+    // the names were turned off again: no note of the run was judged with them, and still the run does not count
+    expect(playRun(run, [0, 500, 1000, 1500])).toEqual({ outcome: 'hinted' });
   });
 
   it('ft_1_32.AC2 a piece in progress keeps its step size when the setting changes; a new piece takes the setting', async () => {

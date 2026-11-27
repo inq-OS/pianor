@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { initialFocus, moveFocus, refocus, type FocusRect } from './focus';
+import { FOCUS_LAYOUT, initialFocus, moveFocus, refocus, type FocusRect } from './focus';
 
 const box = (x: number, y: number, disabled = false): FocusRect => ({ x, y, width: 40, height: 20, disabled });
 // a 2 x 2 grid, then one wide button below
@@ -59,5 +59,36 @@ describe('keyboard focus', () => {
     expect(refocus(null, grid)).toBe(0);
     expect(refocus(grid[0]!, [box(0, 0, true)])).toBe(-1);
     expect(refocus(box(30, 0), [box(0, 0), box(60, 0)])).toBe(0); // a tie goes to the first, so a redraw never flips between two
+  });
+});
+
+describe('keyboard focus over a picture (the room)', () => {
+  // the room's things by their centres: the corners' Back, backpack and gear on top, the shield on the wall, Kiur on the bed,
+  // the piano, the easel, the telephone and the door, at their places in no rows
+  const at = (x: number, y: number): FocusRect => ({ x: x - 5, y: y - 5, width: 10, height: 10 });
+  const room = { back: at(15, 10), backpack: at(281, 10), gear: at(305, 10), shield: at(177, 35), kiur: at(40, 75), piano: at(156, 82), easel: at(209, 77), phone: at(283, 54), door: at(305, 70) };
+  const names = Object.keys(room) as (keyof typeof room)[];
+  const rects = names.map((n) => room[n]);
+  const walk = (from: keyof typeof room, move: 'left' | 'right', steps: number) => {
+    let i = names.indexOf(from);
+    const seen: string[] = [];
+    for (let s = 0; s < steps; s++) {
+      i = moveFocus(rects, i, move, true, FOCUS_LAYOUT.picture);
+      seen.push(names[i]!);
+    }
+    return seen;
+  };
+
+  it('ft_Y_13.AC1 Right goes through the things below the corners in their order across the screen, then wraps to the left', () => {
+    expect(walk('kiur', 'right', 7)).toEqual(['piano', 'shield', 'easel', 'phone', 'door', 'back', 'kiur']);
+  });
+
+  it('ft_Y_13.AC1 Left goes the same way back, and the telephone is reached from the door', () => {
+    expect(walk('door', 'left', 5)).toEqual(['phone', 'easel', 'shield', 'piano', 'kiur']);
+  });
+
+  it('ft_Y_13.AC1 a grid keeps its rows: Right stays on the row even with a nearer button on the next', () => {
+    expect(moveFocus(grid, 0, 'right', true, FOCUS_LAYOUT.grid)).toBe(1);
+    expect(moveFocus(grid, 2, 'up', true, FOCUS_LAYOUT.picture)).toBe(0);
   });
 });

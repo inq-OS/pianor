@@ -1,0 +1,17 @@
+{
+  "id": "chord-steps",
+  "title": "Chord Steps",
+  "titles": { "et": "Akordiastmed" },
+  "level": 1,
+  "status": "approved",
+  "hands": ["RH"],
+  "phrases": [
+    { "name": "Up and home", "bars": [1, 4] },
+    { "name": "One and two", "bars": [5, 8] }
+  ],
+  "styles": ["original"],
+  "tags": ["c-position", "chords"],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": { "kind": "manual" }
+}

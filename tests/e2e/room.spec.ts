@@ -66,16 +66,12 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_19.AC2 ft_1_19.AC5 the crossroads is shut on the map for a new player (level 2); opened, its grass, sea and clouds move and Back returns to the map', async ({ page }) => {
+  test('ft_1_19.AC2 ft_1_19.AC5 the crossroads is open on the map: pressed, its grass, sea and clouds move and Back returns to the map', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
-    // painted on the map, but no button until the student's level opens it (AX-3 provisional: level 2)
-    expect(await sceneButton(page, 'keriMap', 'Crossroads')).toBe(-1);
-    await page.evaluate(() => {
-      window.__game.scene.stop('keriMap');
-      window.__game.scene.start('crossroads');
-    });
+    // the maintainer opened it (content/world/keri.json has no closed on it)
+    await clickButton(page, 'keriMap', await sceneButton(page, 'keriMap', 'Crossroads'));
     await waitForScene(page, 'crossroads');
     // the grass and the sea (a gust in a loop of looks) and the drifting clouds move
     const moving = await page.evaluate(() => (window.__game.scene.getScene('crossroads') as unknown as { animators: unknown[] }).animators.length);
@@ -85,11 +81,11 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_19.AC2 ft_1_19.AC5 the docks are painted on the map but locked for a new player; opened, their sea, clouds and lamp move, and Back returns to the map', async ({ page }) => {
+  test('ft_1_19.AC2 ft_1_19.AC5 the docks are painted on the map but shut while closed; opened, their sea, clouds and lamp move, and Back returns to the map', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
-    // level 2 opens the docks: a new player at level 1 has no button for them
+    // closed: no button for them
     expect(await sceneButton(page, 'keriMap', 'The jetty')).toBe(-1);
     await page.evaluate(() => { const g = window.__game; g.scene.stop('keriMap'); g.scene.start('docks'); });
     await waitForScene(page, 'docks');
@@ -101,11 +97,11 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_19.AC2 ft_1_19.AC5 the terrace is locked for a new player; opened, its clouds, lantern and pennant move, and Back returns to the map', async ({ page }) => {
+  test('ft_1_19.AC2 ft_1_19.AC5 the terrace is shut while closed; opened, its clouds, lantern and pennant move, and Back returns to the map', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
-    // level 2 opens the terrace: a new player at level 1 has no button for it
+    // closed: no button for it
     expect(await sceneButton(page, 'keriMap', 'The terrace')).toBe(-1);
     await page.evaluate(() => { const g = window.__game; g.scene.stop('keriMap'); g.scene.start('terrace'); });
     await waitForScene(page, 'terrace');
@@ -199,8 +195,8 @@ test.describe('the player room', () => {
     expect(first.clouds).toHaveLength(3);
     // the sea, the lamp, the gulls' flock (ft_1_19.AC13) and three clouds move
     expect(first.animators).toBe(6);
-    // the warden's house and the knoll (ft_1_19.AC2: the one scene a new player has open)
-    expect(first.buttons).toHaveLength(2);
+    // the warden's house, the knoll and the crossroads (ft_1_19.AC2: the scenes a new player has open)
+    expect(first.buttons).toHaveLength(3);
     for (const b of first.buttons) {
       expect(b.x).toBeGreaterThanOrEqual(0);
       expect(b.x + b.width).toBeLessThanOrEqual(first.size.width);
@@ -293,6 +289,9 @@ test.describe('the player room', () => {
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Your card'));
     await expect.poll(() => sceneTexts(page, 'profile')).toContain('Level 1');
     expect((await sceneTexts(page, 'profile')).some((t) => /XP/.test(t))).toBe(true);
+    // the total XP, and a bar with the XP toward the next level, so a level-up never looks like XP lost
+    expect(await sceneTexts(page, 'profile')).toContain('0 XP');
+    expect((await sceneTexts(page, 'profile')).some((t) => /^0 \/ \d+ to level 2$/.test(t))).toBe(true);
     expectNoErrors(errors);
   });
 
@@ -431,7 +430,7 @@ test.describe('the player room', () => {
   test('ft_1_08.AC11 the stand opens a panel over the room, not darkened, with one picture per trainer whose names are not written; the keyboard reaches only them', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Exercises'));
-    await expect.poll(() => standState(page)).toEqual({ open: true, pictures: ['stand:notes', 'stand:ear', 'stand:shapes', 'stand:chords'], darkened: false, reach: ['Note names', 'Ear training', 'Scales and chords', 'Chord from its name'] });
+    await expect.poll(() => standState(page)).toEqual({ open: true, pictures: ['stand:notes', 'stand:ear', 'stand:shapes', 'stand:chords', 'stand:lessons'], darkened: false, reach: ['Note names', 'Ear training', 'Scales and chords', 'Chord from its name', 'Lessons'] });
     // still the room, with no text under the pictures
     expect(await page.evaluate(() => window.__game.scene.getScenes(true).map((x) => x.scene.key))).toContain('profile');
     const texts = await sceneTexts(page, 'profile');
@@ -648,6 +647,49 @@ test.describe('the telephone in the room (ft_1_34)', () => {
       return { piece: scene.fullChart.id, firstBar: scene.learn?.run.firstBar ?? null };
     });
     expect(learning).toEqual({ piece: 'little-steps', firstBar: 0 });
+    expectNoErrors(errors);
+  });
+});
+
+test.describe('presses in the room', () => {
+  test('ft_1_20.AC19 a right or middle click on a room object does not press it', async ({ page }) => {
+    const errors = await toRoom(page);
+    const piano = await buttonPoint(page, 'profile', await sceneButton(page, 'profile', 'Piano'));
+    await page.mouse.click(piano.x, piano.y, { button: 'right' });
+    await page.mouse.click(piano.x, piano.y, { button: 'middle' });
+    await letGameRun(page, 5, 300);
+    expect(await page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key))).toEqual(['profile']);
+    expectNoErrors(errors);
+  });
+
+  test('two presses on two room objects in one frame open one screen, never two at once', async ({ page }) => {
+    const errors = await toRoom(page);
+    const door = await sceneButton(page, 'profile', 'Door');
+    const piano = await sceneButton(page, 'profile', 'Piano');
+    // both presses land before the game steps again
+    await page.evaluate(({ door, piano }) => {
+      const buttons = window.__game.scene.getScene('profile').buttons as { options: { onClick(): void } }[];
+      buttons[door]!.options.onClick();
+      buttons[piano]!.options.onClick();
+    }, { door, piano });
+    await letGameRun(page, 10, 500);
+    const running = await page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key));
+    expect(running).toHaveLength(1);
+    expect(running).not.toContain('profile');
+    expectNoErrors(errors);
+  });
+  test('a double click on the map\'s Warden\'s house opens the room and does not also press the piano under the same spot', async ({ page }) => {
+    const errors = await toRoom(page);
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
+    await waitForScene(page, 'keriMap');
+    const house = await buttonPoint(page, 'keriMap', await sceneButton(page, 'keriMap', "Warden's house"));
+    // the first click opens the room; the second of the double click lands on the room as it opens
+    await page.mouse.click(house.x, house.y);
+    await waitForScene(page, 'profile');
+    await page.mouse.down({ clickCount: 2 });
+    await page.mouse.up({ clickCount: 2 });
+    await letGameRun(page, 10, 500);
+    expect(await page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key))).toEqual(['profile']);
     expectNoErrors(errors);
   });
 });

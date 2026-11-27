@@ -81,9 +81,9 @@ Check: `src/core/admin/adminRecord.test.ts` "reads back what it stored, and neve
 
 **Every letter name the student sees follows the player's note naming: H for B natural, B for B flat.** Features: core_09, ft_0_17, ft_0_18, ft_1_02.
 
-Every pitch or key letter shown follows the active player's `noteNaming` (`src/core/text/noteName.ts`; default `H` for a new Estonian player): hint labels, the note-name trainer and the piece maker's key button (`keyLabel` in `src/core/editor/key.ts`: `H`, `Hm`, `B`, `Bm`; `keyNames`: "B duur / g moll"); new screens use these helpers. A key keeps its own letter and sign (C flat major stays `Cb`), unlike a note hint (core_09.AC6). Stored and written data stay standard (ABC `K:` via `abcKey`, chart spellings, MIDI).
+Every pitch or key letter shown follows the active player's `noteNaming` (`src/core/text/noteName.ts`; default `H` for a new Estonian player): in H naming only the letter B changes, B flat reads `B` and every other B reads `H` with its sign (H#; a double flat B reads `Bb`), and every other note keeps its letter and sign (Cb, Fb, E#), so a scale never shows a letter twice (core_09.AC6). Every key's name the player sees comes from `keyName` in `src/core/editor/key.ts`, a flat written as ♭: "F# major", "B♭ major" in English; in Estonian with H naming the Estonian syllables (Fis-duur, Es-duur, B-duur, H-duur, Ces-duur, gis-moll), with B naming the letters (B♭-duur). Stored and written data stay standard (ABC `K:` via `abcKey`, chart spellings, MIDI).
 
-Check: `src/core/editor/key.test.ts` "names the key on the key button with the player"; `src/core/text/noteName.test.ts` "never gives a natural B the letter B in H mode"
+Check: `src/core/editor/key.test.ts` "Estonian key names"; `src/core/text/noteName.test.ts` "never gives a natural B the letter B in H mode"
 
 ## d088
 
@@ -105,7 +105,7 @@ Check: `src/core/exchange/tug.test.ts` "level 1 plays the first half of the piec
 
 **Practice earns the piece XP and a piece level, not the player; levels lock no piece.** Features: ft_1_13, ft_0_10, ft_1_12, core_04.
 
-Each finished pass earns its piece ft_0_10's XP, recomputed from the saved results whenever the profile is read (`deriveProgress`, a pure function of the history, no save bump); the piece level comes from `pieceLevels` in `content/curriculum/progression.json`, provisionally `[0, 50, 150, 300, 500, 750, 1050, 1400, 1800, 2250]`. A new attempt saves an XP breakdown with `total: 0`; player XP is the sum of saved totals plus tugs plus trainer XP, so earlier XP is kept. No piece is locked by level (pieces shown are those turned on, ft_1_02c); player levels open scenes only (d113). The score screen shows session piece XP, piece level and bar, and a card shows the level of a played piece.
+Each finished pass earns its piece ft_0_10's XP, recomputed from the saved results whenever the profile is read (`deriveProgress`, a pure function of the history, no save bump); the piece level comes from `pieceLevels` in `content/curriculum/progression.json`, provisionally `[0, 50, 150, 300, 500, 750, 1050, 1400, 1800, 2250]`. A new attempt saves an XP breakdown with `total: 0`; player XP is the sum of saved totals plus tugs plus trainer XP, so earlier XP is kept. No piece is locked by level (pieces shown are those turned on, ft_1_02c), and player levels open nothing (d113). The score screen shows session piece XP, piece level and bar, and a card shows the level of a played piece.
 
 Check: `src/core/progression/pieceLevel.test.ts` "ft_1_13.AC1: a piece earns the ft_0_10 XP of each of its passes, and its level comes from the piece curve"; `src/core/progression/pieceLevel.test.ts` "ft_1_13.AC3: a level-up announces no unlocked pieces: player levels lock no piece"
 
@@ -135,17 +135,17 @@ Check: `src/core/layout/keriMap.test.ts` "ft_1_19.AC2 every scene of the world m
 
 ## d113
 
-**Levelling up opens scenes.** Features: ft_1_19, ft_1_18.
+**A scene opens only once the maintainer confirms it; levels open and lock nothing.** Features: ft_1_19, ft_1_18.
 
-A scene carries a `level` in `content/world/keri.json` and is open when the level from total XP (`levelForXp`, `src/core/progression/xp.ts`) is at least that; the knoll (x -50, y -2 m from the lighthouse, good to about 15 m) is level 1. A scene not yet open is painted on the map but is no button. For each reference picture, the agent notes what it sees in `docs/keri/` (map, room, knoll) with improvement tips that are not built until picked.
+Every scene in `content/world/keri.json` is built `closed`, which keeps it to the tester; the `closed` mark comes off only once the maintainer confirms the scene ready, and only then can characters stand in it (`openScenes`, `src/core/world/openScenes.ts`); no player level opens or locks a scene, a piece or anything else. A closed scene is painted on the map but is no button. The knoll lies at x -50, y -2 m from the lighthouse (good to about 15 m). For each reference picture, the agent notes what it sees in `docs/keri/` (map, room, knoll) with improvement tips that are not built until picked.
 
-Check: `src/core/world/openScenes.test.ts` "ft_1_19.AC2 a scene is open when the student"
+Check: `src/core/world/openScenes.test.ts` "ft_1_19.AC2 a scene not marked closed is open to every player"
 
 ## d115
 
 **Actions and items share one model, and a painted place is used in its picture.** Features: ft_1_20, ft_0_13, ft_1_18, core_09.
 
-An action is a cell of the bubble or the strip (d282); a thing with a state or put somewhere is an item (the piece maker's lengths, rest, accidentals, ties, dynamics are held items put on a note by a click; a pure model in `src/core/`). There is no sentence line (an action names itself in a tooltip bubble, a screen's message is a Kiur speech bubble) and no verb-and-object grammar; Back and Settings are the door and the gear in the top corners, faded until the pointer is on them; the player's name is on the room's rank shield. In a painted place (room, map, every scene) a thing is pressed in the picture only and shows a contour or second look under the pointer. The top toolbar stays in code behind one frame-layout flag (`BAND_KEEPS_TOOLBAR` in `src/core/layout/frame.ts`), off. The look is d118.
+An action is a cell of the bubble or the strip (d282); a thing with a state or put somewhere is an item (the piece maker's lengths, rest, accidentals, ties, dynamics are held items put on a note by a click; a pure model in `src/core/`). There is no sentence line (an action names itself in a tooltip bubble, a screen's message is a Kiur speech bubble) and no verb-and-object grammar; Back and Settings are the door and the gear in the top corners, each a solid boxed button that looks the same on every screen; the player's name is on the room's rank shield. In a painted place (room, map, every scene) a thing is pressed in the picture only and shows a contour or second look under the pointer. The top toolbar stays in code behind one frame-layout flag (`BAND_KEEPS_TOOLBAR` in `src/core/layout/frame.ts`), off. The look is d118.
 
 Check: `src/core/layout/frame.test.ts` "ft_1_20.AC21 gives the main area 163 rows over a strip on the target screen and all 180 without one (d282)"
 
@@ -185,7 +185,7 @@ Check: `src/core/exchange/tug.test.ts` "content/challenge/rules.json parses and 
 
 **Characters are met by practising, talked to first, teach phrases for a phrase book, and give an item for a won tug; every character ties to music.** Features: ft_1_21, ft_1_22, ft_1_23, ft_1_19, ft_1_20, ft_1_07.
 
-The challenge is the tug of reputation (one marker, three steps each way; Kiur's practice tug changed by d160); question and answer is the advanced-level challenge. A character can appear only after enough practice in the room (from the practice records, never time spent), semi-randomly in an open scene, replacing d113 point 2 for characters; a lost tug is followed by a cool-down counted in real practice, never hours. Pressing a character opens a conversation first; a won tug gives an item into the band's inventory (ft_1_20). Every character ties to music: it teaches a phrase of its style (three tries, shown on the staff and heard), a phrase becomes "mine" only when played clean in the room on a later day, and learned phrases go in the phrase book (no class screen); phrases are original or public domain. The knowledge layer (a character's field, with control-question levels) is optional, per player, switched under admin, and gated by playing; the birth date is stored as year and month only in the local save, never in reports or logs, and sets the default text level (ft_1_23).
+The challenge is the tug of reputation (one marker, three steps each way; Kiur's practice tug changed by d160); question and answer is the advanced-level challenge. A character can appear only after enough practice in the room (from the practice records, never time spent), semi-randomly in an open scene; a lost tug is followed by a cool-down counted in real practice, never hours. Pressing a character opens a conversation first; a won tug gives an item into the band's inventory (ft_1_20). Every character ties to music: it teaches a phrase of its style (three tries, shown on the staff and heard), a phrase becomes "mine" only when played clean in the room on a later day, and learned phrases go in the phrase book (no class screen); phrases are original or public domain. The knowledge layer (a character's field, with control-question levels) is optional, per player, switched under admin, and gated by playing; the birth date is stored as year and month only in the local save, never in reports or logs, and sets the default text level (ft_1_23).
 
 Check: `src/core/island/presenceRules.test.ts` "needs the practice threshold, never time"; `src/core/exchange/teach.test.ts` "ft_1_22.AC3 the student has three tries"; `src/core/exchange/phraseBook.test.ts` "ft_1_22.AC5 lists every taught phrase by its character"
 
@@ -295,11 +295,11 @@ Check: untestable: product rule on what stays hidden, judged by the maintainer
 
 ## d192
 
-**A player named "tester" (letter case and spaces aside) has every scene open as soon as it is built, whatever the level.** Features: ft_1_19.
+**A player named "tester" (letter case and spaces aside) has every scene open as soon as it is built, a closed one included.** Features: ft_1_19.
 
-So a new scene can be tried before a player's progress opens it. Nothing is saved for it.
+So a new scene can be tried before the maintainer opens it to every player (d113). Nothing is saved for it.
 
-Check: `src/core/world/openScenes.test.ts` "opens every scene there is to the player called tester, whatever the level and the letter case"
+Check: `src/core/world/openScenes.test.ts` "opens every scene there is to the player called tester, a closed one included, whatever the letter case"
 
 ## d193
 
@@ -407,11 +407,11 @@ Check: `src/core/character/rules.test.ts` "each level teaches a piece of 4 to 16
 
 ## d272
 
-**Each level's piece is a real public-domain piece or an open-licence line in the manner of a named folk tradition, never one made for the game.** Features: ft_1_21, ft_1_22.
+**Each level's piece is a real public-domain piece, an open-licence line in the manner of a named folk tradition, or an open-licence piece made for the game that the maintainer approved.** Features: ft_1_21, ft_1_22.
 
-The piece has `license: "public-domain"` and a `source` naming its real origin (not original, composed by or generated), or an open-licence line written in a named folk tradition (d263).
+The piece has `license: "public-domain"` and a `source` naming its real origin (not original, composed by or generated), or an open-licence line written in a named folk tradition (d263), or an open licence and `status: "approved"`.
 
-Check: `src/core/character/rules.test.ts` "each piece is a real public-domain piece, not one made for the game"
+Check: `src/core/character/rules.test.ts` "each piece is a real public-domain piece, not one made for the game unless approved"; `src/core/character/rules.test.ts` "an original piece the maintainer approved may be taught too, a draft one may not"
 
 ## d273
 

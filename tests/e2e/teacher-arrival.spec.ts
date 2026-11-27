@@ -60,4 +60,20 @@ test.describe('the teacher arrives at the southern harbour (ft_1_27.AC2, WP-15)'
     await expect.poll(() => activeScenes(page)).not.toContain(SCENE);
     expectNoErrors(errors);
   });
+  test('Space pressed again and again during her arrival only reads the lines: the harbour stays and the view does not dive', async ({ page }) => {
+    const errors = await openGame(page);
+    await openArrival(page);
+    await expect.poll(async () => (await scriptState(page))?.saying ?? '', { timeout: 15000 }).toContain('Maybe it is the teacher');
+    for (let i = 0; i < 6; i++) {
+      await page.keyboard.press('Space');
+      await page.waitForTimeout(300);
+    }
+    expect(await activeScenes(page)).toContain(SCENE);
+    expect((await scriptState(page))?.done).toBe(false);
+    // no Dive in while she arrives: the student would miss her
+    const dive = await page.evaluate((key) => (window.__game.scene.getScene(key).buttons as { options: { label: string } }[]).some((b) => b.options.label === 'Dive in'), SCENE);
+    expect(dive).toBe(false);
+    expectNoErrors(errors);
+  });
 });
+

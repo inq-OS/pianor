@@ -3,7 +3,7 @@ import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { activeScenes, buttonPoint, clickButton, expectNoErrors, letGameRun, openGame, playWithVirtualPiano, sceneButton, showMenuPageWith, waitForScene, type PageErrors } from './helpers';
 
-interface TugView { who: 'character' | 'student' | null; turn: number; standing: number; outcome?: 'won' | 'lost' | 'left'; saying: string | null; closing: boolean; level: number; mode: 'wait' | 'tempo' }
+interface TugView { who: 'character' | 'student' | null; turn: number; standing: number; outcome?: 'won' | 'lost' | 'left'; saying: string | null; page: number; closing: boolean; level: number; mode: 'wait' | 'tempo' }
 interface TalkState { showing: 'line' | 'student' | 'choices'; node: string }
 
 const knoll = 'knoll';
@@ -17,18 +17,31 @@ const world = (page: Page) => page.evaluate(async () => {
 });
 const tugs = (page: Page) => page.evaluate(() => (window.__game.registry.get('context').profiles.profile.tugs as { characterId: string; won: boolean; xp: number }[]));
 
-/** Puuvaim's first phrase, its first two bars: what the student plays back at level 1. */
-const PHRASE = [64, 64, 65, 64, 62, 62, 60];
-const WRONG = [61, 61, 61, 61, 61, 61, 61];
+/**
+ * What the student plays in a round: the keys of the phrase that is the student's now, in order (a chord as its keys), or a
+ * wrong key (C#4) for each of them. Puuvaim's first piece is Both Hands: at level 1 its first half, two phrases of two bars
+ * (6 and 5 notes) that the two take in turns, swapped on each pass.
+ */
+type Play = 'phrase' | 'wrong';
+const PHRASE: Play = 'phrase';
+const WRONG: Play = 'wrong';
 
-/** Puuvaim's level 2 piece: its bars' notes, and the student's phrase in it (bars 3 and 4). */
-const LEVEL_2 = { piece: 'puuvaim-2', bars: [4, 4, 3, 3] };
+/** The keys of the student's phrase now, in the knoll (`knoll`) or in the room's practice tug (`profile`). */
+const studentKeys = (page: Page, where: 'knoll' | 'profile', play: Play) =>
+  page.evaluate(({ where, play }) => {
+    const scene = window.__game.scene.getScene(where) as unknown as { tugPhrase?: { notes: { midi: number }[] } | null; tug?: { studentPhrase: { notes: { midi: number }[] } | null } | null };
+    const phrase = where === 'knoll' ? scene.tugPhrase : scene.tug?.studentPhrase;
+    return (phrase?.notes ?? []).map((n) => (play === 'phrase' ? n.midi : 61));
+  }, { where, play });
+
+/** Puuvaim's level 2 piece (Greensleeves): its bars' notes, the pick-up first. */
+const LEVEL_2 = { piece: 'puuvaim-3', bars: [1, 3, 3, 2, 3, 3, 3, 1] };
 
 /**
- * `times` whole plays of a piece in the room (by default Puuvaim's first, four bars of 4, 3, 4 and 3 notes), each with
+ * `times` whole plays of a piece in the room (by default Puuvaim's first, Both Hands), each with
  * every bar right first try (`clean`), in `mode` (Tempo mode on time).
  */
-async function practise(page: Page, times: number, clean = true, piece = { piece: 'puuvaim-1', bars: [4, 3, 4, 3] }, mode: 'wait' | 'tempo' = 'wait'): Promise<void> {
+async function practise(page: Page, times: number, clean = true, piece = { piece: 'both-hands', bars: [3, 3, 3, 2, 4, 4, 5, 2] }, mode: 'wait' | 'tempo' = 'wait'): Promise<void> {
   await page.evaluate(async ({ times, clean, piece, mode }) => {
     const { profiles } = window.__game.registry.get('context');
     const notes = piece.bars;
@@ -52,7 +65,7 @@ async function openTug(page: Page, practised = 3): Promise<PageErrors> {
     await profiles.saveWorld(profiles.profile.id, {
       ...world,
       flags: ['met-puuvaim', 'puuvaim-taught-said', 'known-puuvaim'],
-      met: { puuvaim: { firstDay: '1998-11-19', lastDay: '1998-11-19', taught: ['puuvaim-1'], tugs: { won: 0, lost: 0, bestLevel: 0 } } },
+      met: { puuvaim: { firstDay: '1998-11-19', lastDay: '1998-11-19', taught: ['both-hands'], tugs: { won: 0, lost: 0, bestLevel: 0 } } },
     });
   });
   await page.evaluate((k) => {
@@ -100,12 +113,13 @@ async function roundInTime(page: Page, notes: 'phrase' | 'none'): Promise<TugVie
   return (await tug(page))!;
 }
 
-/** Plays one round: Puuvaim's phrase (ended at once), then the student's notes; the standing after it. */
-async function round(page: Page, notes: number[]): Promise<TugView> {
-  await expect.poll(async () => (await tug(page))?.who).toBe('character');
-  await endPhrase(page);
+/** Plays the student's next phrase (Puuvaim's before it ended at once, when his turn comes first); the standing after it. */
+async function round(page: Page, play: Play): Promise<TugView> {
+  // a new turn: the fact on the last phrase is gone
+  await expect.poll(async () => { const v = await tug(page); return v !== null && v.who !== null && v.saying === null; }).toBe(true);
+  if ((await tug(page))!.who === 'character') await endPhrase(page);
   await expect.poll(async () => (await tug(page))?.who).toBe('student');
-  await playWithVirtualPiano(page, notes);
+  await playWithVirtualPiano(page, await studentKeys(page, knoll, play));
   await expect.poll(async () => (await tug(page))?.saying ?? null).not.toBeNull();
   return (await tug(page))!;
 }
@@ -116,12 +130,13 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     expect(await tug(page)).toMatchObject({ who: 'character', standing: 0 });
     const first = await round(page, PHRASE);
     // ft_1_21.AC7 the fact after the phrase: the notes right first try
-    expect(first).toMatchObject({ standing: 1, saying: '7 of 7 notes right' });
+    expect(first).toMatchObject({ standing: 1, saying: '5 of 5 notes right' });
     expect((await round(page, PHRASE)).standing).toBe(2);
     await round(page, PHRASE);
     // won at +3: his closing line, then a press ends the tug in the scene
     await expect.poll(async () => (await tug(page))?.outcome).toBe('won');
-    await expect.poll(async () => (await tug(page))?.saying).toContain('Oak leaf');
+    // the closing line counts the lines, never more than were played (AX-2.1)
+    await expect.poll(async () => (await tug(page))?.saying).toBe('3 of 3 lines fell into place. Take this: Oak leaf.');
     await page.keyboard.press('Space');
     await expect.poll(() => tug(page)).toBeNull();
     expect(await activeScenes(page)).toContain(knoll);
@@ -186,12 +201,52 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     await expect.poll(async () => (await tug(page))?.who).toBe('character');
     expect(await tug(page)).toMatchObject({ level: 2, mode: 'tempo', standing: 0 });
     const won = await roundInTime(page, 'phrase');
-    expect(won).toMatchObject({ standing: 1, saying: '6 of 6 notes on time' });
-    // the next pass swaps the turns: the student plays first, the first two bars, after the count-in
+    expect(won).toMatchObject({ standing: 1, saying: '5 of 5 notes on time' });
+    // Greensleeves has seven bars after its pick-up: his bars 5 and 6, then the short last phrase alone, the student's last bar
     const missed = await roundInTime(page, 'none');
-    expect(missed).toMatchObject({ standing: 0, saying: '0 of 8 notes on time' });
+    expect(missed).toMatchObject({ standing: 0, saying: '0 of 1 notes on time' });
     await page.keyboard.press('Escape');
     await expect.poll(() => tug(page)).toBeNull();
+    expectNoErrors(errors);
+  });
+  test('a closing line too long for one page shows every page: a press turns to the next, the last press ends the tug', async ({ page }) => {
+    const errors = await openTug(page);
+    for (let i = 0; i < 3; i++) await round(page, PHRASE);
+    await expect.poll(async () => (await tug(page))?.closing).toBe(true);
+    await page.keyboard.press('Space');
+    await expect.poll(() => tug(page)).toBeNull();
+    // level 2 waits for better plays of its piece: the gate's line ends with what to do, on its second page
+    await practise(page, 3, false, LEVEL_2, 'tempo');
+    await pickTug(page);
+    await expect.poll(async () => (await tug(page))?.saying ?? '').toContain('Practice it more in your room.');
+    expect(await tug(page)).toMatchObject({ closing: true, page: 0 });
+    await page.keyboard.press('Space');
+    await expect.poll(async () => (await tug(page))?.page).toBe(1);
+    await page.keyboard.press('Space');
+    await expect.poll(() => tug(page)).toBeNull();
+    expectNoErrors(errors);
+  });
+
+  test('after a won level 1, "Teach me" teaches the piece level 2 asks to learn, not the one already won', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual&actors=1&learn=1');
+    await page.evaluate(async () => {
+      const { profiles } = window.__game.registry.get('context');
+      const world = await profiles.worldOf(profiles.profile.id);
+      await profiles.saveWorld(profiles.profile.id, {
+        ...world,
+        flags: ['met-puuvaim', 'puuvaim-taught-said', 'known-puuvaim'],
+        met: { puuvaim: { firstDay: '1998-11-19', lastDay: '1998-11-19', taught: ['both-hands'], tugs: { won: 1, lost: 0, bestLevel: 1 } } },
+      });
+    });
+    await page.evaluate((k) => { window.__game.scene.stop('menu'); window.__game.scene.start(k); }, knoll);
+    await waitForScene(page, knoll);
+    await letGameRun(page, 3, 50);
+    expect(await page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { talkTo(id: string): Promise<boolean> }).talkTo('puuvaim'), knoll)).toBe(true);
+    for (let i = 0; i < 12 && (await talk(page))?.showing !== 'choices'; i++) await page.keyboard.press('Space');
+    await page.keyboard.press('1'); // "Teach me a tune!"
+    for (let i = 0; i < 6 && (await talk(page)) !== null && (await activeScenes(page)).includes(knoll); i++) await page.keyboard.press('Space');
+    await waitForScene(page, 'practice');
+    expect(await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { fullChart: { id: string } }).fullChart.id)).toBe(LEVEL_2.piece);
     expectNoErrors(errors);
   });
 });
@@ -213,7 +268,7 @@ async function toRoomWithKiur(page: Page): Promise<PageErrors> {
 }
 
 /** Kiur pressed on the bed, then Tug: the piece book opens; the piece picked there comes back to the room, where his tug opens. */
-async function pressKiur(page: Page, title = 'Runo Song'): Promise<void> {
+async function pressKiur(page: Page, title = 'Both Hands'): Promise<void> {
   await expect.poll(() => sceneButton(page, 'profile', 'Kiur')).toBeGreaterThanOrEqual(0);
   await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Kiur'));
   await expect.poll(() => sceneButton(page, 'profile', 'Tug')).toBeGreaterThanOrEqual(0);
@@ -225,11 +280,11 @@ async function pressKiur(page: Page, title = 'Runo Song'): Promise<void> {
 }
 
 /** A round of the practice tug in the room: Kiur's phrase cut short, then the student's `notes`; the tug after the fact. */
-async function roomRound(page: Page, notes: number[]): Promise<TugView> {
-  await expect.poll(async () => (await roomTug(page))?.who).toBe('character');
-  await page.evaluate(() => (window.__game.scene.getScene('profile') as unknown as { endTugPhrase(): void }).endTugPhrase());
+async function roomRound(page: Page, play: Play): Promise<TugView> {
+  await expect.poll(async () => { const v = await roomTug(page); return v !== null && v.who !== null && v.saying === null; }).toBe(true);
+  if ((await roomTug(page))!.who === 'character') await page.evaluate(() => (window.__game.scene.getScene('profile') as unknown as { endTugPhrase(): void }).endTugPhrase());
   await expect.poll(async () => (await roomTug(page))?.who).toBe('student');
-  await playWithVirtualPiano(page, notes);
+  await playWithVirtualPiano(page, await studentKeys(page, 'profile', play));
   await expect.poll(async () => (await roomTug(page))?.saying ?? null).not.toBeNull();
   return (await roomTug(page))!;
 }
@@ -249,7 +304,7 @@ test.describe('Kiur the trainer in the room (ft_1_21.AC14)', () => {
     // no character met: he trains all the same
     await pressKiur(page);
     expect(await roomTug(page)).toMatchObject({ who: 'character', standing: 0, level: 1 });
-    expect(await roomRound(page, WRONG)).toMatchObject({ standing: -1, saying: '0 of 7 notes right' });
+    expect(await roomRound(page, WRONG)).toMatchObject({ standing: -1, saying: '0 of 5 notes right' });
     await roomRound(page, WRONG);
     await expect.poll(async () => (await roomTug(page))?.outcome).toBe('lost');
     await expect.poll(async () => (await roomTug(page))?.saying).toContain('Practice the piece more');

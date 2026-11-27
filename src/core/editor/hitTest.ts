@@ -35,10 +35,11 @@ const HIGHEST = 17;
 export function hitTest(layout: StaffLayout, chart: Chart, point: { x: number; y: number }, page = 0): Hit | null {
   const S = layout.staffSpace;
   const shown = layout.systems.filter((s) => s.page === page);
-  // a note head first, a little larger than drawn so a student's click finds it
+  // a note head first, a little wider than drawn so a student's click finds it, but never taller than half a step: a
+  // click nearer the next line or space is that place, so a second goes in as a chord (ft_1_02d.AC51)
   for (const n of layout.notes) {
     if (layout.systems[n.system]?.page !== page) continue;
-    if (Math.abs(point.x - n.x) <= n.headRx * 1.3 && Math.abs(point.y - n.y) <= n.headRy * 1.6) return { kind: 'note', noteIndex: n.index };
+    if (Math.abs(point.x - n.x) <= n.headRx * 1.3 && Math.abs(point.y - n.y) < S / 4) return { kind: 'note', noteIndex: n.index };
   }
   // the system: each owns the band half-way to its neighbours
   const system = shown.find((s, i) => {

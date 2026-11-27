@@ -43,11 +43,13 @@ export class TeachView {
   private controller: PracticeController | null = null;
   private staff: StaffView | null = null;
   /** The notes of the try as last played: the staff keeps them while the fact is said, and is fresh for the next try. */
-  private played: Pick<PlayState, 'noteProgress' | 'awaiting'> | null = null;
+  private played: Pick<PlayState, 'noteProgress' | 'awaiting' | 'retried'> | null = null;
   private timer: Phaser.Time.TimerEvent | null = null;
   private readonly objects: Phaser.GameObjects.GameObject[] = [];
   private saying: string | null = null;
   private closing = false;
+  /** The page of a long line shown now: a press on the closing line turns to the next before it ends the view. */
+  private page = 0;
   private playingNow: 'character' | 'student' | null = null;
   private done = false;
 
@@ -80,9 +82,9 @@ export class TeachView {
   }
 
   /** What the teaching shows now, for the tests and the self-playing demo. */
-  get view(): { who: 'character' | 'student' | null; piece: string; level: 1 | 2 | 3; tries: readonly boolean[]; outcome: TeachState['outcome']; saying: string | null; closing: boolean; staff: boolean } {
+  get view(): { who: 'character' | 'student' | null; piece: string; level: 1 | 2 | 3; tries: readonly boolean[]; outcome: TeachState['outcome']; saying: string | null; page: number; closing: boolean; staff: boolean } {
     const { piece, level, tries, outcome } = this.state;
-    return { who: this.playingNow, piece, level, tries, outcome, saying: this.saying, closing: this.closing, staff: this.staff !== null };
+    return { who: this.playingNow, piece, level, tries, outcome, saying: this.saying, page: this.page, closing: this.closing, staff: this.staff !== null };
   }
 
   /** The phrase the student plays now; null in the character's turn and between tries. */
@@ -94,14 +96,14 @@ export class TeachView {
   key(e: KeyboardEvent): boolean {
     if (this.done) return false;
     if (e.key === 'Escape') this.leave();
-    else if (e.key === ' ' || e.key === 'Enter') { if (!e.repeat && this.closing) this.finish(); }
+    else if (e.key === ' ' || e.key === 'Enter') { if (!e.repeat && this.closing) this.onwards(); }
     else if (e.key !== 'Tab') return false;
     return true;
   }
 
   /** A press on the screen: only the closing line takes it (the phrase is never skipped, AX-0). */
   press(): void {
-    if (this.closing) this.finish();
+    if (this.closing) this.onwards();
   }
 
   /** Esc: the teaching ends here, with nothing kept. */
@@ -149,6 +151,7 @@ export class TeachView {
   /** The character plays the phrase, the staff showing it fresh. */
   private play(): void {
     this.saying = null;
+    this.page = 0;
     this.played = null;
     this.playingNow = 'character';
     this.draw();
@@ -172,7 +175,7 @@ export class TeachView {
     this.controller = new PracticeController(this.chart, this.devices.keyboard, {
       onChange: (state: PlayState) => {
         this.played = state;
-        this.staff?.applyProgress(state.noteProgress, state.awaiting);
+        this.staff?.applyProgress(state.noteProgress, state.awaiting, state.retried);
       },
       onJudged: (event: NoteJudged) => { if (event.verdict === 'wrong') reasons.push(event.reason); },
       onCompleted: (result: PieceResult) => this.afterStudent(result, reasons),
@@ -188,6 +191,7 @@ export class TeachView {
     const fact = tugFact(result, reasons, 'wait');
     const words = t('tug.fact', { right: fact.right, total: fact.total });
     this.saying = fact.reason === 'wrong-octave' ? `${words}. ${t('tug.wrongOctave')}` : words;
+    this.page = 0;
     this.draw();
     this.timer = this.scene.time.delayedCall(FACT_MS, () => {
       this.timer = null;
@@ -203,8 +207,19 @@ export class TeachView {
     if (key === null) return this.finish();
     this.closing = true;
     this.saying = t(key, { right: fact.right, total: fact.total });
+    this.page = 0;
     this.handlers.playing(true);
     this.draw();
+  }
+
+  /** A press on the closing line: its next page, or the end of the view after its last. */
+  private onwards(): void {
+    if (this.saying !== null && this.page + 1 < spokenPages(this.saying).length) {
+      this.page += 1;
+      this.draw();
+      return;
+    }
+    this.finish();
   }
 
   private finish(): void {
@@ -233,7 +248,7 @@ export class TeachView {
     // the staff while the phrase is played and tried, not under the closing line
     if (!this.closing) {
       this.staff = this.makeStaff(this.chart);
-      if (this.played) this.staff.applyProgress(this.played.noteProgress, this.playingNow === 'student' ? this.played.awaiting : []);
+      if (this.played) this.staff.applyProgress(this.played.noteProgress, this.playingNow === 'student' ? this.played.awaiting : [], this.played.retried);
     }
     if (this.playingNow === 'student') {
       const note = choiceNote(true);
@@ -241,7 +256,7 @@ export class TeachView {
       this.add(new PixelImage(this.scene, Math.round(head.x - note.width / 2), head.y - note.height - 4, note).setName('teachYourTurn'));
     }
     if (this.saying !== null) {
-      const words = spokenLine(spokenPages(this.saying)[0] ?? [], talkColour('character', this.character.id));
+      const words = spokenLine(spokenPages(this.saying)[this.page] ?? [], talkColour('character', this.character.id));
       const spot = lineSpot({ head: this.place.head, size: { w: words.width, h: words.height }, area });
       this.add(new PixelImage(this.scene, spot.x, spot.y, words).setName('teachLine'));
     }

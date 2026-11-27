@@ -14,12 +14,16 @@ export const PHOTO_API = '/__pianor/photo';
 /** The answer to a photo sent: the own piece file and what to fill by hand, or why there is none. */
 export type PhotoReply = { ok: true; id: string; file: string; problems: ImportProblem[]; stavesUneven?: boolean } | { ok: false; reason: string };
 
-/** Whether the server here reads photos (the game's server on a PC with Audiveris), or why not. */
-export async function photoServer(fetcher: typeof fetch = fetch): Promise<{ ok: true } | { ok: false; reason: string }> {
+/**
+ * Whether the server here reads photos (the game's server on a PC with Audiveris), or why not: `missing` when the game's
+ * server is there but Audiveris is not (ft_Y_04.AC27), so the piece maker can say where to get it.
+ */
+export async function photoServer(fetcher: typeof fetch = fetch): Promise<{ ok: true } | { ok: false; reason: string; missing?: true }> {
   try {
     const res = await fetcher(PHOTO_API);
     if (!res.ok) return { ok: false, reason: `the server answered ${res.status}` };
-    return (await res.json()) as { ok: true } | { ok: false; reason: string };
+    const body = (await res.json()) as { ok: true } | { ok: false; reason: string };
+    return body.ok ? body : { ...body, missing: true };
   } catch (e) {
     return { ok: false, reason: e instanceof Error ? e.message : String(e) };
   }

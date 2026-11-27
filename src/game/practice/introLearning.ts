@@ -1,5 +1,6 @@
 import { START_PROGRESS, type LearnProgress } from '../../core/learn/progress';
-import type { LearnProfile } from './LearnSession';
+import type { Chart } from '../../core/chart';
+import { LearnSession, type LearnProfile } from './LearnSession';
 
 /**
  * The player as the intro's lesson sees it (ft_1_31.AC8): the player's own learning settings, but the lesson's progress kept
@@ -21,4 +22,12 @@ export function introLearnProfile(base: LearnProfile, kept: LearnProgress | unde
     practiceFor: () => [],
     recordFor: () => undefined,
   };
+}
+
+/**
+ * The learning of the intro's lesson (`lesson`, its bars of the piece) on `today`, or null once the lesson is learned: never
+ * learned anew, as learning a learned piece again is for Kiur's Learn only (ft_1_32.AC24).
+ */
+export function openIntroLearning(base: LearnProfile, kept: LearnProgress | undefined, keep: (progress: LearnProgress) => void, lesson: Chart, today: string): LearnSession | null {
+  return LearnSession.open(introLearnProfile(base, kept, keep), lesson, today);
 }

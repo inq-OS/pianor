@@ -1,7 +1,7 @@
-// Covers core_13.AC1, core_13.AC2, core_13.AC5, core_13.AC6, core_13.AC7, core_13.AC8.
+// Covers core_13.AC1, core_13.AC2, core_13.AC5, core_13.AC6, core_13.AC7, core_13.AC8, core_13.AC9.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { bubbleOpen, clickButton, expectNoErrors, lastButton, openGame, openPiece, pressPracticeButton as press, sceneButton, waitForScene } from './helpers';
+import { bubbleOpen, clickButton, expectNoErrors, lastButton, openGame, openPiece, pressInBubble, pressPracticeButton as press, sceneButton, sceneTexts, waitForScene } from './helpers';
 
 /** The beat lane on the staff (core_13 rule 2): its dots on the page, how many the wave lifts now, how many keys are coloured. */
 const lane = (page: Page) => page.evaluate(() => {
@@ -9,6 +9,15 @@ const lane = (page: Page) => page.evaluate(() => {
   return scene.playSession.staffView?.laneShown() ?? { dots: 0, lifted: 0, coloured: 0 };
 });
 const running = (page: Page) => page.evaluate(() => window.__game.registry.get('context').audio.metronome.running as boolean);
+
+/** Where the lane's wave is now (a drawn tick), null with none. */
+const waveAt = (page: Page) => page.evaluate(() => {
+  const view = (window.__game.scene.getScene('practice') as unknown as { playSession: { staffView: { laneWave: number | null; clickWave?: number | null } | null } }).playSession.staffView;
+  return view ? (view.clickWave !== undefined ? view.clickWave : view.laneWave) : null;
+});
+/** Mark the learning run on the practice screen, and whether the one there now is the one marked (a new step starts a new run). */
+const markRun = (page: Page) => page.evaluate(() => { (window.__game.scene.getScene('practice') as unknown as { learn: { marked?: boolean } }).learn.marked = true; });
+const sameRun = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { learn: { marked?: boolean } | null }).learn?.marked === true);
 
 /** Kiur's Learn in the room, then the piece: its learning run on the practice screen. */
 async function learnPiece(page: Page, title: string): Promise<void> {
@@ -75,6 +84,66 @@ test.describe('the beat lane (core_13)', () => {
     expectNoErrors(errors);
   });
 
+  test('core_13.AC1 core_13.AC5 with the click off the wave runs at the student\'s own pace from the first key, and each key keeps a colour', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    expect(await running(page)).toBe(false);
+    expect((await lane(page)).lifted).toBe(0); // no key yet: no wave
+    await keysApart(page, [60], 0);
+    // the wave leaves the first key at the tempo the click would have, and runs on
+    const first = await waveAt(page);
+    await expect.poll(async () => (await waveAt(page)) ?? 0, { timeout: 4000 }).toBeGreaterThan((first ?? 0) + 100);
+    await keysApart(page, [62, 64], 450);
+    await expect.poll(async () => (await lane(page)).coloured).toBeGreaterThan(0);
+    expect(await running(page)).toBe(false); // the wave, not the click
+    expectNoErrors(errors);
+  });
+
+  test('core_13.AC5 in a learning run the next step\'s wave runs from its first key, at the pace of the step before', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual&learn=1');
+    await learnPiece(page, 'Little Steps');
+    await markRun(page);
+    // the first step, bar 1, played evenly
+    await keysApart(page, [60, 62, 64, 65], 450);
+    await expect.poll(() => sameRun(page), { timeout: 8000 }).toBe(false);
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { learn: { carriedBpm: number | null } }).learn.carriedBpm)).toBeGreaterThan(0);
+    // one key of the next step: the wave runs on from it before the step has a pace of its own
+    const midi = await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { chart: { notes: { midi: number }[] } } }).playSession.chart.notes[0]!.midi);
+    await expect.poll(async () => { await keysApart(page, [midi], 0); return (await lane(page)).lifted; }, { timeout: 6000 }).toBeGreaterThan(0);
+    expectNoErrors(errors);
+  });
+
+  test('core_13.AC8 the practice screen\'s bubble opens the beat dots\' tuning over the piece, and the piece goes on after it', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await keysApart(page, [60], 0);
+    await pressInBubble(page, 'practice', 'Beat dots');
+    await waitForScene(page, 'beat-lanes');
+    await expect.poll(() => page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key))).not.toContain('practice'); // paused under it
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'practice');
+    await expect.poll(() => page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key))).not.toContain('beat-lanes');
+    // the piece goes on where it was: the next key is the second note
+    await keysApart(page, [62], 0);
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { getState(): { stepIndex: number } } }).playSession.getState().stepIndex)).toBe(2);
+    expectNoErrors(errors);
+  });
+
+  test('core_13.AC9 a lane set to follow the click runs on the metronome\'s beats before any key, in the bar of the next note', async ({ page }) => {
+    const errors = await openGame(page);
+    await page.evaluate(() => window.__game.registry.get('context').profiles.updateLearnSettings({
+      beatLanes: [{ place: 'above', offset: 0, dots: { ghost: 1, beat: 1, top: 1, bottom: 1 }, wave: { height: 0.8, reach: 0.25 }, follow: 'click' }],
+    }));
+    await openPiece(page, 'Little Steps');
+    await press(page, 'Click');
+    await expect.poll(() => running(page)).toBe(true);
+    // no key played: a lane that follows the student would stand still, this one runs with the click
+    const seen = new Set<number>();
+    await expect.poll(async () => { const w = await waveAt(page); if (w !== null) seen.add(Math.round(w / 240)); return seen.size; }, { timeout: 6000 }).toBeGreaterThan(2);
+    expect(Math.max(...[...seen].map((q) => q * 240))).toBeLessThanOrEqual(1920); // within the first bar, where the next note is
+    expectNoErrors(errors);
+  });
+
   test('core_13.AC2 turned off in the settings, the lane is not drawn', async ({ page }) => {
     const errors = await openGame(page);
     await page.evaluate(() => window.__game.registry.get('context').profiles.updateLearnSettings({ beatLane: 'off' }));
@@ -104,7 +173,7 @@ test.describe('tuning the beat lanes (core_13 rule 10)', () => {
   });
   const saved = (page: Page) => page.evaluate(() => window.__game.registry.get('context').profiles.learnSettings.beatLanes as { place: string; offset: number; wave: { height: number }; blink?: boolean }[] | undefined);
 
-  test('core_13.AC8 the beat dots button opens a page with a running preview; a click on the staff adds a row there, and a row dragged stays where it is dropped', async ({ page }) => {
+  test('core_13.AC8 the beat dots button opens a page with a running preview and says how it is used; a click on the staff adds a row there, and a row dragged stays where it is dropped', async ({ page }) => {
     const errors = await openGame(page);
     await page.evaluate(() => { window.__game.scene.stop('menu'); window.__game.scene.start('settings', { page: 1 }); });
     await waitForScene(page, 'settings');
@@ -112,6 +181,8 @@ test.describe('tuning the beat lanes (core_13 rule 10)', () => {
     await waitForScene(page, 'beat-lanes');
     await expect.poll(async () => (await lanesScene(page)).shown?.lanes).toBe(1);
     await expect.poll(async () => (await lanesScene(page)).shown?.lifted ?? 0).toBeGreaterThan(0); // the wave runs on the preview
+    // the page says how it is used, at the sheet's foot
+    expect((await sceneTexts(page, 'beat-lanes')).join(' ')).toContain('Click the staff to add a row of dots');
     const at = await toPage(page);
     // a click over the staff, away from the row between the staves, adds a row there
     const { top, S } = await staffTop(page);

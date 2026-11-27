@@ -18,7 +18,7 @@ import { knownFlag, type CharacterDef } from './character';
 /** What the content holds, as the check needs it. */
 export interface CharacterFacts {
   /** A piece's bar count and its meta's source and licence, or undefined when no such piece compiles. */
-  readonly piece: (piece: PieceId) => { readonly bars: number; readonly source: string; readonly license: string } | undefined;
+  readonly piece: (piece: PieceId) => { readonly bars: number; readonly source: string; readonly license: string; readonly status?: 'draft' | 'approved' } | undefined;
   /** A conversation, or undefined when there is no such conversation. */
   readonly conversation: (id: string) => Conversation | undefined;
   /** An item's name key and picture key, or undefined when it is not in `content/items/items.json`. */
@@ -80,7 +80,9 @@ function levelProblems(def: CharacterDef, facts: CharacterFacts, say: Say): numb
       if (meta.bars < LEVEL_BARS.min || meta.bars > LEVEL_BARS.max) say(`level ${level}: piece ${piece} has ${meta.bars} bars, not ${LEVEL_BARS.min} to ${LEVEL_BARS.max}`);
       const real = meta.license === 'public-domain' && !MADE_HERE.test(meta.source);
       const manner = OPEN_LICENCES.includes(meta.license) && IN_THE_MANNER.test(meta.source);
-      if (!real && !manner) say(`level ${level}: piece ${piece} is not a real public-domain piece (source "${meta.source}", licence ${meta.license})`);
+      // an original piece of ours the maintainer approved may be taught too (d272)
+      const approvedOwn = OPEN_LICENCES.includes(meta.license) && meta.status === 'approved';
+      if (!real && !manner && !approvedOwn) say(`level ${level}: piece ${piece} is not a real public-domain piece (source "${meta.source}", licence ${meta.license})`);
     }
   }
   return levels;

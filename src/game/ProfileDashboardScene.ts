@@ -1,16 +1,17 @@
 import { firstPrintedBar } from '../core/chart';
 import { ART_DETAIL } from '../core/layout/frame';
+import { FOCUS_LAYOUT, type FocusLayout } from '../core/layout/focus';
 import { strings, t, type StringKey as TextKey } from '../core/text/strings';
 import { ROOM_OBJECTS, STRIP_ROWS, roomPlan, roomView, type RoomObject } from '../core/layout/room';
 import { rectCentre, type Rect } from '../core/layout/rect';
-import { PixelButton, PixelImage } from './ui/pixel/PixelObjects';
+import { PixelBar, PixelButton, PixelImage } from './ui/pixel/PixelObjects';
+import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { KIUR_ZZZ_FROM, plantStage } from './ui/pixel/keri/roomLife';
 import { panelBitmap } from './ui/pixel/frames';
-import { ICONS } from './ui/pixel/iconArt';
 import { C } from './ui/pixel/palette';
 import { drawnText, measure, renderText } from './ui/pixel/font';
 import { BAR_BUTTON_HEIGHT } from './ui/pixel/playBars';
-import { clipToWidth } from '../core/text/clip';
+import { nameRibbon } from './ui/pixel/rankArt';
 import { playerStats } from '../core/progression/playerStats';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { backpackOf } from './adventure/backpack';
@@ -92,13 +93,17 @@ const ROOM_SHAFT = { x: 196, y: 96, w: 124, h: 130 } as const;
 const TICK_MS = 500;
 /**
  * The player's name written into the rank shield (ft_1_20.AC13; the name is part of the shield,
- * not a separate bubble): in fine pixels, on the shield's own grid, in the band above its chevrons. A longer name is cut.
+ * not a separate bubble): in fine pixels, on the shield's own grid, in the band above its chevrons. A longer name goes
+ * whole on a ribbon over the shield's point (`ribbonUp` fine pixels above its foot; AX-3 provisional).
  */
-const SHIELD_NAME = { top: 5, width: 36 } as const;
+const SHIELD_NAME = { top: 5, width: 36, ribbonUp: 12 } as const;
 /** The player's card: its width, the height of a line, its margin. */
 const CARD_WIDTH = 220;
 const CARD_LINE = 10;
 const CARD_PAD = 6;
+/** The player's card's bar toward the next level, with the room under it, and the gap between that block and the stats. */
+const CARD_BAR_ROWS = 8;
+const CARD_STATS_GAP = 4;
 const CLOSE = { width: 22, height: 16 } as const;
 /** The intro's skip button: room round its word, and its distance from the screen's corner. */
 const INTRO_SKIP = { pad: 10, margin: 4 } as const;
@@ -120,6 +125,8 @@ const RING_MS = 120;
 
 export class ProfileDashboardScene extends PixelScene {
   protected override keyboardNavigation = true;
+  /** The room's things stand in no rows: Left and Right go through them in their order across the screen (ft_Y_13). */
+  protected override focusLayout: FocusLayout = FOCUS_LAYOUT.picture;
 
   /** The sky's look in the window: the phase when the room opened (ft_1_14 AC8). */
   private look: SceneLook | null = null;
@@ -220,8 +227,15 @@ export class ProfileDashboardScene extends PixelScene {
   }
 
   private showCard(open: boolean): void {
+    // the card and the backpack's menu never lie one over the other: opening the card closes the backpack
+    if (open) this.closeMenu();
     this.cardOpen = open;
     this.redraw();
+  }
+
+  /** Opening the backpack closes the player's card. */
+  protected override beforeBackpack(): void {
+    if (this.cardOpen) this.showCard(false);
   }
 
   private showStand(open: boolean): void {
@@ -426,7 +440,7 @@ export class ProfileDashboardScene extends PixelScene {
     }
     // the shield opens the player's card; under the band alone the player's name is written into it (ft_1_20.AC13)
     const shield = { x: at.x + Math.floor(plan.shield.x / ART_DETAIL), y: at.y + Math.floor(plan.shield.y / ART_DETAIL), w: Math.ceil(plan.shield.w / ART_DETAIL), h: Math.ceil(plan.shield.h / ART_DETAIL) };
-    this.button({ ...rectCentre(shield), label: t('room.shield'), picture: createBitmap(shield.w, shield.h), onHover: (over) => contour.setVisible(over), onClick: () => this.showCard(true) });
+    this.button({ ...rectCentre(shield), label: t('room.shield'), tooltip: t('room.shield'), picture: createBitmap(shield.w, shield.h), onHover: (over) => contour.setVisible(over), onClick: () => this.showCard(true) });
     if (!this.toolbarShown) this.nameOnShield({ x: at.x * ART_DETAIL + plan.shield.x, y: at.y * ART_DETAIL + plan.shield.y, w: plan.shield.w, h: plan.shield.h });
     this.kiur(at, picture.kiur, (over) => {
       awake.setAlpha(over ? 1 : 0);
@@ -954,24 +968,34 @@ export class ProfileDashboardScene extends PixelScene {
    * painted on it; `shield` is in fine pixels of the main area.
    */
   private nameOnShield(shield: Rect): void {
-    const full = drawnText(contextOf(this).profiles.profile.name);
-    const name = measure(full) > SHIELD_NAME.width ? clipToWidth(full, SHIELD_NAME.width, measure) : full;
+    const name = drawnText(contextOf(this).profiles.profile.name);
     const letters = renderText(name, { color: C.goldLight, shadow: C.ink });
     // named, so a test can find it among the room's pictures
-    this.fineImage(shield.x + Math.floor((shield.w - letters.width) / 2), shield.y + SHIELD_NAME.top, letters).setName('shieldName');
+    if (measure(name) <= SHIELD_NAME.width) {
+      this.fineImage(shield.x + Math.floor((shield.w - letters.width) / 2), shield.y + SHIELD_NAME.top, letters).setName('shieldName');
+      return;
+    }
+    // a name too long for the shield's band is never cut: it is written whole on a ribbon hung over the shield's point
+    const { ribbon, at } = nameRibbon(letters);
+    const x = Math.max(0, Math.min(this.px.width * ART_DETAIL - ribbon.width, shield.x + Math.floor((shield.w - ribbon.width) / 2)));
+    const y = shield.y + shield.h - SHIELD_NAME.ribbonUp;
+    this.fineImage(x, y, ribbon).setName('shieldRibbon');
+    this.fineImage(x + at.x, y + at.y, letters).setName('shieldName');
   }
 
   /**
    * The player's card over the room (ft_1_20.AC13; the shield opens a window of
-   * detailed stats and skills, for now what the game already tracks): the name and level, the XP, then what the save counts.
+   * detailed stats and skills, for now what the game already tracks): the name, level and total XP, the bar toward the next level, then what the save counts.
    * Returns its buttons; a press outside the card closes it.
    */
   private card(): PixelButton[] {
     const context = contextOf(this);
     const stats = playerStats(context.profiles.profile, context.profiles.progress);
-    const xp = stats.xpForLevel === null ? t('menu.xpTop', { xp: stats.totalXp }) : t('menu.xp', { xp: stats.xpIntoLevel, next: stats.xpForLevel });
+    // the total XP, which only grows, by the level; under it a bar toward the next level and the XP inside the level under
+    // the bar: that alone would look like XP lost at every level-up
+    const xp = stats.xpForLevel === null ? t('menu.xpTop', { xp: stats.totalXp }) : t('card.xpTotal', { xp: stats.totalXp });
+    const toNext = stats.xpForLevel === null ? null : t('card.toNext', { xp: stats.xpIntoLevel, next: stats.xpForLevel, level: stats.level + 1 });
     const lines: [string, string][] = [
-      [t('card.xp'), xp],
       [t('card.pieces'), String(stats.piecesPlayed)],
       [t('card.passes'), String(stats.passes)],
       [t('card.fiveStars'), String(stats.fiveStarPieces)],
@@ -979,8 +1003,10 @@ export class ProfileDashboardScene extends PixelScene {
       [t('card.noteTrainer'), String(stats.noteTrainerXp)],
       [t('card.earPoints'), String(stats.earPoints)],
     ];
+    // the bar's block: the bar, then its words on a line of their own
+    const barBlock = toNext === null ? 0 : CARD_BAR_ROWS + CARD_LINE;
+    const h = 2 * CARD_PAD + CARD_LINE + barBlock + CARD_STATS_GAP + CARD_LINE * lines.length + 2;
     const { width, height } = this.px;
-    const h = 2 * CARD_PAD + CARD_LINE * (lines.length + 1) + 2;
     const x = Math.floor((width - CARD_WIDTH) / 2);
     const y = Math.max(0, Math.floor((this.mainRows - h) / 2));
     // the room behind it darkens, and a press there closes the card
@@ -990,14 +1016,21 @@ export class ProfileDashboardScene extends PixelScene {
     // the card itself takes its presses, so only a press beside it closes it
     this.root.add(new PixelImage(this, x, y, panelBitmap(CARD_WIDTH, h, 'panel')).setInteractive());
     const name = this.label(x + CARD_PAD, y + CARD_PAD, context.profiles.profile.name, C.gold);
-    this.label(name.x + name.width + 6, y + CARD_PAD, t('menu.level', { level: stats.level }), C.white);
+    const level = this.label(name.x + name.width + 6, y + CARD_PAD, t('menu.level', { level: stats.level }), C.white);
+    this.label(level.x + level.width + 8, y + CARD_PAD, xp, C.white);
+    if (toNext !== null && stats.xpForLevel !== null) {
+      const barY = y + CARD_PAD + CARD_LINE + 1;
+      this.root.add(new PixelBar(this, x + CARD_PAD, barY, CARD_WIDTH - 2 * CARD_PAD, 5, stats.xpIntoLevel / stats.xpForLevel));
+      this.label(x + CARD_PAD, barY + CARD_BAR_ROWS, toNext, C.white);
+    }
+    const statsTop = y + CARD_PAD + CARD_LINE + barBlock + CARD_STATS_GAP;
     lines.forEach(([label, value], i) => {
-      const lineY = y + CARD_PAD + CARD_LINE * (i + 1) + 2;
+      const lineY = statsTop + CARD_LINE * i + 2;
       this.label(x + CARD_PAD, lineY, label, C.dim);
       const shown = this.label(0, lineY, value, C.white);
       shown.x = x + CARD_WIDTH - CARD_PAD - shown.width;
     });
-    const close = this.button({ x: x + CARD_WIDTH - CARD_PAD - CLOSE.width / 2 + 2, y: y + CARD_PAD + 2, ...CLOSE, label: t('card.close'), icon: ICONS.quit, iconOnly: true, onClick: () => this.showCard(false) });
+    const close = this.button({ x: x + CARD_WIDTH - CARD_PAD - CLOSE.width / 2 + 2, y: y + CARD_PAD + 2, ...CLOSE, label: t('card.close'), icon: TOOL_ICONS.close, iconOnly: true, tooltip: t('card.close'), onClick: () => this.showCard(false) });
     return [close];
   }
 }

@@ -26,7 +26,7 @@ Principle: almost all game rules live in pure TypeScript (`src/core`), so they c
 - **Chart / compiler:** every bar's durations sum to the meter; ticks are monotonic per voice; compile then serialise then parse round-trips; invalid ABC gives errors with line numbers, never a crash. Property tests generate random valid pieces within a level and assert the linter accepts them.
 - **Staff layout:** pitch to staff position is correct for both clefs, including ledger lines and (once supported) accidentals; layout never overlaps notes at the one supported size (below).
 - **Judge:** for any sequence of key events the state machine never gets stuck (a correct sequence always completes); note-on with velocity 0 behaves as note-off; chords in any press order are accepted; wrong-note verdict carries the right reason (wrong octave, neighbour key, wrong letter); the same input always yields the same output.
-- **Scoring and progression:** XP is never negative; hints reduce reward but never punish below zero; level thresholds are monotonic; unlock rules are deterministic; saved data migrates from every older schema version.
+- **Scoring and progression:** XP is never negative; hints reduce reward but never punish below zero; level thresholds are monotonic; saved data migrates from every older schema version.
 - **Generators:** same seed gives identical output; every generated piece passes the linter at its target level.
 - **Time:** the core takes an injectable clock; no test uses real timers or sleeps.
 

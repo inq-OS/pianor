@@ -19,8 +19,27 @@ const CHOICE = 18;
 const OUTER = 56;
 /** The turn between neighbouring choices on the outer ring: 26 cells apart. */
 const OUTER_STEP = 2 * Math.asin(13 / OUTER);
-/** How many steps the outer ring may turn away from its option to stay on the screen. */
+/** How many steps the outer ring may turn away from its option at least; a longer row turns as far as it still reaches its option. */
 const TURN_STEPS = 2;
+/** How far an option's round plate reaches past its box (24 across over 20): the plate, not only the box, stays on the screen. */
+export const PLATE_REACH = 2;
+/** How far the sausage the choices lie in reaches past their boxes (`SAUSAGE_PAD` in bubbleArt.ts). */
+export const SAUSAGE_REACH = 3;
+/** The bubble's reach from its centre with its plates: what is kept on the screen. */
+const EDGE = HALF + PLATE_REACH;
+/**
+ * AX-3 provisional: how many cells of moving the bubble count the same as choices lying over the thing it was opened on
+ * (its note); the turn that covers it is taken only when the others would move the bubble farther than this.
+ */
+const COVER_COST = 32;
+/** How far, in steps of `AWAY_STEP` cells, the bubble may move on away from the thing pressed to leave it in sight. */
+const AWAY_STEP = 4;
+/**
+ * AX-3 provisional: how many cells of moving the bubble count the same as one choice lying over a place the screen keeps in
+ * sight (`avoid`: the piece maker's staff), so the ring turns toward the empty side where it can.
+ */
+const AVOID_COST = 3;
+const AWAY_STEPS = 10;
 
 export interface BubbleLayout {
   /** The ring's centre: the pointer, moved only as far as the whole bubble needs to stay on the screen. */
@@ -37,29 +56,67 @@ export interface BubbleLayout {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
 
+/** Between the ring's edge and the thing it opens beside. */
+const BESIDE_GAP = 2;
+
+/**
+ * Where the ring stands across: at the pointer, or with `beside` (the note it acts on, ft_1_02d.AC52) level with it on its
+ * right, on its left where the right has no room, so the thing stays in view.
+ */
+function besideX(x: number, beside: Rect | undefined, width: number): number {
+  if (!beside) return x;
+  const right = rectRight(beside) + BESIDE_GAP + EDGE;
+  if (right + EDGE <= width) return right;
+  const left = beside.x - BESIDE_GAP - EDGE;
+  return left - EDGE >= 0 ? left : x;
+}
+
 /** The bubble for `options` options (at most `BUBBLE_SLOTS`) opened at `at` on a screen `screen` cells large, kept below its `y`. */
-export function bubbleLayout(input: { at: { x: number; y: number }; options: number; screen: { y?: number; w: number; h: number }; open?: { option: number; choices: number } }): BubbleLayout {
+export function bubbleLayout(input: { at: { x: number; y: number }; options: number; screen: { y?: number; w: number; h: number }; open?: { option: number; choices: number }; beside?: Rect; avoid?: readonly Rect[] }): BubbleLayout {
   // `screen.y`: rows at the top the bubble keeps off (the top strip of a screen without a toolbar); `h` counts from there
   const top = input.screen.y ?? 0;
   const bottom = top + input.screen.h;
   const slotAngle = (i: number) => -Math.PI / 2 + (2 * Math.PI * i) / BUBBLE_SLOTS;
   const box = (c: { x: number; y: number }, angle: number, radius: number, size: number): Rect => ({ x: Math.round(c.x + radius * Math.cos(angle) - size / 2), y: Math.round(c.y + radius * Math.sin(angle) - size / 2), w: size, h: size });
-  let centre = { x: Math.round(clamp(input.at.x, HALF, input.screen.w - HALF)), y: Math.round(clamp(input.at.y, top + HALF, bottom - HALF)) };
+  const fit = (c: { x: number; y: number }) => ({ x: Math.round(clamp(c.x, EDGE, input.screen.w - EDGE)), y: Math.round(clamp(c.y, top + EDGE, bottom - EDGE)) });
+  let centre = fit({ x: besideX(input.at.x, input.beside, input.screen.w), y: input.at.y });
   let choices: Rect[] = [];
   const n = input.open && input.open.option >= 0 && input.open.option < Math.min(BUBBLE_SLOTS, input.options) ? Math.max(0, input.open.choices) : 0;
   if (n > 0 && input.open) {
-    // the outer ring centred on the option's slot, or turned round the bubble a step or two (farther would leave its option
-    // behind); the turn nearest the slot that fits the screen, else the one that needs the bubble moved least, moved by that much
-    let best: { shift: { x: number; y: number }; middle: number } | null = null;
-    for (let k = 0; k <= 2 * TURN_STEPS; k++) {
+    // the outer ring centred on the option's slot, or turned round the bubble a step or two, a long row as far as it still
+    // reaches its option; the turn nearest the slot that fits the screen and leaves the thing pressed in sight, else the one
+    // that needs the bubble moved least, moved by that much (and kept whole on the screen)
+    const turns = Math.max(TURN_STEPS, Math.floor(n / 2));
+    const arcAt = (c: { x: number; y: number }, middle: number) => Array.from({ length: n }, (_, i) => box(c, middle + (i - (n - 1) / 2) * OUTER_STEP, OUTER, CHOICE));
+    // the thing pressed hidden: under a choice's sausage, or under an option's plate where the bubble moved off it
+    const slots = Math.min(BUBBLE_SLOTS, input.options);
+    const covers = (c: { x: number; y: number }, arc: Rect[]) =>
+      arc.some((r) => input.at.x >= r.x - SAUSAGE_REACH && input.at.x < r.x + r.w + SAUSAGE_REACH && input.at.y >= r.y - SAUSAGE_REACH && input.at.y < r.y + r.h + SAUSAGE_REACH) ||
+      Array.from({ length: slots }, (_, i) => slotAngle(i)).some((a) => Math.hypot(input.at.x - c.x - RING * Math.cos(a), input.at.y - c.y - RING * Math.sin(a)) < OPTION / 2 + PLATE_REACH);
+    // how many choices lie over what the screen asks to keep in sight (the staff): the ring turns toward the empty side
+    const crowded = (arc: Rect[]) => arc.filter((r) => (input.avoid ?? []).some((a) => r.x < a.x + a.w && a.x < r.x + r.w && r.y < a.y + a.h && a.y < r.y + r.h)).length;
+    const onScreen = (arc: Rect[]) => arc.every((r) => r.x - SAUSAGE_REACH >= 0 && rectRight(r) + SAUSAGE_REACH <= input.screen.w && r.y - SAUSAGE_REACH >= top && rectBottom(r) + SAUSAGE_REACH <= bottom);
+    let best: { centre: { x: number; y: number }; middle: number; cost: number } | null = null;
+    for (let k = 0; k <= 2 * turns; k++) {
       const middle = slotAngle(input.open.option) + (k % 2 === 1 ? 1 : -1) * Math.ceil(k / 2) * OUTER_STEP;
-      const arc = Array.from({ length: n }, (_, i) => box(centre, middle + (i - (n - 1) / 2) * OUTER_STEP, OUTER, CHOICE));
+      const arc = arcAt(centre, middle);
       const out = (lo: number, hi: number, min: number, max: number) => Math.max(0, min - lo) - Math.max(0, hi - max);
-      const shift = { x: out(Math.min(...arc.map((r) => r.x)), Math.max(...arc.map(rectRight)), 0, input.screen.w), y: out(Math.min(...arc.map((r) => r.y)), Math.max(...arc.map(rectBottom)), top, bottom) };
-      if (!best || Math.abs(shift.x) + Math.abs(shift.y) < Math.abs(best.shift.x) + Math.abs(best.shift.y)) best = { shift, middle };
+      const shift = { x: out(Math.min(...arc.map((r) => r.x)) - SAUSAGE_REACH, Math.max(...arc.map(rectRight)) + SAUSAGE_REACH, 0, input.screen.w), y: out(Math.min(...arc.map((r) => r.y)) - SAUSAGE_REACH, Math.max(...arc.map(rectBottom)) + SAUSAGE_REACH, top, bottom) };
+      const moved = fit({ x: centre.x + shift.x, y: centre.y + shift.y });
+      // where the row would lie over the thing pressed, the bubble may move on away from it (near a corner)
+      const away = { x: moved.x - input.at.x, y: moved.y - input.at.y };
+      const length = Math.hypot(away.x, away.y) || 1;
+      for (let step = 0; step <= AWAY_STEPS; step++) {
+        const c = step === 0 ? moved : fit({ x: moved.x + (away.x / length) * step * AWAY_STEP, y: moved.y + (away.y / length) * step * AWAY_STEP });
+        const at = arcAt(c, middle);
+        if (step > 0 && !onScreen(at)) continue;
+        const cost = Math.abs(c.x - centre.x) + Math.abs(c.y - centre.y) + (covers(c, at) ? COVER_COST : 0) + AVOID_COST * crowded(at);
+        if (!best || cost < best.cost) best = { centre: c, middle, cost };
+        if (!covers(c, at)) break;
+      }
     }
-    centre = { x: centre.x + best!.shift.x, y: centre.y + best!.shift.y };
-    const arc = Array.from({ length: n }, (_, i) => box(centre, best!.middle + (i - (n - 1) / 2) * OUTER_STEP, OUTER, CHOICE));
+    centre = best!.centre;
+    const arc = arcAt(centre, best!.middle);
     // first to last reads left to right, or top to bottom where the arc stands upright
     const [a, z] = [arc[0]!, arc[n - 1]!];
     if (z.x - a.x < 0 || (z.x === a.x && z.y < a.y)) arc.reverse();
@@ -70,6 +127,39 @@ export function bubbleLayout(input: { at: { x: number; y: number }; options: num
   for (let i = 0; i < Math.min(BUBBLE_SLOTS, Math.max(0, input.options)); i++) options.push(box(centre, slotAngle(i), RING, OPTION));
   const close = { x: centre.x - OPTION / 2, y: centre.y - OPTION / 2, w: OPTION, h: OPTION };
   return { centre, area, options, choices, close };
+}
+
+/** Half a round plate (24 across): an option's key has its lower right corner on the corner of the plate's square. */
+const PLATE_HALF = OPTION / 2 + 2;
+/** How far the ring reaches from its centre: an option's plate and the keyboard's focus ring round it, and one cell more. */
+const RING_REACH = RING + PLATE_HALF + 3;
+/** How far an open option's choices reach on the outer ring, and one cell more. */
+const CHOICES_REACH = OUTER + CHOICE / 2 + 1;
+
+/**
+ * Where option `slot`'s key (`size` cells) is drawn on a bubble opened from the keyboard: the same spot on every plate, its
+ * lower right, the key's lower right corner on the corner of the plate's square, so it is read as that plate's and covers
+ * no other option's picture; kept on the screen.
+ */
+export function keyBadgeBox(layout: Pick<BubbleLayout, 'options'>, slot: number, size: { w: number; h: number }, screen: { w: number; h: number }): Rect {
+  const option = layout.options[slot]!;
+  const cx = option.x + option.w / 2, cy = option.y + option.h / 2;
+  const x = Math.round(cx + PLATE_HALF - size.w), y = Math.round(cy + PLATE_HALF - size.h);
+  return { x: clamp(x, 0, screen.w - size.w), y: clamp(y, 0, screen.h - size.h), w: size.w, h: size.h };
+}
+
+/**
+ * Where an option's name (its tooltip, `size` cells) is shown on the bubble: outside the ring, above it, or under it where
+ * the screen has no room above, centred on the bubble, so it never hides an option or its key; past the outer ring while an
+ * option's choices are open there.
+ */
+export function bubbleTooltipBox(layout: Pick<BubbleLayout, 'centre' | 'choices'>, size: { w: number; h: number }, screen: { y?: number; w: number; h: number }): Rect {
+  const top = screen.y ?? 0;
+  const reach = layout.choices.length > 0 ? CHOICES_REACH : RING_REACH;
+  const above = Math.round(layout.centre.y - reach - size.h);
+  const below = Math.round(layout.centre.y + reach);
+  const y = above >= top ? above : below + size.h <= top + screen.h ? below : clamp(above, top, top + screen.h - size.h);
+  return { x: clamp(Math.round(layout.centre.x - size.w / 2), 0, screen.w - size.w), y, w: size.w, h: size.h };
 }
 
 /**

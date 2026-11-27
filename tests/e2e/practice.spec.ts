@@ -15,8 +15,8 @@ test.describe('menu', () => {
     // The pieces come in pages of six; every one of them is on some page.
     expect(await allMenuTitles(page)).toEqual(
       expect.arrayContaining([
-        'Bass Steps', 'High and Low', 'Little Steps', 'Rest Waltz', 'Twinkle Twinkle Little Star', 'Take Turns', 'Both Hands',
-        'Hot Cross Buns', 'Ode to Joy', 'Stair Steps', 'Ode to Joy, Left Hand', 'Low Walk', 'Mary Had a Little Lamb', 'Au Clair de la Lune', 'Quiet Pond',
+        'Bass Steps', 'High and Low', 'Little Steps', 'Rest Waltz', 'Take Turns', 'Both Hands', 'Grace Steps', 'Skipping Stones',
+        'Au Clair de la Lune', 'Pebble Hop', 'Cave Rumble', 'Echo Giant', 'Mist Waltz',
       ]),
     );
 
@@ -80,6 +80,20 @@ test.describe('menu', () => {
     expect(await page.evaluate(() => window.__game.scene.getScene('menu').page as number)).toBe(1);
     expectNoErrors(errors);
   });
+
+  test('a piece card pressed and Esc at once opens only the piece, not the room behind it as well', async ({ page }) => {
+    const errors = await openGame(page);
+    const index = await showMenuPageWith(page, 'Little Steps');
+    // the press and the Esc in one go, before the game moves to the next frame: the move to the piece is still queued
+    await page.evaluate((i) => {
+      (window.__game.scene.getScene('menu').buttons[i] as { press(): void }).press();
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+    }, index);
+    await waitForScene(page, 'practice');
+    await page.waitForFunction((f) => window.__game.loop.frame >= f + 10, await page.evaluate(() => window.__game.loop.frame));
+    expect(await activeScenes(page)).toEqual(['practice']);
+    expectNoErrors(errors);
+  });
 });
 
 test.describe('playing a whole piece without a real keyboard', () => {
@@ -130,6 +144,38 @@ test.describe('playing a whole piece without a real keyboard', () => {
     expectNoErrors(errors);
   });
 
+  test('ft_0_08.AC1 a note right only after a wrong key keeps its own colour, a first-try note turns green', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    const colour = (note: number) => page.evaluate((n) => window.__game.scene.getScene('practice').playSession.staffView?.noteColourOf(n) ?? null, note);
+    const step = () => page.evaluate(() => window.__game.scene.getScene('practice').playSession.controller.getState().stepIndex as number);
+    await playWithKeys(page, [65, 60]); // a wrong F4, then the awaited C4
+    await expect.poll(step).toBe(1);
+    await playWithKeys(page, LITTLE_STEPS.slice(1, 2)); // the second note at the first try
+    await expect.poll(step).toBe(2);
+    // once the wrong key's short red flash is over, the note stays in the retried orange (DEFAULT_THEME.retried)
+    await expect.poll(() => colour(0)).toBe(0xff7a00);
+    expect(await colour(1)).toBe(0x1f9d55); // the first-try green (DEFAULT_THEME.correct)
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_12.AC4 leaving mid-piece shows the plain lines, no empty stars and no empty graph; the door and the gear are solid over the card', async ({ page }) => {
+    const errors = await openGame(page);
+    await openPiece(page, 'Little Steps');
+    await playWithKeys(page, LITTLE_STEPS.slice(0, 3));
+    await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').playSession.controller.getState().stepIndex)).toBe(3);
+    await page.keyboard.press('Escape');
+    await waitForScene(page, 'results');
+    expect(await sceneTexts(page, 'results')).toContain('You played some notes. The end can wait for next time!');
+    const shown = await page.evaluate(() => {
+      const results = window.__game.scene.getScene('results');
+      const { back, settings } = results.toolbarButtons as Record<'back' | 'settings', { objects: { alpha: number }[] } | null>;
+      return { stars: results.starsShown, graph: results.graph, door: back?.objects[0]?.alpha, gear: settings?.objects[0]?.alpha };
+    });
+    expect(shown).toEqual({ stars: false, graph: null, door: 1, gear: 1 });
+    expectNoErrors(errors);
+  });
+
   test('hints switched on with real clicks are recorded in the results', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
@@ -169,6 +215,7 @@ test.describe('other pieces', () => {
     expectNoErrors(errors);
   });
 
+  // Skipping Stones is one of the tests' own pieces (tests/fixtures/e2e/pieces)
   test('a piece with eighth notes is drawn with beams and can be played to the end', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
     await openPiece(page, 'Skipping Stones');

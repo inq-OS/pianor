@@ -4,7 +4,7 @@
 // buttons and the paths it did not reach.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene } from './helpers';
+import { activeScene, addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene } from './helpers';
 
 /** The main menu: from the piece list, the room's Quit goes there (`goToMainMenu`). */
 const openProfiles = async (page: Page) => {
@@ -58,7 +58,7 @@ test.describe('main menu (ft_1_07.AC2)', () => {
     const texts = await sceneTexts(page, 'profiles');
     expect(texts).toEqual(expect.arrayContaining(['Pianor', 'TUVI', 'VINT', 'KIUR', 'PÄÄSU']));
     // no "Who is playing?" (the choice is implied), and the "+", the piano and the gear are pictures
-    for (const gone of ['Who is playing?', 'New player', 'Credits', 'Admin', 'Piece maker', 'Settings']) expect(texts).not.toContain(gone);
+    for (const gone of ['Who is playing?', 'New player', 'Credits', 'Admin', 'Piece maker', 'Credits and admin']) expect(texts).not.toContain(gone);
     // the four players come first, in order; TUVI is the active player of a new game and so the only marked line
     const active = await buttonActive(page, 'profiles');
     expect(active.slice(0, 4)).toEqual([true, false, false, false]);
@@ -66,7 +66,7 @@ test.describe('main menu (ft_1_07.AC2)', () => {
     expect(await profileButton(page, 'Piece maker')).toBe(5);
     // the academic hat between the piano and the gear opens the teacher's screen (ft_1_26.AC1, d145)
     expect(await profileButton(page, 'Teacher')).toBe(6);
-    expect(await profileButton(page, 'Settings')).toBe(7);
+    expect(await profileButton(page, 'Credits and admin')).toBe(7);
     expect(await profileButton(page, 'Free play')).toBe(-1);
     // Credits and Admin are under the gear, and nothing else
     expect(await profileButton(page, 'Credits')).toBe(-1);
@@ -243,8 +243,9 @@ test.describe('admin page (ft_1_07.AC6)', () => {
     await openAdmin(page);
     await clickButton(page, 'admin', 2); // Rename player
     await waitForScene(page, 'name');
-    // the book's cover carries no words: the ask is the name field's accessible name
-    await expect(page.locator('#name-field')).toHaveAttribute('aria-label', 'New name:');
+    // the ask, written over the plate, names the player renamed; it is the name field's accessible name too
+    await expect(page.locator('#name-field')).toHaveAttribute('aria-label', 'New name for TUVI');
+    expect(await sceneTexts(page, 'name')).toContain('New name for TUVI');
     // no instructions on the name box
     expect(await sceneTexts(page, 'name')).not.toContain('Tap the letters');
     await clickToolbar(page, 'back'); // the door (ft_1_20)
@@ -297,6 +298,102 @@ test.describe('admin page (ft_1_07.AC6)', () => {
     expect(await playerName(page)).toBe('MÕRI');
     expectNoErrors(errors);
   });
+
+  test('the admin screens\' titles stand clear of the Back door in the top left corner', async ({ page }) => {
+    const errors = await openGame(page);
+    await openAdmin(page);
+    for (const key of ['admin', 'adminPages', 'adminDelete', 'adminPassword', 'adminGate']) {
+      await page.evaluate((k) => {
+        for (const s of window.__game.scene.getScenes(true)) window.__game.scene.stop(s.scene.key);
+        window.__game.scene.start(k);
+      }, key);
+      await waitForScene(page, key);
+      const clash = await page.evaluate((k) => {
+        type Box = { left: number; top: number; right: number; bottom: number };
+        type Text = { pixelText?: boolean; visible: boolean; text: string; x: number; y: number; scaleX: number; scaleY: number; letterBox: Box };
+        const scene = window.__game.scene.getScene(k) as unknown as { root: { list: Text[] }; toolbarButtons: { back: { box: { x: number; y: number; width: number; height: number } } | null } };
+        const back = scene.toolbarButtons.back!.box;
+        return scene.root.list
+          .filter((o) => o.pixelText === true && o.visible && o.text.trim() !== '')
+          .filter((o) => o.x + o.letterBox.left * o.scaleX < back.x + back.width && back.x < o.x + o.letterBox.right * o.scaleX && o.y + o.letterBox.top * o.scaleY < back.y + back.height && back.y < o.y + o.letterBox.bottom * o.scaleY)
+          .map((o) => o.text);
+      }, key);
+      expect([key, clash]).toEqual([key, []]);
+    }
+    expectNoErrors(errors);
+  });
+
+  test('the admin gate draws the box the password is typed into, as the teacher\'s gate does', async ({ page }) => {
+    const errors = await openGame(page);
+    for (const key of ['adminGate', 'teacherGate']) {
+      await page.evaluate((k) => {
+        for (const s of window.__game.scene.getScenes(true)) window.__game.scene.stop(s.scene.key);
+        window.__game.scene.start(k);
+      }, key);
+      await waitForScene(page, key);
+      const field = () => page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { root: { list: { name: string }[] } }).root.list.some((o) => o.name === 'passwordField'), key);
+      expect([key, await field()]).toEqual([key, true]);
+    }
+    expectNoErrors(errors);
+  });
+
+  test('the admin pages\' buttons write their words on one baseline in both columns', async ({ page }) => {
+    const errors = await openGame(page);
+    await openAdmin(page);
+    await page.evaluate(() => {
+      for (const s of window.__game.scene.getScenes(true)) window.__game.scene.stop(s.scene.key);
+      window.__game.scene.start('adminPages');
+    });
+    await waitForScene(page, 'adminPages');
+    const baselines = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('adminPages') as unknown as { buttons: { box: { y: number; height: number }; label: { y: number; height: number; text: string } }[] };
+      // where the capitals stand on their baseline, from the button's top
+      return scene.buttons.filter((b) => b.box.height === 18).map((b) => b.label.y + b.label.height - b.box.y);
+    });
+    expect(baselines.length).toBeGreaterThan(4);
+    expect(new Set(baselines).size).toBe(1);
+    expectNoErrors(errors);
+  });
+
+  test('Enter on a blank name is refused on the picker as Done is', async ({ page }) => {
+    const errors = await openGame(page);
+    await openAdmin(page);
+    await clickButton(page, 'admin', 2); // Rename player
+    await waitForScene(page, 'name');
+    await page.keyboard.press('Enter');
+    await expect.poll(() => sceneTexts(page, 'name')).toContain('The name cannot be empty.');
+    expect(await activeScene(page)).toBe('name');
+    expect(await playerName(page)).toBe('TUVI');
+    expectNoErrors(errors);
+  });
+
+  for (const lang of ['en', 'et'] as const) {
+    test(`why a name was refused is written inside the name plate's rule, in ${lang}`, async ({ page }) => {
+      const errors = await openGame(page, '?device=virtual', lang, 'profiles');
+      await clickButton(page, 'profiles', await profileButton(page, lang === 'en' ? 'New player' : 'Uus mängija'));
+      await waitForScene(page, 'name');
+      await page.keyboard.type('tuvi');
+      await page.keyboard.press('Enter');
+      await expect.poll(async () => (await sceneTexts(page, 'name')).length).toBeGreaterThan(1);
+      const placed = await page.evaluate(() => {
+        type Text = { pixelText?: boolean; visible: boolean; text: string; x: number; y: number; scaleX: number; scaleY: number; letterBox: { left: number; top: number; right: number; bottom: number } };
+        const scene = window.__game.scene.getScene('name') as unknown as { root: { list: Text[] }; plateBox: { x: number; y: number; w: number; h: number; rule: number } };
+        const p = scene.plateBox;
+        const inside = { left: p.x + p.rule, top: p.y + p.rule, right: p.x + p.w - p.rule, bottom: p.y + p.h - p.rule };
+        return scene.root.list
+          // the ask stands above the plate (ft_1_07): only the writing on the plate counts here
+          .filter((o) => o.pixelText === true && o.visible && o.text.trim() !== '' && o.text !== 'TUVI' && o.y >= p.y)
+          .map((o) => {
+            const box = { left: o.x + o.letterBox.left * o.scaleX, top: o.y + o.letterBox.top * o.scaleY, right: o.x + o.letterBox.right * o.scaleX, bottom: o.y + o.letterBox.bottom * o.scaleY };
+            return { text: o.text, inside: box.left >= inside.left && box.top >= inside.top && box.right <= inside.right && box.bottom <= inside.bottom };
+          });
+      });
+      expect(placed.length).toBe(1);
+      if (lang === 'en') expect(placed[0]!.text.replace(/\n/g, ' ')).toBe('Another player has this name.');
+      expect(placed).toEqual([{ text: placed[0]!.text, inside: true }]);
+      expectNoErrors(errors);
+    });
+  }
 
   test('a blank name is refused on the picker and the player keeps the old name', async ({ page }) => {
     const errors = await openGame(page);
@@ -485,7 +582,8 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
     expect((await sceneTexts(page, 'teacherGate')).join(' ')).toContain('child lock');
     await page.keyboard.type('teacher');
     await page.keyboard.press('Enter');
-    await expect.poll(() => sceneTexts(page, 'teacherGate')).toContain('Wrong password. Try again.');
+    // written on the register's page, line by line: the sentence may wrap
+    await expect.poll(async () => (await sceneTexts(page, 'teacherGate')).join(' ')).toContain('Wrong password. Try again.');
     await page.keyboard.type('pianor');
     await page.keyboard.press('Enter');
     await waitForScene(page, 'teacher');
@@ -696,15 +794,15 @@ test.describe("the teacher's screen behind the academic hat (ft_1_26, WP-14)", (
 
   test("ft_1_12.AC10 ft_1_12.AC11 the teacher's bookmark shows only the teacher's pieces; the order button puts the nearest deadline first", async ({ page }) => {
     const errors = await openGame(page);
-    const title: string = await page.evaluate(async () => {
+    // the last piece of the book, so that ordering by deadline visibly moves it to the front (a song's part is in no book page)
+    const before = await allMenuTitles(page);
+    const title = before.at(-1)!;
+    await page.evaluate(async (last) => {
       const context = window.__game.registry.get('context');
-      const pieces = context.pieces.list();
-      // the last piece of the book, so that ordering by deadline visibly moves it to the front
-      const piece = pieces[pieces.length - 1];
+      const piece = context.pieces.list().find((p: { chart: { title: string } }) => p.chart.title === last);
       await context.profiles.saveCurriculum(context.profiles.profile.id, { base: 85, calendar: [], pieces: [{ piece: piece.chart.id, deadline: '1998-12-20', priority: 5 }] });
       (window.__game.scene.getScene('menu') as unknown as { scene: { restart(): void } }).scene.restart();
-      return piece.chart.title as string;
-    });
+    }, title);
     await waitForScene(page, 'menu');
     const all = await allMenuTitles(page);
     expect(all).toContain(title);

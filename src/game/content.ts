@@ -17,8 +17,13 @@ export function bundledPieceSources(): Pick<PieceCatalogueSources, 'files' | 'om
   return { files: pieceFiles, omittedIds, devCharts };
 }
 
+/** The end-to-end tests' own songs (`tests/fixtures/e2e/songs`), in the tests' bundle only (`VITE_PIANOR_E2E`, playwright.config.ts). */
+const e2eSongs: Record<string, unknown> = import.meta.env.VITE_PIANOR_E2E === '1'
+  ? import.meta.glob('../../tests/fixtures/e2e/songs/*/song.json', { eager: true, import: 'default' })
+  : {};
+
 /** The song files of this build (`content/songs/<id>/song.json`, ft_1_36), unparsed; `SongCatalogue` reads them. */
 export function bundledSongFiles(): unknown[] {
-  const modules: Record<string, unknown> = import.meta.glob('../../content/songs/*/song.json', { eager: true, import: 'default' });
+  const modules: Record<string, unknown> = { ...import.meta.glob('../../content/songs/*/song.json', { eager: true, import: 'default' }), ...e2eSongs };
   return Object.entries(modules).sort(([a], [b]) => a.localeCompare(b)).map(([, raw]) => raw);
 }

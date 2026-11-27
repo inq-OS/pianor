@@ -6,11 +6,12 @@ import type { BarNumber } from '../../../core/layout/barNumbers';
 import type { Playhead } from '../../../core/layout/playhead';
 import type { DurationMarks } from '../../../core/layout/durationHelp';
 import { SCORE_COLOURS, STAFF_INK, scoreColour } from '../../../core/layout/scoreColour';
+import { MARKER_RING, markerRingY } from '../../../core/learn/markers';
 import { wordFits } from '../../../core/layout/dynamicWords';
 import type { PlayedMark } from '../../../core/layout/playedMark';
 import { dotLook, laneLift, paceColour, type LaneDot, type LaneLook } from '../../../core/layout/beatLane';
 import type { PaceMark } from '../../../core/layout/beat';
-import { accidentalKind, pageOfNotes, type BeamGlyph, type NoteGlyph, type NoteValue, type SlurGlyph, type StaffLayout, type TieGlyph, type TupletGlyph } from '../../../core/layout/staff';
+import { LABEL_LINE, accidentalKind, pageOfNotes, type BeamGlyph, type NoteGlyph, type NoteValue, type SlurGlyph, type StaffLayout, type TieGlyph, type TupletGlyph } from '../../../core/layout/staff';
 import type { GraceGlyph, OrnamentGlyph } from '../../../core/layout/staffTypes';
 import { slurPoints, tiePoints } from '../../../core/layout/preview';
 import { STAFF_LAYERS, type StaffLayer } from './layers';
@@ -21,16 +22,21 @@ import type { Dynamic } from '../../../core/chart/dynamics';
 import { ACCIDENTAL_STROKES, ORNAMENT_STROKES, BASS_CLEF_BALL, BASS_CLEF_DOTS, BASS_CLEF_STROKE, BRACE_PATH, DIGITS, QUARTER_REST_STROKE, TREBLE_CLEF_STROKE, type Pt } from './glyphs';
 import { STAFF_FONT } from './staffFont';
 
-export type NoteState = 'pending' | 'correct' | 'wrong';
+/** A note's play state: `retried` is right, but only after a wrong key in its step (drawn apart from a first-try note, AX-2.1). */
+export type NoteState = 'pending' | 'correct' | 'retried' | 'wrong';
 
 export interface StaffTheme {
   paper: number;
   ink: number;
   correct: number;
+  /** A note right only after a wrong key: not the first-try green, so a pass with misses does not look perfect. */
+  retried: number;
   wrong: number;
   cursor: number;
   cursorFill: number;
   hint: string;
+  /** A chord's name on the second line of its label (core_09.AC59): darker than the note names, so the two lines read apart. */
+  chordName: string;
   /** The soft background of a section's bars while it is chosen, and the colour of its A and B. */
   sectionFill: number;
   sectionInk: string;
@@ -48,12 +54,15 @@ export const DEFAULT_THEME: StaffTheme = {
   paper: PARCHMENT_PAPER,
   ink: STAFF_INK,
   correct: 0x1f9d55,
+  // the orange of a mistimed note in Tempo mode: right in the end, not at the first try
+  retried: SCORE_COLOURS.mistimedWorst,
   wrong: SCORE_COLOURS.missed,
   cursor: 0x2b6cff,
   // Halfway between the old highlight (0xdbe7ff) and the paper, so the box is softer.
   cursorFill: 0xeceff1,
   // slightly grey, so the note names and finger numbers do not muddy the notes
   hint: '#6e6e7a',
+  chordName: '#3a3a44',
   // a highlighter's pale yellow, a quarter of the way from the paper to gold: soft, and unlike the grey cursor box
   sectionFill: 0xfbebbc,
   sectionInk: '#8a5a00',
@@ -115,6 +124,9 @@ const DURATION_GHOST_ALPHA = 0.28;
 const PLAYED_ALPHA = 0.55;
 const PLAYED_INK = '#d7263d';
 const PLAYED_NAME_GAP = 1.7;
+/** A mark over the bars (A, B, a part's name; text 1.1 spaces high) stands this far over the beat dots, and not above this much from the sheet's top (staff spaces). */
+const MARK_CLEAR = 1.1;
+const MARK_TOP = 0.6;
 /** How much of the sheet's copy covers bars drawn very faint (ft_1_32.AC20): a little ink shows through. */
 const VEIL_ALPHA = 0.86;
 
@@ -140,14 +152,18 @@ export class StaffView {
   private readonly blinkGfx: Phaser.GameObjects.Graphics;
   private lanes: readonly { dots: readonly LaneDot[]; look: LaneLook }[] = [];
   /** The heads a blinking lane lights as its wave passes (core_13 rule 10): by tick and line, with the lane's wave reach. */
-  private blinkHeads: { tick: number; system: number; reach: number; heads: { x: number; y: number; rx: number; ry: number }[] }[] = [];
+  private blinkHeads: { tick: number; system: number; reach: number; follow: LaneLook['follow']; heads: { x: number; y: number; rx: number; ry: number }[] }[] = [];
   private laneWave: number | null = null;
+  /** Where the wave of a lane that follows the click is (core_13.AC9); undefined: as the other lanes' wave. */
+  private clickWave: number | null | undefined = undefined;
   private laneMarks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>> = new Map();
   private laneDrawn = '';
   private lanePpq = 480;
   private readonly playheadGfx: Phaser.GameObjects.Graphics;
   private readonly notesGfx: Phaser.GameObjects.Graphics;
   private readonly labels: Phaser.GameObjects.Text[] = [];
+  /** The second label line of a chord named under its notes (core_09.AC59), by the same slot as `labels`; null where there is none. */
+  private readonly nameLabels: (Phaser.GameObjects.Text | null)[] = [];
   /** The note-name hint of each grace note (core_09.AC32), small, under its head; in the order of `layout.graces`. */
   private readonly graceLabels: Phaser.GameObjects.Text[] = [];
   /** The graces drawn on the page shown, with the head centre each was drawn at (for tests: what is drawn, not only the layout). */
@@ -156,7 +172,7 @@ export class StaffView {
   private ornamentsDrawn: { index: number; x: number; y: number; kind: string }[] = [];
   private readonly fingerTexts: Phaser.GameObjects.Text[] = [];
   /** Where the hand moves along the keyboard (ft_1_30.AC10): an arrow above the staff over the note, shown with the finger numbers. */
-  private shifts: { x: number; y: number; direction: 'up' | 'down'; system: number }[] = [];
+  private shifts: { x: number; y: number; direction: 'up' | 'down'; system: number; staff: number }[] = [];
   private shiftGfx: Phaser.GameObjects.Graphics | null = null;
   private shiftsDrawn = { up: 0, down: 0 };
   /** Mistake markers (ft_1_32.AC5): a circle over a note missed again and again, its shade 0 to 1 (light to full red). */
@@ -232,7 +248,10 @@ export class StaffView {
     let markIndex = 0;
     for (const n of layout.notes) {
       const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize, color: theme.hint };
-      this.labels.push(scene.add.text(origin.x + n.column, origin.y + n.labelY, n.label, style).setOrigin(0.5));
+      // a chord's name stands on a second line under its notes (core_09.AC59), one text per line so each sits on its own line
+      const [notes, name] = n.label.split('\n');
+      this.labels.push(scene.add.text(origin.x + n.column, origin.y + n.labelY, notes ?? '', style).setOrigin(0.5));
+      this.nameLabels.push(name === undefined ? null : scene.add.text(origin.x + n.column, origin.y + n.labelY + LABEL_LINE * layout.staffSpace, name, { ...style, color: theme.chordName }).setOrigin(0.5));
       // a finger sits beside its head, level with it; the text is set by setHints
       this.fingerTexts.push(scene.add.text(origin.x + n.fingerX, origin.y + n.y, '', style).setOrigin(0.5));
       this.scoreTexts.push(scene.add.text(origin.x + n.column, origin.y + n.scoreY, '', { ...style, color: '#1b1b2f' }).setOrigin(0.5).setVisible(false));
@@ -261,6 +280,7 @@ export class StaffView {
     this.layout.notes.forEach((n, slot) => {
       const shown = this.onPage(n.system);
       this.labels[slot]!.setVisible(shown && hints.noteNames);
+      this.nameLabels[slot]?.setVisible(shown && hints.noteNames);
       const digit = hints.chordFingers ? n.headFinger : n.finger;
       this.fingerTexts[slot]!.setText(digit === null ? '' : String(digit));
       this.fingerTexts[slot]!.setVisible(shown && hints.fingers);
@@ -336,6 +356,20 @@ export class StaffView {
    * Mark a section, or none with null: its bars get a soft background, and its letters sit above the bar line where
    * a bar starts, after the bar number when there is one. The staff keeps its size; only these marks change.
    */
+  /**
+   * The screen y of the marks over a line's bars (a section's letters, a song's part names): just over the top staff, or
+   * over the beat lane's dots when they would stand on them, so the words never sit on the dots; on a line with no room
+   * above its dots they stay where they were.
+   */
+  private markY(system: number): number {
+    const S = this.layout.staffSpace;
+    const base = this.layout.systems[system]!.topLineY - 1.95 * S;
+    const near = this.lanes.flatMap((lane) => lane.dots).filter((d) => d.system === system && Math.abs(d.y - base) < MARK_CLEAR * S).map((d) => d.y);
+    if (near.length === 0) return this.origin.y + base;
+    const above = Math.min(...near) - MARK_CLEAR * S;
+    return this.origin.y + (above >= MARK_TOP * S ? Math.min(base, above) : base);
+  }
+
   setSectionMarks(marks: SectionMarks | null): void {
     this.section = marks;
     for (const mark of this.markTexts) mark.text.destroy();
@@ -349,11 +383,11 @@ export class StaffView {
       const number = this.barNumbers.find((n) => n.index === index);
       const cell = (0.8 * S) / 5;
       const numberWidth = number === undefined ? 0 : String(number.number).length * 4 * cell - cell + 0.4 * S;
-      const before = used.get(index) ?? 0;
-      used.set(index, before + 1);
-      const x = this.origin.x + bar.x + 0.25 * S + numberWidth + before * 1.1 * S;
-      const y = this.origin.y + this.layout.systems[bar.system]!.topLineY - 1.95 * S;
-      this.markTexts.push({ text: this.scene.add.text(x, y, text, style).setOrigin(0, 0.5), system: bar.system });
+      // a second mark on the same bar (A and B of a one-bar section) starts after the first one's whole text, its tempo and lap too
+      const x = used.get(index) ?? this.origin.x + bar.x + 0.25 * S + numberWidth;
+      const label = this.scene.add.text(x, this.markY(bar.system), text, style).setOrigin(0, 0.5);
+      used.set(index, x + label.width + 0.6 * S);
+      this.markTexts.push({ text: label, system: bar.system });
     }
     this.drawStaff();
     this.setHints(this.hints);
@@ -378,8 +412,7 @@ export class StaffView {
       const number = this.barNumbers.find((n) => n.index === index);
       const numberWidth = number === undefined ? 0 : String(number.number).length * 4 * cell - cell + 0.4 * S;
       const x = this.origin.x + bar.x + 0.25 * S + numberWidth;
-      const y = this.origin.y + this.layout.systems[bar.system]!.topLineY - 1.95 * S;
-      this.partTexts.push({ text: this.scene.add.text(x, y, text, name).setOrigin(0, 0.5), system: bar.system, bar: index });
+      this.partTexts.push({ text: this.scene.add.text(x, this.markY(bar.system), text, name).setOrigin(0, 0.5), system: bar.system, bar: index });
     }
     for (const at of this.foldsAt()) {
       const y = this.origin.y + this.layout.systems[at.system]!.bottomLineY + 2.2 * S;
@@ -441,7 +474,9 @@ export class StaffView {
 
   /**
    * Arrows where the hand moves along the keyboard (ft_1_30.AC10), by chart note index: right for up the keyboard, left for
-   * down. Drawn above the staff over the note, in the hint grey, and shown only with the finger numbers; an empty map clears them.
+   * down. Drawn above the staff over the note, in the hint grey, and shown only with the finger numbers, over a note or
+   * chord whose finger number is shown (a written finger), so it never points at a hand place the student cannot see; an
+   * empty map clears them.
    */
   setHandShifts(shifts: ReadonlyMap<number, 'up' | 'down'>): void {
     const S = this.layout.staffSpace;
@@ -452,7 +487,7 @@ export class StaffView {
       if (direction === undefined || seen.has(n.index)) continue;
       seen.add(n.index);
       const top = this.layout.systems[n.system]!.staves[n.staff]!.topLineY;
-      this.shifts.push({ x: n.column, y: Math.min(top, n.y - S) - 1.2 * S, direction, system: n.system });
+      this.shifts.push({ x: n.column, y: Math.min(top, n.y - S) - 1.2 * S, direction, system: n.system, staff: n.staff });
     }
     if (!this.shiftGfx) this.shiftGfx = this.scene.add.graphics().setPosition(this.origin.x, this.origin.y);
     this.drawShifts();
@@ -471,7 +506,7 @@ export class StaffView {
       if (shade === undefined || shade <= 0 || seen.has(n.index)) continue;
       seen.add(n.index);
       const top = this.layout.systems[n.system]!.staves[n.staff]!.topLineY;
-      this.markers.push({ x: n.column, y: Math.min(top, n.y - S) - 2.4 * S, shade: Math.min(1, shade), system: n.system });
+      this.markers.push({ x: n.column, y: markerRingY(top, n.y, S), shade: Math.min(1, shade), system: n.system });
     }
     if (!this.markerGfx) this.markerGfx = this.scene.add.graphics().setPosition(this.origin.x, this.origin.y);
     this.drawMarkers();
@@ -492,7 +527,7 @@ export class StaffView {
     for (const m of this.markers) {
       if (!this.onPage(m.system)) continue;
       g.lineStyle(Math.max(1.5, 0.28 * S), markerColour(m.shade), 1);
-      g.strokeCircle(m.x, m.y, 0.55 * S);
+      g.strokeCircle(m.x, m.y, MARKER_RING.radius * S);
       this.markersDrawn++;
     }
   }
@@ -512,8 +547,11 @@ export class StaffView {
     const S = this.layout.staffSpace;
     const colour = Phaser.Display.Color.HexStringToColor(this.theme.hint).color;
     g.fillStyle(colour, 1);
+    // the notes and chords that show a finger number, by where they stand
+    const where = (n: { system: number; staff: number; x: number }) => `${n.system}:${n.staff}:${n.x}`;
+    const fingered = new Set(this.layout.notes.filter((n) => (this.hints.chordFingers ? n.headFinger : n.finger) !== null).map((n) => where({ ...n, x: n.column })));
     for (const shift of this.shifts) {
-      if (!this.onPage(shift.system)) continue;
+      if (!this.onPage(shift.system) || !fingered.has(where(shift))) continue;
       const d = shift.direction === 'up' ? 1 : -1;
       const half = 0.9 * S;
       const head = 0.6 * S;
@@ -550,18 +588,21 @@ export class StaffView {
         if (!d.note || seen.has(key)) continue;
         seen.add(key);
         const heads = this.layout.notes.filter((n) => n.system === d.system && Math.abs(n.column - d.x) < 0.5).map((n) => ({ x: n.x, y: n.y, rx: n.headRx, ry: n.headRy }));
-        if (heads.length > 0) this.blinkHeads.push({ tick: d.tick, system: d.system, reach: look.wave.reach, heads });
+        if (heads.length > 0) this.blinkHeads.push({ tick: d.tick, system: d.system, reach: look.wave.reach, follow: look.follow, heads });
       }
     }
     this.drawLane(true);
+    // the marks over the bars keep clear of the dots
+    for (const mark of [...this.markTexts, ...this.partTexts]) mark.text.setY(this.markY(mark.system));
   }
 
   /**
    * Where the lanes' wave is (a tick of the chart drawn; null for none) and the colour of each key played against the
    * student's pace, by its tick (core_13.AC5). Repainted only when what it shows changed.
    */
-  moveLane(wave: number | null, marks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>>): void {
+  moveLane(wave: number | null, marks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>>, clickWave?: number | null): void {
     this.laneWave = wave;
+    this.clickWave = clickWave;
     this.laneMarks = marks;
     this.drawLane(false);
   }
@@ -573,13 +614,23 @@ export class StaffView {
       lanes: this.lanes.length,
       dots: here.length,
       lifted: here.filter(({ d, look }) => this.liftOf(d, look) > 0).length,
-      coloured: here.filter(({ d }) => d.note && this.laneMarks.has(d.tick)).length,
-      blinking: this.blinkHeads.filter((b) => this.onPage(b.system) && laneLift(b.tick, this.laneWave, this.lanePpq, b.reach) > 0).reduce((n, b) => n + b.heads.length, 0),
+      coloured: here.filter(({ d }) => this.markOf(d) !== undefined).length,
+      blinking: this.blinkHeads.filter((b) => this.onPage(b.system) && laneLift(b.tick, this.waveFor(b.follow), this.lanePpq, b.reach) > 0).reduce((n, b) => n + b.heads.length, 0),
     };
   }
 
+  /** A played key's colour on its dot (core_13.AC5): on every dot that stands under a note, also one drawn as its beat. */
+  private markOf(dot: LaneDot): Pick<PaceMark, 'side' | 'far'> | undefined {
+    return dot.note ? this.laneMarks.get(dot.tick) : undefined;
+  }
+
   private liftOf(dot: LaneDot, look: LaneLook): number {
-    return laneLift(dot.tick, this.laneWave, this.lanePpq, look.wave.reach);
+    return laneLift(dot.tick, this.waveFor(look.follow), this.lanePpq, look.wave.reach);
+  }
+
+  /** The wave a lane follows: the click's when it follows the click and one is given, else the student's (core_13.AC9). */
+  private waveFor(follow: LaneLook['follow']): number | null {
+    return follow === 'click' && this.clickWave !== undefined ? this.clickWave : this.laneWave;
   }
 
   /**
@@ -588,7 +639,8 @@ export class StaffView {
    * and note dots most (`AX-3 provisional:` sizes and shades).
    */
   private drawLane(force: boolean): void {
-    const shows = `${this.page}|${this.laneWave === null ? '' : Math.round(this.laneWave)}|${this.laneMarks.size}`;
+    const round = (w: number | null | undefined) => (w === null || w === undefined ? '' : Math.round(w));
+    const shows = `${this.page}|${round(this.laneWave)}|${round(this.clickWave)}|${this.laneMarks.size}`;
     if (!force && shows === this.laneDrawn) return;
     this.laneDrawn = shows;
     const g = this.laneGfx;
@@ -600,7 +652,7 @@ export class StaffView {
         const { role, strength } = dotLook(dot, look);
         if (strength <= 0) continue;
         const lift = this.liftOf(dot, look);
-        const mark = role === 'note' ? this.laneMarks.get(dot.tick) : undefined;
+        const mark = this.markOf(dot);
         const size = role === 'downbeat' ? 0.3 : role === 'ghost' ? 0.09 : 0.22;
         const rise = (role === 'ghost' ? 0.55 : 1) * look.wave.height;
         const alpha = mark ? 1 : (role === 'downbeat' ? 0.55 : role === 'ghost' ? 0.22 : 0.4) * strength;
@@ -613,7 +665,7 @@ export class StaffView {
     b.clear();
     for (const blink of this.blinkHeads) {
       if (!this.onPage(blink.system)) continue;
-      const lift = laneLift(blink.tick, this.laneWave, this.lanePpq, blink.reach);
+      const lift = laneLift(blink.tick, this.waveFor(blink.follow), this.lanePpq, blink.reach);
       if (lift <= 0) continue;
       b.fillStyle(LANE_BLINK, 0.85 * lift);
       for (const h of blink.heads) b.fillEllipse(h.x, h.y, h.rx * 2.3, h.ry * 2.3);
@@ -646,7 +698,7 @@ export class StaffView {
     this.drawNotes();
     this.drawPlayhead();
     if (!fade) return;
-    const targets = [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)];
+    const targets = [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.nameLabels.filter((l) => l !== null), ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)];
     this.scene.tweens.killTweensOf(targets);
     this.scene.tweens.add({ targets, alpha: { from: 0.2, to: 1 }, duration: PAGE_FADE_MS });
   }
@@ -660,11 +712,12 @@ export class StaffView {
 
   /**
    * Show play progress from the judge: `progress` is indexed by chart note, `cursorNotes` are the notes awaited now
-   * (one per hand in a two-hand step; each is highlighted on its own staff).
+   * (one per hand in a two-hand step; each is highlighted on its own staff). `retried` marks, by chart note, the notes
+   * right only after a wrong key (Wait mode): they keep their own colour.
    */
-  applyProgress(progress: readonly NoteProgress[], cursorNotes: NoteSelection): void {
+  applyProgress(progress: readonly NoteProgress[], cursorNotes: NoteSelection, retried?: readonly boolean[]): void {
     this.layout.notes.forEach((n, slot) => {
-      this.states[slot] = progress[n.index] === 'correct' ? 'correct' : 'pending';
+      this.states[slot] = progress[n.index] !== 'correct' ? 'pending' : retried?.[n.index] === true ? 'retried' : 'correct';
     });
     this.cursors = toSet(cursorNotes);
     this.followCursor();
@@ -768,7 +821,7 @@ export class StaffView {
   }
 
   destroy(): void {
-    [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
+    [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.nameLabels.filter((l) => l !== null), ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
     this.playedName?.destroy();
     for (const v of this.veils) v.image.destroy();
     this.sheet.release();
@@ -945,7 +998,7 @@ export class StaffView {
     if (scored !== null && scored !== undefined) return scored;
     if (this.isPast(note.system, note.x)) return PAST_GREY;
     const state = this.states[slot];
-    return state === 'correct' ? this.theme.correct : state === 'wrong' ? this.theme.wrong : this.theme.ink;
+    return state === 'correct' ? this.theme.correct : state === 'retried' ? this.theme.retried : state === 'wrong' ? this.theme.wrong : this.theme.ink;
   }
 
   private drawNotes(): void {
@@ -1006,6 +1059,12 @@ export class StaffView {
     this.drawNotes();
   }
 
+  /** The colour a chart note is drawn in now, for tests: null for a note not on the staff. */
+  noteColourOf(noteIndex: number): number | null {
+    const slot = this.layout.notes.findIndex((n) => n.index === noteIndex);
+    return slot < 0 ? null : this.noteColor(slot);
+  }
+
   /** The played key's name, for tests: null when none is shown. */
   get playedShown(): string | null {
     return this.playedName?.text ?? null;
@@ -1019,9 +1078,18 @@ export class StaffView {
     g.lineStyle(this.lineWidth(), this.theme.ink, PLAYED_ALPHA);
     for (const ledger of mark.ledgerLines) g.lineBetween(ledger.x1, ledger.y, ledger.x2, ledger.y);
     g.fillStyle(color, PLAYED_ALPHA).fillEllipse(mark.x, mark.y, mark.rx * 2, mark.ry * 2);
+    if (mark.beyond) {
+      // pinned at the limit: a small arrow right of the head says the key lies further out that way
+      const S = this.layout.staffSpace;
+      const ax = mark.x + mark.rx + S * 0.6;
+      const dir = mark.beyond === 'above' ? -1 : 1;
+      const tip = mark.y + dir * S * 0.9;
+      const base = mark.y - dir * S * 0.1;
+      g.fillTriangle(ax - S * 0.4, base, ax + S * 0.4, base, ax, tip);
+    }
     if (mark.accidental !== null) {
       g.setAlpha(PLAYED_ALPHA);
-      this.drawAccidental(g, mark.accidental, mark.x - mark.rx * 2.4, mark.y, color);
+      this.drawAccidental(g, mark.accidental, mark.accidentalX, mark.y, color);
       g.setAlpha(1);
     }
   }
@@ -1113,13 +1181,14 @@ export class StaffView {
     strokePolyline(this.notesGfx.lineStyle(Math.max(2, S * 0.1), this.theme.ink, 1), slurPoints(slur));
   }
 
-  /** The beams of a run of eighths and sixteenths, in the colour of its notes once all are right. */
+  /** The beams of a run of eighths and sixteenths, in the colour of its notes once all are right (the retried colour if one was). */
   private drawBeam(beam: BeamGlyph): void {
     const S = this.layout.staffSpace;
     const slots = beam.notes.map((index) => this.layout.notes.findIndex((n) => n.index === index));
     const wrong = beam.notes.some((index) => this.wrong.has(index));
-    const correct = slots.every((slot) => this.states[slot] === 'correct');
-    const color = this.resting(beam.system, beam.staff) ? PAST_GREY : wrong ? this.theme.wrong : correct ? this.theme.correct : this.theme.ink;
+    const done = slots.every((slot) => this.states[slot] === 'correct' || this.states[slot] === 'retried');
+    const retried = slots.some((slot) => this.states[slot] === 'retried');
+    const color = this.resting(beam.system, beam.staff) ? PAST_GREY : wrong ? this.theme.wrong : done ? (retried ? this.theme.retried : this.theme.correct) : this.theme.ink;
     const half = Math.max(2, S * 0.13) / 2;
     const top = beam.up ? beam.y : beam.y - beam.thickness;
     this.notesGfx.fillStyle(color, 1).fillRect(beam.x1 - half, top, beam.x2 - beam.x1 + half * 2, beam.thickness);

@@ -6,7 +6,8 @@ covers: ["tools/release/"]
 A release is a zip for Windows that a player unpacks and starts with a double-click: no Node, no installer, no
 internet. It holds the production build (approved pieces only, `npm run build`) in `game/`, a small local web server in
 PowerShell (`pianor.ps1`, part of every Windows PC) and two start files (Estonian, English), plus `README.txt` for the
-player. The launcher opens the game the way `npm run start:local` does (ft_0_14, d105): Edge or Chrome in app mode,
+player; the repository README's pictures (`public/readme`) are left out. A start that fails (no local server could start)
+keeps its message in the window until Enter. The launcher opens the game the way `npm run start:local` does (ft_0_14, d105): Edge or Chrome in app mode,
 full screen, with its own browser profile in `%LOCALAPPDATA%\Pianor\browser`, where the saves live. It serves on
 `http://localhost:4173/`, a secure context, so Web MIDI works without a certificate.
 
@@ -27,8 +28,7 @@ player (it asks for the first name, ft_1_07.AC1), and the default passwords are 
 the teacher, each its own record), written in the zip's `README.txt`.
 
 - TODO(builder, R2): a release build hides the settings' bug-report button.
-- NEEDS-HUMAN: approve Puuvaim's three phrases (`puuvaim-1` to `puuvaim-3`) in the piece preview. A release build leaves out every draft piece, so without them the tug on the knoll has nothing to play. More approved pieces give the student more to learn (6 of 39 approved; Twinkle, which the intro needs, is one).
-- TODO(architect, R2): once Puuvaim's phrases are approved and the week's learning goal is on `main`, run `bash tools/release/pack.sh 0.1b` from a clean clone and hand the zip to the maintainer.
+- TODO(architect, R2): once the week's learning goal is on `main`, run `bash tools/release/pack.sh 0.1b` from a clean clone and hand the zip to the maintainer.
 - NEEDS-HUMAN: run that zip once on a Windows PC with a keyboard attached (step 2 above).
 - TODO(architect, R2): after that run, make the 0.1b draft release with the zip attached.
 - TODO(builder, R2): a device with only damaged players saves a default Player 1; it should offer the first-name box instead.

@@ -7,7 +7,7 @@
   "musicTie": "character.fisherman.music",
   "actor": "fisherman",
   "conversation": "fisherman",
-  "phrases": { "1": ["fisherman-1"], "2": ["fisherman-2"] },
+  "phrases": { "1": ["fisherman-1"], "2": ["fisherman-3"] },
   "prizes": ["net-float", "net-needle", "gull-feather", "holed-stone", "ships-bell"],
   "lessons": ["talk.fisherman.who"],
   "meet": { "practiceMinutes": 30, "cooldownCleanPlays": 3 },

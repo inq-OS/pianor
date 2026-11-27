@@ -42,6 +42,8 @@ export class WaitMode implements PlayMode {
   private readonly ornaments: ReadonlySet<number>[];
   private readonly tracker: ResultTracker;
   private readonly progress: NoteProgress[];
+  /** Per chart note: right only after a wrong key in its step. */
+  private readonly retried: boolean[];
   private readonly held = new Set<number>();
   private hints: Hints;
   private stepIndex = 0;
@@ -61,6 +63,7 @@ export class WaitMode implements PlayMode {
     this.ornaments = stepOrnaments(chart, this.steps);
     this.tracker = new ResultTracker(chart, this.steps);
     this.progress = chart.notes.map(() => 'pending');
+    this.retried = chart.notes.map(() => false);
     this.hints = options.hints ? { ...options.hints } : { noteNames: false, fingers: false };
     this.togetherWindowMs = options.togetherWindowMs ?? DEFAULT_TOGETHER_WINDOW_MS;
     this.moveOnWrong = options.moveOnWrong === true;
@@ -113,6 +116,7 @@ export class WaitMode implements PlayMode {
     this.stepLastPressMs = event.timeMs;
     this.pressed.add(match);
     this.progress[match] = 'correct';
+    this.retried[match] = !firstTry;
     this.tracker.recordCorrect(step.index, firstTry, intervalErrorMs, this.hints);
     const judged: NoteJudged = {
       ...base, type: 'NoteJudged', verdict: 'correct', midi: event.midi, noteIndex: match, firstTry, intervalErrorMs,
@@ -121,7 +125,10 @@ export class WaitMode implements PlayMode {
     const events: JudgeEvent[] = [judged];
 
     if (this.pressed.size === step.noteIndices.length) {
-      for (const tied of step.tiedNoteIndices) this.progress[tied] = 'correct';
+      for (const tied of step.tiedNoteIndices) {
+        this.progress[tied] = 'correct';
+        this.retried[tied] = this.wrongsInStep > 0;
+      }
       if (step.hands.length === 2) {
         const together = this.wrongsInStep === 0 && this.stepLastPressMs - this.stepOnsetMs <= this.togetherWindowMs;
         this.tracker.recordBothHands(step.index, step.noteIndices.length, together);
@@ -151,6 +158,7 @@ export class WaitMode implements PlayMode {
       progress: this.progress,
       held: this.held,
       lastJudged: this.lastJudged,
+      retried: this.retried,
     });
   }
 }

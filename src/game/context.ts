@@ -74,7 +74,7 @@ export interface GameContext {
   midi: KeyboardInput | null;
   /** Sound and the song clock. */
   audio: GameAudio;
-  /** Players, XP, levels and unlocked pieces. */
+  /** Players, XP and levels. */
   profiles: ProfileService;
   /** The page settings scenes act on. */
   flags: GameFlags;

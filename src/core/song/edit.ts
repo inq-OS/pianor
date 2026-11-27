@@ -36,6 +36,19 @@ export function freeNodeId(song: Song, base: string): string {
   return freeId(new Set(walkSong(song.nodes).map(({ node }) => node.id)), slug(base) || 'part');
 }
 
+/** The first name `nameOf(n)`, n from 1, that no row of the song has: a new part or group never repeats a row's name. */
+export function freeNodeName(song: Song, nameOf: (n: number) => string): string {
+  const names = new Set(walkSong(song.nodes).map(({ node }) => node.name?.trim().toLocaleLowerCase()));
+  let n = 1;
+  while (names.has(nameOf(n).toLocaleLowerCase())) n++;
+  return nameOf(n);
+}
+
+/** Whether `node` added at `place` keeps the song's rules (no group deeper than four levels, ft_1_36 rule 1). */
+export function canAdd(song: Song, place: Place, node: SongNode): boolean {
+  return kept(addNode(song, place, node)) !== null;
+}
+
 /** The list a node stands in (the song's or a group's), and its place there. */
 function siblingsOf(nodes: SongNode[], id: string): { list: SongNode[]; index: number; parent: SongNode | null } | null {
   const search = (list: SongNode[], parent: SongNode | null): { list: SongNode[]; index: number; parent: SongNode | null } | null => {

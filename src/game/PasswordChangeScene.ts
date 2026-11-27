@@ -56,7 +56,7 @@ export abstract class PasswordChangeScene extends PixelScene {
       return;
     }
     const w = width - 2 * MARGIN;
-    this.label(MARGIN, TITLE_Y, t(this.titleKey), C.gold, { big: true });
+    this.label(this.titleX(MARGIN), TITLE_Y, t(this.titleKey), C.gold, { big: true });
     this.label(MARGIN, HINT_Y, t('adminPassword.hint'), C.dim, { maxWidth: w });
     LABEL_KEYS.forEach((key, i) => {
       this.label(MARGIN, FIELD_Y[i]!, `${t(key)} ${'*'.repeat(this.fields[i]!.length)}`, i === this.active ? C.white : C.dim, { maxWidth: w });

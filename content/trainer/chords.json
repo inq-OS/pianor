@@ -1,20 +1,22 @@
 {
-  "schemaVersion": 1,
-  "note": "Chord trainer and chord namer (ft_1_29 slices B and D). A chord name is a root letter (capital for a major quality, small for a minor one), an optional sign (b or #) and a suffix; the qualities give each suffix its intervals in semitones above the root. Steps list the chords the trainer asks for, in order of difficulty. Provisional until playtests.",
+  "schemaVersion": 2,
+  "note": "Chord trainer and chord namer (ft_1_29 slices B and D). A chord name is a capital root letter, an optional sign (b or #) and a suffix (m for minor, 7, m7, maj7, 6, m6, dim, m7b5); the qualities give each suffix its intervals in semitones above the root. Steps list the chords the trainer asks for, in order of difficulty; a step's name is a string key. Provisional until playtests.",
   "qualities": [
-    { "id": "major", "minor": false, "suffix": "", "intervals": [0, 4, 7] },
-    { "id": "minor", "minor": true, "suffix": "", "intervals": [0, 3, 7] },
-    { "id": "dominant-seventh", "minor": false, "suffix": "7", "intervals": [0, 4, 7, 10] },
-    { "id": "minor-seventh", "minor": true, "suffix": "7", "intervals": [0, 3, 7, 10] },
-    { "id": "major-seventh", "minor": false, "suffix": "maj7", "intervals": [0, 4, 7, 11] },
-    { "id": "diminished", "minor": true, "suffix": "dim", "intervals": [0, 3, 6] },
-    { "id": "augmented", "minor": false, "suffix": "+", "intervals": [0, 4, 8] },
-    { "id": "half-diminished", "minor": true, "suffix": "7b5", "intervals": [0, 3, 6, 10] },
-    { "id": "diminished-seventh", "minor": true, "suffix": "dim7", "intervals": [0, 3, 6, 9] }
+    { "id": "major", "suffix": "", "intervals": [0, 4, 7] },
+    { "id": "minor", "suffix": "m", "intervals": [0, 3, 7] },
+    { "id": "dominant-seventh", "suffix": "7", "intervals": [0, 4, 7, 10] },
+    { "id": "minor-seventh", "suffix": "m7", "intervals": [0, 3, 7, 10] },
+    { "id": "major-seventh", "suffix": "maj7", "intervals": [0, 4, 7, 11] },
+    { "id": "diminished", "suffix": "dim", "intervals": [0, 3, 6] },
+    { "id": "augmented", "suffix": "+", "intervals": [0, 4, 8] },
+    { "id": "half-diminished", "suffix": "m7b5", "intervals": [0, 3, 6, 10] },
+    { "id": "diminished-seventh", "suffix": "dim7", "intervals": [0, 3, 6, 9] },
+    { "id": "major-sixth", "suffix": "6", "intervals": [0, 4, 7, 9] },
+    { "id": "minor-sixth", "suffix": "m6", "intervals": [0, 3, 7, 9] }
   ],
   "steps": [
-    { "id": "c1", "name": "Triads on white keys", "chords": ["C", "F", "G", "a", "d", "e"] },
-    { "id": "c2", "name": "All twelve major and minor triads", "chords": ["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B", "c", "c#", "d", "eb", "e", "f", "f#", "g", "g#", "a", "bb", "b"] },
-    { "id": "c3", "name": "Seventh chords", "chords": ["G7", "C7", "D7", "A7", "E7", "F7", "a7", "d7", "e7", "Cmaj7", "Fmaj7", "Gmaj7"] }
+    { "id": "c1", "nameKey": "chords.step.c1", "chords": ["C", "F", "G", "Am", "Dm", "Em"] },
+    { "id": "c2", "nameKey": "chords.step.c2", "chords": ["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B", "Cm", "C#m", "Dm", "Ebm", "Em", "Fm", "F#m", "Gm", "G#m", "Am", "Bbm", "Bm"] },
+    { "id": "c3", "nameKey": "chords.step.c3", "chords": ["G7", "C7", "D7", "A7", "E7", "F7", "Am7", "Dm7", "Em7", "Cmaj7", "Fmaj7", "Gmaj7"] }
   ]
 }

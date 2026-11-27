@@ -62,6 +62,8 @@ export type SwitchResult = 'ok' | 'busy' | 'unreadable';
 
 /** The finger numbers the player sees: none, on a chord's top note, or on every note of a chord. */
 export type FingerNumbers = 'off' | 'top' | 'all';
+/** What the hint label under a chord says (core_09.AC59). */
+export type ChordLabels = 'notes' | 'name' | 'both';
 
 /**
  * The game's view of progress: the active profile, its XP and level, each piece's record, and the few things scenes
@@ -167,6 +169,18 @@ export class ProfileService {
     return this.active.settings.chordFingers ?? false;
   }
 
+  /** What the hint label under a chord says: its notes (absent in older saves), its name, or both (core_09.AC59). */
+  get chordLabels(): ChordLabels {
+    return this.active.settings.chordLabels ?? 'notes';
+  }
+
+  /** Change what the hint label under a chord says, and save. */
+  async updateChordLabels(mode: ChordLabels): Promise<boolean> {
+    const value = profileSettingsSchema.shape.chordLabels.parse(mode);
+    this.active = { ...this.active, settings: { ...this.active.settings, chordLabels: value } };
+    return this.persist();
+  }
+
   /** The finger numbers setting: off; on the top note of a chord; or on every note of a chord. */
   get fingerNumbers(): FingerNumbers {
     if (!(this.active.settings.showFingers ?? false)) return 'off';
@@ -184,12 +198,15 @@ export class ProfileService {
     return this.persist();
   }
 
-  /** Save the XP of right names in the note-name trainer (ft_0_17.AC3): whole XP that only grows, and it counts towards the level. */
-  async addTrainerXp(xp: number): Promise<boolean> {
+  /**
+   * Save the XP of right names in a trainer (ft_0_17.AC3): whole XP that only grows, and it counts towards the level.
+   * `levelUp` is the player level the XP reached, null when none (ft_0_17.AC12); `saved` whether it was stored.
+   */
+  async addTrainerXp(xp: number): Promise<{ saved: boolean; levelUp: number | null }> {
     const outcome = addTrainerXp(this.active, xp, this.options.config);
     this.active = outcome.profile;
     this.derived = outcome.after;
-    return this.persist();
+    return { saved: await this.persist(), levelUp: outcome.levelUp };
   }
 
   /** The pitch trainer by ear's points (ft_1_10, version 16): whole points that only grow; not XP. */

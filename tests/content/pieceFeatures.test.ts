@@ -10,8 +10,10 @@ import { loadLevelsFile } from '../../tools/piece/levels';
 const root = join(__dirname, '../..');
 const dir = join(root, 'content/pieces');
 const { levels } = loadLevelsFile(join(root, 'content/curriculum/levels.json'));
-const featuresOf = (folder: string) => {
-  const chart = checkPieceFolder(dir, folder, levels).compiled?.chart;
+/** Frozen copies of pieces once in the game: the named pieces below are read from here, so they stay when the game's change. */
+const anchors = join(root, 'tests/fixtures/anchors');
+const featuresOf = (folder: string, from = anchors) => {
+  const chart = checkPieceFolder(from, folder, levels).compiled?.chart;
   if (!chart) throw new Error(`${folder} did not compile`);
   return pieceFeatures(chart);
 };
@@ -19,7 +21,7 @@ const featuresOf = (folder: string) => {
 describe('features of the real pieces', () => {
   it('gives every piece a fastest note, and none an odd meter or a change (the first set is plain)', () => {
     for (const folder of listPieceFolders(dir)) {
-      const features = featuresOf(folder);
+      const features = featuresOf(folder, dir);
       expect(features.filter((f) => f.startsWith('fastest.')), folder).toHaveLength(1);
       expect(features, folder).not.toEqual(expect.arrayContaining(['oddMeter']));
       expect(features, folder).not.toEqual(expect.arrayContaining(['keyChange']));
@@ -40,7 +42,7 @@ describe('features of the real pieces', () => {
   });
 
   it('gives the easiest piece fewer stars than the two-hand piece, both Beginners (d154)', () => {
-    const complexity = (folder: string) => complexityOf(checkPieceFolder(dir, folder, levels).difficulty!.points);
+    const complexity = (folder: string) => complexityOf(checkPieceFolder(anchors, folder, levels).difficulty!.points);
     expect(complexity('hot-cross-buns').stars).toBeLessThan(complexity('both-hands').stars);
     expect([complexity('hot-cross-buns').grade, complexity('both-hands').grade]).toEqual(['beginner', 'beginner']);
   });

@@ -141,6 +141,7 @@ export class AdventureScene extends PixelScene {
   /** The line a wanderer says now over its head, whether it is its ask (a press then opens the piece), and its timer. */
   private wandererLine: { id: string; text: string; ask: boolean } | null = null;
   private wandererTimer: Phaser.Time.TimerEvent | null = null;
+  private wandererLineImage: PixelImage | null = null;
   /** When the ask's board showed (the scene's clock): a press on it this soon after is a double tap, and is ignored. */
   private wandererAskedAt = 0;
 
@@ -152,6 +153,8 @@ export class AdventureScene extends PixelScene {
     if (this.talk) return this.talk.leave();
     if (this.tug) return this.tug.leave();
     if (this.teach) return this.teach.leave();
+    // Esc while a wanderer asks is Not now, as a press beside its board
+    if (this.wandererLine?.ask) return this.closeWanderer();
     // Esc skips a script that may be skipped; once it is done, Back leaves as always
     if (this.scripted?.skip()) return;
     if (this.panning) return;
@@ -198,6 +201,7 @@ export class AdventureScene extends PixelScene {
     this.today = null;
     this.wandererLine = null;
     this.wandererTimer = null;
+    this.wandererLineImage = null;
     this.talkVisit += 1;
     this.worldRead = this.readWorld(this.talkVisit);
     // while a conversation is open its keys are its own, ahead of the screen's keyboard navigation
@@ -221,9 +225,20 @@ export class AdventureScene extends PixelScene {
       this.events.once('shutdown', () => running.stop());
       // a press anywhere, or Space or Enter, ends the line being said (MI2)
       this.input.on('pointerdown', () => running.press());
-      this.onWindowKey((e) => { if (e.key === ' ' || e.key === 'Enter') running.press(); });
+      // while it runs Space and Enter are the script's own: they never press a focused door behind it
+      this.onWindowKey((e) => {
+        if (running.done || (e.key !== ' ' && e.key !== 'Enter')) return;
+        running.press();
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      });
     }
     super.create();
+  }
+
+  /** Today on Keri: the real day, or the one `?now=` sets in a dev build, as the room reads it, so who stands here follows the switch too. */
+  private todayString(): string {
+    return dayString(new Date(contextOf(this).flags.sky.now ?? Date.now()));
   }
 
   /** Every frame: the scene's motion, and the tug's judge on the song clock (Tempo mode, ft_1_21.AC6). */
@@ -289,17 +304,20 @@ export class AdventureScene extends PixelScene {
     // the strip under the picture, kept free for the verb buttons and the inventory, as under the room
     if (strip.h > 0) this.root.add(new PixelImage(this, strip.x, strip.y, stripArt(strip.w, strip.h)));
 
-    if (!this.scripted) this.spots(origin, at);
+    if (!this.scripted) this.spots(origin);
     if (this.scripted) this.stage(this.scripted, origin, at, { figures: this.life.figures?.(picture) ?? {}, palette, behind });
     else if (context.flags.actors) this.cast(origin);
     if (!this.scripted) this.standing(origin, at);
+    // the look line is said over the figures standing in front of the spot
+    if (!this.scripted) this.lookLine(origin, at);
     if (this.talk || this.tug || this.teach) {
       this.talkLayer = this.overlayLayer();
       this.talk?.redrawIn(this.talkLayer);
       this.tug?.redrawIn(this.talkLayer);
       this.teach?.redrawIn(this.talkLayer);
     }
-    if (dive) this.hotspot(at, dive.diveAt, t('scene.dive'), () => this.pan(true));
+    // a script is watched where it plays: the view does not dive away from it
+    if (dive && !this.scripted) this.hotspot(at, dive.diveAt, t('scene.dive'), () => this.pan(true));
   }
 
   /**
@@ -418,7 +436,7 @@ export class AdventureScene extends PixelScene {
     const dive = this.life.dive;
     const picture = this.look ? this.life.pictures.ready(this.look.phase) : null;
     // a conversation, a tug or a teaching open over the scene holds the view where it is
-    if (!dive || !picture || this.panning || this.talk || this.tug || this.teach) return;
+    if (!dive || !picture || this.panning || this.talk || this.tug || this.teach || this.scripted) return;
     const arrive = (): void => {
       this.panning = false;
       this.deep = down;
@@ -461,8 +479,8 @@ export class AdventureScene extends PixelScene {
    * press; an exit leaves to its scene, the map or the room. Drawn before the characters, so a character over a hotspot
    * takes the press. AX-3 provisional: every hotspot is looked at (the band's verbs come with ft_1_20's items).
    */
-  private spots(origin: { x: number; y: number }, at: Rect): void {
-    const boxOf = (area: Rect): Rect => ({ x: (origin.x + area.x) / ART_DETAIL, y: (origin.y + area.y) / ART_DETAIL, w: area.w / ART_DETAIL, h: area.h / ART_DETAIL });
+  private spots(origin: { x: number; y: number }): void {
+    const boxOf = (area: Rect): Rect => areaBox(origin, area);
     const pressArea = (box: Rect, label: string, onClick: () => void) =>
       this.button({ ...rectCentre(box), label, picture: createBitmap(Math.max(1, Math.round(box.w)), Math.max(1, Math.round(box.h))), onClick });
     for (const spot of this.sceneData.hotspots) {
@@ -470,9 +488,13 @@ export class AdventureScene extends PixelScene {
       pressArea(box, lineText(spot.name), () => this.lookAt(spot.id));
     }
     for (const exit of this.sceneData.exits) pressArea(boxOf(exit.area), lineText(exit.name), () => this.leaveBy(exit.id));
+  }
+
+  /** The line of the hotspot looked at, over its spot. */
+  private lookLine(origin: { x: number; y: number }, at: Rect): void {
     const spot = this.looking === null ? undefined : this.sceneData.hotspots.find((h) => h.id === this.looking);
     if (spot) {
-      const box = boxOf(spot.area);
+      const box = areaBox(origin, spot.area);
       const words = spokenLine(spokenPages(lineText(spot.look))[0] ?? [], talkColour('student'));
       const head = { x: Math.round(box.x + box.w / 2) - at.x, y: Math.round(box.y) - at.y };
       const place = lineSpot({ head, size: { w: words.width, h: words.height }, area: { w: at.w, h: at.h } });
@@ -492,10 +514,12 @@ export class AdventureScene extends PixelScene {
     if (!spot || this.talk || this.tug || this.teach || this.scripted) return false;
     this.lookTimer?.remove();
     this.looking = this.looking === id ? null : id;
+    // the line runs out without drawing the scene again, so an open backpack or bubble stays open
     this.lookTimer = this.looking === null ? null : this.time.delayedCall(readingMs(lineText(spot.look)), () => {
       this.lookTimer = null;
       this.looking = null;
-      this.redraw();
+      this.lookImage?.destroy();
+      this.lookImage = null;
     });
     this.redraw();
     return true;
@@ -724,7 +748,7 @@ export class AdventureScene extends PixelScene {
     // the scene may have closed, another talk opened or the view begun to pan while the world was read
     if (!this.sys.isActive() || this.talk || this.tug || this.teach || !this.world || this.panning || this.deep) return false;
     const before = this.world;
-    const facts = { ...talkFactsOf(meetCharacter(before, def.id, dayString(new Date())), profiles.progress.level.level, false), teachable: this.teachable(def) };
+    const facts = { ...talkFactsOf(meetCharacter(before, def.id, this.todayString()), false), teachable: this.teachable(def) };
     const save = () => { if (this.world && this.worldSaves) void profiles.saveWorld(id, this.world); };
     this.talkLayer ??= this.overlayLayer();
     this.talk = TalkView.open(this, this.talkLayer, conversation, def, facts, { area: { w: this.px.width, h: this.mainRows }, head }, {
@@ -754,7 +778,7 @@ export class AdventureScene extends PixelScene {
       return false;
     }
     // the student met the character: only once its talk has opened (A.8 `firstDay`, `lastDay`)
-    this.world = meetCharacter(this.world ?? before, def.id, dayString(new Date()));
+    this.world = meetCharacter(this.world ?? before, def.id, this.todayString());
     save();
     return true;
   }
@@ -821,7 +845,7 @@ export class AdventureScene extends PixelScene {
     const barCount = (piece: string) => pieces.find(piece)?.chart.bars.length;
     const learned = pieces.list().map((p) => p.chart).filter((chart) => pieceLearned(chart, profiles.learnProgressOf(chart.id), profiles.learnSettings)).map((c) => c.id);
     this.today = castToday({
-      day: dayString(new Date()), log, dayOf: (iso) => dayString(new Date(iso)), barCount, characters: [...CHARACTERS.values()], world: this.world,
+      day: this.todayString(), log, dayOf: (iso) => dayString(new Date(iso)), barCount, characters: [...CHARACTERS.values()], world: this.world,
       curriculum, openScenes: visitable(this), learned,
     }, { presence: DEFAULT_PRESENCE_RULES, wanderers: WANDERER_RULES });
     const back = this.wandererBack;
@@ -829,7 +853,7 @@ export class AdventureScene extends PixelScene {
     const bars = back ? barCount(back.piece) : undefined;
     const play = back && bars !== undefined ? wandererPlay(log, back.piece, bars, back.since) : null;
     if (back && play) {
-      const day = dayString(new Date());
+      const day = this.todayString();
       const verdict = wandererVerdict(curriculum, back.id, play.share, WANDERER_RULES);
       let text = t('wanderer.notYet', { right: play.right, notes: play.notes });
       if (verdict.kept && !keptToday(this.world, back.id, day)) {
@@ -845,7 +869,8 @@ export class AdventureScene extends PixelScene {
 
   /** The wanderers standing here today (ft_1_37.AC6), each on the scene's first place, pressable; the line one says over its head. */
   private wanderers(origin: { x: number; y: number }, at: Rect): void {
-    const place = this.sceneData.places[0];
+    // the first place near enough to stand and talk at: a far one (drawn smaller) is out on the sea
+    const place = this.sceneData.places.find((p) => (p.scale ?? 1) === 1) ?? this.sceneData.places[0];
     if (!place) return;
     for (const [id, ask] of Object.entries(this.today?.wanderers ?? {})) {
       const def = WANDERER_RULES.wanderers.find((w) => w.id === id);
@@ -868,7 +893,8 @@ export class AdventureScene extends PixelScene {
         const words = spokenLine(spokenPages(line.text)[0] ?? [], talkColour('character', id));
         const head = { x: Math.round((origin.x + place.x) / ART_DETAIL) - at.x, y: Math.round(box.y) - at.y };
         const placed = lineSpot({ head, size: { w: words.width, h: words.height }, area: { w: at.w, h: at.h } });
-        this.root.add(new PixelImage(this, at.x + placed.x, at.y + placed.y, words).setName('wandererLine'));
+        this.wandererLineImage = new PixelImage(this, at.x + placed.x, at.y + placed.y, words).setName('wandererLine');
+        this.root.add(this.wandererLineImage);
         if (line.ask) this.wandererBoard(at, id, ask.piece);
       }
     }
@@ -920,10 +946,12 @@ export class AdventureScene extends PixelScene {
     this.wandererTimer = null;
     this.wandererLine = { id, text, ask };
     if (ask) { this.wandererAskedAt = this.time.now; return; }
+    // the line runs out without drawing the scene again, so an open backpack (the keepsake just given) stays open
     this.wandererTimer = this.time.delayedCall(readingMs(text), () => {
       this.wandererTimer = null;
       this.wandererLine = null;
-      if (this.sys.isActive()) this.redraw();
+      this.wandererLineImage?.destroy();
+      this.wandererLineImage = null;
     });
   }
 
@@ -936,7 +964,7 @@ export class AdventureScene extends PixelScene {
     if (!ask || !this.world || this.talk || this.tug || this.teach || this.scripted) return false;
     const { pieces } = contextOf(this);
     if (this.wandererLine?.ask) return false;
-    if (keptToday(this.world, id, dayString(new Date()))) this.sayWanderer(id, t('wanderer.thanks'), false);
+    if (keptToday(this.world, id, this.todayString())) this.sayWanderer(id, t('wanderer.thanks'), false);
     else {
       const chart = pieces.find(ask.piece)?.chart;
       this.sayWanderer(id, t('wanderer.ask', { piece: chart ? pieceTitle(chart) : ask.piece }), true);
@@ -965,7 +993,7 @@ export class AdventureScene extends PixelScene {
       const chart = pieces.find(piece)?.chart;
       return chart !== undefined && pieceLearned(chart, profiles.learnProgressOf(piece), profiles.learnSettings);
     };
-    const next = learnedTaught(this.world, CHARACTERS.values(), learned, dayString(new Date()));
+    const next = learnedTaught(this.world, CHARACTERS.values(), learned, this.todayString());
     if (next === this.world) return;
     this.world = next;
     if (this.worldSaves) void profiles.saveWorld(profiles.profile.id, next);
@@ -1030,8 +1058,12 @@ export class AdventureScene extends PixelScene {
    */
   private openTeach(def: CharacterDef, head: { x: number; y: number }, asked: string): boolean {
     const context = contextOf(this);
-    // the teacher's pick in place of its own (ft_1_37.AC4)
-    const piece = castTeachPiece(this.curriculum ?? undefined, def.id, asked);
+    // its own piece is the one its next tug needs while that is not learned yet (a won level 1 asks for level 2's piece),
+    // else the conversation's; the teacher's pick in place of either (ft_1_37.AC4)
+    const { profiles } = context;
+    const next = characterTug(def, 1, this.world, context.pieces)?.chart;
+    const own = next && !pieceLearned(next, profiles.learnProgressOf(next.id), profiles.learnSettings) ? next.id : asked;
+    const piece = castTeachPiece(this.curriculum ?? undefined, def.id, own);
     const chart = context.pieces.find(piece)?.chart;
     if (!chart || !this.talkLayer) return false;
     // the character teaches its piece bar by bar (ft_1_32.AC15): learning opens, and leaving it comes back here, where a
@@ -1057,7 +1089,7 @@ export class AdventureScene extends PixelScene {
         this.talkLayer?.destroy();
         this.talkLayer = null;
         if (state.outcome === undefined || !this.world || !this.worldSaves || context.profiles.profile.id !== player) return;
-        const next = teachAfter(this.world, def.id, state, dayString(new Date()));
+        const next = teachAfter(this.world, def.id, state, this.todayString());
         if (next === this.world) return;
         this.world = next;
         void context.profiles.saveWorld(player, next);
@@ -1174,4 +1206,9 @@ function boxOf(def: ActorDef): Bitmap {
   for (let x = 0; x < w; x++) { box.pixels[x] = C.gold; box.pixels[(h - 1) * w + x] = C.gold; }
   for (let y = 0; y < h; y++) { box.pixels[y * w] = C.gold; box.pixels[y * w + w - 1] = C.gold; }
   return box;
+}
+
+/** A scene file's area (fine pixels) as a box on the screen's art pixels, the picture drawn at `origin`. */
+function areaBox(origin: { x: number; y: number }, area: Rect): Rect {
+  return { x: (origin.x + area.x) / ART_DETAIL, y: (origin.y + area.y) / ART_DETAIL, w: area.w / ART_DETAIL, h: area.h / ART_DETAIL };
 }

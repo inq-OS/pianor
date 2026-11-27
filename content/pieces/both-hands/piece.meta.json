@@ -5,6 +5,7 @@
   "level": 5,
   "unlockLevel": 5,
   "status": "approved",
+  "difficulty": 1,
   "hands": ["RH", "LH"],
   "phrases": [
     { "name": "Up", "bars": [1, 4] },

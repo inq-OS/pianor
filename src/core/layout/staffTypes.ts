@@ -3,7 +3,7 @@ import type { Dynamic } from '../chart/dynamics';
  * The data `layoutStaff` (`staff.ts`) returns and takes: the options, every positioned glyph, the systems, staves and bars.
  * Pure types; units are logical pixels, origin top-left, unless a field says staff spaces.
  */
-import type { Clef } from '../chart/pitch.ts';
+import type { Clef, Spelling } from '../chart/pitch.ts';
 import type { NoteNaming } from '../text/noteName.ts';
 import type { OrnamentKind } from '../chart/ornaments.ts';
 
@@ -50,6 +50,12 @@ export interface StaffLayoutOptions {
   staffGap?: 'wide' | 'short';
   /** How a hint label names a note: B or H (`noteLabel`). Default B. */
   noteNaming?: NoteNaming;
+  /**
+   * Chord names in the hint label of a chord of one staff (core_09.AC59): `name` shows the name instead of the notes where
+   * `name` knows the chord, `both` the notes with the name on a second line under them. `name` gets the chord's keys (MIDI)
+   * and how each is written, in the same order, and returns its name, or null. By default a chord is named by its notes only.
+   */
+  chordNames?: { show: 'name' | 'both'; name: (keys: readonly number[], spellings: readonly Spelling[]) => string | null };
   /**
    * Plan the staff size, the lines and the room above and below each staff as if every staff also had notes this short
    * and at every staff position from `low` to `high`, alone or in a chord up to `widestChord` (the piece editor): a note added inside that reserve never resizes or moves the staff. Only the plan changes; nothing extra is drawn. By default the plan fits the notes there are.
@@ -129,6 +135,8 @@ export interface NoteGlyph {
   /** Centre x of this head's finger: right of the head, past its ledger line or dot, level with the head at `y`. */
   fingerX: number;
   labelY: number;
+  /** Lines of the label: 2 when a chord's name stands under its notes (core_09.AC59), else 1. `labelY` is the first line's centre. */
+  labelLines: number;
   fingerY: number;
   /** A dynamic mark this note starts (core_09.AC15): its letters, and where they sit below the hint labels, or null. */
   dynamic: { text: Dynamic; x: number; y: number } | null;

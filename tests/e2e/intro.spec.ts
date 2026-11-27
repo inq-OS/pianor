@@ -308,4 +308,25 @@ test.describe('the first-run intro (ft_1_31)', () => {
     expect(await roomTalk(page)).toBeNull();
     expectNoErrors(errors);
   });
+  test('ft_1_31.AC4 Kiur\'s door out of the lesson goes back to the room at the lesson, not to the start of the tour', async ({ page }) => {
+    test.setTimeout(60_000);
+    const errors = await newPlayer(page);
+    const spotlight = spotlights(page);
+    await toTheKnock(page, spotlight);
+    await readTalk(page);
+    await practiceUnderSpotlight(page);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => showing(page)).toBeNull();
+    // palms on the keys: Kiur comes to the door
+    await page.evaluate(() => {
+      const keys = Array.from({ length: 11 }, (_, i) => 36 + i);
+      for (const m of keys) window.__virtualDevice!.press(m, 100);
+      for (const m of keys) window.__virtualDevice!.release(m);
+    });
+    await waitForScene(page, 'kiurDoor');
+    await clickButton(page, 'kiurDoor', await sceneButton(page, 'kiurDoor', 'Out the door'));
+    await waitForScene(page, 'profile');
+    await expect.poll(() => room(page, 'introState')).toBe('learn');
+    expectNoErrors(errors);
+  });
 });

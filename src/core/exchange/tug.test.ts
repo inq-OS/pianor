@@ -228,7 +228,8 @@ describe('tugPrize (ft_1_21.AC8, ft_1_21.AC14)', () => {
   it('a won tug pays the prize; a lost one half the prize times the furthest standing toward the character over 3; leaving pays nothing', () => {
     expect(tugPrize({ kind: 'tug', outcome: 'won', best: 3 }, 60, rules)).toBe(60);
     expect(tugPrize({ kind: 'tug', outcome: 'lost', best: 2 }, 60, rules)).toBe(20);
-    expect(tugPrize({ kind: 'tug', outcome: 'lost', best: 0 }, 60, rules)).toBe(0);
+    // a lost challenge still earns XP (CLAUDE.md, AX-1.1): one XP even when the rag never went toward the character
+    expect(tugPrize({ kind: 'tug', outcome: 'lost', best: 0 }, 60, rules)).toBe(1);
     expect(tugPrize({ kind: 'tug', outcome: 'left', best: 2 }, 60, rules)).toBe(0);
   });
 

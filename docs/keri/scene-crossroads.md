@@ -7,7 +7,7 @@ These notes are what the agent saw on the reference pictures. They may be wrong,
 
 ## What it is
 
-The concrete path's Y fork west of the lighthouse. The track from the warden's house parts there: its left arm goes to the green board hut with the chimney, the sauna (`hut-middle`), and its right arm goes on to the lighthouse. The small well house (`hut-west`) stands right beside the viewer, and the knoll lies further to the right. It was named with the photograph; the warden's house stands just behind the photographer. Its place in the world model is the fork of the traced tracks, (-85, 38.5) m from the lighthouse (`scenes` in `content/world/keri.json`). AX-3 provisional: it opens at level 2, the next level after the knoll (d113: levelling up opens new scenes). Which level it opens at is not decided.
+The concrete path's Y fork west of the lighthouse. The track from the warden's house parts there: its left arm goes to the green board hut with the chimney, the sauna (`hut-middle`), and its right arm goes on to the lighthouse. The small well house (`hut-west`) stands right beside the viewer, and the knoll lies further to the right. It was named with the photograph; the warden's house stands just behind the photographer. Its place in the world model is the fork of the traced tracks, (-85, 38.5) m from the lighthouse (`scenes` in `content/world/keri.json`). It is closed until the maintainer opens it (d113).
 
 ## Sources
 

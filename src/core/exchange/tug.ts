@@ -171,10 +171,14 @@ export function exchangeResult(state: TugState): ExchangeResult {
   return { plan: state.plan, turns: state.results, outcome: state.outcome, standing: state.standing };
 }
 
+/** The least a lost tug pays (AX-1.1). */
+const LOST_TUG_MIN_XP = 1;
+
 /**
  * What a tug pays (ft_1_21.AC8): a won tug the full prize; a lost one half the prize times the furthest standing reached
- * toward the character over `steps`, rounded down, never taking anything away; leaving nothing. A practice tug with Kiur
- * pays nothing either way (AC14).
+ * toward the character over `steps`, rounded down, and at least one XP (a lost challenge still earns XP, AX-1.1), never
+ * taking anything away; leaving nothing. A practice tug with Kiur pays nothing either way (AC14).
+ * AX-3 provisional: the one-XP floor of a loss; TODO(architect, R2) in ft_1_21.
  */
 export function tugPrize(
   result: { readonly kind: ExchangeKind; readonly outcome: ExchangeResult['outcome']; readonly best: number },
@@ -183,6 +187,6 @@ export function tugPrize(
 ): number {
   if (result.kind === 'practiceTug') return 0;
   if (result.outcome === 'won') return prize;
-  if (result.outcome === 'lost') return Math.floor(((prize / 2) * Math.max(0, Math.min(result.best, rules.steps))) / rules.steps);
+  if (result.outcome === 'lost') return Math.max(LOST_TUG_MIN_XP, Math.floor(((prize / 2) * Math.max(0, Math.min(result.best, rules.steps))) / rules.steps));
   return 0;
 }

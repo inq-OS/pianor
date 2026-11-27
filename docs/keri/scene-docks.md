@@ -7,7 +7,7 @@ These notes are what the painter saw on the reference pictures. They may be wron
 
 ## What it is
 
-The jetty on the north shore behind the warden's house (it can be seen behind the warden's house; it looks like Monkey Island 2, not like modern gear). A scene of [ft_1_19](../features/ft_1_19-scenes-on-keri.md), level 2 (AX-3 provisional: the knoll is level 1, and levelling up opens new scenes, d113). Its place in the world model (x -101, y 100 metres from the lighthouse) is the jetty's middle, set by eye from the reference aerial photograph on the orthophoto's shore, good to about 10 m.
+The jetty on the north shore behind the warden's house (it can be seen behind the warden's house; it looks like Monkey Island 2, not like modern gear). A scene of [ft_1_19](../features/ft_1_19-scenes-on-keri.md), closed until the maintainer opens it (d113). Its place in the world model (x -101, y 100 metres from the lighthouse) is the jetty's middle, set by eye from the reference aerial photograph on the orthophoto's shore, good to about 10 m.
 
 ## Sources
 

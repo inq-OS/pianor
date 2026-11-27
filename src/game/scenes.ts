@@ -22,6 +22,8 @@ import type { VisitData } from './visit/islandVisit';
 import type { RoomData } from './ProfileDashboardScene';
 import type { IntroData } from './IntroScene';
 import type { MapData } from './KeriMapScene';
+import type { LessonBookData } from './LessonBookScene';
+import type { LessonData } from './LessonScene';
 
 /**
  * Every scene key and the data its `init` takes (`undefined`: none). `startScene` checks both, so a renamed key or a
@@ -35,6 +37,8 @@ export interface SceneData {
   'earTrainer': undefined;
   'shapeTrainer': undefined;
   'chordTrainer': undefined;
+  'lessonBook': LessonBookData | undefined;
+  'lesson': LessonData;
   'admin': AdminData | undefined;
   'adminDelete': undefined;
   'adminGate': undefined;
@@ -64,6 +68,7 @@ export interface SceneData {
   'art-demo': undefined;
   'kiurDoor': undefined;
   'learnResume': undefined;
+  'editorLeave': undefined;
   'intro': IntroData;
   'circle': CircleData | undefined;
   'keriMap': MapData | undefined;
@@ -81,8 +86,22 @@ export type SceneKey = keyof SceneData;
  * in `SceneData`, or a data type that includes it) can be started without any.
  */
 export function startScene<K extends SceneKey>(from: Phaser.Scene, key: K, ...data: undefined extends SceneData[K] ? [SceneData[K]?] : [SceneData[K]]): void {
+  // Phaser only queues the move: a second move asked before it happens (a click, then Esc at once) would start both
+  // screens, so a screen on its way out ignores it, until it shuts down or is started anew.
+  if (leaving.has(from)) return;
+  leaving.add(from);
+  const settled = (): void => {
+    leaving.delete(from);
+    from.events.off('shutdown', settled);
+    from.events.off('start', settled);
+  };
+  from.events.once('shutdown', settled);
+  from.events.once('start', settled);
   from.scene.start(key, freshData(data[0]));
 }
+
+/** The screens that asked `startScene` for a move that has not happened yet. */
+const leaving = new WeakSet<Phaser.Scene>();
 
 /**
  * The data a scene is started with, never `undefined`: Phaser keeps a scene's last data when it is started again without
@@ -101,10 +120,14 @@ export interface SceneResult {
   'kiurDoor': 'back' | 'door';
   /** Reopening a half-learned piece (ft_1_32.AC16): go on where it stopped, or start over from the first bar. */
   'learnResume': 'continue' | 'over';
+  /** Leaving the piece maker with unsaved work (ft_1_02a.AC16): save and leave, leave without saving, or stay. */
+  'editorLeave': 'save' | 'leave' | 'stay';
   /** The first-run intro's spotlight (ft_1_31): Kiur's steps were all read (Esc gives `cancelled`: skip the intro). */
   'intro': 'read' | 'skip';
   /** The circle of fifths (ft_1_28): it closed, or (opened to choose, from the piece maker) the key chosen. */
   'circle': 'closed' | CircleKey;
+  /** Tuning the beat lanes over the practice screen (core_13 rule 10): it closed, whatever was kept is saved. */
+  'beat-lanes': 'closed';
 }
 
 export type OverlayKey = keyof SceneResult;

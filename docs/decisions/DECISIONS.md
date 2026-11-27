@@ -105,7 +105,7 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d110](art.md#d110) | The art canvas is a 640x360 fine grid under layout cells of 2 x 2 fine pixels | ft_0_13, ft_1_08 |
 | [d111](art.md#d111) | The room and the map of Keri are painted pictures made at build time; outdoor scenes are pixel art in shared flat-tone runs | ft_1_18, ft_1_19, ft_1_08, ft_1_09, ft_1_14 |
 | [d112](game.md#d112) | Keri's places are painted scenes, each one picture opened from the map | ft_1_19, ft_1_18, ft_1_14, ft_1_17 |
-| [d113](game.md#d113) | Levelling up opens scenes | ft_1_19, ft_1_18 |
+| [d113](game.md#d113) | A scene opens only once the maintainer confirms it; levels open and lock nothing | ft_1_19, ft_1_18 |
 | [d114](art.md#d114) | Kiur is a tree pipit drawn from one small model on the fine grid | ft_0_13, ft_1_15, ft_1_08, ft_1_18 |
 | [d115](game.md#d115) | Actions and items share one model, and a painted place is used in its picture | ft_1_20, ft_0_13, ft_1_18, core_09 |
 | [d116](workflow.md#d116) | GitHub issues are for people; agents track their own work as tags in the docs | all |
@@ -175,7 +175,7 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d189](game.md#d189) | Screens say each thing once: no text that repeats a picture, no hint lines, symbol buttons, and a set of options is one cycling button; every grade is five stars |  |
 | [d190](game.md#d190) | At most ten players, each with a unique name; the admin unlocks with the password for 30 minutes and can lock again by hand |  |
 | [d191](game.md#d191) | The book in the player's room stays hidden; everything goes through the piano |  |
-| [d192](game.md#d192) | A player named "tester" (letter case and spaces aside) has every scene open as soon as it is built, whatever the level | ft_1_19 |
+| [d192](game.md#d192) | A player named "tester" (letter case and spaces aside) has every scene open as soon as it is built, a closed one included | ft_1_19 |
 | [d193](game.md#d193) | A student's curriculum level is not tracked; a piece's `level` is only the rule set it is linted against |  |
 | [d194](game.md#d194) | The teacher lands at the southern port; walkers show on the map only while they move, each with its own visiting days, along the paths or the coast | ft_1_24, ft_1_25, ft_1_27 |
 | [d195](notation.md#d195) | The piece maker's entry: few items that each cycle, a guessed next length, an Auto time and quick keys | ft_1_02a, ft_1_02d |
@@ -252,7 +252,7 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d269](notation.md#d269) | First and second endings: ABC `\|1` and `:\|2` are read into the repeat's optional `endings`, played first ending on the first pass and second ending in its place on the second, and drawn as numbered brackets | core_09 |
 | [d270](game.md#d270) | A character's name stays hidden until the student asks who it is | ft_1_22 |
 | [d271](game.md#d271) | A character's levels run from 1 with none skipped, and each teaches 4 to 16 bars of a piece | ft_1_21, ft_1_22 |
-| [d272](game.md#d272) | Each level's piece is a real public-domain piece or an open-licence line in the manner of a named folk tradition, never one made for the game | ft_1_21, ft_1_22 |
+| [d272](game.md#d272) | Each level's piece is a real public-domain piece, an open-licence line in the manner of a named folk tradition, or an open-licence piece made for the game that the maintainer approved | ft_1_21, ft_1_22 |
 | [d273](game.md#d273) | Each level's piece has its background in one line, said in the talk that teaches it, and the talk teaches something of the character's specialty | ft_1_21, ft_1_22 |
 | [d274](game.md#d274) | Every level beaten gives a new, named, drawn rung of the character's prize ladder, and no rung is on two characters' ladders | ft_1_21 |
 | [d275](workflow.md#d275) | A part of a feature is named by its feature id and slice, never by a work-package id |  |

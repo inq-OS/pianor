@@ -1,4 +1,4 @@
-// Covers ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_02e.AC8, ft_1_02d.AC25, ft_1_02d.AC34, ft_1_02d.AC35, ft_1_02d.AC36, ft_1_02d.AC37, ft_1_02d.AC38, ft_1_02d.AC39, ft_1_02d.AC31, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_Y_04.AC26, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
+// Covers ft_Y_04.AC27, ft_Y_04.AC29, ft_Y_04.AC30, ft_1_02e.AC1, ft_1_02e.AC2, ft_1_02e.AC3, ft_1_02e.AC4, ft_1_02e.AC5, ft_1_02e.AC6, ft_1_02e.AC7, ft_1_02e.AC8, ft_1_02d.AC25, ft_1_02d.AC34, ft_1_02d.AC35, ft_1_02d.AC36, ft_1_02d.AC37, ft_1_02d.AC38, ft_1_02d.AC39, ft_1_02d.AC31, ft_1_02d.AC32, ft_1_02d.AC33, ft_1_29.AC4, ft_1_02d.AC24, ft_1_33.AC1, ft_1_33.AC3, ft_Y_04.AC16, ft_Y_04.AC17, ft_Y_04.AC26, ft_1_02d.AC19, ft_1_02d.AC14, ft_1_02d.AC15, ft_1_02d.AC16, ft_1_02d.AC17, ft_1_02d.AC18, ft_1_02a.AC3, ft_1_02a.AC10, ft_1_02a.AC11, ft_1_02a.AC12, ft_1_02b.AC4, ft_1_02d.AC3, ft_1_02d.AC8, ft_1_02d.AC9, ft_1_02d.AC10, ft_1_02d.AC11, ft_1_02d.AC12, core_09.AC8, core_09.AC35, core_09.AC36, core_09.AC30, ft_1_02a.AC14.
 import { readFileSync } from 'node:fs';
 import { musicXmlToChart } from '../../src/core/import/musicxml';
 import { encode as encodePng } from 'fast-png';
@@ -168,6 +168,10 @@ test.describe('piece editor (preliminary)', () => {
     await clickButton(page, 'profiles', maker);
     await waitForScene(page, 'menu');
     await expect.poll(() => menuButton(page, '+ New piece')).toBeGreaterThanOrEqual(0);
+    // it says what it offers in words: the new piece, and where the pieces made will be
+    const texts = await sceneTexts(page, 'menu');
+    expect(texts).toContain('+ New piece');
+    if (!(await page.evaluate(() => window.__game.registry.get('context').pieces.list().some((p: { own?: boolean }) => p.own)))) expect(texts).toContain('The pieces you make are kept here.');
     // the piece maker saves no progress: it lists own pieces only and a card opens the editor, so no piece can be played from it
     expect(await menuButton(page, 'Practice')).toBe(-1);
     expect(await page.evaluate(() => window.__game.registry.get('context').profiles.progress.totalXp as number)).toBe(xpBefore);
@@ -204,7 +208,7 @@ test.describe('piece editor (preliminary)', () => {
     // (ft_1_02d.AC32) the pointer on the clef names the key over it, before anything is pressed
     await pressSignature(page, 'key', 'hover');
     const label = () => page.evaluate(() => { const l = (window.__game.scene.getScene('editor') as unknown as { ghostLabel: { visible: boolean; text: string } }).ghostLabel; return l.visible ? l.text : ''; });
-    await expect.poll(label).toBe('C');
+    await expect.poll(label).toBe('C major');
     // the clef opens the circle, which sets the key (ft_1_28.AC7)
     await pressSignature(page, 'key');
     await waitForScene(page, 'circle');
@@ -470,7 +474,7 @@ test.describe('piece editor (preliminary)', () => {
     });
     await page.mouse.click(sign.x, sign.y);
     await waitForScene(page, 'circle');
-    await page.evaluate(() => (window.__game.scene.getScene('circle') as unknown as { choose(step: number, ring: string, play: boolean): void }).choose(1, 'major', false));
+    await page.evaluate(() => (window.__game.scene.getScene('circle') as unknown as { choose(key: { fifths: number; mode: string }, play: boolean): void }).choose({ fifths: 1, mode: 'major' }, false));
     await clickButton(page, 'circle', await sceneButton(page, 'circle', 'Set the key: G major'));
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('editor').history.present.fifths)).toBe(1);
 
@@ -654,7 +658,7 @@ test.describe('piece editor (preliminary)', () => {
     const path = await file.path();
     const text = readFileSync(path, 'utf-8');
     expect(JSON.parse(text)).toMatchObject({ kind: 'pianor-piece', schemaVersion: 3, id: 'own-carry-me' });
-    await expect.poll(() => status(page)).toContain('Saved the file');
+    await expect.poll(() => status(page)).toContain('Saved the file own-carry-me.pianor-piece.json.');
 
     // Import adds the piece from the file as a new own piece, under a free title (ft_1_02a.AC15), and the piece being written stays as it is
     const chooser = page.waitForEvent('filechooser');
@@ -672,6 +676,133 @@ test.describe('piece editor (preliminary)', () => {
     expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list())).toHaveLength(2);
     expectNoErrors(errors);
   });
+
+  test('ft_1_02d.AC21 Undo past the time set to A brings A back with its step', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await openTime(page);
+    await clickButton(page, 'editor', await timeStep(page, 'meter', '-'));
+    await clickButton(page, 'editor', await timeStep(page, 'meter', '+'));
+    await clickButton(page, 'editor', await timeStep(page, 'meter', '+'));
+    const auto = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { meterAuto: boolean }).meterAuto);
+    expect(await auto()).toBe(true);
+    await page.keyboard.press('Control+z');
+    expect(await auto()).toBe(false);
+    expect(await page.evaluate(() => window.__game.scene.getScene('editor').history.present.beats)).toBe(4);
+    await page.keyboard.press('Control+y');
+    expect(await auto()).toBe(true);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC17 Ctrl + Enter on a placed rest moves on, Enter makes it longer, and Delete takes it away', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    const rests = () => page.evaluate(() => (window.__game.scene.getScene('editor').history.present.rests ?? []).map((r: { start: number; length: string }) => `${r.start}:${r.length}`));
+    const cursorAt = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { keyCursor: { bar: number; start: number } | null }).keyCursor?.start);
+    await page.keyboard.press('KeyR');
+    await page.keyboard.press('Digit4');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Enter');
+    expect(await rests()).toEqual(['0:quarter']);
+    expect(await cursorAt()).toBe(0);
+    await page.keyboard.press('Control+Enter');
+    expect(await cursorAt()).toBe(480);
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('Enter');
+    expect(await rests()).toEqual(['0:half']);
+    await page.keyboard.press('Delete');
+    expect(await rests()).toEqual([]);
+    expectNoErrors(errors);
+  });
+
+  test('Esc in the title field gives the keys back without leaving, and Ctrl + S there saves instead of the browser', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'C');
+    await page.keyboard.press('Control+s');
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('editor-title');
+    await page.keyboard.press('Escape');
+    expect(await page.evaluate(() => document.activeElement?.id)).not.toBe('editor-title');
+    expect(await activeScenes(page)).toContain('editor');
+    // typing goes to the field; Ctrl + S there is the piece maker's, and saves under the name
+    await page.click('#editor-title');
+    await page.keyboard.type('Bells');
+    await page.keyboard.press('Control+s');
+    await expect.poll(() => status(page)).toContain('Saved. It is in the menu now.');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC24 the selected bars and the drag-repeat grip are drawn over the parchment', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'C');
+    const box = await canvasPoint(page, { bar: 1, start: 0, step: 'B', octave: 4 });
+    const area = { x: box.x - 4, y: box.y - 20, width: 30, height: 40 };
+    // the pointer away from the staff, so its target box is not drawn in either picture
+    await page.mouse.move(area.x, 700);
+    await letGameRun(page, 3);
+    const before = await page.screenshot({ clip: area });
+    await selectNote(page, 1, 0, 'B', 4, ['Shift']);
+    await page.mouse.move(area.x, 700);
+    // Shift + click selects from the bar clicked last (the note's) to this one
+    expect(await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { barSel: unknown }).barSel)).toEqual({ from: 0, to: 1 });
+    await letGameRun(page, 3);
+    expect((await page.screenshot({ clip: area })).equals(before)).toBe(false);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02a.AC13 Export of a saved piece whose name was emptied exports nothing until it has a name again', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await setTitle(page, 'Sunny Day');
+    await eAndGQuarters(page);
+    await clickButton(page, 'editor', await editorButton(page, 'Save'));
+    await expect.poll(() => status(page)).toContain('Saved. It is in the menu now.');
+    await clickNote(page, 0, 960, 'C');
+    await setTitle(page, '');
+    let downloads = 0;
+    page.on('download', () => downloads++);
+    await clickButton(page, 'editor', await bubbleButton(page, 'Export'));
+    await expect.poll(() => status(page)).toContain('Give the piece a name, then press Enter.');
+    await letGameRun(page, 10, 500);
+    expect(downloads).toBe(0);
+    expect(await status(page)).not.toContain('Saved the file');
+    expectNoErrors(errors);
+  });
+
+  test('a typed name stays through Undo and Redo: typing it is no undo step', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await eAndGQuarters(page);
+    await setTitle(page, 'Sunny Day');
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.press('Control+z');
+    expect(await notes(page)).toEqual(['0:0:E:quarter']);
+    expect(await page.evaluate(() => window.__game.scene.getScene('editor').history.present.title)).toBe('Sunny Day');
+    expect(await page.inputValue('#editor-title')).toBe('Sunny Day');
+    await page.keyboard.press('Control+y');
+    expect(await notes(page)).toEqual(['0:0:E:quarter', '0:480:G:quarter']);
+    expect(await page.inputValue('#editor-title')).toBe('Sunny Day');
+    expect(await page.evaluate(() => window.__game.scene.getScene('editor').history.present.title)).toBe('Sunny Day');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02a.AC15 a piece file with a blank name is imported under a name, never a blank one', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await setTitle(page, 'Carry Me');
+    await eAndGQuarters(page);
+    const download = page.waitForEvent('download');
+    await clickButton(page, 'editor', await bubbleButton(page, 'Export'));
+    const file = JSON.parse(readFileSync(await (await download).path(), 'utf-8')) as { piece: { title: string } };
+    file.piece.title = '   ';
+    const chooser = page.waitForEvent('filechooser');
+    await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
+    await (await chooser).setFiles({ name: 'blank.pianor-piece.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(file)) });
+    await expect.poll(() => status(page)).toContain('Added "Imported piece" to your pieces.');
+    expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().map((r: { piece: { title: string } }) => r.piece.title))).toEqual(['Carry Me', 'Imported piece']);
+    expectNoErrors(errors);
+  });
 });
 
 /** synthetic: a PDF of `pages` pages, each with two piano systems drawn as lines, made by the browser itself. */
@@ -685,9 +816,13 @@ async function syntheticPdf(page: Page, pages: number): Promise<Buffer> {
   return pdf;
 }
 
-/** synthetic: what the computer answers after reading pages 1 and 2: 20 bars, a new page at bar 13, the bars' places on the pages. */
-function readBook(): unknown {
-  const measures = Array.from({ length: 20 }, (_, i) => `<measure number="${i + 1}">${i === 12 ? '<print new-page="yes"/>' : i % 4 === 0 && i > 0 ? '<print new-system="yes"/>' : ''}${i === 0 ? '<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><sound tempo="90"/>' : ''}<note><pitch><step>${'CDEFGAB'[i % 7]}</step><octave>4</octave></pitch><duration>4</duration></note></measure>`);
+/**
+ * synthetic: what the computer answers after reading pages 1 and 2: 20 bars, a new page at bar 13, the bars' places on the
+ * pages; with `misread`, that bar of the book (from 1) holds a note too many.
+ */
+function readBook(misread?: number): unknown {
+  const note = (i: number) => `<note><pitch><step>${'CDEFGAB'[i % 7]}</step><octave>4</octave></pitch><duration>4</duration></note>`;
+  const measures = Array.from({ length: 20 }, (_, i) => `<measure number="${i + 1}">${i === 12 ? '<print new-page="yes"/>' : i % 4 === 0 && i > 0 ? '<print new-system="yes"/>' : ''}${i === 0 ? '<attributes><divisions>1</divisions><key><fifths>0</fifths></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><sound tempo="90"/>' : ''}${note(i)}${misread === i + 1 ? note(i + 1) : ''}</measure>`);
   const read = musicXmlToChart(`<score-partwise><part-list/><part id="P1">${measures.join('')}</part></score-partwise>`, 'book');
   if (!read.ok) throw new Error(read.reason);
   const layout = { width: 2480, height: 3508, systems: [0, 1, 2].map((s) => ({ staves: [{ top: 300 + s * 900, bottom: 400 + s * 900 }, { top: 600 + s * 900, bottom: 700 + s * 900 }], bars: [0, 1, 2, 3].map((b) => ({ x1: 200 + b * 500, x2: 700 + b * 500 })) })) };
@@ -763,6 +898,86 @@ test.describe('piece maker: a PDF of many pages into a song (ft_Y_04 slice 6)', 
     expect(song?.title).toBe('Old Waltz');
     expect(song?.nodes.map((n) => [n.kind, n.piece, n.name])).toEqual([['piece', 'own-old-waltz-p01', 'Part 1'], ['piece', 'own-old-waltz-p02', 'Part 2']]);
     expect(partsAsked).toEqual([{ id: 'own-old-waltz-p01', movement: 0, firstBar: 0, lastBar: 11 }, { id: 'own-old-waltz-p02', movement: 0, firstBar: 12, lastBar: 19 }]);
+    expectNoErrors(errors);
+  });
+
+  test('ft_Y_04.AC26 another PDF chosen after a reading is read anew, never shown with the first one\'s parts; Enter in the name goes back to a kept reading', async ({ page }) => {
+    const asked: string[] = [];
+    await page.route('**/__pianor/photo**', async (route) => {
+      const url = new URL(route.request().url());
+      const path = url.pathname;
+      if (path === '/__pianor/photo') return route.fulfill({ json: { ok: true } });
+      asked.push(`${route.request().method()} ${path}${url.search}`);
+      if (path === '/__pianor/photo/book') return route.fulfill({ json: { ok: true, book: 'book-old-waltz' } });
+      if (path.endsWith('/status')) return route.fulfill({ json: readBook() });
+      return route.fulfill({ json: { ok: true } });
+    });
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { photoReady: boolean }).photoReady)).toBe(true);
+    await page.fill('#editor-title', 'Kept Name');
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    const chooser = page.waitForEvent('filechooser');
+    await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
+    await (await chooser).setFiles({ name: 'Old_Waltz.pdf', mimeType: 'application/pdf', buffer: await syntheticPdf(page, 2) });
+    await expect(page.locator('#book-tool-read')).toHaveText('Read 2 pages');
+    await page.locator('#book-tool-read').click();
+    await expect(page.locator('.book-tool-part')).toHaveCount(2);
+    // back to the pages: Enter in the name goes back to the reading, and reads nothing again
+    await page.locator('#book-tool-back').click();
+    const reads = () => asked.filter((a) => a.includes('/read?')).length;
+    expect(reads()).toBe(1);
+    await page.locator('#book-tool-name').press('Enter');
+    await expect(page.locator('.book-tool-part')).toHaveCount(2);
+    expect(reads()).toBe(1);
+    // another PDF of as many pages is read anew
+    await page.locator('#book-tool-back').click();
+    const another = page.waitForEvent('filechooser');
+    await page.locator('#book-tool-choose').click();
+    await (await another).setFiles({ name: 'Other_Book.pdf', mimeType: 'application/pdf', buffer: await syntheticPdf(page, 2) });
+    await expect(page.locator('#book-tool-name')).toHaveValue('Other Book');
+    await expect(page.locator('#book-tool-read')).toHaveText('Read 2 pages');
+    await expect(page.locator('#book-tool-to-check')).toHaveCount(0);
+    // Ctrl + Z typed in the tool never undoes the piece maker's title behind it
+    await page.locator('#book-tool-note').click();
+    await page.keyboard.press('Control+z');
+    expect(await page.inputValue('#editor-title')).toBe('Kept Name');
+    expectNoErrors(errors);
+  });
+
+  test('ft_Y_04.AC29 ft_Y_04.AC30 a part names its bars to fill as the book counts them; a page left out redraws no page picture', async ({ page }) => {
+    await page.route('**/__pianor/photo**', async (route) => {
+      const path = new URL(route.request().url()).pathname;
+      if (path === '/__pianor/photo/book') return route.fulfill({ json: { ok: true, book: 'book-old-waltz' } });
+      if (path.endsWith('/status')) return route.fulfill({ json: readBook(16) });
+      return route.fulfill({ json: { ok: true } });
+    });
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { photoReady: boolean }).photoReady)).toBe(true);
+    const chooser = page.waitForEvent('filechooser');
+    await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
+    await (await chooser).setFiles({ name: 'Old_Waltz.pdf', mimeType: 'application/pdf', buffer: await syntheticPdf(page, 3) });
+    await expect(page.locator('#book-tool-read')).toHaveText('Read 3 pages');
+    // the pages' pictures are drawn once: a page left out and taken back keeps every picture as it was
+    await page.evaluate(() => document.querySelectorAll('#book-tool-pages canvas').forEach((c) => c.setAttribute('data-first', 'yes')));
+    await page.locator('#book-tool-page-3').click();
+    await page.locator('#book-tool-page-2').click();
+    await page.locator('#book-tool-page-2').click();
+    await expect(page.locator('#book-tool-pages canvas[data-first="yes"]')).toHaveCount(3);
+    await expect(page.locator('#book-tool-page-3')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('#book-tool-page-2')).toHaveAttribute('aria-pressed', 'true');
+    // a name typed while on the pages stays in its field
+    await page.locator('#book-tool-name').fill('Waltz Book');
+    await page.locator('#book-tool-page-1').click();
+    await page.locator('#book-tool-page-1').click();
+    await expect(page.locator('#book-tool-name')).toHaveValue('Waltz Book');
+    await page.locator('#book-tool-read').click();
+    // the second part starts at bar 13: its misread bar is bar 16 of the book, as in the list and on the paper
+    await expect(page.locator('.book-tool-part')).toHaveCount(2);
+    await expect(page.locator('.book-tool-part').nth(1)).toContainText('bars 13 to 20');
+    await expect(page.locator('.book-tool-part').nth(1)).toContainText('Bars to fill by hand: 16.');
+    await expect(page.locator('.book-tool-part').first()).not.toContainText('Bars to fill by hand');
     expectNoErrors(errors);
   });
 });
@@ -869,6 +1084,29 @@ test.describe('piece maker: a photo of a sheet (ft_Y_04 slices 4 and 5)', () => 
     expectNoErrors(errors);
   });
 
+  test('ft_Y_04.AC27 Import offers photos and PDFs only while Audiveris is there, asked at each Import, and says once where to get it', async ({ page }) => {
+    let installed = false;
+    await page.route('**/__pianor/photo', (route) => route.fulfill({ json: installed ? { ok: true } : { ok: false, reason: 'Audiveris is not installed on this computer' } }));
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    const importOnce = async () => {
+      const chooser = page.waitForEvent('filechooser');
+      await clickButton(page, 'editor', await bubbleButton(page, 'Import'));
+      const picked = await chooser;
+      const accept = await picked.element().getAttribute('accept');
+      await picked.setFiles([]);
+      return accept ?? '';
+    };
+    const told = async () => (await sceneTexts(page, 'editor')).filter((text) => text.includes('Audiveris')).length;
+    expect(await importOnce()).not.toContain('pdf');
+    await expect.poll(told).toBe(1);
+    await page.waitForTimeout(100);
+    // installed meanwhile: the next Import asks again and takes a PDF
+    installed = true;
+    expect(await importOnce()).toContain('pdf');
+    expectNoErrors(errors);
+  });
+
   test('ft_Y_04.AC18 the photo tool closes with Esc and leaves the piece maker as it was; typing the name writes no notes', async ({ page }) => {
     await page.route('**/__pianor/photo**', (route) => route.fulfill({ json: { ok: true } }));
     const errors = await openGame(page, EDITOR);
@@ -971,6 +1209,87 @@ test.describe('piece maker: writing by playing keys (ft_1_02d)', () => {
   });
 });
 
+test.describe('piece maker: the left click, the bubble on a note or a rest, and the message (ft_1_02d)', () => {
+  /** What a click writes: notes or rests. */
+  const entry = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { entry: string }).entry);
+  async function rightClick(page: Page, place: { bar: number; start: number; step: Step; octave?: number }): Promise<void> {
+    await closeBubble(page, 'editor');
+    const at = await canvasPoint(page, place);
+    await page.mouse.click(at.x, at.y, { button: 'right' });
+    await expect.poll(() => bubbleOpen(page, 'editor')).toBe(true);
+  }
+
+  test('ft_1_02d.AC50 ft_1_02d.AC51 a left click on an empty place writes a note, on the note selects it, and on the space above makes a chord', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await selectNote(page, 0, 0, 'G');
+    expect(await notes(page)).toEqual(['0:0:G:quarter']);
+    // on the note itself: selected, not made longer
+    await selectNote(page, 0, 0, 'G');
+    expect(await notes(page)).toEqual(['0:0:G:quarter']);
+    expect(await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { selected: { step: string } | null }).selected?.step)).toBe('G');
+    // the A a step above the G joins it as a chord, it does not lengthen the G
+    await selectNote(page, 0, 0, 'A');
+    expect((await notes(page)).sort()).toEqual(['0:0:A:quarter', '0:0:G:quarter']);
+    // the middle button still writes too
+    await clickNote(page, 0, 480, 'E');
+    expect((await notes(page)).sort()).toEqual(['0:0:A:quarter', '0:0:G:quarter', '0:480:E:quarter']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC53 the bubble on a placed rest has Delete, which removes the rest', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { setEntry(kind: string): void }).setEntry('rest'));
+    await selectNote(page, 0, 0, 'B');
+    const rests = () => page.evaluate(() => (window.__game.scene.getScene('editor').history.present.rests ?? []).length);
+    expect(await rests()).toBe(1);
+    await rightClick(page, { bar: 0, start: 0, step: 'B' });
+    await clickButton(page, 'editor', await lastButton(page, 'editor', 'Delete'));
+    await expect.poll(rests).toBe(0);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC55 the length in the bubble of a note is that note\'s, and opening it keeps rests as the writer', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'G');
+    // the writer goes on to halves and rests
+    await page.keyboard.press('Digit2');
+    await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { setEntry(kind: string): void }).setEntry('rest'));
+    await rightClick(page, { bar: 0, start: 0, step: 'G' });
+    expect(await lastButton(page, 'editor', '1/4')).toBeGreaterThanOrEqual(0);
+    expect(await lastButton(page, 'editor', '1/2')).toBe(-1);
+    await clickButton(page, 'editor', await lastButton(page, 'editor', '1/4'));
+    expect(await entry(page)).toBe('rest');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC54 a message stands in the strip at the foot, never over the staff, and over its buttons only for a moment', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await page.keyboard.press('Control+KeyX');
+    await expect.poll(() => status(page)).toContain('Select bars first');
+    const spot = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('editor') as unknown as { messageBox: { image: { y: number; visible: boolean } } | null; bandTop: number | null };
+      return { y: scene.messageBox?.image.y, visible: scene.messageBox?.image.visible, band: scene.bandTop };
+    });
+    expect(spot.visible).toBe(true);
+    expect(spot.y).toBeGreaterThanOrEqual(spot.band!);
+    const shown = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { messageBox: { image: { visible: boolean } } | null }).messageBox?.image.visible);
+    // a message that waits (as a pick's does) over the buttons: the next key takes it away, and so does time
+    const sayLong = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { say(text: string): void }).say('Now click the note the tie or slur goes to, then the next one.'));
+    await sayLong();
+    await expect.poll(shown).toBe(true);
+    await page.keyboard.press('Shift');
+    await expect.poll(shown).toBe(false);
+    await sayLong();
+    await expect.poll(shown).toBe(true);
+    await expect.poll(shown, { timeout: 10000 }).toBe(false);
+    expectNoErrors(errors);
+  });
+});
+
 test.describe('tie pick and selection', () => {
   test('a pick stays armed through a refused edit: its message returns once the refusal fades, and a click selects the note at once', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
@@ -1001,7 +1320,9 @@ test.describe('tie pick and selection', () => {
     await page.evaluate(() => { window.__game.scene.getScene('editor').time.timeScale = 1000; });
     await expect.poll(timer).toMatchObject({ done: true });
     await page.evaluate(() => { window.__game.scene.getScene('editor').time.timeScale = 1; });
-    expect(await status(page)).toContain('Now click the note the tie or slur goes to.');
+    // the message is said again (over the strip's buttons it then stays its own moment, ft_1_02d.AC54, which the
+    // fast clock has already run through)
+    expect(await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { message: string }).message)).toBe('Now click the note the tie or slur goes to.');
     expect(await page.evaluate(() => !!(window.__game.scene.getScene('editor') as unknown as { arcFrom: unknown }).arcFrom)).toBe(true);
     expectNoErrors(errors);
   });
@@ -1266,10 +1587,12 @@ test.describe('fingers (ft_1_02d.AC4)', () => {
 });
 
 test.describe('slim tool row with menus', () => {
-  test('the middle button places a note, Alt + left click places too, a plain left click places nothing', async ({ page }) => {
+  test('ft_1_02d.AC50 the middle button places a note, Alt + left click places too, and so does a plain left click', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
     await selectNote(page, 0, 0, 'E');
+    expect(await notes(page)).toEqual(['0:0:E:quarter']);
+    await page.keyboard.press('Control+KeyZ');
     expect(await notes(page)).toEqual([]);
     await clickNote(page, 0, 0, 'E');
     expect(await notes(page)).toEqual(['0:0:E:quarter']);
@@ -1365,7 +1688,7 @@ test.describe('slim tool row with menus', () => {
     expect(await notes(page)).toEqual(['0:0:E:quarter', '1:0:F:quarter']);
     await page.keyboard.press('Control+KeyZ');
     expect(await notes(page)).toEqual(['0:0:E:quarter', '1:0:E:quarter']);
-    // Esc clears the bar selection and the band goes with it; Esc with no selection would leave the editor
+    // Esc clears the bar selection and the band goes with it
     await page.keyboard.press('Escape');
     expect(await bar()).toBeNull();
     expect(await bandLength()).toBe(idleBand);
@@ -1468,7 +1791,7 @@ test.describe('finger buttons and AUTO (ft_1_02d.AC13)', () => {
     await clickNote(page, 0, 480, 'D');
     // the fingers are a menu item of the band (ft_1_20): F opens it from the keyboard too
     const at = async (label: string) => {
-      const labels = await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { buttons: { objects: { text?: string }[] }[] }).buttons.map((b) => b.objects.map((o) => o.text ?? '').join('')));
+      const labels = await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { buttons: { options: { label: string } }[] }).buttons.map((b) => b.options.label));
       return labels.lastIndexOf(label);
     };
     const fingers = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { history: { present: { notes: { finger?: number }[] } } }).history.present.notes.map((n) => n.finger ?? null));
@@ -1481,6 +1804,27 @@ test.describe('finger buttons and AUTO (ft_1_02d.AC13)', () => {
     expect(await at('AUTO')).toBeGreaterThanOrEqual(0);
     await clickButton(page, 'editor', await at('AUTO'));
     expect(await fingers()).toEqual([1, 3]);
+    expectNoErrors(errors);
+  });
+});
+
+test.describe('the bubble shows the note as it is (ft_1_20)', () => {
+  test('the dynamic option of a note with none says none, its none choice is named and lit, and the finger in use is lit', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'C');
+    await clickNote(page, 0, 0, 'C');
+    const lit = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { menu: { buttons: { options: { label: string }; active: boolean }[] } | null }).menu?.buttons.filter((b) => b.active).map((b) => b.options.label) ?? []);
+    // no dynamic on the note: the option says so, never a mark the note does not have
+    const none = await editorButton(page, 'No dynamic mark');
+    expect(none).toBeGreaterThanOrEqual(0);
+    await clickButton(page, 'editor', none);
+    await expect.poll(lit).toContain('No dynamic mark');
+    await closeBubble(page, 'editor');
+    // the finger written on the note is lit among the fingers
+    await pickInBubble(page, 'Fingers', '3');
+    await clickButton(page, 'editor', await editorButton(page, 'Fingers'));
+    await expect.poll(lit).toContain('3');
     expectNoErrors(errors);
   });
 });
@@ -1937,6 +2281,35 @@ test.describe('the next length and the A time', () => {
     expectNoErrors(errors);
   });
 
+  test('Esc in the title box asked for by Save gives the keys back to the piece maker, and the title gets no letter', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'C');
+    await clickButton(page, 'editor', await editorButton(page, 'Save'));
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('editor-title');
+    await page.keyboard.press('Escape');
+    expect(await page.evaluate(() => document.activeElement?.id)).not.toBe('editor-title');
+    await page.keyboard.type('n');
+    expect(await page.inputValue('#editor-title')).toBe('');
+    expect(await activeScenes(page)).toContain('editor');
+    expectNoErrors(errors);
+  });
+
+  test(':wq on a piece with no name asks for it, then saves and leaves once it is typed', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'C');
+    await page.keyboard.press('Control+Shift+KeyV');
+    await page.keyboard.type(':wq');
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('editor-title');
+    await page.fill('#editor-title', 'Bells');
+    await page.press('#editor-title', 'Enter');
+    await expect.poll(() => activeScenes(page)).not.toContain('editor');
+    expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().map((r: { id: string }) => r.id))).toEqual(['own-bells']);
+    expectNoErrors(errors);
+  });
+
   test('ft_1_02a.AC15 a piece is never saved under a blank name or one another piece has, in any case: the field turns red until the name is new', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
@@ -1953,6 +2326,7 @@ test.describe('the next length and the A time', () => {
     expect(await page.evaluate(() => document.activeElement?.id)).toBe('editor-title');
     const ring = () => page.evaluate(() => getComputedStyle(document.querySelector('#editor-title')!).borderTopColor);
     const red = await ring();
+    expect(red).toBe('rgb(215, 38, 61)');
     expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().length)).toBe(0);
     // a new name: the ring goes back, and Enter saves
     await page.fill('#editor-title', 'Twinkle for Me');
@@ -2159,6 +2533,33 @@ test.describe('piece maker: the cursor follows the pointer, the bubble offers wh
     expectNoErrors(errors);
   });
 
+  test('ft_1_02d.AC35 on a note inside selected bars with something copied every option fits one page: Copy keeps slot 7, no More', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await eAndGQuarters(page);
+    await selectNote(page, 0, 0, 'E');
+    // Shift + click on the note's bar selects the bar and keeps the note selected
+    const g = await canvasPoint(page, { bar: 0, start: 480, step: 'G' });
+    await page.keyboard.down('Shift');
+    await page.mouse.click(g.x, g.y);
+    await page.keyboard.up('Shift');
+    await page.keyboard.press('Control+KeyC');
+    await bubbleAt(page, { bar: 0, start: 480, step: 'G' });
+    // the note's own options are there too, so nine would have been offered before
+    expect((await keyState(page)).selected).not.toBeNull();
+    const ring = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { menu: { ring: { options: { label: string } }[] } }).menu.ring.map((b) => b.options.label));
+    const labels = await ring();
+    expect(labels).not.toContain('More');
+    expect(labels).toContain('Paste');
+    expect(labels).toContain('Copy');
+    // Copy stands in the same slot as on a note alone (slot 7, the last), Paste in slot 6
+    const slots = await page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { bubbleOptions(at: null): ({ label: string } | null)[] }).bubbleOptions(null).map((o) => o?.label ?? null));
+    expect(slots[7]).toBe('Copy');
+    expect(slots[6]).toBe('Paste');
+    expect(slots).toHaveLength(8);
+    expectNoErrors(errors);
+  });
+
   test('ft_1_02d.AC36 lassoed bars are slurred from a right click, with no first note picked, and the slur is drawn faint before the press', async ({ page }) => {
     const errors = await openGame(page, EDITOR);
     await openEditor(page);
@@ -2280,6 +2681,228 @@ test.describe('piece maker: the cursor follows the pointer, the bubble offers wh
       context.keyboardSwitch.shown = () => false;
     });
     expect(await bubbleAt(page, { bar: 2, start: 0, step: 'A', octave: 5 })).not.toContain('A short tap writes an eighth note (on) or a quarter note (off)');
+    expectNoErrors(errors);
+  });
+});
+
+test.describe('piece maker: leaving, Listen, pages and the keys that went nowhere', () => {
+  const focusedLeave = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('editorLeave') as unknown as { focusedButton?: { options: { label: string } } }).focusedButton?.options.label ?? null);
+  const unloadAsks = (page: Page) => page.evaluate(() => {
+    const e = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(e);
+    return e.defaultPrevented;
+  });
+
+  test('ft_1_02a.AC16 Esc never leaves the piece maker; the door with unsaved work asks on a panel, on Stay, and the tab asks before it closes', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    expect(await unloadAsks(page)).toBe(false);
+    await clickNote(page, 0, 0, 'E');
+    expect(await unloadAsks(page)).toBe(true);
+    // a menu closed by Esc, then a habitual second Esc and a third: still in the piece maker, the door named
+    await page.keyboard.press('KeyN');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    expect(await activeScenes(page)).toContain('editor');
+    expect(await status(page)).toContain('To leave the piece maker, press the door.');
+    // the door: the panel, the keys on Stay; Enter stays, so does Esc
+    await clickToolbar(page, 'back');
+    await waitForScene(page, 'editorLeave');
+    expect(await sceneTexts(page, 'editorLeave')).toEqual(expect.arrayContaining(['This piece has changes that are not saved.', 'Save and leave', 'Leave without saving', 'Stay']));
+    expect(await focusedLeave(page)).toBe('Stay');
+    await page.keyboard.press('Enter');
+    await expect.poll(() => activeScenes(page)).not.toContain('editorLeave');
+    expect(await activeScenes(page)).toContain('editor');
+    await clickToolbar(page, 'back');
+    await waitForScene(page, 'editorLeave');
+    await page.keyboard.press('Escape');
+    await expect.poll(() => activeScenes(page)).not.toContain('editorLeave');
+    expect(await notes(page)).toEqual(['0:0:E:quarter']);
+    // Save and leave: saved under its title, then the menu
+    await setTitle(page, 'Door Test');
+    await clickToolbar(page, 'back');
+    await waitForScene(page, 'editorLeave');
+    await clickButton(page, 'editorLeave', await sceneButton(page, 'editorLeave', 'Save and leave'));
+    await waitForScene(page, 'menu');
+    expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().map((r: { piece: { title: string } }) => r.piece.title))).toEqual(['Door Test']);
+    // Leave without saving leaves the change behind
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'G');
+    await clickToolbar(page, 'back');
+    await waitForScene(page, 'editorLeave');
+    await page.keyboard.press('ArrowUp');
+    expect(await focusedLeave(page)).toBe('Leave without saving');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'menu');
+    expect(await page.evaluate(() => window.__game.registry.get('context').ownPieces.list().length)).toBe(1);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02a.AC17 Listen ends after the last written note, not after the empty bars, and shows Listen again', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await eAndGQuarters(page);
+    const listen = () => page.evaluate(() => {
+      const scene = window.__game.scene.getScene('editor') as unknown as { piece: { bars: number }; player: { isPlaying: boolean; lengthMs: number }; listenButton: { options: { label: string } } | null };
+      return { bars: scene.piece.bars, playing: scene.player.isPlaying, ms: scene.player.lengthMs };
+    });
+    await page.keyboard.press('KeyP');
+    const started = await listen();
+    expect(started.bars).toBeGreaterThanOrEqual(8);
+    expect(started.playing).toBe(true);
+    // two quarters and the last one's ring, not eight bars
+    expect(started.ms).toBeLessThan(3000);
+    await expect.poll(async () => (await listen()).playing, { timeout: 5000 }).toBe(false);
+    expect(await sceneWords(page, 'editor')).toContain('Listen');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC17 Ctrl + Enter at the last place of the piece adds four empty bars and goes on, one undo step with the note', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    const bars = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { piece: { bars: number } }).piece.bars);
+    const start = await bars();
+    // the cursor to the last bar, a whole note there with Ctrl + Enter
+    await page.keyboard.press('ArrowRight');
+    await pressTimes(page, 'Control+ArrowRight', start - 1);
+    expect((await keyState(page)).cursor).toBe(`RH:${start - 1}:0:B4`);
+    await page.keyboard.press('Digit1');
+    await page.keyboard.press('Control+Enter');
+    expect(await notes(page)).toEqual([`${start - 1}:0:B:whole`]);
+    expect(await bars()).toBe(start + 4);
+    expect((await keyState(page)).cursor).toBe(`RH:${start}:0:B4`);
+    // the cursor is drawn on the page of the new bar
+    await page.keyboard.press('Control+Enter');
+    expect(await notes(page)).toEqual([`${start - 1}:0:B:whole`, `${start}:0:B:whole`]);
+    await page.keyboard.press('Control+KeyZ');
+    await page.keyboard.press('Control+KeyZ');
+    expect(await notes(page)).toEqual([]);
+    expect(await bars()).toBe(start);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC15 after played keys the drawn cursor stands where the next key goes', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await page.keyboard.press('ArrowRight');
+    expect((await keyState(page)).cursor).toBe('RH:0:0:B4');
+    await tap(page, 72);
+    await page.waitForTimeout(400);
+    await tap(page, 76);
+    await expect.poll(() => notes(page)).toEqual(['0:0:C:quarter', '0:480:E:quarter']);
+    await expect.poll(async () => (await keyState(page)).cursor).toBe('RH:0:960:E5');
+    // Enter there writes after the played notes
+    await page.keyboard.press('Enter');
+    expect(await notes(page)).toEqual(['0:0:C:quarter', '0:480:E:quarter', '0:960:E:quarter']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02a.AC11 ft_1_02d.AC15 Page Down puts the cursor on the first bar of the page, the strip says which page, and undo turns to the page of its change', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'E');
+    await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('editor') as unknown as {
+        history: { present: { bars: number; notes: { bar: number }[] } };
+        apply(edit: { ok: true; piece: unknown }, select: null): void;
+      };
+      const piece = scene.history.present;
+      const note = piece.notes[0]!;
+      scene.apply({ ok: true, piece: { ...piece, bars: 32, notes: Array.from({ length: 32 }, (_, bar) => ({ ...note, bar })) } }, null);
+    });
+    const state = () => page.evaluate(() => {
+      type Layout = { pageCount: number; bars: { system: number }[]; systems: { page: number }[] };
+      const scene = window.__game.scene.getScene('editor') as unknown as { page: number; layout: Layout };
+      const first = scene.layout.bars.findIndex((b) => scene.layout.systems[b.system]!.page === scene.page);
+      return { page: scene.page, pages: scene.layout.pageCount, first };
+    });
+    const { pages } = await state();
+    expect(pages).toBeGreaterThan(1);
+    expect(await sceneTexts(page, 'editor')).toContain(`page 1 of ${pages}`);
+    await page.keyboard.press('PageDown');
+    const second = await state();
+    expect(second.page).toBe(1);
+    expect((await keyState(page)).cursor).toBe(`RH:${second.first}:0:E4`);
+    expect(await sceneTexts(page, 'editor')).toContain(`page 2 of ${pages}`);
+    // a change on page 2, then back to page 1: undo shows page 2 again
+    await page.keyboard.press('Delete');
+    await page.keyboard.press('PageUp');
+    expect((await state()).page).toBe(0);
+    expect((await keyState(page)).cursor).toBe('RH:0:0:E4');
+    await page.keyboard.press('Control+KeyZ');
+    expect((await state()).page).toBe(1);
+    expect(await sceneTexts(page, 'editor')).toContain(`page 2 of ${pages}`);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC21 while the time panel is open digits, the arrows, Enter and Esc are its own and never reach the selected note', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 1, 0, 'E');
+    await selectNote(page, 1, 0, 'E');
+    const piece = () => page.evaluate(() => {
+      const scene = window.__game.scene.getScene('editor') as unknown as { piece: { bpm?: number; pickup?: number }; panel: string | null; entry: string };
+      return { bpm: scene.piece.bpm ?? null, pickup: scene.piece.pickup ?? 0, panel: scene.panel, entry: scene.entry };
+    });
+    await page.keyboard.press('KeyI');
+    expect((await piece()).panel).toBe('time');
+    // right to the pick-up: 1 is one beat; right to the tempo: 9 then 0 is 90
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Digit1');
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('Digit9');
+    await page.keyboard.press('Digit0');
+    expect(await piece()).toEqual({ bpm: 90, pickup: 1, panel: 'time', entry: 'note' });
+    expect(await notes(page)).toEqual(['1:0:E:quarter']);
+    // a tempo typed and Enter: set, and the panel closes
+    await page.keyboard.press('Digit7');
+    await page.keyboard.press('Digit5');
+    await page.keyboard.press('Enter');
+    expect(await piece()).toMatchObject({ bpm: 75, panel: null });
+    expect(await notes(page)).toEqual(['1:0:E:quarter']);
+    await page.keyboard.press('KeyI');
+    await page.keyboard.press('Escape');
+    expect((await piece()).panel).toBeNull();
+    expect(await activeScenes(page)).toContain('editor');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02d.AC37 a paste that warned asks again after any other action in between', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await clickNote(page, 0, 0, 'E');
+    await clickNote(page, 1, 0, 'G');
+    await selectNote(page, 0, 0, 'E');
+    await selectNote(page, 0, 0, 'E', 4, ['Shift']);
+    await page.keyboard.press('Control+KeyC');
+    await selectNote(page, 1, 0, 'G');
+    await selectNote(page, 1, 0, 'G', 4, ['Shift']);
+    await page.keyboard.press('Control+KeyV');
+    expect(await status(page)).toContain('Notes this paste writes over (red): 1.');
+    // another key in between (a menu opened and closed): the next paste warns again and writes nothing
+    await page.keyboard.press('KeyN');
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Control+KeyV');
+    expect(await notes(page)).toEqual(['0:0:E:quarter', '1:0:G:quarter']);
+    await page.keyboard.press('Control+KeyV');
+    expect(await notes(page)).toEqual(['0:0:E:quarter', '1:0:E:quarter']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02e.AC5 in vim insert mode Backspace after a rest takes the rest away', async ({ page }) => {
+    const errors = await openGame(page, EDITOR);
+    await openEditor(page);
+    await page.keyboard.press('Control+Shift+KeyV');
+    await page.keyboard.type('icr');
+    const rests = () => page.evaluate(() => ((window.__game.scene.getScene('editor') as unknown as { piece: { rests?: { bar: number; start: number }[] } }).piece.rests ?? []).map((r) => `${r.bar}:${r.start}`));
+    expect(await rests()).toEqual(['0:480']);
+    await page.keyboard.press('Backspace');
+    expect(await rests()).toEqual([]);
+    expect(await notes(page)).toHaveLength(1);
+    expect((await keyState(page)).cursor).toMatch(/^RH:0:480:/);
+    await page.keyboard.press('Backspace');
+    expect(await notes(page)).toEqual([]);
     expectNoErrors(errors);
   });
 });

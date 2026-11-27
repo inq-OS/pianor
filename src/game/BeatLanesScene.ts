@@ -7,16 +7,17 @@ import { layoutStaff, type StaffLayout } from '../core/layout/staff';
 import { t, type StringKey } from '../core/text/strings';
 import { contextOf } from './context';
 import type { SettingsData } from './SettingsScene';
-import { freshData } from './scenes';
+import { CANCELLED, closeOverlay, freshData, settleOverlay } from './scenes';
 import { LANE_ICONS, type LaneIconId } from './ui/pixel/laneArt';
 import { C } from './ui/pixel/palette';
 import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { StaffView } from './ui/staff/StaffView';
 
-/** Where Back goes: the settings' learning page, or the screen it was opened from. */
+/** Where Back goes: the settings' learning page, or (`overlay`, opened over the practice screen) back to the piece. */
 export interface BeatLanesData {
   returnTo?: SettingsData;
+  overlay?: boolean;
 }
 
 /** The piece the preview plays: two bars of a two-hand piece, so both staves and the space between them show. */
@@ -27,6 +28,9 @@ const PREVIEW_QUARTER_MS = 600;
 const GRAB = 1.2;
 /** A press that moves less than this (screen pixels) before it is let go is a click: it adds a lane. */
 const CLICK_SLIP = 6;
+/** The hint's left edge, and how far above the sheet's torn foot it ends (art rows). */
+const HINT_X = 12;
+const HINT_FOOT = 5;
 /** How strong the dots of the lane a click would add are drawn while the pointer rests there (d286). */
 const GHOST_STRENGTH = 0.35;
 
@@ -69,6 +73,7 @@ const SLIDERS: readonly LaneSlider[] = [
  */
 export class BeatLanesScene extends PixelScene {
   private returnTo: SettingsData = { page: 1 };
+  private overlay = false;
   private lanes: LaneLook[] = [];
   /** The lane the bubble from More or the keyboard tunes: the last one touched. */
   private selected = 0;
@@ -94,6 +99,9 @@ export class BeatLanesScene extends PixelScene {
 
   init(data?: BeatLanesData): void {
     this.returnTo = data?.returnTo ?? { page: 1 };
+    this.overlay = data?.overlay === true;
+    // over the practice screen the page has no settings corner: Back is the only way, back to the piece
+    this.toolbarPlayer = !this.overlay;
     this.lanes = learnBeatLanes(contextOf(this).profiles.learnSettings).map((l) => structuredClone(l));
     this.selected = 0;
     this.saveFailed = false;
@@ -104,6 +112,10 @@ export class BeatLanesScene extends PixelScene {
   }
 
   override create(): void {
+    if (this.overlay) {
+      this.scene.bringToTop();
+      this.events.once('shutdown', () => settleOverlay('beat-lanes', CANCELLED, this));
+    }
     super.create();
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.down(p));
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.moved(p));
@@ -112,7 +124,8 @@ export class BeatLanesScene extends PixelScene {
 
   protected override back(): void {
     this.game.canvas.style.cursor = '';
-    this.scene.start('settings', freshData(this.returnTo));
+    if (this.overlay) closeOverlay(this, 'beat-lanes', 'closed');
+    else this.scene.start('settings', freshData(this.returnTo));
   }
 
   override update(): void {
@@ -131,11 +144,19 @@ export class BeatLanesScene extends PixelScene {
   protected draw(): void {
     const { width } = this.px;
     this.sky();
-    this.openBook({ x: 3, y: 3, w: width - 6, h: this.px.height - 5 });
-    this.inkWriting = true;
     const strip = this.cornerStrip;
-    this.label(strip.left + 2, 6, this.saveFailed ? t('settings.saveFailed') : t('lanes.title'), C.gold);
-    this.drawPreview(strip.rows + 1, this.mainRows - strip.rows - 2);
+    // the book lies under the strip of the door and the gear, where the title stands on the desk clear of both boxes
+    this.openBook({ x: 3, y: strip.rows, w: width - 6, h: this.px.height - 2 - strip.rows });
+    this.label(this.titleX(0), 6, t('lanes.title'), C.gold);
+    this.inkWriting = true;
+    const rows = this.mainRows - strip.rows - 2;
+    this.drawPreview(strip.rows + 1, rows);
+    // at the sheet's foot, below where any lane can run: how the page is used, or a failed save
+    const hint = this.label(HINT_X, 0, this.saveFailed ? t('settings.saveFailed') : t('lanes.hint'), this.saveFailed ? C.gold : C.dim, { maxWidth: width - 2 * HINT_X });
+    hint.y = strip.rows + 1 + rows - hint.height - HINT_FOOT;
+    // the preview's sheet is drawn over the page: the hint stands on it
+    this.root.remove(hint);
+    this.overStaff().add(hint);
   }
 
   /** The preview staff over the whole width, `top` art rows down and `rows` high, with the lanes as they are now. */
@@ -326,6 +347,15 @@ export class BeatLanesScene extends PixelScene {
       label: t('lanes.blink'), icon: LANE_ICONS.blink, active: blinking, preview: tryLook({ ...look, blink: !blinking }),
       onClick: () => this.keep(i, { ...look, blink: !blinking }),
     };
+    // what the wave follows: the student's own pace, or the metronome's beats while it clicks (core_13.AC9)
+    const followItem = (follow: LaneLook['follow'], key: StringKey, icon: keyof typeof TOOL_ICONS): MenuItem => ({
+      label: t(key), icon: TOOL_ICONS[icon], active: look.follow === follow, preview: tryLook({ ...look, follow }),
+      onPick: () => this.keep(i, { ...look, follow }),
+    });
+    const follow: ToolbarItem = {
+      label: t('lanes.follow'), icon: TOOL_ICONS[look.follow === 'click' ? 'click' : 'fingers'], onClick: () => undefined,
+      menu: { items: () => [followItem(undefined, 'lanes.followPace', 'fingers'), followItem('click', 'lanes.followClick', 'click')], cell: { w: 18, h: 18 }, columns: 2 },
+    };
     const [ghost, beat, top, bottom, height, reach, move] = sliders;
     // from More or the keyboard (no lane under a pointer): a new lane, and the next lane to tune
     const keyboard: (ToolbarItem | null)[] = fromMore
@@ -334,7 +364,7 @@ export class BeatLanesScene extends PixelScene {
           this.lanes.length > 1 ? { label: t('lanes.next'), icon: LANE_ICONS.next, onClick: () => this.nextLane() } : null,
         ]
       : [];
-    return [place, ghost!, beat!, top!, bottom!, height!, blink, reach!, move!, ...keyboard].filter((o, k) => o !== null || k < 7);
+    return [place, ghost!, beat!, top!, bottom!, height!, blink, reach!, move!, follow, ...keyboard].filter((o, k) => o !== null || k < 7);
   }
 
   /** Tune the next lane: the bubble opens again for it (from More or the keyboard). */

@@ -3,7 +3,7 @@ import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { allMenuTitles, addPlayer, bandAction, clickButton, expectNoErrors, goToMainMenu, menuButton, openGame, pickProfile, sceneButton, sceneTexts, showMenuPageWith, waitForScene, playerName } from './helpers';
 
-const TWINKLE = 'Twinkle Twinkle Little Star';
+const PIECE = 'Cave Rumble';
 
 /** The index of the button with this label in the scene shown now, or -1. */
 const buttonIndex = (page: Page, scene: string, label: string) =>
@@ -51,22 +51,22 @@ test.describe('turning pieces on and off', () => {
     test.slow(); // the game loads twice
     const errors = await openGame(page);
     const all = await allMenuTitles(page);
-    expect(all).toContain(TWINKLE);
+    expect(all).toContain(PIECE);
 
     await openPieces(page);
     expect(await sceneTexts(page, 'pieces')).toEqual(expect.arrayContaining(['Pieces']));
-    const card = await openDrawerWith(page, TWINKLE);
+    const card = await openDrawerWith(page, PIECE);
     expect(await sceneTexts(page, 'pieces')).toContain('On');
     await clickButton(page, 'pieces', card);
     await expect.poll(async () => (await hidden(page)).length).toBe(1);
     await leavePieces(page);
 
-    expect(await allMenuTitles(page)).toEqual(all.filter((title) => title !== TWINKLE));
+    expect(await allMenuTitles(page)).toEqual(all.filter((title) => title !== PIECE));
 
     // a reload keeps it off
     await openGame(page);
     expect(await hidden(page)).toHaveLength(1);
-    expect(await allMenuTitles(page)).toEqual(all.filter((title) => title !== TWINKLE));
+    expect(await allMenuTitles(page)).toEqual(all.filter((title) => title !== PIECE));
 
     // another player still has every piece, and the first player's choice is still there when switching back
     await goToMainMenu(page);
@@ -81,11 +81,11 @@ test.describe('turning pieces on and off', () => {
     await expect.poll(() => playerName(page)).toBe('TUVI');
     await waitForScene(page, 'menu');
     // the player's name changes before the menu has redrawn, so the list is polled
-    await expect.poll(() => allMenuTitles(page)).toEqual(all.filter((title) => title !== TWINKLE));
+    await expect.poll(() => allMenuTitles(page)).toEqual(all.filter((title) => title !== PIECE));
 
     // the list still shows the piece (as off), and turning it on puts it back in the menu
     await openPieces(page);
-    const again = await openDrawerWith(page, TWINKLE);
+    const again = await openDrawerWith(page, PIECE);
     expect(await sceneTexts(page, 'pieces')).toContain('Off');
     await clickButton(page, 'pieces', again);
     await expect.poll(() => hidden(page)).toEqual([]);
@@ -117,15 +117,15 @@ test.describe('taking a piece out of the book (ft_1_02c.AC8, AC9)', () => {
   test('ft_1_02c.AC8 the hide shows what it does, the first press only arms it, the second takes the piece out of the book; AC9 the book opens every piece and Back returns to it', async ({ page }) => {
     const errors = await openGame(page);
     const all = await allMenuTitles(page);
-    await showMenuPageWith(page, TWINKLE);
-    const point = await hidePoint(page, 'twinkle-twinkle');
+    await showMenuPageWith(page, PIECE);
+    const point = await hidePoint(page, 'cave-rumble');
     expect(point, 'a piece in the book has a hide button').not.toBeNull();
     // under the pointer: a faint stroke through its title (d286), nothing hidden
     await page.mouse.move(point!.x, point!.y);
     await expect.poll(() => stroke(page)).toBe('hint');
     // the first press arms it: the card struck through, still in the book
     await page.mouse.click(point!.x, point!.y);
-    await expect.poll(() => armed(page)).toBe('twinkle-twinkle');
+    await expect.poll(() => armed(page)).toBe('cave-rumble');
     expect(await stroke(page)).toBe('armed');
     expect(await hidden(page)).toEqual([]);
     // Esc puts it back to rest; a double click only arms it
@@ -133,28 +133,28 @@ test.describe('taking a piece out of the book (ft_1_02c.AC8, AC9)', () => {
     await expect.poll(() => armed(page)).toBeNull();
     expect(await page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key))).toContain('menu');
     await page.mouse.dblclick(point!.x, point!.y);
-    await expect.poll(() => armed(page)).toBe('twinkle-twinkle');
+    await expect.poll(() => armed(page)).toBe('cave-rumble');
     expect(await hidden(page)).toEqual([]);
     // the second press, a moment later, takes it out
     await page.waitForTimeout(600);
     await page.mouse.click(point!.x, point!.y);
-    await expect.poll(() => hidden(page)).toEqual(['twinkle-twinkle']);
-    expect(await allMenuTitles(page)).toEqual(all.filter((title) => title !== TWINKLE));
+    await expect.poll(() => hidden(page)).toEqual(['cave-rumble']);
+    expect(await allMenuTitles(page)).toEqual(all.filter((title) => title !== PIECE));
 
     // an armed hide that is not pressed again goes back to rest
-    const other = all.find((title) => title !== TWINKLE)!;
+    const other = all.find((title) => title !== PIECE)!;
     await showMenuPageWith(page, other);
     const otherId = await page.evaluate((t) => (window.__game.registry.get('context').pieces.list() as { chart: { id: string; title: string } }[]).find((p) => p.chart.title === t)!.chart.id, other);
     const otherPoint = (await hidePoint(page, otherId))!;
     await page.mouse.click(otherPoint.x, otherPoint.y);
     await expect.poll(() => armed(page)).toBe(otherId);
     await expect.poll(() => armed(page), { timeout: 8000 }).toBeNull();
-    expect(await hidden(page)).toEqual(['twinkle-twinkle']);
+    expect(await hidden(page)).toEqual(['cave-rumble']);
 
     // the book's strip opens every piece; the hidden one is put back, and Back goes to the book
     await clickButton(page, 'menu', await bandAction(page, 'menu', 1));
     await waitForScene(page, 'pieces');
-    const card = await openDrawerWith(page, TWINKLE);
+    const card = await openDrawerWith(page, PIECE);
     expect(await sceneTexts(page, 'pieces')).toContain('Off');
     await clickButton(page, 'pieces', card);
     await expect.poll(() => hidden(page)).toEqual([]);
@@ -162,6 +162,61 @@ test.describe('taking a piece out of the book (ft_1_02c.AC8, AC9)', () => {
     await clickButton(page, 'pieces', await buttonIndex(page, 'pieces', 'Back'));
     await waitForScene(page, 'menu');
     expect(await allMenuTitles(page)).toEqual(all);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02c.AC8 a card\'s small buttons read P, S, i on both pages, and the hide stands apart at the card\'s outer end', async ({ page }) => {
+    const errors = await openGame(page);
+    // every card on the first spread: its small buttons' centres left to right, by kind, and which page it is on
+    const cards = await page.evaluate(() => {
+      type Small = Map<string, { rect: { x: number; width: number } }>;
+      const menu = window.__game.scene.getScene('menu') as unknown as { partsButtons: Small; statsButtons: Small; infoButtons: Small; hideButtons: Small; px: { width: number } };
+      return [...menu.infoButtons.keys()].map((id) => {
+        const kinds = { P: menu.partsButtons, S: menu.statsButtons, i: menu.infoButtons, hide: menu.hideButtons };
+        const at = Object.entries(kinds).flatMap(([kind, map]) => {
+          const b = map.get(id);
+          return b ? [{ kind, x: b.rect.x, w: b.rect.width }] : [];
+        }).sort((a, b) => a.x - b.x);
+        return { left: at[0]!.x < menu.px.width / 2, at };
+      });
+    });
+    expect(cards.some((c) => c.left)).toBe(true);
+    expect(cards.some((c) => !c.left)).toBe(true);
+    for (const card of cards) {
+      const order = card.at.map((b) => b.kind);
+      // the same order on both pages; the hide at the outer end: the left page's left, the right page's right
+      expect(order.filter((k) => k !== 'hide')).toEqual(['P', 'S', 'i'].filter((k) => order.includes(k)));
+      if (!order.includes('hide')) continue;
+      expect(order.indexOf('hide')).toBe(card.left ? 0 : order.length - 1);
+      // a wider gap between the hide and its neighbour than between the others
+      const gap = (a: { x: number; w: number }, b: { x: number }) => b.x - (a.x + a.w);
+      const hideGap = card.left ? gap(card.at[0]!, card.at[1]!) : gap(card.at[card.at.length - 2]!, card.at[card.at.length - 1]!);
+      const others = card.at.filter((b) => b.kind !== 'hide');
+      for (let k = 1; k < others.length; k++) expect(hideGap).toBeGreaterThan(gap(others[k - 1]!, others[k]!));
+    }
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_02c a long title is cut at the small buttons\' outer edge on both pages, never running on to the page\'s edge', async ({ page }) => {
+    const errors = await openGame(page);
+    // each card's title as drawn, and the outer edge of its hide button, the card's outermost small button
+    const cards = await page.evaluate(() => {
+      type Box = { x: number; y: number; width: number; height: number };
+      type Button = { rect: Box; objects: { x: number; width: number; visible: boolean; text?: string }[]; options: { look?: string; label: string } };
+      const menu = window.__game.scene.getScene('menu') as unknown as { hideButtons: Map<string, Button>; buttons: Button[]; px: { width: number } };
+      return [...menu.hideButtons.values()].map((hide) => {
+        const left = hide.rect.x < menu.px.width / 2;
+        // the title stands on the line above the small buttons, on the same page
+        const title = menu.buttons.find((b) => b.options.look === 'ink' && b.rect.y < hide.rect.y && hide.rect.y - b.rect.y < 30 && (b.rect.x < menu.px.width / 2) === left)!;
+        const text = title.objects.find((o) => o.text !== undefined && o.visible)!;
+        return { left, label: title.options.label, textLeft: text.x, textRight: text.x + text.width, hideLeft: hide.rect.x, hideRight: hide.rect.x + hide.rect.width };
+      });
+    });
+    expect(cards.some((c) => c.label.endsWith('…'))).toBe(true);
+    for (const c of cards) {
+      if (c.left) expect(c.textLeft, c.label).toBeGreaterThanOrEqual(c.hideLeft);
+      else expect(c.textRight, c.label).toBeLessThanOrEqual(c.hideRight);
+    }
     expectNoErrors(errors);
   });
 });
@@ -181,28 +236,28 @@ test.describe('the parts of a piece from the song list (core_06)', () => {
   test('core_06.AC4 ft_1_36.AC13 a tap on a piece plays it at once; the P button of a piece with parts opens the song page with the whole piece first and then its parts, and a part\'s play button practises its bars', async ({ page }) => {
     const errors = await openGame(page);
     // a piece with parts: its card plays the whole piece at once (AX-3 provisional in MenuScene: the parts are behind P)
-    await clickButton(page, 'menu', await showMenuPageWith(page, 'Hot Cross Buns'));
+    await clickButton(page, 'menu', await showMenuPageWith(page, 'Au Clair de la Lune'));
     await waitForScene(page, 'practice');
-    expect(await practising(page)).toBe('hot-cross-buns');
+    expect(await practising(page)).toBe('au-clair-de-la-lune');
     await page.keyboard.press('Escape');
     await waitForScene(page, 'menu');
     // its P button opens the song page with the piece at its root: the whole piece first, then one row per part with its bars
-    await showMenuPageWith(page, 'Hot Cross Buns');
-    const point = await partsButtonPoint(page, 'hot-cross-buns');
+    await showMenuPageWith(page, 'Au Clair de la Lune');
+    const point = await partsButtonPoint(page, 'au-clair-de-la-lune');
     expect(point, 'a piece with parts has a P button').not.toBeNull();
     await page.mouse.click(point!.x, point!.y);
     await waitForScene(page, 'song');
-    const parts = await page.evaluate(() => (window.__game.registry.get('context').pieces.find('hot-cross-buns').chart.phrases as { name: string; startBar: number; endBar: number }[]).map((p) => ({ ...p })));
+    const parts = await page.evaluate(() => (window.__game.registry.get('context').pieces.find('au-clair-de-la-lune').chart.phrases as { name: string; startBar: number; endBar: number }[]).map((p) => ({ ...p })));
     expect(parts.length).toBeGreaterThan(0);
     const rows = await page.evaluate(() => (window.__game.scene.getScene('song').buttons as { options: { label: string; align?: string } }[]).filter((b) => b.options.align === 'left').map((b) => b.options.label));
-    expect(rows[0]).toBe('Hot Cross Buns');
+    expect(rows[0]).toBe('Au Clair de la Lune');
     expect(rows.length).toBe(parts.length + 1);
     expect(rows[1]).toBe(`1 ${parts[0]!.name}`);
     expect(await sceneTexts(page, 'song')).toContain(`${parts[0]!.startBar + 1}-${parts[0]!.endBar + 1}`);
     // a part's play button practises that part's bars as a section
     await clickButton(page, 'song', await sceneButton(page, 'song', `Play ${parts[0]!.name}`));
     await waitForScene(page, 'practice');
-    expect(await practising(page)).toBe(`hot-cross-buns#bars-${parts[0]!.startBar + 1}-${parts[0]!.endBar + 1}`);
+    expect(await practising(page)).toBe(`au-clair-de-la-lune#bars-${parts[0]!.startBar + 1}-${parts[0]!.endBar + 1}`);
     expectNoErrors(errors);
   });
 });

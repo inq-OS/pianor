@@ -1,8 +1,10 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import { extname } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const pack = readFileSync('tools/release/pack.sh', 'utf8');
 const settings = readFileSync('src/game/SettingsScene.ts', 'utf8');
+const launcher = readFileSync('tools/release/windows/pianor.ps1', 'utf8');
 
 describe('the release zip (tools/release/pack.sh)', () => {
   it('ft_1_16.AC4 builds with VITE_PIANOR_RELEASE, which the settings screen tests inline so the report code is dropped', () => {
@@ -20,5 +22,24 @@ describe('the release zip (tools/release/pack.sh)', () => {
     expect(pack).toContain('rm -f "$out/game/spike.html" "$out/game/assets"/spike-*');
     expect(pack).toContain('command -v zip');
     expect(pack).toContain('Compress-Archive');
+  });
+
+  it('leaves out the repository README pictures (public/readme): they are not part of the game', () => {
+    expect(pack).toContain('rm -rf "$out/game/readme"');
+  });
+
+  it('a failed start keeps its message on screen: the launcher waits for Enter and the start files pause on an error', () => {
+    expect(launcher).toMatch(/Pianor could not start[\s\S]*Read-Host 'Press Enter to close'/);
+    for (const name of ['Start Pianor.cmd', 'Start Pianor (English).cmd']) {
+      expect(readFileSync(`tools/release/windows/${name}`, 'utf8'), name).toMatch(/^if errorlevel 1 pause\r?$/m);
+    }
+  });
+
+  it('the launcher sends every kind of file the game is built of with its type (a module script as octet-stream will not run)', () => {
+    const types = new Set([...launcher.matchAll(/'(\.[a-z0-9]+)' = '/g)].map((m) => m[1]));
+    const publicFiles = (readdirSync('public', { recursive: true, withFileTypes: true }) as { name: string; isFile(): boolean }[])
+      .filter((f) => f.isFile()).map((f) => extname(f.name).toLowerCase()).filter((ext) => ext !== ''); // a LICENSE file goes out as bytes, which is harmless
+    // the bundle's own: the page, its scripts and styles, and the PDF reader's worker, a module (.mjs)
+    for (const ext of new Set(['.html', '.js', '.mjs', '.css', ...publicFiles])) expect(types, ext).toContain(ext);
   });
 });

@@ -15,7 +15,7 @@ if ($Lang -ne '') { $Url = $Url + '?lang=' + $Lang }
 $BrowserProfile = Join-Path $env:LOCALAPPDATA 'Pianor\browser'
 
 $Types = @{
-  '.html' = 'text/html; charset=utf-8'; '.js' = 'text/javascript; charset=utf-8'; '.css' = 'text/css; charset=utf-8'
+  '.html' = 'text/html; charset=utf-8'; '.js' = 'text/javascript; charset=utf-8'; '.mjs' = 'text/javascript; charset=utf-8'; '.css' = 'text/css; charset=utf-8'
   '.json' = 'application/json'; '.svg' = 'image/svg+xml'; '.png' = 'image/png'; '.mp3' = 'audio/mpeg'
   '.wasm' = 'application/wasm'; '.woff2' = 'font/woff2'; '.ico' = 'image/x-icon'; '.txt' = 'text/plain; charset=utf-8'
 }
@@ -145,4 +145,11 @@ if ($busy) {
 }
 
 $script:Started = $false
-try { Serve-WithHttpListener } catch { if ($script:Started) { throw }; Serve-WithTcp }
+try {
+  try { Serve-WithHttpListener } catch { if ($script:Started) { throw }; Serve-WithTcp }
+} catch {
+  # neither local server could start (or one stopped): say why and keep the window open until the player has read it
+  Write-Host "Pianor could not start: $($_.Exception.Message)"
+  Read-Host 'Press Enter to close'
+  exit 1
+}

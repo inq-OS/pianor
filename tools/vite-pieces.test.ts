@@ -2,7 +2,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { piecesPlugin } from './vite-pieces.ts';
+import { E2E_PIECES, piecesPlugin } from './vite-pieces.ts';
+import { listPieceFolders } from './piece/folder';
 
 type Hook = (this: unknown, ...args: unknown[]) => unknown;
 
@@ -18,10 +19,24 @@ function loadVirtualPieces(command: 'serve' | 'build', mode = command === 'build
   return { pieces: JSON.parse(match[1]!), omittedIds: JSON.parse(match[2]!) };
 }
 
+/** Runs `run` with PIANOR_E2E set to `value` (undefined: unset), as the end-to-end tests' server would. */
+function withE2E<T>(value: string | undefined, run: () => T): T {
+  const before = process.env['PIANOR_E2E'];
+  if (value === undefined) delete process.env['PIANOR_E2E'];
+  else process.env['PIANOR_E2E'] = value;
+  try {
+    return run();
+  } finally {
+    if (before === undefined) delete process.env['PIANOR_E2E'];
+    else process.env['PIANOR_E2E'] = before;
+  }
+}
+
 describe('virtual:pieces', () => {
   it('a production build leaves out the drafts and lists their ids', () => {
-    const dev = loadVirtualPieces('serve');
-    const build = loadVirtualPieces('build');
+    // the end-to-end tests' own pieces hold drafts, whatever the game's pieces are
+    const dev = withE2E('1', () => loadVirtualPieces('serve'));
+    const build = withE2E('1', () => loadVirtualPieces('build'));
     const drafts = dev.pieces.filter((p) => p.meta.status !== 'approved').map((p) => p.meta.id);
     expect(drafts.length).toBeGreaterThan(0);
     expect(dev.omittedIds).toEqual([]);
@@ -35,6 +50,16 @@ describe('virtual:pieces', () => {
     const bundle = loadVirtualPieces('build', 'development');
     expect(bundle.omittedIds).toEqual([]);
     expect(bundle.pieces.map((p) => p.meta.id)).toEqual(dev.pieces.map((p) => p.meta.id));
+  });
+});
+
+describe('the end-to-end tests\' own pieces', () => {
+  it('come only into the tests\' bundle, never into the game', () => {
+    const own = listPieceFolders(E2E_PIECES);
+    expect(own).toEqual(expect.arrayContaining(['grace-steps', 'morning-song-intro']));
+    const ids = (e2e: string | undefined) => withE2E(e2e, () => loadVirtualPieces('build', 'development')).pieces.map((p) => p.meta.id);
+    expect(ids('1')).toEqual(expect.arrayContaining(own));
+    expect(ids(undefined).filter((id) => own.includes(id))).toEqual([]);
   });
 });
 
@@ -70,7 +95,7 @@ describe('virtual:pieces with the private folder (ft_Y_04.AC14)', () => {
     piece('wish-chords', '[CEG]4 | [DFA]4 | [CEG]4 | C4 | D4 | E4 | F4 | G4 | A4 | B4 | c4 | d4 | e4 | f4 | g4 | a4 | b4 |]', 'approved');
     piece('wish-draft', 'C4 | D4 | E4 | C4 |]');
     piece('broken', 'C4 | D3 |]', 'approved');
-    piece('hot-cross-buns', 'C4 | C4 | C4 | C4 |]', 'approved');
+    piece('twinkle-twinkle', 'C4 | C4 | C4 | C4 |]', 'approved');
     const warnings: string[] = [];
     const load = (command: 'serve' | 'build') => {
       const plugin = piecesPlugin('content/pieces', 'content/curriculum/levels.json', root);
@@ -85,9 +110,9 @@ describe('virtual:pieces with the private folder (ft_Y_04.AC14)', () => {
     expect(ids).toContain('wish-chords');
     expect(ids).toContain('wish-draft');
     expect(ids).not.toContain('broken');
-    expect(dev.pieces.filter((p) => p.meta.id === 'hot-cross-buns').map((p) => p.meta.source)).not.toContain('synthetic');
+    expect(dev.pieces.filter((p) => p.meta.id === 'twinkle-twinkle').map((p) => p.meta.source)).not.toContain('synthetic');
     expect(warnings.some((w) => w.includes('broken/piece.abc'))).toBe(true);
-    expect(warnings.some((w) => w.includes('content/pieces has a piece "hot-cross-buns" too'))).toBe(true);
+    expect(warnings.some((w) => w.includes('content/pieces has a piece "twinkle-twinkle" too'))).toBe(true);
     const build = load('build');
     expect(build.pieces.map((p) => p.meta.id)).toContain('wish-chords');
     expect(build.omittedIds).toContain('wish-draft');

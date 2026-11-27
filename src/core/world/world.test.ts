@@ -45,7 +45,6 @@ describe('the world model of Keri (d108)', () => {
   it('ft_1_19.AC2 the first scene, the grassy knoll, lies on the meadow between the warden\'s house and the lighthouse, south of the track', () => {
     const knoll = KERI.scenes!.find((s) => s.id === 'knoll')!;
     expect(insideRing(KERI.grass, knoll)).toBe(true);
-    expect(knoll.level).toBe(1);
     const house = KERI.buildings.find((b) => b.id === 'warden-house')!;
     expect(knoll.x).toBeGreaterThan(house.x);
     expect(knoll.x).toBeLessThan(KERI.places.lighthouse.x);

@@ -3,7 +3,7 @@ import { pageOf } from '../core/layout/paging';
 import { rectCentre } from '../core/layout/rect';
 import { keyName } from '../core/song/outline';
 import type { Song } from '../core/song/schema';
-import { clipToWidth } from '../core/text/clip';
+import { clipToWidth, wholeIfCut } from '../core/text/clip';
 import { t } from '../core/text/strings';
 import { contextOf } from './context';
 import { songChartId } from './songCatalogue';
@@ -21,9 +21,9 @@ import { TOOL_ICONS } from './ui/pixel/toolArt';
 const CARD_HEIGHT = 44;
 const CARD_GAP = 2;
 const LIST_TOP = 4;
-const BOOK_SIDE = 3;
-const BOOK_MARGIN = 14;
-const BOOK_GUTTER = 18;
+const BOOK_SIDE = 1;
+/** A row is set this far in from its page's cell. */
+const ROW_INSET = 3;
 /** The small buttons of a row: a finger wide at the usual zoom, as the book's own. */
 const SMALL = 11;
 const SMALL_GAP = 3;
@@ -78,7 +78,7 @@ export class SongsScene extends PixelScene {
 
   /** The bookmark back to the pieces, where the song bookmark stood in the piece book. */
   protected override bandActions(): ToolbarItem[] {
-    return [{ label: t('menu.allPieces'), icon: TOOL_ICONS.pieces, iconOnly: true, main: true, onClick: () => startScene(this, 'menu') }];
+    return [{ label: t('menu.group.all'), icon: TOOL_ICONS.bookOpen, iconOnly: true, main: true, onClick: () => startScene(this, 'menu') }];
   }
 
   protected draw(): void {
@@ -87,10 +87,11 @@ export class SongsScene extends PixelScene {
     const all = songs.list();
     const list = all.filter((song) => profiles.isPieceOn(songChartId(song.id)));
     this.sky();
-    this.openBook({ x: BOOK_SIDE, y: LIST_TOP - 2, w: width - 2 * BOOK_SIDE, h: height - LIST_TOP + 1 });
+    const book = { x: BOOK_SIDE, y: LIST_TOP - 2, w: width - 2 * BOOK_SIDE, h: height - LIST_TOP + 1 };
+    this.openBook(book);
     this.inkWriting = true;
     const row = CARD_HEIGHT;
-    const grid = cardGrid({ width, height, top: LIST_TOP + 4, margin: BOOK_MARGIN, rowHeight: row, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
+    const grid = cardGrid({ width, ...this.bookGrid(book), rowHeight: row, rowGap: CARD_GAP });
     // the first row makes a new song (rule 12), then the songs that are on
     const rows: (Song | null)[] = [null, ...list];
     const slice = pageOf(rows.length, this.page, { singlePageMax: grid.singlePageMax, perPage: grid.perPage });
@@ -98,15 +99,17 @@ export class SongsScene extends PixelScene {
     const capacity = slice.paged ? grid.perPage : grid.singlePageMax;
     rows.slice(slice.first, slice.first + slice.count).forEach((song, i) => {
       const { x, y } = rectCentre(grid.pageCell(i, capacity));
-      if (song) this.songRow(song, x, y - row / 4, grid.cardWidth);
-      else this.newSongRow(x, y, grid.cardWidth);
+      // set in from the page's cell, so the row stays on the paper (as the piece book's cards do)
+      if (song) this.songRow(song, x, y - row / 4, grid.cardWidth - 2 * ROW_INSET);
+      else this.newSongRow(x, y, grid.cardWidth - 2 * ROW_INSET);
     });
     if (list.length === 0) {
       const { x, y } = rectCentre(grid.pageCell(1, capacity));
       this.label(x - grid.cardWidth / 2 + 6, y - 4, all.length > 0 ? t('songs.allOff') : t('songs.none'), C.umberDark, { shadow: false });
     }
+    // the piece book's pager: its page numbers and turned-up corners
     if (slice.paged) {
-      this.pager(slice, (page) => {
+      this.bookPager(slice, book, (page) => {
         this.page = page;
         this.redraw();
       });
@@ -160,6 +163,8 @@ export class SongsScene extends PixelScene {
     const title = clipToWidth(song.title, room, (text) => measure(drawnText(text)));
     const button = this.button({
       x: x - (factsWidth + 6) / 2, y, width: width - factsWidth - 6, height: CARD_HEIGHT / 2, label: title, look: 'ink', align: 'left', labelWidth: room,
+      // a cut title's whole words in its tooltip
+      ...wholeIfCut(title, song.title),
       onClick: () => startScene(this, 'song', { songId: song.id }),
     });
     const { x: left, y: top } = button.rect;
@@ -172,7 +177,7 @@ export class SongsScene extends PixelScene {
     this.root.add(factsText);
     const record = profiles.recordFor(songChartId(song.id));
     const stars = pixelStars(this, this.root, left + 6, top + 19, record?.bestGrade ?? 0, { gap: 1, ink: true });
-    const line = `${t('songs.written', { written: resolved.barsWritten, planned: resolved.bars })}, ${t('songs.parts', { count: parts })}`;
+    const line = `${t('songs.written', { written: resolved.barsWritten, planned: resolved.bars })}, ${(parts === 1 ? t('songs.onePart') : t('songs.parts', { count: parts }))}`;
     const written = new PixelText(this, left + 6, top + 31, clipToWidth(line, width - 12, (text) => measure(drawnText(text))), { color: C.umberDark }).setName('songWritten');
     this.root.add(written);
     button.attach(factsText, written, ...stars);

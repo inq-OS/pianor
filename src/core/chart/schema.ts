@@ -269,7 +269,7 @@ export const pieceMetaSchema = z.object({
   /** Bump when a piece is edited so saves can tell versions apart. */
   contentVersion: z.int().positive().default(1),
   level: z.int().positive(),
-  /** Player level needed to play it. Defaults to `level`; lower it for a piece the student should meet early. */
+  /** Where the piece stands in the list, before `level`; it locks nothing. Defaults to `level`; lower it for a piece the student should meet early. */
   unlockLevel: z.int().positive().optional(),
   status: z.enum(['draft', 'approved']),
   /**

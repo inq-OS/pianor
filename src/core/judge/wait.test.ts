@@ -101,6 +101,26 @@ describe('WaitMode: cursor and wrong notes', () => {
     expect(bar0.type === 'BarCompleted' && bar0.result).toMatchObject({ bar: 0, notes: 4, firstTryCorrect: 3, mistakes: 1, accuracy: 0.75 });
   });
 
+  it('ft_0_08.AC1 a note right only after a wrong key stays marked retried, a first-try note does not', () => {
+    const mode = new WaitMode(chart);
+    expect(mode.getState().retried?.every((r) => !r)).toBe(true);
+    mode.handle(on(61, 0)); // wrong
+    mode.handle(on(60, 500)); // right after the miss
+    mode.handle(on(chart.notes[1]!.midi, 1000)); // right at the first try
+    const state = mode.getState();
+    expect(state.noteProgress.slice(0, 2)).toEqual(['correct', 'correct']);
+    expect(state.retried?.slice(0, 2)).toEqual([true, false]);
+  });
+
+  it('ft_0_08.AC1 a tied note takes the retried mark of the note it holds', () => {
+    const tied = chartWith([
+      { tick: 0, dur: 1920, midi: 60, tieNext: true }, { tick: 1920, dur: 1920, midi: 60 }, { tick: 3840, dur: 480, midi: 62 },
+    ]);
+    const mode = new WaitMode(tied);
+    drive(mode, [on(61, 0), on(60, 100), on(62, 3000)]);
+    expect(mode.getState().retried).toEqual([true, true, false]);
+  });
+
   it('pressing the next note early (a later note) is just a wrong note, not a skip', () => {
     const mode = new WaitMode(chart);
     expect(mode.handle(on(62, 0))[0]).toMatchObject({ verdict: 'wrong' });
@@ -203,6 +223,8 @@ describe('WaitMode: chords', () => {
     const correct = events.find((e) => e.type === 'NoteJudged');
     expect(correct).toMatchObject({ verdict: 'correct', firstTry: false });
     expect(mode.getState().stepIndex).toBe(1);
+    // the key pressed before the wrong one was right at the first try; the two after it were not
+    expect(mode.getState().retried?.slice(0, 3)).toEqual([false, true, true]);
   });
 });
 

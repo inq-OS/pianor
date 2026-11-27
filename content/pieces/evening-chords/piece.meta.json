@@ -1,0 +1,17 @@
+{
+  "id": "evening-chords",
+  "title": "Evening Chords",
+  "titles": { "et": "Õhtused akordid" },
+  "level": 6,
+  "status": "approved",
+  "hands": ["RH", "LH"],
+  "phrases": [
+    { "name": "Rising", "bars": [1, 4] },
+    { "name": "Home", "bars": [5, 8] }
+  ],
+  "styles": ["original"],
+  "tags": ["two-hands", "together", "chords"],
+  "source": "original",
+  "license": "CC0-1.0",
+  "generator": { "kind": "manual" }
+}

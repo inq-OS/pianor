@@ -229,16 +229,25 @@ describe('every hard rule has a failing and a passing piece', () => {
       expect(found.filter((r) => r === 'key' || r === 'accidental')).toEqual([]);
     });
 
-    it('the bundled draft pieces in G and F major lint with no key or accidental error, and their key signatures are one sharp and one flat', () => {
-      const report = lintPieces(join(root, 'content/pieces'), levels);
+    it('the anchor pieces in G and F major lint with no key or accidental error, and their key signatures are one sharp and one flat', () => {
+      const report = lintPieces(join(root, 'tests/fixtures/anchors'), levels);
       for (const id of ['g-major-walk', 'f-major-song']) {
         const piece = report.linted.find((p) => p.id === id);
         expect(piece, id).toBeDefined();
         expect(piece!.diagnostics.filter((d) => d.severity === 'error' && (d.rule === 'key' || d.rule === 'accidental')).map(formatDiagnostic)).toEqual([]);
       }
-      const keyOf = (id: string) => compilePiece({ abc: readFileSync(join(root, `content/pieces/${id}/piece.abc`), 'utf-8'), meta: readFileSync(join(root, `content/pieces/${id}/piece.meta.json`), 'utf-8') }).chart!.keyMap[0]!.fifths;
+      const keyOf = (id: string) => compilePiece({ abc: readFileSync(join(root, `tests/fixtures/anchors/${id}/piece.abc`), 'utf-8'), meta: readFileSync(join(root, `tests/fixtures/anchors/${id}/piece.meta.json`), 'utf-8') }).chart!.keyMap[0]!.fifths;
       expect(keyOf('g-major-walk')).toBe(1);
       expect(keyOf('f-major-song')).toBe(-1);
+    });
+
+    it('the anchor pieces with a dotted quarter and with two voices lint with no error and build', () => {
+      const report = lintPieces(join(root, 'tests/fixtures/anchors'), levels);
+      for (const id of ['rocking-boat', 'two-voices']) {
+        const piece = report.linted.find((p) => p.id === id);
+        expect(piece, id).toBeDefined();
+        expect(piece!.diagnostics.filter((d) => d.severity === 'error').map(formatDiagnostic), id).toEqual([]);
+      }
     });
 
     it.each(levels.map((l) => [l.level]))('an F-major piece (B flat) has no key or accidental error at level %i', (n) => {
@@ -337,6 +346,13 @@ describe('a written finger far from the best (ft_1_30.AC8)', () => {
     expect(wrong.filter((d) => d.rule === 'fingering' && d.severity === 'error').map((d) => d.message).join()).toContain('finger 5 on C4');
   });
 
+  it('says nothing for a teacher’s fingering of a scale with a black key, an arpeggio or a chromatic line', () => {
+    const cost = (abc: string, key = 'C') => lint(abc, { level: free, key }).diagnostics.filter((d) => d.rule === 'fingering-cost');
+    expect(cost('!4!B !1!c !2!d !3!e | !1!f !2!g !3!a !4!b | b a g f | e d c B | B4 |]', 'Bb')).toEqual([]);
+    expect(cost("!1!C !2!E !3!G !1!c | !2!e !3!g !5!c'2 | c' g e c | G E C2 |]")).toEqual([]);
+    expect(cost('!1!C !3!^C !1!D !3!^D | !1!E !2!F !3!^F !1!G | G F E D | C4 |]')).toEqual([]);
+  });
+
   it('says nothing for a fingering a teacher would write', () => {
     const fine = lint('!1!C !2!D !3!E !4!F | !5!G2 F2 | F E D C | C4 |]', { level: free }).diagnostics;
     expect(fine.filter((d) => d.rule === 'fingering-cost')).toEqual([]);
@@ -387,6 +403,13 @@ describe('warnings for a human to review', () => {
     expect(warnings('C D E F | G2 F2 | F E D C | D4 |]', { level: 1, key: 'Dm' })).not.toContain('no-cadence');
     const inA = lint('C D E F | G2 F2 | F E D C | C4 |]', { level: 1, key: 'Am' }).diagnostics.find((d) => d.rule === 'no-cadence');
     expect(inA?.message).toContain('not on the tonic A');
+  });
+
+  it('core_09.AC58 a part that ends on a chord holding the tonic has its cadence, wherever the tonic is in the chord', () => {
+    const chords = { level: 1 };
+    expect(warnings('C D E F | G2 F2 | F E D C | [CEG]4 |]', chords)).not.toContain('no-cadence');
+    expect(warnings('C D E F | G2 F2 | F E D C | [EGc]4 |]', { level: 5 })).not.toContain('no-cadence');
+    expect(warnings('C D E F | G2 F2 | F E D C | [DF]4 |]', chords)).toContain('no-cadence');
   });
 
   it('a bar repeated three or more times in a row', () => {

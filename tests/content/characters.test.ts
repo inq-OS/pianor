@@ -21,7 +21,7 @@ const { levels } = loadLevelsFile(join(root, 'content/curriculum/levels.json'));
 const pieces = new Map(listPieceFolders(piecesDir).flatMap((folder) => {
   const compiled = checkPieceFolder(piecesDir, folder, levels).compiled;
   const chart = compiled?.chart, meta = compiled?.meta;
-  return chart && meta ? [[chart.id, { bars: chart.bars.length, source: meta.source, license: meta.license }] as const] : [];
+  return chart && meta ? [[chart.id, { bars: chart.bars.length, source: meta.source, license: meta.license, status: meta.status }] as const] : [];
 }));
 const conversations = new Map(readdirSync(join(root, 'content/conversations')).filter((f) => f.endsWith('.json')).map((f) => {
   const conv = conversationSchema.parse(read(`content/conversations/${f}`));

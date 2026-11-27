@@ -1,7 +1,7 @@
 // Covers ft_1_32.AC4, ft_1_32.AC5, ft_1_32.AC6, ft_1_32.AC11, ft_1_32.AC12, ft_1_32.AC13, ft_1_32.AC14, ft_1_32.AC16, ft_1_32.AC17, ft_1_32.AC18, ft_1_32.AC23.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { activeScenes, clickButton, clickToolbar, expectNoErrors, sceneTexts, isPieceLabel, menuLabels, letGameRun, openGame, openPiece, playWithKeys, sceneButton, showMenuPageWith, waitForScene } from './helpers';
+import { activeScenes, clickButton, clickToolbar, expectNoErrors, sceneTexts, isPieceLabel, menuLabels, letGameRun, openGame, openPiece, pieceXp, playWithKeys, sceneButton, showMenuPageWith, waitForScene } from './helpers';
 
 /** The bars the practice screen shows now (0-based, of the whole piece), and the notes to play in them in order. */
 async function shown(page: Page): Promise<{ bars: number; first: number; midis: number[] }> {
@@ -61,6 +61,20 @@ test('ft_1_32.AC13 the piano is a sandbox: a piece picked there plays in full wi
   expectNoErrors(errors);
 });
 
+test('the piece book opened by Kiur\'s Learn or Tug says over it which one it is for, and the piano\'s book does not', async ({ page }) => {
+  const errors = await openGame(page, '?device=virtual&learn=1');
+  expect(await sceneTexts(page, 'menu')).not.toEqual(expect.arrayContaining([expect.stringMatching(/Kiur/)]));
+  await askKiur(page);
+  await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Learn'));
+  await waitForScene(page, 'menu');
+  expect(await sceneTexts(page, 'menu')).toContain('Learn with Kiur');
+  await askKiur(page);
+  await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Tug'));
+  await waitForScene(page, 'menu');
+  expect(await sceneTexts(page, 'menu')).toContain('Tug with Kiur');
+  expectNoErrors(errors);
+});
+
 test('ft_1_32.AC14 Kiur\'s Tug lists only the learned pieces, and his tug opens on one picked', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
   const tugBook = async () => {
@@ -69,8 +83,11 @@ test('ft_1_32.AC14 Kiur\'s Tug lists only the learned pieces, and his tug opens 
     await waitForScene(page, 'menu');
     return (await menuLabels(page)).filter(isPieceLabel);
   };
-  // nothing learned yet: the book lists no piece
+  // nothing learned yet: the book lists no piece, and Kiur's Learn picture opens his Learn book from there
   expect(await tugBook()).toEqual([]);
+  await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Learn'));
+  await expect.poll(async () => (await menuLabels(page)).filter(isPieceLabel)).toContain('Little Steps');
+  expect(await page.evaluate(() => (window.__game.scene.getScene('menu') as unknown as { forKiur: string | null }).forKiur)).toBe('learn');
   // Little Steps learned to its last step
   await page.evaluate(() => window.__game.registry.get('context').profiles.saveLearnProgress('little-steps', {
     step: 999, wholeStreak: 0, recall: false, confirm: false, misses: 0, medals: [], lastDay: '1998-11-21', stepBars: 1, handsApart: true,
@@ -349,5 +366,60 @@ test('ft_1_32.AC2 the whole piece three times: the first plays go on past a wron
   expect(await progress(page)).toMatchObject({ step: steps - 1, wholeStreak: 2, misses: 1 });
   expect(await shown(page)).toMatchObject({ first: 0 });
   expect(await kiurSays(page)).toBe('');
+  expectNoErrors(errors);
+});
+
+test('a play of the whole piece in learning is saved as a pass of the piece itself, with its XP', async ({ page }) => {
+  const errors = await openGame(page, '?device=virtual&learn=1');
+  await learnPiece(page, 'Little Steps');
+  const steps = await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { learn: { plan: unknown[] } }).learn.plan.length);
+  await page.keyboard.press('Escape');
+  await waitForScene(page, 'menu');
+  // the first of the whole piece's three plays is next; asked again for its pace once already, so any pace counts
+  await page.evaluate((step) => {
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return window.__game.registry.get('context').profiles.saveLearnProgress('little-steps', {
+      step, wholeStreak: 0, recall: false, confirm: false, misses: 0, unsteady: 1, medals: [], lastDay: today, bpm: [100], stepBars: 1,
+    });
+  }, steps - 1);
+  await learnPieceAsked(page, 'Little Steps');
+  await page.keyboard.press('Escape'); // go on
+  await waitForScene(page, 'practice');
+  await playWithKeys(page, (await shown(page)).midis);
+  await expect.poll(() => progress(page), { timeout: 10_000 }).toMatchObject({ wholeStreak: 1 });
+  const record = (id: string) => page.evaluate((i) => window.__game.registry.get('context').profiles.recordFor(i)?.completions ?? 0, id);
+  await expect.poll(() => record('little-steps'), { timeout: 10_000 }).toBe(1);
+  expect(await pieceXp(page, 'little-steps')).toBeGreaterThan(0);
+  expect(await record('little-steps#bars-1-4')).toBe(0);
+  expectNoErrors(errors);
+});
+
+test('ft_1_32.AC22 Esc at the learned moment goes on as a key does: the book opens and the clef drops onto the piece', async ({ page }) => {
+  const errors = await openGame(page, '?device=virtual&learn=1');
+  await learnPiece(page, 'Little Steps');
+  const [steps, runs] = await page.evaluate(() => {
+    const { plan } = (window.__game.scene.getScene('practice') as unknown as { learn: { plan: { runs: number }[] } }).learn;
+    return [plan.length, plan[plan.length - 1]!.runs];
+  });
+  await page.keyboard.press('Escape');
+  await waitForScene(page, 'menu');
+  // the piece one run from learned; asked again for its pace once already, so any pace counts
+  await page.evaluate(({ step, streak }) => {
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return window.__game.registry.get('context').profiles.saveLearnProgress('little-steps', {
+      step, wholeStreak: streak, recall: false, confirm: false, misses: 0, unsteady: 1, medals: [], lastDay: today, bpm: [100], stepBars: 1,
+    });
+  }, { step: steps - 1, streak: runs - 1 });
+  await learnPieceAsked(page, 'Little Steps');
+  await page.keyboard.press('Escape'); // go on
+  await waitForScene(page, 'practice');
+  await playWithKeys(page, (await shown(page)).midis);
+  await expect.poll(() => progress(page), { timeout: 10_000 }).toMatchObject({ step: steps });
+  // the learned moment: the clef grown, waiting
+  await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { learnedGoOn: unknown }).learnedGoOn !== null), { timeout: 10_000 }).toBe(true);
+  await page.keyboard.press('Escape');
+  await waitForScene(page, 'menu');
   expectNoErrors(errors);
 });

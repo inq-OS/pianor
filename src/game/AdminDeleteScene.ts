@@ -14,6 +14,8 @@ const ROW_WIDTH = 140;
 const COLUMN_GAP = 8;
 /** Two columns of five rows: all ten players (MAX_PLAYERS) fit a screen of 180 rows under the toolbar. */
 const ROWS_PER_COLUMN = 5;
+/** The refusal stands this far under the tapped name, in layout cells. */
+const REFUSAL_GAP = 3;
 const STATUS_Y = FIRST_Y + ROWS_PER_COLUMN * (ROW_HEIGHT + ROW_GAP) + 4;
 
 /**
@@ -28,6 +30,8 @@ export class AdminDeleteScene extends PixelScene {
   /** The player whose name was tapped once: the next tap on it deletes. */
   private asking: string | null = null;
   private status = '';
+  /** Why the last player stays is written under that player's name, where the tap was; other news at the list's foot. */
+  private refusedAt: number | null = null;
   private deleting = false;
 
   constructor() {
@@ -37,6 +41,7 @@ export class AdminDeleteScene extends PixelScene {
   init(): void {
     this.asking = null;
     this.status = '';
+    this.refusedAt = null;
     this.deleting = false;
   }
 
@@ -53,7 +58,7 @@ export class AdminDeleteScene extends PixelScene {
     const { width } = this.px;
     const { profiles } = contextOf(this);
     this.sky();
-    this.label(MARGIN, TITLE_Y, t('admin.delete'), C.gold, { big: true });
+    this.label(this.titleX(MARGIN), TITLE_Y, t('admin.delete'), C.gold, { big: true });
     const row = (i: number) => FIRST_Y + (i % ROWS_PER_COLUMN) * (ROW_HEIGHT + ROW_GAP) + ROW_HEIGHT / 2;
     const column = (i: number) => MARGIN + Math.floor(i / ROWS_PER_COLUMN) * (ROW_WIDTH + COLUMN_GAP) + ROW_WIDTH / 2;
     profiles.profiles.forEach((player, i) => {
@@ -65,14 +70,25 @@ export class AdminDeleteScene extends PixelScene {
         onClick: () => this.tap(player.id),
       });
     });
-    if (this.status) this.label(MARGIN, STATUS_Y, this.status, C.dim, { maxWidth: width - 2 * MARGIN });
+    const at = this.refusedAt;
+    if (this.status && at !== null) this.label(column(at) - ROW_WIDTH / 2, row(at) + ROW_HEIGHT / 2 + REFUSAL_GAP, this.status, C.white, { maxWidth: ROW_WIDTH });
+    else if (this.status) this.label(MARGIN, STATUS_Y, this.status, C.dim, { maxWidth: width - 2 * MARGIN });
   }
 
   private tap(id: string): void {
     if (this.deleting) return;
+    // the last player is never deleted: say so at the first tap, without first asking a question whose yes would be refused
+    if (contextOf(this).profiles.profiles.length <= 1) {
+      this.asking = null;
+      this.status = t('admin.keepOne');
+      this.refusedAt = 0;
+      this.redraw();
+      return;
+    }
     if (this.asking !== id) {
       this.asking = id;
       this.status = '';
+      this.refusedAt = null;
       this.redraw();
       return;
     }
@@ -80,6 +96,7 @@ export class AdminDeleteScene extends PixelScene {
     void contextOf(this).profiles.deletePlayer(id)
       .then((ok) => {
         this.status = ok ? '' : t('admin.keepOne');
+        this.refusedAt = null;
       })
       .catch(() => {
         this.status = t('admin.failed');

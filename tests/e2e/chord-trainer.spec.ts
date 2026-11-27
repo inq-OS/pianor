@@ -15,6 +15,10 @@ const holdTogether = (page: Page, keys: number[]) => page.evaluate((notes) => {
   for (const midi of notes) window.__virtualDevice!.release(midi);
 }, keys);
 
+/** The label of the step button (found by its tooltip). */
+const stepLabel = (page: Page) => page.evaluate((key) => (window.__game.scene.getScene(key).buttons as { options: { label: string; tooltip?: string } }[])
+  .find((b) => b.options.tooltip === 'Step: which chords come')?.options.label, SCENE);
+
 const openTrainer = async (page: Page) => {
   const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
   await clickButton(page, 'profiles', await profileButton(page, 'TUVI'));
@@ -40,9 +44,32 @@ test.describe('chord from its name (ft_1_29)', () => {
     await holdTogether(page, [outside]);
     await expect.poll(() => state(page)).toMatchObject({ lives: 2, solved: 1 });
     expect((await sceneTexts(page, SCENE)).some((text) => text.endsWith(`is not in ${second.name}`))).toBe(true);
-    // the step button goes on to the next step, a new round
+    // two more wrong keys end the round: one line says how many chords were played and the XP
+    await holdTogether(page, [outside]);
+    await holdTogether(page, [outside]);
+    await expect.poll(() => state(page)).toMatchObject({ lives: 0, over: true });
+    expect(await sceneTexts(page, SCENE)).toContain('Chords played: 1, 30 XP');
+    // the step button names the step and goes on to the next one, a new round
+    expect(await stepLabel(page)).toBe('White triads');
     await clickButton(page, SCENE, await sceneButton(page, SCENE, 'Step: which chords come'));
     await expect.poll(() => state(page)).toMatchObject({ lives: 3, solved: 0 });
+    await expect.poll(() => stepLabel(page)).toBe('All triads');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_29.AC2 a common tone kept down from the last chord counts for the next one', async ({ page }) => {
+    const errors = await openTrainer(page);
+    const first = await target(page);
+    const firstKeys = first.pitchClasses.map((pc) => 60 + pc);
+    await page.evaluate((notes) => { for (const midi of notes) window.__virtualDevice!.press(midi, 80); }, firstKeys);
+    await expect.poll(() => state(page)).toMatchObject({ solved: 1 });
+    const second = await target(page);
+    // keep the keys the two chords share, let the others go, and press only the new chord's other notes
+    const kept = firstKeys.filter((k) => second.pitchClasses.includes(k % 12));
+    await page.evaluate((notes) => { for (const midi of notes) window.__virtualDevice!.release(midi); }, firstKeys.filter((k) => !kept.includes(k)));
+    const missing = second.pitchClasses.filter((pc) => !kept.some((k) => k % 12 === pc)).map((pc) => 72 + pc);
+    await holdTogether(page, missing);
+    await expect.poll(() => state(page)).toMatchObject({ solved: 2, lives: 3 });
     expectNoErrors(errors);
   });
 });

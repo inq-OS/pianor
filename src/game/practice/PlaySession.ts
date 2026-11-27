@@ -3,10 +3,10 @@ import { levelsFileSchema } from '../../core/chart';
 import { handShiftMap } from '../../core/fingering/shifts';
 import type Phaser from 'phaser';
 import { firstPrintedBar, fullBarTicks, unrollRepeats, writtenTick, writtenView, type Chart, type PlayChart } from '../../core/chart';
-import { DEFAULT_FOLLOW_RULES, TempoMode, WaitMode, type Hints, type TempoStart, type JudgeEvent, type NoteJudged, type PieceResult, type PlaySettings, type PlayState } from '../../core/judge';
+import { DEFAULT_FOLLOW_RULES, TempoMode, WaitMode, replayKeys, type Hints, type NoteEvent, type TempoStart, type JudgeEvent, type NoteJudged, type PieceResult, type PlaySettings, type PlayState } from '../../core/judge';
 import { barNumbersToShow, type BarNumberSettings } from '../../core/layout/barNumbers';
 import type { PaceMark } from '../../core/layout/beat';
-import { laneDots, waveTick, type LaneLook } from '../../core/layout/beatLane';
+import { clickWaveTick, laneDots, waveTick, type LaneLook } from '../../core/layout/beatLane';
 import { PRIZE, prizeColumn, type PrizeColumn, type PrizeGlyph } from '../../core/layout/learnPrizes';
 import { CLEF_FLIGHT, grownBox } from '../../core/layout/clefFlight';
 import type { LearnRewards } from '../../core/learn/progress';
@@ -28,6 +28,9 @@ import { PracticeController } from './PracticeController';
 import { drawMedalClef, drawPrizes } from './prizeGlyphs';
 import { motionAllowed } from '../motion';
 import { staffSpaceLimits } from '../../core/layout/canvasSize';
+import chordsJson from '../../../content/trainer/chords.json';
+import { loadChordContent } from '../../core/trainer/chordTrainer';
+import { nameChord, staffChordName } from '../../core/trainer/chordNamer';
 
 
 /** The levels' hand positions, which the hand-shift arrows prefer (ft_1_30.AC10). */
@@ -61,6 +64,8 @@ export interface StaffPrefs {
   readonly barNumberSettings: BarNumberSettings;
   /** Which hands get the note duration helper (ft_1_11). */
   readonly durationHelp: DurationHelp;
+  /** What the hint label under a chord says: its notes, its name or both (core_09.AC59); absent reads as the notes. */
+  readonly chordLabels?: 'notes' | 'name' | 'both';
 }
 
 export interface PlaySessionOptions {
@@ -96,6 +101,11 @@ export interface PlaySessionOptions {
   tempo?: { percent: number; scoreView: PlaySettings['scoreView']; startAtMs?: number; loop?: boolean; gradeHold?: boolean; start?: TempoStart; follow?: boolean };
   /** Wait mode only: a wrong key moves on instead of waiting (level 1 of the tug of ft_1_21.AC6, `WaitMode` `moveOnWrong`; no caller until it is built). */
   moveOnWrong?: boolean;
+  /**
+   * Wait mode only: the keys of a pass left for the settings (`passKeys`), handed to the fresh judge so the pass goes on at
+   * the note it stood on; `nowMs` is the clock now. Keys that would finish the piece are not picked up (`resumed` false).
+   */
+  resume?: { keys: readonly NoteEvent[]; nowMs: number };
 }
 
 /**
@@ -125,6 +135,8 @@ export class PlaySession {
   /** The beat lanes as the player tuned them (core_13 rules 2 and 10), and the latest right key: its tick on the staff and its time. */
   private laneLooks: readonly LaneLook[] = [];
   private laneAnchor: { tick: number; atMs: number } | null = null;
+  /** The staff tick of the next note awaited, for the bar a lane that follows the click runs in (core_13.AC9); null: the first bar. */
+  private cursorTick: number | null = null;
   /** The score of the pass just finished, drawn past the last bar (ft_1_12); empty when none is shown. */
   private passScore: Phaser.GameObjects.GameObject[] = [];
   /** The width of the area the staff was last drawn in: the sheet's, which the prizes' column keeps inside. */
@@ -144,6 +156,10 @@ export class PlaySession {
   private lastWrong: WrongKey | null = null;
   private wrongTimer: Phaser.Time.TimerEvent | null = null;
   private messageTimer: Phaser.Time.TimerEvent | null = null;
+  /** Wait mode: every key the judge heard in this pass, in order (`passKeys`). */
+  private keysOfPass: NoteEvent[] = [];
+  /** The pass was picked up where it was left (`resume`). */
+  resumed = false;
 
   constructor(private readonly scene: Phaser.Scene, private readonly options: PlaySessionOptions) {
     this.written = options.chart;
@@ -158,7 +174,12 @@ export class PlaySession {
     const noCountIn = tempo !== undefined && (tempo.startAtMs !== undefined || tempo.start === 'firstNote');
     this.transport = tempo ? new Transport(this.chart, { tempoPercent: tempo.percent, ...(noCountIn ? { countInBars: 0 } : {}) }) : null;
     if (tempo?.startAtMs !== undefined) this.transport!.start(tempo.startAtMs);
-    this.startJudge();
+    this.startJudge(options.resume);
+  }
+
+  /** Wait mode: the keys of this pass so far, for picking it up again on a fresh judge (`resume`); none in Tempo mode. */
+  get passKeys(): readonly NoteEvent[] {
+    return this.transport ? [] : this.keysOfPass;
   }
 
   /** The chart the staff draws: the written chart, or what `shown` puts in its place. */
@@ -198,14 +219,34 @@ export class PlaySession {
     this.startJudge();
   }
 
-  private startJudge(): void {
-    const { keyboard, callbacks } = this.options;
-    const mode = this.transport
+  private startJudge(resume?: PlaySessionOptions['resume']): void {
+    const { callbacks } = this.options;
+    this.keysOfPass = [];
+    const waitMode = () => new WaitMode(this.chart, { hints: this.hints, ...(this.options.moveOnWrong ? { moveOnWrong: true } : {}) });
+    let mode = this.transport
       ? new TempoMode(this.chart, this.transport, {
         hints: this.hints, loop: this.options.tempo?.loop === true, gradeHold: this.options.tempo?.gradeHold !== false, start: this.options.tempo?.start ?? 'anyKey',
         ...(this.options.tempo?.follow ? { follow: DEFAULT_FOLLOW_RULES } : {}),
       })
-      : this.options.moveOnWrong ? new WaitMode(this.chart, { hints: this.hints, moveOnWrong: true }) : undefined;
+      : waitMode();
+    this.resumed = false;
+    if (resume && !this.transport && resume.keys.length > 0) {
+      if (replayKeys(mode, resume.keys, resume.nowMs)) {
+        this.keysOfPass = [...resume.keys];
+        this.resumed = true;
+      } else mode = waitMode();
+    }
+    // the keys the judge hears are kept, so a pass left for the settings can be picked up again
+    const keyboard: KeyboardInput = {
+      id: this.options.keyboard.id,
+      getStatus: () => this.options.keyboard.getStatus(),
+      onStatus: (listener) => this.options.keyboard.onStatus(listener),
+      dispose: () => this.options.keyboard.dispose(),
+      onNote: (listener) => this.options.keyboard.onNote((event) => {
+        if (!this.transport) this.keysOfPass.push(event);
+        listener(event);
+      }),
+    };
     this.controllerNow = new PracticeController(this.chart, keyboard, {
       onChange: (state) => {
         this.applyState(state);
@@ -213,6 +254,7 @@ export class PlaySession {
       },
       onJudged: (event, state) => {
         this.followKey(event);
+        this.followCursor(state);
         callbacks.onJudged(event, state);
       },
       onCompleted: (result) => callbacks.onCompleted(result),
@@ -245,19 +287,32 @@ export class PlaySession {
     if (this.laneAnchor?.tick !== tick) this.laneAnchor = { tick, atMs: event.timeMs };
   }
 
+  /** The next note awaited after a key: the bar where a lane that follows the click runs its wave. */
+  private followCursor(state: PlayState): void {
+    const next = state.awaiting[0];
+    const note = next === undefined ? undefined : this.chart.notes[next];
+    if (note) this.cursorTick = this.staffTick(note.tick);
+  }
+
   /**
    * Move the lane's wave to `nowMs` (core_13.AC1): in Tempo mode with the piece's clock, so it runs with the playhead and the
    * click; in Wait mode on from the latest right key at `msPerQuarter` (the click's, or the student's own pace in learning),
    * at most a bar on, where it waits for the next key; none with no pace. `marks` colour the keys played, by staff tick.
    */
-  moveLane(nowMs: number, msPerQuarter: number | null, marks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>>): void {
+  moveLane(nowMs: number, msPerQuarter: number | null, marks: ReadonlyMap<number, Pick<PaceMark, 'side' | 'far'>>, click?: { beat: { beatInBar: number; atMs: number } | null; msPerQuarter: number } | null): void {
     if (!this.view || this.laneLooks.length === 0) return;
     const drawn = this.drawn;
     const playTick = this.transport?.tickAt(nowMs) ?? null;
-    const wave = playTick !== null
-      ? (playTick < 0 ? null : this.staffTick(playTick))
-      : waveTick(this.laneAnchor, msPerQuarter === null ? null : msPerQuarter / drawn.ppq, nowMs, fullBarTicks(drawn.meterMap, drawn.ppq));
-    this.view.moveLane(wave, marks);
+    if (playTick !== null) {
+      // Tempo mode: the piece's clock is the click's, so every lane follows it
+      this.view.moveLane(playTick < 0 ? null : this.staffTick(playTick), marks);
+      return;
+    }
+    const wave = waveTick(this.laneAnchor, msPerQuarter === null ? null : msPerQuarter / drawn.ppq, nowMs, fullBarTicks(drawn.meterMap, drawn.ppq));
+    // a lane that follows the click runs on its beats, in the bar of the next note; with no click it follows the student
+    const at = this.cursorTick ?? this.laneAnchor?.tick ?? 0;
+    const bar = drawn.bars.find((b) => at >= b.startTick && at < b.endTick) ?? drawn.bars[0] ?? null;
+    this.view.moveLane(wave, marks, click ? clickWaveTick(bar, click.beat, click.msPerQuarter, nowMs, drawn.ppq) : undefined);
   }
 
   /** Tempo mode: move the playhead to where the piece is at `nowMs`. */
@@ -284,7 +339,7 @@ export class PlaySession {
     const settings = prefs.staffSettings;
     // in Tempo mode with the Scores view, room above chords for their stacked scores, so none goes off the page
     // the staff space range counts CSS pixels, so Windows display scaling keeps the notes as big as the player had them
-    const options = { viewport: { width: area.width, height: area.height }, ...staffSpaceLimits(this.scene.scale.zoom), scoreRoom: this.transport !== null && this.scoreView === 'number', staffGap: prefs.staffGap, noteNaming: prefs.noteNaming, ...(this.options.restingTracks ? { restingTracks: this.options.restingTracks } : {}) };
+    const options = { viewport: { width: area.width, height: area.height }, ...staffSpaceLimits(this.scene.scale.zoom), scoreRoom: this.transport !== null && this.scoreView === 'number', staffGap: prefs.staffGap, noteNaming: prefs.noteNaming, ...chordNamesOption(prefs), ...(this.options.restingTracks ? { restingTracks: this.options.restingTracks } : {}) };
     this.naming = prefs.noteNaming;
     const section = this.options.section;
     const drawn = this.drawn;
@@ -317,20 +372,22 @@ export class PlaySession {
 
   private applyState(state: PlayState): void {
     const shown = this.toWritten(state);
-    this.view?.applyProgress(shown.noteProgress, shown.awaiting);
+    this.view?.applyProgress(shown.noteProgress, shown.awaiting, shown.retried);
     if (this.transport) this.view?.applyTimings(shown.noteProgress, shown.timings, this.scoreView);
   }
 
   /** The judge's state (play notes) as the written notes the staff draws: the pass that is on (core_09.AC18). */
-  private toWritten(state: PlayState): Pick<PlayState, 'noteProgress' | 'awaiting' | 'timings'> {
+  private toWritten(state: PlayState): Pick<PlayState, 'noteProgress' | 'awaiting' | 'timings' | 'retried'> {
     if (this.play.chart === this.written) return state;
     const position = state.awaiting.length > 0 ? Math.min(...state.awaiting) : this.chart.notes.length;
     const shown = writtenView(this.play, this.written.notes.length, position);
     const timings = state.timings;
+    const retried = state.retried;
     return {
       noteProgress: shown.map((p) => state.noteProgress[p] ?? 'pending'),
       awaiting: state.awaiting.map((p) => this.play.writtenNote[p]!),
       ...(timings ? { timings: shown.map((p) => timings[p] ?? null) } : {}),
+      ...(retried ? { retried: shown.map((p) => retried[p] === true) } : {}),
     };
   }
 
@@ -500,4 +557,13 @@ function starPoints(cx: number, cy: number, outer: number, inner: number): { x: 
     const a = -Math.PI / 2 + (i * Math.PI) / 5;
     return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
   });
+}
+
+const CHORDS = loadChordContent(chordsJson);
+
+/** The layout's chord names from the player's setting (core_09.AC59): none for the notes only. */
+function chordNamesOption(prefs: StaffPrefs): Pick<StaffLayoutOptions, 'chordNames'> {
+  const show = prefs.chordLabels ?? 'notes';
+  if (show === 'notes') return {};
+  return { chordNames: { show, name: (keys, spellings) => { const chord = nameChord(CHORDS, keys, { spellings }); return chord ? staffChordName(chord, prefs.noteNaming) : null; } } };
 }

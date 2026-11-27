@@ -1,25 +1,25 @@
 import { describe, expect, it } from 'vitest';
+import { bookPages } from './bookPages';
 import { flowLine, placeColumns, REGISTER, registerLayout, registerRows } from './register';
 
 /** The teacher's register (WP-14, d145): an open book across the screen, names on the left page and marks on the right. */
 describe('registerLayout', () => {
-  it('lays the book over the main area and splits it into two pages with a clear gutter', () => {
+  it('lays the book over the main area and writes only on its pages, clear of the cover, the torn edge and the gutter', () => {
     const r = registerLayout(320, 157);
     expect(r.book).toEqual({ x: REGISTER.side, y: REGISTER.top, w: 320 - 2 * REGISTER.side, h: 157 - REGISTER.top - 1 });
     expect(r.mid).toBe(160);
-    expect(r.left.x).toBe(REGISTER.side + REGISTER.margin);
-    expect(r.left.x + r.left.w).toBe(160 - REGISTER.gutter);
-    expect(r.right.x).toBe(160 + REGISTER.gutter);
-    expect(r.right.x + r.right.w).toBe(320 - REGISTER.side - REGISTER.edge);
-    // the writing stays above the stack of leaves at the book's foot
-    expect(r.bottom).toBe(157 - 1 - REGISTER.foot);
-    expect(r.top).toBe(REGISTER.top + REGISTER.title);
+    const { left, right } = bookPages(r.book);
+    expect(r.left).toEqual({ x: left.x, w: left.w });
+    expect(r.right).toEqual({ x: right.x, w: right.w });
+    expect(r.top).toBe(left.y);
+    expect(r.bottom).toBe(left.y + left.h);
   });
 
   it('keeps whole cells on an odd width', () => {
     const r = registerLayout(321, 157);
     expect(Number.isInteger(r.mid)).toBe(true);
-    expect(r.right.x - (r.left.x + r.left.w)).toBe(2 * REGISTER.gutter);
+    expect(Number.isInteger(r.right.x)).toBe(true);
+    expect(r.right.x).toBeGreaterThan(r.left.x + r.left.w);
   });
 });
 
