@@ -124,6 +124,9 @@ const DURATION_GHOST_ALPHA = 0.28;
 const PLAYED_ALPHA = 0.55;
 const PLAYED_INK = '#d7263d';
 const PLAYED_NAME_GAP = 1.7;
+/** A mark over the bars (A, B, a part's name; text 1.1 spaces high) stands this far over the beat dots, and not above this much from the sheet's top (staff spaces). */
+const MARK_CLEAR = 1.1;
+const MARK_TOP = 0.6;
 /** How much of the sheet's copy covers bars drawn very faint (ft_1_32.AC20): a little ink shows through. */
 const VEIL_ALPHA = 0.86;
 
@@ -351,6 +354,20 @@ export class StaffView {
    * Mark a section, or none with null: its bars get a soft background, and its letters sit above the bar line where
    * a bar starts, after the bar number when there is one. The staff keeps its size; only these marks change.
    */
+  /**
+   * The screen y of the marks over a line's bars (a section's letters, a song's part names): just over the top staff, or
+   * over the beat lane's dots when they would stand on them, so the words never sit on the dots; on a line with no room
+   * above its dots they stay where they were.
+   */
+  private markY(system: number): number {
+    const S = this.layout.staffSpace;
+    const base = this.layout.systems[system]!.topLineY - 1.95 * S;
+    const near = this.lanes.flatMap((lane) => lane.dots).filter((d) => d.system === system && Math.abs(d.y - base) < MARK_CLEAR * S).map((d) => d.y);
+    if (near.length === 0) return this.origin.y + base;
+    const above = Math.min(...near) - MARK_CLEAR * S;
+    return this.origin.y + (above >= MARK_TOP * S ? Math.min(base, above) : base);
+  }
+
   setSectionMarks(marks: SectionMarks | null): void {
     this.section = marks;
     for (const mark of this.markTexts) mark.text.destroy();
@@ -366,8 +383,7 @@ export class StaffView {
       const numberWidth = number === undefined ? 0 : String(number.number).length * 4 * cell - cell + 0.4 * S;
       // a second mark on the same bar (A and B of a one-bar section) starts after the first one's whole text, its tempo and lap too
       const x = used.get(index) ?? this.origin.x + bar.x + 0.25 * S + numberWidth;
-      const y = this.origin.y + this.layout.systems[bar.system]!.topLineY - 1.95 * S;
-      const label = this.scene.add.text(x, y, text, style).setOrigin(0, 0.5);
+      const label = this.scene.add.text(x, this.markY(bar.system), text, style).setOrigin(0, 0.5);
       used.set(index, x + label.width + 0.6 * S);
       this.markTexts.push({ text: label, system: bar.system });
     }
@@ -394,8 +410,7 @@ export class StaffView {
       const number = this.barNumbers.find((n) => n.index === index);
       const numberWidth = number === undefined ? 0 : String(number.number).length * 4 * cell - cell + 0.4 * S;
       const x = this.origin.x + bar.x + 0.25 * S + numberWidth;
-      const y = this.origin.y + this.layout.systems[bar.system]!.topLineY - 1.95 * S;
-      this.partTexts.push({ text: this.scene.add.text(x, y, text, name).setOrigin(0, 0.5), system: bar.system, bar: index });
+      this.partTexts.push({ text: this.scene.add.text(x, this.markY(bar.system), text, name).setOrigin(0, 0.5), system: bar.system, bar: index });
     }
     for (const at of this.foldsAt()) {
       const y = this.origin.y + this.layout.systems[at.system]!.bottomLineY + 2.2 * S;
@@ -575,6 +590,8 @@ export class StaffView {
       }
     }
     this.drawLane(true);
+    // the marks over the bars keep clear of the dots
+    for (const mark of [...this.markTexts, ...this.partTexts]) mark.text.setY(this.markY(mark.system));
   }
 
   /**
