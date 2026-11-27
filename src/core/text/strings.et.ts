@@ -94,6 +94,7 @@ export const stringsEt: Record<StringKey, string> = {
   'songs.allOff': 'Kõik laulud on välja lülitatud. Lülita mõni sisse: Kõik lood.',
   'songs.written': '{written} / {planned} takti',
   'songs.parts': '{count} osa',
+  'songs.onePart': '1 osa',
   'song.barRange': '{first}-{last}',
   'song.tempo': '♩{bpm}',
   'song.switchOn': 'Laulus sees',

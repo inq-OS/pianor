@@ -52,3 +52,17 @@ export function setLabelOn(rows: readonly SongRow[], off: readonly string[], lab
 export function labelOn(rows: readonly SongRow[], off: readonly string[], label: string): boolean {
   return rows.filter((r) => r.labels.includes(label)).every((r) => !off.includes(r.id));
 }
+
+/**
+ * The switches after the song's rows changed (a row removed): when written parts are left but none is on, the first of
+ * them is turned on again, with the groups around it, so at least one written part stays on (rule 5).
+ */
+export function keepOnePartOn(rows: readonly SongRow[], off: readonly string[]): string[] {
+  const set = new Set(off);
+  if (writtenOn(rows, set).length > 0) return [...off];
+  const first = rows.find((r) => (r.kind === 'piece' || r.kind === 'link') && r.written);
+  if (!first) return [...off];
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  for (let r: SongRow | undefined = first; r; r = r.parent === null ? undefined : byId.get(r.parent)) set.delete(r.id);
+  return off.filter((id) => set.has(id));
+}

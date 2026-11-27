@@ -735,6 +735,13 @@ export abstract class PixelScene extends Phaser.Scene {
     return this.focusShown ? this.focusables()[this.focusIndex] : undefined;
   }
 
+  /** Hide the focus ring: the keys go back to the screen (a press on one of its own places, such as a song page's row). */
+  protected hideFocus(): void {
+    if (!this.focusShown) return;
+    this.focusShown = false;
+    this.paintFocus();
+  }
+
   /** Put the focus ring on `button` (one of `focusables`), shown at once: the wheel moves the focus like the arrows. */
   protected focusOn(button: PixelButton | undefined): void {
     const index = button ? this.focusables().indexOf(button) : -1;

@@ -1,4 +1,4 @@
-// Covers ft_1_36.AC14, ft_1_36.AC15, ft_1_36.AC21, ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20.
+// Covers ft_1_36.AC1, ft_1_36.AC14, ft_1_36.AC15, ft_1_36.AC21, ft_1_36.AC6, ft_1_36.AC7, ft_1_36.AC8, ft_1_36.AC9, ft_1_36.AC10, ft_1_36.AC11, ft_1_36.AC12, ft_1_36.AC20.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { allMenuTitles, clickButton, expectNoErrors, lastButton, menuButton, openBubbleFromMore, openGame, pressInBubble, sceneButton, sceneTexts, waitForScene } from './helpers';
@@ -278,6 +278,59 @@ test.describe('songs made of pieces', () => {
     await clickButton(page, 'songs', await sceneButton(page, 'songs', 'Evening Tune'));
     await waitForScene(page, 'song');
     await expect.poll(() => rowLabels(page)).toEqual(['Evening Tune', '1 Verse']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_36.AC1 ft_1_36.AC7 a fifth level of groups is greyed, new rows never repeat a name, and a press on a row gives the keys back to the rows', async ({ page }) => {
+    const errors = await openGame(page);
+    await clickButton(page, 'menu', await sceneButton(page, 'menu', 'Songs'));
+    await waitForScene(page, 'songs');
+    await clickButton(page, 'songs', await sceneButton(page, 'songs', '+ New song'));
+    await expect(page.locator('#text-field')).toBeFocused();
+    await page.keyboard.type('Deep Song');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'song');
+    await expect.poll(() => rowLabels(page)).toEqual(['Deep Song', '1 Part 1']);
+    const nodeCount = () => page.evaluate(() => {
+      let n = 0;
+      const walk = (nodes: { nodes?: unknown[] }[]) => nodes.forEach((node) => { n++; if (node.nodes) walk(node.nodes as never); });
+      walk((window.__game.registry.get('context').ownSongs.list()[0] as { nodes: never }).nodes);
+      return n;
+    });
+    const rowButtons = () => page.evaluate(() => (window.__game.scene.getScene('song').buttons as { options: { align?: string } }[]).flatMap((b, i) => (b.options.align === 'left' ? [i] : [])));
+    // each new group goes after the deepest part, so it stands one level deeper than the last
+    for (let level = 1; level <= 4; level++) {
+      const rows = await rowButtons();
+      await clickButton(page, 'song', rows[rows.length - 1]!);
+      await pressInBubble(page, 'song', 'Add');
+      await clickButton(page, 'song', await lastButton(page, 'song', 'New group'));
+      await expect.poll(nodeCount).toBe(1 + 2 * level);
+    }
+    // the deepest part stands on the next page now
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'Next'));
+    await expect.poll(async () => (await rowLabels(page)).some((l) => l.startsWith('2.2.2.2.1'))).toBe(true);
+    const rows = await rowButtons();
+    await clickButton(page, 'song', rows[rows.length - 1]!);
+    await pressInBubble(page, 'song', 'Add');
+    const fifth = await lastButton(page, 'song', 'New group');
+    expect(await page.evaluate((i) => (window.__game.scene.getScene('song').buttons[i] as { disabled: boolean }).disabled, fifth)).toBe(true);
+    await page.keyboard.press('Escape');
+    const names = await page.evaluate(() => {
+      const song = window.__game.registry.get('context').ownSongs.list()[0] as { nodes: unknown[] };
+      const out: string[] = [];
+      const walk = (nodes: { name?: string; nodes?: unknown[] }[]) => nodes.forEach((n) => { out.push(n.name ?? ''); if (n.nodes) walk(n.nodes as never); });
+      walk(song.nodes as never);
+      return out;
+    });
+    expect(new Set(names).size).toBe(names.length);
+    // the bubble's keys put the focus ring on; a press on a row gives Up and Down back to the rows
+    await clickButton(page, 'song', await sceneButton(page, 'song', 'Previous'));
+    await clickButton(page, 'song', await sceneButton(page, 'song', '1 Part 1'));
+    const selected = () => page.evaluate(() => (window.__game.scene.getScene('song') as unknown as { selected: string | null }).selected);
+    expect(await selected()).toBe('part-1');
+    await press(page, 'ArrowDown');
+    await press(page, 'ArrowDown');
+    expect(await selected()).not.toBe('part-1');
     expectNoErrors(errors);
   });
 

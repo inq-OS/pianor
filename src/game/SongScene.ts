@@ -4,10 +4,10 @@ import { rectCentre } from '../core/layout/rect';
 import { keyName, meterName, pieceOutline, rowPlay, shownRows, startFolded, type ShownRow } from '../core/song/outline';
 import { pieceFactsOf, type ResolvedSong, type RowValue, type SongRow } from '../core/song/resolve';
 import { walkSong, type Song, type SongNode, type SongValues } from '../core/song/schema';
-import { addNode, freeNodeId, moveNode, removeNode, renameNode, setValue, linkTargets, NEW_BLANK_BARS, type MoveKind, type Place } from '../core/song/edit';
+import { addNode, canAdd, freeNodeId, freeNodeName, moveNode, removeNode, renameNode, setValue, linkTargets, NEW_BLANK_BARS, type MoveKind, type Place } from '../core/song/edit';
 import { canRedo, canUndo, push, redo, startHistory, undo, type History } from '../core/editor/history';
 import { openTextField } from './ui/textField';
-import { keepsLastPartOn, labelOn, setLabelOn, setPartOn } from '../core/song/switches';
+import { keepOnePartOn, keepsLastPartOn, labelOn, setLabelOn, setPartOn } from '../core/song/switches';
 import { clipToWidth } from '../core/text/clip';
 import { pieceTitle } from '../core/text/pieceTitle';
 import { strings, t, type StringKey } from '../core/text/strings';
@@ -239,6 +239,8 @@ export class SongScene extends PixelScene {
 
   /** A press on a row's name: it is selected; while a piece is being placed, the places by that row open (rule 17). */
   private pressRow(id: string | null): void {
+    // a press on a row gives the keys back to the rows (rule 10)
+    this.hideFocus();
     this.select(id);
     this.askPlace();
   }
@@ -473,11 +475,11 @@ export class SongScene extends PixelScene {
   private addChoices(song: Song, node: SongNode | undefined): MenuItem[] {
     const place = node ? { after: node.id } : ('end' as const);
     const blank = (): SongNode => {
-      const name = t('song.newPart', { n: walkSong(song.nodes).filter(({ node: n }) => n.kind === 'blank').length + 1 });
+      const name = freeNodeName(song, (n) => t('song.newPart', { n }));
       return { kind: 'blank', id: freeNodeId(song, name), name, bars: NEW_BLANK_BARS };
     };
     const group = (): SongNode => {
-      const name = t('song.newGroup', { n: walkSong(song.nodes).filter(({ node: n }) => n.kind === 'group').length + 1 });
+      const name = freeNodeName(song, (n) => t('song.newGroup', { n }));
       return { kind: 'group', id: freeNodeId(song, name), name, nodes: [blank()] };
     };
     // each choice shows where the new row will stand while the pointer rests on it (d286)
@@ -496,6 +498,8 @@ export class SongScene extends PixelScene {
   /** A row added at `place`, shown where it lands while the pointer rests on it (d286), selected once picked. */
   private addAt(song: Song, label: string, place: Place, made: SongNode): MenuItem {
     const next = addNode(song, place, made);
+    // a group past the fourth level is not offered (rule 1): greyed, as an option that cannot apply there
+    if (!canAdd(song, place, made)) return { label, disabled: true, onPick: () => undefined };
     return {
       label,
       preview: (on) => this.showLanding(on ? next : null, made.id),
@@ -534,11 +538,12 @@ export class SongScene extends PixelScene {
     if (id !== null && !node) return [];
     const name = this.pieceName(pieceId);
     const piece: SongNode = { kind: 'piece', id: freeNodeId(song, name), piece: pieceId };
-    const groupName = t('song.newGroup', { n: walkSong(song.nodes).filter(({ node: n }) => n.kind === 'group').length + 1 });
+    const groupName = freeNodeName(song, (n) => t('song.newGroup', { n }));
     const group: SongNode = { kind: 'group', id: freeNodeId(addNode(song, 'end', piece), groupName), name: groupName, nodes: [piece] };
     const place: Place = node ? { after: node.id } : 'end';
     const choice = (label: string, at: Place, made: SongNode): MenuItem => {
       const next = addNode(song, at, made);
+      if (!canAdd(song, at, made)) return { label, disabled: true, onPick: () => undefined };
       return {
         label,
         preview: (on) => this.showLanding(on ? next : null, made.id),
@@ -637,6 +642,9 @@ export class SongScene extends PixelScene {
       return;
     }
     this.commit(next);
+    // the part removed may have been the last written one on: then the first written part left is turned on (rule 5)
+    const off = keepOnePartOn(contextOf(this).songs.resolved(next).rows, this.off);
+    if (off.length !== this.off.length) this.saveOff(off);
     this.say(t('song.removed', { name }), null);
   }
 

@@ -175,7 +175,7 @@ export class SongsScene extends PixelScene {
     this.root.add(factsText);
     const record = profiles.recordFor(songChartId(song.id));
     const stars = pixelStars(this, this.root, left + 6, top + 19, record?.bestGrade ?? 0, { gap: 1, ink: true });
-    const line = `${t('songs.written', { written: resolved.barsWritten, planned: resolved.bars })}, ${t('songs.parts', { count: parts })}`;
+    const line = `${t('songs.written', { written: resolved.barsWritten, planned: resolved.bars })}, ${(parts === 1 ? t('songs.onePart') : t('songs.parts', { count: parts }))}`;
     const written = new PixelText(this, left + 6, top + 31, clipToWidth(line, width - 12, (text) => measure(drawnText(text))), { color: C.umberDark }).setName('songWritten');
     this.root.add(written);
     button.attach(factsText, written, ...stars);
