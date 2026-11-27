@@ -36,7 +36,7 @@ function spellInKey(pc: number, fifths: number): [Step, number] | null {
 
 /** The root's letter and sign as the chord's notes are written, else as its key writes it; null when neither tells. */
 function writtenRoot(root: number, keys: readonly number[], hint: ChordHint | undefined): [Step, number] | null {
-  const written = hint?.spellings?.find((s, i) => keys[i] !== undefined && keys[i]! % 12 === root && pcOf(s) === root);
+  const written = hint?.spellings?.find((s, i) => keys[i] !== undefined && keys[i] % 12 === root && pcOf(s) === root);
   if (written) return Math.abs(written.alter) <= 1 ? [written.step, written.alter] : null;
   return hint?.fifths === undefined ? null : spellInKey(root, hint.fifths);
 }
