@@ -99,6 +99,19 @@ describe('changing a note', () => {
     expect(ok(stepPitch(start(), first, 1)).notes[0]).toMatchObject({ step: 'D', octave: 4 });
   });
 
+  it('ft_1_02d.AC7 a stepped note takes the sharp or flat of the key signature for its new letter', () => {
+    const inG = setKey(piece(), 1, 'major');
+    const g = ok(placeNote(inG, note({ step: 'G' })));
+    const ref = { ...first, step: 'G' as const };
+    // G down is F sharp in G major, and F sharp up is G again
+    expect(ok(stepPitch(g, ref, -1)).notes[0]).toMatchObject({ step: 'F', alter: 1 });
+    const fSharp = ok(stepPitch(g, ref, -1));
+    expect(ok(stepPitch(fSharp, { ...first, step: 'F' }, 1)).notes[0]).toMatchObject({ step: 'G', alter: 0 });
+    // a chord steps the same way
+    const chord = ok(placeNote(g, note({ step: 'B' })));
+    expect(ok(stepChord(chord, ref, -1)).notes.map((n) => `${n.step}${n.alter}`)).toEqual(['F1', 'A0']);
+  });
+
   it('steps a whole chord one staff position, all its notes or none (ft_1_02d.AC8)', () => {
     const chord = ok(placeNote(ok(placeNote(piece(), note())), note({ step: 'E' })));
     const moved = ok(stepChord(chord, { ...first, step: 'E' }, 1));
