@@ -3,8 +3,8 @@ import { expect, test } from './fixtures';
 import { LITTLE_STEPS, activeScenes, clickButton, expectNoErrors, letGameRun, openGame, playWithVirtualPiano, sceneButton, waitForScene } from './helpers';
 
 type Here = { ids: string[]; saying: string | null; asking: boolean };
-const here = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { wanderersHere: Here }).wanderersHere);
-const press = (page: Page) => page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { pressWanderer(id: string): boolean }).pressWanderer('traveller'));
+const here = (page: Page, key = 'knoll') => page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { wanderersHere: Here }).wanderersHere, key);
+const press = (page: Page, key = 'knoll') => page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { pressWanderer(id: string): boolean }).pressWanderer('traveller'), key);
 const world = (page: Page) => page.evaluate(async () => {
   const { profiles } = window.__game.registry.get('context');
   return (await profiles.worldOf(profiles.profile.id)) as { items: string[]; wandererGifts?: unknown[] };
@@ -22,42 +22,48 @@ test.describe('a wanderer the teacher sends (ft_1_37)', () => {
     });
     await clickButton(page, 'profiles', 0);
     await waitForScene(page, 'profile');
-    await page.evaluate(() => window.__game.scene.start('knoll'));
-    await waitForScene(page, 'knoll');
-    // the knoll is the one scene open at level 1, so it stands there
-    await expect.poll(async () => (await here(page)).ids).toEqual(['traveller']);
-    expect(await press(page)).toBe(true);
-    expect(await here(page)).toMatchObject({ saying: 'Would you play me Little Steps?', asking: true });
+    // it stands in one of its open scenes, drawn for the day: look in each until it is found
+    let key = '';
+    for (const k of ['knoll', 'crossroads']) {
+      await page.evaluate((s) => { for (const o of ['knoll', 'crossroads']) window.__game.scene.stop(o); window.__game.scene.start(s); }, k);
+      await waitForScene(page, k);
+      await page.waitForFunction((s) => (window.__game.scene.getScene(s) as unknown as { today: unknown }).today !== null, k);
+      if ((await here(page, k)).ids.includes('traveller')) { key = k; break; }
+    }
+    expect(key).not.toBe('');
+    expect((await here(page, key)).ids).toEqual(['traveller']);
+    expect(await press(page, key)).toBe(true);
+    expect(await here(page, key)).toMatchObject({ saying: 'Would you play me Little Steps?', asking: true });
     // a double tap on the wanderer never answers: another press while it asks does nothing
-    expect(await press(page)).toBe(false);
+    expect(await press(page, key)).toBe(false);
     await page.screenshot({ path: 'test-results/wanderer-asks.png' });
     // the ask waits for an answer: it is still there after its reading time
     await letGameRun(page, 10, 400);
-    expect((await here(page)).asking).toBe(true);
+    expect((await here(page, key)).asking).toBe(true);
     // both answers are on the board with their words: Not now closes the ask, and the wanderer stays to be asked again
-    await clickButton(page, 'knoll', await sceneButton(page, 'knoll', 'Not now'));
-    await expect.poll(async () => (await here(page)).asking).toBe(false);
-    expect((await here(page)).ids).toEqual(['traveller']);
-    expect(await press(page)).toBe(true);
+    await clickButton(page, key, await sceneButton(page, key, 'Not now'));
+    await expect.poll(async () => (await here(page, key)).asking).toBe(false);
+    expect((await here(page, key)).ids).toEqual(['traveller']);
+    expect(await press(page, key)).toBe(true);
     await letGameRun(page, 10, 400);
-    const words = await page.evaluate(() => (window.__game.scene.getScene('knoll') as unknown as { root: { list: { name: string; visible: boolean; x: number; width: number }[] } }).root.list.filter((o) => o.name.endsWith(':word') && o.visible).map((o) => ({ name: o.name, x: o.x, width: o.width })));
+    const words = await page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { root: { list: { name: string; visible: boolean; x: number; width: number }[] } }).root.list.filter((o) => o.name.endsWith(':word') && o.visible).map((o) => ({ name: o.name, x: o.x, width: o.width })), key);
     expect(words.map((w) => w.name)).toEqual(['wanderer:play:word', 'wanderer:notNow:word']);
     // the two words stand well apart, so they never read as one phrase
     expect(words[1]!.x - (words[0]!.x + words[0]!.width)).toBeGreaterThanOrEqual(20);
     // the answer is the board's picture, Play it in its bubble
-    await clickButton(page, 'knoll', await sceneButton(page, 'knoll', 'Play it'));
+    await clickButton(page, key, await sceneButton(page, key, 'Play it'));
     await waitForScene(page, 'practice');
     await letGameRun(page, 5, 200);
     await playWithVirtualPiano(page, LITTLE_STEPS);
-    await waitForScene(page, 'knoll');
-    await expect.poll(async () => (await here(page)).saying ?? '').toMatch(/^\d+ of \d+ notes right the first time\. Here, take this: /);
+    await waitForScene(page, key);
+    await expect.poll(async () => (await here(page, key)).saying ?? '').toMatch(/^\d+ of \d+ notes right the first time\. Here, take this: /);
     await page.screenshot({ path: 'test-results/wanderer-keepsake.png' });
     const after = await world(page);
     expect(after.items).toHaveLength(1);
     expect(after.wandererGifts).toHaveLength(1);
     // one keepsake a day: a press says so and asks nothing more
-    await press(page);
-    expect((await here(page)).saying).toBe('I gave you something already today. Come again another day.');
+    await press(page, key);
+    expect((await here(page, key)).saying).toBe('I gave you something already today. Come again another day.');
     expectNoErrors(errors);
   });
 
