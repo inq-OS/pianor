@@ -32,8 +32,8 @@ const DYNAMICS = 'shown with the note-name hints, the word teaches the sign besi
 const PICKING = 'picking a section is a tool, not play';
 
 /**
- * The words still shown in play, each for its reason. AX-3 provisional: kept until a mark says the same as plainly
- * (TODO(architect) tags in ft_1_20, ft_1_39 and core_09).
+ * The words still shown in play, each for its reason. AX-3 provisional: kept until a mark says the same as plainly;
+ * TODO(architect) in ft_1_20, ft_1_39 and core_09.
  */
 export const IN_PLAY_WORDS: Readonly<Partial<Record<StringKey, string>>> = {
   'lessons.mark.half': 'the step that teaches the term names it',
