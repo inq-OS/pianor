@@ -13,7 +13,7 @@ The handbook is [docs/art-direction.md](../../../docs/art-direction.md): read it
 
 Most of what a pass costs is reading and looking, not painting: every tool runs in seconds, but the full reading list is about 100,000 tokens and every picture opened stays in the context for the rest of the session. So size the job before reading:
 
-- **A small change**: one thing in a picture that is already painted and shown (a colour, a stroke, a stone, a sprite, a frame, a fix the maintainer or a review asked for), with no new place and no new thing. Read the art direction and the artist's note of that thing, but not the Keri files, the decisions or the model scene's code (`docs/architect/painter-project.md` section 3), and skip sections 1 and 2b here. Look with `npm run art:diff -- <picture>` (below) instead of opening the four hours. The art review is the light one (`art-review` section 2).
+- **A small change**: one thing in a picture that is already painted and shown (a colour, a stroke, a stone, a sprite, a frame, a fix the maintainer or a review asked for), with no new place and no new thing. Read the art direction and the artist's note of that thing, but not the Keri files, the decisions or the model scene's code (`docs/architect/painter-project.md` section 3), and skip sections 1 and 2b here. Look with `npm run art:diff -- <picture>` (below) instead of opening the four hours. The art review is the light one (`art-review` section 1b).
 - **A pass on a place**: a new place, a new thing in it, or a repaint of much of it. Everything below.
 
 When a small change grows past a quarter of the picture (`art:diff` says "a big change"), it is a pass: switch lanes.
