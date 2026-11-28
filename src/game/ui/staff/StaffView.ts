@@ -1134,8 +1134,9 @@ export class StaffView {
     if (!glyph) return;
     const S = this.layout.staffSpace;
     const top = this.layout.systems[glyph.system]!.staves[glyph.staff]!.topLineY;
-    const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 2.2)}px`, color: this.theme.sectionInk };
-    this.countText = this.scene.add.text(this.origin.x + glyph.column, this.origin.y + Math.min(top, glyph.y) - 1.4 * S, String(beat), style).setOrigin(0.5, 1);
+    // between the beat lane and the staff's top line (or the note, when it stands higher), clear of both
+    const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.2)}px`, color: this.theme.sectionInk };
+    this.countText = this.scene.add.text(this.origin.x + glyph.column, this.origin.y + Math.min(top, glyph.y - S) + 0.15 * S, String(beat), style).setOrigin(0.5, 1);
   }
 
   /** The count-in's beat shown over the staff, for tests; null when none is. */

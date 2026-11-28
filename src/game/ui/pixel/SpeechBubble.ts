@@ -3,7 +3,7 @@ import { LINE_GAP, LINE_HEIGHT, wrap } from './font';
 import { panelBitmap } from './frames';
 import { C } from './palette';
 import { PixelImage, PixelText } from './PixelObjects';
-import { recolor, type Bitmap } from './bitmap';
+import { createBitmap, recolor, type Bitmap } from './bitmap';
 import { CAP_HEIGHT } from './font';
 
 /** The text sits this far in from the bubble's left and top edge (and as far from its right edge). */
@@ -35,7 +35,7 @@ export class SpeechBubble {
   constructor(scene: Phaser.Scene, root: Phaser.GameObjects.Container, private readonly spot: BubbleSpot, message: string) {
     this.image = new PixelImage(scene, spot.x, spot.y, panelBitmap(spot.width, ONE_LINE_HEIGHT, 'bubble'));
     this.text = new PixelText(scene, spot.x + PAD_X, spot.y + PAD_Y, message, { color: C.ink, maxWidth: spot.width - 2 * PAD_X });
-    this.icon = new PixelImage(scene, spot.x + PAD_X, spot.y + PAD_Y, panelBitmap(1, 1, 'bubble')).setVisible(false);
+    this.icon = new PixelImage(scene, spot.x + PAD_X, spot.y + PAD_Y, createBitmap(1, 1)).setVisible(false);
     root.add([this.image, this.text, this.icon]);
   }
 

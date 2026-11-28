@@ -11,7 +11,7 @@ import { PRIZE, prizeColumn, type PrizeColumn, type PrizeGlyph } from '../../cor
 import { CLEF_FLIGHT, grownBox } from '../../core/layout/clefFlight';
 import type { LearnRewards } from '../../core/learn/progress';
 import type { PrizeFocus } from '../../core/learn/view';
-import { passScorePlace } from '../../core/layout/passScore';
+import { passNumbersPlace, passScorePlace } from '../../core/layout/passScore';
 import { durationMarks, type DurationHelp } from '../../core/layout/durationHelp';
 import { playheadAt } from '../../core/layout/playhead';
 import type { StaffLayout, StaffLayoutOptions } from '../../core/layout/staff';
@@ -50,8 +50,7 @@ export interface WrongKey {
 const WRONG_FLASH_MS = 700;
 export const MESSAGE_MS = 3500;
 export const HMM_MS = 2500;
-/** The pass's numbers beside its stars: their column's width in staff spaces, their ink, the ghost head's red. */
-const PASS_NUMBERS_W = 3.4;
+/** The pass's numbers under its stars: their ink, the ghost head's red. */
 const PASS_INK = '#14142a';
 const WRONG_HEAD = 0xd7263d;
 const WRONG_HEAD_ALPHA = 0.55;
@@ -499,9 +498,9 @@ export class PlaySession {
   /**
    * The grade of the pass just finished, right after the piece's last bar (ft_1_12.AC3): five stars, small
    * and upright, three in a column and two beside them set half a star down, the earned ones gold (`passStarsFor`), and
-   * beside them its numbers (d312): the share right in percent, the wrong key's ghost notehead with the count of wrong keys,
-   * and in Tempo mode the tempo gauge with the timing score. Drawn at the staff's resolution (`passScorePlace`); it stays
-   * over a redraw until `hidePassScore`.
+   * in a row under the staff ending at its bar line, its numbers (d312): the share right in percent, the wrong key's ghost
+   * notehead with the count of wrong keys, and in Tempo mode the tempo gauge with the timing score. Drawn at the staff's
+   * resolution (`passScorePlace`, `passNumbersPlace`); it stays over a redraw until `hidePassScore`.
    */
   showPassScore(stars: number, numbers?: PassNumbers): void {
     this.passScoreNow = { stars, ...(numbers ? { numbers } : {}) };
@@ -531,8 +530,7 @@ export class PlaySession {
     const spots = [[0, 0], [0, 1], [0, 2], [1, 0.5], [1, 1.5]] as const;
     const columnStep = star * 0.9;
     const starsW = Math.ceil(star + columnStep);
-    const numbersW = numbers ? Math.ceil(PASS_NUMBERS_W * S) : 0;
-    const place = passScorePlace(layout, { w: starsW + numbersW, h: Math.ceil(star + 2 * step) });
+    const place = passScorePlace(layout, { w: starsW, h: Math.ceil(star + 2 * step) });
     const g = this.scene.add.graphics();
     spots.forEach(([column, row], i) => {
       const cx = view.origin.x + place.x + star / 2 + column * columnStep;
@@ -544,24 +542,32 @@ export class PlaySession {
     g.setDepth(1);
     this.passScore = [g];
     if (!numbers) return;
-    // the numbers in a column right of the stars, one per star row
-    const left = view.origin.x + place.x + starsW + 0.4 * S;
-    const rowY = (row: number) => view.origin.y + place.y + star / 2 + row * step;
+    // the numbers in a row under the staff, ending where the stars end: the share right, the wrong keys by a red ghost
+    // notehead as on the staff, and in Tempo mode the timing by a tempo gauge (a half dial and its needle)
     const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: PASS_INK };
-    const text = (x: number, row: number, value: string) => this.scene.add.text(x, rowY(row), value, style).setOrigin(0, 0.5).setDepth(1);
-    const objects: Phaser.GameObjects.GameObject[] = [text(left, 0, `${numbers.percent}%`)];
-    // the wrong key's mark: its red ghost notehead, as on the staff
+    const gap = 0.6 * S;
     const head = { rx: S * 0.6, ry: S * 0.45 };
-    g.fillStyle(WRONG_HEAD, WRONG_HEAD_ALPHA).fillEllipse(left + head.rx, rowY(1), head.rx * 2, head.ry * 2);
-    objects.push(text(left + head.rx * 2 + 0.3 * S, 1, String(numbers.wrong)));
-    if (numbers.timing !== undefined) {
-      // the tempo gauge, as the toolbar's speed picture draws it: a half dial and its needle
-      const r = S * 0.6, cx = left + r, cy = rowY(2) + r * 0.45;
-      g.lineStyle(Math.max(1, Math.round(S / 8)), STAFF_INK, 1);
-      g.beginPath().arc(cx, cy, r, Math.PI, 2 * Math.PI).closePath().strokePath();
-      g.lineBetween(cx, cy, cx + r * 0.55, cy - r * 0.7);
-      objects.push(text(left + 2 * r + 0.3 * S, 2, String(numbers.timing)));
-    }
+    const r = S * 0.6;
+    const texts = [`${numbers.percent}%`, String(numbers.wrong), ...(numbers.timing !== undefined ? [String(numbers.timing)] : [])]
+      .map((value) => this.scene.add.text(0, 0, value, style).setOrigin(0, 0.5).setDepth(1));
+    const marks = [0, 2 * head.rx + 0.3 * S, ...(numbers.timing !== undefined ? [2 * r + 0.3 * S] : [])];
+    const rowW = texts.reduce((sum, text, i) => sum + marks[i]! + text.width, 0) + gap * (texts.length - 1);
+    const row = passNumbersPlace(layout, place, { w: Math.ceil(rowW), h: Math.ceil(S * 1.4) });
+    const y = view.origin.y + row.y + row.h / 2;
+    let x = view.origin.x + row.x;
+    texts.forEach((text, i) => {
+      if (i === 1) g.fillStyle(WRONG_HEAD, WRONG_HEAD_ALPHA).fillEllipse(x + head.rx, y, head.rx * 2, head.ry * 2);
+      if (i === 2) {
+        const cx = x + r, cy = y + r * 0.45;
+        g.lineStyle(Math.max(1, Math.round(S / 8)), STAFF_INK, 1);
+        g.beginPath().arc(cx, cy, r, Math.PI, 2 * Math.PI).closePath().strokePath();
+        g.lineBetween(cx, cy, cx + r * 0.55, cy - r * 0.7);
+      }
+      x += marks[i]!;
+      text.setPosition(Math.round(x), Math.round(y));
+      x += text.width + gap;
+    });
+    const objects: Phaser.GameObjects.GameObject[] = texts;
     this.passScore.push(...objects);
   }
 
