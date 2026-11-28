@@ -184,26 +184,38 @@ export class LessonScene extends PixelScene {
     const S = layout.staffSpace * k;
     const g = this.add.graphics();
     layer.add(g);
-    const topLine = (Math.min(...layout.staffLines.map((l) => l.y)) + top - this.mainTop) * k;
-    // a label that would touch the one before it goes a line higher, its bracket with it
-    let previous: { right: number; lift: number } | null = null;
+    const lineYs = layout.staffLines.map((l) => (l.y + top - this.mainTop) * k);
+    const topLine = Math.min(...lineYs), bottomLine = Math.max(...lineYs);
+    // a mark whose label would touch the one before it above the staff goes under the staff instead, so no two
+    // labels or brackets cross; brackets stop short of a shared note so two never meet
+    let previousRight = Number.NEGATIVE_INFINITY;
     for (const mark of marks) {
       const a = layout.notes.find((n) => n.index === mark.from), b = layout.notes.find((n) => n.index === mark.to);
       if (!a || !b) continue;
-      const tip = (n: typeof a) => Math.min(n.y, n.stem?.up ? n.stem.y2 : n.y);
-      const highest = (Math.min(tip(a), tip(b)) + top - this.mainTop) * k;
-      const x1 = Math.round(a.x * k - S * 0.5), x2 = Math.round(b.x * k + S * 0.5);
-      const label = new PixelText(this, 0, 0, t(mark.kind === 'half' ? 'lessons.mark.half' : 'lessons.mark.whole'), { color: mark.kind === 'half' ? C.red : C.blue, shadow: C.groove });
+      const x1 = Math.round(a.x * k - S * 0.3), x2 = Math.round(b.x * k + S * 0.3);
+      const label = new PixelText(this, 0, 0, t(mark.kind === 'half' ? 'lessons.mark.half' : 'lessons.mark.whole'), { color: mark.kind === 'half' ? C.red : C.blue });
       const labelX = Math.round((x1 + x2) / 2 - label.width / 2);
-      const lift: number = previous && labelX < previous.right + 8 && previous.lift === 0 ? label.height + 3 : 0;
-      previous = { right: labelX + label.width, lift };
-      const y = Math.round(Math.min(topLine, highest) - 1.2 * S) - lift;
+      const below = labelX < previousRight + 6;
+      if (!below) previousRight = labelX + label.width;
+      const leg = Math.max(2, Math.round(S * 0.6));
       g.fillStyle(MARK_INK[mark.kind], 1);
-      g.fillRect(x1, y, x2 - x1 + 1, 1);
-      const leg = Math.max(2, Math.round(S * 0.6)) + lift;
-      g.fillRect(x1, y, 1, leg);
-      g.fillRect(x2, y, 1, leg);
-      label.setPosition(labelX, y - label.height - 2);
+      if (below) {
+        const end = (n: typeof a) => Math.max(n.y + n.headRy, n.stem && !n.stem.up ? n.stem.y2 : n.y);
+        // under the notes and under the cursor's arrow, so the arrow never stands on the label
+        const arrow = (Math.max(...layout.systems.map((sys) => sys.cursorTipY)) + top - this.mainTop) * k;
+        const y = Math.round(Math.max(bottomLine + 1.2 * S, (Math.max(end(a), end(b)) + top - this.mainTop) * k + 1.2 * S, arrow + leg + 2));
+        g.fillRect(x1, y, x2 - x1 + 1, 1);
+        g.fillRect(x1, y - leg + 1, 1, leg);
+        g.fillRect(x2, y - leg + 1, 1, leg);
+        label.setPosition(labelX, y + 3);
+      } else {
+        const tip = (n: typeof a) => Math.min(n.y, n.stem?.up ? n.stem.y2 : n.y);
+        const y = Math.round(Math.min(topLine, (Math.min(tip(a), tip(b)) + top - this.mainTop) * k) - 1.2 * S);
+        g.fillRect(x1, y, x2 - x1 + 1, 1);
+        g.fillRect(x1, y, 1, leg);
+        g.fillRect(x2, y, 1, leg);
+        label.setPosition(labelX, y - label.height - 2);
+      }
       layer.add(label);
     }
   }
