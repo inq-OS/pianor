@@ -22,7 +22,7 @@ import { MARK } from '../../../core/text/marks';
 import type { Dynamic } from '../../../core/chart/dynamics';
 import { ACCIDENTAL_STROKES, ORNAMENT_STROKES, BASS_CLEF_BALL, BASS_CLEF_DOTS, BASS_CLEF_STROKE, BRACE_PATH, DIGITS, QUARTER_REST_STROKE, TREBLE_CLEF_STROKE, type Pt } from './glyphs';
 import { STAFF_FONT } from './staffFont';
-import { CAP_HEIGHT, drawnText, renderText } from '../pixel/font';
+import { CAP_HEIGHT, drawnText, renderMarks } from '../pixel/font';
 import { C } from '../pixel/palette';
 import { PixelImage } from '../pixel/PixelObjects';
 import { motionAllowed } from '../../motion';
@@ -31,6 +31,10 @@ import { motionAllowed } from '../../motion';
 type MarkObject = Phaser.GameObjects.Text | Phaser.GameObjects.Image;
 /** The pixel font's capitals stand this many staff spaces tall in a mark, as tall as the staff font's at its size. */
 const MARK_CAP = 0.8;
+/** A section's mark (A, its tempo and lap, B) is drawn this much larger than a fold's text. */
+const SECTION_MARK_SIZE = 1.25;
+/** A chip's paper, a shade lighter than the page so it stands off it. */
+const CHIP_PAPER = 0xfbf1d3;
 /** The cursor box's breath while it waits for the first key: down to this alpha and back, each way this long (ms). */
 const BREATH_ALPHA = 0.35;
 const BREATH_MS = 600;
@@ -135,6 +139,8 @@ const DURATION_GHOST = 0x2b6cff;
 const DURATION_GHOST_ALPHA = 0.28;
 /** The key that was played: faint, in the wrong colour, its name under it (ft_1_12.AC7). */
 const PLAYED_ALPHA = 0.55;
+/** The played key's name and its octave mark are darker than its ghost head, so they read on the paper (d312). */
+const PLAYED_NAME_ALPHA = 0.85;
 const PLAYED_INK = '#d7263d';
 const PLAYED_NAME_GAP = 1.7;
 /** A mark over the bars (A, B, a part's name; text 1.1 spaces high) stands this far over the beat dots, and not above this much from the sheet's top (staff spaces). */
@@ -226,6 +232,9 @@ export class StaffView {
   /** A song's part names over their first bars and its folds (ft_1_36 rule 7); drawn with the marks, kept apart from a section's. */
   private partMarks: PartMarks | null = null;
   private readonly partTexts: { text: MarkObject; system: number; value: string; bar?: number }[] = [];
+  /** Chips over the page's first line (d312: a section's log as marks by the staff, not a line in the bubble). */
+  private chipValues: string[] = [];
+  private chipObjects: Phaser.GameObjects.GameObject[] = [];
   /** Hears every page turn (the song map's frame follows the page, ft_1_36 rule 8). */
   onPageShown: ((page: number) => void) | null = null;
 
@@ -311,6 +320,7 @@ export class StaffView {
     }
     for (const mark of this.markTexts) mark.text.setVisible(this.onPage(mark.system));
     for (const mark of this.partTexts) mark.text.setVisible(this.onPage(mark.system));
+    if (this.chipValues.length > 0) this.drawChips();
     for (const slur of this.slurTexts) slur.text.setVisible(this.onPage(slur.system) && hints.noteNames);
     for (const v of this.veils) v.image.setVisible(this.onPage(v.system));
   }
@@ -401,7 +411,8 @@ export class StaffView {
       const numberWidth = number === undefined ? 0 : String(number.number).length * 4 * cell - cell + 0.4 * S;
       // a second mark on the same bar (A and B of a one-bar section) starts after the first one's whole text, its tempo and lap too
       const x = used.get(index) ?? this.origin.x + bar.x + 0.25 * S + numberWidth;
-      const label = this.markImage(x, this.markY(bar.system), text, C.brown);
+      // dark brown, a little larger than a fold, its tempo's rise in gold (d312: read at a glance over the bar)
+      const label = this.markImage(x, this.markY(bar.system), text, C.brownDark, SECTION_MARK_SIZE, { [MARK.up]: C.goldDark });
       used.set(index, x + label.displayWidth + 0.6 * S);
       this.markTexts.push({ text: label, system: bar.system, value: text });
     }
@@ -443,9 +454,9 @@ export class StaffView {
    * A mark over or under the staff in the pixel font (d312), whose ♩ ↻ ▲ ✗ the staff's font has no glyph for: its letters
    * a whole number of screen pixels each, about the height of the staff's own words (`size` of them), left-centred at x, y.
    */
-  private markImage(x: number, y: number, text: string, colour: number, size = 1): Phaser.GameObjects.Image {
+  private markImage(x: number, y: number, text: string, colour: number, size = 1, accents: Readonly<Record<string, number>> = {}): Phaser.GameObjects.Image {
     const zoom = Math.max(1, Math.round((MARK_CAP * this.layout.staffSpace * size) / CAP_HEIGHT));
-    return new PixelImage(this.scene, x, y, renderText(drawnText(text), { color: colour })).setOrigin(0, 0.5).setScale(zoom);
+    return new PixelImage(this.scene, x, y, renderMarks(drawnText(text), colour, accents)).setOrigin(0, 0.5).setScale(zoom);
   }
 
   /** The marks over the bars as they read, for tests: "A ♩70 ↻1", "B". */
@@ -456,6 +467,43 @@ export class StaffView {
   /** The words and marks of a song's parts as they read, for tests. */
   get partMarksShown(): string[] {
     return this.partTexts.map((m) => m.value);
+  }
+
+  /**
+   * Show marks as chips over the page's first line, at its right end in the marks' lane (a section's log when the
+   * piece is whole again: "↻4", "✓2", "♩60→66"), or take them away with null: each on a paper plate edged in ink, as
+   * large as a section's mark, the ✓ green and a rise gold.
+   */
+  setChips(values: readonly string[] | null): void {
+    this.chipValues = values ? [...values] : [];
+    this.drawChips();
+  }
+
+  /** The chips shown, for tests. */
+  get chipsShown(): string[] {
+    return this.chipObjects.length > 0 ? [...this.chipValues] : [];
+  }
+
+  private drawChips(): void {
+    for (const o of this.chipObjects) o.destroy();
+    this.chipObjects = [];
+    const system = this.layout.systems.findIndex((_, i) => this.onPage(i));
+    if (this.chipValues.length === 0 || system < 0) return;
+    const S = this.layout.staffSpace;
+    const right = Math.max(...this.layout.barlines.filter((b) => b.system === system).map((b) => b.x));
+    const y = this.markY(system);
+    const pad = 0.3 * S;
+    const images = this.chipValues.map((value) => this.markImage(0, y, value, C.ink, SECTION_MARK_SIZE, { [MARK.right]: C.green, [MARK.up]: C.goldDark }));
+    const plates = this.scene.add.graphics().setDepth(2);
+    let x = this.origin.x + right;
+    for (const image of [...images].reverse()) {
+      x -= image.displayWidth + 2 * pad;
+      plates.fillStyle(CHIP_PAPER, 1).fillRoundedRect(x, y - image.displayHeight / 2 - pad, image.displayWidth + 2 * pad, image.displayHeight + 2 * pad, pad);
+      plates.lineStyle(Math.max(1, Math.round(S / 10)), STAFF_INK, 1).strokeRoundedRect(x, y - image.displayHeight / 2 - pad, image.displayWidth + 2 * pad, image.displayHeight + 2 * pad, pad);
+      image.setX(x + pad).setDepth(3);
+      x -= 0.4 * S;
+    }
+    this.chipObjects = [plates, ...images];
   }
 
   /**
@@ -630,6 +678,7 @@ export class StaffView {
     this.drawLane(true);
     // the marks over the bars keep clear of the dots
     for (const mark of [...this.markTexts, ...this.partTexts]) mark.text.setY(this.markY(mark.system));
+    this.drawChips();
   }
 
   /**
@@ -864,6 +913,7 @@ export class StaffView {
     this.playedName?.destroy();
     this.playedOctave?.destroy();
     this.countText?.destroy();
+    for (const o of this.chipObjects) o.destroy();
     this.breath?.remove();
     for (const v of this.veils) v.image.destroy();
     this.sheet.release();
@@ -1098,9 +1148,9 @@ export class StaffView {
     if (mark && this.onPage(mark.system)) {
       const S = this.layout.staffSpace;
       const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: PLAYED_INK };
-      this.playedName = this.scene.add.text(this.origin.x + mark.x, this.origin.y + mark.y + PLAYED_NAME_GAP * S, name, style).setOrigin(0.5).setAlpha(PLAYED_ALPHA);
+      this.playedName = this.scene.add.text(this.origin.x + mark.x, this.origin.y + mark.y + PLAYED_NAME_GAP * S, name, style).setOrigin(0.5).setAlpha(PLAYED_NAME_ALPHA);
       // an octave off names its reason as a mark (d312): an 8 right of the played head, which stands an octave from the awaited one
-      if (octave) this.playedOctave = this.scene.add.text(this.origin.x + mark.x + mark.rx + 0.5 * S, this.origin.y + mark.y, MARK.octave, style).setOrigin(0, 0.5).setAlpha(PLAYED_ALPHA);
+      if (octave) this.playedOctave = this.scene.add.text(this.origin.x + mark.x + mark.rx + 0.5 * S, this.origin.y + mark.y, MARK.octave, style).setOrigin(0, 0.5).setAlpha(PLAYED_NAME_ALPHA);
     }
     this.drawNotes();
   }

@@ -188,12 +188,14 @@ test.describe('pitch trainer by ear (ft_1_10)', () => {
     const target = (await ear(page)).notes[0]!;
     const up = target + 12 <= 96;
     await playWithVirtualPiano(page, [up ? target + 12 : target - 12]);
-    let texts = await sceneTexts(page, 'earTrainer');
-    expect(texts.some((text) => new RegExp(`^[A-H]#?✓ 8${up ? '▲' : '▼'}$`).test(text))).toBe(true);
+    const missShown = () => page.evaluate(() => (window.__game.scene.getScene('earTrainer') as unknown as { missShown: string | null }).missShown);
+    expect(await missShown()).toMatch(new RegExp(`^[A-H]#?✓ 8${up ? '▲' : '▼'}$`)); // on its paper chip, not a line of text
+    expect(await sceneTexts(page, 'earTrainer')).toEqual(ONLY_TEXTS);
     expect((await ear(page)).stars).toEqual([4, 5]);
     await playWithVirtualPiano(page, [missKey(target)]);
-    texts = await sceneTexts(page, 'earTrainer');
+    const texts = await sceneTexts(page, 'earTrainer');
     expect(texts).toEqual(ONLY_TEXTS);
+    expect(await missShown()).toBeNull();
     expect(texts.some((text) => /almost|higher|lower|below|above/i.test(text))).toBe(false);
     expect((await ear(page)).stars).toEqual([3, 5]);
     expectNoErrors(errors);

@@ -46,6 +46,8 @@ export const IN_PLAY_WORDS: Readonly<Partial<Record<StringKey, string>>> = {
   'staff.dyn.ff': DYNAMICS,
   'staff.legato': 'shown with the note-name hints over a slur (core_09.AC27)',
   'practice.bubbleHint': 'the one-time tip that the music has more tools',
+  'marks.octaveTip': 'the one-time tip that names the 8 the first time a player sees it',
+  'marks.halfTip': 'the one-time tip that names the ½ the first time a player sees it',
   'practice.pickStart': PICKING,
   'practice.pickEnd': PICKING,
   'practice.sectionEmpty': PICKING,

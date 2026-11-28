@@ -17,7 +17,7 @@ import { emptyFreePlay, playedToTheEnd, recordFreePlayNote, recordFreePlayRound,
 import { t, type StringKey } from '../core/text/strings';
 import { passStarsFor } from '../core/scoring/stars';
 import { passNumbers, type PassNumbers } from '../core/text/rundown';
-import { barsMark, lapMark, MARK, sectionLogMark, tempoMark } from '../core/text/marks';
+import { barsMark, lapMark, MARK, sectionLogChips, tempoMark } from '../core/text/marks';
 import { LOCK } from './ui/pixel/sprites';
 import { MODE_LABEL, modeTooltip } from './practice/modeText';
 import { STATS_PANE_COUNT_HEIGHT, statsPane, type StatsPane } from '../core/layout/statsPane';
@@ -204,7 +204,8 @@ export interface PracticeData {
   /** The section so far: laps played, clean laps and the BPM of the first lap (Kiur sums it up on leaving the section). */
   sectionLog?: { laps: number; clean: number; fromBpm: number };
   /** What Kiur shows first: how the section just left went, in marks ("↻4 ✓2 ♩60▶66", d312). */
-  sectionSummary?: string;
+  /** A section left: its log as chips over the staff (laps, clean laps, the tempo from and to; d312). */
+  sectionChips?: string[];
   /** The pass just finished as the piece loops: its stars and numbers past the last bar, held a while (d312). */
   passScore?: { stars: number; numbers: PassNumbers };
   /** The ramp stepped up as this lap began (the A mark's tempo gets a ▲). */
@@ -266,8 +267,10 @@ export class PracticeScene extends PixelScene {
   private chordTimer: Phaser.Time.TimerEvent | null = null;
   /** The staff, the judge (and in Tempo mode its clock) and Kiur's bubble. */
   private playSession!: PlaySession;
-  /** The message Kiur starts with (a section's log in marks, else none); the session has it once it exists. */
+  /** The message Kiur starts with: none (d312); the session has it once it exists. */
   private startMessage = '';
+  /** A section's log, shown as chips over the staff for `PASS_SUMMARY_MS` when the piece is whole again. */
+  private sectionChips: string[] | null = null;
   /** The last pass's stars and numbers, shown again past the last bar for `PASS_SUMMARY_MS` at the start of the next. */
   private passScoreShown: { stars: number; numbers: PassNumbers } | null = null;
   /** The play starts again from bar 1 (an empty Tempo pass, or back from the settings with a pass that could not go on): ↻ over bar 1 a while (d312). */
@@ -385,7 +388,8 @@ export class PracticeScene extends PixelScene {
 
   /** What the start shows instead of words (d312), as `init` reads it: the last pass's score, a start again, a ramp's step. */
   private readStartMarks(data: PracticeData, looping: boolean): void {
-    this.passScoreShown = looping && !data.wrap && !data.sectionSummary && data.passScore !== undefined ? data.passScore : null;
+    this.passScoreShown = looping && !data.wrap && !data.sectionChips && data.passScore !== undefined ? data.passScore : null;
+    this.sectionChips = data.sectionChips ?? null;
     this.startedOver = data.emptyPass === true;
     this.rampedUp = data.rampedUp === true;
     this.namesLocked = false;
@@ -403,6 +407,13 @@ export class PracticeScene extends PixelScene {
     if (!this.listening && !this.wrap && !this.playSession.resumed) this.playSession.breatheCursor(true);
     if (this.passScoreShown) this.playSession.showPassScore(this.passScoreShown.stars, this.passScoreShown.numbers);
     else if (this.startedOver && !fromSettings) this.playSession.showPassScore(0);
+    if (this.sectionChips) {
+      const chips = this.sectionChips;
+      this.playSession.staffView?.setChips(chips);
+      this.time.delayedCall(PASS_SUMMARY_MS, () => {
+        if (this.sectionChips === chips) this.playSession.staffView?.setChips(null);
+      });
+    }
     if (this.passScoreShown || this.startedOver) {
       const shown = this.playSession.passScoreShown;
       this.time.delayedCall(PASS_SUMMARY_MS, () => {
@@ -473,7 +484,8 @@ export class PracticeScene extends PixelScene {
     this.initialMissedBars = data.missedBars ?? 0;
     // while it plays the piece Kiur says nothing: the staff and the sound are the message (the clean-screen rule); a lap
     // and the start say nothing either (d312): the A mark carries the lap, the lit note breathes until the first key
-    this.startMessage = this.listening || data.wrap || this.resetStart ? '' : this.openingLine(data);
+    // d312: no line at the start; what the start has to say stands by the staff (`showStartMarks`)
+    this.startMessage = '';
     // the summary is said once, not again after a later restart
     // the wrap, the step-up note and the summary belong to this start only: a later restart (a tempo change, Whole
     // piece) must not wrap on from an old time or say them again
@@ -481,7 +493,7 @@ export class PracticeScene extends PixelScene {
     // a restart between learning runs: the piece was open already, so it never asks to go on (ft_1_32.AC16)
     this.startData = { ...data, ...(data.learnNext ? { resumeAsked: true } : {}) };
     this.takeLearnCarry(data);
-    delete this.startData.sectionSummary;
+    delete this.startData.sectionChips;
     delete this.startData.passScore;
     delete this.startData.emptyPass;
     delete this.startData.wrap;
@@ -492,16 +504,6 @@ export class PracticeScene extends PixelScene {
     this.takeResume(data);
     // any other restart (a tempo change, the mode, a section) ends the listening
     delete this.startData.listen;
-  }
-
-  /**
-   * What Kiur says first: nothing while learning (the staff shows the run's bars and hand, ft_1_32 rule 22), else a section
-   * left, in marks; nothing at any other start (d312: the last pass's stars and numbers stand past the last bar, an empty
-   * Tempo pass shows its empty stars and ↻ over bar 1, and the lit note breathes until the first key).
-   */
-  private openingLine(data: PracticeData): string {
-    if (this.learn) return '';
-    return data.sectionSummary ?? '';
   }
 
   /**
@@ -2189,12 +2191,12 @@ export class PracticeScene extends PixelScene {
     this.scene.restart({ ...this.startData, section: { first, last }, lap: 0, sectionLog: undefined, rampLaps: 0, ...this.carry() });
   }
 
-  /** Leave the section for the whole piece; Kiur then says how the section went (laps, tempo from and to, clean laps). */
+  /** Leave the section for the whole piece; chips over the staff then show how the section went (laps, clean laps, tempo from and to). */
   private backToWhole(): void {
     this.stopMetronome();
     const log = this.startData.sectionLog;
-    const summary = log && log.laps > 0 ? sectionLogMark({ laps: log.laps, clean: log.clean, from: log.fromBpm, to: this.bpmNow }) : undefined;
-    this.scene.restart({ ...this.startData, section: undefined, lap: 0, sectionLog: undefined, sectionSummary: summary, ...this.carry() });
+    const chips = log && log.laps > 0 ? sectionLogChips({ laps: log.laps, clean: log.clean, from: log.fromBpm, to: this.bpmNow }) : undefined;
+    this.scene.restart({ ...this.startData, section: undefined, lap: 0, sectionLog: undefined, sectionChips: chips, ...this.carry() });
   }
 
   /**

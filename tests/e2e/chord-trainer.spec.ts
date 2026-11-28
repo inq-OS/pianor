@@ -44,7 +44,7 @@ test.describe('chord from its name (ft_1_29)', () => {
     await holdTogether(page, [outside]);
     await expect.poll(() => state(page)).toMatchObject({ lives: 2, solved: 1 });
     // d312: the key played, crossed
-    expect((await sceneTexts(page, SCENE)).some((text) => text.endsWith('✗'))).toBe(true);
+    expect(await page.evaluate((key) => (window.__game.scene.getScene(key) as unknown as { notInShown: string | null }).notInShown, SCENE)).toMatch(/✗$/); // a chip by the chord's name
     // two more wrong keys end the round: one line says how many chords were played and the XP
     await holdTogether(page, [outside]);
     await holdTogether(page, [outside]);

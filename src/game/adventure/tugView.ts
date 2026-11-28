@@ -9,7 +9,7 @@ import { BOARD_ROWS } from '../../core/layout/frame';
 import { lineSpot } from '../../core/layout/talk';
 import type { Rect } from '../../core/layout/rect';
 import { ragPlace, risingNotes, TUG, tugBoard, turnNoteBob } from '../../core/layout/tug';
-import type { Miss } from '../../core/text/marks';
+import { taughtMarkOf, type Miss } from '../../core/text/marks';
 import type { NoteNaming } from '../../core/text/noteName';
 import { strings, t, type StringKey } from '../../core/text/strings';
 import type { MetronomeSound, PianoSound, SongClock } from '../../io/audio';
@@ -18,6 +18,8 @@ import { PracticeController } from '../practice/PracticeController';
 import { ChartPlayer } from '../preview/ChartPlayer';
 import { PixelImage } from '../ui/pixel/PixelObjects';
 import { motionAllowed } from '../motion';
+import { markChipBitmap, markTipBitmap } from '../ui/pixel/markChip';
+import { markTipFor } from '../markTip';
 import { spokenLine, spokenPages, talkColour } from '../ui/pixel/talkArt';
 import { outlinedNote, RAG_KNOT, TOKEN_SIZE, tugBoardPicture, tugRag, tugToken } from '../ui/pixel/tugArt';
 import type { TalkPlace } from './talkView';
@@ -70,6 +72,10 @@ export class TugView {
   private readonly objects: Phaser.GameObjects.GameObject[] = [];
   /** What the character says now (a fact or its closing line), or nothing. */
   private saying: string | null = null;
+  /** The saying is the fact of an exchange (marks on a chip), not the character's closing line. */
+  private sayingFact = false;
+  /** The one-time tip naming the fact's mark (d312); null with none. */
+  private factTip: string | null = null;
   private closing = false;
   /** The page of a long line shown now: a press on the closing line turns to the next before it ends the view. */
   private page = 0;
@@ -346,6 +352,9 @@ export class TugView {
     this.state = advanceTug(this.state, this.rules, { share: studentShare(result, this.mode), hands: {}, reasons });
     const fact = tugFact(result, reasons, this.mode);
     this.saying = tugFactLine(need === undefined ? fact : { ...fact, need }, this.mode, miss, this.devices.naming);
+    this.sayingFact = true;
+    // the 8 or the ½ is named in words the first time this player sees it (d312)
+    this.factTip = miss ? markTipFor(this.scene, taughtMarkOf(miss.reason)) : null;
     this.page = 0;
     this.draw();
     this.next(FACT_MS);
@@ -377,6 +386,7 @@ export class TugView {
   private say(text: string): void {
     this.closing = true;
     this.saying = text;
+    this.sayingFact = false;
     this.page = 0;
     this.handlers.playing(true);
     this.draw();
@@ -416,7 +426,18 @@ export class TugView {
     overlayCatcher(this.scene, (o) => this.add(o), area, this.door, () => this.press());
     if (this.started) this.drawBoard();
     if (this.playingNow === 'character') this.drawRising();
-    if (this.saying !== null) {
+    if (this.saying !== null && this.sayingFact && this.started) {
+      // the fact is marks, on a chip over the board's student end, where the student looks (d312)
+      const chip = markChipBitmap(this.saying);
+      const board = tugBoard(area.w, this.rules.steps);
+      const x = Math.max(2, Math.min(board.student.x - Math.floor(TOKEN_SIZE / 2), area.w - chip.width - 2));
+      const y = area.h - BOARD_ROWS - chip.height - 2;
+      this.add(new PixelImage(this.scene, x, y, chip).setName('tugFact'));
+      if (this.factTip !== null) {
+        const tip = markTipBitmap(this.factTip);
+        this.add(new PixelImage(this.scene, Math.max(2, Math.min(x, area.w - tip.width - 2)), y - tip.height - 2, tip).setName('tugTip'));
+      }
+    } else if (this.saying !== null) {
       const pages = spokenPages(this.saying);
       // a page with more after it ends in a small arrow: a press turns to the next
       const words = spokenLine(pages[this.page] ?? [], talkColour('character', this.character.id), this.page + 1 < pages.length);

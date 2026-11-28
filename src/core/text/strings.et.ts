@@ -1097,6 +1097,9 @@ export const stringsEt: Record<StringKey, string> = {
   'lessons.nextPage': 'Järgmine lehekülg',
   'lessons.mark.half': 'Pooltoon',
   'lessons.mark.whole': 'Täistoon',
+  // the one-time tips that name a mark the first time a player sees it (d312)
+  'marks.octaveTip': '8: sama täht, oktavi võrra kõrgemal või madalamal',
+  'marks.halfTip': '½: kõrvalklahv, pooltooni võrra eemal',
   'lessons.line.playAlong': '▶',
   'lessons.line.done': '{right}/{of}',
   'lessons.halfStep.pitfall': '½',

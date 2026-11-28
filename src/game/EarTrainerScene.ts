@@ -22,6 +22,7 @@ import { PixelScene, type MenuItem, type ToolbarItem } from './ui/pixel/PixelSce
 import { StaffView } from './ui/staff/StaffView';
 import { startScene } from './scenes';
 import { watchKeyBash } from './practice/bashDoor';
+import { markTipFor } from './markTip';
 
 const MARGIN = 8;
 /** The ear level line at the top of the main area: the ear, "Ear level N" and a bar of the points towards the next level.
@@ -98,6 +99,10 @@ export class EarTrainerScene extends PixelScene {
   private chosenStep: number | null = null;
   /** The last press was the right letter in the wrong octave: the one fact said in words (AC3); cleared by the next press. */
   private wrongOctave: Miss | null = null;
+  /** The wrong octave's marks as its chip shows them, for tests; null with none. */
+  missShown: string | null = null;
+  /** The one-time tip naming the 8, until the next press (d312); null with none. */
+  markTip: string | null = null;
   private unsubscribe: (() => void) | null = null;
   private repeatTimer: Phaser.Time.TimerEvent | null = null;
   /** When the question was found, on `keyClock` (ms); null while it is open (ft_1_10.AC11). */
@@ -245,7 +250,12 @@ export class EarTrainerScene extends PixelScene {
     });
 
     this.inkWriting = false;
-    if (this.wrongOctave) this.label(0, WRONG_OCTAVE_Y, missMark(this.wrongOctave, contextOf(this).profiles.noteNaming), C.white).centerAt(width / 2);
+    // a wrong octave as a chip of marks, big on paper under the stars (d312)
+    this.missShown = this.wrongOctave ? missMark(this.wrongOctave, contextOf(this).profiles.noteNaming) : null;
+    if (this.missShown) {
+      const chip = this.markChip(width / 2, WRONG_OCTAVE_Y, this.missShown);
+      if (this.markTip !== null) this.markTipAt(width / 2, chip.y + chip.height + 2, this.markTip);
+    }
 
     if (this.question.done) this.drawAnswer(rows);
     if (this.time.now < this.levelUpUntil) this.drawLevelUp(Math.round((width + starsWidth) / 2));
@@ -355,6 +365,8 @@ export class EarTrainerScene extends PixelScene {
     this.lastActivityMs = this.time.now;
     // a miss dims a star; only the wrong octave is also shown, as a mark: the letter played was right, the key an octave off (AC3, d312)
     this.wrongOctave = result.verdict === 'miss' && result.reason === 'wrong-octave' && result.direction ? { midi, expectedMidi: midi, reason: result.reason, direction: result.direction } : null;
+    // the 8 is named in words the first time this player sees it (d312)
+    this.markTip = this.wrongOctave ? markTipFor(this, 'octave') : null;
     if (result.verdict === 'done') {
       this.doneAtMs = keyClock();
       const before = this.level;

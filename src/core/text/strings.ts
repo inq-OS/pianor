@@ -1118,6 +1118,9 @@ export const strings = {
   'lessons.nextPage': 'Next page',
   'lessons.mark.half': 'Half step',
   'lessons.mark.whole': 'Whole step',
+  // the one-time tips that name a mark the first time a player sees it (d312)
+  'marks.octaveTip': '8: the same letter, an octave higher or lower',
+  'marks.halfTip': '½: the key right next door, a half step away',
   'lessons.line.playAlong': '▶',
   'lessons.line.done': '{right}/{of}',
   'lessons.halfStep.pitfall': '½',

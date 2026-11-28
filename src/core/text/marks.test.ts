@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { barsMark, countMark, lapMark, missMark, notInMark, pitchMark, sectionLogMark, tempoMark } from './marks';
+import { MARK_TIP_KEYS, taughtMarkOf, barsMark, countMark, lapMark, missMark, notInMark, pitchMark, sectionLogChips, tempoMark } from './marks';
 
 describe('the marks said in play instead of words (d312)', () => {
   it('a count is a number pair', () => {
@@ -27,12 +27,19 @@ describe('the marks said in play instead of words (d312)', () => {
     expect(notInMark('C#')).toBe('C#✗');
   });
 
-  it('laps, tempo and a section log are marks and numbers', () => {
+  it('laps, tempo and a section log are marks and numbers, a tempo change with an arrow, never the play sign', () => {
     expect(lapMark(2)).toBe('↻2');
     expect(tempoMark(77)).toBe('♩77');
     expect(tempoMark(77, true)).toBe('♩77▲');
-    expect(sectionLogMark({ laps: 4, clean: 2, from: 60, to: 66 })).toBe('↻4 ✓2 ♩60▶66');
+    expect(sectionLogChips({ laps: 4, clean: 2, from: 60, to: 66 })).toEqual(['↻4', '✓2', '♩60→66']);
     expect(barsMark(3, 6)).toBe('3-6');
     expect(barsMark(3, 3)).toBe('3');
+  });
+
+  it('d312 the 8 and the ½ are taught once by a tip in words, a wrong letter needs none', () => {
+    expect(taughtMarkOf('wrong-octave')).toBe('octave');
+    expect(taughtMarkOf('neighbour-key')).toBe('half');
+    expect(taughtMarkOf('wrong-letter')).toBeNull();
+    expect(MARK_TIP_KEYS).toEqual({ octave: 'marks.octaveTip', half: 'marks.halfTip' });
   });
 });

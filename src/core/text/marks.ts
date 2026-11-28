@@ -1,6 +1,6 @@
 /**
  * The marks the game shows while the student plays, in place of sentences (d312): a count is a number pair, a judgement a
- * mark (an octave off is 8, a next-door key ½, a wrong letter only its arrow, early ◀, late ▶), a lap ↻, a tempo ♩. They
+ * mark (an octave off is 8, a next-door key ½, a wrong letter only its arrow, early ◀, late ▶), a lap ↻, a tempo ♩, a change →. They
  * are the same in every language, so they need no string key. Each character has a glyph in the pixel font. Where there
  * is a staff the judgement is drawn on it (the played key's ghost note); these are for the screens and lines without one,
  * and for the numbers by the staff. Pure: no DOM, no engine.
@@ -17,6 +17,8 @@ export const MARK = {
   down: '▼',
   early: '◀',
   late: '▶',
+  /** A change from one value to the next (a tempo from 60 to 66): an arrow, never ▶, which reads as play. */
+  to: '→',
   lap: '↻',
   tempo: '♩',
   octave: '8',
@@ -73,12 +75,25 @@ export function tempoMark(bpm: number | string, rose = false): string {
   return `${MARK.tempo}${bpm}${rose ? MARK.up : ''}`;
 }
 
-/** What a section practised came to: its laps, its clean laps and the tempo from and to, "↻4 ✓2 ♩60▶66". */
-export function sectionLogMark(log: { laps: number; clean: number; from: number; to: number }): string {
-  return `${lapMark(log.laps)} ${MARK.right}${log.clean} ${MARK.tempo}${log.from}${MARK.late}${log.to}`;
+/** What a section practised came to, a chip each: its laps, its clean laps and the tempo from and to, "↻4" "✓2" "♩60→66". */
+export function sectionLogChips(log: { laps: number; clean: number; from: number; to: number }): string[] {
+  return [lapMark(log.laps), `${MARK.right}${log.clean}`, `${MARK.tempo}${log.from}${MARK.to}${log.to}`];
 }
 
 /** A run of bars: "3-6". */
 export function barsMark(first: number, last: number): string {
   return first === last ? String(first) : `${first}-${last}`;
+}
+
+/** A mark a student may not know yet, taught once per player with its word the first time it is shown (d312). */
+export type TaughtMark = 'octave' | 'half';
+
+/** The tip that names each taught mark the first time a player sees it: a tooltip's words, said once. */
+export const MARK_TIP_KEYS = { octave: 'marks.octaveTip', half: 'marks.halfTip' } as const;
+
+/** The taught marks a judgement shows: a wrong octave's 8, a neighbour key's ½ (a wrong letter has only its arrow). */
+export function taughtMarkOf(reason: WrongReason): TaughtMark | null {
+  if (reason === 'wrong-octave') return 'octave';
+  if (reason === 'neighbour-key') return 'half';
+  return null;
 }

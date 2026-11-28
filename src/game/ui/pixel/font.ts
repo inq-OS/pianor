@@ -132,7 +132,10 @@ const GLYPHS: Readonly<Record<string, readonly string[]>> = {
   // cross icons), higher and lower (▲ high in the line, ▼ low, so the place says it too), early (the mirror of ▶), a lap
   // (the band's start-again arrow), a half step, the sharp of the staff (its bars slant, so it never reads as #) and "at least".
   '✓': g('.....', '....#', '...##', '#.##.', '###..', '.#...', '.....'),
-  '✗': g('.....', '##.##', '.###.', '..#..', '.###.', '##.##', '.....'),
+  // a bold cross, two pixels a stroke, so it never reads as the letter x
+  '✗': g('##...##', '###.###', '.#####.', '..###..', '.#####.', '###.###', '##...##'),
+  // a tempo's change from one to another: "♩60→66"
+  '→': g('.......', '....#..', '.....#.', '#######', '.....#.', '....#..', '.......'),
   '▲': g('...#...', '..###..', '.#####.', '#######', '.......', '.......', '.......'),
   '▼': g('.......', '.......', '.......', '#######', '.#####.', '..###..', '...#...'),
   '◀': g('....#', '...##', '..###', '.####', '..###', '...##', '....#'),
@@ -299,6 +302,26 @@ export interface TextOptions {
 }
 
 /** Draw text into a bitmap: letters in `color`, an optional shadow, lines wrapped and aligned. */
+/**
+ * One line of marks in `color`, with some characters in their own colour (d312: the ✓ green, the ✗ red, a tempo's ▲
+ * gold), so a mark keeps the colour of its meaning inside a line.
+ */
+export function renderMarks(text: string, color: number, accents: Readonly<Record<string, number>> = {}): Bitmap {
+  const bitmap = renderText(text, { color });
+  let x = 0;
+  for (const ch of text) {
+    const glyph = glyphFor(ch);
+    const accent = accents[ch];
+    if (accent !== undefined) {
+      for (let y = 0; y < bitmap.height; y++) {
+        for (let gx = x; gx < Math.min(bitmap.width, x + glyph.width); gx++) if (bitmap.pixels[y * bitmap.width + gx] === color) bitmap.pixels[y * bitmap.width + gx] = accent;
+      }
+    }
+    x += glyph.width + LETTER_GAP;
+  }
+  return bitmap;
+}
+
 export function renderText(text: string, options: TextOptions): Bitmap {
   const lines = options.maxWidth === undefined ? text.split('\n') : wrap(text, options.maxWidth);
   const widths = lines.map(measure);

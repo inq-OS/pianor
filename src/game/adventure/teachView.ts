@@ -11,6 +11,7 @@ import { PracticeController } from '../practice/PracticeController';
 import { ChartPlayer } from '../preview/ChartPlayer';
 import { PixelImage } from '../ui/pixel/PixelObjects';
 import type { StaffView } from '../ui/staff/StaffView';
+import { markChipBitmap } from '../ui/pixel/markChip';
 import { choiceNote, spokenLine, spokenPages, talkColour } from '../ui/pixel/talkArt';
 import type { TalkPlace } from './talkView';
 import type { TugDevices } from './tugView';
@@ -53,6 +54,8 @@ export class TeachView {
   private timer: Phaser.Time.TimerEvent | null = null;
   private readonly objects: Phaser.GameObjects.GameObject[] = [];
   private saying: string | null = null;
+  /** The saying is a try's count (marks on a chip), not the character's closing line. */
+  private sayingFact = false;
   private closing = false;
   /** The page of a long line shown now: a press on the closing line turns to the next before it ends the view. */
   private page = 0;
@@ -241,6 +244,7 @@ export class TeachView {
     const fact = tugFact(result, reasons, 'wait');
     // the count only: the staff shows where the wrong keys were (d312)
     this.saying = tugFactLine(fact, 'wait');
+    this.sayingFact = true;
     this.page = 0;
     this.draw();
     this.timer = this.scene.time.delayedCall(FACT_MS, () => {
@@ -257,6 +261,7 @@ export class TeachView {
     if (key === null) return this.finish();
     this.closing = true;
     this.saying = t(key, { right: fact.right, total: fact.total });
+    this.sayingFact = false;
     this.page = 0;
     this.handlers.playing(true);
     this.draw();
@@ -305,7 +310,12 @@ export class TeachView {
       const image = this.add(new PixelImage(this.scene, Math.round(head.x - note.width / 2), head.y - note.height - 4, note).setName('teachYourTurn'));
       if (this.hopping && motionAllowed()) this.hop = this.scene.tweens.add({ targets: image, y: image.y - HOP, duration: HOP_MS, yoyo: true, repeat: -1, ease: 'Sine.easeOut' });
     }
-    if (this.saying !== null) {
+    if (this.saying !== null && this.sayingFact) {
+      // the count is marks, on a chip over the student's head, where their note stood (d312)
+      const chip = markChipBitmap(this.saying);
+      const head = studentHead(area);
+      this.add(new PixelImage(this.scene, Math.max(2, Math.round(head.x - chip.width / 2)), head.y - chip.height - 4, chip).setName('teachFact'));
+    } else if (this.saying !== null) {
       const pages = spokenPages(this.saying);
       // a page with more after it ends in a small arrow: a press turns to the next
       const words = spokenLine(pages[this.page] ?? [], talkColour('character', this.character.id), this.page + 1 < pages.length);

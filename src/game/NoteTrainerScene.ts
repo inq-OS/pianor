@@ -20,6 +20,7 @@ import { openOverlay, startScene } from './scenes';
 import { circleItem } from './CircleOfFifthsScene';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
 import { watchKeyBash } from './practice/bashDoor';
+import { markTipFor } from './markTip';
 
 /** The one line under the hearts: the round's result once it is over, else a new player level. */
 const LINE_Y = 26;
@@ -49,6 +50,8 @@ export class NoteTrainerScene extends PixelScene {
   private staff: StaffView | null = null;
   /** The last press was wrong: the shown note's name stands on it; null after a right press (AC1). */
   private wrong: { reason: string; midi: number } | null = null;
+  /** The one-time tip naming the mark just shown, until the next press (d312); null with none. */
+  markTip: string | null = null;
   /** When the round ended, on `performance.now()` (ms); null while it runs. */
   private overAtMs: number | null = null;
   private unsubscribe: (() => void) | null = null;
@@ -98,6 +101,7 @@ export class NoteTrainerScene extends PixelScene {
     // its number and a sparkle (d312: no sentence; a wrong key is shown on the staff)
     if (this.round.over) this.label(0, LINE_Y, roundResultLine({ unit: 'notes', right: this.round.found, xp: this.round.xp }), C.white).centerAt(width / 2);
     else if (this.levelUp !== null) this.markLine(width / 2, LINE_Y, [SPARKLE, { fine: rankBadge(this.levelUp) }, String(this.levelUp), SPARKLE], C.gold);
+    else if (this.markTip !== null) this.markTipAt(width / 2, LINE_Y, this.markTip);
 
     this.drawStaff(profiles);
   }
@@ -178,6 +182,8 @@ export class NoteTrainerScene extends PixelScene {
   private press(midi: number, atMs: number): PressVerdict {
     const result = pressKey(this.round, midi, atMs);
     if (result.verdict === 'over' || result.verdict === 'joined') return result.verdict;
+    // the 8 of a wrong octave is named in words the first time this player sees it (d312)
+    this.markTip = result.verdict === 'wrong' && result.reason === 'wrong-octave' ? markTipFor(this, 'octave') : null;
     if (result.verdict === 'wrong' && result.reason) {
       this.wrong = { reason: result.reason, midi };
     } else if (result.verdict === 'correct') {

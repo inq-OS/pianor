@@ -11,7 +11,8 @@ import { PRIZE, prizeColumn, type PrizeColumn, type PrizeGlyph } from '../../cor
 import { CLEF_FLIGHT, grownBox } from '../../core/layout/clefFlight';
 import type { LearnRewards } from '../../core/learn/progress';
 import type { PrizeFocus } from '../../core/learn/view';
-import { passNumbersPlace, passScorePlace } from '../../core/layout/passScore';
+import { passScorePlace } from '../../core/layout/passScore';
+import { GRADE_STARS } from '../../core/scoring/stars';
 import { durationMarks, type DurationHelp } from '../../core/layout/durationHelp';
 import { playheadAt } from '../../core/layout/playhead';
 import type { StaffLayout, StaffLayoutOptions } from '../../core/layout/staff';
@@ -34,6 +35,7 @@ import { staffSpaceLimits } from '../../core/layout/canvasSize';
 import chordsJson from '../../../content/trainer/chords.json';
 import { loadChordContent } from '../../core/trainer/chordTrainer';
 import { nameChord, staffChordName } from '../../core/trainer/chordNamer';
+import { markTipFor } from '../markTip';
 
 
 /** The levels' hand positions, which the hand-shift arrows prefer (ft_1_30.AC10). */
@@ -50,7 +52,8 @@ export interface WrongKey {
 const WRONG_FLASH_MS = 700;
 export const MESSAGE_MS = 3500;
 export const HMM_MS = 2500;
-/** The pass's numbers under its stars: their ink, the ghost head's red. */
+/** The pass's stars, in staff spaces across (as big as a notehead's two spaces); its numbers' ink, the ghost head's red. */
+const PASS_STAR = 1.6;
 const PASS_INK = '#14142a';
 const WRONG_HEAD = 0xd7263d;
 const WRONG_HEAD_ALPHA = 0.55;
@@ -462,6 +465,9 @@ export class PlaySession {
     }
     const awaiting = this.toWritten(state).awaiting;
     this.showWrongKey({ midi: event.midi, awaiting, reason: event.reason });
+    // the 8 by the played key is named in Kiur's bubble the first time this player sees it (d312)
+    const tip = event.reason === 'wrong-octave' ? markTipFor(this.scene, 'octave') : null;
+    if (tip !== null) this.say(tip, MESSAGE_MS, true);
     this.mascot?.setMood('hmm', HMM_MS);
     this.view?.flashWrong(awaiting); // MIDI cannot say which hand it was, so every awaited note flashes
     this.wrongTimer?.remove();
@@ -496,11 +502,11 @@ export class PlaySession {
   }
 
   /**
-   * The grade of the pass just finished, right after the piece's last bar (ft_1_12.AC3): five stars, small
-   * and upright, three in a column and two beside them set half a star down, the earned ones gold (`passStarsFor`), and
-   * in a row under the staff ending at its bar line, its numbers (d312): the share right in percent, the wrong key's ghost
-   * notehead with the count of wrong keys, and in Tempo mode the tempo gauge with the timing score. Drawn at the staff's
-   * resolution (`passScorePlace`, `passNumbersPlace`); it stays over a redraw until `hidePassScore`.
+   * The grade of the pass just finished, at the end of the piece's last bar (ft_1_12.AC3, d312): in a row under the staff
+   * ending at its final bar line, five stars as big as a notehead's two spaces, the earned ones gold (`passStarsFor`), then
+   * its numbers: the share right in percent, the wrong key's ghost notehead with the count of wrong keys, and in Tempo mode
+   * the tempo gauge with the timing score. Drawn at the staff's resolution (`passScorePlace`); it stays over a redraw
+   * until `hidePassScore`.
    */
   showPassScore(stars: number, numbers?: PassNumbers): void {
     this.passScoreNow = { stars, ...(numbers ? { numbers } : {}) };
@@ -524,37 +530,31 @@ export class PlaySession {
     const view = this.view;
     if (!layout || !view) return;
     const S = layout.staffSpace;
-    const star = S * 0.95;
-    const step = star * 1.05;
-    // the column of three, then the column of two half a star down, packed like coins
-    const spots = [[0, 0], [0, 1], [0, 2], [1, 0.5], [1, 1.5]] as const;
-    const columnStep = star * 0.9;
-    const starsW = Math.ceil(star + columnStep);
-    const place = passScorePlace(layout, { w: starsW, h: Math.ceil(star + 2 * step) });
-    const g = this.scene.add.graphics();
-    spots.forEach(([column, row], i) => {
-      const cx = view.origin.x + place.x + star / 2 + column * columnStep;
-      const cy = view.origin.y + place.y + star / 2 + row * step;
-      const points = starPoints(cx, cy, star / 2, star / 4.4) as Phaser.Math.Vector2[];
-      g.fillStyle(i < stars ? 0xf2b632 : 0xd8d2bf, 1).fillPoints(points, true);
-      g.lineStyle(Math.max(1, Math.round(S / 10)), STAFF_INK, 1).strokePoints(points, true);
-    });
-    g.setDepth(1);
-    this.passScore = [g];
-    if (!numbers) return;
-    // the numbers in a row under the staff, ending where the stars end: the share right, the wrong keys by a red ghost
-    // notehead as on the staff, and in Tempo mode the timing by a tempo gauge (a half dial and its needle)
-    const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: PASS_INK };
+    // one row under the last bar, ending at its final bar line: five stars as big as a notehead's two spaces, then the
+    // numbers, the share right, the wrong keys by a red ghost notehead as on the staff, and in Tempo mode the timing by a
+    // tempo gauge (a half dial and its needle)
+    const star = S * PASS_STAR;
+    const starStep = star * 1.05;
     const gap = 0.6 * S;
     const head = { rx: S * 0.6, ry: S * 0.45 };
     const r = S * 0.6;
-    const texts = [`${numbers.percent}%`, String(numbers.wrong), ...(numbers.timing !== undefined ? [String(numbers.timing)] : [])]
-      .map((value) => this.scene.add.text(0, 0, value, style).setOrigin(0, 0.5).setDepth(1));
-    const marks = [0, 2 * head.rx + 0.3 * S, ...(numbers.timing !== undefined ? [2 * r + 0.3 * S] : [])];
-    const rowW = texts.reduce((sum, text, i) => sum + marks[i]! + text.width, 0) + gap * (texts.length - 1);
-    const row = passNumbersPlace(layout, place, { w: Math.ceil(rowW), h: Math.ceil(S * 1.4) });
-    const y = view.origin.y + row.y + row.h / 2;
-    let x = view.origin.x + row.x;
+    const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.2)}px`, color: PASS_INK };
+    const values = numbers ? [`${numbers.percent}%`, String(numbers.wrong), ...(numbers.timing !== undefined ? [String(numbers.timing)] : [])] : [];
+    const texts = values.map((value) => this.scene.add.text(0, 0, value, style).setOrigin(0, 0.5).setDepth(1));
+    const marks = [0, 2 * head.rx + 0.3 * S, 2 * r + 0.3 * S];
+    const starsW = star + 4 * starStep;
+    const rowW = starsW + texts.reduce((sum, text, i) => sum + gap + marks[i]! + text.width, 0);
+    const place = passScorePlace(layout, { w: Math.ceil(rowW), h: Math.ceil(star) });
+    const y = view.origin.y + place.y + place.h / 2;
+    const g = this.scene.add.graphics();
+    for (let i = 0; i < GRADE_STARS; i++) {
+      const points = starPoints(view.origin.x + place.x + star / 2 + i * starStep, y, star / 2, star / 4.4) as Phaser.Math.Vector2[];
+      g.fillStyle(i < stars ? 0xf2b632 : 0xd8d2bf, 1).fillPoints(points, true);
+      g.lineStyle(Math.max(1, Math.round(S / 10)), STAFF_INK, 1).strokePoints(points, true);
+    }
+    g.setDepth(1);
+    this.passScore = [g];
+    let x = view.origin.x + place.x + starsW + gap;
     texts.forEach((text, i) => {
       if (i === 1) g.fillStyle(WRONG_HEAD, WRONG_HEAD_ALPHA).fillEllipse(x + head.rx, y, head.rx * 2, head.ry * 2);
       if (i === 2) {

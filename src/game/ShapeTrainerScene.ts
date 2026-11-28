@@ -21,6 +21,7 @@ import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { StaffView } from './ui/staff/StaffView';
 import { watchKeyBash } from './practice/bashDoor';
+import { markTipFor } from './markTip';
 
 /** The line under the hearts: the switcher's key, or the round's result (a wrong key is shown on the staff, d312). */
 const WORDS_Y = 26;
@@ -63,6 +64,8 @@ export class ShapeTrainerScene extends PixelScene {
   private wrong: { reason: WrongReason; direction: 'higher' | 'lower' } | null = null;
   /** The wrong key on the staff beside the awaited note (d312), until the next right key. */
   private playedWrong: { midi: number; reason: WrongReason } | null = null;
+  /** The one-time tip naming the mark just shown, until the next press (d312); null with none. */
+  markTip: string | null = null;
   /** The level this round's XP took the player up to, shown until the next round; null when it stayed. */
   private level: number | null = null;
   private overAtMs: number | null = null;
@@ -107,6 +110,7 @@ export class ShapeTrainerScene extends PixelScene {
       // the key of the bar the cursor is in: the name changes as the bar does (AC3)
       this.label(0, WORDS_Y, keyName(this.keyOnScreen(), 'major', profiles.noteNaming), C.white).centerAt(width / 2);
     }
+    if (state.outcome === 'playing' && this.markTip !== null) this.markTipAt(width / 2, WORDS_Y + 10, this.markTip);
     // a new level: its rank shield and number at the right (d312)
     if (this.level !== null) this.markLine(width - LEVEL_RIGHT - LEVEL_HALF, WORDS_Y, [{ fine: rankBadge(this.level) }, String(this.level)], C.gold);
 
@@ -161,6 +165,8 @@ export class ShapeTrainerScene extends PixelScene {
         if (heldChanged) this.redraw();
         return;
       }
+      // the 8 of a wrong octave is named in words the first time this player sees it (d312)
+      this.markTip = result.verdict === 'wrong' && result.reason === 'wrong-octave' ? markTipFor(this, 'octave') : null;
       if (result.verdict === 'wrong') {
         this.wrong = { reason: result.reason, direction: result.direction };
         this.playedWrong = { midi: result.midi, reason: result.reason };

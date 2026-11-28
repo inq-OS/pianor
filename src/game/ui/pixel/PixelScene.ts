@@ -30,6 +30,7 @@ import { bookPages } from '../../../core/layout/bookPages';
 import { contextOf, MIDI_CHANGED } from '../../context';
 import { motionAllowed } from '../../motion';
 import { CAP_HEIGHT, measure, drawnText, wrap } from './font';
+import { markChipBitmap, markTipBitmap } from './markChip';
 import type { WindWay } from './paint/motion';
 import { cloudX, fadeWeights, type CloudCourse } from './windMotion';
 import { STILL_AIR, type Air } from './windField';
@@ -337,6 +338,20 @@ export abstract class PixelScene extends Phaser.Scene {
    * capitals' height of a text at `y`. A part `{ fine }` is art drawn on the fine grid (a rank shield at half its size).
    * Returns the line's left edge and width in art pixels.
    */
+  /** A one-time tip naming a mark (`markTipFor`, d312) on a paper plate in ink, centred on `cx`, its top at `y`. */
+  protected markTipAt(cx: number, y: number, text: string): void {
+    const tip = markTipBitmap(text);
+    this.root.add(new PixelImage(this, Math.round(cx - tip.width / 2), y, tip));
+  }
+
+  /** A chip of marks where there is no staff (`markChipBitmap`, d312), centred on `cx`, its top at `y`. Returns its box. */
+  protected markChip(cx: number, y: number, text: string): { x: number; y: number; width: number; height: number } {
+    const chip = markChipBitmap(text);
+    const x = Math.round(cx - chip.width / 2);
+    this.root.add(new PixelImage(this, x, y, chip));
+    return { x, y, width: chip.width, height: chip.height };
+  }
+
   protected markLine(cx: number, y: number, parts: readonly (string | Bitmap | { fine: Bitmap })[], color: number = C.white): { x: number; width: number } {
     const GAP = 2;
     const widthOf = (part: (typeof parts)[number]) => (typeof part === 'string' ? measure(drawnText(part)) : 'fine' in part ? Math.ceil(part.fine.width / ART_DETAIL) : part.width);

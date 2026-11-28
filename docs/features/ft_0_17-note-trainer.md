@@ -26,7 +26,7 @@ A trainer under "Practice theory": one note on the staff, the student names it b
 ## Acceptance criteria
 
 - **ft_0_17.AC1** One note is shown on the staff without its name (the student reads it; AX-0, AX-1); after a wrong press the name stands on the note. The clef and the range come from the step being played.
-- **ft_0_17.AC2** A wrong press costs one life and shows why, using `classifyWrongNote` in `src/core/judge/classify.ts`: the key played shows as a named ghost note beside the awaited one, so a wrong letter or a neighbour key is read off the staff, and a wrong octave puts an 8 after it; no words (d312).
+- **ft_0_17.AC2** A wrong press costs one life and shows why, using `classifyWrongNote` in `src/core/judge/classify.ts`: the key played shows as a named ghost note beside the awaited one, so a wrong letter or a neighbour key is read off the staff, and a wrong octave puts an 8 after it; no words but a tip under the hearts naming the 8 the first time a player sees it (d312, `markTipFor`).
 - **ft_0_17.AC3** The student has three lives, drawn as three hearts (a lost one grey); the third loss ends the round. XP earned in the round is kept, and the student can retry at once (a key after a short pause, a click on the screen, or the toolbar's loop).
 - **ft_0_17.AC4** The letter naming setting is B or H, default B (`NoteNaming` in `src/core/text/noteName.ts`); it is a picture choice on the settings screen's learning page, as well as the note trainer's switch.
 - **ft_0_17.AC5** The steps come from validated content with a `schemaVersion`.
