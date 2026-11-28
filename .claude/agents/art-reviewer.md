@@ -18,7 +18,7 @@ You review the pictures of ONE painter pull request (or one pass shown before it
 
 ## A light review
 
-When the prompt says "light review", the change is small (one thing, under a quarter of the picture): read `request.md`, the artist's note it names and the rules of art-direction sections 2 and 8 about that thing (`grep -n`), open only the `art:diff` sheet in the folder (before | after | changed pixels, one row per hour), and skip steps 1 to 3 below unless `request.md` asks for the gauge. Judge the change, not the whole picture: does it follow the note's recipe, does it read at every hour, does it break a rule or bring back something turned down. Write `review.md` in the shape of step 6 with only the headings that have a finding, at most 20 lines.
+When the prompt says "light review", the change is small (one thing, under a quarter of the picture): read `request.md`, the artist's note it names and the rules of art-direction sections 2 and 8 about that thing (`grep -n`), open only the `art:diff` sheet in the folder (before | after | changed pixels, one row per hour), and read the gauge's table and the copy guard's result from `gauge.md` (the thread ran `review.py`; a copy-guard block still blocks), without opening the `beside-*.png` sheets or doing step 1. Judge the change, not the whole picture: does it follow the note's recipe, does it read at every hour, does it break a rule or bring back something turned down. Write `review.md` in the shape of step 6: the verdict, the table, and all five headings, one line for each with nothing to note; at most 20 lines. The thread that starts a light review sets the model (Sonnet, medium) on the call, over this file's own.
 
 ## Steps
 

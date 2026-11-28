@@ -37,9 +37,10 @@ For a small change (`paint-a-scene` section 0: one thing in a picture already sh
 
 - The folder holds the `art:diff` sheet (`test-logs/art/<picture>-diff.png`, copied in) and `request.md` with the pull request or pass, the picture, the thing changed and its artist's note, what `art:diff` printed, and the decided rules about that thing. No renders of the whole picture, no screenshots.
 - Start the reviewer with `model: "sonnet"`, `effort: "medium"` and the prompt "light review: read request.md". It reads the note and the rules it names, opens only the diff sheet, and writes a `review.md` of at most 20 lines.
-- **The gauge and the copy guard are skipped when no hour changed more than 5% of the picture** (`art:diff`'s percentages): so small a change cannot make a picture a copy of an MI2 room, nor move its gauge. Over 5%, run `review.py` as in section 3.
+- **The gauge and the copy guard still run** (`review.py`, section 3, by the thread before starting the reviewer): the script is cheap and keeps d122 whole, also for a drift of many small changes. The reviewer reads `gauge.md`'s numbers and opens no `beside-*.png`; those sheets go to the maintainer (d228).
+- The review still gives one of the three verdicts and the five headings (d122), a heading with nothing to note saying so in one line.
 
-A light review costs about a tenth of a full one: a Sonnet run that opens one sheet of a few hundred tokens and reads two pages, against an Opus run that reads the art direction, the atlas notes and the photographs and opens every hour at full size.
+A light review costs about a tenth of a full one: a Sonnet run that opens one sheet of a few hundred tokens and reads two pages and the gauge's table, against an Opus run that reads the art direction, the atlas notes and the photographs and opens every hour at full size.
 
 ## 2. Start the reviewer
 
