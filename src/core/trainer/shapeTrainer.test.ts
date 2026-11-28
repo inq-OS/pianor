@@ -4,7 +4,7 @@ import { chartSchema } from '../chart/schema.ts';
 import { noteName } from '../chart/pitch.ts';
 import { buildSteps } from '../judge/steps.ts';
 import type { NoteEvent } from '../judge/types.ts';
-import { SHAPE_LIVES, SHAPE_XP_PER_NOTE, ShapeRound, nextShapeKey, shapeChart, wrongWordsKey, type ShapeChoice } from './shapeTrainer.ts';
+import { SHAPE_LIVES, SHAPE_XP_PER_NOTE, ShapeRound, nextShapeKey, shapeChart, type ShapeChoice } from './shapeTrainer.ts';
 
 const C_MAJOR: ShapeChoice = { fifths: 0, mode: 'major', shape: 'scale', hand: 'RH' };
 let clock = 0;
@@ -105,22 +105,17 @@ describe('ShapeRound (ft_1_29.AC1)', () => {
     expect(round.press(on(72))).toMatchObject({ verdict: 'wrong', reason: 'wrong-octave' });
   });
 
-  it('ft_1_29.AC1 every wrong key says why in words: the wrong octave, the key next door or a wrong letter, too high or too low', () => {
+  it('ft_1_29.AC1 d312 every wrong key gives its reason, the way it was off and the key played, for its mark on the staff', () => {
     const round = new ShapeRound(shapeChart(C_MAJOR));
-    const words = (key: number) => {
+    const press = (key: number) => {
       const result = round.press(on(key));
       round.press(off(key));
-      return result.verdict === 'wrong' ? wrongWordsKey(result.reason, result.direction) : null;
+      return result;
     };
     // C4 is awaited
-    expect(words(72)).toBe('theory.wrongOctave');
-    expect(words(61)).toBe('shapes.neighbourHigher');
-    expect(words(66)).toBe('shapes.letterHigher');
-  });
-
-  it('a key next door below, or a wrong letter below, says too low', () => {
-    expect(wrongWordsKey('neighbour-key', 'lower')).toBe('shapes.neighbourLower');
-    expect(wrongWordsKey('wrong-letter', 'lower')).toBe('shapes.letterLower');
+    expect(press(72)).toEqual({ verdict: 'wrong', reason: 'wrong-octave', direction: 'higher', midi: 72 });
+    expect(press(61)).toEqual({ verdict: 'wrong', reason: 'neighbour-key', direction: 'higher', midi: 61 });
+    expect(press(66)).toEqual({ verdict: 'wrong', reason: 'wrong-letter', direction: 'higher', midi: 66 });
   });
 
   it('the chord of a triad counts once all three keys are down, in any order, and a key held again costs nothing', () => {

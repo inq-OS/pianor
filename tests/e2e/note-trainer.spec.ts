@@ -100,7 +100,7 @@ test.describe('note-name trainer (ft_0_17)', () => {
     expectNoErrors(errors);
   });
 
-  test('a new player level reached in the trainer is said under the hearts (AC12)', async ({ page }) => {
+  test('a new player level reached in the trainer is shown under the hearts: its shield and number (AC12, d312)', async ({ page }) => {
     const errors = await openTrainer(page);
     // one right name (10 XP) short of the player's next level
     const next = await page.evaluate(async () => {
@@ -110,15 +110,20 @@ test.describe('note-name trainer (ft_0_17)', () => {
       return level + 1;
     });
     await playWithVirtualPiano(page, [await target(page)]);
-    await expect.poll(() => sceneTexts(page, 'noteTrainer')).toContain(`Level up! You are now level ${next}`);
+    await expect.poll(() => sceneTexts(page, 'noteTrainer')).toContain(String(next));
     expectNoErrors(errors);
   });
 
-  test('a key one octave off says only "right letter, wrong octave" (AC2)', async ({ page }) => {
+  test('a key one octave off stands beside the note as its ghost with its name and an 8 (AC2, d312)', async ({ page }) => {
     const errors = await openTrainer(page);
     const midi = await target(page);
     await playWithVirtualPiano(page, [midi + 12 <= 96 ? midi + 12 : midi - 12]);
-    expect(await sceneTexts(page, 'noteTrainer')).toContain('Right letter, wrong octave');
+    const staff = await page.evaluate(() => {
+      const view = (window.__game.scene.getScene('noteTrainer') as unknown as { staff: { playedShown: string | null; playedOctaveShown: boolean } }).staff;
+      return { name: view.playedShown, octave: view.playedOctaveShown };
+    });
+    expect(staff.name).toMatch(/^[A-H]#?$/);
+    expect(staff.octave).toBe(true);
     expectNoErrors(errors);
   });
 
@@ -133,10 +138,10 @@ test.describe('note-name trainer (ft_0_17)', () => {
     expect(await totalXp(page)).toBe(earned);
     expect(await hearts(page)).toEqual({ lit: 0, total: 3 });
     // the round's result in one objective line until the next round (AC11)
-    expect(await sceneTexts(page, 'noteTrainer')).toContain('Right notes: 1, 10 XP');
+    expect(await sceneTexts(page, 'noteTrainer')).toContain('✓1  +10 XP');
     await clickButton(page, 'noteTrainer', await bandAction(page, 1));
     expect(await lives(page)).toBe(3);
-    expect(await sceneTexts(page, 'noteTrainer')).not.toContain('Right notes: 1, 10 XP');
+    expect(await sceneTexts(page, 'noteTrainer')).not.toContain('✓1  +10 XP');
     // Again keeps the XP already saved (AC3)
     expect(await totalXp(page)).toBe(earned);
     expectNoErrors(errors);

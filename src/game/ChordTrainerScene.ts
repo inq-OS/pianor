@@ -3,7 +3,9 @@ import { CHORD_LIVES, ChordRound, chordLabel, loadChordContent, wrongKeySpelling
 import { levelReached, roundResultLine } from '../core/trainer/trainerResult';
 import { displayText } from '../core/text/language';
 import { noteLabel } from '../core/text/noteName';
+import { notInMark } from '../core/text/marks';
 import { t } from '../core/text/strings';
+import { rankBadge } from './ui/pixel/rankArt';
 import { contextOf } from './context';
 import { C } from './ui/pixel/palette';
 import { heartRow } from './ui/pixel/hearts';
@@ -74,15 +76,17 @@ export class ChordTrainerScene extends PixelScene {
       // the wrong key spelled on the side of the chord's key: with flats for F or c
       const chord = this.round.target();
       const note = noteLabel(wrongKeySpelling(chord, this.wrong), naming).replace(/(?<=.)b/, '♭');
-      this.label(0, WORDS_Y, t('chords.notIn', { note, chord: chordLabel(chord, naming) }), C.white).centerAt(width / 2);
+      // the key played, crossed, in red (d312): the chord's name stays big under it
+      this.label(0, WORDS_Y, notInMark(note), C.red).centerAt(width / 2);
     } else if (state.solved > 0) {
-      this.label(0, WORDS_Y, t('chords.solved', { n: state.solved }), C.white).centerAt(width / 2);
+      this.markLine(width / 2, WORDS_Y, [TOOL_ICONS.triad, String(state.solved)]);
     }
     const name = this.label(0, NAME_Y, chordLabel(this.round.target(), naming), state.over ? C.lock : C.white, { shadow: false });
     name.setScale(NAME_ZOOM);
     name.x = Math.floor(width / 2 - name.displayWidth / 2);
-    if (state.over) this.label(0, RESULT_Y, roundResultLine({ unit: 'chords', right: state.solved, xp: state.xp }), C.white).centerAt(width / 2);
-    if (this.level !== null) this.label(0, state.over ? LEVEL_Y : RESULT_Y, t('trainerResult.level', { level: this.level }), C.gold).centerAt(width / 2);
+    if (state.over) this.markLine(width / 2, RESULT_Y, [TOOL_ICONS.triad, roundResultLine({ unit: 'chords', right: state.solved, xp: state.xp })]);
+    // a new level: its rank shield and number (d312)
+    if (this.level !== null) this.markLine(width / 2, state.over ? LEVEL_Y : RESULT_Y, [{ fine: rankBadge(this.level) }, String(this.level)], C.gold);
   }
 
   /** A new round on step `index`: three lives, no XP and a fresh seed. */

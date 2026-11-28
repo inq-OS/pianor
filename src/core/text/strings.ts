@@ -89,7 +89,6 @@ export const strings = {
   'theory.naming': '{n}',
   'theory.namingTip': 'Letter names: B or H',
   // a trainer's round result, one objective line (ft_0_17.AC11): one, and any other number
-  'theory.wrongOctave': 'Right letter, wrong octave',
   // the scales and chords trainer (ft_1_29 slice A)
   'shapes.keyTip': 'Key: choose it on the circle of fifths',
   'shapes.scale': 'Scale',
@@ -100,31 +99,18 @@ export const strings = {
   'shapes.lh': 'Left',
   'shapes.handTip': 'Which hand plays: right or left',
   // why a key was wrong in the shape trainer: the key next to the awaited one, or another letter; too high or too low
-  'shapes.neighbourHigher': 'Next key over, too high',
-  'shapes.neighbourLower': 'Next key over, too low',
-  'shapes.letterHigher': 'Wrong letter, too high',
-  'shapes.letterLower': 'Wrong letter, too low',
   // chord from its name (ft_1_29 slice B)
-  'chords.notIn': '{note} is not in {chord}',
-  'chords.solved': 'Chords played: {n}',
   // the chord trainer's steps (content/trainer/chords.json names them by these keys)
   'chords.step.c1': 'White triads',
   'chords.step.c2': 'All triads',
   'chords.step.c3': 'Sevenths',
   // the result of a round in the shape and chord trainers (core/trainer/trainerResult.ts)
-  'trainerResult.notesOf': '{right} of {total} {total|note|notes}',
-  'trainerResult.notes': 'Right notes: {right}',
-  'trainerResult.chordsOf': '{right} of {total} {total|chord|chords}',
-  'trainerResult.chords': 'Chords played: {right}',
-  'trainerResult.withXp': '{result}, {xp} XP',
-  'trainerResult.level': 'Level {level}',
+  'trainerResult.withXp': '{result}  +{xp} XP',
   'chords.stepTip': 'Step: which chords come',
-  'ear.level': 'Ear level {n}',
   'ear.playAgain': 'Listen again',
   'ear.repeatOn': 'Repeat: on',
   'ear.repeatOff': 'Repeat: off',
   'ear.lengthTip': 'Note length',
-  'ear.wrongOctave': 'Right letter, wrong octave',
   'ear.length': '{n} s',
   'ear.stepTip': 'Step: one note or two, and which keys',
   'ear.stepOne': 'Step {n}: one note',

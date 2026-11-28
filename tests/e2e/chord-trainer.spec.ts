@@ -43,12 +43,13 @@ test.describe('chord from its name (ft_1_29)', () => {
     const outside = [61, 63, 66, 68, 70].find((k) => !second.pitchClasses.includes(k % 12))!;
     await holdTogether(page, [outside]);
     await expect.poll(() => state(page)).toMatchObject({ lives: 2, solved: 1 });
-    expect((await sceneTexts(page, SCENE)).some((text) => text.endsWith(`is not in ${second.name}`))).toBe(true);
+    // d312: the key played, crossed
+    expect((await sceneTexts(page, SCENE)).some((text) => text.endsWith('✗'))).toBe(true);
     // two more wrong keys end the round: one line says how many chords were played and the XP
     await holdTogether(page, [outside]);
     await holdTogether(page, [outside]);
     await expect.poll(() => state(page)).toMatchObject({ lives: 0, over: true });
-    expect(await sceneTexts(page, SCENE)).toContain('Chords played: 1, 30 XP');
+    expect(await sceneTexts(page, SCENE)).toContain('1  +30 XP');
     // the step button names the step and goes on to the next one, a new round
     expect(await stepLabel(page)).toBe('White triads');
     await clickButton(page, SCENE, await sceneButton(page, SCENE, 'Step: which chords come'));

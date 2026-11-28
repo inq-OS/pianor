@@ -18,6 +18,7 @@ import { STAFF_LAYERS, type StaffLayer } from './layers';
 import { addSheet } from './sheetGround';
 import { PARCHMENT_PAPER } from '../pixel/paint/parchment';
 import { t } from '../../../core/text/strings';
+import { MARK } from '../../../core/text/marks';
 import type { Dynamic } from '../../../core/chart/dynamics';
 import { ACCIDENTAL_STROKES, ORNAMENT_STROKES, BASS_CLEF_BALL, BASS_CLEF_DOTS, BASS_CLEF_STROKE, BRACE_PATH, DIGITS, QUARTER_REST_STROKE, TREBLE_CLEF_STROKE, type Pt } from './glyphs';
 import { STAFF_FONT } from './staffFont';
@@ -197,6 +198,7 @@ export class StaffView {
   /** The key that was played after a wrong press (ft_1_12.AC7), drawn faint beside the awaited note, and its name. */
   private played: PlayedMark | null = null;
   private playedName: Phaser.GameObjects.Text | null = null;
+  private playedOctave: Phaser.GameObjects.Text | null = null;
   private hints: StaffHints;
   /** The page on screen (0 for a layout with one page). */
   private page = 0;
@@ -828,6 +830,7 @@ export class StaffView {
   destroy(): void {
     [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.nameLabels.filter((l) => l !== null), ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
     this.playedName?.destroy();
+    this.playedOctave?.destroy();
     for (const v of this.veils) v.image.destroy();
     this.sheet.release();
   }
@@ -1052,16 +1055,25 @@ export class StaffView {
    * Show the key that was played (`core/layout/playedMark`) with its name, or clear it with null. It shows what was
    * played, not which way to go (the clean-screen rule; the ear and note trainers name notes the same way).
    */
-  setPlayed(mark: PlayedMark | null, name = ''): void {
+  setPlayed(mark: PlayedMark | null, name = '', octave = false): void {
     this.played = mark;
     this.playedName?.destroy();
     this.playedName = null;
+    this.playedOctave?.destroy();
+    this.playedOctave = null;
     if (mark && this.onPage(mark.system)) {
       const S = this.layout.staffSpace;
       const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: PLAYED_INK };
       this.playedName = this.scene.add.text(this.origin.x + mark.x, this.origin.y + mark.y + PLAYED_NAME_GAP * S, name, style).setOrigin(0.5).setAlpha(PLAYED_ALPHA);
+      // an octave off names its reason as a mark (d312): an 8 right of the played head, which stands an octave from the awaited one
+      if (octave) this.playedOctave = this.scene.add.text(this.origin.x + mark.x + mark.rx + 0.5 * S, this.origin.y + mark.y, MARK.octave, style).setOrigin(0, 0.5).setAlpha(PLAYED_ALPHA);
     }
     this.drawNotes();
+  }
+
+  /** The octave mark beside the played key, for tests: true while an 8 is shown. */
+  get playedOctaveShown(): boolean {
+    return this.playedOctave !== null;
   }
 
   /** The colour a chart note is drawn in now, for tests: null for a note not on the staff. */

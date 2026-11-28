@@ -8,6 +8,7 @@ import { loadEarLevels } from '../core/trainer/earLevels';
 import { earAnswerLayout } from '../core/trainer/staffFrame';
 import { displayText } from '../core/text/language';
 import { t } from '../core/text/strings';
+import { missMark, type Miss } from '../core/text/marks';
 import { MS_PER_SECOND } from '../core/chart';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
 import { contextOf } from './context';
@@ -96,7 +97,7 @@ export class EarTrainerScene extends PixelScene {
    */
   private chosenStep: number | null = null;
   /** The last press was the right letter in the wrong octave: the one fact said in words (AC3); cleared by the next press. */
-  private wrongOctave = false;
+  private wrongOctave: Miss | null = null;
   private unsubscribe: (() => void) | null = null;
   private repeatTimer: Phaser.Time.TimerEvent | null = null;
   /** When the question was found, on `keyClock` (ms); null while it is open (ft_1_10.AC11). */
@@ -227,7 +228,8 @@ export class EarTrainerScene extends PixelScene {
     // the ear level: the ear, "Ear level N" and the points towards the next level as a bar (AC1, AC5)
     const ear = new PixelImage(this, this.titleX(MARGIN), LEVEL_Y - 2, recolor(ICONS.ear, { [C.white]: C.featherStreak }));
     this.root.add(ear);
-    const level = this.label(ear.x + ear.width + 4, LEVEL_Y, t('ear.level', { n: this.level }), this.levelUp ? C.gold : C.white);
+    // the ear and the number: the ear says what level it is (d312)
+    const level = this.label(ear.x + ear.width + 4, LEVEL_Y, String(this.level), this.levelUp ? C.gold : C.white);
     const fraction = (stars * EAR_STAR_POINTS + starPoints) / (starsNeeded(this.level) * EAR_STAR_POINTS);
     this.root.add(new PixelBar(this, level.x + level.width + 6, LEVEL_Y + 1, LEVEL_BAR_WIDTH, LEVEL_BAR_HEIGHT, fraction, 'ink'));
 
@@ -243,7 +245,7 @@ export class EarTrainerScene extends PixelScene {
     });
 
     this.inkWriting = false;
-    if (this.wrongOctave) this.label(0, WRONG_OCTAVE_Y, t('ear.wrongOctave'), C.white).centerAt(width / 2);
+    if (this.wrongOctave) this.label(0, WRONG_OCTAVE_Y, missMark(this.wrongOctave, contextOf(this).profiles.noteNaming), C.white).centerAt(width / 2);
 
     if (this.question.done) this.drawAnswer(rows);
     if (this.time.now < this.levelUpUntil) this.drawLevelUp(Math.round((width + starsWidth) / 2));
@@ -256,7 +258,7 @@ export class EarTrainerScene extends PixelScene {
   private drawLevelUp(starsRight: number): void {
     const { width } = this.px;
     this.inkWriting = true;
-    const text = this.label(0, 0, t('ear.level', { n: this.level }), C.white);
+    const text = this.label(0, 0, String(this.level), C.white);
     this.inkWriting = false;
     const gap = 5;
     const w = STAR_FULL.width * 2 + text.displayWidth + gap * 2;
@@ -290,7 +292,7 @@ export class EarTrainerScene extends PixelScene {
     this.question = startQuestion(this.notes);
     this.levelUp = false;
     this.levelUpUntil = 0;
-    this.wrongOctave = false;
+    this.wrongOctave = null;
     this.doneAtMs = null;
     this.soundsAtMs = keyClock() + pauseMs;
     this.play(pauseMs);
@@ -351,8 +353,8 @@ export class EarTrainerScene extends PixelScene {
     const result = pressEar(this.question, midi);
     this.question = result.question;
     this.lastActivityMs = this.time.now;
-    // a miss dims a star; only the wrong octave is also said, with no direction and no praise (AC3)
-    this.wrongOctave = result.verdict === 'miss' && result.reason === 'wrong-octave';
+    // a miss dims a star; only the wrong octave is also shown, as a mark: the letter played was right, the key an octave off (AC3, d312)
+    this.wrongOctave = result.verdict === 'miss' && result.reason === 'wrong-octave' && result.direction ? { midi, expectedMidi: midi, reason: result.reason, direction: result.direction } : null;
     if (result.verdict === 'done') {
       this.doneAtMs = keyClock();
       const before = this.level;

@@ -10,7 +10,6 @@ import { PPQ } from '../chart/time.ts';
 import type { KeyMode } from '../editor/key.ts';
 import { WaitMode } from '../judge/wait.ts';
 import type { NoteEvent, PlayState, WrongReason } from '../judge/types.ts';
-import type { StringKey } from '../text/strings.ts';
 import { scaleSpellings } from './scaleChart.ts';
 
 export const SHAPE_LIVES = 3;
@@ -104,19 +103,10 @@ export interface ShapeRoundState {
   outcome: ShapeOutcome;
 }
 
-/**
- * The words that say why a key was wrong (ft_1_29.AC1), short and objective: the wrong octave, the key next door or a wrong
- * letter, the last two with the way it was off (the key pressed was too high or too low).
- */
-export function wrongWordsKey(reason: WrongReason, direction: 'higher' | 'lower'): StringKey {
-  if (reason === 'wrong-octave') return 'theory.wrongOctave';
-  if (reason === 'neighbour-key') return direction === 'higher' ? 'shapes.neighbourHigher' : 'shapes.neighbourLower';
-  return direction === 'higher' ? 'shapes.letterHigher' : 'shapes.letterLower';
-}
-
 export type ShapePress =
   | { verdict: 'correct' }
-  | { verdict: 'wrong'; reason: WrongReason; direction: 'higher' | 'lower' }
+  /** Why the key was wrong and the key played, for its mark on the staff (ft_1_29.AC1, d312). */
+  | { verdict: 'wrong'; reason: WrongReason; direction: 'higher' | 'lower'; midi: number }
   /** A key let go, or a key of the chord pressed again: nothing is judged. */
   | { verdict: 'ignored' }
   | { verdict: 'over' };
@@ -146,7 +136,7 @@ export class ShapeRound {
       } else {
         this.lives -= 1;
         if (this.lives === 0) this.outcome = 'lost';
-        result = { verdict: 'wrong', reason: judged.reason, direction: judged.direction };
+        result = { verdict: 'wrong', reason: judged.reason, direction: judged.direction, midi: judged.midi };
       }
     }
     return result;

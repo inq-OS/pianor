@@ -13,7 +13,7 @@ const ear = (page: Page) => page.evaluate(() => {
   return { notes: scene.notes, questionNumber: scene.questionNumber, misses: scene.question.misses, done: scene.question.done, stars: [scene.shownStars.lit, scene.shownStars.total], slots: scene.shownSlots, step: scene.step, levelUpCard: scene.levelUpCard !== null };
 });
 /** Every text on the screen with no question found: the ear level, and the note length and the step beside their pictures (ft_1_10.AC13). */
-const ONLY_TEXTS = ['Ear level 1', '1 s', '1'];
+const ONLY_TEXTS = ['1', '1 s', '1'];
 const STEP = 'Step: one note or two, and which keys';
 /** A note name on the staff (H or B naming, a sharp or flat after it). */
 const isNoteName = (text: string) => /^[A-H](#|b|♯|♭)?$/.test(text);
@@ -53,7 +53,7 @@ test.describe('pitch trainer by ear (ft_1_10)', () => {
   test('no staff or note name is shown while the question is open; the screen shows the level and stars (AC1)', async ({ page }) => {
     const errors = await openEar(page);
     const texts = await sceneTexts(page, 'earTrainer');
-    expect(texts).toContain('Ear level 1');
+    expect(texts).toContain('1');
     expect(texts.some(isNoteName)).toBe(false);
     // no hints or instructions
     expect(texts).toEqual(ONLY_TEXTS);
@@ -183,12 +183,13 @@ test.describe('pitch trainer by ear (ft_1_10)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_10.AC3: a wrong octave says only "right letter, wrong octave"; any other miss only dims a star, never a direction', async ({ page }) => {
+  test('ft_1_10.AC3 d312: a wrong octave shows only its mark (the letter right, 8 and the way); any other miss only dims a star', async ({ page }) => {
     const errors = await openEar(page);
     const target = (await ear(page)).notes[0]!;
-    await playWithVirtualPiano(page, [target + 12 <= 96 ? target + 12 : target - 12]);
+    const up = target + 12 <= 96;
+    await playWithVirtualPiano(page, [up ? target + 12 : target - 12]);
     let texts = await sceneTexts(page, 'earTrainer');
-    expect(texts).toContain('Right letter, wrong octave');
+    expect(texts.some((text) => new RegExp(`^[A-H]#?✓ 8${up ? '▲' : '▼'}$`).test(text))).toBe(true);
     expect((await ear(page)).stars).toEqual([4, 5]);
     await playWithVirtualPiano(page, [missKey(target)]);
     texts = await sceneTexts(page, 'earTrainer');
@@ -238,7 +239,7 @@ test.describe('pitch trainer by ear (ft_1_10)', () => {
       return scene.levelUpCard.getBounds().bottom <= scene.mainTop + 48 * scene.px.scale;
     });
     expect(clear).toBe(true);
-    expect((await sceneTexts(page, 'earTrainer')).filter((text) => text === 'Ear level 2')).toHaveLength(2);
+    expect((await sceneTexts(page, 'earTrainer')).filter((text) => text === '2')).toHaveLength(2);
     await expect.poll(async () => (await ear(page)).levelUpCard, { timeout: 10_000 }).toBe(false);
     expectNoErrors(errors);
   });
