@@ -110,8 +110,7 @@ test.describe('main menu (ft_1_07.AC2)', () => {
     });
     await clickButton(page, 'profiles', await profileButton(page, 'TUVI')); // redraw the menu by leaving and coming back
     await waitForScene(page, 'profile');
-    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Back'));
-    await waitForScene(page, 'profiles');
+    await leaveRoom(page);
     const texts = await sceneTexts(page, 'profiles');
     expect(texts).toEqual(expect.arrayContaining(['WWWWWWWWWWWW', 'MMMMMMMMMMMM']));
     expectNoErrors(errors);
@@ -323,8 +322,7 @@ test.describe('admin page (ft_1_07.AC6)', () => {
     await page.keyboard.press('Enter');
     await waitForScene(page, 'profile');
     expect(await playerName(page)).toBe('MARI-LIIS');
-    await clickToolbar(page, 'back');
-    await waitForScene(page, 'profiles');
+    await leaveRoom(page);
     await clickButton(page, 'profiles', await profileButton(page, 'New player'));
     await waitForScene(page, 'name');
     await page.keyboard.type(' william ');
