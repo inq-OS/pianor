@@ -1,7 +1,7 @@
 // Covers core_13.AC1, core_13.AC2, core_13.AC5, core_13.AC6, core_13.AC7, core_13.AC8, core_13.AC9.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { bubbleOpen, clickButton, expectNoErrors, lastButton, openGame, openPiece, pressInBubble, pressPracticeButton as press, sceneButton, sceneTexts, waitForScene } from './helpers';
+import { bubbleOpen, buttonPoint, clickButton, expectNoErrors, lastButton, openGame, openPiece, pressInBubble, pressPracticeButton as press, sceneButton, sceneTexts, waitForScene } from './helpers';
 
 /** The beat lane on the staff (core_13 rule 2): its dots on the page, how many the wave lifts now, how many keys are coloured. */
 const lane = (page: Page) => page.evaluate(() => {
@@ -252,5 +252,33 @@ test.describe('tuning the beat lanes (core_13 rule 10)', () => {
     await expect.poll(async () => (await saved(page))?.[0]?.blink).toBe(true);
     await expect.poll(async () => (await lanesScene(page)).shown?.blinking ?? 0).toBeGreaterThan(0);
     expectNoErrors(errors);
+  });
+
+  test.describe('on a phone', () => {
+    // a phone held sideways: a small screen with touch only, as the browser reports a mobile device
+    test.use({ viewport: { width: 915, height: 412 }, deviceScaleFactor: 2.625, isMobile: true, hasTouch: true });
+
+    test('core_13.AC8 a long press on a row opens its bubble, and it stays open after the finger lifts, so its options can be used', async ({ page }) => {
+      const errors = await openGame(page);
+      await page.evaluate(() => { window.__game.scene.stop('menu'); window.__game.scene.start('beat-lanes', {}); });
+      await waitForScene(page, 'beat-lanes');
+      await expect.poll(async () => (await lanesScene(page)).shown?.lanes).toBe(1);
+      const at = await toPage(page);
+      const [between] = (await lanesScene(page)).ys;
+      const lane = at(500, between!);
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...lane, id: 0 }] });
+      await page.waitForTimeout(800);
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await page.waitForTimeout(400);
+      expect(await bubbleOpen(page, 'beat-lanes')).toBe(true);
+      expect((await lanesScene(page)).ys[0]).toBe(between); // the press that opened the bubble did not move the row
+      // the next tap uses an option: the blink
+      await expect.poll(() => lastButton(page, 'beat-lanes', 'Notes light up as the wave passes')).toBeGreaterThanOrEqual(0);
+      const blink = await buttonPoint(page, 'beat-lanes', await lastButton(page, 'beat-lanes', 'Notes light up as the wave passes'));
+      await page.touchscreen.tap(blink.x, blink.y);
+      await expect.poll(async () => (await saved(page))?.[0]?.blink).toBe(true);
+      expectNoErrors(errors);
+    });
   });
 });

@@ -58,6 +58,33 @@ describe('laneDots', () => {
     expect(dots[0]).toMatchObject({ note: true, kind: 'downbeat' });
   });
 
+  it('core_13.AC1 runs on across every bar line with no gap: the dotted line stretches from the bar\'s last beat to the next bar\'s first', () => {
+    for (const layout of [single, grand]) {
+      const c = layout === single ? chart : hands;
+      for (const place of ['above', 'between'] as const) {
+        const dots = laneDots(layout, c, place);
+        for (const system of layout.systems) {
+          const row = dots.filter((d) => d.system === system.index).sort((a, b) => a.x - b.x);
+          const gaps = row.slice(1).map((d, i) => ({ gap: d.x - row[i]!.x, across: d.kind === 'downbeat' && d.tick !== row[i]!.tick }));
+          const inside = Math.max(...gaps.filter((g) => !g.across).map((g) => g.gap));
+          const across = gaps.filter((g) => g.across);
+          // the bar lines between two bars of the line are crossed by the dotted line as any stretch inside a bar is
+          for (const g of across) expect(g.gap).toBeLessThanOrEqual(inside + 0.01);
+        }
+      }
+    }
+  });
+
+  it('core_13.AC1 ends the last bar of a line at its bar line, not short of it', () => {
+    const dots = laneDots(single, chart, 'above');
+    for (const bar of single.bars) {
+      const next = single.bars.find((b) => b.index === bar.index + 1);
+      if (next && next.system === bar.system) continue;
+      const last = dots.filter((d) => d.system === bar.system).reduce((a, b) => (b.x > a.x ? b : a));
+      expect(bar.x + bar.width - last.x).toBeLessThan(2 * single.staffSpace);
+    }
+  });
+
   it('has no dots when the lane is off', () => {
     expect(laneDots(single, chart, 'off')).toEqual([]);
   });
