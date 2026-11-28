@@ -16,10 +16,12 @@ import { DEFAULT_RAMP, RAMP_CHOICES, RAMP_MAX_PERCENT, TEMPO_PERCENT, clampTempo
 import { emptyFreePlay, playedToTheEnd, recordFreePlayNote, recordFreePlayRound, summarizeFreePlay, type FreePlaySession } from '../core/scoring/freePlay';
 import { t, type StringKey } from '../core/text/strings';
 import { passStarsFor } from '../core/scoring/stars';
-import { passLines } from '../core/text/rundown';
+import { passNumbers, type PassNumbers } from '../core/text/rundown';
+import { barsMark, lapMark, MARK, sectionLogChips, tempoMark } from '../core/text/marks';
+import { LOCK } from './ui/pixel/sprites';
 import { MODE_LABEL, modeTooltip } from './practice/modeText';
 import { STATS_PANE_COUNT_HEIGHT, statsPane, type StatsPane } from '../core/layout/statsPane';
-import { createBitmap, type Bitmap } from './ui/pixel/bitmap';
+import { createBitmap, recolor, type Bitmap } from './ui/pixel/bitmap';
 import type { CompletionOutcome } from './profile/ProfileService';
 import { mergeOutcomes } from './profile/sessionOutcome';
 import { contextOf, MIDI_CHANGED } from './context';
@@ -194,18 +196,19 @@ export interface PracticeData {
    * and the click that was running keeps running.
    */
   wrap?: { atMs: number };
-  /** The pass before ran to its end with no note played right (core_01 rule 22): Kiur says so, once, and nothing is scored. */
+  /** The pass before ran to its end with no note played right (core_01 rule 22): five empty stars and ↻ over bar 1 show it, once, and nothing is scored. */
   emptyPass?: boolean;
   /** A section's tempo ramp (core_03.AC5) and the laps counted towards its next step. Not saved: it lasts while the piece is open. */
   ramp?: TempoRamp;
   rampLaps?: number;
   /** The section so far: laps played, clean laps and the BPM of the first lap (Kiur sums it up on leaving the section). */
   sectionLog?: { laps: number; clean: number; fromBpm: number };
-  /** What Kiur says first: how the section just left went. */
-  sectionSummary?: string;
-  /** What Kiur says as the piece loops: the pass just finished in numbers (`passLines`), said once and held a while. */
-  passSummary?: string;
-  /** The ramp stepped up as this lap began (Kiur says the new BPM). */
+  /** What Kiur shows first: how the section just left went, in marks ("↻4 ✓2 ♩60▶66", d312). */
+  /** A section left: its log as chips over the staff (laps, clean laps, the tempo from and to; d312). */
+  sectionChips?: string[];
+  /** The pass just finished as the piece loops: its stars and numbers past the last bar, held a while (d312). */
+  passScore?: { stars: number; numbers: PassNumbers };
+  /** The ramp stepped up as this lap began (the A mark's tempo gets a ▲). */
   rampedUp?: boolean;
   /** The play session so far (ft_1_12): every key judged and every pass to the end, passed on from pass to pass. */
   session?: FreePlaySession;
@@ -264,10 +267,18 @@ export class PracticeScene extends PixelScene {
   private chordTimer: Phaser.Time.TimerEvent | null = null;
   /** The staff, the judge (and in Tempo mode its clock) and Kiur's bubble. */
   private playSession!: PlaySession;
-  /** The message Kiur starts with; the session has it once it exists. */
+  /** The message Kiur starts with: none (d312); the session has it once it exists. */
   private startMessage = '';
-  /** The start message is the last pass's numbers, held for `PASS_SUMMARY_MS`. */
-  private passSummaryShown = false;
+  /** A section's log, shown as chips over the staff for `PASS_SUMMARY_MS` when the piece is whole again. */
+  private sectionChips: string[] | null = null;
+  /** The last pass's stars and numbers, shown again past the last bar for `PASS_SUMMARY_MS` at the start of the next. */
+  private passScoreShown: { stars: number; numbers: PassNumbers } | null = null;
+  /** The play starts again from bar 1 (an empty Tempo pass, or back from the settings with a pass that could not go on): ↻ over bar 1 a while (d312). */
+  private startedOver = false;
+  /** The ramp stepped up as this lap began: the A mark's tempo has a ▲ (d312). */
+  private rampedUp = false;
+  /** The run after one with note names: the names button shows a lock a while when pressed (ft_1_32.AC3, d312). */
+  private namesLocked = false;
   private metronomeOn = false;
   private lastBeat = -1;
   /** The count-in's grace note (d121), handed to the piano only just before its beat. */
@@ -375,9 +386,48 @@ export class PracticeScene extends PixelScene {
     return { resume: { keys: resume.keys, nowMs: contextOf(this).audio.clock.nowMs() } };
   }
 
-  /** What Kiur says first: `plain`, or, back from the settings with a pass that could not be picked up, that it starts again. */
-  private resumedMessage(plain: string): string {
-    return this.resume && this.resume.keys.length > 0 && !this.playSession.resumed ? t('practice.settingsStartOver') : plain;
+  /** What the start shows instead of words (d312), as `init` reads it: the last pass's score, a start again, a ramp's step. */
+  private readStartMarks(data: PracticeData, looping: boolean): void {
+    this.passScoreShown = looping && !data.wrap && !data.sectionChips && data.passScore !== undefined ? data.passScore : null;
+    this.sectionChips = data.sectionChips ?? null;
+    this.startedOver = data.emptyPass === true;
+    this.rampedUp = data.rampedUp === true;
+    this.namesLocked = false;
+  }
+
+  /**
+   * The start's marks (d312): the lit note breathes until the first key (Tempo mode's until its count-in begins); the last
+   * pass's stars and numbers stand past the last bar a while into the next pass (ft_1_12.AC3); an empty Tempo pass shows
+   * its five empty stars (core_01 rule 22); a start again from bar 1 (that, or back from the settings with a pass that
+   * could not go on) shows ↻ over bar 1 a while.
+   */
+  private showStartMarks(): void {
+    const fromSettings = this.startsOverFromSettings();
+    if (fromSettings) this.startedOver = true;
+    if (!this.listening && !this.wrap && !this.playSession.resumed) this.playSession.breatheCursor(true);
+    if (this.passScoreShown) this.playSession.showPassScore(this.passScoreShown.stars, this.passScoreShown.numbers);
+    else if (this.startedOver && !fromSettings) this.playSession.showPassScore(0);
+    if (this.sectionChips) {
+      const chips = this.sectionChips;
+      this.playSession.showChips(chips);
+      this.time.delayedCall(PASS_SUMMARY_MS, () => {
+        if (this.sectionChips === chips) this.playSession.showChips(null);
+      });
+    }
+    if (this.passScoreShown || this.startedOver) {
+      const shown = this.playSession.passScoreShown;
+      this.time.delayedCall(PASS_SUMMARY_MS, () => {
+        // not the score of a pass finished since (a short piece)
+        if (this.playSession.passScoreShown === shown) this.playSession.hidePassScore();
+        this.startedOver = false;
+        this.markSection();
+      });
+    }
+  }
+
+  /** Back from the settings with a pass that could not be picked up: it starts again, shown by ↻ over bar 1 (d312). */
+  private startsOverFromSettings(): boolean {
+    return (this.resume?.keys.length ?? 0) > 0 && !this.playSession.resumed;
   }
 
   /** The pass left for the settings, to be picked up in `create` (`PracticeData.resume`); null on any other start. */
@@ -428,12 +478,14 @@ export class PracticeScene extends PixelScene {
     // the piece loops (ft_1_12): a pass after the first starts with nothing said (its score was shown past the last bar)
     const looping = !data.section && (data.lap ?? 0) > 0;
     // after a pass Kiur says its numbers (the stats the old score screen showed per play)
-    this.passSummaryShown = looping && !data.wrap && !data.sectionSummary && data.passSummary !== undefined;
+    this.readStartMarks(data, looping);
     this.resetStart = data.reset === true && !data.wrap;
     this.waitForStart = data.waitForStart === true;
     this.initialMissedBars = data.missedBars ?? 0;
-    // while it plays the piece Kiur says nothing: the staff and the sound are the message (the clean-screen rule)
-    this.startMessage = this.listening ? '' : data.wrap ? this.lapMessage(data) : this.resetStart ? '' : this.openingLine(data, looping);
+    // while it plays the piece Kiur says nothing: the staff and the sound are the message (the clean-screen rule); a lap
+    // and the start say nothing either (d312): the A mark carries the lap, the lit note breathes until the first key
+    // d312: no line at the start; what the start has to say stands by the staff (`showStartMarks`)
+    this.startMessage = '';
     // the summary is said once, not again after a later restart
     // the wrap, the step-up note and the summary belong to this start only: a later restart (a tempo change, Whole
     // piece) must not wrap on from an old time or say them again
@@ -441,8 +493,8 @@ export class PracticeScene extends PixelScene {
     // a restart between learning runs: the piece was open already, so it never asks to go on (ft_1_32.AC16)
     this.startData = { ...data, ...(data.learnNext ? { resumeAsked: true } : {}) };
     this.takeLearnCarry(data);
-    delete this.startData.sectionSummary;
-    delete this.startData.passSummary;
+    delete this.startData.sectionChips;
+    delete this.startData.passScore;
     delete this.startData.emptyPass;
     delete this.startData.wrap;
     delete this.startData.rampedUp;
@@ -452,17 +504,6 @@ export class PracticeScene extends PixelScene {
     this.takeResume(data);
     // any other restart (a tempo change, the mode, a section) ends the listening
     delete this.startData.listen;
-  }
-
-  /**
-   * What Kiur says first: nothing while learning (the staff shows the run's bars and hand, ft_1_32 rule 22), else a section
-   * left, the last pass, or the start.
-   */
-  private openingLine(data: PracticeData, looping: boolean): string {
-    if (this.learn) return '';
-    // an empty Tempo pass (core_01 rule 22): the one fact, so the start again does not look like a fault
-    if (data.emptyPass) return t('practice.emptyPass');
-    return data.sectionSummary ?? (looping ? (data.passSummary ?? '') : t('practice.start'));
   }
 
   /**
@@ -511,13 +552,6 @@ export class PracticeScene extends PixelScene {
   /** The check-up, the intro and learning play the piece as given: Wait mode, no mode, tempo or section buttons. */
   private get locked(): boolean {
     return this.asWritten || this.learn !== null;
-  }
-
-  /** What Kiur says as a section wraps on: the lap, and the new BPM when the ramp has just stepped up. */
-  private lapMessage(data: PracticeData): string {
-    const n = (data.lap ?? 0) + 1;
-    if (!data.rampedUp) return t('practice.again', { n });
-    return t('practice.rampUp', { n, bpm: Math.round((this.fullChart.tempoMap[0]!.bpm * this.percent) / 100) });
   }
 
   /** Tempo mode's options for the session: the percent, the score view, a section's loop and wrap, the hold grading and the start. */
@@ -575,12 +609,10 @@ export class PracticeScene extends PixelScene {
     // the space bar: Tempo mode counts in at once (the click starts with the count-in in `update`); a start on the first
     // note, and the auto reset, wait for the start instead (core_01.AC10, AC11)
     if (this.resetStart && !this.waitForStart && !this.listening && play.tempoStart !== 'firstNote') this.transport?.start(context.audio.clock.nowMs());
-    // Tempo mode from the first note says what Wait mode says: play the lit note
-    const counted = play.mode === 'tempo' && play.tempoStart !== 'firstNote';
-    // back from the settings: the pass goes on where it was, or Kiur says why it starts again
-    const startMessage = this.resumedMessage(counted && !this.wrap && this.startMessage === t('practice.start') ? t('practice.tempoStart') : this.startMessage);
-    if (this.passSummaryShown) this.playSession.say(startMessage, PASS_SUMMARY_MS, true);
-    else if (this.bubbleHintDue()) {
+    this.showStartMarks();
+    const startMessage = this.startMessage;
+    // AX-3 provisional: the one-time tip to the hidden tools keeps its words (d312 keeps tooltips); TODO(architect) in ft_1_20
+    if (this.bubbleHintDue()) {
       // Kiur shows the bubble once (ft_1_20, d282), then says what he says at every start
       this.playSession.say(t('practice.bubbleHint'), BUBBLE_HINT_MS, true);
       this.time.delayedCall(BUBBLE_HINT_MS, () => this.playSession.say(startMessage));
@@ -858,12 +890,13 @@ export class PracticeScene extends PixelScene {
     if (!joined || joined.chart !== this.fullChart || this.learn) return {};
     const marks = songStaffMarks(joined);
     const count = this.chart.bars.length;
-    const why = { blank: 'song.foldBlank', off: 'song.foldOff', missing: 'song.foldMissing' } as const;
+    // a fold's state as a mark after its name and bars (d312): not written yet …, off ✗, missing ?
+    const why = { blank: '…', off: MARK.wrong, missing: '?' } as const;
     return {
       partMarks: {
         names: marks.names.map((m) => ({ bar: m.bar - first, text: m.names.join(' · ') })).filter((m) => m.bar >= 0 && m.bar < count),
         folds: marks.folds
-          .map((f) => ({ beforeBar: f.beforeBar - first, text: t(why[f.reason], { name: f.name, first: f.startBar, last: f.endBar }) }))
+          .map((f) => ({ beforeBar: f.beforeBar - first, text: `${f.name} ${barsMark(f.startBar, f.endBar)} ${why[f.reason]}` }))
           .filter((f) => (section ? f.beforeBar > 0 && f.beforeBar < count : f.beforeBar >= 0 && f.beforeBar <= count)),
       },
     };
@@ -1060,10 +1093,12 @@ export class PracticeScene extends PixelScene {
     if (beat !== null && beat.beat !== this.lastBeat) {
       this.lastBeat = beat.beat;
       this.counting = true;
-      this.say(t('practice.countIn', { n: beat.inBar + 1 })); // counted 1 2 3 4 | 1 2 3 before a pick-up
+      // the count over the first note on the staff, not in the bubble (d312): 1 2 3 4 | 1 2 3 before a pick-up
+      this.playSession.breatheCursor(false);
+      this.playSession.staffView?.setCountIn(beat.inBar + 1);
     } else if (beat === null && this.counting) {
       this.counting = false;
-      this.say('');
+      this.playSession.staffView?.setCountIn(null);
     }
     this.playSession.movePlayhead(now);
   }
@@ -1265,9 +1300,9 @@ export class PracticeScene extends PixelScene {
     const saved = contextOf(this).profiles.completePiece(result, { mode: this.transport ? 'tempo' : 'wait', tempoPercent: this.percent })
       .catch((error: unknown) => { console.error('completePiece failed', error); return undefined; });
     this.pendingPass = saved;
-    this.playSession.showPassScore(passStarsFor(result.accuracy));
-    const passSummary = passLines(result).map((line) => t(line.key, line.params)).join('   ');
-    this.playSession.say(passSummary);
+    // the grade and its numbers past the last bar: no sentence (d312)
+    const passScore = { stars: passStarsFor(result.accuracy), numbers: passNumbers(result) };
+    this.playSession.showPassScore(passScore.stars, passScore.numbers);
     this.loopTimer = this.time.delayedCall(PASS_SCORE_MS, () => {
       this.loopTimer = null;
       void saved.then((outcome) => {
@@ -1280,7 +1315,7 @@ export class PracticeScene extends PixelScene {
           void this.barsSaved.then(() => { if (this.scene.isActive()) this.heardBack(checkup); });
           return;
         }
-        this.scene.restart({ ...this.startData, ...this.carry(), passes: outcome ? [...this.passes, outcome] : this.passes, lap, lastResult: result, passSummary });
+        this.scene.restart({ ...this.startData, ...this.carry(), passes: outcome ? [...this.passes, outcome] : this.passes, lap, lastResult: result, passScore });
       });
     });
   }
@@ -1596,7 +1631,7 @@ export class PracticeScene extends PixelScene {
     return [
       { label: sectionName, icon: TOOL_ICONS.section, shortcut: HOTKEYS.section.letter, tooltip: hotkeyLabel(sectionName, 'section'), active: this.picking !== null || section !== undefined, onClick: () => (section ? this.backToWhole() : this.startPicking()) },
       this.rampShown ? { label: t('practice.ramp'), icon: TOOL_ICONS.steps, active: this.rampOpen, onClick: () => this.toggleRamp() } : this.laneItem(),
-      { label: t('practice.click'), icon: TOOL_ICONS.click, active: this.clickOn, shortcut: HOTKEYS.click.letter, tooltip: hotkeyLabel(t('practice.click'), 'click'), onClick: () => this.toggleClick() },
+      { label: t('practice.click'), icon: TOOL_ICONS.click, active: this.clickOn, shortcut: HOTKEYS.click.letter, tooltip: this.clickTooltip(), onClick: () => this.toggleClick() },
       { ...circleItem(() => this.openCircle()), disabled: this.listening },
       this.preview ? null : { label: t('practice.statsPane'), icon: TOOL_ICONS.statsPane, active: this.paneShown, onClick: () => this.toggleStatsPane() },
       // the analysis of the whole piece: where it is tricky and what to practise (core_10)
@@ -1696,12 +1731,26 @@ export class PracticeScene extends PixelScene {
   protected override afterFrame(free: { left: number; right: number; top: number; rows: number } | null): void {
     this.liveLabels = null;
     if (!free || !this.learn || !learnLiveTempo(contextOf(this).profiles.learnSettings)) return;
-    // at half size, on the fine pixels (d110): as wide as its widest second line, so changing numbers never move it
-    const widest = `${t('practice.liveSpread', { value: '100%' })} ${t('practice.liveWobble', { value: '100%' })}`;
-    const left = free.right - 3 - Math.ceil(measure(drawnText(widest)) / 2);
+    // at half size, on the fine pixels (d110), the spread and the wobble each after its icon, their words in its tooltip
+    // (d312); as wide as its widest numbers, so changing numbers never move it
+    const number = Math.ceil(measure('100%') / 2);
+    const icons = [TOOL_ICONS.spread, TOOL_ICONS.wobble];
+    const width = icons.reduce((w, icon) => w + icon.width + 1 + number, 0) + 3;
+    const left = free.right - 3 - width;
     if (left < free.left + 3) return;
     const top = free.top + Math.max(1, Math.floor((free.rows - 2 * LIVE_TEMPO_LINE) / 2));
-    this.liveLabels = [0, 1].map((line) => this.label(left, top + line * LIVE_TEMPO_LINE, '', C.dim).setScale(0.5));
+    const tempo = this.label(left, top, '', C.dim).setScale(0.5);
+    const second = top + LIVE_TEMPO_LINE;
+    let x = left;
+    const values = icons.map((icon, i) => {
+      const word = t(i === 0 ? 'practice.liveSpread' : 'practice.liveWobble');
+      // a picture, not a button: it does nothing when pressed, its tooltip says what it measures
+      this.button({ x: x + icon.width / 2, y: second + 2, width: icon.width, height: icon.height, label: word, tooltip: word, picture: recolor(icon, { [C.white]: C.dim }), onClick: () => undefined });
+      const value = this.label(x + icon.width + 1, second, '', C.dim).setScale(0.5);
+      x += icon.width + 1 + number + 3;
+      return value;
+    });
+    this.liveLabels = [tempo, ...values];
     this.showLiveTempo();
   }
 
@@ -1775,8 +1824,9 @@ export class PracticeScene extends PixelScene {
     if (!labels || !this.learn) return;
     const live = this.learn.liveTempo;
     const percent = (share: number): string => (live ? `${Math.round(share * 100)}%` : '-');
-    labels[0]!.setText(t('practice.liveBpm', { bpm: live ? String(live.bpm) : '-' }));
-    labels[1]!.setText(`${t('practice.liveSpread', { value: percent(live?.spread ?? 0) })} ${t('practice.liveWobble', { value: percent(live?.robust ?? 0) })}`);
+    labels[0]!.setText(tempoMark(live ? String(live.bpm) : '-'));
+    labels[1]!.setText(percent(live?.spread ?? 0));
+    labels[2]!.setText(percent(live?.robust ?? 0));
   }
 
   /**
@@ -1794,7 +1844,7 @@ export class PracticeScene extends PixelScene {
         label: t('practice.statsPane'), icon: TOOL_ICONS.statsPane, iconOnly: true, active: this.paneShown, onClick: () => this.toggleStatsPane(),
       }]),
       {
-        label: t('ui.hint.names'), icon: TOOL_ICONS[this.hints.noteNames ? 'noteNamesOn' : 'noteNames'], iconOnly: true, active: this.hints.noteNames,
+        label: t('ui.hint.names'), icon: this.namesLocked ? LOCK : TOOL_ICONS[this.hints.noteNames ? 'noteNamesOn' : 'noteNames'], iconOnly: true, active: this.hints.noteNames,
         tooltip: hotkeyLabel(t('ui.hint.names'), 'noteNames'), onClick: () => this.toggle('noteNames'),
       },
       {
@@ -1898,7 +1948,7 @@ export class PracticeScene extends PixelScene {
       onClick: () => this.switchMode(),
     });
     // the metronome, lit while it clicks
-    const clickLabel = hotkeyLabel(t('practice.click'), 'click');
+    const clickLabel = this.clickTooltip();
     this.button({ x: place(ICON_WIDTH), y, width: ICON_WIDTH, height: h, label: t('practice.click'), icon: TOOL_ICONS.click, iconOnly: true, tooltip: clickLabel, onClick: () => this.toggleClick() }).setActive(this.clickOn);
     // Tempo mode: start over after two bars with nothing played right, lit while on (core_01.AC11)
     if (this.transport) {
@@ -1949,9 +1999,17 @@ export class PracticeScene extends PixelScene {
     });
   }
 
+  /** The click's tooltip, with why its keys do nothing now: the tempo follows the player, or Tempo mode keeps the music's pulse. */
+  private clickTooltip(): string {
+    const name = hotkeyLabel(t('practice.click'), 'click');
+    if (followsPlayer(this.playSettings())) return `${name}. ${t('practice.clickFollow')}`;
+    return this.transport ? `${name}. ${t('practice.clickTempoMode')}` : name;
+  }
+
   private toggleClick(): void {
     if (followsPlayer(this.playSettings())) {
-      this.say(t('practice.clickFollow'), MESSAGE_MS); // core_01.AC13
+      // the metronome crossed: no click while the tempo follows the player (core_01.AC13, d312; the button's tooltip says why)
+      this.playSession.say(MARK.wrong, MESSAGE_MS, false, TOOL_ICONS.click);
       return;
     }
     this.clickOn = !this.clickOn;
@@ -1987,14 +2045,16 @@ export class PracticeScene extends PixelScene {
   /** Shift+= / Shift+-: the click 5 BPM faster or slower. Wait mode only; in Tempo mode the click is the pulse of the music. */
   private stepClick(direction: 1 | -1): void {
     if (this.transport) {
-      this.say(t('practice.clickTempoMode'), MESSAGE_MS);
+      // the metronome crossed: in Tempo mode the click is the music's pulse (d312; the button's tooltip says why)
+      this.playSession.say(MARK.wrong, MESSAGE_MS, false, TOOL_ICONS.click);
       return;
     }
     const pieceBpm = this.chart.tempoMap[0]!.bpm;
     this.clickOffset = stepClickOffset(this.clickOffset, direction, pieceBpm, this.percent);
     const bpm = clickBpm(pieceBpm, this.percent, this.clickOffset);
     if (this.metronomeOn) (contextOf(this)).audio.metronome.setBpm(bpm);
-    this.say(t('practice.clickSpeed', { n: bpm }), MESSAGE_MS);
+    // a chip: the metronome and its BPM (d312)
+    this.playSession.say(String(bpm), MESSAGE_MS, false, TOOL_ICONS.click);
     this.redraw();
   }
 
@@ -2008,9 +2068,12 @@ export class PracticeScene extends PixelScene {
       staffView.setSectionMarks({ tint: [], letters: [{ bar: 0, text: t('practice.markFrom') }] });
     } else if (this.picking === null && this.startData.section) {
       const last = this.chart.bars.length - 1;
-      // A carries the tempo and the lap, so a rising ramp is seen where the section begins
-      const start = t('practice.markStartInfo', { mark: t('practice.markStart'), bpm: this.bpmNow, n: (this.startData.lap ?? 0) + 1 });
+      // A carries the tempo and the lap, so a rising ramp is seen where the section begins: "A ♩77▲ ↻3" (d312)
+      const start = `${t('practice.markStart')} ${tempoMark(this.bpmNow, this.rampedUp)} ${lapMark((this.startData.lap ?? 0) + 1)}`;
       staffView.setSectionMarks({ tint: [], letters: [{ bar: 0, text: start }, { bar: last, text: t('practice.markEnd') }] });
+    } else if (this.startedOver) {
+      // the play starts again from bar 1: ↻ over it a while (d312)
+      staffView.setSectionMarks({ tint: [], letters: [{ bar: 0, text: MARK.lap }] });
     } else {
       staffView.setSectionMarks(null);
     }
@@ -2128,12 +2191,12 @@ export class PracticeScene extends PixelScene {
     this.scene.restart({ ...this.startData, section: { first, last }, lap: 0, sectionLog: undefined, rampLaps: 0, ...this.carry() });
   }
 
-  /** Leave the section for the whole piece; Kiur then says how the section went (laps, tempo from and to, clean laps). */
+  /** Leave the section for the whole piece; chips over the staff then show how the section went (laps, clean laps, tempo from and to). */
   private backToWhole(): void {
     this.stopMetronome();
     const log = this.startData.sectionLog;
-    const summary = log && log.laps > 0 ? t('practice.sectionLog', { laps: log.laps, from: log.fromBpm, to: this.bpmNow, clean: log.clean }) : undefined;
-    this.scene.restart({ ...this.startData, section: undefined, lap: 0, sectionLog: undefined, sectionSummary: summary, ...this.carry() });
+    const chips = log && log.laps > 0 ? sectionLogChips({ laps: log.laps, clean: log.clean, from: log.fromBpm, to: this.bpmNow }) : undefined;
+    this.scene.restart({ ...this.startData, section: undefined, lap: 0, sectionLog: undefined, sectionChips: chips, ...this.carry() });
   }
 
   /**
@@ -2252,7 +2315,13 @@ export class PracticeScene extends PixelScene {
   private toggle(hint: keyof Hints): void {
     // the run after one with note names is played without them (ft_1_32.AC3)
     if (hint === 'noteNames' && !this.hints.noteNames && this.learn?.namesHidden) {
-      this.say(t('learn.namesOff'), MESSAGE_MS);
+      // the names button shows a lock a while: no names this run (d312)
+      this.namesLocked = true;
+      this.redraw();
+      this.time.delayedCall(MESSAGE_MS, () => {
+        this.namesLocked = false;
+        if (this.scene.isActive()) this.redraw();
+      });
       return;
     }
     this.hints = { ...this.hints, [hint]: !this.hints[hint] };

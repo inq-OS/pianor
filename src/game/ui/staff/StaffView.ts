@@ -6,6 +6,7 @@ import type { BarNumber } from '../../../core/layout/barNumbers';
 import type { Playhead } from '../../../core/layout/playhead';
 import type { DurationMarks } from '../../../core/layout/durationHelp';
 import { SCORE_COLOURS, STAFF_INK, scoreColour } from '../../../core/layout/scoreColour';
+import { rowUnderSystem } from '../../../core/layout/passScore';
 import { MARKER_RING, markerRingY } from '../../../core/learn/markers';
 import { wordFits } from '../../../core/layout/dynamicWords';
 import type { PlayedMark } from '../../../core/layout/playedMark';
@@ -18,9 +19,26 @@ import { STAFF_LAYERS, type StaffLayer } from './layers';
 import { addSheet } from './sheetGround';
 import { PARCHMENT_PAPER } from '../pixel/paint/parchment';
 import { t } from '../../../core/text/strings';
+import { MARK } from '../../../core/text/marks';
 import type { Dynamic } from '../../../core/chart/dynamics';
 import { ACCIDENTAL_STROKES, ORNAMENT_STROKES, BASS_CLEF_BALL, BASS_CLEF_DOTS, BASS_CLEF_STROKE, BRACE_PATH, DIGITS, QUARTER_REST_STROKE, TREBLE_CLEF_STROKE, type Pt } from './glyphs';
 import { STAFF_FONT } from './staffFont';
+import { CAP_HEIGHT, drawnText, renderMarks } from '../pixel/font';
+import { C } from '../pixel/palette';
+import { PixelImage } from '../pixel/PixelObjects';
+import { motionAllowed } from '../../motion';
+
+/** A mark over the bars: a text in the staff's font, or a picture in the pixel font (d312). */
+type MarkObject = Phaser.GameObjects.Text | Phaser.GameObjects.Image;
+/** The pixel font's capitals stand this many staff spaces tall in a mark, as tall as the staff font's at its size. */
+const MARK_CAP = 0.8;
+/** A section's mark (A, its tempo and lap, B) is drawn this much larger than a fold's text. */
+const SECTION_MARK_SIZE = 1.25;
+/** A chip's paper, a shade lighter than the page so it stands off it. */
+const CHIP_PAPER = 0xfbf1d3;
+/** The cursor box's breath while it waits for the first key: down to this alpha and back, each way this long (ms). */
+const BREATH_ALPHA = 0.35;
+const BREATH_MS = 600;
 
 /** A note's play state: `retried` is right, but only after a wrong key in its step (drawn apart from a first-try note, AX-2.1). */
 export type NoteState = 'pending' | 'correct' | 'retried' | 'wrong';
@@ -40,9 +58,8 @@ export interface StaffTheme {
   /** The soft background of a section's bars while it is chosen, and the colour of its A and B. */
   sectionFill: number;
   sectionInk: string;
-  /** A song's fold zigzag (ft_1_36 rule 7), as a number, and the words under it. */
+  /** A song's fold zigzag (ft_1_36 rule 7), as a number; the marks under it are in the pixel font. */
   foldInk: number;
-  foldText: string;
 }
 
 /** The light of a note's head as a blinking lane's wave passes it (core_13 rule 10): a warm gold. */
@@ -67,12 +84,12 @@ export const DEFAULT_THEME: StaffTheme = {
   sectionFill: 0xfbebbc,
   sectionInk: '#8a5a00',
   foldInk: 0x6e6e7a,
-  foldText: '#4a4a55',
 };
 
 /** A song's marks on the staff (ft_1_36 rule 7): part names by chart bar (0-based), folds before a chart bar. */
 export interface PartMarks {
   names: readonly { bar: number; text: string }[];
+  /** Under a fold, in the pixel font (d312): the part's name, its bars and its state as a mark ("Verses 13-70 …"). */
   folds: readonly { beforeBar: number; text: string }[];
 }
 
@@ -94,6 +111,7 @@ export interface SectionMarks {
   tint: readonly number[];
   /** Bars with a background colour of their own (the practice analysis' heat, core_10); the section's tint is used for the rest. */
   fills?: ReadonlyMap<number, number>;
+  /** Over a bar, in the pixel font (d312): A with its tempo and lap ("A ♩70 ↻2"), B, the ▶ of a play from a bar. */
   letters: readonly { bar: number; text: string }[];
 }
 
@@ -122,6 +140,8 @@ const DURATION_GHOST = 0x2b6cff;
 const DURATION_GHOST_ALPHA = 0.28;
 /** The key that was played: faint, in the wrong colour, its name under it (ft_1_12.AC7). */
 const PLAYED_ALPHA = 0.55;
+/** The played key's name and its octave mark are darker than its ghost head, so they read on the paper (d312). */
+const PLAYED_NAME_ALPHA = 0.85;
 const PLAYED_INK = '#d7263d';
 const PLAYED_NAME_GAP = 1.7;
 /** A mark over the bars (A, B, a part's name; text 1.1 spaces high) stands this far over the beat dots, and not above this much from the sheet's top (staff spaces). */
@@ -197,6 +217,9 @@ export class StaffView {
   /** The key that was played after a wrong press (ft_1_12.AC7), drawn faint beside the awaited note, and its name. */
   private played: PlayedMark | null = null;
   private playedName: Phaser.GameObjects.Text | null = null;
+  private playedOctave: Phaser.GameObjects.Text | null = null;
+  private countText: Phaser.GameObjects.Text | null = null;
+  private breath: Phaser.Tweens.Tween | null = null;
   private hints: StaffHints;
   /** The page on screen (0 for a layout with one page). */
   private page = 0;
@@ -205,10 +228,14 @@ export class StaffView {
   private section: SectionMarks | null = null;
   private veiled: readonly { from: number; to: number }[] = [];
   /** The A and B of a section, each with the system of its bar. */
-  private readonly markTexts: { text: Phaser.GameObjects.Text; system: number }[] = [];
+  /** The marks over the bars, each with what it shows (`value`), for tests. */
+  private readonly markTexts: { text: MarkObject; system: number; value: string }[] = [];
   /** A song's part names over their first bars and its folds (ft_1_36 rule 7); drawn with the marks, kept apart from a section's. */
   private partMarks: PartMarks | null = null;
-  private readonly partTexts: { text: Phaser.GameObjects.Text; system: number; bar?: number }[] = [];
+  private readonly partTexts: { text: MarkObject; system: number; value: string; bar?: number }[] = [];
+  /** Chips under the page's last line (d312: a section's log as marks by the staff, not a line in the bubble). */
+  private chipValues: string[] = [];
+  private chipObjects: Phaser.GameObjects.GameObject[] = [];
   /** Hears every page turn (the song map's frame follows the page, ft_1_36 rule 8). */
   onPageShown: ((page: number) => void) | null = null;
 
@@ -294,6 +321,7 @@ export class StaffView {
     }
     for (const mark of this.markTexts) mark.text.setVisible(this.onPage(mark.system));
     for (const mark of this.partTexts) mark.text.setVisible(this.onPage(mark.system));
+    if (this.chipValues.length > 0) this.drawChips();
     for (const slur of this.slurTexts) slur.text.setVisible(this.onPage(slur.system) && hints.noteNames);
     for (const v of this.veils) v.image.setVisible(this.onPage(v.system));
   }
@@ -375,7 +403,6 @@ export class StaffView {
     for (const mark of this.markTexts) mark.text.destroy();
     this.markTexts.length = 0;
     const S = this.layout.staffSpace;
-    const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: this.theme.sectionInk };
     const used = new Map<number, number>();
     for (const { bar: index, text } of marks?.letters ?? []) {
       const bar = this.layout.bars[index];
@@ -385,9 +412,10 @@ export class StaffView {
       const numberWidth = number === undefined ? 0 : String(number.number).length * 4 * cell - cell + 0.4 * S;
       // a second mark on the same bar (A and B of a one-bar section) starts after the first one's whole text, its tempo and lap too
       const x = used.get(index) ?? this.origin.x + bar.x + 0.25 * S + numberWidth;
-      const label = this.scene.add.text(x, this.markY(bar.system), text, style).setOrigin(0, 0.5);
-      used.set(index, x + label.width + 0.6 * S);
-      this.markTexts.push({ text: label, system: bar.system });
+      // dark brown, a little larger than a fold, its tempo's rise in gold (d312: read at a glance over the bar)
+      const label = this.markImage(x, this.markY(bar.system), text, C.brownDark, SECTION_MARK_SIZE, { [MARK.up]: C.goldDark });
+      used.set(index, x + label.displayWidth + 0.6 * S);
+      this.markTexts.push({ text: label, system: bar.system, value: text });
     }
     this.drawStaff();
     this.setHints(this.hints);
@@ -405,7 +433,6 @@ export class StaffView {
     this.partTexts.length = 0;
     const S = this.layout.staffSpace;
     const name = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: this.theme.sectionInk };
-    const fold = { fontFamily: STAFF_FONT, fontSize: `${Math.round(S * 0.9)}px`, color: this.theme.foldText };
     const cell = (0.8 * S) / 5;
     for (const { bar: index, text } of marks?.names ?? []) {
       const bar = this.layout.bars[index];
@@ -413,16 +440,77 @@ export class StaffView {
       const number = this.barNumbers.find((n) => n.index === index);
       const numberWidth = number === undefined ? 0 : String(number.number).length * 4 * cell - cell + 0.4 * S;
       const x = this.origin.x + bar.x + 0.25 * S + numberWidth;
-      this.partTexts.push({ text: this.scene.add.text(x, this.markY(bar.system), text, name).setOrigin(0, 0.5), system: bar.system, bar: index });
+      this.partTexts.push({ text: this.scene.add.text(x, this.markY(bar.system), text, name).setOrigin(0, 0.5), system: bar.system, value: text, bar: index });
     }
     for (const at of this.foldsAt()) {
       const y = this.origin.y + this.layout.systems[at.system]!.bottomLineY + 2.2 * S;
-      this.partTexts.push({ text: this.scene.add.text(this.origin.x + at.x + 0.3 * S, y, at.text, fold).setOrigin(0, 0.5), system: at.system });
+      this.partTexts.push({ text: this.markImage(this.origin.x + at.x + 0.3 * S, y, at.text, C.lock, 0.75), system: at.system, value: at.text });
     }
     this.drawStaff();
     this.setHints(this.hints);
     this.drawLane(true);
   }
+
+  /**
+   * A mark over or under the staff in the pixel font (d312), whose ♩ ↻ ▲ ✗ the staff's font has no glyph for: its letters
+   * a whole number of screen pixels each, about the height of the staff's own words (`size` of them), left-centred at x, y.
+   */
+  private markImage(x: number, y: number, text: string, colour: number, size = 1, accents: Readonly<Record<string, number>> = {}): Phaser.GameObjects.Image {
+    const zoom = Math.max(1, Math.round((MARK_CAP * this.layout.staffSpace * size) / CAP_HEIGHT));
+    return new PixelImage(this.scene, x, y, renderMarks(drawnText(text), colour, accents)).setOrigin(0, 0.5).setScale(zoom);
+  }
+
+  /** The marks over the bars as they read, for tests: "A ♩70 ↻1", "B". */
+  get sectionMarksShown(): string[] {
+    return this.markTexts.map((m) => m.value);
+  }
+
+  /** The words and marks of a song's parts as they read, for tests. */
+  get partMarksShown(): string[] {
+    return this.partTexts.map((m) => m.value);
+  }
+
+  /**
+   * Show marks as chips in a row under the page's last line, ending at its last bar line (a section's log when the
+   * piece is whole again: "↻4", "✓2", "♩60→66"), or take them away with null: each on a paper plate edged in ink, as
+   * large as a section's mark, the ✓ green and a rise gold.
+   */
+  setChips(values: readonly string[] | null): void {
+    this.chipValues = values ? [...values] : [];
+    this.drawChips();
+  }
+
+  /** The chips shown, for tests. */
+  get chipsShown(): string[] {
+    return this.chipObjects.length > 0 ? [...this.chipValues] : [];
+  }
+
+  private drawChips(): void {
+    for (const o of this.chipObjects) o.destroy();
+    this.chipObjects = [];
+    const onPage = this.layout.systems.map((_, i) => i).filter((i) => this.onPage(i));
+    if (this.chipValues.length === 0 || onPage.length === 0) return;
+    const S = this.layout.staffSpace;
+    const pad = 0.3 * S;
+    const gap = 0.4 * S;
+    const images = this.chipValues.map((value) => this.markImage(0, 0, value, C.ink, SECTION_MARK_SIZE, { [MARK.right]: C.leafDark, [MARK.up]: C.goldDark }));
+    const w = images.reduce((sum, image) => sum + image.displayWidth + 2 * pad, 0) + gap * (images.length - 1);
+    const h = Math.max(...images.map((image) => image.displayHeight)) + 2 * pad;
+    // in the row under the page's last line, ending at its last bar line, clear of its notes (as a pass's score is)
+    const place = rowUnderSystem(this.layout, onPage[onPage.length - 1]!, { w: Math.ceil(w), h: Math.ceil(h) });
+    const y = this.origin.y + place.y + h / 2;
+    const plates = this.scene.add.graphics().setDepth(2);
+    let x = this.origin.x + place.x;
+    for (const image of images) {
+      const plate = { x, y: y - h / 2, w: image.displayWidth + 2 * pad, h };
+      plates.fillStyle(CHIP_PAPER, 1).fillRoundedRect(plate.x, plate.y, plate.w, plate.h, pad);
+      plates.lineStyle(Math.max(1, Math.round(S / 10)), STAFF_INK, 1).strokeRoundedRect(plate.x, plate.y, plate.w, plate.h, pad);
+      image.setPosition(x + pad, y).setDepth(3);
+      x += plate.w + gap;
+    }
+    this.chipObjects = [plates, ...images];
+  }
+
 
   /**
    * A song's folds (ft_1_36 rule 7): a zigzag in the fold grey through the staff, like a page folded under, so it is never
@@ -649,7 +737,7 @@ export class StaffView {
     g.clear();
     const S = this.layout.staffSpace;
     // the words over a bar (a section's A with its tempo and lap, B, a part's name) sit on the lane's row: no dot under them
-    const words = [...this.markTexts, ...this.partTexts].map(({ text, system }) => ({ system, x1: text.x - this.origin.x - 0.2 * S, x2: text.x - this.origin.x + text.width + 0.2 * S, y1: text.y - this.origin.y - text.height / 2, y2: text.y - this.origin.y + text.height / 2 }));
+    const words = [...this.markTexts, ...this.partTexts].map(({ text, system }) => ({ system, x1: text.x - this.origin.x - 0.2 * S, x2: text.x - this.origin.x + text.displayWidth + 0.2 * S, y1: text.y - this.origin.y - text.displayHeight / 2, y2: text.y - this.origin.y + text.displayHeight / 2 }));
     const underWords = (dot: { system: number; x: number; y: number }) => words.some((w) => w.system === dot.system && dot.x >= w.x1 && dot.x <= w.x2 && dot.y >= w.y1 && dot.y <= w.y2);
     for (const { dots, look } of this.lanes) {
       for (const dot of dots) {
@@ -828,6 +916,10 @@ export class StaffView {
   destroy(): void {
     [this.paperBg, this.paper, this.cursorGfx, this.durationGfx, this.laneGfx, this.notesGfx, this.playheadGfx, ...this.labels, ...this.nameLabels.filter((l) => l !== null), ...this.graceLabels, ...this.fingerTexts, ...(this.shiftGfx ? [this.shiftGfx] : []), ...(this.markerGfx ? [this.markerGfx] : []), ...this.scoreTexts, ...this.markTexts.map((m) => m.text), ...this.partTexts.map((m) => m.text), ...this.dynamicTexts.flatMap((d) => [d.mark, d.word]), ...this.slurTexts.map((s) => s.text)].forEach((o) => o.destroy());
     this.playedName?.destroy();
+    this.playedOctave?.destroy();
+    this.countText?.destroy();
+    for (const o of this.chipObjects) o.destroy();
+    this.breath?.remove();
     for (const v of this.veils) v.image.destroy();
     this.sheet.release();
   }
@@ -1052,16 +1144,64 @@ export class StaffView {
    * Show the key that was played (`core/layout/playedMark`) with its name, or clear it with null. It shows what was
    * played, not which way to go (the clean-screen rule; the ear and note trainers name notes the same way).
    */
-  setPlayed(mark: PlayedMark | null, name = ''): void {
+  setPlayed(mark: PlayedMark | null, name = '', octave = false): void {
     this.played = mark;
     this.playedName?.destroy();
     this.playedName = null;
+    this.playedOctave?.destroy();
+    this.playedOctave = null;
     if (mark && this.onPage(mark.system)) {
       const S = this.layout.staffSpace;
       const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: PLAYED_INK };
-      this.playedName = this.scene.add.text(this.origin.x + mark.x, this.origin.y + mark.y + PLAYED_NAME_GAP * S, name, style).setOrigin(0.5).setAlpha(PLAYED_ALPHA);
+      this.playedName = this.scene.add.text(this.origin.x + mark.x, this.origin.y + mark.y + PLAYED_NAME_GAP * S, name, style).setOrigin(0.5).setAlpha(PLAYED_NAME_ALPHA);
+      // an octave off names its reason as a mark (d312): an 8 right of the played head, which stands an octave from the awaited one
+      if (octave) this.playedOctave = this.scene.add.text(this.origin.x + mark.x + mark.rx + 0.5 * S, this.origin.y + mark.y, MARK.octave, style).setOrigin(0, 0.5).setAlpha(PLAYED_NAME_ALPHA);
     }
     this.drawNotes();
+  }
+
+  /**
+   * The lit note's cursor box breathes until the first key (d312: the start needs no line), as a lesson's "?" box does;
+   * still where motion is off.
+   */
+  breathe(on: boolean): void {
+    this.breath?.remove();
+    this.breath = null;
+    this.cursorGfx.setAlpha(1);
+    if (on && motionAllowed()) this.breath = this.scene.tweens.add({ targets: this.cursorGfx, alpha: BREATH_ALPHA, duration: BREATH_MS, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+  }
+
+  /** True while the cursor box breathes, for tests. */
+  get breathing(): boolean {
+    return this.breath !== null;
+  }
+
+  /**
+   * The count-in's beat over the first note awaited (d312: on the staff, not in Kiur's bubble), or none with null: the
+   * number big in the section ink, above the staff.
+   */
+  setCountIn(beat: number | null): void {
+    this.countText?.destroy();
+    this.countText = null;
+    if (beat === null) return;
+    const on = this.layout.notes.filter((n) => this.onPage(n.system));
+    const glyph = on.find((n) => this.cursors.has(n.index)) ?? on[0];
+    if (!glyph) return;
+    const S = this.layout.staffSpace;
+    const top = this.layout.systems[glyph.system]!.staves[glyph.staff]!.topLineY;
+    // between the beat lane and the staff's top line (or the note, when it stands higher), clear of both
+    const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.2)}px`, color: this.theme.sectionInk };
+    this.countText = this.scene.add.text(this.origin.x + glyph.column, this.origin.y + Math.min(top, glyph.y - S) + 0.15 * S, String(beat), style).setOrigin(0.5, 1);
+  }
+
+  /** The count-in's beat shown over the staff, for tests; null when none is. */
+  get countInShown(): string | null {
+    return this.countText?.text ?? null;
+  }
+
+
+  get playedOctaveShown(): boolean {
+    return this.playedOctave !== null;
   }
 
   /** The colour a chart note is drawn in now, for tests: null for a note not on the staff. */

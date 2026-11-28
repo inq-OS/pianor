@@ -18,7 +18,7 @@ test.describe('tempo mode (slice c)', () => {
     await pickChoice(page, 'practice', 'Tempo that follows you', 'Tempo'); // and Tempo
     await expect.poll(() => playSettings(page)).toEqual({ mode: 'tempo', scoreView: 'colour', tempoStart: 'anyKey', tempoClock: 'strict' });
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').transport !== null)).toBe(true);
-    expect(await sceneTexts(page, 'practice')).toContain('Press any key to start. One bar is counted in.');
+    await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView.breathing as boolean)).toBe(true); // the cursor breathes: no line asks for a key
     expect(await sceneButton(page, 'practice', 'Tempo')).toBeGreaterThanOrEqual(0); // now the metronome
     await page.keyboard.press('Escape');
     await waitForScene(page, 'menu');
@@ -41,7 +41,7 @@ test.describe('tempo mode (slice c)', () => {
     const errors = await openGame(page);
     await page.evaluate(() => window.__game.registry.get('context').profiles.updatePlaySettings({ mode: 'tempo', scoreView: 'number' }));
     await openPiece(page, 'Little Steps');
-    expect(await sceneTexts(page, 'practice')).toContain('Press any key to start. One bar is counted in.');
+    expect(await page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView.breathing as boolean)).toBe(true); // the cursor breathes: no line asks for a key
     expect(await page.evaluate(() => window.__game.scene.getScene('practice').transport.started)).toBe(false);
 
     // the starting key: it is not a note
@@ -91,7 +91,7 @@ test.describe('tempo mode (slice c)', () => {
     expectNoErrors(errors);
   });
 
-  test('a Tempo pass where the clock runs to the end with no key played earns no pass, no stars and no XP, and says no note was played', async ({ page }) => {
+  test('a Tempo pass where the clock runs to the end with no key played earns no pass, no stars and no XP, and shows empty stars and the start-over mark, no line', async ({ page }) => {
     test.slow(); // a bar counted in, then the whole piece at its own speed
     const errors = await openGame(page);
     await page.evaluate(() => window.__game.registry.get('context').profiles.updatePlaySettings({ mode: 'tempo' }));
@@ -108,8 +108,9 @@ test.describe('tempo mode (slice c)', () => {
       return { rounds: scene.session.rounds.length, attempts: window.__game.registry.get('context').profiles.profile.attempts.length };
     });
     expect(after).toEqual({ rounds: 0, attempts: 0 });
-    // the piece starts again with one plain fact, so the restart does not look like a fault
-    await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { startMessage: string }).startMessage)).toBe('No notes played this pass.');
+    // the piece starts again under empty stars and the start-over mark, so the restart does not look like a fault (d312)
+    await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView.sectionMarksShown as string[])).toEqual(['↻']);
+    expect(await page.evaluate(() => window.__game.scene.getScene('practice').playSession.passScoreShown)).toEqual({ stars: 0 });
     // nothing was played: Back goes straight to the pieces, with no score screen
     await page.keyboard.press('Escape');
     await waitForScene(page, 'menu');
@@ -205,10 +206,11 @@ test.describe('tempo mode: the clock that follows the player (core_01 slice h)',
     });
     await expect.poll(() => look()).toMatchObject({ progress: ['correct', 'correct', 'pending'], verdicts: ['on-time', 'late', undefined] });
 
-    // the click's button says why it stays off
+    // the click's button shows it stays off as its icon crossed, and says why in its tooltip (d312)
     await clickButton(page, 'practice', await sceneButton(page, 'practice', 'Click'));
     expect((await look()).clickOn).toBe(false);
-    expect(await sceneTexts(page, 'practice')).toContain('No click while the tempo follows you.');
+    expect(await sceneTexts(page, 'practice')).toContain('✗');
+    expect(await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { clickTooltip(): string }).clickTooltip())).toContain('No click while the tempo follows you.');
     expectNoErrors(errors);
   });
 });

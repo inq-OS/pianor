@@ -11,14 +11,19 @@ import { PracticeController } from '../practice/PracticeController';
 import { ChartPlayer } from '../preview/ChartPlayer';
 import { PixelImage } from '../ui/pixel/PixelObjects';
 import type { StaffView } from '../ui/staff/StaffView';
+import { markChipBitmap } from '../ui/pixel/markChip';
 import { choiceNote, spokenLine, spokenPages, talkColour } from '../ui/pixel/talkArt';
 import type { TalkPlace } from './talkView';
 import type { TugDevices } from './tugView';
 import { NUDGE_MS, overlayCatcher } from './overlayExit';
+import { motionAllowed } from '../motion';
 
 /** How long the fact after a try stays before the next, and the pause after the character's playing. */
 const FACT_MS = 2500;
 const AFTER_PLAYING_MS = 400;
+/** How high and how fast the note over the student's head hops after a wait with no key (art pixels, ms). */
+const HOP = 4;
+const HOP_MS = 300;
 
 export interface TeachHandlers {
   /** The character plays (true) or listens (false): its figure shows its state. */
@@ -49,6 +54,8 @@ export class TeachView {
   private timer: Phaser.Time.TimerEvent | null = null;
   private readonly objects: Phaser.GameObjects.GameObject[] = [];
   private saying: string | null = null;
+  /** The saying is a try's count (marks on a chip), not the character's closing line. */
+  private sayingFact = false;
   private closing = false;
   /** The page of a long line shown now: a press on the closing line turns to the next before it ends the view. */
   private page = 0;
@@ -57,6 +64,9 @@ export class TeachView {
   /** The student's try waits with no note played: the character says once whose turn it is. */
   private nudge: Phaser.Time.TimerEvent | null = null;
   private nudged = false;
+  /** The student's try waited a while with no key: the note over their head hops higher until a key (d312: no line). */
+  private hopping = false;
+  private hop: Phaser.Tweens.Tween | null = null;
 
   private constructor(
     private readonly scene: Phaser.Scene,
@@ -89,9 +99,9 @@ export class TeachView {
   }
 
   /** What the teaching shows now, for the tests and the self-playing demo. */
-  get view(): { who: 'character' | 'student' | null; piece: string; level: 1 | 2 | 3; tries: readonly boolean[]; outcome: TeachState['outcome']; saying: string | null; page: number; closing: boolean; staff: boolean; notFirst: number[] } {
+  get view(): { who: 'character' | 'student' | null; piece: string; level: 1 | 2 | 3; tries: readonly boolean[]; outcome: TeachState['outcome']; saying: string | null; page: number; closing: boolean; staff: boolean; notFirst: number[]; nudging: boolean } {
     const { piece, level, tries, outcome } = this.state;
-    return { who: this.playingNow, piece, level, tries, outcome, saying: this.saying, page: this.page, closing: this.closing, staff: this.staff !== null, notFirst: (this.played?.retried ?? []).flatMap((retried, i) => (retried ? [i] : [])) };
+    return { who: this.playingNow, piece, level, tries, outcome, saying: this.saying, page: this.page, closing: this.closing, staff: this.staff !== null, notFirst: (this.played?.retried ?? []).flatMap((retried, i) => (retried ? [i] : [])), nudging: this.hopping };
   }
 
   /** The phrase the student plays now; null in the character's turn and between tries. */
@@ -127,6 +137,8 @@ export class TeachView {
 
   /** Remove what it drew, the staff too. */
   clear(): void {
+    this.hop?.remove();
+    this.hop = null;
     this.objects.forEach((o) => o.destroy());
     this.objects.length = 0;
     this.staff?.destroy();
@@ -197,8 +209,8 @@ export class TeachView {
       this.nudge = null;
       if (this.done || this.playingNow !== 'student') return;
       this.nudged = true;
-      this.saying = t('tug.yourTurn');
-      this.page = 0;
+      // no line (d312): the note over the student's head hops higher until a key
+      this.hopping = true;
       this.draw();
     });
   }
@@ -209,11 +221,11 @@ export class TeachView {
     this.staff.applyProgress(this.played.noteProgress, awaiting, this.played.retried);
   }
 
-  /** A note was played: the nudge is not needed, and once said it goes. */
+  /** A note was played: the nudge is not needed, and the note stops hopping. */
   private notePlayed(): void {
     this.stopNudge();
-    if (this.nudged && this.saying !== null && !this.closing && this.playingNow === 'student') {
-      this.saying = null;
+    if (this.hopping) {
+      this.hopping = false;
       this.draw();
     }
   }
@@ -230,7 +242,9 @@ export class TeachView {
     this.playingNow = null;
     this.state = advanceTeach(this.state, studentShare(result, 'wait'), this.rules);
     const fact = tugFact(result, reasons, 'wait');
+    // the count only: the staff shows where the wrong keys were (d312)
     this.saying = tugFactLine(fact, 'wait');
+    this.sayingFact = true;
     this.page = 0;
     this.draw();
     this.timer = this.scene.time.delayedCall(FACT_MS, () => {
@@ -247,6 +261,7 @@ export class TeachView {
     if (key === null) return this.finish();
     this.closing = true;
     this.saying = t(key, { right: fact.right, total: fact.total });
+    this.sayingFact = false;
     this.page = 0;
     this.handlers.playing(true);
     this.draw();
@@ -292,9 +307,15 @@ export class TeachView {
     if (this.playingNow === 'student') {
       const note = choiceNote(true);
       const head = studentHead(area);
-      this.add(new PixelImage(this.scene, Math.round(head.x - note.width / 2), head.y - note.height - 4, note).setName('teachYourTurn'));
+      const image = this.add(new PixelImage(this.scene, Math.round(head.x - note.width / 2), head.y - note.height - 4, note).setName('teachYourTurn'));
+      if (this.hopping && motionAllowed()) this.hop = this.scene.tweens.add({ targets: image, y: image.y - HOP, duration: HOP_MS, yoyo: true, repeat: -1, ease: 'Sine.easeOut' });
     }
-    if (this.saying !== null) {
+    if (this.saying !== null && this.sayingFact) {
+      // the count is marks, on a chip just over the staff (which takes the lower half), above the student (d312)
+      const chip = markChipBitmap(this.saying);
+      const head = studentHead(area);
+      this.add(new PixelImage(this.scene, Math.max(2, Math.round(head.x - chip.width / 2)), Math.floor(area.h / 2) - chip.height - 3, chip).setName('teachFact'));
+    } else if (this.saying !== null) {
       const pages = spokenPages(this.saying);
       // a page with more after it ends in a small arrow: a press turns to the next
       const words = spokenLine(pages[this.page] ?? [], talkColour('character', this.character.id), this.page + 1 < pages.length);

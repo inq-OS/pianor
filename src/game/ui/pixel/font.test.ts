@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { strings } from '../../../core/text/strings';
 import { C } from './palette';
-import { drawnText, CAP_HEIGHT, CELL_HEIGHT, LINE_HEIGHT, fitLine, glyphFor, hasGlyph, measure, renderText, wrap } from './font';
+import { drawnText, CAP_HEIGHT, CELL_HEIGHT, LINE_HEIGHT, fitLine, glyphFor, hasGlyph, measure, renderMarks, renderText, wrap } from './font';
 
 const dump = (text: string, options = { color: C.white }) => {
   const b = renderText(text, options);
@@ -172,5 +172,18 @@ describe('every text the game shows can be drawn without a stand-in block', () =
     for (const f of readdirSync(join(root, 'content/dev/charts'))) titles.push((JSON.parse(readFileSync(join(root, 'content/dev/charts', f), 'utf-8')) as { title: string }).title);
     expect(titles.length).toBeGreaterThan(15);
     for (const title of titles) expect(missing(title), title).toEqual([]);
+  });
+});
+
+describe('renderMarks (d312)', () => {
+  it('draws a line of marks in one colour with the accented marks in their own', () => {
+    const plain = renderText('A ♩77▲', { color: 1 });
+    const marks = renderMarks('A ♩77▲', 1, { '▲': 9 });
+    expect(marks.width).toBe(plain.width);
+    const colours = new Set(marks.pixels);
+    expect(colours.has(1) && colours.has(9)).toBe(true);
+    // the ▲ is the last glyph: every gold pixel stands right of the 7s
+    const goldXs = [...marks.pixels.keys()].filter((i) => marks.pixels[i] === 9).map((i) => i % marks.width);
+    expect(Math.min(...goldXs)).toBeGreaterThan(measure('A ♩77'));
   });
 });

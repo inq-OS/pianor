@@ -14,9 +14,8 @@ describe('t', () => {
   });
 
   it('picks the singular word after a count of one and the plural after any other count', () => {
-    expect(t('tug.fact', { right: 1, total: 1 })).toBe('1 of 1 note right');
-    expect(t('tug.fact', { right: 0, total: 1 })).toBe('0 of 1 note right');
-    expect(t('tug.fact', { right: 2, total: 3 })).toBe('2 of 3 notes right');
+    expect(t('talk.kiur.tugWon', { right: 1, total: 1 })).toBe('1 of 1 line fell into place.');
+    expect(t('talk.kiur.tugWon', { right: 0, total: 3 })).toBe('0 of 3 lines fell into place.');
     expect(t('intro.teacher.practise', { n: 1 })).toBe('You learned it. Now practice it: play it 1 more time.');
     expect(t('intro.teacher.practise', { n: 3 })).toBe('You learned it. Now practice it: play it 3 more times.');
   });

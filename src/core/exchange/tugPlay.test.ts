@@ -63,11 +63,14 @@ describe('after each exchange (ft_1_21.AC7)', () => {
     expect(tugFact({ notes: 4, firstTryCorrect: 2 }, ['wrong-octave', 'neighbour-key'])).toEqual({ right: 2, total: 4, reason: 'wrong-octave' });
   });
 
-  it('ft_1_21.AC7 a neighbour key and a wrong letter each say their reason, as a wrong octave does', () => {
-    expect(tugFactLine(tugFact({ notes: 5, firstTryCorrect: 0 }, ['neighbour-key']), 'wait')).toBe('0 of 5 notes right. You played the key next door');
-    expect(tugFactLine(tugFact({ notes: 6, firstTryCorrect: 0 }, ['wrong-letter']), 'wait')).toBe('0 of 6 notes right. You played another letter');
-    expect(tugFactLine(tugFact({ notes: 5, firstTryCorrect: 0 }, ['wrong-octave']), 'wait')).toBe('0 of 5 notes right. Right letter, wrong octave');
-    expect(tugFactLine(tugFact({ notes: 5, firstTryCorrect: 5 }, []), 'wait')).toBe('5 of 5 notes right');
+  it('ft_1_21.AC7 d312 the fact is a count, and a wrong key its mark with the awaited and the played note named', () => {
+    const miss = (reason: 'neighbour-key' | 'wrong-letter' | 'wrong-octave', midi: number) => ({ midi, expectedMidi: 64, reason, direction: midi > 64 ? 'higher' as const : 'lower' as const });
+    expect(tugFactLine(tugFact({ notes: 5, firstTryCorrect: 0 }, ['neighbour-key']), 'wait', miss('neighbour-key', 65))).toBe('0/5  E✓ F✗ ½▲');
+    expect(tugFactLine(tugFact({ notes: 6, firstTryCorrect: 0 }, ['wrong-letter']), 'wait', miss('wrong-letter', 60))).toBe('0/6  E✓ C✗ ▼');
+    expect(tugFactLine(tugFact({ notes: 5, firstTryCorrect: 0 }, ['wrong-octave']), 'wait', miss('wrong-octave', 76))).toBe('0/5  E✓ 8▲');
+    expect(tugFactLine(tugFact({ notes: 5, firstTryCorrect: 5 }, []), 'wait')).toBe('5/5');
+    // a teaching passes no miss: its staff shows the wrong keys
+    expect(tugFactLine(tugFact({ notes: 5, firstTryCorrect: 4 }, ['wrong-letter']), 'wait')).toBe('4/5');
   });
 
   it('ft_1_21.AC7 in Tempo mode a phrase with no wrong key says whether its notes off time came in late or early; a wrong key\'s reason comes first', () => {
@@ -75,9 +78,9 @@ describe('after each exchange (ft_1_21.AC7)', () => {
     const early = { ...late, early: 2, late: 1 };
     const even = { ...late, early: 1, late: 1, missed: 1 };
     expect(tugFact({ notes: 4, firstTryCorrect: 4, timing: late }, [], 'tempo')).toEqual({ right: 1, total: 4, reason: 'late' });
-    expect(tugFactLine(tugFact({ notes: 4, firstTryCorrect: 4, timing: late }, [], 'tempo'), 'tempo')).toBe('1 of 4 notes on time. Came in late');
+    expect(tugFactLine(tugFact({ notes: 4, firstTryCorrect: 4, timing: late }, [], 'tempo'), 'tempo')).toBe('♩1/4  ▶');
     expect(tugFact({ notes: 4, firstTryCorrect: 4, timing: early }, [], 'tempo').reason).toBe('early');
-    // as many early as late: no word on which
+    // as many early as late: no mark for which
     expect(tugFact({ notes: 4, firstTryCorrect: 4, timing: even }, [], 'tempo').reason).toBeUndefined();
     expect(tugFact({ notes: 4, firstTryCorrect: 3, timing: late }, ['wrong-letter'], 'tempo').reason).toBe('wrong-letter');
     // Wait mode never speaks of time
@@ -97,7 +100,7 @@ describe('after each exchange (ft_1_21.AC7)', () => {
     expect(needs.slice(0, 4)).toEqual([undefined, undefined, undefined, undefined]);
     // then 65, 70, 75, 80, 85 per cent of 5 notes: 4, 4, 4, 4, 5
     expect(needs.slice(4)).toEqual([4, 4, 4, 4, 5]);
-    expect(tugFactLine({ ...tugFact({ notes: 5, firstTryCorrect: 4 }, ['wrong-letter']), need: 5 }, 'wait')).toBe('4 of 5 notes right. Needed 5 of 5. You played another letter');
+    expect(tugFactLine({ ...tugFact({ notes: 5, firstTryCorrect: 4 }, ['wrong-letter']), need: 5 }, 'wait')).toBe('4/5  ≥5/5');
   });
 });
 

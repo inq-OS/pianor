@@ -1051,7 +1051,7 @@ export class AdventureScene extends PixelScene {
       // as needy as the teacher set it (ft_1_37.AC8): every level's share moved
       rules: this.curriculum ? tugRulesFor(TUG_RULES, castSettingOf(this.curriculum, def.id, DEFAULT_PRESENCE_RULES).neediness) : TUG_RULES,
       place: { area: { w: this.px.width, h: this.mainRows }, head },
-      devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome },
+      devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome, naming: context.profiles.noteNaming },
       ...(this.cornerDoor ? { door: this.cornerDoor } : {}),
     }, {
       playing: (on) => this.figures.get(def.id)?.(on ? 'talk' : 'idle'),

@@ -11,7 +11,8 @@ import { applyTalkEffects } from '../dialogue/talkWorld';
 import { recordTug } from '../island/presenceRules';
 import type { WorldState } from '../island/worldState';
 import type { TugInput } from '../progression/profile';
-import { t, type StringKey } from '../text/strings';
+import { countMark, MARK, missMark, type Miss } from '../text/marks';
+import type { NoteNaming } from '../text/noteName';
 import { exchangeResult, tugPrize, tugShare, type TugRules, type TugSetup, type TugState } from './tug';
 
 type Level = 1 | 2 | 3;
@@ -78,21 +79,18 @@ export function tugNeed(state: TugState, rules: TugRules, notes: number): number
   return Math.min(notes, Math.ceil(share * notes - 1e-9));
 }
 
-/** The words of each reason (AX-0.2). */
-const REASON_KEYS: Readonly<Record<TugReason, StringKey>> = {
-  'wrong-octave': 'tug.wrongOctave',
-  'neighbour-key': 'tug.neighbourKey',
-  'wrong-letter': 'tug.wrongLetter',
-  early: 'tug.early',
-  late: 'tug.late',
-};
-
-/** The fact as the character says it: the count, what was needed when the bar was raised, and the reason. */
-export function tugFactLine(fact: TugFact, mode: 'wait' | 'tempo'): string {
-  const parts = [t(mode === 'tempo' ? 'tug.factTempo' : 'tug.fact', { right: fact.right, total: fact.total })];
-  if (fact.need !== undefined) parts.push(t('tug.need', { need: fact.need, total: fact.total }));
-  if (fact.reason !== undefined) parts.push(t(REASON_KEYS[fact.reason]));
-  return parts.join('. ');
+/**
+ * The fact as the character says it, in marks and numbers (d312): the count ("3/5", in Tempo mode "♩3/5" for the notes on
+ * time), what was needed once the bar was raised ("≥5/5"), and the reason: the first wrong key as `missMark` names it
+ * ("E✓ F✗ ½▲", the tug has no staff to show it on), else in Tempo mode early ◀ or late ▶. With no `miss` (a teaching,
+ * whose staff shows the wrong keys) a wrong key's reason is not said.
+ */
+export function tugFactLine(fact: TugFact, mode: 'wait' | 'tempo', miss?: Miss, naming: NoteNaming = 'B'): string {
+  const parts = [`${mode === 'tempo' ? MARK.tempo : ''}${countMark(fact.right, fact.total)}`];
+  if (fact.need !== undefined) parts.push(`${MARK.atLeast}${countMark(fact.need, fact.total)}`);
+  if (miss !== undefined) parts.push(missMark(miss, naming));
+  else if (fact.reason === 'early' || fact.reason === 'late') parts.push(MARK[fact.reason]);
+  return parts.join('  ');
 }
 
 /**

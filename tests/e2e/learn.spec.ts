@@ -229,7 +229,8 @@ test('ft_1_32.AC16 a half-learned piece opened again asks to go on or start over
 
 test('ft_1_32.AC17 the live tempo is off by default; turned on in the settings, the strip at the foot shows the run measured while it is played', async ({ page }) => {
   const errors = await openGame(page, '?device=virtual&learn=1');
-  const live = async () => (await sceneTexts(page, 'practice')).filter((text) => /^(Tempo|Spread) /.test(text));
+  // the pace after ♩, the spread and the wobble each after its icon, their words in the icon's tooltip (d312)
+  const live = () => page.evaluate(() => ((window.__game.scene.getScene('practice') as unknown as { liveLabels: { text: string; visible: boolean }[] | null }).liveLabels ?? []).filter((l) => l.visible).map((l) => l.text));
   await learnPiece(page, 'Little Steps');
   expect(await live()).toEqual([]); // off unless turned on: nothing over the student's staff
   // turned on (the Learning page of the settings saves the same): the screen draws it from then on
@@ -237,23 +238,13 @@ test('ft_1_32.AC17 the live tempo is off by default; turned on in the settings, 
     await window.__game.registry.get('context').profiles.updateLearnSettings({ liveTempo: true });
     (window.__game.scene.getScene('practice') as unknown as { redraw: () => void }).redraw();
   });
-  await expect.poll(live).toEqual(['Tempo -', 'Spread - Wobble -']);
-  // in the slim strip at the foot, never in the top bar: both lines in the screen's lowest tenth, at its right side
+  await expect.poll(live).toEqual(['♩-', '-', '-']);
+  // in the slim strip at the foot, never in the top bar: all in the screen's lowest tenth, at its right side
   const where = await page.evaluate(() => {
-    type Node = { type: string; text?: string; pixelText?: boolean; visible: boolean; list?: Node[]; getBounds?: () => { x: number; y: number; height: number } };
-    const scene = window.__game.scene.getScene('practice') as unknown as { children: { list: Node[] }; scale: { width: number; height: number } };
-    const found: { x: number; y: number; bottom: number }[] = [];
-    const visit = (nodes: Node[]) => {
-      for (const o of nodes) {
-        if (!o.visible) continue;
-        if ((o.type === 'Text' || o.pixelText === true) && /^(Tempo|Spread) /.test(o.text ?? '') && o.getBounds) { const b = o.getBounds(); found.push({ x: b.x, y: b.y, bottom: b.y + b.height }); }
-        if (o.type === 'Container' && o.list) visit(o.list);
-      }
-    };
-    visit(scene.children.list);
-    return { boxes: found, width: scene.scale.width, height: scene.scale.height };
+    const scene = window.__game.scene.getScene('practice') as unknown as { liveLabels: { getBounds: () => { x: number; y: number; height: number } }[]; scale: { width: number; height: number } };
+    return { boxes: scene.liveLabels.map((l) => { const b = l.getBounds(); return { x: b.x, y: b.y, bottom: b.y + b.height }; }), width: scene.scale.width, height: scene.scale.height };
   });
-  expect(where.boxes).toHaveLength(2);
+  expect(where.boxes).toHaveLength(3);
   for (const box of where.boxes) {
     expect(box.y).toBeGreaterThan(where.height * 0.9);
     expect(box.bottom).toBeLessThanOrEqual(where.height);
@@ -262,11 +253,11 @@ test('ft_1_32.AC17 the live tempo is off by default; turned on in the settings, 
   const { midis } = await shown(page);
   expect(midis.length).toBeGreaterThan(3);
   await playWithKeys(page, midis.slice(0, 3));
-  await expect.poll(async () => (await live())[0]).toMatch(/^Tempo \d+$/);
-  expect((await live())[1]).toMatch(/^Spread \d+% Wobble \d+%$/);
+  await expect.poll(async () => (await live())[0]).toMatch(/^♩\d+$/);
+  expect((await live()).slice(1)).toEqual([expect.stringMatching(/^\d+%$/), expect.stringMatching(/^\d+%$/)]);
   // the stats pane no longer holds it
   await page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { toggleStatsPane: () => void }).toggleStatsPane());
-  await expect.poll(async () => (await live()).length).toBe(2);
+  await expect.poll(async () => (await live()).length).toBe(3);
   expectNoErrors(errors);
 });
 

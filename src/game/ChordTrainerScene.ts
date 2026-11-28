@@ -3,12 +3,16 @@ import { CHORD_LIVES, ChordRound, chordLabel, loadChordContent, wrongKeySpelling
 import { levelReached, roundResultLine } from '../core/trainer/trainerResult';
 import { displayText } from '../core/text/language';
 import { noteLabel } from '../core/text/noteName';
+import { notInMark } from '../core/text/marks';
 import { t } from '../core/text/strings';
+import { rankBadge } from './ui/pixel/rankArt';
 import { contextOf } from './context';
 import { C } from './ui/pixel/palette';
 import { heartRow } from './ui/pixel/hearts';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
+import { markChipBitmap } from './ui/pixel/markChip';
+import { PixelImage } from './ui/pixel/PixelObjects';
 import { startScene } from './scenes';
 import { watchKeyBash } from './practice/bashDoor';
 
@@ -39,6 +43,8 @@ export class ChordTrainerScene extends PixelScene {
   private roundCount = 0;
   /** The last key outside the chord, named under the hearts; null after a right chord. */
   private wrong: number | null = null;
+  /** The key not in the chord as its chip shows it ("C#✗"), for tests; null with none. */
+  notInShown: string | null = null;
   private overAtMs: number | null = null;
   /** The level this round's XP took the player up to, shown until the next round; null when it stayed. */
   private level: number | null = null;
@@ -70,19 +76,23 @@ export class ChordTrainerScene extends PixelScene {
     this.sky();
     const state = this.round.state();
     for (const heart of heartRow(this, width, state.lives, CHORD_LIVES)) this.root.add(heart);
+    this.notInShown = null;
+    if (this.wrong === null && state.solved > 0) this.markLine(width / 2, WORDS_Y, [TOOL_ICONS.triad, String(state.solved)]);
+    const name = this.label(0, NAME_Y, chordLabel(this.round.target(), naming), state.over ? C.lock : C.white, { shadow: false });
+    name.setScale(NAME_ZOOM);
+    name.x = Math.floor(width / 2 - name.displayWidth / 2);
     if (this.wrong !== null) {
       // the wrong key spelled on the side of the chord's key: with flats for F or c
       const chord = this.round.target();
       const note = noteLabel(wrongKeySpelling(chord, this.wrong), naming).replace(/(?<=.)b/, '♭');
-      this.label(0, WORDS_Y, t('chords.notIn', { note, chord: chordLabel(chord, naming) }), C.white).centerAt(width / 2);
-    } else if (state.solved > 0) {
-      this.label(0, WORDS_Y, t('chords.solved', { n: state.solved }), C.white).centerAt(width / 2);
+      // the key played, crossed, on a chip right beside the chord's name (d312)
+      this.notInShown = notInMark(note);
+      const chip = markChipBitmap(this.notInShown);
+      this.root.add(new PixelImage(this, Math.min(width - chip.width - 2, name.x + name.displayWidth + 6), Math.round(NAME_Y + (7 * NAME_ZOOM - chip.height) / 2), chip));
     }
-    const name = this.label(0, NAME_Y, chordLabel(this.round.target(), naming), state.over ? C.lock : C.white, { shadow: false });
-    name.setScale(NAME_ZOOM);
-    name.x = Math.floor(width / 2 - name.displayWidth / 2);
-    if (state.over) this.label(0, RESULT_Y, roundResultLine({ unit: 'chords', right: state.solved, xp: state.xp }), C.white).centerAt(width / 2);
-    if (this.level !== null) this.label(0, state.over ? LEVEL_Y : RESULT_Y, t('trainerResult.level', { level: this.level }), C.gold).centerAt(width / 2);
+    if (state.over) this.markLine(width / 2, RESULT_Y, [TOOL_ICONS.triad, roundResultLine({ unit: 'chords', right: state.solved, xp: state.xp })]);
+    // a new level: its rank shield and number (d312)
+    if (this.level !== null) this.markLine(width / 2, state.over ? LEVEL_Y : RESULT_Y, [{ fine: rankBadge(this.level) }, String(this.level)], C.gold);
   }
 
   /** A new round on step `index`: three lives, no XP and a fresh seed. */

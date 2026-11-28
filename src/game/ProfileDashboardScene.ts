@@ -935,7 +935,7 @@ export class ProfileDashboardScene extends PixelScene {
       level: 1,
       rules: trainerRules(TUG_RULES),
       place: { area: { w: this.px.width, h: this.mainRows }, head: this.teacherHead ?? { x: Math.round(this.px.width / 2), y: 20 } },
-      devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome },
+      devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome, naming: context.profiles.noteNaming },
     }, {
       playing: () => undefined,
       ended: () => {
@@ -981,7 +981,7 @@ export class ProfileDashboardScene extends PixelScene {
       level,
       rules: trainerRules(TUG_RULES),
       place: { area: { w: this.px.width, h: this.mainRows }, head },
-      devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome },
+      devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome, naming: context.profiles.noteNaming },
       ...(this.cornerDoor ? { door: this.cornerDoor } : {}),
     }, {
       playing: () => undefined,

@@ -2,7 +2,10 @@ import { keyName } from '../core/editor/key';
 import type { WrongReason } from '../core/judge/types';
 import { layoutForSettings } from '../core/layout/staffSettings';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
-import { SHAPE_LIVES, SHAPE_XP_PER_NOTE, ShapeRound, shapeChart, wrongWordsKey, type ShapeChoice } from '../core/trainer/shapeTrainer';
+import { SHAPE_LIVES, SHAPE_XP_PER_NOTE, ShapeRound, shapeChart, type ShapeChoice } from '../core/trainer/shapeTrainer';
+import { playedMark } from '../core/layout/playedMark';
+import { noteLabel } from '../core/text/noteName';
+import { rankBadge } from './ui/pixel/rankArt';
 import { levelReached, roundResultLine } from '../core/trainer/trainerResult';
 import { switcherChart } from '../core/trainer/scaleSwitcher';
 import chordsJson from '../../content/trainer/chords.json';
@@ -18,8 +21,9 @@ import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
 import { StaffView } from './ui/staff/StaffView';
 import { watchKeyBash } from './practice/bashDoor';
+import { markTipFor } from './markTip';
 
-/** The words under the hearts: the switcher's key, why a key was wrong, or the round's result. */
+/** The line under the hearts: the switcher's key, or the round's result (a wrong key is shown on the staff, d312). */
 const WORDS_Y = 26;
 /** The staff starts under the hearts and the words, in art pixels, and fills the rest of the main area. */
 const STAFF_TOP = 36;
@@ -30,6 +34,8 @@ const AGAIN_PAUSE_MS = 1000;
 /** The live chord name of the keys held (slice D): at the left, level with the words; a new level at the right. */
 const HELD_X = 8;
 const LEVEL_RIGHT = 8;
+/** About half the width of the level's shield and number, to centre them. */
+const LEVEL_HALF = 10;
 const CHORDS = loadChordContent(chordsJson);
 
 /**
@@ -56,6 +62,10 @@ export class ShapeTrainerScene extends PixelScene {
   private staff: StaffView | null = null;
   /** The last key was wrong: its reason, and the names stand on the notes; null until then. */
   private wrong: { reason: WrongReason; direction: 'higher' | 'lower' } | null = null;
+  /** The wrong key on the staff beside the awaited note (d312), until the next right key. */
+  private playedWrong: { midi: number; reason: WrongReason } | null = null;
+  /** The one-time tip naming the mark just shown, until the next press (d312); null with none. */
+  markTip: string | null = null;
   /** The level this round's XP took the player up to, shown until the next round; null when it stayed. */
   private level: number | null = null;
   private overAtMs: number | null = null;
@@ -99,11 +109,10 @@ export class ShapeTrainerScene extends PixelScene {
     else if (this.switcher) {
       // the key of the bar the cursor is in: the name changes as the bar does (AC3)
       this.label(0, WORDS_Y, keyName(this.keyOnScreen(), 'major', profiles.noteNaming), C.white).centerAt(width / 2);
-    } else if (this.wrong) this.label(0, WORDS_Y, t(wrongWordsKey(this.wrong.reason, this.wrong.direction)), C.white).centerAt(width / 2);
-    if (this.level !== null) {
-      const level = this.label(0, WORDS_Y, t('trainerResult.level', { level: this.level }), C.gold);
-      level.x = width - LEVEL_RIGHT - level.width;
     }
+    if (state.outcome === 'playing' && this.markTip !== null) this.markTipAt(width / 2, WORDS_Y + 10, this.markTip);
+    // a new level: its rank shield and number at the right (d312)
+    if (this.level !== null) this.markLine(width - LEVEL_RIGHT - LEVEL_HALF, WORDS_Y, [{ fine: rankBadge(this.level) }, String(this.level)], C.gold);
 
     const top = this.mainTop + STAFF_TOP * scale;
     const height = Math.max(1, (this.mainRows - STAFF_TOP - 4) * scale);
@@ -111,12 +120,18 @@ export class ShapeTrainerScene extends PixelScene {
     const layout = layoutForSettings(this.round.chart, options, profiles.staffSettings);
     this.staff = new StaffView(this, layout, undefined, { noteNames: this.wrong !== null, fingers: false }, { x: 0, y: top }, []);
     this.staff.applyProgress(play.noteProgress, play.awaiting);
+    // the wrong key as practice shows it: its ghost beside the awaited note with its name and sharp or flat, an 8 for an octave off
+    if (this.playedWrong) {
+      const mark = playedMark(layout, this.round.chart, play.awaiting, this.playedWrong.midi);
+      this.staff.setPlayed(mark, mark ? noteLabel(mark.spelling, profiles.noteNaming) : '', this.playedWrong.reason === 'wrong-octave');
+    }
     if (this.held) this.label(HELD_X, WORDS_Y, chordLabel(this.held, profiles.noteNaming), C.white);
   }
 
   /** A new round of the current choice: three lives, no XP, the cursor on the first note. */
   private startRound(): void {
     this.wrong = null;
+    this.playedWrong = null;
     this.overAtMs = null;
     this.stopListening();
     this.roundCount += 1;
@@ -150,9 +165,16 @@ export class ShapeTrainerScene extends PixelScene {
         if (heldChanged) this.redraw();
         return;
       }
-      if (result.verdict === 'wrong') this.wrong = { reason: result.reason, direction: result.direction };
-      // the XP of a right note is saved at once, so a lost round cannot take it away
-      else if (result.verdict === 'correct') this.addXp(SHAPE_XP_PER_NOTE);
+      // the 8 of a wrong octave is named in words the first time this player sees it (d312)
+      this.markTip = result.verdict === 'wrong' && result.reason === 'wrong-octave' ? markTipFor(this, 'octave') : null;
+      if (result.verdict === 'wrong') {
+        this.wrong = { reason: result.reason, direction: result.direction };
+        this.playedWrong = { midi: result.midi, reason: result.reason };
+      } else if (result.verdict === 'correct') {
+        this.playedWrong = null;
+        // the XP of a right note is saved at once, so a lost round cannot take it away
+        this.addXp(SHAPE_XP_PER_NOTE);
+      }
       if (this.round.state().outcome !== 'playing') this.overAtMs = performance.now();
       this.redraw();
       if (result.verdict === 'wrong') this.flash();

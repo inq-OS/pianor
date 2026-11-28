@@ -286,7 +286,7 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d304](game.md#d304) | Kiur teaches the theory lessons in at most twelve stoic words a step, naming and pointing rather than describing; the first lessons are half steps, whole steps and the major scale | ft_1_39 |
 | [d305](game.md#d305) | The theory lessons' order is a skill tree of prerequisites over the catalog ids, cut into stages, with nothing locked | ft_1_39 |
 | [d306](notation.md#d306) | Trills, mordents, turns and grace groups are read, drawn and heard, and stay optional for the student: playing their notes is never wrong and never needed | core_09 |
-| [d307](game.md#d307) | A tug or a teaching is left by the corner Back as by Esc, nudges an idle turn once, and names why each wrong phrase missed | ft_1_21, ft_1_22 |
+| [d307](game.md#d307) | A tug or a teaching is left by the corner Back as by Esc, nudges an idle turn once, and marks why each wrong phrase missed | ft_1_21, ft_1_22 |
 | [d308](game.md#d308) | A player's name takes the Estonian letters with Q, W, X and Y, and one space or hyphen between letters; the name box asks "Your name?" | ft_1_07 |
 | [d309](game.md#d309) | In the room Esc never leaves for the player list; the corner Back asks "Change player?" once, with Yes and No, before going there | ft_1_07, ft_1_20 |
 | [d310](game.md#d310) | What is said in the room stands on a plate near its speaker with a small next mark; a press on a room object during a line closes the line and does what was pressed, and the teacher waits in the doorway until her check-up is played | ft_1_27, ft_1_34 |

@@ -11,7 +11,10 @@ import { contextOf } from './context';
 import { watchKeyBash } from './practice/bashDoor';
 import { drawMedalClef } from './practice/prizeGlyphs';
 import { C } from './ui/pixel/palette';
-import { PixelText } from './ui/pixel/PixelObjects';
+import { PixelImage, PixelText } from './ui/pixel/PixelObjects';
+import { createBitmap, type Bitmap } from './ui/pixel/bitmap';
+import { keyPictogram, type KeyPictogram } from '../core/layout/keyPictogram';
+import { MARK } from '../core/text/marks';
 import { markLabelX, markSides } from '../core/layout/lessonMarks';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { ICONS } from './ui/pixel/iconArt';
@@ -134,7 +137,8 @@ export class LessonScene extends PixelScene {
     const { profiles, lights } = contextOf(this);
     this.sky();
     const step = this.run.step();
-    this.label(0, LINE_Y, t(this.lineKey(step), this.lineParams()), C.white).centerAt(width / 2);
+    // the step's line in marks (d312): the ear for Show, listen again for Copy, ½▲ or 1▲ for a step, ▶ for Play-along
+    this.markLine(width / 2, LINE_Y, this.lineParts(step), C.white);
     this.drawTrack(step);
     lights.setLitKeys(this.showing === null ? this.run.lit() : this.showNotes().slice(this.showing, this.showing + 1));
 
@@ -160,7 +164,7 @@ export class LessonScene extends PixelScene {
       for (let i = 0; i < chart.notes.length; i++) this.staff.setNoteState(i, step !== 'show' && i < now.played ? 'correct' : 'pending');
       this.staff.setCursor(at < chart.notes.length ? [at] : null);
       if (wrong) this.staff.flashWrong([at]);
-      this.drawMarks(layout, top, now.marks);
+      this.drawMarks(layout, top, now.marks, step === 'show');
     }
     if (performance.now() < this.cardUntil) this.drawPitfallCard();
   }
@@ -178,7 +182,7 @@ export class LessonScene extends PixelScene {
   }
 
   /** The marks above the staff: a bracket over the two notes and its name over it, in the mark's colour (on the layer over the staff). */
-  private drawMarks(layout: StaffLayout, top: number, marks: readonly { from: number; to: number; kind: 'half' | 'whole' }[]): void {
+  private drawMarks(layout: StaffLayout, top: number, marks: readonly { from: number; to: number; kind: 'half' | 'whole' }[], words: boolean): void {
     if (marks.length === 0) return;
     const layer = this.overStaff();
     const k = 1 / this.px.scale;
@@ -191,7 +195,10 @@ export class LessonScene extends PixelScene {
     const placed = marks.flatMap((mark) => {
       const a = layout.notes.find((n) => n.index === mark.from), b = layout.notes.find((n) => n.index === mark.to);
       if (!a || !b) return [];
-      const label = new PixelText(this, 0, 0, t(mark.kind === 'half' ? 'lessons.mark.half' : 'lessons.mark.whole'), { color: mark.kind === 'half' ? C.red : C.blue });
+      // the term in words where the lesson teaches it (Show), its mark after: ½ or 1 (d312)
+      // AX-3 provisional: the words stay in Show only; TODO(architect) in ft_1_39
+      const text = words ? t(mark.kind === 'half' ? 'lessons.mark.half' : 'lessons.mark.whole') : mark.kind === 'half' ? MARK.half : MARK.whole;
+      const label = new PixelText(this, 0, 0, text, { color: mark.kind === 'half' ? C.red : C.blue });
       return [{ mark, a, b, label, from: Math.round(a.x * k - S * 0.3), to: Math.round(b.x * k + S * 0.3), width: label.width }];
     });
     const sides = markSides(placed);
@@ -254,17 +261,26 @@ export class LessonScene extends PixelScene {
     }
   }
 
-  /** The pitfall card over the staff: its line on a parchment card. */
+  /**
+   * The pitfall card over the staff (d312): the step as keys, the pitfall's first marked pair lit on a few keys drawn small
+   * (E and F with no black key between them), and the step's mark beside them in its colour.
+   */
   private drawPitfallCard(): void {
     const { width } = this.px;
-    const w = Math.min(width - 16, 160), h = 22;
+    const { pitfall } = this.lesson;
+    const mark = pitfall.marks[0];
+    const keys = mark ? keyPictogram(pitfall.notes[mark.from]!, pitfall.notes[mark.to]!) : null;
+    const w = Math.min(width - 16, 96), h = (keys?.height ?? 8) + 8;
     const rect = { x: Math.floor((width - w) / 2), y: STAFF_TOP - 6, w, h };
     const layer = this.overStaff();
-    const card = this.parchmentCard(rect, 3);
-    layer.add(card);
-    const line = new PixelText(this, 0, 0, t(this.lesson.pitfall.line as StringKey), { color: C.redDark, maxWidth: w - 12 });
-    line.setPosition(Math.round(width / 2 - line.width / 2), rect.y + Math.round((h - line.height) / 2));
-    layer.add(line);
+    layer.add(this.parchmentCard(rect, 3));
+    if (!keys || !mark) return;
+    const sign = new PixelText(this, 0, 0, mark.kind === 'half' ? MARK.half : MARK.whole, { color: mark.kind === 'half' ? C.red : C.blue });
+    const total = sign.width + 4 + keys.width;
+    const x = Math.round(width / 2 - total / 2), y = rect.y + 4;
+    sign.setPosition(x, y + Math.round((keys.height - sign.height) / 2));
+    layer.add(sign);
+    layer.add(new PixelImage(this, x + sign.width + 4, y, pictogramBitmap(keys)).setName('pitfallKeys'));
   }
 
   /** The check's result: its medal as a clef in gold, silver or bronze, and the first-try count in the line above. */
@@ -275,13 +291,17 @@ export class LessonScene extends PixelScene {
     this.own(drawMedalClef(this, medal, { x: this.scale.width / 2, y: this.mainTop + (this.mainRows / 2) * this.px.scale }, S).setDepth(OVER_DEPTH));
   }
 
-  private lineKey(step: LessonStep): StringKey {
+  /** The step's line as marks and icons (d312): Show the ear, Copy listen again, a scale's try the scale icon before ▲. */
+  private lineParts(step: LessonStep): (string | Bitmap)[] {
     const { lesson } = this;
-    const own: Record<LessonStep, string> = {
-      show: lesson.show.line, copy: 'lessons.line.copy', pitfall: lesson.pitfall.line, try: lesson.try.line,
-      playAlong: 'lessons.line.playAlong', check: lesson.check.line, done: 'lessons.line.done',
+    if (step === 'show') return [ICONS.ear];
+    if (step === 'copy') return [TOOL_ICONS.listenRepeat];
+    const own: Record<Exclude<LessonStep, 'show' | 'copy'>, string> = {
+      pitfall: lesson.pitfall.line, try: lesson.try.line, playAlong: 'lessons.line.playAlong', check: lesson.check.line, done: 'lessons.line.done',
     };
-    return own[step] as StringKey;
+    const text = t(own[step] as StringKey, this.lineParams());
+    const scale = (step === 'try' || step === 'check') && lesson[step].items.kind === 'majorScale';
+    return scale ? [TOOL_ICONS.scale, text] : [text];
   }
 
   private lineParams(): Record<string, number> {
@@ -380,4 +400,17 @@ export class LessonScene extends PixelScene {
     const area = LESSON_CATALOG.areas.findIndex((a) => a.topics.some((topic) => topic.id === this.lesson.topic));
     startScene(this, 'lessonBook', { area: Math.max(0, area) });
   }
+}
+
+/** The keys of a pitfall card as a bitmap: white keys in cream with an ink edge, black keys in ink, the two lit ones gold. */
+function pictogramBitmap(p: KeyPictogram): Bitmap {
+  const b = createBitmap(p.width, p.height);
+  const fill = (x: number, y: number, w: number, h: number, colour: number) => {
+    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) if (xx >= 0 && xx < b.width && yy >= 0 && yy < b.height) b.pixels[yy * b.width + xx] = colour;
+  };
+  for (const key of p.keys) {
+    fill(key.x, 0, key.w, key.h, C.ink);
+    fill(key.x + 1, 0, key.w - 2, key.h - 1, key.lit ? (key.black ? C.goldDark : C.gold) : key.black ? C.ink : C.cream);
+  }
+  return b;
 }

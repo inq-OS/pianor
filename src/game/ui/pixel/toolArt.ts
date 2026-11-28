@@ -7,7 +7,7 @@ import { C } from './palette';
  * hints; for the editor's toolbar (d088) a floppy disk for Save and an arrow into or out of a tray for Import and
  * Export; a loop for start over and the trainers' new round, an ear with a loop for the ear trainer's repeat, stairs for the note trainer's step, and undo, redo, a bin, play, stop, backspace and a tick for the piece maker and the name box. Original, drawn for this project (the Kenney pack page refused the download, and these are a few pixels each). Each fits inside a 14 pixel bar button with its frame (10 rows at most).
  */
-export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'listenRepeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'speed' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort' | 'hide' | 'pointerFollow' | 'pointerStill' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen' | 'head' | 'songs' | 'folded' | 'unfolded' | 'link' | 'blank' | 'add' | 'slower' | 'faster' | 'rename' | 'move' | 'meter' | 'write' | 'learnGraph';
+export type ToolIconId = 'wait' | 'follow' | 'tempo' | 'tempoFirstNote' | 'autoReset' | 'click' | 'section' | 'noteNames' | 'noteNamesOn' | 'fingers' | 'save' | 'importFile' | 'exportFile' | 'repeat' | 'listenRepeat' | 'steps' | 'statsPane' | 'undo' | 'redo' | 'trash' | 'play' | 'stop' | 'backspace' | 'tick' | 'pieces' | 'copy' | 'paste' | 'tie' | 'tiePick' | 'tieAll' | 'slur' | 'slurPick' | 'grace' | 'circle' | 'more' | 'close' | 'analyse' | 'staff' | 'shortTap' | 'timePanel' | 'speed' | 'spread' | 'wobble' | 'scale' | 'triad' | 'handLeft' | 'handRight' | 'bug' | 'learn' | 'sectionShort' | 'hide' | 'pointerFollow' | 'pointerStill' | 'orderBook' | 'orderAchieved' | 'orderDeadline' | 'orderTitle' | 'orderRecent' | 'order' | 'teacherHat' | 'bookOpen' | 'head' | 'songs' | 'folded' | 'unfolded' | 'link' | 'blank' | 'add' | 'slower' | 'faster' | 'rename' | 'move' | 'meter' | 'write' | 'learnGraph';
 
 const LEGEND = { k: C.ink, w: C.white, g: C.gold, G: C.goldDark, s: C.skin } as const;
 
@@ -219,6 +219,10 @@ export const TOOL_ICONS: Readonly<Record<ToolIconId, Bitmap>> = {
   analyse: art(['..wwww....', '.w....w...', 'w......w..', 'w.w..w.w..', 'w..ww..w..', 'w......w..', '.w....w...', '..wwwwww..', '.......ww.', '........ww']),
   /** The tempo's percent: a gauge with its needle, beside the number (BPM in the tooltip). */
   speed: art(['..www..', '.w...w.', 'w...w.w', 'w..w..w', 'wwwwwww']),
+  // a learning run's live readings in the foot strip (ft_1_32.AC17, d312), their words in the tooltip: the spread of the
+  // gaps between notes (arrows apart), the wobble of the beat (a wave). Drawn here: no pack has these.
+  spread: art(['.w...w.', 'ww...ww', 'wwwwwww', 'ww...ww', '.w...w.']),
+  wobble: art(['.w...w...w.', 'w.w.w.w.w.w', '...w...w...']),
   /** The shape trainer's scale: five note heads climbing. */
   scale: art(['............ww', '............ww', '.........ww...', '.........ww...', '......ww......', '...ww.ww......', '...ww.........', 'ww............', 'ww............']),
   /** The shape trainer's triad: three heads stacked on one stem. */

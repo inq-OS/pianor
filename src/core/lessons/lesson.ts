@@ -2,7 +2,7 @@
  * A theory lesson as content (ft_1_39): the catalog topic it teaches, the topics it needs (d305), and its six steps. Show
  * is what Kiur plays (Copy asks the same notes back), Pitfall the classic mistake played once, Try and Check items made by a
  * generator, Play-along a short tune with the idea marked. Every line is a string key (d304: at most twelve words, naming and
- * pointing). A mark ties two of a step's notes and names what lies between them (a half or a whole step). Pure: no DOM, no
+ * pointing; while the student plays a mark or a number, d312). Show has no line: the ear icon says it (d312). A mark ties two of a step's notes and names what lies between them (a half or a whole step). Pure: no DOM, no
  * engine. Never saved.
  */
 import { z } from 'zod';
@@ -27,7 +27,7 @@ const lessonSchema = z
     id: z.string().regex(/^[a-z0-9-]+$/),
     topic: z.string().min(1),
     needs: z.array(z.string().min(1)),
-    show: notesStep,
+    show: notesStep.extend({ line: z.string().min(1).optional() }),
     pitfall: notesStep.extend({ reason: z.enum(['wrong-octave', 'neighbour-key', 'wrong-letter']) }),
     try: z.object({ line: z.string().min(1), items: itemsSchema }),
     playAlong: notesStep,
@@ -61,7 +61,7 @@ export function loadLessons(jsons: readonly unknown[], catalog: Catalog, isKey: 
     if (taught.has(lesson.topic)) throw new Error(`lesson ${lesson.id}: a lesson for ${lesson.topic} exists already`);
     taught.add(lesson.topic);
     for (const line of [lesson.show.line, lesson.pitfall.line, lesson.try.line, lesson.playAlong.line, lesson.check.line]) {
-      if (!isKey(line)) throw new Error(`lesson ${lesson.id}: the line ${line} has no string key`);
+      if (line !== undefined && !isKey(line)) throw new Error(`lesson ${lesson.id}: the line ${line} has no string key`);
     }
     for (const step of [lesson.show, lesson.pitfall, lesson.playAlong]) {
       for (const mark of step.marks) {

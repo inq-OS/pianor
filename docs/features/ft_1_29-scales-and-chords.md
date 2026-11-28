@@ -18,7 +18,7 @@ AX-0: each slice makes the student play the notes, not only see them. Key data (
 | Slice | What | Effort |
 |---|---|---|
 | A | **Play a scale or chord.** Pick a key (major or minor) and a shape: the scale one octave up and down, or the triad. It is shown on the grand staff and played in Wait mode like a piece (a generated chart, the `scale` generator's rules); names on the notes only after a wrong press (ft_0_17.AC1) | simple |
-| B | **Chord from its name.** A chord name stands large (C, Am, G, then sevenths); the student plays it, any inversion, any octave in the level's range, the notes held together. A wrong press says which note is not in the chord. Steps as content: triads on white keys first, then all twelve, then sevenths; a later step shows one note on the staff that must be in the chord (the key must be part of the chord, read from the staff instead of a light, AX-0.1) | medium |
+| B | **Chord from its name.** A chord name stands large (C, Am, G, then sevenths); the student plays it, any inversion, any octave in the level's range, the notes held together. A wrong press shows which note is not in the chord, crossed on a paper chip beside the chord name ("C#✗", d312). Steps as content: triads on white keys first, then all twelve, then sevenths; a later step shows one note on the staff that must be in the chord (the key must be part of the chord, read from the staff instead of a light, AX-0.1) | medium |
 | C | **Scale switcher.** The student plays a scale up and down without stopping; every bar the name changes (first around the circle, C to G to D, then at random) and the cursor waits for the next note of the new scale | medium |
 | D | **Chord namer.** A pure `nameChord(pitches)` with the chord dictionary as content (`schemaVersion`), shown live for the keys held on slice A's screen and for the chord under the cursor in the piece maker (names like Em7♭5; letters follow the B or H setting) | medium |
 
@@ -27,7 +27,7 @@ Key names in Estonian follow the way Estonian music teaching writes them (C-duur
 ## Slice A as built
 
 - The stand's panel has a third picture, three steps with a note on each (`scaleSteps` in `standArt.ts`), which opens `ShapeTrainerScene`; the rules are `src/core/trainer/shapeTrainer.ts` (`shapeChart`, `ShapeRound` around `WaitMode`).
-- The toolbar holds the key (the circle of fifths opened to choose), the shape (scale or triad) and the hand (the hand's picture with Right or Left); each change starts a new round. A wrong key flashes the awaited note, puts the names on the notes and says why in words (right letter but wrong octave; the key next door or a wrong letter, too high or too low; `wrongWordsKey`); when the round ends, won or lost, one line says how many of its notes were right and the XP (`roundResultLine` in `src/core/trainer/trainerResult.ts`, kept general so the note-name trainer can share it), and a level the XP reached shows as "Level N" until the next round; a right note's XP (10) goes at once to the trainer XP of ft_0_17, which the player's card now calls XP from theory.
+- The toolbar holds the key (the circle of fifths opened to choose), the shape (scale or triad) and the hand (the hand's picture with Right or Left); each change starts a new round. A wrong key flashes the awaited note, puts the names on the notes and draws the key played as a named ghost note beside it, with an 8 after it for a wrong octave (d312: a mark, no words); when the round ends, won or lost, the right notes and the XP show as numbers, "9/15  +90 XP" (`roundResultLine` in `src/core/trainer/trainerResult.ts`, kept general so the note-name trainer can share it), and a level the XP reached shows as its badge and number until the next round; a right note's XP (10) goes at once to the trainer XP of ft_0_17, which the player's card now calls XP from theory.
 - `AX-3 provisional:` the scale is one octave up and down in quarters with a long last tonic, the natural minor for a minor key; the triad is its three notes one by one, then together. The right hand plays from octave 4 on the treble staff, the left hand on the bass staff from octave 3 (tonics C to E) or 2 (F to B), one staff at a time rather than the grand staff. TODO(architect, R2): ask the maintainer after a week of use whether the harmonic and melodic minor, both hands together or the grand staff are wanted.
 
 ## Slice B as built
@@ -51,7 +51,7 @@ Key names in Estonian follow the way Estonian music teaching writes them (C-duur
 
 ## Acceptance criteria
 
-- **ft_1_29.AC1** Slice A: a chosen key and shape is shown on the staff and judged in Wait mode; a wrong press costs a life and says why; XP earned is kept on a loss.
+- **ft_1_29.AC1** Slice A: a chosen key and shape is shown on the staff and judged in Wait mode; a wrong press costs a life and shows why on the staff; XP earned is kept on a loss.
 - **ft_1_29.AC2** Slice B: every chord of a step is accepted in any inversion and octave inside the range, and only with all its notes held; a wrong note names itself.
 - **ft_1_29.AC3** Slice C: after each bar the scale name changes and the next awaited note belongs to the new scale.
 - **ft_1_29.AC4** Slice D: `nameChord` names every triad and seventh chord of the dictionary in every inversion (property test), and says nothing for a set it does not know.

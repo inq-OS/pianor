@@ -26,7 +26,7 @@ describe('lessons as content (ft_1_39.AC6)', () => {
 
   it('refuses two lessons for one topic, a line with no string key, a mark past its notes and another version', () => {
     expect(() => loadLessons([halfStep, { ...halfStep, id: 'again' }], catalog, known)).toThrow(/D1/);
-    expect(() => loadLessons([{ ...halfStep, show: { ...halfStep.show, line: 'lessons.no.such.line' } }], catalog, known)).toThrow(/lessons\.no\.such\.line/);
+    expect(() => loadLessons([{ ...halfStep, playAlong: { ...halfStep.playAlong, line: 'lessons.no.such.line' } }], catalog, known)).toThrow(/lessons\.no\.such\.line/);
     expect(() => loadLessons([{ ...halfStep, show: { ...halfStep.show, marks: [{ from: 0, to: 99, kind: 'half' }] } }], catalog, known)).toThrow(/mark/);
     expect(() => loadLessons([{ ...halfStep, schemaVersion: 2 }], catalog, known)).toThrow();
     expect(() => loadLessons([{ ...halfStep, show: { ...halfStep.show, marks: [{ from: 0, to: 1, kind: 'half' }] } }], catalog, known)).toThrow(/half step mark/);

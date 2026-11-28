@@ -5,6 +5,11 @@ import { loadTrainerSteps, rangeOf } from '../core/trainer/steps';
 import { noteTrainerLayout } from '../core/trainer/staffFrame';
 import { displayText } from '../core/text/language';
 import { t } from '../core/text/strings';
+import { noteLabel } from '../core/text/noteName';
+import { trainerChart } from '../core/trainer/noteChart';
+import { playedMark } from '../core/layout/playedMark';
+import { rankBadge } from './ui/pixel/rankArt';
+import { SPARKLE } from './ui/pixel/sprites';
 import { contextOf } from './context';
 import { C } from './ui/pixel/palette';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
@@ -15,8 +20,9 @@ import { openOverlay, startScene } from './scenes';
 import { circleItem } from './CircleOfFifthsScene';
 import { staffSpaceLimits } from '../core/layout/canvasSize';
 import { watchKeyBash } from './practice/bashDoor';
+import { markTipFor } from './markTip';
 
-/** The one line under the hearts: the round's result once it is over, else "right letter, wrong octave" after that miss, else a new player level. */
+/** The one line under the hearts: the round's result once it is over, else a new player level. */
 const LINE_Y = 26;
 /** The staff starts under the hearts and the words, in art pixels, and fills the rest of the main area. */
 const STAFF_TOP = 36;
@@ -43,7 +49,9 @@ export class NoteTrainerScene extends PixelScene {
   private round!: TrainerRound;
   private staff: StaffView | null = null;
   /** The last press was wrong: the shown note's name stands on it; null after a right press (AC1). */
-  private wrong: { reason: string } | null = null;
+  private wrong: { reason: string; midi: number } | null = null;
+  /** The one-time tip naming the mark just shown, until the next press (d312); null with none. */
+  markTip: string | null = null;
   /** When the round ended, on `performance.now()` (ms); null while it runs. */
   private overAtMs: number | null = null;
   private unsubscribe: (() => void) | null = null;
@@ -89,12 +97,11 @@ export class NoteTrainerScene extends PixelScene {
     this.shownHearts = { lit: this.round.lives, total };
     for (const heart of heartRow(this, width, this.round.lives, total)) this.root.add(heart);
 
-    // one line under the hearts: the round's result once it is over (AC11), else the words for a wrong octave, else a new level (AC12)
-    // AX-3 provisional: which misses get words; chose only the wrong octave (as the ear trainer), because the name on the note already shows a wrong letter or a neighbour key (AX-0.2, AX-2)
-    const line = this.round.over ? roundResultLine({ unit: 'notes', right: this.round.found, xp: this.round.xp })
-      : this.wrong?.reason === 'wrong-octave' ? t('theory.wrongOctave')
-        : this.levelUp !== null ? t('results.levelUp', { level: this.levelUp }) : null;
-    if (line !== null) this.label(0, LINE_Y, line, C.white).centerAt(width / 2);
+    // one line under the hearts: the round's result once it is over (AC11), else a new level (AC12): the rank shield with
+    // its number and a sparkle (d312: no sentence; a wrong key is shown on the staff)
+    if (this.round.over) this.label(0, LINE_Y, roundResultLine({ unit: 'notes', right: this.round.found, xp: this.round.xp }), C.white).centerAt(width / 2);
+    else if (this.levelUp !== null) this.markLine(width / 2, LINE_Y, [SPARKLE, { fine: rankBadge(this.levelUp) }, String(this.levelUp), SPARKLE], C.gold);
+    else if (this.markTip !== null) this.markTipAt(width / 2, LINE_Y, this.markTip);
 
     this.drawStaff(profiles);
   }
@@ -108,6 +115,11 @@ export class NoteTrainerScene extends PixelScene {
     // the same staff for every note and for the steps of the same size, so it never moves under the student (ft_0_17.AC7)
     const layout = noteTrainerLayout(this.round.target, steps.map(rangeOf), this.stepIndex, options, profiles.staffSettings);
     this.staff = new StaffView(this, layout, undefined, { noteNames: this.wrong !== null, fingers: false }, { x: 0, y: top }, []);
+    // a wrong key stands beside the note as practice shows it (d312): the played key's ghost with its name, an 8 for an octave off
+    if (this.wrong) {
+      const mark = playedMark(layout, trainerChart(this.round.target, rangeOf(steps[this.stepIndex]!)), [0], this.wrong.midi);
+      this.staff.setPlayed(mark, mark ? noteLabel(mark.spelling, profiles.noteNaming) : '', this.wrong.reason === 'wrong-octave');
+    }
   }
 
   /** A new round on step `index`: three lives, no XP and a fresh seed. Choosing the step again starts over too. */
@@ -170,8 +182,10 @@ export class NoteTrainerScene extends PixelScene {
   private press(midi: number, atMs: number): PressVerdict {
     const result = pressKey(this.round, midi, atMs);
     if (result.verdict === 'over' || result.verdict === 'joined') return result.verdict;
+    // the 8 of a wrong octave is named in words the first time this player sees it (d312)
+    this.markTip = result.verdict === 'wrong' && result.reason === 'wrong-octave' ? markTipFor(this, 'octave') : null;
     if (result.verdict === 'wrong' && result.reason) {
-      this.wrong = { reason: result.reason };
+      this.wrong = { reason: result.reason, midi };
     } else if (result.verdict === 'correct') {
       this.wrong = null;
       // the XP of a right name is saved at once, so a new round cannot take it away (ft_0_17.AC3); a name given away earns none (AC9)

@@ -19,8 +19,7 @@ async function press(page: Page, key: string): Promise<void> {
 
 /** The words a song puts on the practice staff: its part names and its folds (ft_1_36 rule 7). */
 const staffWords = (page: Page) => page.evaluate(() => {
-  const view = (window.__game.scene.getScene('practice') as unknown as { playSession: { view: { partTexts: { text: { text: string } }[] } } }).playSession.view;
-  return view.partTexts.map((p) => p.text.text);
+  return (window.__game.scene.getScene('practice') as unknown as { playSession: { view: { partMarksShown: string[] } } }).playSession.view.partMarksShown;
 });
 
 /** The song map over the practice staff (ft_1_36 rule 8): its blocks, the lit one, whether a page frame is drawn, and the staff's page. */
@@ -164,7 +163,7 @@ test.describe('songs made of pieces', () => {
     await openSongPage(page);
     await clickButton(page, 'song', await sceneButton(page, 'song', 'Play Morning Song'));
     await waitForScene(page, 'practice');
-    expect(await staffWords(page)).toEqual(['Intro', 'Outro', 'Verses and chorus, bars 13 to 70, not written yet']);
+    expect(await staffWords(page)).toEqual(['Intro', 'Outro', 'Verses and chorus 13-70 …']);
     expect((await practising(page)).id).toBe('song:morning-song');
     // Back leads to the song page the play started from, not the piece book
     await page.keyboard.press('Escape');
@@ -178,7 +177,7 @@ test.describe('songs made of pieces', () => {
     const some = await practising(page);
     expect(some.bars).toBe(12);
     expect(some.id).not.toBe('song:morning-song');
-    expect(await staffWords(page)).toContain('Outro, bars 71 to 82, off');
+    expect(await staffWords(page)).toContain('Outro 71-82 ✗');
     expectNoErrors(errors);
   });
 

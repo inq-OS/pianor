@@ -9,6 +9,8 @@ import { BOARD_ROWS } from '../../core/layout/frame';
 import { lineSpot } from '../../core/layout/talk';
 import type { Rect } from '../../core/layout/rect';
 import { ragPlace, risingNotes, TUG, tugBoard, turnNoteBob } from '../../core/layout/tug';
+import { taughtMarkOf, type Miss } from '../../core/text/marks';
+import type { NoteNaming } from '../../core/text/noteName';
 import { strings, t, type StringKey } from '../../core/text/strings';
 import type { MetronomeSound, PianoSound, SongClock } from '../../io/audio';
 import type { KeyboardInput } from '../../io/keyboard';
@@ -16,6 +18,8 @@ import { PracticeController } from '../practice/PracticeController';
 import { ChartPlayer } from '../preview/ChartPlayer';
 import { PixelImage } from '../ui/pixel/PixelObjects';
 import { motionAllowed } from '../motion';
+import { markChipBitmap, markTipBitmap } from '../ui/pixel/markChip';
+import { markTipFor } from '../markTip';
 import { spokenLine, spokenPages, talkColour } from '../ui/pixel/talkArt';
 import { outlinedNote, RAG_KNOT, TOKEN_SIZE, tugBoardPicture, tugRag, tugToken } from '../ui/pixel/tugArt';
 import type { TalkPlace } from './talkView';
@@ -23,6 +27,8 @@ import { NUDGE_MS, overlayCatcher } from './overlayExit';
 
 /** How long the fact after a student's phrase stays before the next turn, and the pause after the character's phrase. */
 const FACT_MS = 2500;
+/** Half a beat of the student's token pulsing after a wait with no key. */
+const PULSE_MS = 400;
 const AFTER_PHRASE_MS = 400;
 /** The rag's tails lift in the draught every so often, and still when motion is off. */
 const RAG_FLAP_MS = 700;
@@ -34,6 +40,8 @@ export interface TugDevices {
   readonly clock: SongClock;
   readonly keyboard: KeyboardInput;
   readonly metronome: MetronomeSound;
+  /** The player's letter naming, for the notes a wrong key's mark names (d312); B when not given. */
+  readonly naming?: NoteNaming;
 }
 
 export interface TugHandlers {
@@ -64,6 +72,10 @@ export class TugView {
   private readonly objects: Phaser.GameObjects.GameObject[] = [];
   /** What the character says now (a fact or its closing line), or nothing. */
   private saying: string | null = null;
+  /** The saying is the fact of an exchange (marks on a chip), not the character's closing line. */
+  private sayingFact = false;
+  /** The one-time tip naming the fact's mark (d312); null with none. */
+  private factTip: string | null = null;
   private closing = false;
   /** The page of a long line shown now: a press on the closing line turns to the next before it ends the view. */
   private page = 0;
@@ -84,6 +96,8 @@ export class TugView {
   /** The student's turn waits with no note played: the character says once whose turn it is. */
   private nudge: Phaser.Time.TimerEvent | null = null;
   private nudged = false;
+  /** The student's turn waited a while with no key: their token pulses until a key (d312: no line). */
+  private pulsing = false;
 
   private constructor(
     private readonly scene: Phaser.Scene,
@@ -128,8 +142,8 @@ export class TugView {
   }
 
   /** What the tug shows now, for the tests and the self-playing demo. */
-  get view(): { who: 'character' | 'student' | null; turn: number; standing: number; outcome: TugState['outcome']; saying: string | null; page: number; closing: boolean; level: 1 | 2 | 3; mode: 'wait' | 'tempo' } {
-    return { who: this.playingNow, turn: this.state.turn, standing: this.state.standing, outcome: this.state.outcome, saying: this.saying, page: this.page, closing: this.closing, level: this.level, mode: this.mode };
+  get view(): { who: 'character' | 'student' | null; turn: number; standing: number; outcome: TugState['outcome']; saying: string | null; page: number; closing: boolean; level: 1 | 2 | 3; mode: 'wait' | 'tempo'; nudging: boolean } {
+    return { who: this.playingNow, turn: this.state.turn, standing: this.state.standing, outcome: this.state.outcome, saying: this.saying, page: this.page, closing: this.closing, level: this.level, mode: this.mode, nudging: this.pulsing };
   }
 
   /** Tempo mode: when the student's phrase plays (song time of its tick), for the tests and the self-playing demo. */
@@ -275,32 +289,34 @@ export class TugView {
   private listen(phrase: Chart, mode: WaitMode | TempoMode): void {
     this.listeningTo = phrase;
     const reasons: string[] = [];
+    let miss: Miss | undefined;
     this.controller = new PracticeController(phrase, this.devices.keyboard, {
       onChange: () => undefined,
       onJudged: (event: NoteJudged) => {
         this.played();
-        if (event.verdict === 'wrong') reasons.push(event.reason);
+        if (event.verdict !== 'wrong') return;
+        reasons.push(event.reason);
+        miss ??= { midi: event.midi, expectedMidi: event.expectedMidi, reason: event.reason, direction: event.direction };
       },
-      onCompleted: (result: PieceResult) => this.afterStudent(result, reasons),
+      onCompleted: (result: PieceResult) => this.afterStudent(result, reasons, miss),
     }, undefined, mode);
-    // Wait mode waits for the student for ever: after a while with no note, the character says once whose turn it is
+    // Wait mode waits for the student for ever: after a while with no note, the student's token pulses (no line, d312)
     if (mode instanceof WaitMode && !this.nudged) {
       this.nudge = this.scene.time.delayedCall(NUDGE_MS, () => {
         this.nudge = null;
         if (this.done || this.playingNow !== 'student') return;
         this.nudged = true;
-        this.saying = t('tug.yourTurn');
-        this.page = 0;
+        this.pulsing = true;
         this.draw();
       });
     }
   }
 
-  /** A note was played: the nudge is not needed, and once said it goes. */
+  /** A note was played: the nudge is not needed, and the pulse stops. */
   private played(): void {
     this.stopNudge();
-    if (this.nudged && this.saying !== null && !this.closing && this.playingNow === 'student') {
-      this.saying = null;
+    if (this.pulsing) {
+      this.pulsing = false;
       this.draw();
     }
   }
@@ -323,7 +339,7 @@ export class TugView {
     this.next(AFTER_PHRASE_MS);
   }
 
-  private afterStudent(result: PieceResult, reasons: readonly string[]): void {
+  private afterStudent(result: PieceResult, reasons: readonly string[], miss?: Miss): void {
     // the phrase is over: stop listening (the controller ignores its own callbacks once disposed)
     this.controller?.dispose();
     this.controller = null;
@@ -335,7 +351,10 @@ export class TugView {
     const need = tugNeed(this.state, this.rules, result.notes);
     this.state = advanceTug(this.state, this.rules, { share: studentShare(result, this.mode), hands: {}, reasons });
     const fact = tugFact(result, reasons, this.mode);
-    this.saying = tugFactLine(need === undefined ? fact : { ...fact, need }, this.mode);
+    this.saying = tugFactLine(need === undefined ? fact : { ...fact, need }, this.mode, miss, this.devices.naming);
+    this.sayingFact = true;
+    // the 8 or the ½ is named in words the first time this player sees it (d312)
+    this.factTip = miss ? markTipFor(this.scene, taughtMarkOf(miss.reason)) : null;
     this.page = 0;
     this.draw();
     this.next(FACT_MS);
@@ -367,6 +386,7 @@ export class TugView {
   private say(text: string): void {
     this.closing = true;
     this.saying = text;
+    this.sayingFact = false;
     this.page = 0;
     this.handlers.playing(true);
     this.draw();
@@ -406,7 +426,18 @@ export class TugView {
     overlayCatcher(this.scene, (o) => this.add(o), area, this.door, () => this.press());
     if (this.started) this.drawBoard();
     if (this.playingNow === 'character') this.drawRising();
-    if (this.saying !== null) {
+    if (this.saying !== null && this.sayingFact && this.started) {
+      // the fact is marks, on a chip over the board's student end, where the student looks (d312)
+      const chip = markChipBitmap(this.saying);
+      const board = tugBoard(area.w, this.rules.steps);
+      const x = Math.max(2, Math.min(board.student.x - Math.floor(TOKEN_SIZE / 2), area.w - chip.width - 2));
+      const y = area.h - BOARD_ROWS - chip.height - 2;
+      this.add(new PixelImage(this.scene, x, y, chip).setName('tugFact'));
+      if (this.factTip !== null) {
+        const tip = markTipBitmap(this.factTip);
+        this.add(new PixelImage(this.scene, Math.max(2, Math.min(x, area.w - tip.width - 2)), y - tip.height - 2, tip).setName('tugTip'));
+      }
+    } else if (this.saying !== null) {
       const pages = spokenPages(this.saying);
       // a page with more after it ends in a small arrow: a press turns to the next
       const words = spokenLine(pages[this.page] ?? [], talkColour('character', this.character.id), this.page + 1 < pages.length);
@@ -433,7 +464,16 @@ export class TugView {
       { at: board.character, of: { character: this.character.id }, lit: this.playingNow === 'character' || won === 'lost', name: 'tugTheirTurn', colour: talkColour('character', this.character.id) },
     ];
     for (const token of tokens) {
-      this.add(new PixelImage(this.scene, token.at.x - half, top + token.at.y - half, tugToken(token.of, token.lit)));
+      const shown = this.add(new PixelImage(this.scene, token.at.x - half, top + token.at.y - half, tugToken(token.of, token.lit)));
+      // after a wait with no key the student's token pulses: their turn (d312)
+      if (this.pulsing && token.of === 'student' && this.playingNow === 'student') {
+        const dim = this.add(new PixelImage(this.scene, shown.x, shown.y, tugToken(token.of, false)).setName('tugPulse'));
+        this.movers.push((ms) => {
+          const off = motionAllowed() && Math.floor(ms / PULSE_MS) % 2 === 1;
+          shown.setVisible(!off);
+          dim.setVisible(off);
+        });
+      }
       if (!token.lit) continue;
       // whose turn it is: a note bobbing over their token (no words, the clean screen rule)
       const note = outlinedNote(token.colour);

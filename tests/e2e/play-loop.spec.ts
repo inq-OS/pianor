@@ -28,7 +28,10 @@ test.describe('looping play (ft_1_12)', () => {
     expect(await pieceXp(page, 'little-steps')).toBeGreaterThan(0);
     expect(await totalXp(page)).toBe(0);
     expect(await page.evaluate(() => window.__game.scene.getScene('practice').playSession.controller.getState().stepIndex)).toBe(0);
-    expect(await scene.scoreShown()).toBe(false);
+    // the stars and the pass's numbers stay into the next pass by the staff, no line (d312), then go
+    expect(await scene.scoreShown()).toBe(true);
+    expect(await page.evaluate(() => window.__game.scene.getScene('practice').playSession.passScoreShown)).toMatchObject({ numbers: { percent: 100, wrong: 0 } });
+    await expect.poll(scene.scoreShown, { timeout: 15000 }).toBe(false);
 
     // pass 2 with one key next door (C# where D is awaited)
     await playWithVirtualPiano(page, [60, 61, ...LITTLE_STEPS.slice(1)]);
@@ -106,18 +109,21 @@ test.describe('looping play (ft_1_12)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_12.AC3 after each pass Kiur says its numbers: right the first time and wrong keys', async ({ page }) => {
+  test('ft_1_12.AC3 d312 after each pass its numbers stand beside its stars: right the first time and wrong keys, no sentence', async ({ page }) => {
     test.slow();
     const errors = await openGame(page, '?device=virtual');
     await openPiece(page, 'Little Steps');
-    const said = () => sceneTexts(page, 'practice');
+    const score = () => page.evaluate(() => window.__game.scene.getScene('practice').playSession.passScoreShown as { stars: number; numbers?: { percent: number; wrong: number } } | null);
+    const said = () => page.evaluate(() => window.__game.scene.getScene('practice').playSession.message as string);
     await playWithVirtualPiano(page, LITTLE_STEPS);
-    await expect.poll(said).toContain('100% right   No wrong keys!');
+    await expect.poll(score).toEqual({ stars: 5, numbers: { percent: 100, wrong: 0 } });
+    expect(await sceneTexts(page, 'practice')).toContain('100%');
+    expect(await said()).toBe('');
     // the next pass starts and the numbers stay while it begins
     await expect.poll(practice(page).lap).toBe(1);
-    expect(await said()).toContain('100% right   No wrong keys!');
+    expect(await score()).toEqual({ stars: 5, numbers: { percent: 100, wrong: 0 } });
     await playWithVirtualPiano(page, [60, 61, 64, ...LITTLE_STEPS.slice(1)]);
-    await expect.poll(said).toContain('91% right   Wrong keys: 2');
+    await expect.poll(score).toMatchObject({ numbers: { percent: 91, wrong: 2 } });
     expectNoErrors(errors);
   });
 });
