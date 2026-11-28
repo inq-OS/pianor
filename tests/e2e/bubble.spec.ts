@@ -491,3 +491,36 @@ test.describe('the bubble\'s pages (ft_1_20 rule 2)', () => {
     expectNoErrors(errors);
   });
 });
+
+test.describe('the bubble on a phone (ft_1_20.AC22)', () => {
+  // a phone held sideways: a small screen with touch only, as the browser reports a mobile device
+  test.use({ viewport: { width: 915, height: 412 }, deviceScaleFactor: 2.625, isMobile: true, hasTouch: true });
+
+  test('ft_1_20.AC22 on a phone a long press opens the bubble and it stays open after the finger lifts, so the next tap picks an option', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'practice', { chartId: 'little-steps' });
+    await waitForScene(page, 'practice');
+    const bar = await artPoint(page, 'practice', 230, 60);
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ ...bar, id: 0 }] });
+    await page.waitForTimeout(800);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(400);
+    expect(await bubbleOpen(page, 'practice')).toBe(true);
+    const names = await buttonPoint(page, 'practice', await lastButton(page, 'practice', 'Note names'));
+    await page.touchscreen.tap(names.x, names.y);
+    await expect.poll(async () => (await practice(page)).names).toBe(true);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_20.AC22 on a phone a tap on More opens the bubble and it stays open after the finger lifts', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'practice', { chartId: 'little-steps' });
+    await waitForScene(page, 'practice');
+    const more = await buttonPoint(page, 'practice', await lastButton(page, 'practice', 'More'));
+    await page.touchscreen.tap(more.x, more.y);
+    await page.waitForTimeout(400);
+    expect(await bubbleOpen(page, 'practice')).toBe(true);
+    expectNoErrors(errors);
+  });
+});

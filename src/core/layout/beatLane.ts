@@ -68,6 +68,26 @@ function tickX(layout: StaffLayout, chart: Chart, bar: BarLayout, tick: number):
   return inner.left + (offset / length) * (inner.width - bar.roomTotal * S) + room;
 }
 
+/**
+ * Where the lane puts `tick` in `bar` (core_13 rule 2): as the notes are placed (`tickX`) up to the bar's last beat or last
+ * note, whichever is later, and from there on stretched evenly to the next bar's first beat on the same line (to the bar
+ * line at a line's end), so the dotted line runs on across every bar line with no gap, its beats as far apart as they fall.
+ */
+function barReach(layout: StaffLayout, chart: Chart, bar: BarLayout, origin: number, columns: ReadonlyMap<string, number>): (tick: number) => number {
+  const span = chart.bars[bar.index]!;
+  const lastBeat = origin + Math.floor((span.endTick - 1 - origin) / chart.ppq) * chart.ppq;
+  let from = { tick: Math.max(span.startTick, lastBeat), x: tickX(layout, chart, bar, Math.max(span.startTick, lastBeat)) };
+  for (const [key, x] of columns) {
+    const [barIndex, tickText] = key.split(':');
+    const tick = Number(tickText);
+    if (Number(barIndex) === bar.index && tick > from.tick && tick < span.endTick) from = { tick, x };
+  }
+  const next = layout.bars.find((b) => b.index === bar.index + 1 && b.system === bar.system);
+  const nextSpan = next ? chart.bars[next.index] : undefined;
+  const end = next && nextSpan ? tickX(layout, chart, next, nextSpan.startTick) : bar.x + bar.width;
+  return (tick) => (tick <= from.tick ? tickX(layout, chart, bar, tick) : from.x + ((tick - from.tick) / (span.endTick - from.tick)) * (end - from.x));
+}
+
 /** The lane's y on `system`: between its two staves, or above its top staff (also for "between" on a single staff). */
 export function laneY(layout: StaffLayout, system: number, place: Exclude<LanePlace, 'off'>): number {
   const S = layout.staffSpace;
@@ -112,12 +132,13 @@ export function laneDots(layout: StaffLayout, chart: Chart, place: LanePlace, of
     // a pick-up counts back from its end, so its last beat is the bar's last
     const pickUp = bar.index === 0 && span.endTick - span.startTick < full;
     const origin = pickUp ? span.endTick - Math.ceil((span.endTick - span.startTick) / chart.ppq) * chart.ppq : span.startTick;
+    const reach = barReach(layout, chart, bar, origin, columns);
     const own = new Set<number>();
     for (let tick = origin; tick < span.endTick; tick += step) {
       if (tick < span.startTick) continue;
       const beat = (tick - origin) % chart.ppq === 0;
       const kind: LaneDotKind = !beat ? 'ghost' : tick === span.startTick && !pickUp ? 'downbeat' : 'beat';
-      const x = tickX(layout, chart, bar, tick);
+      const x = reach(tick);
       const column = columns.get(`${bar.index}:${tick}`);
       if (column !== undefined && Math.abs(column - x) < MERGE * S) {
         dots.push({ system: bar.system, x: column, y, tick, kind, note: true, staves: stavesOf(bar.index, tick), grid: true });

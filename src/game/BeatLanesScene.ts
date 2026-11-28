@@ -254,6 +254,8 @@ export class BeatLanesScene extends PixelScene {
     const drag = this.drag;
     const S = this.layout?.staffSpace ?? 0;
     if (drag && p.isDown && S > 0) {
+      // a long press opened the lane's bubble (a touch screen): the finger is on the bubble now, not on the lane
+      if (this.menuOpen) return;
       const lane = this.lanes[drag.lane];
       if (!lane) return;
       const offset = clampLaneOffset(drag.offset + (p.y - drag.fromY) / S);
@@ -272,9 +274,12 @@ export class BeatLanesScene extends PixelScene {
 
   /** Let go: a dragged lane stays where it was dropped; a click away from the lanes adds one there. */
   private up(p: Phaser.Input.Pointer): void {
-    if (this.drag) {
+    const drag = this.drag;
+    if (drag) {
       this.drag = null;
-      void this.save();
+      // a press that never moved the lane keeps nothing: the lift of a long press that opened the lane's bubble on a touch
+      // screen must leave the screen (and its bubble) as it is
+      if (this.lanes[drag.lane]?.offset !== drag.offset) void this.save(!this.menuOpen);
       return;
     }
     const press = this.press;
