@@ -3,7 +3,7 @@ import { levelsFileSchema } from '../../core/chart';
 import { handShiftMap } from '../../core/fingering/shifts';
 import type Phaser from 'phaser';
 import { firstPrintedBar, fullBarTicks, unrollRepeats, writtenTick, writtenView, type Chart, type PlayChart } from '../../core/chart';
-import { DEFAULT_FOLLOW_RULES, TempoMode, WaitMode, replayKeys, type Hints, type NoteEvent, type TempoStart, type JudgeEvent, type NoteJudged, type PieceResult, type PlaySettings, type PlayState } from '../../core/judge';
+import { DEFAULT_FOLLOW_RULES, TempoMode, WaitMode, replayKeys, type WrongReason, type Hints, type NoteEvent, type TempoStart, type JudgeEvent, type NoteJudged, type PieceResult, type PlaySettings, type PlayState } from '../../core/judge';
 import { barNumbersToShow, type BarNumberSettings } from '../../core/layout/barNumbers';
 import type { PaceMark } from '../../core/layout/beat';
 import { clickWaveTick, laneDots, waveTick, type LaneLook } from '../../core/layout/beatLane';
@@ -24,6 +24,9 @@ import type { KeyboardInput } from '../../io/keyboard';
 import type { Mascot } from '../ui/pixel/PixelObjects';
 import { SpeechBubble, type BubbleSpot } from '../ui/pixel/SpeechBubble';
 import { StaffView, type PartMarks } from '../ui/staff/StaffView';
+import { STAFF_FONT } from '../ui/staff/staffFont';
+import type { Bitmap } from '../ui/pixel/bitmap';
+import type { PassNumbers } from '../../core/text/rundown';
 import { PracticeController } from './PracticeController';
 import { drawMedalClef, drawPrizes } from './prizeGlyphs';
 import { motionAllowed } from '../motion';
@@ -39,12 +42,19 @@ const LEVELS = levelsFileSchema.parse(levelsJson).levels;
 export interface WrongKey {
   midi: number;
   awaiting: readonly number[];
+  /** Why it was wrong: an octave off shows an 8 beside the played key (d312). */
+  reason?: WrongReason;
 }
 
 /** How long a wrong note flashes, how long its feedback stays in the bubble, and how long Kiur looks puzzled. */
 const WRONG_FLASH_MS = 700;
 export const MESSAGE_MS = 3500;
 export const HMM_MS = 2500;
+/** The pass's numbers beside its stars: their column's width in staff spaces, their ink, the ghost head's red. */
+const PASS_NUMBERS_W = 3.4;
+const PASS_INK = '#14142a';
+const WRONG_HEAD = 0xd7263d;
+const WRONG_HEAD_ALPHA = 0.55;
 
 /** What the scene hears from the session; the session itself decides nothing. */
 export interface PlaySessionCallbacks {
@@ -139,6 +149,10 @@ export class PlaySession {
   private cursorTick: number | null = null;
   /** The score of the pass just finished, drawn past the last bar (ft_1_12); empty when none is shown. */
   private passScore: Phaser.GameObjects.GameObject[] = [];
+  /** The pass score shown now, drawn again over a redraw; null when none. */
+  private passScoreNow: { stars: number; numbers?: PassNumbers } | null = null;
+  /** The cursor box breathes until the first key (`breatheCursor`). */
+  private breathing = false;
   /** The width of the area the staff was last drawn in: the sheet's, which the prizes' column keeps inside. */
   private areaWidth = 0;
   /** The prizes of learning drawn at the sheet's top right (ft_1_32.AC19), and what they show (read by the tests). */
@@ -151,6 +165,8 @@ export class PlaySession {
   private onBubbleLines: ((lines: number) => void) | undefined;
   private mascot: Mascot | null = null;
   private messageNow = '';
+  /** The icon before the message (a chip: the click's metronome and its BPM, d312). */
+  private iconNow: Bitmap | undefined = undefined;
   /** Until when (scene time) a message said with `hold` stays, even when right notes are played. */
   private holdUntil = 0;
   private lastWrong: WrongKey | null = null;
@@ -203,6 +219,11 @@ export class PlaySession {
 
   get message(): string {
     return this.messageNow;
+  }
+
+  /** True while an icon stands before the message, for tests. */
+  get messageHasIcon(): boolean {
+    return this.iconNow !== undefined;
   }
 
   getState(): PlayState {
@@ -367,6 +388,8 @@ export class PlaySession {
     if (this.transport) this.view.followPlayhead(true);
     this.applyState(this.controllerNow.getState());
     if (this.lastWrong) this.showWrongKey(this.lastWrong);
+    if (this.breathing) this.view.breathe(true);
+    if (this.passScoreNow) this.drawPassScore(this.passScoreNow.stars, this.passScoreNow.numbers);
     return this.view;
   }
 
@@ -408,8 +431,9 @@ export class PlaySession {
    * What Kiur says in the bubble; an empty message hides it. `forMs` clears it again; with `hold` right notes played
    * meanwhile do not clear it (`feedback`).
    */
-  say(text: string, forMs = 0, hold = false): void {
+  say(text: string, forMs = 0, hold = false, icon?: Bitmap): void {
     this.messageNow = text;
+    this.iconNow = icon;
     if (hold) this.holdUntil = this.scene.time.now + forMs;
     this.showMessage();
     this.messageTimer?.remove();
@@ -418,6 +442,7 @@ export class PlaySession {
       this.messageTimer = this.scene.time.delayedCall(forMs, () => {
         this.messageTimer = null;
         this.messageNow = '';
+        this.iconNow = undefined;
         this.showMessage();
       });
     }
@@ -429,6 +454,7 @@ export class PlaySession {
    * the awaited notes. No sentence (the clean-screen rule, ft_1_12.AC7): the staff shows what was played.
    */
   feedback(event: NoteJudged, state: PlayState): void {
+    this.breatheCursor(false);
     if (event.verdict === 'correct') {
       if (this.scene.time.now >= this.holdUntil) this.say('');
       this.view?.setPlayed(null);
@@ -436,7 +462,7 @@ export class PlaySession {
       return;
     }
     const awaiting = this.toWritten(state).awaiting;
-    this.showWrongKey({ midi: event.midi, awaiting });
+    this.showWrongKey({ midi: event.midi, awaiting, reason: event.reason });
     this.mascot?.setMood('hmm', HMM_MS);
     this.view?.flashWrong(awaiting); // MIDI cannot say which hand it was, so every awaited note flashes
     this.wrongTimer?.remove();
@@ -452,40 +478,91 @@ export class PlaySession {
   showWrongKey(wrong: WrongKey): void {
     this.lastWrong = wrong;
     const mark = this.layoutNow ? playedMark(this.layoutNow, this.drawn, wrong.awaiting, wrong.midi) : null;
-    this.view?.setPlayed(mark, mark ? noteLabel(mark.spelling, this.naming) : '');
+    this.view?.setPlayed(mark, mark ? noteLabel(mark.spelling, this.naming) : '', wrong.reason === 'wrong-octave');
   }
 
   private showMessage(): void {
-    const lines = this.bubble?.show(this.messageNow) ?? 0;
+    const lines = this.bubble?.show(this.messageNow, this.iconNow) ?? 0;
     this.onBubbleLines?.(lines);
   }
 
   /**
-   * The grade of the pass just finished, right after the piece's last bar (ft_1_12.AC3): five stars, small
-   * and upright, three in a column and two beside them set half a star down, the earned ones gold (`passStarsFor`). Drawn
-   * at the staff's resolution (`passScorePlace`); it stays until the staff is drawn again.
+   * The lit note's cursor box breathes until the first key (d312: the start needs no line): on at a start, off at the first
+   * key judged or when the count-in begins. It is kept over a redraw.
    */
-  showPassScore(stars: number): void {
+  breatheCursor(on: boolean): void {
+    if (this.breathing === on) return;
+    this.breathing = on;
+    this.view?.breathe(on);
+  }
+
+  /**
+   * The grade of the pass just finished, right after the piece's last bar (ft_1_12.AC3): five stars, small
+   * and upright, three in a column and two beside them set half a star down, the earned ones gold (`passStarsFor`), and
+   * beside them its numbers (d312): the share right in percent, the wrong key's ghost notehead with the count of wrong keys,
+   * and in Tempo mode the tempo gauge with the timing score. Drawn at the staff's resolution (`passScorePlace`); it stays
+   * over a redraw until `hidePassScore`.
+   */
+  showPassScore(stars: number, numbers?: PassNumbers): void {
+    this.passScoreNow = { stars, ...(numbers ? { numbers } : {}) };
+    this.drawPassScore(stars, numbers);
+  }
+
+  /** The pass's stars and numbers go. */
+  hidePassScore(): void {
+    this.passScoreNow = null;
+    this.clearPassScore();
+  }
+
+  /** The numbers shown beside the stars now, for tests: "91%", the wrong keys, the timing; null with none shown. */
+  get passScoreShown(): { stars: number; numbers?: PassNumbers } | null {
+    return this.passScoreNow;
+  }
+
+  private drawPassScore(stars: number, numbers?: PassNumbers): void {
     this.clearPassScore();
     const layout = this.layoutNow;
     const view = this.view;
     if (!layout || !view) return;
-    const star = layout.staffSpace * 0.95;
+    const S = layout.staffSpace;
+    const star = S * 0.95;
     const step = star * 1.05;
     // the column of three, then the column of two half a star down, packed like coins
     const spots = [[0, 0], [0, 1], [0, 2], [1, 0.5], [1, 1.5]] as const;
     const columnStep = star * 0.9;
-    const place = passScorePlace(layout, { w: Math.ceil(star + columnStep), h: Math.ceil(star + 2 * step) });
+    const starsW = Math.ceil(star + columnStep);
+    const numbersW = numbers ? Math.ceil(PASS_NUMBERS_W * S) : 0;
+    const place = passScorePlace(layout, { w: starsW + numbersW, h: Math.ceil(star + 2 * step) });
     const g = this.scene.add.graphics();
     spots.forEach(([column, row], i) => {
       const cx = view.origin.x + place.x + star / 2 + column * columnStep;
       const cy = view.origin.y + place.y + star / 2 + row * step;
       const points = starPoints(cx, cy, star / 2, star / 4.4) as Phaser.Math.Vector2[];
       g.fillStyle(i < stars ? 0xf2b632 : 0xd8d2bf, 1).fillPoints(points, true);
-      g.lineStyle(Math.max(1, Math.round(layout.staffSpace / 10)), STAFF_INK, 1).strokePoints(points, true);
+      g.lineStyle(Math.max(1, Math.round(S / 10)), STAFF_INK, 1).strokePoints(points, true);
     });
     g.setDepth(1);
     this.passScore = [g];
+    if (!numbers) return;
+    // the numbers in a column right of the stars, one per star row
+    const left = view.origin.x + place.x + starsW + 0.4 * S;
+    const rowY = (row: number) => view.origin.y + place.y + star / 2 + row * step;
+    const style = { fontFamily: STAFF_FONT, fontStyle: 'bold', fontSize: `${Math.round(S * 1.1)}px`, color: PASS_INK };
+    const text = (x: number, row: number, value: string) => this.scene.add.text(x, rowY(row), value, style).setOrigin(0, 0.5).setDepth(1);
+    const objects: Phaser.GameObjects.GameObject[] = [text(left, 0, `${numbers.percent}%`)];
+    // the wrong key's mark: its red ghost notehead, as on the staff
+    const head = { rx: S * 0.6, ry: S * 0.45 };
+    g.fillStyle(WRONG_HEAD, WRONG_HEAD_ALPHA).fillEllipse(left + head.rx, rowY(1), head.rx * 2, head.ry * 2);
+    objects.push(text(left + head.rx * 2 + 0.3 * S, 1, String(numbers.wrong)));
+    if (numbers.timing !== undefined) {
+      // the tempo gauge, as the toolbar's speed picture draws it: a half dial and its needle
+      const r = S * 0.6, cx = left + r, cy = rowY(2) + r * 0.45;
+      g.lineStyle(Math.max(1, Math.round(S / 8)), STAFF_INK, 1);
+      g.beginPath().arc(cx, cy, r, Math.PI, 2 * Math.PI).closePath().strokePath();
+      g.lineBetween(cx, cy, cx + r * 0.55, cy - r * 0.7);
+      objects.push(text(left + 2 * r + 0.3 * S, 2, String(numbers.timing)));
+    }
+    this.passScore.push(...objects);
   }
 
   /** The prizes of learning a piece in a column at the sheet's top right (ft_1_32.AC19); they stay until the staff is drawn again. */

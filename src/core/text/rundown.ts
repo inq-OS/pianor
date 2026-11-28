@@ -43,15 +43,20 @@ export function scoreLines(summary: FreePlaySummary): RundownLine[] {
   return lines;
 }
 
-/**
- * What Kiur says in the bottom bar after each pass of the looping play (the stats the score screen showed
- * per play before ft_1_12), short so they fit the bubble: the pass's share right the first time, its wrong keys, and in Tempo mode its timing score.
- * Only true things (AX-2.1).
- */
-export function passLines(result: PieceResult): RundownLine[] {
-  const lines: RundownLine[] = [{ key: 'practice.passRight', params: { percent: percent(result.accuracy) }, style: 'line' }];
-  lines.push(result.mistakes === 0 ? { key: 'practice.passWrongNone', style: 'line' } : { key: 'practice.passWrong', params: { n: result.mistakes }, style: 'line' });
-  if (result.timing) lines.push({ key: 'practice.passTiming', params: { score: Math.round(result.timing.score) }, style: 'line' });
-  return lines;
+/** The numbers of a pass shown beside its stars past the last bar (ft_1_12.AC3, d312): no sentence, the staff's marks. */
+export interface PassNumbers {
+  /** The share right the first time, in percent. */
+  percent: number;
+  /** The wrong keys, shown beside the wrong key's ghost notehead. */
+  wrong: number;
+  /** Tempo mode: the timing score, beside the tempo gauge. */
+  timing?: number;
 }
 
+/**
+ * The numbers of a pass of the looping play (the stats the score screen showed per play before ft_1_12): its share right
+ * the first time, its wrong keys, and in Tempo mode its timing score. Only true things (AX-2.1).
+ */
+export function passNumbers(result: PieceResult): PassNumbers {
+  return { percent: percent(result.accuracy), wrong: result.mistakes, ...(result.timing ? { timing: Math.round(result.timing.score) } : {}) };
+}

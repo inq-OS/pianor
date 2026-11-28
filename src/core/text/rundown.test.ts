@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { FreePlaySummary } from '../scoring/freePlay';
 import type { PieceResult } from '../judge/types';
-import { passLines, scoreLines } from './rundown';
+import { passNumbers, scoreLines } from './rundown';
 import { t } from './strings';
 
 const summary = (over: Partial<FreePlaySummary> = {}): FreePlaySummary => ({
@@ -47,20 +47,14 @@ const pass = (over: Partial<PieceResult> = {}): PieceResult => ({
   chartId: 'p', contentVersion: 1, notes: 11, firstTryCorrect: 10, mistakes: 2, accuracy: 10 / 11, rhythmErrorMs: null,
   hints: { noteNames: 0, fingers: 0 }, bothHands: { notes: 0, together: 0 }, ...over,
 });
-const passTexts = (r: PieceResult) => passLines(r).map((line) => t(line.key, line.params));
-
-describe('passLines: what Kiur says after each pass (ft_1_12.AC3)', () => {
-  it('says the pass\'s share right the first time and its wrong keys', () => {
-    expect(passTexts(pass())).toEqual(['91% right', 'Wrong keys: 2']);
+describe('passNumbers: the numbers beside the stars after each pass (ft_1_12.AC3, d312)', () => {
+  it('are the pass\'s share right the first time and its wrong keys', () => {
+    expect(passNumbers(pass())).toEqual({ percent: 91, wrong: 2 });
+    expect(passNumbers(pass({ mistakes: 0, firstTryCorrect: 11, accuracy: 1 }))).toEqual({ percent: 100, wrong: 0 });
   });
 
-  it('says so when there was no wrong key at all', () => {
-    expect(passTexts(pass({ mistakes: 0, firstTryCorrect: 11, accuracy: 1 }))).toEqual(['100% right', 'No wrong keys!']);
-  });
-
-  it('adds the timing score in Tempo mode', () => {
+  it('add the timing score in Tempo mode', () => {
     const timing = { played: 11, onTime: 9, early: 1, late: 1, missed: 0, meanAbsErrorMs: 40, score: 83.6 };
-    expect(passTexts(pass({ timing }))).toEqual(['91% right', 'Wrong keys: 2', 'Timing 84']);
+    expect(passNumbers(pass({ timing }))).toEqual({ percent: 91, wrong: 2, timing: 84 });
   });
 });
-

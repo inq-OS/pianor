@@ -155,7 +155,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
     // no pause and no restart of the click: it never stopped, and the next lap takes its first note at once
     expect((await metronome()).running).toBe(true);
     expect(await page.evaluate(() => (window as unknown as { __starts: number }).__starts)).toBe(0);
-    expect(await sceneTexts(page, 'practice')).toContain('Again! Lap 2.');
+    expect(await page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView.sectionMarksShown as string[])).toContain('A ♩70 ↻2'); // the lap is a mark on A, no line
     expectNoErrors(errors);
   });
 
@@ -195,19 +195,18 @@ test.describe('practice tools (core_02 and core_03)', () => {
     await playWithVirtualPiano(page, [66, 67, 65, 65, 64, 62, 60]); // one wrong key first: no matter, Clean is off
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').startData.lap)).toBe(1);
     expect(await percent(page)).toBe(110);
-    expect(await sceneTexts(page, 'practice')).toContain('Lap 2, faster: 77 BPM.');
     expect(await buttonLabels(page)).toEqual(expect.arrayContaining(['+10', 'to 110'])); // the ramp stays for the next laps
     // A carries the tempo and the lap; leaving the section, Kiur sums it up
-    expect(await page.evaluate(() => (window.__game.scene.getScene('practice').playSession.staffView.markTexts as { text: { text: string } }[]).map((m) => m.text.text))).toContain('A  77 BPM, lap 2');
+    expect(await page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView.sectionMarksShown as string[])).toContain('A ♩77▲ ↻2'); // ▲: the ramp has just stepped up
     // the marks stand over the beat dots, never on them (core_03 rule 7)
     expect(await page.evaluate(() => {
-      const view = window.__game.scene.getScene('practice').playSession.staffView as { origin: { y: number }; lanes: { dots: { y: number; system: number }[] }[]; markTexts: { system: number; text: { y: number; height: number } }[] };
+      const view = window.__game.scene.getScene('practice').playSession.staffView as { origin: { y: number }; lanes: { dots: { y: number; system: number }[] }[]; markTexts: { system: number; text: { y: number; displayHeight: number } }[] };
       const dots = view.lanes.flatMap((lane) => lane.dots);
-      return dots.length > 0 && view.markTexts.every((m) => m.text.y + m.text.height / 2 < Math.min(...dots.filter((d) => d.system === m.system).map((d) => view.origin.y + d.y)));
+      return dots.length > 0 && view.markTexts.every((m) => m.text.y + m.text.displayHeight / 2 < Math.min(...dots.filter((d) => d.system === m.system).map((d) => view.origin.y + d.y)));
     })).toBe(true);
     await press(page, 'Whole piece');
     await expect.poll(() => chartId(page)).toBe('little-steps');
-    expect(await sceneTexts(page, 'practice')).toContain('Laps: 1, clean: 0, 70 to 77 BPM.');
+    expect(await sceneTexts(page, 'practice')).toContain('↻1 ✓0 ♩70▶77');
     expectNoErrors(errors);
   });
 
@@ -243,7 +242,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
       return {
         staffSpace: scene.playSession.layout.staffSpace as number,
         pages: scene.playSession.layout.pageCount as number,
-        marks: (scene.playSession.staffView.markTexts as { text: { text: string } }[]).map((m) => m.text.text),
+        marks: scene.playSession.staffView.sectionMarksShown as string[],
         tint: [...((scene.playSession.staffView.section?.tint ?? []) as number[])],
       };
     });
@@ -259,7 +258,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
     const section = await view();
     // the ramp strip under the tools (core_03.AC5) takes one row while a section plays, so the staff is a little smaller (32 to 27 px here), never the whole piece shrunk
     expect(section.staffSpace).toBeGreaterThanOrEqual(before.staffSpace * 0.8);
-    expect(section.marks).toEqual(['A  70 BPM, lap 1', 'B']); // A carries the tempo and the lap
+    expect(section.marks).toEqual(['A ♩70 ↻1', 'B']); // A carries the tempo and the lap
     expectNoErrors(errors);
   });
 
@@ -270,9 +269,9 @@ test.describe('practice tools (core_02 and core_03)', () => {
     await tapBar(page, 1);
     await tapBar(page, 1);
     await expect.poll(() => chartId(page)).toBe('little-steps#bars-2-2');
-    const marks = await page.evaluate(() => (window.__game.scene.getScene('practice').playSession.staffView.markTexts as { text: { text: string; x: number; width: number } }[])
-      .map((m) => ({ text: m.text.text, x: m.text.x, width: m.text.width })));
-    expect(marks.map((m) => m.text)).toEqual(['A  70 BPM, lap 1', 'B']);
+    const marks = await page.evaluate(() => (window.__game.scene.getScene('practice').playSession.staffView.markTexts as { value: string; text: { x: number; displayWidth: number } }[])
+      .map((m) => ({ text: m.value, x: m.text.x, width: m.text.displayWidth })));
+    expect(marks.map((m) => m.text)).toEqual(['A ♩70 ↻1', 'B']);
     expect(marks[1]!.x).toBeGreaterThan(marks[0]!.x + marks[0]!.width);
     expectNoErrors(errors);
   });
@@ -699,7 +698,7 @@ test.describe('start from a tapped bar', () => {
     await useOneLine(page);
     await openPiece(page, 'Little Steps');
     const bars = await page.evaluate(() => window.__game.scene.getScene('practice').fullChart.bars.length as number);
-    const marks = () => page.evaluate(() => (window.__game.scene.getScene('practice').playSession.staffView.markTexts as { text: { text: string } }[]).map((m) => m.text.text));
+    const marks = () => page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView.sectionMarksShown as string[]);
     const xp = await pieceXp(page, 'little-steps');
     await tapBar(page, 2, 'keys'); // on the second page: turned with the arrow key first
     await expect.poll(() => chartId(page)).toBe(`little-steps#bars-3-${bars}`);

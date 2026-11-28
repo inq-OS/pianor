@@ -87,11 +87,12 @@ test.describe('Circle of fifths', () => {
     for (const name of ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'G♭', 'D♭', 'A♭', 'E♭', 'B♭', 'F', 'a', 'e', 'b', 'f#', 'c#', 'g#', 'd#', 'b♭', 'f', 'c', 'g', 'd']) expect(texts).toContain(name);
     for (const count of ['1', '2', '3', '4', '5', '6']) expect(texts).toContain(count);
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/practice.png` });
-    // the prompt to play is hidden while the circle is open (a note played there chooses a key), and back after
+    // no line asks to play, with the circle open or after (d312): the lit note breathes until the first key
     const message = () => page.evaluate(() => (window.__game.scene.getScene('practice') as unknown as { playSession: { message: string } }).playSession.message);
     expect(await message()).toBe('');
     await closeWithEsc(page, 'practice');
-    await expect.poll(message).toBe('Play the lit note when you are ready');
+    expect(await message()).toBe('');
+    await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView?.breathing ?? null)).toBe(true);
     // the door over the screen's Back is drawn bright on the circle (it works there) and closes the circle, not the screen
     await openCircle(page, 'practice');
     expect(await sceneButton(page, 'circle', 'Back')).toBeGreaterThanOrEqual(0);

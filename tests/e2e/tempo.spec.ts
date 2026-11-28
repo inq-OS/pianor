@@ -18,7 +18,7 @@ test.describe('tempo mode (slice c)', () => {
     await pickChoice(page, 'practice', 'Tempo that follows you', 'Tempo'); // and Tempo
     await expect.poll(() => playSettings(page)).toEqual({ mode: 'tempo', scoreView: 'colour', tempoStart: 'anyKey', tempoClock: 'strict' });
     await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').transport !== null)).toBe(true);
-    expect(await sceneTexts(page, 'practice')).toContain('Press any key to start. One bar is counted in.');
+    await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView.breathing as boolean)).toBe(true); // the cursor breathes: no line asks for a key
     expect(await sceneButton(page, 'practice', 'Tempo')).toBeGreaterThanOrEqual(0); // now the metronome
     await page.keyboard.press('Escape');
     await waitForScene(page, 'menu');
@@ -41,7 +41,7 @@ test.describe('tempo mode (slice c)', () => {
     const errors = await openGame(page);
     await page.evaluate(() => window.__game.registry.get('context').profiles.updatePlaySettings({ mode: 'tempo', scoreView: 'number' }));
     await openPiece(page, 'Little Steps');
-    expect(await sceneTexts(page, 'practice')).toContain('Press any key to start. One bar is counted in.');
+    expect(await page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView.breathing as boolean)).toBe(true); // the cursor breathes: no line asks for a key
     expect(await page.evaluate(() => window.__game.scene.getScene('practice').transport.started)).toBe(false);
 
     // the starting key: it is not a note

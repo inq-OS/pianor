@@ -591,11 +591,11 @@ Check: untestable: the tree becomes data with slice 2 of ft_1_39, whose loop che
 
 ## d307
 
-**A tug or a teaching is left by the corner Back as by Esc, nudges an idle turn once, and names why each wrong phrase missed.** Features: ft_1_21, ft_1_22.
+**A tug or a teaching is left by the corner Back as by Esc, nudges an idle turn once, and marks why each wrong phrase missed.** Features: ft_1_21, ft_1_22.
 
-The corner Back stays pressable over a tug or a teaching and leaves it as Esc does, with nothing won or lost. After 20 seconds of the student's turn in Wait mode with no note played, the character says one short line once (`tug.yourTurn`). A student phrase's fact names the first wrong key's reason (wrong octave, neighbour key, wrong letter), else in Tempo mode whether its notes came in early or late; a way out and a reason keep a young student playing instead of stuck or guessing (AX-0, AX-2.1).
+The corner Back stays pressable over a tug or a teaching and leaves it as Esc does, with nothing won or lost. After 20 seconds of the student's turn in Wait mode with no note played, the student's token pulses (a tug) or the note over their head hops (a teaching), with no line (d312). A tug phrase's fact marks the first wrong key's reason by the awaited and the played note (wrong octave 8, neighbour key ½, wrong letter its arrow), else in Tempo mode early ◀ or late ▶; a teaching's staff shows where; a way out and a reason keep a young student playing instead of stuck or guessing (AX-0, AX-2.1).
 
-Check: `tests/e2e/tug.spec.ts` "the corner Back is pressable over the tug and leaves it as Esc does, with nothing kept"; `tests/e2e/teach.spec.ts` "a try with no note played for a while: he says once whose turn it is, and the first note ends the line"; `src/core/exchange/tugPlay.test.ts` "ft_1_21.AC7 a neighbour key and a wrong letter each say their reason, as a wrong octave does"
+Check: `tests/e2e/tug.spec.ts` "the corner Back is pressable over the tug and leaves it as Esc does, with nothing kept"; `tests/e2e/teach.spec.ts` "d312 a try with no note played for a while: the note over the student hops with no line, and the first note stops it"; `src/core/exchange/tugPlay.test.ts` "ft_1_21.AC7 d312 the fact is a count, and a wrong key its mark with the awaited and the played note named"
 
 ## d308
 

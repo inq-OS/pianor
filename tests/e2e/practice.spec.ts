@@ -126,11 +126,14 @@ test.describe('playing a whole piece without a real keyboard', () => {
   test('ft_1_12.AC7: a wrong key shows the key played on the staff with its name, no sentence; it does not stop the piece and is counted', async ({ page }) => {
     const errors = await openGame(page);
     await openPiece(page, 'Little Steps');
-    expect(await sceneTexts(page, 'practice')).toContain('Play the lit note when you are ready');
+    // no line asks to play (d312): the lit note's cursor box breathes until the first key
+    const practising = () => page.evaluate(() => ({ message: window.__game.scene.getScene('practice').playSession.message as string, breathing: window.__game.scene.getScene('practice').playSession.staffView?.breathing ?? null }));
+    await expect.poll(practising).toEqual({ message: '', breathing: true });
     const played = () => page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView?.playedShown ?? null);
 
     await playWithKeys(page, [65]); // F4 while C4 is awaited
     await expect.poll(played).toBe('F');
+    expect((await practising()).breathing).toBe(false);
     expect(await sceneTexts(page, 'practice')).not.toContain('Not that one. Look for a lower note.');
     expect(await page.evaluate(() => window.__game.scene.getScene('practice').playSession.controller.getState().stepIndex)).toBe(0);
     await playWithKeys(page, [60]); // the right key clears it
