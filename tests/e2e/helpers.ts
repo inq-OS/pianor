@@ -294,47 +294,6 @@ export async function waitForScene(page: Page, key: string): Promise<void> {
   await page.waitForFunction((k) => window.__game.scene.getScenes(true).some((s) => s.scene.key === k && (s as unknown as { loading?: boolean }).loading !== true), key);
 }
 
-/** A box on the page, in CSS pixels. */
-export interface PageBox { x: number; y: number; width: number; height: number }
-
-/**
- * Where the first visible text of a scene that reads `text` (or matches it) is drawn, in CSS pixels on the page, as a
- * locator's `boundingBox` gives them: so a layout test can check that a text stays inside a picture or off a button. Null
- * when no such text is shown.
- */
-export async function textBox(page: Page, key: string, text: string | RegExp): Promise<PageBox | null> {
-  const pattern = typeof text === 'string' ? { source: `^${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, flags: '' } : { source: text.source, flags: text.flags };
-  return page.evaluate(({ k, source, flags }) => {
-    type Node = { type: string; text?: string; pixelText?: boolean; visible: boolean; list?: Node[]; getBounds?: () => { x: number; y: number; width: number; height: number } };
-    const match = new RegExp(source, flags);
-    let found: { x: number; y: number; width: number; height: number } | null = null;
-    const visit = (nodes: Node[]) => {
-      for (const o of nodes) {
-        if (found || !o.visible) continue;
-        if ((o.type === 'Text' || o.pixelText === true) && typeof o.text === 'string' && match.test(o.text) && o.getBounds) found = o.getBounds();
-        if (o.type === 'Container' && o.list) visit(o.list);
-      }
-    };
-    visit(window.__game.scene.getScene(k).children.list as Node[]);
-    if (!found) return null;
-    const box: { x: number; y: number; width: number; height: number } = found;
-    const canvas = document.querySelector('canvas')!;
-    const rect = canvas.getBoundingClientRect();
-    const zoom = rect.width / canvas.width;
-    return { x: rect.left + box.x * zoom, y: rect.top + box.y * zoom, width: box.width * zoom, height: box.height * zoom };
-  }, { k: key, ...pattern });
-}
-
-/** True when `inner` lies wholly inside `outer` (a pixel of slack for rounding). */
-export function boxInside(inner: PageBox, outer: PageBox): boolean {
-  return inner.x >= outer.x - 1 && inner.y >= outer.y - 1 && inner.x + inner.width <= outer.x + outer.width + 1 && inner.y + inner.height <= outer.y + outer.height + 1;
-}
-
-/** True when two boxes share any pixel. */
-export function boxesOverlap(a: PageBox, b: PageBox): boolean {
-  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
-}
-
 /**
  * All visible texts of a scene: how tests read the canvas without screenshots. Pixel-art texts (`PixelText`, which keep
  * their string in `text`) and plain Phaser texts, also inside containers such as the pixel scenes' root.

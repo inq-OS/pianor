@@ -4,7 +4,7 @@
 // buttons and the paths it did not reach.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { activeScene, addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene, leaveRoom, textBox, boxInside } from './helpers';
+import { activeScene, addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene, leaveRoom } from './helpers';
 
 /** The main menu: from the piece list, the room's Quit goes there (`goToMainMenu`). */
 const openProfiles = async (page: Page) => {

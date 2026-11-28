@@ -1,6 +1,6 @@
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { activeScene, buttonPoint, clickButton, clickToolbar, expectNoErrors, misplacedWriting, openBubbleFromMore, openGame, waitForScene, LITTLE_STEPS, boxesOverlap, openPiece, playWithVirtualPiano, toScoreScreen } from './helpers';
+import { activeScene, buttonPoint, clickButton, clickToolbar, expectNoErrors, misplacedWriting, openBubbleFromMore, openGame, waitForScene } from './helpers';
 
 /**
  * The frame of every screen but the teacher's (ft_1_20, d282): a slim strip of pinned actions at the foot only where a screen

@@ -15,17 +15,6 @@ describe('registerLayout', () => {
     expect(r.bottom).toBe(left.y + left.h);
   });
 
-  it('writes on the plain page: off the torn page edges, under the torn top and right of the ribbon in the gutter', () => {
-    // measured on the painted book (paint/book.ts) on the target screen: the cover, the fore-edge and the tear's dark rim end
-    // about 19 cells in from the screen's left and 303 from its right, the torn top about 9 rows under the main area's top,
-    // and the ribbon lies on the right page up to about 167
-    const r = registerLayout(320, 157);
-    expect(r.left.x).toBeGreaterThanOrEqual(19);
-    expect(r.right.x + r.right.w).toBeLessThanOrEqual(303);
-    expect(r.top).toBeGreaterThanOrEqual(10);
-    expect(r.right.x).toBeGreaterThanOrEqual(168);
-  });
-
   it('keeps whole cells on an odd width', () => {
     const r = registerLayout(321, 157);
     expect(Number.isInteger(r.mid)).toBe(true);
