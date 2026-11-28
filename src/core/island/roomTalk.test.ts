@@ -19,6 +19,15 @@ const input = (over: Partial<RoomTalkInput> = {}): RoomTalkInput => ({
 });
 
 describe("what Kiur and the teacher say in the room (ft_1_27, WP-15)", () => {
+  it('ft_1_27.AC3 after the deadline has passed Kiur says how many days ago it was, after the reminder', () => {
+    const late = (day: string) => roomTalk(input({ occasion: 'open', day })).kiur;
+    expect(late('1998-12-15')).toEqual([{ line: 'kiur.remind.trend', piece: 'a', params: { gap: 3 } }, { line: 'kiur.remind.overdue', params: { days: 20 } }]);
+    expect(late('1998-11-26').map((l) => l.line)).toEqual(['kiur.remind.trend', 'kiur.remind.overdueOne']);
+    // on the day and before it nothing is added
+    expect(late('1998-11-25').map((l) => l.line)).toEqual(['kiur.remind.trend']);
+    expect(late('1998-11-20').map((l) => l.line)).toEqual(['kiur.remind.trend']);
+  });
+
   it('ft_1_27.AC3 on opening the game Kiur reminds of the forced piece with its gap, once a day at a small gap', () => {
     expect(roomTalk(input({ occasion: 'open' })).kiur).toEqual([{ line: 'kiur.remind.trend', piece: 'a', params: { gap: 3 } }]);
     expect(roomTalk(input({ occasion: 'open', remindedToday: true })).kiur).toEqual([]);

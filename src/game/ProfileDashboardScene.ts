@@ -27,7 +27,7 @@ import { daySky } from './ui/pixel/windMotion';
 import type { SceneLook } from '../core/sky/sceneLook';
 import { contextOf } from './context';
 import { startScene } from './scenes';
-import { standPanel } from '../core/layout/standPanel';
+import { WORDED_GAP, standPanel } from '../core/layout/standPanel';
 import { pieceLearned } from '../core/learn/route';
 import { phoneCall, type PhoneCall } from '../core/curriculum/phoneCall';
 import { phoneAtRest, phoneRinging } from './ui/pixel/phoneArt';
@@ -105,6 +105,10 @@ const CARD_PAD = 6;
 const CARD_BAR_ROWS = 8;
 const CARD_STATS_GAP = 4;
 const CLOSE = { width: 22, height: 16 } as const;
+/** The rows Kiur's board grows by for the words under its two pictures. */
+const KIUR_WORD_ROWS = 10;
+/** The question behind the corner Back: its least width and its height, and an answer's width (art pixels). */
+const LEAVE = { width: 120, height: 44, answer: 40 } as const;
 /** The intro's skip button: room round its word, and its distance from the screen's corner. */
 const INTRO_SKIP = { pad: 10, margin: 4 } as const;
 
@@ -125,6 +129,7 @@ const RING_MS = 120;
 
 export class ProfileDashboardScene extends PixelScene {
   protected override keyboardNavigation = true;
+  protected override pianoSign = true;
   /** The room's things stand in no rows: Left and Right go through them in their order across the screen (ft_Y_13). */
   protected override focusLayout: FocusLayout = FOCUS_LAYOUT.picture;
 
@@ -142,6 +147,11 @@ export class ProfileDashboardScene extends PixelScene {
   /** Kiur's question is open over the room (ft_1_32 rule 14): learn a song bar by bar, or tug one; its two buttons are then the only ones the keyboard reaches. */
   private kiurOpen = false;
   private kiurButtons: PixelButton[] = [];
+  /** The corner Back asks before the player list (Change player?): its two answers are then the only buttons the keyboard reaches. */
+  private leaveOpen = false;
+  private leaveButtons: PixelButton[] = [];
+  /** The telephone's top in art pixels of the main area, as drawn now: where its message is said. */
+  private phoneTop: { x: number; y: number } | null = null;
   /** The player's curriculum, for the telephone's call (ft_1_34); null until read, or when there is none. */
   private curriculum: Curriculum | null = null;
   /** The player's world (ft_1_21.AC14: whose tug Kiur practises); null until read. */
@@ -216,11 +226,27 @@ export class ProfileDashboardScene extends PixelScene {
       this.showKiur(false);
       return;
     }
-    startScene(this, 'profiles');
+    if (this.leaveOpen) this.showLeave(false);
+    // Esc never leaves the room: the player list is behind the corner Back and its question (`askLeave`)
+  }
+
+  /**
+   * The corner Back: what is open over the room closes first, as with Esc; else it asks once whether to change the player
+   * before going to the player list.
+   */
+  private askLeave(): void {
+    if (this.tug || this.talk || this.introStage || this.cardOpen || this.standOpen || this.kiurOpen) return this.back();
+    if (!this.leaveOpen) this.showLeave(true);
+  }
+
+  private showLeave(open: boolean): void {
+    this.leaveOpen = open;
+    this.redraw();
   }
 
   protected override focusables(): PixelButton[] {
     if (this.tug || this.talk) return [];
+    if (this.leaveOpen) return this.leaveButtons;
     if (this.cardOpen) return this.cardButtons;
     if (this.kiurOpen) return this.kiurButtons;
     return this.standOpen ? this.standButtons : super.focusables();
@@ -259,6 +285,7 @@ export class ProfileDashboardScene extends PixelScene {
     this.cardOpen = false;
     this.standOpen = false;
     this.kiurOpen = false;
+    this.leaveOpen = false;
     this.lastInput = null;
     this.touched = false;
     // anything the player does counts as being there: the pointer, a key, a note on the piano
@@ -432,6 +459,8 @@ export class ProfileDashboardScene extends PixelScene {
     if (strip.h > 0) this.root.add(new PixelImage(this, strip.x, strip.y, stripArt(strip.w, strip.h)));
 
     // the objects, in this order for the keyboard and the tests: piano, door, stand. Each is a clear box over its place in the picture
+    // the corner Back asks before the player list; Esc stays in the room (`back`)
+    this.backWith(() => this.askLeave());
     const box = (r: Rect): Rect => ({ x: at.x + r.x, y: at.y + r.y, w: r.w, h: r.h });
     for (const thing of ROOM_OBJECTS) {
       const { target, label } = OBJECTS[thing];
@@ -457,11 +486,17 @@ export class ProfileDashboardScene extends PixelScene {
     };
     if (this.talk && !this.tug) {
       this.talkLayer = this.overlayLayer();
-      this.talk.drawIn(this.talkLayer, { area: { w: this.px.width, h: this.mainRows }, heads: { kiur: this.kiurHead(at, picture.kiur), teacher: teacher ?? this.kiurHead(at, picture.kiur) } });
+      this.talk.drawIn(this.talkLayer, {
+        area: { w: this.px.width, h: this.mainRows },
+        heads: { kiur: this.kiurHead(at, picture.kiur), teacher: teacher ?? this.kiurHead(at, picture.kiur) },
+        ...(this.phoneTop ? { things: { phone: this.phoneTop } } : {}),
+        top: this.cornerStrip.rows,
+      });
     }
     this.standButtons = this.standOpen ? this.stand(at) : [];
     this.kiurButtons = this.kiurOpen ? this.kiurAsks(at) : [];
     this.cardButtons = this.cardOpen ? this.card() : [];
+    this.leaveButtons = this.leaveOpen ? this.leaveQuestion() : [];
     if (this.tug) {
       this.tugLayer = this.overlayLayer();
       this.tug.redrawIn(this.tugLayer);
@@ -557,7 +592,7 @@ export class ProfileDashboardScene extends PixelScene {
     if (talk.checkup) lines.push({ who: 'teacher', text: this.lineText(talk.checkup.arrival) });
     this.checkupPiece = talk.checkup?.piece ?? null;
     this.teacherHere = talk.checkup !== null;
-    this.openTalk(lines);
+    this.openTalk(lines, talk.checkup !== null);
   }
 
   /**
@@ -600,7 +635,8 @@ export class ProfileDashboardScene extends PixelScene {
     return t(l.line as TextKey, { ...l.params, ...(l.piece === undefined ? {} : { piece: chart ? pieceTitle(chart) : l.piece }) });
   }
 
-  private openTalk(lines: readonly RoomLine[]): void {
+  /** `checkup`: the lines end with the teacher's first line, which read to the end opens her check-up. */
+  private openTalk(lines: readonly RoomLine[], checkup = false): void {
     if (lines.length === 0) {
       this.teacherHere = false;
       return;
@@ -609,17 +645,42 @@ export class ProfileDashboardScene extends PixelScene {
       changed: () => this.redraw(),
       ended: (how) => {
         this.talk = null;
-        const piece = this.checkupPiece;
-        this.checkupPiece = null;
-        this.teacherHere = false;
         // her first line read to the end opens the piano with her piece (one press, ft_1_27.AC2); Back there returns here
-        if (how === 'read' && piece !== null && contextOf(this).pieces.find(piece)) {
-          startScene(this, 'practice', { chartId: piece, checkup: { since: new Date().toISOString() } });
-          return;
-        }
+        if (how === 'read' && checkup && this.startCheckup()) return;
+        // left (Esc, or a press on something in the room): she still waits in the doorway for her check-up, and can be pressed
+        this.teacherHere = this.checkupPiece !== null;
         if (this.sys.isActive()) this.redraw();
       },
+      through: (pointer) => this.pressThrough(pointer),
     });
+  }
+
+  /** The teacher's check-up on the piano with her piece (ft_1_27.AC2); false when there is none to start. */
+  private startCheckup(): boolean {
+    const piece = this.checkupPiece;
+    if (piece === null || !contextOf(this).pieces.find(piece)) return false;
+    this.checkupPiece = null;
+    this.teacherHere = false;
+    startScene(this, 'practice', { chartId: piece, checkup: { since: new Date().toISOString() } });
+    return true;
+  }
+
+  /**
+   * A press during a line on one of the room's objects (the corners too): the line closes and the object does what it does,
+   * so a child going for the door goes out. Never during the intro, whose talks take every press. True when taken.
+   */
+  private pressThrough(pointer: Phaser.Input.Pointer): boolean {
+    if (this.introStage) return false;
+    const { x, y } = this.artPoint(pointer);
+    // the last made lies on top (the teacher over the door, the corners over the room)
+    const hit = [...this.buttons].reverse().find((b) => {
+      const r = b.rect;
+      return !b.disabled && x >= r.x && x < r.x + r.width && y >= r.y && y < r.y + r.height;
+    });
+    if (!hit) return false;
+    this.talk?.leave();
+    hit.press();
+    return true;
   }
 
   /** What Kiur and the teacher say now, for the tests and the self-playing demo; null when nobody speaks. */
@@ -649,6 +710,11 @@ export class ProfileDashboardScene extends PixelScene {
     for (let i = 0; i < TEACHER_BOX.w; i++) { box.pixels[i] = C.teal; box.pixels[(TEACHER_BOX.h - 1) * TEACHER_BOX.w + i] = C.teal; }
     for (let i = 0; i < TEACHER_BOX.h; i++) { box.pixels[i * TEACHER_BOX.w] = C.teal; box.pixels[i * TEACHER_BOX.w + TEACHER_BOX.w - 1] = C.teal; }
     this.root.add(new PixelImage(this, x, y, box).setName('teacher'));
+    // while her check-up waits, pressing her starts it (after Esc on a line, or back from the map)
+    if (this.checkupPiece !== null && !this.introStage) {
+      const r = { x, y, w: TEACHER_BOX.w, h: TEACHER_BOX.h };
+      this.button({ ...rectCentre(r), label: t('room.teacher'), picture: createBitmap(r.w, r.h), onClick: () => { this.talk?.leave(); this.startCheckup(); } });
+    }
     return { x: x + Math.round(TEACHER_BOX.w / 2), y };
   }
 
@@ -658,7 +724,8 @@ export class ProfileDashboardScene extends PixelScene {
    * pointer he wakes into his second look (`wake`: head up, eyes open, a gold note over him), as the room's objects do.
    */
   private kiur(at: Rect, overlay: Overlay, wake: (over: boolean) => void): void {
-    if (this.tug || this.talk || this.cardOpen || this.standOpen || this.kiurOpen || this.introStage) return;
+    // while someone speaks he can still be pressed (the line closes, `pressThrough`)
+    if (this.tug || this.cardOpen || this.standOpen || this.kiurOpen || this.leaveOpen || this.introStage) return;
     const frame = overlay.frames[0]!;
     const x = at.x + Math.floor(overlay.x / ART_DETAIL), y = at.y + Math.floor(overlay.y / ART_DETAIL);
     const r = { x, y, w: Math.ceil(frame.width / ART_DETAIL), h: Math.ceil(frame.height / ART_DETAIL) };
@@ -673,15 +740,17 @@ export class ProfileDashboardScene extends PixelScene {
 
   /**
    * Kiur's question (ft_1_32 rule 14): a board over the room with two pictures, an open music book to learn a song bar by
-   * bar and a rope with its rag to tug one, each opening the piece book for it; their names show only in their bubbles. A press beside the board closes it. Placement is the stand's (`standPanel`).
+   * bar and a rope with its rag to tug one, each opening the piece book for it, each with its word written under it (a
+   * tablet has no hover to show a bubble; AX-3 provisional). A press beside the board closes it. Placement is the stand's (`standPanel`).
    */
   private kiurAsks(at: Rect): PixelButton[] {
     const choices = [{ id: 'learn', name: 'room.kiur.learn', picture: learnBook }, { id: 'tug', name: 'room.kiur.tug', picture: tugRope }] as const;
-    const { panel, cells } = standPanel(at, choices.length);
+    const { panel, cells } = standPanel(at, choices.length, WORDED_GAP);
     const outside = this.add.rectangle(0, 0, this.px.width, this.px.height, 0x000000, 0).setOrigin(0, 0).setInteractive();
     outside.on('pointerup', () => this.showKiur(false));
     this.root.add(outside);
-    this.root.add(new PixelImage(this, panel.x, panel.y, panelBitmap(panel.w, panel.h, 'panel')).setInteractive().setName('kiurPanel'));
+    // the board grows by a row for the words under the pictures
+    this.root.add(new PixelImage(this, panel.x, panel.y, panelBitmap(panel.w, panel.h + KIUR_WORD_ROWS, 'panel')).setInteractive().setName('kiurPanel'));
     return choices.map((choice, i) => {
       const cell = cells[i]!;
       const [rest, lit] = (['card', 'cardHover'] as const).map((kind) => {
@@ -690,7 +759,8 @@ export class ProfileDashboardScene extends PixelScene {
         return frame;
       }) as [PixelImage, PixelImage];
       lit.setVisible(false);
-      // a picture, its name only in its bubble: every selection is a picture
+      // a picture, its word written under it
+      this.label(0, cell.y + cell.h + 2, t(choice.name), C.cream).centerAt(cell.x + cell.w / 2).setName(`kiurWord:${choice.id}`);
       const art = choice.picture();
       this.fineImage(cell.x * ART_DETAIL + Math.floor((cell.w * ART_DETAIL - art.width) / 2), cell.y * ART_DETAIL + Math.floor((cell.h * ART_DETAIL - art.height) / 2), art).setName(`kiur:${choice.id}`);
       const light = (over: boolean) => {
@@ -727,14 +797,15 @@ export class ProfileDashboardScene extends PixelScene {
     const images = looks.map((look, i) => this.fineImage(x, y, look).setName(call?.ringing ? `phone:ringing:${i}` : 'phone'));
     this.cycle(images, RING_MS);
     const r = { x: at.x + place.x, y: at.y + place.y, w: place.w, h: place.h };
+    this.phoneTop = { x: r.x + Math.round(r.w / 2), y: r.y };
     this.button({
       ...rectCentre(r), label: t(call?.ringing ? 'room.phone.ringing' : 'room.phone'), picture: createBitmap(r.w, r.h),
       onClick: () => {
-        if (this.tug || this.talk || this.cardOpen || this.standOpen || this.kiurOpen || this.introStage) return;
+        if (this.tug || this.talk || this.cardOpen || this.standOpen || this.kiurOpen || this.leaveOpen || this.introStage) return;
         const now = this.call();
         if (now) startScene(this, 'practice', { chartId: now.piece, learn: true });
         else {
-          this.openTalk([{ who: 'kiur', text: t('room.phone.quiet') }]);
+          this.openTalk([{ who: 'kiur', text: t('room.phone.quiet'), from: 'phone' }]);
           this.redraw();
         }
       },
@@ -911,6 +982,7 @@ export class ProfileDashboardScene extends PixelScene {
       rules: trainerRules(TUG_RULES),
       place: { area: { w: this.px.width, h: this.mainRows }, head },
       devices: { piano: context.audio.piano, clock: context.audio.clock, keyboard: context.keyboard, metronome: context.audio.metronome },
+      ...(this.cornerDoor ? { door: this.cornerDoor } : {}),
     }, {
       playing: () => undefined,
       ended: () => {
@@ -1032,5 +1104,28 @@ export class ProfileDashboardScene extends PixelScene {
     });
     const close = this.button({ x: x + CARD_WIDTH - CARD_PAD - CLOSE.width / 2 + 2, y: y + CARD_PAD + 2, ...CLOSE, label: t('card.close'), icon: TOOL_ICONS.close, iconOnly: true, tooltip: t('card.close'), onClick: () => this.showCard(false) });
     return [close];
+  }
+
+  /**
+   * The question behind the corner Back (AX-3 provisional: one question, two answers): change the player? No, on the left,
+   * the keyboard's first and the louder, stays; Yes goes to the player list. The room darkens behind it, and a press there or Esc answers No.
+   */
+  private leaveQuestion(): PixelButton[] {
+    const { width, height } = this.px;
+    const ask = t('room.leave.ask');
+    const w = Math.max(LEAVE.width, measure(drawnText(ask)) + 2 * CARD_PAD), h = LEAVE.height;
+    const x = Math.floor((width - w) / 2), y = Math.max(0, Math.floor((this.mainRows - h) / 2));
+    const shade = this.add.rectangle(0, 0, width, height, 0x000000, 0.5).setOrigin(0, 0).setInteractive();
+    shade.on('pointerup', () => this.showLeave(false));
+    this.root.add(shade);
+    this.root.add(new PixelImage(this, x, y, panelBitmap(w, h, 'panel')).setInteractive().setName('leavePanel'));
+    this.label(0, y + CARD_PAD + 2, ask, C.white).centerAt(x + w / 2);
+    const row = y + h - CARD_PAD - BAR_BUTTON_HEIGHT / 2;
+    const answer = (dx: number, key: TextKey, quiet: boolean, onClick: () => void) =>
+      this.button({ x: x + w / 2 + dx, y: row, width: LEAVE.answer, height: BAR_BUTTON_HEIGHT, label: t(key), ...(quiet ? { look: 'card' as const } : {}), onClick });
+    // No on the left and first, so the keyboard starts on staying; Yes is the quieter dark card
+    const no = answer(-LEAVE.answer / 2 - 4, 'room.leave.no', false, () => this.showLeave(false));
+    const yes = answer(LEAVE.answer / 2 + 4, 'room.leave.yes', true, () => startScene(this, 'profiles'));
+    return [no, yes];
   }
 }

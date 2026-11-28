@@ -4,7 +4,7 @@
 // buttons and the paths it did not reach.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { activeScene, addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene } from './helpers';
+import { activeScene, addPlayer, allMenuTitles, showMenuPageWith, bandAction, buttonPoint, clickButton, clickToolbar, expectNoErrors, lastButton, goToMainMenu, menuButton, nameDone, openAdminPage, openGame, openPiece, pickUnderGear, playerName, profileButton, sceneButton, sceneTexts, typeName, waitForScene, leaveRoom } from './helpers';
 
 /** The main menu: from the piece list, the room's Quit goes there (`goToMainMenu`). */
 const openProfiles = async (page: Page) => {
@@ -102,6 +102,20 @@ test.describe('main menu (ft_1_07.AC2)', () => {
     expectNoErrors(errors);
   });
 
+  test('a name of twelve of the widest letters is written whole on its line of the main menu', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
+    await page.evaluate(async () => {
+      const profiles = window.__game.registry.get('context').profiles;
+      for (const name of ['WWWWWWWWWWWW', 'MMMMMMMMMMMM']) await profiles.createPlayer(name);
+    });
+    await clickButton(page, 'profiles', await profileButton(page, 'TUVI')); // redraw the menu by leaving and coming back
+    await waitForScene(page, 'profile');
+    await leaveRoom(page);
+    const texts = await sceneTexts(page, 'profiles');
+    expect(texts).toEqual(expect.arrayContaining(['WWWWWWWWWWWW', 'MMMMMMMMMMMM']));
+    expectNoErrors(errors);
+  });
+
   test('ft_1_07.AC10 New player is gone once there are ten players', async ({ page }) => {
     const errors = await openGame(page);
     await openProfiles(page);
@@ -111,8 +125,7 @@ test.describe('main menu (ft_1_07.AC2)', () => {
     });
     await clickButton(page, 'profiles', await profileButton(page, 'TUVI')); // redraw the menu by leaving and coming back
     await waitForScene(page, 'profile');
-    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Back'));
-    await waitForScene(page, 'profiles');
+    await leaveRoom(page);
     expect(await profileCount(page)).toBe(10);
     expect(await profileButton(page, 'New player')).toBe(-1);
     expectNoErrors(errors);
@@ -168,11 +181,10 @@ test.describe('saves that cannot be kept', () => {
 });
 
 test.describe('the room (ft_1_07.AC3, ft_1_07.AC4)', () => {
-  test('Back on the room goes back to the main menu', async ({ page }) => {
+  test('Back on the room asks Change player? and Yes goes back to the main menu', async ({ page }) => {
     const errors = await openGame(page);
     await openDashboard(page, 'VINT');
-    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Back'));
-    await waitForScene(page, 'profiles');
+    await leaveRoom(page);
     expectNoErrors(errors);
   });
 
@@ -296,6 +308,29 @@ test.describe('admin page (ft_1_07.AC6)', () => {
     await page.keyboard.press('Enter');
     await waitForScene(page, 'admin');
     expect(await playerName(page)).toBe('MÕRI');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_07.AC6 a name takes Q, W and one space or hyphen between letters, and drops one left at its end', async ({ page }) => {
+    const errors = await openGame(page);
+    await openProfiles(page);
+    await clickButton(page, 'profiles', await profileButton(page, 'New player'));
+    await waitForScene(page, 'name');
+    // the plate asks what goes on it
+    expect(await sceneTexts(page, 'name')).toContain('Your name?');
+    await page.keyboard.type('mari--liis');
+    await expect.poll(() => sceneTexts(page, 'name')).toContain('MARI-LIIS');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'profile');
+    expect(await playerName(page)).toBe('MARI-LIIS');
+    await leaveRoom(page);
+    await clickButton(page, 'profiles', await profileButton(page, 'New player'));
+    await waitForScene(page, 'name');
+    await page.keyboard.type(' william ');
+    await expect.poll(() => sceneTexts(page, 'name')).toContain('WILLIAM ');
+    await page.keyboard.press('Enter');
+    await waitForScene(page, 'profile');
+    expect(await playerName(page)).toBe('WILLIAM');
     expectNoErrors(errors);
   });
 

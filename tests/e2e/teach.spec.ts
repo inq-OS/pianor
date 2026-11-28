@@ -2,10 +2,10 @@
 // and ft_1_32.AC15 (with learning on, his teaching is learning bar by bar, and back to the knoll).
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { activeScenes, expectNoErrors, letGameRun, openGame, playWithVirtualPiano, waitForScene, type PageErrors } from './helpers';
+import { activeScenes, clickButton, expectNoErrors, letGameRun, openGame, playWithVirtualPiano, sceneButton, waitForScene, type PageErrors } from './helpers';
 
 interface TalkState { showing: 'line' | 'student' | 'choices'; node: string }
-interface Teach { who: 'character' | 'student' | null; piece: string; level: number; tries: boolean[]; outcome?: 'heard' | 'notYet'; saying: string | null; closing: boolean; staff: boolean }
+interface Teach { who: 'character' | 'student' | null; piece: string; level: number; tries: boolean[]; outcome?: 'heard' | 'notYet'; saying: string | null; closing: boolean; staff: boolean; notFirst: number[] }
 
 const knoll = 'knoll';
 const teach = (page: Page) => page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { teachState: Teach | null }).teachState, knoll);
@@ -59,7 +59,11 @@ test.describe('Puuvaim teaches his phrase in the knoll (ft_1_22.AC3, WP-12)', ()
   test('ft_1_22.AC3 he plays it with the staff shown; a missed try, then one that passes: the phrase is heard and kept with him', async ({ page }) => {
     const errors = await openTeach(page);
     expect(await teach(page)).toMatchObject({ who: 'character', piece: 'both-hands', level: 1, tries: [], staff: true });
-    expect(await tryIt(page, MISSED)).toMatchObject({ tries: [false], saying: '13 of 26 notes right' });
+    // the fact names the first wrong key's reason (C sharp for C: the key next door)
+    const missed = await tryIt(page, MISSED);
+    expect(missed).toMatchObject({ tries: [false], saying: '13 of 26 notes right. You played the key next door' });
+    // the staff marks the thirteen notes found only after a wrong key, not every note as right
+    expect(missed.notFirst).toHaveLength(13);
     expect(await tryIt(page, TUNE)).toMatchObject({ tries: [false, true], outcome: 'heard', saying: '26 of 26 notes right' });
     await expect.poll(async () => (await teach(page))?.saying).toContain('You played my tune');
     expect((await teach(page))!.staff).toBe(false);
@@ -80,6 +84,32 @@ test.describe('Puuvaim teaches his phrase in the knoll (ft_1_22.AC3, WP-12)', ()
     await page.keyboard.press('Space');
     await expect.poll(() => teach(page)).toBeNull();
     expect(await taught(page)).toEqual([]);
+    expectNoErrors(errors);
+  });
+
+  test('the corner Back is pressable over the teaching and leaves it as Esc does, with nothing kept', async ({ page }) => {
+    const errors = await openTeach(page);
+    await expect.poll(async () => (await teach(page))?.who).toBe('character');
+    await endPhrase(page);
+    await expect.poll(async () => (await teach(page))?.who).toBe('student');
+    await clickButton(page, knoll, await sceneButton(page, knoll, 'Back'));
+    await expect.poll(() => teach(page)).toBeNull();
+    expect(await activeScenes(page)).toContain(knoll);
+    expect(await taught(page)).toEqual([]);
+    expectNoErrors(errors);
+  });
+
+  test('a try with no note played for a while: he says once whose turn it is, and the first note ends the line', async ({ page }) => {
+    const errors = await openTeach(page);
+    await expect.poll(async () => (await teach(page))?.who).toBe('character');
+    await endPhrase(page);
+    await expect.poll(async () => (await teach(page))?.who).toBe('student');
+    expect((await teach(page))!.saying).toBeNull();
+    // the scene's clock runs fast, so the twenty seconds pass in one
+    await page.evaluate((k) => { (window.__game.scene.getScene(k) as unknown as { time: { timeScale: number } }).time.timeScale = 40; }, knoll);
+    await expect.poll(async () => (await teach(page))?.saying, { timeout: 10_000 }).toBe('Your turn: play my line.');
+    await playWithVirtualPiano(page, [TUNE[0]!]);
+    await expect.poll(async () => (await teach(page))?.saying).toBeNull();
     expectNoErrors(errors);
   });
 

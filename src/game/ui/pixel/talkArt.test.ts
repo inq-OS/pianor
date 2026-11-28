@@ -34,6 +34,17 @@ describe('the conversation\'s look (ft_1_22.AC1, WP-09 painter part, take A2)', 
     expect(line.height).toBe(CELL_HEIGHT + 2);
   });
 
+  it('a page with more pages after it ends in a small arrow in its colour, outlined, the rows as tall as before', () => {
+    const plain = spokenLine(['MA KUULAN.'], C.goldLight);
+    const more = spokenLine(['MA KUULAN.'], C.goldLight, true);
+    expect(more.width).toBeGreaterThan(plain.width);
+    expect(more.height).toBe(plain.height);
+    expect(colours(more.pixels)).toEqual(new Set([C.goldLight, C.ink]));
+    // the arrow's tip column, right of the words, holds the colour
+    const tip = Array.from({ length: more.height }, (_, y) => more.pixels[y * more.width + more.width - 2]);
+    expect(tip).toContain(C.goldLight);
+  });
+
   it('two rows are centred on each other', () => {
     const line = spokenLine(['A', 'MMMMM'], C.white);
     const firstRowInk = [...line.pixels.slice(line.width, line.width * 2)].map((p, x) => (p === C.white ? x : -1)).filter((x) => x >= 0);

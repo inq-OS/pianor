@@ -51,12 +51,18 @@ export function spokenPages(text: string): string[][] {
   return talkPages(drawnText(text), wrap);
 }
 
+/** The arrow after a page with more pages after it, four by seven: a press turns to the next. */
+const MORE_ROWS = ['#...', '##..', '###.', '####', '###.', '##..', '#...'] as const;
+const MORE_GAP = 3;
+
 /**
  * One page of a spoken line: its rows centred on each other in `colour`, with an ink line one pixel round every letter
- * (MI2's lines, readable over any picture at any hour). The outline adds one pixel on every side.
+ * (MI2's lines, readable over any picture at any hour). The outline adds one pixel on every side. With `more` a small
+ * arrow in the same colour stands after the last row: more pages follow.
  */
-export function spokenLine(rows: readonly string[], colour: number): Bitmap {
-  const words = renderText(rows.join('\n'), { color: colour, align: 'center' });
+export function spokenLine(rows: readonly string[], colour: number, more = false): Bitmap {
+  const text = renderText(rows.join('\n'), { color: colour, align: 'center' });
+  const words = more ? withArrow(text) : text;
   const w = words.width + 2, h = words.height + 2;
   const out = createBitmap(w, h);
   const inked = (x: number, y: number): boolean => x >= 0 && y >= 0 && x < words.width && y < words.height && words.pixels[y * words.width + x] !== 0;
@@ -68,6 +74,22 @@ export function spokenLine(rows: readonly string[], colour: number): Bitmap {
       if (near) out.pixels[y * w + x] = C.ink;
     }
   }
+  return out;
+}
+
+/** The words with the more arrow after them, its foot on the last row's foot. */
+function withArrow(words: Bitmap): Bitmap {
+  const arrowW = MORE_ROWS[0].length, arrowH = MORE_ROWS.length;
+  const w = words.width + MORE_GAP + arrowW, h = Math.max(words.height, arrowH);
+  const out = createBitmap(w, h);
+  for (let y = 0; y < words.height; y++) for (let x = 0; x < words.width; x++) out.pixels[y * w + x] = words.pixels[y * words.width + x]!;
+  // the colour of the words: their first inked pixel
+  const colour = words.pixels.find((p) => p !== 0) ?? C.white;
+  // the last row's letters stand on its foot, a pixel or two above a descender's
+  let foot = words.height - 1;
+  while (foot > 0 && !words.pixels.slice(foot * words.width, (foot + 1) * words.width).some((p) => p !== 0)) foot--;
+  const top = Math.max(0, foot - arrowH + 1);
+  MORE_ROWS.forEach((row, dy) => [...row].forEach((c, dx) => { if (c === '#') out.pixels[(top + dy) * w + words.width + MORE_GAP + dx] = colour; }));
   return out;
 }
 

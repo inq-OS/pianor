@@ -85,8 +85,9 @@ test.describe('the player room', () => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
-    // closed: no button for them
+    // the docks are shut: their name says so, and they open nothing
     expect(await sceneButton(page, 'keriMap', 'The jetty')).toBe(-1);
+    expect(await sceneButton(page, 'keriMap', 'The jetty: not open yet')).toBeGreaterThanOrEqual(0);
     await page.evaluate(() => { const g = window.__game; g.scene.stop('keriMap'); g.scene.start('docks'); });
     await waitForScene(page, 'docks');
     // the sea and the grass (a gust in a loop of looks), the drifting clouds, what stands before them and the lamp move
@@ -101,8 +102,9 @@ test.describe('the player room', () => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
-    // closed: no button for it
+    // the terrace is shut: its name says so, and it opens nothing
     expect(await sceneButton(page, 'keriMap', 'The terrace')).toBe(-1);
+    expect(await sceneButton(page, 'keriMap', 'The terrace: not open yet')).toBeGreaterThanOrEqual(0);
     await page.evaluate(() => { const g = window.__game; g.scene.stop('keriMap'); g.scene.start('terrace'); });
     await waitForScene(page, 'terrace');
     // the drifting clouds, what stands before them, the lantern and the pennant on the wind move
@@ -186,6 +188,7 @@ test.describe('the player room', () => {
           animators: scene.animators.length,
           // on the picture: not the door, the gear and the backpack over its corners (ft_1_20)
           buttons: scene.buttons.filter((b) => b !== scene.toolbarButtons.back && b !== scene.toolbarButtons.settings && b.options.label !== 'Backpack').map((b) => b.rect).filter((r) => r.y >= 0 && r.y < scene.px.height),
+          labels: scene.buttons.map((b) => b.options.label),
         };
       });
     const first = await seen();
@@ -195,8 +198,10 @@ test.describe('the player room', () => {
     expect(first.clouds).toHaveLength(3);
     // the sea, the lamp, the gulls' flock (ft_1_19.AC13) and three clouds move
     expect(first.animators).toBe(6);
-    // the warden's house, the knoll and the crossroads (ft_1_19.AC2: the scenes a new player has open)
-    expect(first.buttons).toHaveLength(3);
+    // the warden's house, the knoll and the crossroads (ft_1_19.AC2: the scenes a new player has open), and the three
+    // closed places, whose names say they are not open yet
+    expect(first.buttons).toHaveLength(6);
+    expect(first.labels.filter((l) => l.endsWith(': not open yet'))).toHaveLength(3);
     for (const b of first.buttons) {
       expect(b.x).toBeGreaterThanOrEqual(0);
       expect(b.x + b.width).toBeLessThanOrEqual(first.size.width);
@@ -515,7 +520,7 @@ test.describe("Kiur and the teacher speak in the room (ft_1_27, WP-15)", () => {
     await expect.poll(() => roomTalk(page)).not.toBeNull();
     const said = await readTalk(page);
     expect(said.map((l) => l.who)).toEqual(['kiur']);
-    expect(said[0]!.text).toBe('Little Steps: 0 of 3 plays so far. Then we can see how it goes.');
+    expect(said[0]!.text).toBe('Little Steps: 0 of 3 plays so far. After 3 I can say how close you are.');
     expect(await roomTalk(page)).toBeNull();
     // the room again the same day: the reminder was said today, and the boat is far away
     await page.evaluate(() => window.__game.scene.start('profile'));
@@ -690,6 +695,195 @@ test.describe('presses in the room', () => {
     await page.mouse.up({ clickCount: 2 });
     await letGameRun(page, 10, 500);
     expect(await page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key))).toEqual(['profile']);
+    expectNoErrors(errors);
+  });
+});
+
+const running = (page: Page) => page.evaluate(() => window.__game.scene.getScenes(true).map((s) => s.scene.key));
+const focusedLabel = (page: Page, key: string) =>
+  page.evaluate((k) => {
+    const all = window.__game.scene.getScene(k).focusables() as { focused: boolean; options: { label: string } }[];
+    return all.find((b) => b.focused)?.options.label ?? null;
+  }, key);
+
+test.describe('the way out of the room, and what the room and the map say', () => {
+  test('Esc never takes the room to the player list, and the corner Back asks Change player? where No or Esc stays and Yes leaves', async ({ page }) => {
+    const errors = await toRoom(page);
+    for (let i = 0; i < 4; i++) {
+      await page.keyboard.press('Escape');
+      await letGameRun(page, 3);
+    }
+    expect(await running(page)).toEqual(['profile']);
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Back'));
+    await expect.poll(() => sceneTexts(page, 'profile')).toContain('Change player?');
+    await page.keyboard.press('Escape');
+    await expect.poll(() => sceneTexts(page, 'profile')).not.toContain('Change player?');
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Back'));
+    await expect.poll(() => sceneButton(page, 'profile', 'No')).toBeGreaterThanOrEqual(0);
+    // No on the left, Yes on the right as the quieter card, and the keyboard starts on No
+    const answers = await page.evaluate(() => {
+      const scene = window.__game.scene.getScene('profile') as unknown as { buttons: { rect: Box; options: { label: string; look?: string } }[] };
+      const of = (label: string) => scene.buttons.find((b) => b.options.label === label)!;
+      return { no: of('No').rect.x, yes: of('Yes').rect.x, yesLook: of('Yes').options.look ?? 'button', noLook: of('No').options.look ?? 'button' };
+    });
+    expect(answers.no).toBeLessThan(answers.yes);
+    expect(answers).toMatchObject({ yesLook: 'card', noLook: 'button' });
+    await page.keyboard.press('ArrowRight');
+    expect(await focusedLabel(page, 'profile')).toBe('No');
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'No'));
+    await expect.poll(() => sceneTexts(page, 'profile')).not.toContain('Change player?');
+    expect(await running(page)).toEqual(['profile']);
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Back'));
+    await expect.poll(() => sceneButton(page, 'profile', 'Yes')).toBeGreaterThanOrEqual(0);
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Yes'));
+    await waitForScene(page, 'profiles');
+    expectNoErrors(errors);
+  });
+
+  test("ft_1_27.AC2 Esc on Kiur's reminder on the deadline day leaves the teacher waiting in the doorway, and a press on her starts the check-up", async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
+    await onCurriculum(page, 0);
+    await clickButton(page, 'profiles', 0);
+    await waitForScene(page, 'profile');
+    await expect.poll(() => roomTalk(page)).not.toBeNull();
+    await page.keyboard.press('Escape');
+    await expect.poll(() => roomTalk(page)).toBeNull();
+    await expect.poll(() => sceneButton(page, 'profile', 'Teacher')).toBeGreaterThanOrEqual(0);
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Teacher'));
+    await waitForScene(page, 'practice');
+    expectNoErrors(errors);
+  });
+
+  test('a press on the door while Kiur speaks closes his line and opens the map, and a press beside the objects turns the line', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
+    await onCurriculum(page, 0);
+    await clickButton(page, 'profiles', 0);
+    await waitForScene(page, 'profile');
+    await expect.poll(() => roomTalk(page)).not.toBeNull();
+    // on the deadline day Kiur's reminder, then the teacher's line: a press on the bare floor goes on to hers
+    expect((await roomTalk(page))!.who).toBe('kiur');
+    await page.mouse.click(Math.round(page.viewportSize()!.width / 2), Math.round(page.viewportSize()!.height * 0.85));
+    await expect.poll(async () => (await roomTalk(page))?.who).toBe('teacher');
+    // the door above the teacher, who stands in its foot
+    const door = await sceneButton(page, 'profile', 'Door');
+    const top = await page.evaluate((i) => {
+      const scene = window.__game.scene.getScene('profile') as unknown as { buttons: { rect: Box; screenCenter(): { x: number; y: number } }[]; px: { scale: number } };
+      const b = scene.buttons[i]!, c = b.screenCenter(), canvas = document.querySelector('canvas')!, r = canvas.getBoundingClientRect();
+      const y = c.y - (b.rect.height / 2 - 4) * scene.px.scale;
+      return { x: r.left + (c.x / canvas.width) * r.width, y: r.top + (y / canvas.height) * r.height };
+    }, door);
+    await page.mouse.click(top.x, top.y);
+    await waitForScene(page, 'keriMap');
+    expectNoErrors(errors);
+  });
+
+  test("the telephone's message is said on a plate beside the telephone", async ({ page }) => {
+    const errors = await toRoom(page);
+    const phone = await sceneButton(page, 'profile', 'Telephone');
+    await clickButton(page, 'profile', phone);
+    await expect.poll(() => roomTalk(page)).not.toBeNull();
+    const at = await page.evaluate((i) => {
+      const scene = window.__game.scene.getScene('profile') as unknown as { buttons: { rect: Box }[]; children: { list: { list?: { name: string; x: number; y: number; width: number; height: number }[] }[] } };
+      const line = scene.children.list.flatMap((o) => o.list ?? []).find((o) => o.name === 'roomLine')!;
+      return { line: { x: line.x, y: line.y, width: line.width, height: line.height }, phone: scene.buttons[i]!.rect };
+    }, phone);
+    // beside it on the wall: level with it, and its plate ends just left of it
+    expect(Math.abs(at.line.y + at.line.height / 2 - (at.phone.y + at.phone.height / 2))).toBeLessThan(at.line.height + at.phone.height);
+    expect(at.phone.x - (at.line.x + at.line.width)).toBeLessThan(20);
+    expect(at.line.x + at.line.width).toBeLessThanOrEqual(at.phone.x + at.phone.width);
+    expectNoErrors(errors);
+  });
+
+  test('ft_Y_13.AC1 the arrow keys reach every object and corner of the room, and every place and corner of the map', async ({ page }) => {
+    const errors = await toRoom(page);
+    // every thing on the screen is reached by the arrows alone: from the first focus, following each arrow from each thing reached
+    const reached = async (key: string) => {
+      await page.keyboard.press('ArrowRight');
+      const labels = await page.evaluate((k) => (window.__game.scene.getScene(k).focusables() as { options: { label: string } }[]).map((b) => b.options.label), key);
+      const start = (await focusedLabel(page, key))!;
+      const seen = new Set<string>([start]);
+      const todo = [start];
+      while (todo.length > 0) {
+        const from = labels.indexOf(todo.pop()!);
+        for (const arrow of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']) {
+          await page.evaluate(({ k, i }) => {
+            const scene = window.__game.scene.getScene(k) as unknown as { focusIndex: number; focusShown: boolean };
+            scene.focusIndex = i;
+            scene.focusShown = true;
+          }, { k: key, i: from });
+          await page.keyboard.press(arrow);
+          const to = (await focusedLabel(page, key))!;
+          if (!seen.has(to)) {
+            seen.add(to);
+            todo.push(to);
+          }
+        }
+      }
+      return [...seen];
+    };
+    expect(await reached('profile')).toEqual(expect.arrayContaining(['Back', 'Kiur', 'Piano', 'Your card', 'Exercises', 'Telephone', 'Door', 'Backpack', 'Settings']));
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
+    await waitForScene(page, 'keriMap');
+    expect(await reached('keriMap')).toEqual(expect.arrayContaining(['Back', "Warden's house", 'Grassy knoll', 'Crossroads', 'Backpack', 'Settings']));
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_19.AC2 a press on a shut place on the map says it is not open yet, and opens nothing', async ({ page }) => {
+    const errors = await toRoom(page);
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
+    await waitForScene(page, 'keriMap');
+    const harbor = await sceneButton(page, 'keriMap', 'The harbor: not open yet');
+    await clickButton(page, 'keriMap', harbor);
+    await expect.poll(() => page.evaluate((i) => window.__game.scene.getScene('keriMap').buttons[i].tooltipShown as string | null, harbor)).toBe('The harbor: not open yet');
+    // its bubble keeps a margin from the screen's right edge
+    const edge = await page.evaluate((i) => {
+      const scene = window.__game.scene.getScene('keriMap') as unknown as { buttons: { tip: Box[] }[]; px: { width: number } };
+      const bubble = scene.buttons[i]!.tip[0]!;
+      return scene.px.width - (bubble.x + bubble.width);
+    }, harbor);
+    expect(edge).toBeGreaterThanOrEqual(6);
+    expect(await running(page)).toEqual(['keriMap']);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_08.AC7 the door\'s name keeps below the gear', async ({ page }) => {
+    const errors = await toRoom(page);
+    const door = await sceneButton(page, 'profile', 'Door');
+    const point = await buttonPoint(page, 'profile', door);
+    await page.mouse.move(point.x, point.y);
+    await expect.poll(() => tooltipOf(page, door), { timeout: 15_000 }).toBe('Door');
+    const { bubble } = await bubbleOf(page, door);
+    const gear = await page.evaluate(() => (window.__game.scene.getScene('profile') as unknown as { toolbarButtons: { settings: { rect: Box } } }).toolbarButtons.settings.rect);
+    expect(bubble!.y).toBeGreaterThanOrEqual(gear.y + gear.height);
+    expectNoErrors(errors);
+  });
+
+  test('ft_0_06 with the piano unplugged a piano in warm light shows in the room\'s and the map\'s corner, a press says No keyboard found, and it goes when plugged back in', async ({ page }) => {
+    const errors = await toRoom(page);
+    const sign = (key: string) => sceneButton(page, key, 'No keyboard found');
+    expect(await sign('profile')).toBe(-1);
+    await page.evaluate(() => (window as unknown as { __virtualDevice: { disconnect(): void } }).__virtualDevice.disconnect());
+    await expect.poll(() => sign('profile')).toBeGreaterThanOrEqual(0);
+    // whole, never faded, and a press shows its name at once
+    const at = await sign('profile');
+    expect(await page.evaluate((i) => (window.__game.scene.getScene('profile').buttons[i].objects[0] as { alpha: number }).alpha, at)).toBe(1);
+    await clickButton(page, 'profile', at);
+    await expect.poll(() => tooltipOf(page, at)).toBe('No keyboard found');
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
+    await waitForScene(page, 'keriMap');
+    expect(await sign('keriMap')).toBeGreaterThanOrEqual(0);
+    await page.evaluate(() => (window as unknown as { __virtualDevice: { connect(): void } }).__virtualDevice.connect());
+    await expect.poll(() => sign('keriMap')).toBe(-1);
+    expectNoErrors(errors);
+  });
+
+  test('Kiur\'s board writes Learn and Tug under its pictures, and the piece book opened for his tug is titled for it', async ({ page }) => {
+    const errors = await toRoom(page);
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Kiur'));
+    await expect.poll(() => sceneTexts(page, 'profile')).toEqual(expect.arrayContaining(['Learn', 'Tug']));
+    await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Tug'));
+    await waitForScene(page, 'menu');
+    await expect.poll(() => sceneTexts(page, 'menu')).toContain('Tug with Kiur');
     expectNoErrors(errors);
   });
 });

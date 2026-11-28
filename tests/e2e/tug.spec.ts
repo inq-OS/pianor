@@ -22,7 +22,7 @@ const tugs = (page: Page) => page.evaluate(() => (window.__game.registry.get('co
  * wrong key (C#4) for each of them. Puuvaim's first piece is Both Hands: at level 1 its first half, two phrases of two bars
  * (6 and 5 notes) that the two take in turns, swapped on each pass.
  */
-type Play = 'phrase' | 'wrong';
+type Play = 'phrase' | 'wrong' | 'neighbour' | 'letter';
 const PHRASE: Play = 'phrase';
 const WRONG: Play = 'wrong';
 
@@ -31,7 +31,8 @@ const studentKeys = (page: Page, where: 'knoll' | 'profile', play: Play) =>
   page.evaluate(({ where, play }) => {
     const scene = window.__game.scene.getScene(where) as unknown as { tugPhrase?: { notes: { midi: number }[] } | null; tug?: { studentPhrase: { notes: { midi: number }[] } | null } | null };
     const phrase = where === 'knoll' ? scene.tugPhrase : scene.tug?.studentPhrase;
-    return (phrase?.notes ?? []).map((n) => (play === 'phrase' ? n.midi : 61));
+    // a neighbour key is a semitone up, another letter a major third up, `wrong` C#4 for every note
+    return (phrase?.notes ?? []).map((n) => (play === 'phrase' ? n.midi : play === 'neighbour' ? n.midi + 1 : play === 'letter' ? n.midi + 4 : 61));
   }, { where, play });
 
 /** Puuvaim's level 2 piece (Greensleeves): its bars' notes, the pick-up first. */
@@ -136,7 +137,8 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     // won at +3: his closing line, then a press ends the tug in the scene
     await expect.poll(async () => (await tug(page))?.outcome).toBe('won');
     // the closing line counts the lines, never more than were played (AX-2.1)
-    await expect.poll(async () => (await tug(page))?.saying).toBe('3 of 3 lines fell into place. Take this: Oak leaf.');
+    // and the XP it pays (AX-2.1)
+    await expect.poll(async () => (await tug(page))?.saying).toBe('3 of 3 lines fell into place. Take this: Oak leaf. +30 XP');
     await page.keyboard.press('Space');
     await expect.poll(() => tug(page)).toBeNull();
     expect(await activeScenes(page)).toContain(knoll);
@@ -163,6 +165,41 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     await waitForScene(page, knoll);
     await expect.poll(() => inventory(page)).toEqual(['acorn']);
     expect((await world(page)).items).toEqual(['oak-leaf', 'acorn']);
+    expectNoErrors(errors);
+  });
+
+  test('the corner Back is pressable over the tug and leaves it as Esc does, with nothing kept', async ({ page }) => {
+    const errors = await openTug(page);
+    await round(page, PHRASE);
+    // the fact on it is gone: his next phrase plays
+    await expect.poll(async () => (await tug(page))?.saying).toBeNull();
+    await clickButton(page, knoll, await sceneButton(page, knoll, 'Back'));
+    await expect.poll(() => tug(page)).toBeNull();
+    expect(await activeScenes(page)).toContain(knoll);
+    expect((await world(page)).met['puuvaim']!.tugs).toMatchObject({ won: 0, lost: 0 });
+    expect(await tugs(page)).toEqual([]);
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_21.AC7 a neighbour key and a wrong letter each say their reason after the phrase', async ({ page }) => {
+    const errors = await openTug(page);
+    expect((await round(page, 'neighbour')).saying).toBe('0 of 5 notes right. You played the key next door');
+    expect((await round(page, 'letter')).saying).toBe('0 of 6 notes right. You played another letter');
+    await page.keyboard.press('Escape');
+    await expect.poll(() => tug(page)).toBeNull();
+    expectNoErrors(errors);
+  });
+
+  test('the student\'s turn with no note played for a while: he says once whose turn it is, and playing goes on', async ({ page }) => {
+    const errors = await openTug(page);
+    await endPhrase(page);
+    await expect.poll(async () => (await tug(page))?.who).toBe('student');
+    // the scene's clock runs fast, so the twenty seconds pass in one
+    await page.evaluate((k) => { (window.__game.scene.getScene(k) as unknown as { time: { timeScale: number } }).time.timeScale = 40; }, knoll);
+    await expect.poll(async () => (await tug(page))?.saying, { timeout: 10_000 }).toBe('Your turn: play my line.');
+    await page.evaluate((k) => { (window.__game.scene.getScene(k) as unknown as { time: { timeScale: number } }).time.timeScale = 1; }, knoll);
+    await playWithVirtualPiano(page, await studentKeys(page, knoll, PHRASE));
+    await expect.poll(async () => (await tug(page))?.saying).toBe('5 of 5 notes right');
     expectNoErrors(errors);
   });
 
@@ -204,7 +241,7 @@ test.describe('the tug in the knoll (ft_1_21, WP-13)', () => {
     expect(won).toMatchObject({ standing: 1, saying: '5 of 5 notes on time' });
     // Greensleeves has seven bars after its pick-up: his bars 5 and 6, then the short last phrase alone, the student's last bar
     const missed = await roundInTime(page, 'none');
-    expect(missed).toMatchObject({ standing: 0, saying: '0 of 1 notes on time' });
+    expect(missed).toMatchObject({ standing: 0, saying: '0 of 1 note on time' });
     await page.keyboard.press('Escape');
     await expect.poll(() => tug(page)).toBeNull();
     expectNoErrors(errors);
@@ -304,7 +341,7 @@ test.describe('Kiur the trainer in the room (ft_1_21.AC14)', () => {
     // no character met: he trains all the same
     await pressKiur(page);
     expect(await roomTug(page)).toMatchObject({ who: 'character', standing: 0, level: 1 });
-    expect(await roomRound(page, WRONG)).toMatchObject({ standing: -1, saying: '0 of 5 notes right' });
+    expect(await roomRound(page, WRONG)).toMatchObject({ standing: -1, saying: '0 of 5 notes right. You played another letter' });
     await roomRound(page, WRONG);
     await expect.poll(async () => (await roomTug(page))?.outcome).toBe('lost');
     await expect.poll(async () => (await roomTug(page))?.saying).toContain('Practice the piece more');

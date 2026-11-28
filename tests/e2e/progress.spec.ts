@@ -1,7 +1,7 @@
 // Covers ft_0_10.AC2, ft_0_10.AC4, ft_0_15.AC5.
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { LITTLE_STEPS, addPlayer, clickButton, clickToolbar, expectNoErrors, goToMainMenu, openAdminPage, openGame, openPiece, pickProfile, playWithKeys, profileButton, nameDone, sceneButton, sceneTexts, showMenuPageWith, toPieceList, toScoreScreen, waitForScene, bandAction } from './helpers';
+import { LITTLE_STEPS, addPlayer, clickButton, expectNoErrors, goToMainMenu, leaveRoom, openAdminPage, openGame, openPiece, pickProfile, playWithKeys, profileButton, nameDone, sceneButton, sceneTexts, showMenuPageWith, toPieceList, toScoreScreen, waitForScene, bandAction } from './helpers';
 
 const progress = (page: Page) =>
   page.evaluate(() => {
@@ -171,7 +171,7 @@ test.describe('saves', () => {
     await expect.poll(() => progress(page)).toMatchObject({ name: 'KAI', xp: 0 });
     await waitForScene(page, 'profile'); // KAI's room (the name is written into the shield, ft_1_20)
 
-    await clickToolbar(page, 'back');
+    await leaveRoom(page);
     await pickProfile(page, 'TUVI');
     await expect.poll(() => progress(page)).toMatchObject({ name: 'TUVI', pieceXp: 70 });
     await page.reload();

@@ -27,7 +27,7 @@ import { BOOK_PALETTE, PAGE_TURN, REGISTER_PALETTE, pageCorners, paintBook, pain
 import { RULING_PALETTE, inkField, paintRuling } from './paint/register';
 import { REGISTER, registerLayout, type RegisterLayout } from '../../../core/layout/register';
 import { bookPages } from '../../../core/layout/bookPages';
-import { contextOf } from '../../context';
+import { contextOf, MIDI_CHANGED } from '../../context';
 import { motionAllowed } from '../../motion';
 import { measure, drawnText, wrap } from './font';
 import type { WindWay } from './paint/motion';
@@ -166,8 +166,8 @@ const MENU_DEPTH = 1000;
 const STRIP_CELL_WIDTH = 30;
 /** Room between the backpack and the gear, so the two are not taken for each other. */
 const BACKPACK_GAP = 2;
-/** Room round the empty backpack's line in its menu cell, in cells. */
-const BACKPACK_LINE_PAD = 12;
+/** The backpack as a list of names: the narrowest line (the empty backpack's own), the room round a name, and the most lines in one column. */
+const BAG_LINE = { min: 60, emptyMin: 120, pad: 14, rows: 7 } as const;
 /** A long press opens the bubble after this long (ft_1_20, d282); moving the finger farther than `LONG_PRESS_SLIP` screen pixels cancels it. */
 /** The largest music sign (fine pixels) in a round option of the bubble and in a cell of the strip. */
 const BUBBLE_SIGN = 24;
@@ -295,6 +295,12 @@ export abstract class PixelScene extends Phaser.Scene {
   protected buttons: PixelButton[] = [];
   /** Menu-like screens set this to let the keyboard move between buttons (arrows), press one (Enter, Space) and go back (Esc). */
   protected keyboardNavigation = false;
+  /**
+   * A screen the student comes back to between plays (the room, the map) sets this: while no piano is connected a small
+   * piano in warm light shows left of the gear (`cornerStatus`), whole, never faded, its name bubble (hover, focus and a press)
+   * saying no keyboard was found; nothing while one is.
+   */
+  protected pianoSign = false;
   /** How the arrows weigh the buttons' places: rows and columns, or things standing over a picture in no rows (the room). */
   protected focusLayout: FocusLayout = FOCUS_LAYOUT.grid;
   /** Index into `buttons` of the focused button, or -1. The ring shows only after the first navigation key. */
@@ -712,6 +718,12 @@ export abstract class PixelScene extends Phaser.Scene {
       this.scale.off('resize', rebuild);
       this.teardown();
     });
+    // the piano's sign follows the piano being plugged in and out
+    if (this.pianoSign) {
+      const changed = () => { if (this.sys.isActive()) this.redraw(); };
+      this.game.events.on(MIDI_CHANGED, changed);
+      this.events.once('shutdown', () => this.game.events.off(MIDI_CHANGED, changed));
+    }
     // handled navigation keys stop in `onNavigationKey`, so the arrows do not also shift the computer keyboard's octave
     if (this.keyboardNavigation) this.onWindowKey((e) => this.onNavigationKey(e));
     this.rebuild();
@@ -945,7 +957,9 @@ export abstract class PixelScene extends Phaser.Scene {
 
   /** Make a button and keep it, so it is removed when the scene is drawn again. */
   protected button(options: PixelButtonOptions): PixelButton {
-    const button = new PixelButton(this, this.root, options);
+    // a picture's name under the corner buttons never covers them (the door's name over the gear)
+    const top = options.picture && this.bandShown && options.tooltipTop === undefined ? { tooltipTop: this.cornerStrip.rows } : {};
+    const button = new PixelButton(this, this.root, { ...options, ...top });
     this.buttons.push(button);
     return button;
   }
@@ -1083,6 +1097,14 @@ export abstract class PixelScene extends Phaser.Scene {
     return { rows: Math.max(back.y + back.h, settings.y + settings.h) + 1, left: back.x + back.w + 2, right: settings.x - extra * (settings.w + BACKPACK_GAP) - 2 };
   }
 
+  /**
+   * The door in the top left corner (the screen's Back) where the frame draws it, or undefined: an overlay that takes every
+   * press over the screen (a tug, a teaching) leaves it pressable, so Back still leaves as Esc does.
+   */
+  protected get cornerDoor(): Rect | undefined {
+    return this.screenFrame.band && !this.screenFrame.toolbar && this.hasBack ? frameCorners(this.px.width).back : undefined;
+  }
+
   /** Where a screen's title starts: `margin`, or right of the door when the band puts the door in the top left corner (ft_1_20). */
   protected titleX(margin: number): number {
     return this.bandShown ? Math.max(margin, this.cornerStrip.left + 2) : margin;
@@ -1198,8 +1220,9 @@ export abstract class PixelScene extends Phaser.Scene {
   }
 
   /** A status picture left of the gear (the piano on the practice screen): lit while all is well, what it means in its tooltip; none by default. */
-  protected cornerStatus(): { label: string; icon: Bitmap; lit: boolean } | null {
-    return null;
+  protected cornerStatus(): { label: string; icon: Bitmap; lit: boolean; notice?: boolean } | null {
+    if (!this.pianoSign || contextOf(this).midi?.getStatus().state === 'connected') return null;
+    return { label: t('midi.noKeyboardShort'), icon: ICONS.freePlay, lit: false, notice: true };
   }
 
   /** The strip's rows on this screen (none without a strip). */
@@ -1247,8 +1270,10 @@ export abstract class PixelScene extends Phaser.Scene {
       left -= corners.settings.w + BACKPACK_GAP;
       const r = { ...corners.settings, x: left };
       // a picture, not a button: it does nothing when pressed, its tooltip says what it means
-      const shown = this.buttonOn(layer, { ...rectCentre(r), label: status.label, tooltip: status.label, picture: status.lit ? status.icon : recolor(status.icon, { [C.white]: C.lock }), onClick: () => undefined });
-      shown.setAlpha(status.lit ? 1 : STATUS_UNLIT);
+      // a notice (no keyboard, on the room and the map) stands whole in a warm colour, and a press says it, as hover does
+      const picture = status.lit ? status.icon : recolor(status.icon, { [C.white]: status.notice ? C.orangeLight : C.lock });
+      const shown: PixelButton = this.buttonOn(layer, { ...rectCentre(r), label: status.label, tooltip: status.label, picture, onClick: () => { if (status.notice) shown.sayName(); } });
+      shown.setAlpha(status.lit || status.notice ? 1 : STATUS_UNLIT);
     }
     const kept = this.backpackItems();
     this.backpackButton = null;
@@ -1262,13 +1287,16 @@ export abstract class PixelScene extends Phaser.Scene {
           // what the screen has open over its picture closes first; that redraws the corners, so the menu hangs from the new bag
           this.beforeBackpack();
           const items = this.backpackItems() ?? [];
-          const empty = t('band.backpackEmpty');
+          // while every item has its picture the bag is a grid of pictures, each named in its tooltip; once one has none
+          // yet, its name must be read, so the bag is a list of names, each line as wide as the longest one (the empty
+          // backpack's line on one line too: wrapped, it ran into the panel's frame)
+          const named = items.some((item) => !item.icon);
           const choices: MenuItem[] = items.length
-            ? items.map((item) => ({ label: item.label, ...(item.icon ? { icon: item.icon } : {}), ...(item.fineIcon ? { fineIcon: true } : {}), ...(item.tooltip ? { tooltip: item.tooltip } : {}), onPick: item.onClick }))
-            : [{ label: empty, disabled: true, onPick: () => undefined }];
-          // the empty backpack's line on one line, as wide as it needs: wrapped, it ran into the panel's frame
-          const cell = items.length ? { w: 30, h: 30 } : { w: Math.max(120, measure(drawnText(empty)) + BACKPACK_LINE_PAD), h: 15 };
-          this.openMenu(this.backpackButton ?? bag, choices, { cell, columns: Math.min(4, Math.max(1, items.length)), open: 'below' });
+            ? items.map((item) => ({ label: item.label, ...(item.icon && !named ? { icon: item.icon } : {}), ...(item.fineIcon && !named ? { fineIcon: true } : {}), ...(item.tooltip ? { tooltip: item.tooltip } : {}), onPick: item.onClick }))
+            : [{ label: t('band.backpackEmpty'), disabled: true, onPick: () => undefined }];
+          const lineWidth = Math.max(items.length ? BAG_LINE.min : BAG_LINE.emptyMin, ...choices.map((c) => measure(drawnText(c.label)) + BAG_LINE.pad));
+          const columns = !items.length ? 1 : named ? (items.length > BAG_LINE.rows ? 2 : 1) : Math.min(4, items.length);
+          this.openMenu(this.backpackButton ?? bag, choices, { cell: items.length && !named ? { w: 30, h: 30 } : { w: lineWidth, h: 15 }, columns, open: 'below' });
         },
       });
       this.backpackButton = bag;
@@ -1863,7 +1891,7 @@ export abstract class PixelScene extends Phaser.Scene {
   }
 
   /** The pointer in art pixels, as the buttons and the band are laid out. */
-  private artPoint(pointer: { x: number; y: number }): { x: number; y: number } {
+  protected artPoint(pointer: { x: number; y: number }): { x: number; y: number } {
     return { x: (pointer.x - this.root.x) / this.px.scale, y: (pointer.y - this.root.y) / this.px.scale };
   }
 

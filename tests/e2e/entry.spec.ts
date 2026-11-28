@@ -1,7 +1,7 @@
 // Covers ft_1_07.AC6, ft_1_07.AC9, ft_1_07.AC10 (the name box, the main menu's names, deleting a player), ft_Y_13.AC1 (the room's arrows).
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { addPlayer, clickButton, clickToolbar, expectNoErrors, openAdminPage, openGame, profileButton, sceneTexts, waitForScene } from './helpers';
+import { addPlayer, clickButton, expectNoErrors, leaveRoom, openAdminPage, openGame, profileButton, sceneTexts, waitForScene } from './helpers';
 
 const players = (page: Page) => page.evaluate(() => window.__game.registry.get('context').profiles.profiles.length as number);
 
@@ -18,8 +18,8 @@ test.describe('the name box and the names', () => {
     await waitForScene(page, 'profiles');
     await clickButton(page, 'profiles', await profileButton(page, 'New player'));
     await waitForScene(page, 'name');
-    expect(await sceneTexts(page, 'name')).toContain('Type your name');
-    await expect(page.locator('#name-field')).toHaveAttribute('aria-label', 'Type your name');
+    expect(await sceneTexts(page, 'name')).toContain('Your name?');
+    await expect(page.locator('#name-field')).toHaveAttribute('aria-label', 'Your name?');
     // over two blinks the caret is shown each time it is looked at, full or faint
     for (let i = 0; i < 4; i++) {
       const now = await caret(page);
@@ -56,8 +56,7 @@ test.describe('the name box and the names', () => {
       return list.some((o) => o.name === 'shieldRibbon');
     })).toBe(true);
     expect(await page.evaluate(() => ((window.__game.scene.getScene('profile') as unknown as { root: { list: { name: string; width: number }[] } }).root.list.find((o) => o.name === 'shieldName')?.width ?? 0))).toBeGreaterThan(60); // all twelve letters, far wider than the shield's 36
-    await clickToolbar(page, 'back');
-    await waitForScene(page, 'profiles');
+    await leaveRoom(page);
     expect(await sceneTexts(page, 'profiles')).toContain('ABCDEFGHIJKL');
     expectNoErrors(errors);
   });

@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import { ART_DETAIL } from '../core/layout/frame';
-import { NAME_LETTERS, NAME_MAX, deleteLetter, nameFrom, typeLetter } from '../core/text/nameEntry';
+import { NAME_LETTERS, NAME_MAX, NAME_SEPARATORS, deleteLetter, finishedName, nameFrom, typeLetter } from '../core/text/nameEntry';
 import { t } from '../core/text/strings';
 import { createBitmap } from './ui/pixel/bitmap';
 import { LINE_GAP, LINE_HEIGHT, drawnText, measure, wrap } from './ui/pixel/font';
@@ -51,7 +51,8 @@ export interface NameData {
 
 /**
  * A name box a student can use (ft_1_07, AC6): the name is typed on the computer keyboard into a big box with a red caret,
- * with a delete button and a done button; only the letters of `NAME_LETTERS` are taken. The name is typed here, never in
+ * with a delete button and a done button; only the letters of `NAME_LETTERS` are taken, with a space or hyphen between
+ * them. The name is typed here, never in
  * the browser's box. Done hands the name to `save`, which leaves on success or says why the
  * name was refused (shown between the bottom buttons); Back leaves without saving. Used to rename a player (admin) and to
  * name a new one (ft_1_07.AC10). The letters and the length rule live in `core/text/nameEntry`.
@@ -172,7 +173,7 @@ export class NameScene extends PixelScene {
       e.stopImmediatePropagation();
       return;
     }
-    if (!NAME_LETTERS.includes(letter) && e.key !== 'Backspace' && !done) return;
+    if (!NAME_LETTERS.includes(letter) && !NAME_SEPARATORS.includes(letter) && e.key !== 'Backspace' && !done) return;
     e.preventDefault();
     e.stopImmediatePropagation();
     if (done) this.finish();
@@ -255,6 +256,9 @@ export class NameScene extends PixelScene {
   private finish(): void {
     if (!this.request || this.saving) return;
     this.saving = true;
+    // a space or hyphen left at the end is no part of the name
+    this.typed = finishedName(this.typed);
+    if (this.field) this.field.value = this.typed;
     void this.request.save(this, this.typed)
       .catch(() => t('admin.failed'))
       .then((refused) => {

@@ -177,9 +177,11 @@ export class TalkView {
     if (f.showing === 'choices') return this.drawChoices(f);
     const student = f.showing === 'student' || f.step.speaker === 'student';
     const text = lineText(f.said ?? f.step.line);
-    const rows = spokenPages(text)[f.page] ?? [];
+    const pages = spokenPages(text);
+    const rows = pages[f.page] ?? [];
     const colour = student ? talkColour('student') : talkColour(f.step.speaker, this.character.id);
-    const words = spokenLine(rows, colour);
+    // a page with more after it ends in a small arrow: a press turns to the next
+    const words = spokenLine(rows, colour, f.page + 1 < pages.length);
     const head = student ? studentHead(area) : this.place.head;
     const spot = lineSpot({ head, size: { w: words.width, h: words.height }, area });
     this.add(new PixelImage(this.scene, spot.x, spot.y, words).setName('talkLine'));

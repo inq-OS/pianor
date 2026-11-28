@@ -161,7 +161,7 @@ describe('every text the game shows can be drawn without a stand-in block', () =
 
   it('in the string table (placeholders filled in)', () => {
     for (const [key, value] of Object.entries(strings)) {
-      const filled = value.replace(/\{[a-zA-Z]+\}/g, '7');
+      const filled = value.replace(/\{\w+\|([^|{}]*)\|([^|{}]*)\}/g, '$1 $2').replace(/\{[a-zA-Z]+\}/g, '7');
       expect(missing(filled), `${key}: ${value}`).toEqual([]);
     }
   });

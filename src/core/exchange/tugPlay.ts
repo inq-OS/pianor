@@ -4,14 +4,15 @@
  * tug record with its XP in the profile (AC9). Pure.
  */
 import type { Chart } from '../chart';
-import type { PlayStats } from '../judge';
+import type { PlayStats, TimingStats, WrongReason } from '../judge';
 import { pickupTicks } from '../chart/time';
 import type { CharacterId, ItemId } from '../contracts';
 import { applyTalkEffects } from '../dialogue/talkWorld';
 import { recordTug } from '../island/presenceRules';
 import type { WorldState } from '../island/worldState';
 import type { TugInput } from '../progression/profile';
-import { exchangeResult, tugPrize, type TugRules, type TugSetup, type TugState } from './tug';
+import { t, type StringKey } from '../text/strings';
+import { exchangeResult, tugPrize, tugShare, type TugRules, type TugSetup, type TugState } from './tug';
 
 type Level = 1 | 2 | 3;
 
@@ -31,20 +32,67 @@ export function turnChartBars(bars: { readonly from: number; readonly to: number
   return { first: bars.from - shift, last: bars.to - shift };
 }
 
-type Timing = { readonly onTime: number; readonly score: number };
+/**
+ * Why a student's phrase missed (ft_1_21.AC7, AX-0.2): the first wrong key's reason as the judge gives it, or in Tempo
+ * mode, with no wrong key, whether its notes off time came in early or late.
+ */
+export type TugReason = WrongReason | 'early' | 'late';
+
+/** What the character says after a student's phrase: the notes right of the notes, the reason, and the notes it needed. */
+export interface TugFact {
+  readonly right: number;
+  readonly total: number;
+  readonly reason?: TugReason;
+  /** Said once the stall kill raised the share (AC17): the notes the phrase needed to win. */
+  readonly need?: number;
+}
 
 /**
  * What the character says after a student's phrase (ft_1_21.AC7): in Wait mode the notes right first try of the notes, in
- * Tempo mode the notes on time; and the first wrong key's reason.
+ * Tempo mode the notes on time; and the reason: the first wrong key's (pitch first), else in Tempo mode late or early,
+ * whichever more of its notes were (none when as many were early as late).
  */
 export function tugFact(
-  stats: { readonly notes: number; readonly firstTryCorrect: number; readonly timing?: Timing },
+  stats: { readonly notes: number; readonly firstTryCorrect: number; readonly timing?: Pick<TimingStats, 'onTime' | 'early' | 'late'> },
   reasons: readonly string[],
   mode: 'wait' | 'tempo' = 'wait',
-): { right: number; total: number; reason?: string } {
-  const reason = reasons[0];
+): TugFact {
   const right = mode === 'tempo' ? stats.timing?.onTime ?? 0 : stats.firstTryCorrect;
+  const reason = (reasons[0] as WrongReason | undefined) ?? (mode === 'tempo' ? timingReason(stats.timing) : undefined);
   return { right, total: stats.notes, ...(reason !== undefined ? { reason } : {}) };
+}
+
+function timingReason(timing: Pick<TimingStats, 'early' | 'late'> | undefined): 'early' | 'late' | undefined {
+  if (!timing || timing.early === timing.late) return undefined;
+  return timing.late > timing.early ? 'late' : 'early';
+}
+
+/**
+ * The notes of a phrase of `notes` that the student's next phrase needs to win, once the stall kill (AC17) raised the share
+ * above the level's own; undefined before that, when the fact needs no word on it.
+ */
+export function tugNeed(state: TugState, rules: TugRules, notes: number): number | undefined {
+  const share = tugShare(state, rules);
+  if (share <= rules.levels[state.setup.level - 1]!.share) return undefined;
+  // a hair under, so 0.8 of 5 is 4 and not 5 by a rounding error
+  return Math.min(notes, Math.ceil(share * notes - 1e-9));
+}
+
+/** The words of each reason (AX-0.2). */
+const REASON_KEYS: Readonly<Record<TugReason, StringKey>> = {
+  'wrong-octave': 'tug.wrongOctave',
+  'neighbour-key': 'tug.neighbourKey',
+  'wrong-letter': 'tug.wrongLetter',
+  early: 'tug.early',
+  late: 'tug.late',
+};
+
+/** The fact as the character says it: the count, what was needed when the bar was raised, and the reason. */
+export function tugFactLine(fact: TugFact, mode: 'wait' | 'tempo'): string {
+  const parts = [t(mode === 'tempo' ? 'tug.factTempo' : 'tug.fact', { right: fact.right, total: fact.total })];
+  if (fact.need !== undefined) parts.push(t('tug.need', { need: fact.need, total: fact.total }));
+  if (fact.reason !== undefined) parts.push(t(REASON_KEYS[fact.reason]));
+  return parts.join('. ');
 }
 
 /**

@@ -1,7 +1,11 @@
 import { language } from './language';
 import { stringsEt } from './strings.et';
 
-/** All UI text lives here under string keys (English; the Estonian catalog is `strings.et.ts`). No text in art or scenes. `{name}` placeholders are filled by `t`. */
+/**
+ * All UI text lives here under string keys (English; the Estonian catalog is `strings.et.ts`). No text in art or scenes.
+ * `{name}` placeholders are filled by `t`; `{name|one|other}` is the word for that count: `one` after 1, `other` after any
+ * other count ("1 note", "3 notes"; Estonian "1 noot", "3 nooti").
+ */
 export const strings = {
   'app.title': 'Pianor',
   'boot.ready': 'Ready',
@@ -11,6 +15,8 @@ export const strings = {
   'demo.keys.help': 'Click the keys, use Z X C V B (white) and S D G H (black), or Left/Right arrows for octaves.',
   'demo.keys.play': 'Play Little Steps with mistakes (virtual EZ-220)',
   'demo.keys.done': 'Piece complete',
+  // the sign in the room's and the map's corner while no keyboard is connected
+  'midi.noKeyboardShort': 'No keyboard found',
   'midi.noKeyboard': 'No keyboard found. Use the on-screen keyboard.',
   'midi.connected': 'Piano: {name}',
   'midi.notConnected': 'No piano found. Use the on-screen keys or the computer keyboard.',
@@ -37,6 +43,8 @@ export const strings = {
   'map.scene.docks': 'The jetty',
   'map.scene.port': 'The harbor',
   'map.scene.terrace': 'The terrace',
+  // a place on the map the player's level has not opened yet: its name bubble says when it opens
+  'map.notOpenYet': '{place}: not open yet',
   // the harbour's two views (ft_1_19): a press on the water dives under it, a press near the top rises again
   'scene.dive': 'Dive in',
   'scene.rise': 'Back up',
@@ -52,6 +60,12 @@ export const strings = {
   'room.kiur.learnFirst': 'We tug {piece} once you have learned it. Press me and pick Learn.',
   // the player's card behind the shield in the room (ft_1_20.AC13): the shield's name and the card's lines
   'room.shield': 'Your card',
+  // the teacher in the doorway while her check-up waits (ft_1_27.AC2): a press starts it
+  'room.teacher': 'Teacher',
+  // the corner Back in the room asks before the player list
+  'room.leave.ask': 'Change player?',
+  'room.leave.yes': 'Yes',
+  'room.leave.no': 'No',
   'card.close': 'Close',
   'card.xpTotal': '{xp} XP',
   'card.toNext': '{xp} / {next} to level {level}',
@@ -98,9 +112,9 @@ export const strings = {
   'chords.step.c2': 'All triads',
   'chords.step.c3': 'Sevenths',
   // the result of a round in the shape and chord trainers (core/trainer/trainerResult.ts)
-  'trainerResult.notesOf': '{right} of {total} notes',
+  'trainerResult.notesOf': '{right} of {total} {total|note|notes}',
   'trainerResult.notes': 'Right notes: {right}',
-  'trainerResult.chordsOf': '{right} of {total} chords',
+  'trainerResult.chordsOf': '{right} of {total} {total|chord|chords}',
   'trainerResult.chords': 'Chords played: {right}',
   'trainerResult.withXp': '{result}, {xp} XP',
   'trainerResult.level': 'Level {level}',
@@ -118,8 +132,8 @@ export const strings = {
   'menu.songs': 'Songs',
   'songs.none': 'No songs yet.',
   'songs.allOff': 'All songs are off. Turn some on in All pieces.',
-  'songs.written': '{written} of {planned} bars',
-  'songs.parts': '{count} parts',
+  'songs.written': '{written} of {planned} {planned|bar|bars}',
+  'songs.parts': '{count} {count|part|parts}',
   'songs.onePart': '1 part',
   'song.barRange': '{first}-{last}',
   'song.tempo': '♩{bpm}',
@@ -212,7 +226,7 @@ export const strings = {
   'admin.open': 'Admin',
   'admin.rename': 'Rename player',
   'admin.renameAsk': 'New name for {name}',
-  'name.ask': 'Type your name',
+  'name.ask': 'Your name?',
   'name.delete': 'DELETE',
   'name.done': 'DONE',
   'admin.renamed': 'Renamed.',
@@ -352,7 +366,7 @@ export const strings = {
   'analyze.bar': 'Bar {n}',
   'analyze.practise': 'Practice {percent}%',
   'analyze.graph': 'Bar {n}: right first time',
-  'analyze.cutShort': 'Bar {n}: {short} notes held too short',
+  'analyze.cutShort': 'Bar {n}: {short} {short|note|notes} held too short',
   'analyze.graphEmpty': 'No plays of this bar yet.',
   'practice.whole': 'Whole piece',
   'practice.pickStart': 'Tap the first bar of the part to practice.',
@@ -427,7 +441,7 @@ export const strings = {
   'editor.leave.stay': 'Stay',
   'editor.escStays': 'To leave the piece maker, press the door.',
   'editor.pageOf': 'page {page} of {pages}',
-  'editor.bars': '{bars} bars',
+  'editor.bars': '{bars} {bars|bar|bars}',
   'editor.bpm': '{bpm} BPM',
   'editor.entry.note.tip': 'Notes: a click on the staff writes one. The wheel or a press chooses the length',
   'editor.entry.rest.tip': 'Rests: a click on the staff writes one. The wheel or a press chooses the length',
@@ -617,7 +631,7 @@ export const strings = {
   'editor.paste.1': 'x1',
   'editor.paste.2': 'x2',
   'editor.paste.4': 'x4',
-  'editor.dragRepeat.copies': '{n} copies: let go to put them in',
+  'editor.dragRepeat.copies': '{n} {n|copy|copies}: let go to put them in',
   'editor.dragRepeat.none': 'No copies: drag right',
   'editor.chordName': 'Chord: {chord}',
   'editor.paste.none': 'Copy a bar first.',
@@ -644,7 +658,7 @@ export const strings = {
   'editor.exported': 'Saved the file {file}.',
   'editor.photo.none': 'This piece has no photo.',
   'editor.photo.noReader': 'Photos and PDFs need Audiveris: audiveris.github.io',
-  'editor.photo.shift': 'Photo moved by {shift} bars.',
+  'editor.photo.shift': 'Photo moved by {shift} {shift|bar|bars}.',
   'editor.photo.reading': 'Reading the sheet from the photo, about a minute...',
   'editor.photo.saveFirst': 'Save this piece first, then import the photo.',
   'editor.photo.failed': 'The photo could not be read: {reason}',
@@ -663,7 +677,7 @@ export const strings = {
   'editor.photoTool.titleLabel': 'Name of the piece',
   'editor.photoTool.read': 'Read',
   'editor.photoTool.checkHint': 'Check what was read against the sheet, then open it.',
-  'editor.photoTool.summary': '"{title}": {bars} bars in {beats}/4.',
+  'editor.photoTool.summary': '"{title}": {bars} {bars|bar|bars} in {beats}/4.',
   'editor.photoTool.key': 'Key signature:',
   'editor.photoTool.hand': '{hand}: lowest {low}, highest {high}.',
   'editor.photoTool.rh': 'Right hand',
@@ -679,18 +693,18 @@ export const strings = {
   'editor.book.range': '{from} to {to}',
   'editor.book.opening': 'Opening the PDF...',
   'editor.book.cannotOpen': 'This file could not be opened as a PDF.',
-  'editor.book.pagesHint': 'The PDF has {pages} pages. Click a page to leave it out (a cover, text, exercises), then read the rest.',
+  'editor.book.pagesHint': 'The PDF has {pages} {pages|page|pages}. Click a page to leave it out (a cover, text, exercises), then read the rest.',
   'editor.book.pageIn': 'Page {n}',
   'editor.book.pageOut': 'Page {n}, left out',
   'editor.book.pageLeaveOut': 'Leave this page out',
   'editor.book.pageTakeBack': 'Take this page back',
   'editor.book.choose': 'Choose another PDF',
   'editor.book.nameLabel': 'Name of the song',
-  'editor.book.read': 'Read {pages} pages',
+  'editor.book.read': 'Read {pages} {pages|page|pages}',
   'editor.book.sending': 'Sending the PDF to this computer\'s reader...',
   'editor.book.sendingPage': 'Sending page {n} of {of}...',
   'editor.book.failed': 'The PDF could not be read: {reason}',
-  'editor.book.readingHint': 'Audiveris on this computer reads the {pages} pages as one score, about a minute a page. Nothing is saved until you have checked the result.',
+  'editor.book.readingHint': 'Audiveris on this computer reads the {pages} {pages|page|pages} as one score, about a minute a page. Nothing is saved until you have checked the result.',
   'editor.book.stop': 'Stop',
   'editor.book.time': '{minutes} min {seconds} s',
   'editor.book.readingPage': 'Reading page {n} of {of} ({time})...',
@@ -704,9 +718,9 @@ export const strings = {
   'editor.book.join': 'Join with next',
   'editor.book.uneven': 'Pages {pages}: the reading and the page differ by a bar or more, so the page behind the staff may be a bar off there (move it with comma and full stop).',
   'editor.book.checkOne': 'It fits one piece. Check what was read against the pages, then open it.',
-  'editor.book.checkHint': 'The score is cut into {parts} parts, drawn over the pages. Split and Join move the cuts. Nothing is saved yet.',
+  'editor.book.checkHint': 'The score is cut into {parts} {parts|part|parts}, drawn over the pages. Split and Join move the cuts. Nothing is saved yet.',
   'editor.book.back': 'Back to the pages',
-  'editor.book.make': 'Make the song ({parts} parts)',
+  'editor.book.make': 'Make the song ({parts} {parts|part|parts})',
   'editor.book.saving': 'Saving the parts...',
   'editor.book.movement': 'Movement {n}',
   'editor.book.cannotSave': 'Could not save {part}: {problem}. Nothing was kept.',
@@ -1017,11 +1031,11 @@ export const strings = {
   'talk.puuvaim.askLater': 'I will come later.',
   'piece.both-hands.about': 'This tune is new, made for this island. Your right hand sings the tune, your left hand holds the low notes under it, both at once. I play first, you play after me.',
   'piece.puuvaim-3.about': 'An English tune, more than four hundred years old. A story says a king wrote it, but nobody knows who did. It is in a minor key, so it sounds a little sad. I play first, you play after me.',
-  'talk.puuvaim.who': 'I am Tammehaldjas, the spirit of this old oak. Long ago people believed every old tree had its own guardian, a haldjas. They brought it gifts and spoke softly near it, so as not to wake it.',
+  'talk.puuvaim.who': 'I am the oak spirit of this old tree. Long ago people believed every old tree had its own guardian, a haldjas. They brought it gifts and spoke softly near it, so as not to wake it.',
   'talk.puuvaim.bye': 'Come back when the wind goes quiet.',
   'talk.puuvaim.taught': 'Now you know my tune. Practice it, and when the wind goes quiet again, come back.',
   'talk.puuvaim.teachHeard': 'You played my tune. Play it in your room on another day, and it is yours.',
-  'talk.puuvaim.teachNotYet': 'Not yet: {right} of {total} notes right. Practice it in your room, then come back.',
+  'talk.puuvaim.teachNotYet': 'Not yet: {right} of {total} {total|note|notes} right. Practice it in your room, then come back.',
   'talk.puuvaim.askTug': 'Let\'s take turns playing!',
   'item.oakLeaf': 'Oak leaf',
   'item.acorn': 'Acorn',
@@ -1030,17 +1044,23 @@ export const strings = {
   'item.seedOfLife': 'Seed of life',
   'item.rung': '{name} ({at}/{of})',
   'talk.puuvaim.tug': 'I play first, you play after me. Now show me what you can do!',
-  'talk.puuvaim.tugWon': '{right} of {total} lines fell into place. Take this: {prize}.',
-  'talk.puuvaim.tugLost': '{right} of {total} lines fell into place. Practice more, then we play again.',
-  'tug.fact': '{right} of {total} notes right',
-  'tug.factTempo': '{right} of {total} notes on time',
+  'talk.puuvaim.tugWon': '{right} of {total} {total|line|lines} fell into place. Take this: {prize}.',
+  'talk.puuvaim.tugLost': '{right} of {total} {total|line|lines} fell into place. Practice more, then we play again.',
+  'tug.fact': '{right} of {total} {total|note|notes} right',
+  'tug.factTempo': '{right} of {total} {total|note|notes} on time',
   'tug.wrongOctave': 'Right letter, wrong octave',
+  'tug.neighbourKey': 'You played the key next door',
+  'tug.wrongLetter': 'You played another letter',
+  'tug.early': 'Came in early',
+  'tug.late': 'Came in late',
+  'tug.need': 'Needed {need} of {total}',
+  'tug.yourTurn': 'Your turn: play my line.',
   'tug.wait.learn': 'Learn my tune bar by bar first: ask me to teach you.',
-  'tug.wait.plays': 'Practice my tune in your room first: {more} more plays.',
+  'tug.wait.plays': 'Practice my tune in your room first: {more} more {more|play|plays}.',
   'tug.wait.level': 'Your last plays of my tune got {reached} of 100. I wait for {need}. Practice it more in your room.',
-  'tug.wait.clean': 'Play my tune clean in your room {more} more times, then we try again.',
-  'talk.kiur.tugWon': '{right} of {total} lines fell into place.',
-  'talk.kiur.tugLost': '{right} of {total} lines fell into place. Practice the piece more, then we play again.',
+  'tug.wait.clean': 'Play my tune clean in your room {more} more {more|time|times}, then we try again.',
+  'talk.kiur.tugWon': '{right} of {total} {total|line|lines} fell into place.',
+  'talk.kiur.tugLost': '{right} of {total} {total|line|lines} fell into place. Practice the piece more, then we play again.',
   // Kiur's heads-ups and reminders (ft_1_25.AC5, ft_1_27.AC3, AC4; WP-15). {piece} is the piece's title.
   'kiur.headsUp.puuvaim.knoll': "Something is rustling by the old tree. Shall we go and look?",
   // the Prangli fisherman (WP-17)
@@ -1056,10 +1076,10 @@ export const strings = {
   'talk.fisherman.bye': 'The fish won\'t wait. See you!',
   'talk.fisherman.taught': 'Now you know my song. Practice it, and come to the docks again some morning.',
   'talk.fisherman.teachHeard': 'You played my song. Play it in your room on another day, and it is yours.',
-  'talk.fisherman.teachNotYet': 'Not yet: {right} of {total} notes right. Practice it in your room, then come back.',
+  'talk.fisherman.teachNotYet': 'Not yet: {right} of {total} {total|note|notes} right. Practice it in your room, then come back.',
   'talk.fisherman.tug': 'I start, you answer. Now show me what you can do!',
-  'talk.fisherman.tugWon': '{right} of {total} lines came back right. Take this: {prize}.',
-  'talk.fisherman.tugLost': '{right} of {total} lines came back right. Practice more, then we play again.',
+  'talk.fisherman.tugWon': '{right} of {total} {total|line|lines} came back right. Take this: {prize}.',
+  'talk.fisherman.tugLost': '{right} of {total} {total|line|lines} came back right. Practice more, then we play again.',
   'item.netFloat': 'Net float',
   'item.netNeedle': 'Net needle',
   'item.gullFeather': 'Gull\'s feather',
@@ -1073,9 +1093,10 @@ export const strings = {
   'wanderer.traveller.name': 'Traveler',
   'wanderer.ask': 'Would you play me {piece}?',
   'wanderer.play': 'Play it',
-  'wanderer.kept': '{right} of {notes} notes right the first time. Here, take this: {item}.',
-  'wanderer.notYet': '{right} of {notes} notes right the first time. Play it for me again?',
-  'wanderer.again': '{right} of {notes} notes right the first time. I gave you something already today.',
+  'wanderer.notNow': 'Not now',
+  'wanderer.kept': '{right} of {notes} {notes|note|notes} right the first time. Here, take this: {item}.',
+  'wanderer.notYet': '{right} of {notes} {notes|note|notes} right the first time. Play it for me again?',
+  'wanderer.again': '{right} of {notes} {notes|note|notes} right the first time. I gave you something already today.',
   'wanderer.thanks': 'I gave you something already today. Come again another day.',
   'piece.fisherman-1.about': 'This is "Row, Row, Row Your Boat", a round from America, first printed in 1881. In a round everyone sings the same tune, each starting a little later, like oars dipping one after another.',
   'piece.fisherman-3.about': 'This is a sea shanty. About 200 years ago sailors sang it while they hauled ropes together: one sang the line, and on the strong beat everyone pulled.',
@@ -1084,7 +1105,9 @@ export const strings = {
   'kiur.headsUp.teacher.landed': "The teacher's boat has landed. She is waiting for you at the piano.",
   'kiur.remind.trend': "{piece}: at this pace it will be {gap} under the goal by the deadline.",
   'kiur.remind.now': "{piece}: {gap} under the goal.",
-  'kiur.remind.unmeasured': "{piece}: {plays} of {need} plays so far. Then we can see how it goes.",
+  'kiur.remind.unmeasured': "{piece}: {plays} of {need} {need|play|plays} so far. After {need} I can say how close you are.",
+  'kiur.remind.overdue': 'The deadline was {days} days ago.',
+  'kiur.remind.overdueOne': 'The deadline was yesterday.',
   'kiur.shoulder': "{piece}: {gap} under the goal by the deadline. Shall we go to the piano?",
   // The teacher's check-up (ft_1_27.AC2; WP-15). {piece} is the piece's title.
   'teacherSays.arrive': "{days} days to the deadline. Play this for me: {piece}.",
@@ -1121,11 +1144,11 @@ export const strings = {
   'intro.kiur.yourTurn': 'Now it is your turn. Start at the piano.',
   'intro.teacher.hello': 'Hello. I am your teacher. Today we learn a piece in three steps: learn it, practice it, then play it in turns.',
   'intro.teacher.learn': 'First, learn it, one bar at a time. Read the notes and play them; each time one more bar comes, until you know it all.',
-  'intro.teacher.practise': 'You learned it. Now practice it: play it {n} more times.',
+  'intro.teacher.practise': 'You learned it. Now practice it: play it {n} more {n|time|times}.',
   'intro.teacher.tug': 'Now we take turns. I play a line, you play it back from memory, with no notes. Each right line pulls the rope your way.',
   'intro.teacher.end': 'Every piece goes like this: learn it, practice it, then play it in turns. The characters on the island do the same.',
-  'talk.teacher.tugWon': '{right} of {total} lines right.',
-  'talk.teacher.tugLost': '{right} of {total} lines right. Practice it more, then we play again.',
+  'talk.teacher.tugWon': '{right} of {total} {total|line|lines} right.',
+  'talk.teacher.tugLost': '{right} of {total} {total|line|lines} right. Practice it more, then we play again.',
 
   // theory lessons (ft_1_39): the book, the lessons' lines and the catalog's names (d303)
   'room.lessons': 'Lessons',
@@ -1346,7 +1369,9 @@ export type StringKey = keyof typeof strings;
 /** The text for a key in the active language (ft_0_18). The English catalog is the source of the keys. */
 export function t(key: StringKey, params: Record<string, string | number> = {}): string {
   const catalog: Record<StringKey, string> = language() === 'en' ? strings : stringsEt;
-  return catalog[key].replace(/\{(\w+)\}/g, (match, name: string) => (name in params ? String(params[name]) : match));
+  return catalog[key]
+    .replace(/\{(\w+)\|([^|{}]*)\|([^|{}]*)\}/g, (match, name: string, one: string, other: string) => (name in params ? (Number(params[name]) === 1 ? one : other) : match))
+    .replace(/\{(\w+)\}/g, (match, name: string) => (name in params ? String(params[name]) : match));
 }
 
 /** True when `key` is a string key (content names its lines by key, checked when it loads). */

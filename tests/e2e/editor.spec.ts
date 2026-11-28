@@ -1074,7 +1074,7 @@ test.describe('piece maker: a photo of a sheet (ft_Y_04 slices 4 and 5)', () => 
     expect(before).toBeGreaterThan(100);
     // full stop moves the photo a bar on: one bar fewer has a photo behind it
     await page.keyboard.press('Period');
-    await expect.poll(() => status(page)).toContain('Photo moved by +1 bars');
+    await expect.poll(() => status(page)).toContain('Photo moved by +1 bar');
     await expect.poll(inked).toBeLessThan(before);
     // G hides it and shows it again
     await page.keyboard.press('KeyG');

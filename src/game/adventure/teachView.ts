@@ -2,9 +2,10 @@ import type Phaser from 'phaser';
 import { playbackLengthMs, playbackNotes, type Chart } from '../../core/chart';
 import { advanceTeach, startTeach, type TeachState } from '../../core/exchange/teach';
 import type { TugRules } from '../../core/exchange/tug';
-import { studentShare, tugFact } from '../../core/exchange/tugPlay';
+import { studentShare, tugFact, tugFactLine } from '../../core/exchange/tugPlay';
 import type { NoteJudged, PieceResult, PlayState } from '../../core/judge';
 import { lineSpot, studentHead } from '../../core/layout/talk';
+import type { Rect } from '../../core/layout/rect';
 import { strings, t, type StringKey } from '../../core/text/strings';
 import { PracticeController } from '../practice/PracticeController';
 import { ChartPlayer } from '../preview/ChartPlayer';
@@ -13,6 +14,7 @@ import type { StaffView } from '../ui/staff/StaffView';
 import { choiceNote, spokenLine, spokenPages, talkColour } from '../ui/pixel/talkArt';
 import type { TalkPlace } from './talkView';
 import type { TugDevices } from './tugView';
+import { NUDGE_MS, overlayCatcher } from './overlayExit';
 
 /** How long the fact after a try stays before the next, and the pause after the character's playing. */
 const FACT_MS = 2500;
@@ -52,6 +54,9 @@ export class TeachView {
   private page = 0;
   private playingNow: 'character' | 'student' | null = null;
   private done = false;
+  /** The student's try waits with no note played: the character says once whose turn it is. */
+  private nudge: Phaser.Time.TimerEvent | null = null;
+  private nudged = false;
 
   private constructor(
     private readonly scene: Phaser.Scene,
@@ -64,6 +69,8 @@ export class TeachView {
     private readonly makeStaff: (chart: Chart) => StaffView,
     private readonly handlers: TeachHandlers,
     level: 1 | 2 | 3,
+    /** The screen's corner Back, left pressable over the teaching: it leaves as Esc does. */
+    private readonly door: Rect | undefined,
   ) {
     this.state = startTeach(chart.id, level);
     this.player = new ChartPlayer(devices.piano, devices.clock);
@@ -73,18 +80,18 @@ export class TeachView {
   static open(
     scene: Phaser.Scene,
     layer: Phaser.GameObjects.Container,
-    input: { chart: Chart; character: { readonly id: string }; level: 1 | 2 | 3; rules: TugRules; place: TalkPlace; devices: Pick<TugDevices, 'piano' | 'clock' | 'keyboard'>; staff: (chart: Chart) => StaffView },
+    input: { chart: Chart; character: { readonly id: string }; level: 1 | 2 | 3; rules: TugRules; place: TalkPlace; devices: Pick<TugDevices, 'piano' | 'clock' | 'keyboard'>; staff: (chart: Chart) => StaffView; door?: Rect },
     handlers: TeachHandlers,
   ): TeachView {
-    const view = new TeachView(scene, layer, input.chart, input.character, input.rules, input.place, input.devices, input.staff, handlers, input.level);
+    const view = new TeachView(scene, layer, input.chart, input.character, input.rules, input.place, input.devices, input.staff, handlers, input.level, input.door);
     view.play();
     return view;
   }
 
   /** What the teaching shows now, for the tests and the self-playing demo. */
-  get view(): { who: 'character' | 'student' | null; piece: string; level: 1 | 2 | 3; tries: readonly boolean[]; outcome: TeachState['outcome']; saying: string | null; page: number; closing: boolean; staff: boolean } {
+  get view(): { who: 'character' | 'student' | null; piece: string; level: 1 | 2 | 3; tries: readonly boolean[]; outcome: TeachState['outcome']; saying: string | null; page: number; closing: boolean; staff: boolean; notFirst: number[] } {
     const { piece, level, tries, outcome } = this.state;
-    return { who: this.playingNow, piece, level, tries, outcome, saying: this.saying, page: this.page, closing: this.closing, staff: this.staff !== null };
+    return { who: this.playingNow, piece, level, tries, outcome, saying: this.saying, page: this.page, closing: this.closing, staff: this.staff !== null, notFirst: (this.played?.retried ?? []).flatMap((retried, i) => (retried ? [i] : [])) };
   }
 
   /** The phrase the student plays now; null in the character's turn and between tries. */
@@ -143,6 +150,7 @@ export class TeachView {
     this.playingNow = null;
     this.timer?.remove();
     this.timer = null;
+    this.stopNudge();
     this.player.stop();
     this.controller?.dispose();
     this.controller = null;
@@ -175,22 +183,54 @@ export class TeachView {
     this.controller = new PracticeController(this.chart, this.devices.keyboard, {
       onChange: (state: PlayState) => {
         this.played = state;
-        this.staff?.applyProgress(state.noteProgress, state.awaiting, state.retried);
+        this.showPlayed(state.awaiting);
       },
-      onJudged: (event: NoteJudged) => { if (event.verdict === 'wrong') reasons.push(event.reason); },
+      onJudged: (event: NoteJudged) => {
+        this.notePlayed();
+        if (event.verdict === 'wrong') reasons.push(event.reason);
+      },
       onCompleted: (result: PieceResult) => this.afterStudent(result, reasons),
     });
     this.draw();
+    if (this.nudged) return;
+    this.nudge = this.scene.time.delayedCall(NUDGE_MS, () => {
+      this.nudge = null;
+      if (this.done || this.playingNow !== 'student') return;
+      this.nudged = true;
+      this.saying = t('tug.yourTurn');
+      this.page = 0;
+      this.draw();
+    });
+  }
+
+  /** The try's notes on the staff: right the first time in the right colour, found only after a wrong key apart (`retried`). */
+  private showPlayed(awaiting: PlayState['awaiting']): void {
+    if (!this.staff || !this.played) return;
+    this.staff.applyProgress(this.played.noteProgress, awaiting, this.played.retried);
+  }
+
+  /** A note was played: the nudge is not needed, and once said it goes. */
+  private notePlayed(): void {
+    this.stopNudge();
+    if (this.nudged && this.saying !== null && !this.closing && this.playingNow === 'student') {
+      this.saying = null;
+      this.draw();
+    }
+  }
+
+  private stopNudge(): void {
+    this.nudge?.remove();
+    this.nudge = null;
   }
 
   private afterStudent(result: PieceResult, reasons: readonly string[]): void {
     this.controller?.dispose();
     this.controller = null;
+    this.stopNudge();
     this.playingNow = null;
     this.state = advanceTeach(this.state, studentShare(result, 'wait'), this.rules);
     const fact = tugFact(result, reasons, 'wait');
-    const words = t('tug.fact', { right: fact.right, total: fact.total });
-    this.saying = fact.reason === 'wrong-octave' ? `${words}. ${t('tug.wrongOctave')}` : words;
+    this.saying = tugFactLine(fact, 'wait');
     this.page = 0;
     this.draw();
     this.timer = this.scene.time.delayedCall(FACT_MS, () => {
@@ -242,13 +282,12 @@ export class TeachView {
     this.clear();
     if (this.done) return;
     const { area } = this.place;
-    // a press anywhere is the teaching's: the scene and the band under it take none while it is open
-    const catcher = this.add(this.scene.add.zone(0, -area.h, area.w, area.h * 3).setOrigin(0).setInteractive());
-    catcher.on('pointerup', () => this.press());
+    // a press anywhere is the teaching's, the corner Back's aside: the scene and the band under it take none while it is open
+    overlayCatcher(this.scene, (o) => this.add(o), area, this.door, () => this.press());
     // the staff while the phrase is played and tried, not under the closing line
     if (!this.closing) {
       this.staff = this.makeStaff(this.chart);
-      if (this.played) this.staff.applyProgress(this.played.noteProgress, this.playingNow === 'student' ? this.played.awaiting : [], this.played.retried);
+      this.showPlayed(this.playingNow === 'student' && this.played ? this.played.awaiting : []);
     }
     if (this.playingNow === 'student') {
       const note = choiceNote(true);
@@ -256,7 +295,9 @@ export class TeachView {
       this.add(new PixelImage(this.scene, Math.round(head.x - note.width / 2), head.y - note.height - 4, note).setName('teachYourTurn'));
     }
     if (this.saying !== null) {
-      const words = spokenLine(spokenPages(this.saying)[this.page] ?? [], talkColour('character', this.character.id));
+      const pages = spokenPages(this.saying);
+      // a page with more after it ends in a small arrow: a press turns to the next
+      const words = spokenLine(pages[this.page] ?? [], talkColour('character', this.character.id), this.page + 1 < pages.length);
       const spot = lineSpot({ head: this.place.head, size: { w: words.width, h: words.height }, area });
       this.add(new PixelImage(this.scene, spot.x, spot.y, words).setName('teachLine'));
     }

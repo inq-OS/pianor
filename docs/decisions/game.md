@@ -513,7 +513,7 @@ Check: `src/core/editor/entryPrefs.test.ts` "ft_1_02d.AC34 the cursor following 
 
 **A name is typed on the computer keyboard into the game's name box; the box has no letter buttons.** Features: ft_1_07.
 
-The box is big, with a red caret where the next letter goes, and takes only the Estonian name letters, up to 12; Backspace deletes and Enter is Done, and Delete and Done stay as picture buttons. A see-through text field lies over the box and is focused, so a tablet's own keyboard comes up on a tap and types into it; the game draws the name and keeps only the name letters.
+The box is big, with a red caret where the next letter goes, and takes only the name letters (d308), up to 12; Backspace deletes and Enter is Done, and Delete and Done stay as picture buttons. A see-through text field lies over the box and is focused, so a tablet's own keyboard comes up on a tap and types into it; the game draws the name and keeps only the name letters.
 
 Check: `src/core/text/nameEntry.test.ts` "ft_1_07.AC6 keeps the name letters in capitals, drops anything else and stops at the longest name"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 a tablet types into the see-through field over the name box: it is focused, keeps only name letters and its caret stays at the end"
 
@@ -588,3 +588,43 @@ Check: untestable: lesson wording and order are content; ft_1_39's lesson linter
 A lesson is ready once every lesson it needs has a medal, and the suggested next lesson is the ready one in the lowest stage; the book stays sorted by area as the map of everything. A tree gives a curriculum that mixes subjects in a sensible order while the student may still open any lesson.
 
 Check: untestable: the tree becomes data with slice 2 of ft_1_39, whose loop check and ready rule get their tests then.
+
+## d307
+
+**A tug or a teaching is left by the corner Back as by Esc, nudges an idle turn once, and names why each wrong phrase missed.** Features: ft_1_21, ft_1_22.
+
+The corner Back stays pressable over a tug or a teaching and leaves it as Esc does, with nothing won or lost. After 20 seconds of the student's turn in Wait mode with no note played, the character says one short line once (`tug.yourTurn`). A student phrase's fact names the first wrong key's reason (wrong octave, neighbour key, wrong letter), else in Tempo mode whether its notes came in early or late; a way out and a reason keep a young student playing instead of stuck or guessing (AX-0, AX-2.1).
+
+Check: `tests/e2e/tug.spec.ts` "the corner Back is pressable over the tug and leaves it as Esc does, with nothing kept"; `tests/e2e/teach.spec.ts` "a try with no note played for a while: he says once whose turn it is, and the first note ends the line"; `src/core/exchange/tugPlay.test.ts` "ft_1_21.AC7 a neighbour key and a wrong letter each say their reason, as a wrong octave does"
+
+## d308
+
+**A player's name takes the Estonian letters with Q, W, X and Y, and one space or hyphen between letters; the name box asks "Your name?".** Features: ft_1_07.
+
+A space or hyphen is never first, never next to another and is dropped from the end on Done, so Mari-Liis, Anna Maria and William can be typed and two names never differ by spaces alone. The ask over the plate is that question for a new player, so a student or a parent on a new install knows what goes there.
+
+Check: `src/core/text/nameEntry.test.ts` "ft_1_07.AC6 keeps a space or a hyphen between letters, never at the start and never two in a row"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 a name takes Q, W and one space or hyphen between letters, and drops one left at its end"
+
+## d309
+
+**In the room Esc never leaves for the player list; the corner Back asks "Change player?" once, with Yes and No, before going there.** Features: ft_1_07, ft_1_20.
+
+Esc in the room only closes what is open over it (a line, a panel, the question), so a chain of Esc from a scene ends in the room; the painted door stays the way out to the map. No is the keyboard's first answer, and Esc or a press beside the question answers No. A child who wants to go out never lands on the player list by one press.
+
+Check: `tests/e2e/room.spec.ts` "Esc never takes the room to the player list, and the corner Back asks Change player? where No or Esc stays and Yes leaves"
+
+## d310
+
+**What is said in the room stands on a plate near its speaker with a small next mark; a press on a room object during a line closes the line and does what was pressed, and the teacher waits in the doorway until her check-up is played.** Features: ft_1_27, ft_1_34.
+
+A press elsewhere, Space or Enter turns the line; the telephone's message is said beside the telephone; a line keeps below the corner buttons. Leaving her line or Kiur's (Esc, or a press on an object) keeps the teacher in the doorway, and a press on her starts the check-up. The room's speech is over a busy picture, and a child going for the door must reach it.
+
+Check: `tests/e2e/room.spec.ts` "ft_1_27.AC2 Esc on Kiur's reminder on the deadline day leaves the teacher waiting in the doorway, and a press on her starts the check-up"; `tests/e2e/room.spec.ts` "a press on the door while Kiur speaks closes his line and opens the map, and a press beside the objects turns the line"; `tests/e2e/room.spec.ts` "the telephone's message is said on a plate beside the telephone"
+
+## d311
+
+**A closed place on the map is pressable and its name bubble says it is not open yet.** Features: ft_1_19, ft_1_18.
+
+The bubble shows on hover, with the keyboard focus and on a press; a press opens nothing. It names no level, because no level opens a scene (d113; AX-2.1: no promise the game does not keep).
+
+Check: `tests/e2e/room.spec.ts` "ft_1_19.AC2 a press on a shut place on the map says it is not open yet, and opens nothing"
