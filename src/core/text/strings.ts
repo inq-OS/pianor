@@ -235,7 +235,7 @@ export const strings = {
   'admin.deleteName': 'Delete {name}?',
   'admin.lock': 'Lock',
   'admin.full': 'There are already {n} players.',
-  'name.taken': 'This name is taken.',
+  'name.taken': 'Another player has this name.',
   'admin.keepOne': 'Keep at least one player.',
   'admin.failed': 'Something went wrong. Nothing was changed.',
   'teacher.open': 'Teacher',

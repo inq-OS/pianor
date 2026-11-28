@@ -94,7 +94,7 @@ test.describe('main menu (ft_1_07.AC2)', () => {
     const before = await profileCount(page);
     await clickButton(page, 'profiles', await profileButton(page, 'New player'));
     await typeName(page, 'VINT');
-    await expect.poll(() => sceneTexts(page, 'name')).toContain('This name is taken.');
+    await expect.poll(() => sceneTexts(page, 'name')).toContain('Another player has this name.');
     expect(await profileCount(page)).toBe(before);
     await clickToolbar(page, 'back'); // the door (ft_1_20)
     await waitForScene(page, 'profiles');
