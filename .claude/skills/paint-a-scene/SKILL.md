@@ -16,6 +16,8 @@ Most of what a pass costs is reading and looking, not painting: every tool runs 
 - **A small change**: one thing in a picture that is already painted and shown (a colour, a stroke, a stone, a sprite, a frame, a fix the maintainer or a review asked for), with no new place and no new thing. Read the art direction and the artist's note of that thing, but not the Keri files, the decisions or the model scene's code (`docs/architect/painter-project.md` section 3), and skip sections 1 and 2b here. Look with `npm run art:diff -- <picture>` (below) instead of opening the four hours. The art review is the light one (`art-review` section 1b).
 - **A pass on a place**: a new place, a new thing in it, or a repaint of much of it. Everything below.
 
+**Tuning one thing over many tries** (the maintainer asks for another look at one item, again and again, in a new scene too): the scene's first pass is the full lane, then each try is the small lane. Compare each try with the last one shown, not with `origin/main`: `npm run art:diff -- <picture> --base HEAD` shows only what this try changed before it is committed (commit each try that is shown). Read the scene's files once, not again for each try.
+
 When a small change grows past a quarter of the picture (`art:diff` says "a big change"), it is a pass: switch lanes.
 
 ## 1. Study before drawing
