@@ -65,9 +65,13 @@ test.describe('theory lessons (ft_1_39)', () => {
     await playItem(page);
     await expect.poll(async () => (await run(page)).step).toBe('try');
     const awaited = (await run(page)).current!.answer[0]!;
-    // the neighbour key: the pitfall's reason brings its card back
+    // the neighbour key: the pitfall's reason brings its card back, the step drawn as keys (d312)
     await press(page, awaited + 1);
-    await expect.poll(() => sceneTexts(page, 'lesson')).toContain('No black key between');
+    await expect.poll(() => page.evaluate(() => {
+      type Node = { name?: string; visible: boolean; list?: Node[] };
+      const has = (nodes: Node[]): boolean => nodes.some((o) => o.visible && (o.name === 'pitfallKeys' || (o.list !== undefined && has(o.list))));
+      return has(window.__game.scene.getScene('lesson').children.list as unknown as Node[]);
+    })).toBe(true);
     await shot(page, 'try-pitfall-card');
     while ((await run(page)).step === 'try') await playItem(page);
     await shot(page, 'play-along');
@@ -76,7 +80,7 @@ test.describe('theory lessons (ft_1_39)', () => {
     await shot(page, 'check');
     while ((await run(page)).step === 'check') await playItem(page);
     await expect.poll(async () => (await run(page)).medal).toBe('gold');
-    expect(await sceneTexts(page, 'lesson')).toContain('8 of 8 right the first time');
+    expect(await sceneTexts(page, 'lesson')).toContain('8/8');
     await shot(page, 'done');
     expect(await totalXp(page)).toBeGreaterThan(before);
     expectNoErrors(errors);
