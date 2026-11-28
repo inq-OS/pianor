@@ -25,6 +25,7 @@ They rank above every decision, feature and design doc; in a conflict **AX-0 dec
 ## Non-negotiable product rules
 
 - **Staff notation is core:** the staff is the main view and the student reads every note from it.
+- **Symbols over words (d312):** while the student plays (practice, learning, tug, teaching), feedback is symbols and numbers on or by the staff, never sentences; words only for character talk between rounds, tooltips and menus.
 - **Young beginner first:** big readable notes, objective feedback (AX-2.1), no punishing fail state (a lost challenge still earns XP and never takes any away). Wait mode is the MVP play mode.
 - **Pieces are custom or public domain,** never copyrighted music or copied charts; each meta file records `source` and `license`. Pieces written in the game's editor get `license: "NaN"` and stay private (browser storage or `private/`), never committed.
 - **Pixel-art look:** free packs (CC0 first, CC BY with credit) over redrawing, each in `docs/assets.md`, fitted to palette and grid (d084). Places are painted like Monkey Island 2 as first released in 1991 (its approach, never its art; d111), with no shadow or vignette over a picture. Reference pictures stay local. Never copyrighted or franchise art, names or music.

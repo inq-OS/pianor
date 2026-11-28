@@ -628,3 +628,11 @@ Check: `tests/e2e/room.spec.ts` "ft_1_27.AC2 Esc on Kiur's reminder on the deadl
 The bubble shows on hover, with the keyboard focus and on a press; a press opens nothing. It names no level, because no level opens a scene (d113; AX-2.1: no promise the game does not keep).
 
 Check: `tests/e2e/room.spec.ts` "ft_1_19.AC2 a press on a shut place on the map says it is not open yet, and opens nothing"
+
+## d312
+
+**While the student plays (practice, learning, a tug, a teaching), the game speaks in symbols and numbers, never in sentences.** Features: ft_1_21, ft_1_22, ft_1_32, ft_0_08.
+
+A count is a number pair (3/5), a judgement is a mark on or beside the note it judges (wrong octave, neighbour key, wrong letter, early, late), a turn or a start is shown by motion or an icon, not a line to read. Words stay for a character's talk before and after a round, for tooltips, menus and the teacher's pages. Reading a sentence takes the eyes off the staff, and the staff is what the student must read (AX-0, d189).
+
+Check: untestable: until the in-play strings carry their own check, judged by reading the strings shown in play
