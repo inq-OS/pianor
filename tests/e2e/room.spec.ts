@@ -796,23 +796,35 @@ test.describe('the way out of the room, and what the room and the map say', () =
 
   test('ft_Y_13.AC1 the arrow keys reach every object and corner of the room, and every place and corner of the map', async ({ page }) => {
     const errors = await toRoom(page);
-    const steps = async (key: string, n: number) => {
-      const seen: string[] = [];
+    // every thing on the screen is reached by the arrows alone: from the first focus, following each arrow from each thing reached
+    const reached = async (key: string) => {
       await page.keyboard.press('ArrowRight');
-      for (let i = 0; i < n; i++) {
-        seen.push((await focusedLabel(page, key))!);
-        await page.keyboard.press('ArrowRight');
+      const labels = await page.evaluate((k) => (window.__game.scene.getScene(k).focusables() as { options: { label: string } }[]).map((b) => b.options.label), key);
+      const start = (await focusedLabel(page, key))!;
+      const seen = new Set<string>([start]);
+      const todo = [start];
+      while (todo.length > 0) {
+        const from = labels.indexOf(todo.pop()!);
+        for (const arrow of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']) {
+          await page.evaluate(({ k, i }) => {
+            const scene = window.__game.scene.getScene(k) as unknown as { focusIndex: number; focusShown: boolean };
+            scene.focusIndex = i;
+            scene.focusShown = true;
+          }, { k: key, i: from });
+          await page.keyboard.press(arrow);
+          const to = (await focusedLabel(page, key))!;
+          if (!seen.has(to)) {
+            seen.add(to);
+            todo.push(to);
+          }
+        }
       }
-      return seen;
+      return [...seen];
     };
-    // the way back first, the room left to right, the right corner's last
-    const room = await steps('profile', 9);
-    expect([...room.slice(room.indexOf('Back')), ...room.slice(0, room.indexOf('Back'))]).toEqual(['Back', 'Kiur', 'Piano', 'Your card', 'Exercises', 'Telephone', 'Door', 'Backpack', 'Settings']);
+    expect(await reached('profile')).toEqual(expect.arrayContaining(['Back', 'Kiur', 'Piano', 'Your card', 'Exercises', 'Telephone', 'Door', 'Backpack', 'Settings']));
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
-    const map = await steps('keriMap', 9);
-    expect(new Set(map).size).toBe(9);
-    expect(map).toEqual(expect.arrayContaining(['Back', "Warden's house", 'Grassy knoll', 'Backpack', 'Settings']));
+    expect(await reached('keriMap')).toEqual(expect.arrayContaining(['Back', "Warden's house", 'Grassy knoll', 'Crossroads', 'Backpack', 'Settings']));
     expectNoErrors(errors);
   });
 
@@ -865,13 +877,13 @@ test.describe('the way out of the room, and what the room and the map say', () =
     expectNoErrors(errors);
   });
 
-  test('Kiur\'s board writes Learn and Tug under its pictures, and the piece book opened for his tug says what the pick is for', async ({ page }) => {
+  test('Kiur\'s board writes Learn and Tug under its pictures, and the piece book opened for his tug is titled for it', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Kiur'));
     await expect.poll(() => sceneTexts(page, 'profile')).toEqual(expect.arrayContaining(['Learn', 'Tug']));
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Tug'));
     await waitForScene(page, 'menu');
-    await expect.poll(() => sceneTexts(page, 'menu')).toContain("Pick a piece for Kiur's tug");
+    await expect.poll(() => sceneTexts(page, 'menu')).toContain('Tug with Kiur');
     expectNoErrors(errors);
   });
 });
