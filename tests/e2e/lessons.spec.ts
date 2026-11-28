@@ -70,7 +70,8 @@ test.describe('theory lessons (ft_1_39)', () => {
     await expect.poll(() => page.evaluate(() => {
       type Node = { name?: string; visible: boolean; list?: Node[] };
       const has = (nodes: Node[]): boolean => nodes.some((o) => o.visible && (o.name === 'pitfallKeys' || (o.list !== undefined && has(o.list))));
-      return has(window.__game.scene.getScene('lesson').children.list as unknown as Node[]);
+      const list: unknown = window.__game.scene.getScene('lesson').children.list;
+      return has(list as Node[]);
     })).toBe(true);
     await shot(page, 'try-pitfall-card');
     while ((await run(page)).step === 'try') await playItem(page);
