@@ -291,4 +291,5 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d309](game.md#d309) | In the room Esc never leaves for the player list; the corner Back asks "Change player?" once, with Yes and No, before going there | ft_1_07, ft_1_20 |
 | [d310](game.md#d310) | What is said in the room stands on a plate near its speaker with a small next mark; a press on a room object during a line closes the line and does what was pressed, and the teacher waits in the doorway until her check-up is played | ft_1_27, ft_1_34 |
 | [d311](game.md#d311) | A closed place on the map is pressable and its name bubble says it is not open yet | ft_1_19, ft_1_18 |
+| [d312](game.md#d312) | While the student plays (practice, learning, a tug, a teaching), the game speaks in symbols and numbers, never in sentences | ft_1_21, ft_1_22, ft_1_32, ft_0_08 |
 <!-- /docs:index -->
