@@ -67,8 +67,8 @@ test.describe('note-name trainer (ft_0_17)', () => {
     await playWithVirtualPiano(page, [wrongKey(midi)]);
     expect(await lives(page)).toBe(2);
     expect(await hearts(page)).toEqual({ lit: 2, total: 3 });
-    // the name now stands on the note: one more letter on the screen than the toolbar's B
-    expect((await sceneTexts(page, 'noteTrainer')).filter(isNoteName).length).toBe(namesBefore + 1);
+    // the name now stands on the note, and the key played stands beside it as a named ghost note (d312): two more letters
+    expect((await sceneTexts(page, 'noteTrainer')).filter(isNoteName).length).toBe(namesBefore + 2);
 
     const before = await totalXp(page);
     await playWithVirtualPiano(page, [await target(page)]);

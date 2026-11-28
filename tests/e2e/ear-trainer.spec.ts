@@ -239,8 +239,11 @@ test.describe('pitch trainer by ear (ft_1_10)', () => {
       return scene.levelUpCard.getBounds().bottom <= scene.mainTop + 48 * scene.px.scale;
     });
     expect(clear).toBe(true);
-    expect((await sceneTexts(page, 'earTrainer')).filter((text) => text === '2')).toHaveLength(2);
+    // the card shows the new level as its number alone (d312): one '2' more than the screen keeps after it
+    const twos = async () => (await sceneTexts(page, 'earTrainer')).filter((text) => text === '2').length;
+    const withCard = await twos();
     await expect.poll(async () => (await ear(page)).levelUpCard, { timeout: 10_000 }).toBe(false);
+    expect(await twos()).toBe(withCard - 1);
     expectNoErrors(errors);
   });
 });
