@@ -91,7 +91,7 @@ test.describe('keyboard navigation', () => {
 
   test('ft_Y_13.AC2 Space presses the focused button and Escape goes back from the credits', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual', 'en', 'profiles');
-    await focusByKeys(page, 'profiles', 'Settings', ['ArrowRight', 'ArrowDown']); // the gear, the last on the sheet: Credits is the first choice under it
+    await focusByKeys(page, 'profiles', 'Credits and admin', ['ArrowRight', 'ArrowDown']); // the gear, the last on the sheet: Credits is the first choice under it
     await page.keyboard.press(' ');
     await focusByKeys(page, 'profiles', 'Credits', ['ArrowUp', 'ArrowDown']);
     await page.keyboard.press(' ');

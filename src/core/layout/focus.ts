@@ -12,8 +12,6 @@ export interface FocusRect {
   width: number;
   height: number;
   disabled?: boolean;
-  /** In a step through the screen (`cycleFocus`): -1 before the rest (the way back in its corner), 1 after it (the corners on the right). */
-  group?: -1 | 1;
 }
 
 const centre = (r: FocusRect) => ({ x: r.x + r.width / 2, y: r.y + r.height / 2 });
@@ -38,27 +36,49 @@ function offsets(from: FocusRect, to: FocusRect, move: FocusMove): { along: numb
   }
 }
 
+/** How a screen's buttons stand, for the arrow keys: how much sideways drift counts against a button ahead, and how far aside one may lie and still come first. */
+export interface FocusLayout {
+  /** Sideways drift counts this many times the distance ahead. */
+  across: number;
+  /** A button drifting more than this many times its distance ahead is taken only when nothing lies nearer the line. */
+  cone: number;
+}
+
 /**
- * The index focused after `move` from `current`: the nearest enabled button in that direction (sideways drift counts
- * double, so a button straight ahead beats one far to the side). With nothing ahead the focus wraps to the far side
- * (the enabled button farthest back, nearest in line) when `wrap` is true, and stays put otherwise. With no valid
- * current focus the first enabled button is chosen; with nothing enabled the answer is -1.
+ * The two layouts (ft_Y_13): on a screen of rows and columns (`grid`) drift counts double, so a move keeps its row; over a
+ * picture whose things stand in no rows (the room, `picture`) it counts half, so Left and Right go through the things in
+ * their order across the screen, a thing far above or below (a corner) only when nothing lies that way nearer the line.
+ * AX-3 provisional: the weights.
  */
-export function moveFocus(rects: readonly FocusRect[], current: number, move: FocusMove, wrap = true): number {
+export const FOCUS_LAYOUT = {
+  grid: { across: 2, cone: Infinity },
+  picture: { across: 0.5, cone: 3 },
+} as const satisfies Record<string, FocusLayout>;
+
+/**
+ * The index focused after `move` from `current`: the nearest enabled button in that direction, sideways drift counted by
+ * `layout` (a grid's by default, so a button straight ahead beats one far to the side). With nothing ahead the focus wraps
+ * to the far side (the enabled button farthest back, nearest in line) when `wrap` is true, and stays put otherwise. With
+ * no valid current focus the first enabled button is chosen; with nothing enabled the answer is -1.
+ */
+export function moveFocus(rects: readonly FocusRect[], current: number, move: FocusMove, wrap = true, layout: FocusLayout = FOCUS_LAYOUT.grid): number {
   const from = rects[current];
   if (from === undefined || !enabled(from)) return initialFocus(rects);
-  let best = -1;
-  let bestScore = Infinity;
+  // the best ahead within the layout's cone, and the best ahead at all
+  const best = [-1, -1];
+  const bestScore = [Infinity, Infinity];
   let far = -1;
   let farScore = -Infinity;
   rects.forEach((r, i) => {
     if (i === current || !enabled(r)) return;
     const { along, across } = offsets(from, r, move);
     if (along > 0) {
-      const score = along + 2 * across;
-      if (score < bestScore) {
-        best = i;
-        bestScore = score;
+      const score = along + layout.across * across;
+      for (const k of across <= layout.cone * along ? [0, 1] : [1]) {
+        if (score < bestScore[k]!) {
+          best[k] = i;
+          bestScore[k] = score;
+        }
       }
     } else if (wrap) {
       const score = -along * 1000 - across;
@@ -68,21 +88,9 @@ export function moveFocus(rects: readonly FocusRect[], current: number, move: Fo
       }
     }
   });
-  if (best >= 0) return best;
+  const ahead = best[0]! >= 0 ? best[0]! : best[1]!;
+  if (ahead >= 0) return ahead;
   return wrap && far >= 0 ? far : current;
-}
-
-/**
- * The index focused after one step (`1` on, `-1` back) through every enabled button in order across the screen: by its
- * `group`, then the centre's x, then its y, wrapping at the ends. For a screen of scattered objects (the room, the map), where the nearest
- * button in a direction can leave some unreachable. With no valid current focus the first enabled button is chosen.
- */
-export function cycleFocus(rects: readonly FocusRect[], current: number, step: 1 | -1): number {
-  const from = rects[current];
-  if (from === undefined || !enabled(from)) return initialFocus(rects);
-  const order = rects.map((r, i) => ({ i, c: centre(r), on: enabled(r) })).filter((r) => r.on).sort((a, b) => (rects[a.i]!.group ?? 0) - (rects[b.i]!.group ?? 0) || a.c.x - b.c.x || a.c.y - b.c.y);
-  const at = order.findIndex((r) => r.i === current);
-  return order[(at + step + order.length) % order.length]!.i;
 }
 
 /**

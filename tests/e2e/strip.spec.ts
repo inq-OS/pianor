@@ -1,11 +1,11 @@
 import { type Page } from '@playwright/test';
 import { expect, test } from './fixtures';
-import { LITTLE_STEPS, activeScene, boxesOverlap, buttonPoint, clickButton, clickToolbar, expectNoErrors, openBubbleFromMore, openGame, openPiece, playWithVirtualPiano, toScoreScreen, waitForScene } from './helpers';
+import { activeScene, buttonPoint, clickButton, clickToolbar, expectNoErrors, misplacedWriting, openBubbleFromMore, openGame, waitForScene, LITTLE_STEPS, boxesOverlap, openPiece, playWithVirtualPiano, toScoreScreen } from './helpers';
 
 /**
  * The frame of every screen but the teacher's (ft_1_20, d282): a slim strip of pinned actions at the foot only where a screen
  * pins some, with no text on it; the rest in the bubble. Back (the door) and Settings (the gear) stay in the top corners where
- * the toolbar had them, faded until the pointer is on them. The player is in the room: the name on the shield, the shield
+ * the toolbar had them, each a solid boxed button on its own plate. The player is in the room: the name on the shield, the shield
  * opens the player's card.
  */
 const SCREENS = [
@@ -76,22 +76,48 @@ test.describe('the strip and the corners (ft_1_20, d282)', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_20.AC3 the gear is clear while the pointer is on it and faded once it leaves, with its name in a bubble', async ({ page }) => {
+  test('ft_1_20.AC6 the door and the gear stand solid on their own plate over every screen, the door the same as on the teacher\'s toolbar, and each names itself in a bubble', async ({ page }) => {
     const errors = await openGame(page, '?device=virtual');
+    type Corner = { alpha: number; icon: number[]; iconOnly: boolean; picture: boolean; look: string };
+    type Drawn = { objects: { alpha: number }[]; options: { icon?: { pixels: ArrayLike<number> }; iconOnly?: boolean; picture?: unknown; look?: string } } | null;
+    const corners = (key: string) =>
+      page.evaluate((k) => {
+        const scene = window.__game.scene.getScene(k) as unknown as { toolbarButtons: { back: Drawn; settings: Drawn } };
+        const one = (b: Drawn): Corner | null => b && {
+          alpha: Math.min(...b.objects.map((o) => o.alpha)), icon: Array.from(b.options.icon?.pixels ?? []), iconOnly: b.options.iconOnly === true,
+          picture: b.options.picture !== undefined, look: b.options.look ?? 'button',
+        };
+        return { back: one(scene.toolbarButtons.back), settings: one(scene.toolbarButtons.settings) };
+      }, key);
+    await page.evaluate(() => window.__game.registry.get('context').teacher.lock.check('pianor'));
+    await startScene(page, 'teacher', {});
+    await waitForScene(page, 'teacher');
+    const toolbarDoor = (await corners('teacher')).back!;
+    for (const [key, data] of [['menu', {}], ['songs', {}], ['pieces', {}], ['settings', {}], ['results', { chartId: 'little-steps' }], ['beat-lanes', { chartId: 'little-steps' }]] as const) {
+      await startScene(page, key, data);
+      await waitForScene(page, key);
+      const c = await corners(key);
+      for (const b of [c.back, c.settings].filter((x): x is Corner => x !== null)) {
+        // solid with the pointer elsewhere: a boxed button on its plate, not a bare faded picture over the book
+        expect(b.alpha, key).toBe(1);
+        expect(b.picture, key).toBe(false);
+        expect(b.iconOnly, key).toBe(true);
+      }
+      // one look for Back on every screen: the toolbar's boxed door
+      expect(c.back, key).toEqual(toolbarDoor);
+    }
     await startScene(page, 'menu');
     await waitForScene(page, 'menu');
-    expect(await gearAlpha(page)).toBeLessThan(1);
     const index = await page.evaluate(() => {
       const scene = window.__game.scene.getScene('menu') as unknown as { buttons: unknown[]; toolbarButtons: { settings: unknown } };
       return scene.buttons.indexOf(scene.toolbarButtons.settings);
     });
     const point = await buttonPoint(page, 'menu', index);
     await page.mouse.move(point.x, point.y);
-    await expect.poll(() => gearAlpha(page)).toBe(1);
     await expect.poll(() => page.evaluate(() => (window.__game.scene.getScene('menu') as unknown as { toolbarButtons: { settings: { tooltipShown: string | null } } }).toolbarButtons.settings.tooltipShown)).toBe('Settings');
     const canvas = (await page.locator('canvas').boundingBox())!;
     await page.mouse.move(canvas.x + 5, canvas.y + 300);
-    await expect.poll(() => gearAlpha(page)).toBeLessThan(1);
+    expect(await gearAlpha(page)).toBe(1);
     expectNoErrors(errors);
   });
 
@@ -110,10 +136,30 @@ test.describe('the strip and the corners (ft_1_20, d282)', () => {
     expect(shield).toBeGreaterThanOrEqual(0);
     await clickButton(page, 'profile', shield);
     await expect.poll(async () => (await texts()).includes('Pieces played')).toBe(true);
-    expect(await texts()).toEqual(expect.arrayContaining(['Level 1', '0 / 100 XP']));
+    expect(await texts()).toEqual(expect.arrayContaining(['Level 1', '0 XP', '0 / 100 to level 2']));
     await page.keyboard.press('Escape');
     await expect.poll(async () => (await texts()).includes('Pieces played')).toBe(false);
     expect(await activeScene(page)).toBe('profile');
+    expectNoErrors(errors);
+  });
+
+  test('ft_1_20.AC13 in the room the backpack opened over the player\'s card closes the card, and its empty line fits inside its panel', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'profile');
+    await waitForScene(page, 'profile');
+    const labelled = (label: string) => page.evaluate((l) => (window.__game.scene.getScene('profile') as unknown as { buttons: { labelFit(): { label: string } }[] }).buttons.findIndex((b) => b.labelFit().label === l), label);
+    const state = () => page.evaluate(() => {
+      const s = window.__game.scene.getScene('profile') as unknown as { cardOpen: boolean; menuOpen: boolean; menu: { buttons: { labelFit(): { label: string; overflow: number } }[] } | null };
+      return { card: s.cardOpen, menu: s.menuOpen, fits: (s.menu?.buttons ?? []).map((b) => b.labelFit()) };
+    });
+    await clickButton(page, 'profile', await labelled('Your card'));
+    await expect.poll(async () => (await state()).card).toBe(true);
+    await clickButton(page, 'profile', await labelled('Backpack'));
+    await expect.poll(async () => (await state()).menu).toBe(true);
+    const open = await state();
+    expect(open.card).toBe(false);
+    expect(open.fits).toEqual([{ label: 'Nothing in the backpack yet', overflow: expect.any(Number) }]);
+    expect(open.fits[0]!.overflow).toBeLessThanOrEqual(0);
     expectNoErrors(errors);
   });
 
@@ -309,20 +355,36 @@ test.describe('the screens\' buttons in the strip and the bubble (ft_1_20.AC8)',
     expectNoErrors(errors);
   });
 
-  test('ft_1_20.AC2 after a session the score screen\'s ribbon title lies clear of the door in the top left corner', async ({ page }) => {
-    const errors = await openGame(page);
-    await openPiece(page, 'Little Steps');
-    await playWithVirtualPiano(page, LITTLE_STEPS);
-    await toScoreScreen(page);
-    const f = await frame(page);
-    // the big title on its ribbon (the ribbon reaches 8 cells past the title's sides and 3 over it, `ribbon`)
-    const ribbon = await page.evaluate(() => {
-      const scene = window.__game.scene.getScene('results') as unknown as { root: { list: { pixelText?: boolean; visible: boolean; x: number; y: number; displayWidth: number; displayHeight: number; scaleX: number }[] } };
-      const title = scene.root.list.find((o) => o.pixelText === true && o.visible && o.scaleX === 2)!;
-      return { x: title.x - 8, y: title.y - 3, width: title.displayWidth + 16, height: title.displayHeight + 6 };
-    });
-    expect(f.back).not.toBeNull();
-    expect(boxesOverlap(ribbon, f.back!), JSON.stringify({ ribbon, back: f.back })).toBe(false);
+  test('ft_1_20.AC8 the piece maker\'s writer cell keeps its small sign and its purple ground after its length changes by the wheel or its menu', async ({ page }) => {
+    const errors = await openGame(page, '?device=virtual');
+    await startScene(page, 'editor', {});
+    await waitForScene(page, 'editor');
+    // the writer cell's picture as drawn: the sign alone, no bigger than the strip's sign room (22 fine pixels), and still armed
+    const writer = () =>
+      page.evaluate(() => {
+        const b = (window.__game.scene.getScene('editor') as unknown as { lengthItem: { iconArt: { width: number; height: number }; armed: boolean } }).lengthItem;
+        return { size: Math.max(b.iconArt.width, b.iconArt.height), armed: b.armed };
+      });
+    expect(await writer()).toEqual({ size: expect.any(Number), armed: true });
+    expect((await writer()).size).toBeLessThanOrEqual(22);
+    const length = () => page.evaluate(() => (window.__game.scene.getScene('editor') as unknown as { length: string }).length);
+    const item = await buttonPoint(page, 'editor', await labelled(page, 'editor', 'Notes'));
+    await page.mouse.move(item.x, item.y);
+    await page.mouse.wheel(0, 100);
+    await expect.poll(length).not.toBe('quarter');
+    expect((await writer()).armed).toBe(true);
+    expect((await writer()).size).toBeLessThanOrEqual(22);
+    await press(page, 'editor', 'Notes');
+    await press(page, 'editor', '1/8');
+    await expect.poll(length).toBe('eighth');
+    expect((await writer()).armed).toBe(true);
+    expect((await writer()).size).toBeLessThanOrEqual(22);
+    // the rests key (0) turns the writer to rests: still armed, its sign a rest's, its word Rests
+    await page.mouse.move(5, 5);
+    await page.keyboard.press('Digit0');
+    await expect.poll(() => labelled(page, 'editor', 'Rests')).toBeGreaterThanOrEqual(0);
+    expect((await writer()).armed).toBe(true);
+    expect((await writer()).size).toBeLessThanOrEqual(22);
     expectNoErrors(errors);
   });
 
@@ -337,4 +399,41 @@ test.describe('the screens\' buttons in the strip and the bubble (ft_1_20.AC8)',
     await waitForScene(page, 'practice');
     expectNoErrors(errors);
   });
+});
+
+/** Every screen written in the open book, and those with a title near the corners. */
+const WRITTEN: readonly [string, (page: Page) => Promise<object>][] = [
+  ['menu', async () => ({})],
+  ['settings', async () => ({ page: 0 })],
+  ['settings', async () => ({ page: 1 })],
+  ['beat-lanes', async () => ({})],
+  ['songs', async () => ({})],
+  ['song', async () => ({ chartId: 'pebble-hop' })],
+  ['earTrainer', async () => ({})],
+  ['results', async () => ({ chartId: 'little-steps' })],
+  ['teacherGate', async () => ({})],
+  ['teacher', async () => ({})],
+  ['teacherPiece', async (page) => ({ player: await page.evaluate(() => window.__game.registry.get('context').profiles.profile.id as string) })],
+];
+
+test.describe('writing in its place (ft_1_20 rule 3)', () => {
+  for (const lang of ['en', 'et'] as const) {
+    for (const [key, data] of WRITTEN) {
+      test(`ft_1_20.AC2 no text lies under the corner boxes or off the open book's pages: ${key} ${data.toString().includes('page: 1') ? '(learning) ' : ''}in ${lang}`, async ({ page }) => {
+        const errors = await openGame(page, '?device=virtual', lang);
+        // the teacher's screens are behind her password, pianor by default: the gate opens them
+        if (key.startsWith('teacher') && key !== 'teacherGate') {
+          await startScene(page, 'teacherGate');
+          await waitForScene(page, 'teacherGate');
+          await page.keyboard.type('pianor');
+          await page.keyboard.press('Enter');
+          await waitForScene(page, 'teacher');
+        }
+        await startScene(page, key, await data(page));
+        await waitForScene(page, key);
+        expect(await misplacedWriting(page, key)).toEqual([]);
+        expectNoErrors(errors);
+      });
+    }
+  }
 });

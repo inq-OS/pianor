@@ -95,8 +95,8 @@ export interface KeriMapPlan {
   compass: Rect;
   /** The warden's house's button, in layout cells from the picture's top-left corner. */
   house: Rect;
-  /** A button for every scene (ft_1_19.AC2), in cells as the others, round the scene's place; `level` is the student's level that opens it. */
-  scenes: { id: string; level: number; at: Rect }[];
+  /** A button for every scene (ft_1_19.AC2), in cells as the others, round the scene's place. */
+  scenes: { id: string; at: Rect }[];
 }
 
 const fineRect = (cells: { w: number; h: number }): { w: number; h: number } => ({ w: cells.w * ART_DETAIL, h: cells.h * ART_DETAIL });
@@ -167,7 +167,7 @@ export function keriMapPlan(world: World): KeriMapPlan {
     compass: { x: middle.x + 578, y: middle.y + 4, w: 58, h: 76 },
     house: hit(view.toScreen(house, 3), HOUSE_HIT),
     sand: sandStrip(map, view, middle),
-    scenes: (map.world.scenes ?? []).map((scene) => ({ id: scene.id, level: scene.level, at: hit(view.toScreen(scene, 2), SCENE_HIT) })),
+    scenes: (map.world.scenes ?? []).map((scene) => ({ id: scene.id, at: hit(view.toScreen(scene, 2), SCENE_HIT) })),
   };
 }
 

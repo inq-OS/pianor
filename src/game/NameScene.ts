@@ -3,7 +3,7 @@ import { ART_DETAIL } from '../core/layout/frame';
 import { NAME_LETTERS, NAME_MAX, NAME_SEPARATORS, deleteLetter, finishedName, nameFrom, typeLetter } from '../core/text/nameEntry';
 import { t } from '../core/text/strings';
 import { createBitmap } from './ui/pixel/bitmap';
-import { LINE_HEIGHT, drawnText, measure, wrap } from './ui/pixel/font';
+import { LINE_GAP, LINE_HEIGHT, drawnText, measure, wrap } from './ui/pixel/font';
 import { C } from './ui/pixel/palette';
 import { BOOK_PALETTE, paintCover } from './ui/pixel/paint/book';
 import { paintedOnce } from './ui/pixel/paintedOnce';
@@ -20,18 +20,22 @@ const FIELD_HEIGHT = 24;
 const BIG_CAPS = 14;
 const BIG_LETTER = 12;
 const CARET_BLINK_MS = 530;
+/** The caret's dim half of a blink: it fades, never vanishes, so a still picture of the box always shows where to type. */
+const CARET_DIM = 0.6;
+/** The caret's width in fine pixels: a cell and a half, a stroke as bold as the big letters'. */
+const CARET_WIDTH = 3;
+/** The ask's top above the plate's, in cells: on the bare cover between its gilt border and the vine over the plate. */
+const PROMPT_ABOVE = 32;
 const BOTTOM_HEIGHT = 16;
 /** The bottom row's centre sits this far above the main area's foot (d110: 320 x 157 on the target screen). */
 const BOTTOM_FROM_FOOT = BOTTOM_HEIGHT / 2 + 13;
 const ACTION_WIDTH = 40;
 /** The closed book's left edge (its spine) from the screen's side, in cells; it is as far in on the right. */
 const COVER_X = 6;
-/** Room on the plate over the name for its question ("Your name?"), in cells. */
-const QUESTION_ROOM = 10;
-/** Room on the plate under the name for one line of why a name was refused, in cells; a longer reason makes the plate taller. */
-const REASON_ROOM = 12;
-/** The gap between the name's foot and the reason, in cells. */
-const REASON_GAP = 3;
+/** Room on the plate under the name for why a name was refused, in cells. */
+const REASON_ROOM = 10;
+/** The ink rule on the plate's paper runs this far inside the plate, in cells: what is written stays inside it. */
+const PLATE_RULE = 3;
 
 /** What the picker asks, and what happens to the typed name. */
 export interface NameData {
@@ -48,7 +52,7 @@ export interface NameData {
 /**
  * A name box a student can use (ft_1_07, AC6): the name is typed on the computer keyboard into a big box with a red caret,
  * with a delete button and a done button; only the letters of `NAME_LETTERS` are taken, with a space or hyphen between
- * them, and the plate asks "Your name?" over it. The name is typed here, never in
+ * them. The name is typed here, never in
  * the browser's box. Done hands the name to `save`, which leaves on success or says why the
  * name was refused (shown between the bottom buttons); Back leaves without saving. Used to rename a player (admin) and to
  * name a new one (ft_1_07.AC10). The letters and the length rule live in `core/text/nameEntry`.
@@ -65,6 +69,8 @@ export class NameScene extends PixelScene {
   private field: HTMLInputElement | null = null;
   private typed = '';
   private saving = false;
+  /** The name plate as last drawn, in cells, and how far its ink rule runs inside it (read by the tests). */
+  plateBox: { x: number; y: number; w: number; h: number; rule: number } | null = null;
   /** Why the last Done was refused; cleared by the next letter. */
   private refused = '';
 
@@ -94,7 +100,10 @@ export class NameScene extends PixelScene {
     super.create();
   }
 
-  /** The text field a tablet's keyboard types into, focused at once so a computer's keys go there too. */
+  /**
+   * The text field a tablet's keyboard types into, focused at once so a computer's keys go there too; where the page
+   * cannot take the focus at once, the first press on the screen gives it.
+   */
   private makeField(): void {
     const field = document.createElement('input');
     field.type = 'text';
@@ -122,6 +131,11 @@ export class NameScene extends PixelScene {
     document.body.append(field);
     this.field = field;
     field.focus({ preventScroll: true });
+    // a page in a frame (or one the browser kept from focusing) has the field unfocused, and typing would be lost: a press
+    // anywhere on the screen focuses it, in the press itself, so a tablet's keyboard comes up too
+    const canvas = this.game.canvas;
+    const focusField = () => { if (document.activeElement !== field) field.focus({ preventScroll: true }); };
+    canvas.addEventListener('pointerdown', focusField);
     // the page moved under the field (a resize, a tablet's keyboard coming up): lay it over the box again
     const replace = () => this.redraw();
     window.addEventListener('resize', replace);
@@ -129,6 +143,7 @@ export class NameScene extends PixelScene {
     this.events.once('shutdown', () => {
       window.removeEventListener('resize', replace);
       window.visualViewport?.removeEventListener('resize', replace);
+      canvas.removeEventListener('pointerdown', focusField);
       field.remove();
       if (this.field === field) this.field = null;
     });
@@ -150,7 +165,7 @@ export class NameScene extends PixelScene {
   private onTyped(e: KeyboardEvent): void {
     if (e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
     const letter = e.key.length === 1 ? e.key.toLocaleUpperCase('et') : '';
-    const done = e.key === 'Enter' && this.typed.length > 0;
+    const done = e.key === 'Enter';
     // with the field focused its own typing writes the name (a tablet's keyboard sends no key names, and `nameFrom` drops
     // what is no name letter): every printable key and Backspace only goes no further, so the computer-key piano plays no
     // note, a digit included; Esc, Tab and the arrows still move about the screen
@@ -174,39 +189,41 @@ export class NameScene extends PixelScene {
     // the piano holds, closed
     const fieldW = Math.min(width - 2 * MARGIN, NAME_MAX * BIG_LETTER + 2 * FIELD_PAD);
     const left = Math.round((width - fieldW) / 2) + FIELD_PAD;
-    // why the name was refused stands under it on the plate, one line or more: the plate grows to hold them all
-    const reasonWidth = fieldW - 2 * FIELD_PAD;
-    const reasonLines = this.refused ? Math.max(1, wrap(drawnText(this.refused), reasonWidth).length) : 1;
-    const plateH = QUESTION_ROOM + FIELD_HEIGHT + REASON_ROOM + (reasonLines - 1) * LINE_HEIGHT;
-    // the plate's top: the name's box (the field) stands under the question
-    const plateY = Math.round((height - plateH) / 2) - FIELD_PAD;
-    const fieldY = plateY + QUESTION_ROOM + FIELD_PAD;
+    const fieldY = Math.round((height - FIELD_HEIGHT) / 2) - FIELD_PAD;
     const fine = (v: number) => v * ART_DETAIL;
     // a massive book, too big for the desk: its foot runs off the bottom of the screen
     const cover = { x: COVER_X, y: SHEET.y, w: width - 2 * COVER_X, h: height - SHEET.y };
-    const plate = { x: fine(left - FIELD_PAD - cover.x), y: fine(plateY - cover.y), w: fine(fieldW), h: fine(plateH) };
+    // why a name was refused is written under the name inside the plate's rule: a reason of more lines makes the plate deeper
+    const reasonW = fieldW - 2 * FIELD_PAD;
+    const reasonTop = fieldY + BIG_CAPS + PLATE_RULE;
+    const reasonLines = this.refused ? wrap(drawnText(this.refused), reasonW).length : 0;
+    const plateH = Math.max(FIELD_HEIGHT + REASON_ROOM, reasonTop + reasonLines * LINE_HEIGHT - LINE_GAP + PLATE_RULE - (fieldY - FIELD_PAD));
+    this.plateBox = { x: left - FIELD_PAD, y: fieldY - FIELD_PAD, w: fieldW, h: plateH, rule: PLATE_RULE };
+    const plate = { x: fine(left - FIELD_PAD - cover.x), y: fine(fieldY - FIELD_PAD - cover.y), w: fine(fieldW), h: fine(plateH) };
     this.fineImage(fine(cover.x), fine(cover.y), paintedOnce(`cover:${fine(cover.w)}x${fine(cover.h)}:${plate.x},${plate.y},${plate.w},${plate.h}`, () => paintCover(fine(cover.w), fine(cover.h), plate)), BOOK_PALETTE);
-    this.placeField(left - FIELD_PAD, plateY, fieldW, plateH);
+    this.placeField(left - FIELD_PAD, fieldY - FIELD_PAD, fieldW, FIELD_HEIGHT);
+    // the ask in gilt letters over the plate: what to write (a new player's name, or whom a rename is for)
+    const ask = this.request?.title ?? '';
+    if (ask) this.label(Math.round(width / 2 - measure(drawnText(ask)) / 2), fieldY - FIELD_PAD - PROMPT_ABOVE, ask, C.goldLight);
     this.inkWriting = true;
-    // the plate asks for the name, so a young student or a parent on a new install knows what goes there
-    this.label(0, plateY + FIELD_PAD, t('name.question'), C.dim).centerAt(width / 2);
-    // the name stands in the middle of the plate, as a name on a book's label does
+    // the name stands in the middle of the plate, as a name on a book's label does; raised when a reason is written under it
     const typedW = this.typed ? measure(drawnText(this.typed)) * 2 : 0;
     const nameX = Math.round(width / 2 - typedW / 2);
-    const nameY = fieldY;
+    const nameY = this.refused ? fieldY : fieldY - FIELD_PAD + Math.round((FIELD_HEIGHT + REASON_ROOM - BIG_CAPS) / 2);
     if (this.typed) this.label(nameX, nameY, this.typed, C.white, { big: true });
-    const caret = createBitmap(fine(1), fine(BIG_CAPS));
+    const caret = createBitmap(CARET_WIDTH, fine(BIG_CAPS));
     caret.pixels.fill(C.redDark);
-    // the caret blinks, so the empty plate asks for letters without a word of instruction
+    // the caret blinks between full and faint, never gone, so the plate always shows where the letters go
     this.blink?.remove();
-    const shown = this.fineImage(fine(nameX + (this.typed ? typedW + 2 : 0)), fine(nameY), caret);
-    this.blink = this.time.addEvent({ delay: CARET_BLINK_MS, loop: true, callback: () => shown.setVisible(!shown.visible) });
+    const shown = this.fineImage(fine(nameX + (this.typed ? typedW + 2 : 0)), fine(nameY), caret).setName('caret');
+    this.blink = this.time.addEvent({ delay: CARET_BLINK_MS, loop: true, callback: () => shown.setAlpha(shown.alpha < 1 ? 1 : CARET_DIM) });
 
     const band = this.bandShown;
     // with the band (ft_1_20 rule 1) Delete and Done are its actions
     const [del, done] = this.actions();
     if (!band) this.button({ x: MARGIN + ACTION_WIDTH / 2, y: bottomY, width: ACTION_WIDTH, height: BOTTOM_HEIGHT, look: 'ink', inkBox: true, iconOnly: true, ...del! });
-    if (this.refused) this.label(left, nameY + BIG_CAPS + REASON_GAP, this.refused, C.gold, { maxWidth: reasonWidth }).centerAt(width / 2);
+    // why the name was refused stands under the box
+    if (this.refused) this.label(left, reasonTop, this.refused, C.dim, { maxWidth: reasonW });
     if (!band) this.button({ x: width - MARGIN - ACTION_WIDTH / 2, y: bottomY, width: ACTION_WIDTH, height: BOTTOM_HEIGHT, look: 'ink', inkBox: true, iconOnly: true, ...done! });
   }
 

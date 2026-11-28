@@ -353,7 +353,7 @@ function draw() {
   const sheets = [];
   const groups = [
     ['Used on Keri', 'A character, the intro, a scene or a song plays these, and they also go in the piece book.', BOARD.pieces.filter((p) => p.uses.length)],
-    ['Piece book only', 'Extra pieces to read and play: the student can pick any of them from Choose a piece (sorted easiest first), and the teacher can put them in the curriculum.', BOARD.pieces.filter((p) => !p.uses.length)],
+    ['Piece book only', 'Extra pieces to read and play: the student can pick any of them from Choose a piece (as listed; the student can sort the book easiest first), and the teacher can put them in the curriculum.', BOARD.pieces.filter((p) => !p.uses.length)],
   ];
   for (const [name, lead, pieces] of groups) {
     if (!pieces.length) continue;

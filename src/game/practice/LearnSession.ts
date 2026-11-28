@@ -242,9 +242,9 @@ export class LearnSession {
   /** The notes earned so far, each in its medal (ft_1_32.AC4). */
   rewards(): LearnRewards {
     const rewards = learnRewards(this.plan, this.progress, this.piece, goldenBars(this.profile.practiceFor(this.piece.id), this.piece.id, this.progress.learnedAt ?? null));
-    // a piece learned again keeps the better of its clefs, as the book does (ft_1_32.AC24)
+    // a piece learned again shows the clef it had won the whole time, and keeps the better of its clefs, as the book does (ft_1_32.AC24)
     const kept = this.progress.clef;
-    return rewards.piece && kept ? { ...rewards, piece: best(rewards.piece, kept) } : rewards;
+    return kept ? { ...rewards, piece: rewards.piece ? best(rewards.piece, kept) : kept } : rewards;
   }
 }
 

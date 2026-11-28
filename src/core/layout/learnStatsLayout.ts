@@ -80,8 +80,13 @@ export interface StatsGraph {
   referenceY: number | null;
 }
 
-/** The scale never reaches further than this share past the values themselves, however wide a whisker is. */
-const SCALE_REACH = 0.3;
+/**
+ * A whisker widens the scale at most this share of the values' own span (or of `MIN_SPAN`) past them, so one wide whisker
+ * (a run with a stop) never flattens the others into a line.
+ */
+const SCALE_REACH = 0.5;
+/** The scale is never narrower than this, so runs of nearly one value are not stretched over the whole plot. */
+const MIN_SPAN = 10;
 const STEPS = [1, 2, 5, 10, 20, 50, 100, 200, 500] as const;
 
 /** A scale of round numbers around `low` to `high`: its ends are whole steps, a step that cuts the range in at most six. */
@@ -108,8 +113,15 @@ export function statsGraph(series: readonly SeriesPoint[], plot: Rect, options: 
   const whiskers = shown.flatMap((point) => (point.value !== null && point.reach !== undefined ? [{ low: point.value - point.reach, high: point.value + point.reach }] : []));
   const extra = [...(reference === null ? [] : [reference]), ...(options.fromZero ? [0] : [])];
   // a whisker widens the scale, but only so far: a run with a stop must not flatten all the others
-  const low = Math.min(...extra, Math.max(Math.min(lowest, ...whiskers.map((w) => w.low)), lowest - Math.abs(lowest) * SCALE_REACH));
-  const high = Math.max(...extra, Math.min(Math.max(highest, ...whiskers.map((w) => w.high)), highest + Math.abs(highest) * SCALE_REACH));
+  const reach = Math.max(highest - lowest, MIN_SPAN) * SCALE_REACH;
+  let low = Math.min(...extra, Math.max(Math.min(lowest, ...whiskers.map((w) => w.low)), lowest - reach));
+  let high = Math.max(...extra, Math.min(Math.max(highest, ...whiskers.map((w) => w.high)), highest + reach));
+  if (high - low < MIN_SPAN) {
+    const middle = (low + high) / 2;
+    // a scale from zero stays there
+    low = options.fromZero && lowest >= 0 ? Math.max(0, middle - MIN_SPAN / 2) : middle - MIN_SPAN / 2;
+    high = low + MIN_SPAN;
+  }
   const { min, max } = roundScale(low, high);
   const yOf = (value: number) => plot.y + Math.round((1 - Math.min(1, Math.max(0, (value - min) / (max - min)))) * (plot.h - 1));
   const xOf = (i: number) => plot.x + (shown.length === 1 ? Math.floor((plot.w - 1) / 2) : Math.round((i * (plot.w - 1)) / (shown.length - 1)));

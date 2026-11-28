@@ -1,6 +1,6 @@
 import { firstPrintedBar, isSection, sectionHasNotes, sliceChart, writtenNotes, type Chart } from '../core/chart';
 import { pieceTitle } from '../core/text/pieceTitle';
-import { MissedBars, type Hints, type JudgeEvent, type NoteJudged, type PieceResult, type PlayState, type WrongNoteJudged } from '../core/judge';
+import { MissedBars, type Hints, type NoteEvent, type JudgeEvent, type NoteJudged, type PieceResult, type PlayState, type WrongNoteJudged } from '../core/judge';
 import { learnBeatLanes, learnLiveTempo, learnPaceClick, type LearnProgress, type LearnRewards } from '../core/learn/progress';
 import { learnPace, paceClick, waveQuarterMs, type LearnPace } from '../core/learn/livePace';
 import type { PaceMark } from '../core/layout/beat';
@@ -127,6 +127,11 @@ function carryPace(learn: LearnSession | null, bpm: number | undefined): LearnSe
   return learn;
 }
 
+/** The notes of a chart as a line of text, to tell whether a pass left for the settings can be picked up on the chart drawn again. */
+function chartNotes(chart: Chart): string {
+  return `${chart.id}|${chart.notes.map((n) => `${n.tick}:${n.midi}`).join(',')}`;
+}
+
 /** What the scene is started with; a restart (a new tempo, a section, the next lap) passes it on with a change. */
 export interface PracticeData {
   chartId?: string;
@@ -179,6 +184,11 @@ export interface PracticeData {
   clickOffset?: number;
   /** Laps of a section done so far. */
   lap?: number;
+  /**
+   * Back from the settings (Wait mode): the keys of the pass left there and the notes it was played on (`chartNotes`), so
+   * the pass goes on at the note it stood on; a piece whose notes changed starts it again and Kiur says so. Tempo mode keeps no keys, so it starts the pass again.
+   */
+  resume?: { keys: readonly NoteEvent[]; notes: string };
   /**
    * A section's next lap wraps on without a pause: at clock time `atMs` its first bar begins (Tempo mode: no count-in),
    * and the click that was running keeps running.
@@ -352,6 +362,27 @@ export class PracticeScene extends PixelScene {
     super('practice');
   }
 
+  /** Keep the pass left for the settings for `create`, never for a later restart. */
+  private takeResume(data: PracticeData): void {
+    this.resume = data.resume ?? null;
+    delete this.startData.resume;
+  }
+
+  /** The pass left for the settings for the play session: Wait mode, not a play as given, and the same notes. */
+  private resumeOption(play: PlaySettings): Pick<PlaySessionOptions, 'resume'> {
+    const resume = this.resume;
+    if (!resume || play.mode !== 'wait' || this.locked || resume.notes !== chartNotes(this.chart)) return {};
+    return { resume: { keys: resume.keys, nowMs: contextOf(this).audio.clock.nowMs() } };
+  }
+
+  /** What Kiur says first: `plain`, or, back from the settings with a pass that could not be picked up, that it starts again. */
+  private resumedMessage(plain: string): string {
+    return this.resume && this.resume.keys.length > 0 && !this.playSession.resumed ? t('practice.settingsStartOver') : plain;
+  }
+
+  /** The pass left for the settings, to be picked up in `create` (`PracticeData.resume`); null on any other start. */
+  private resume: PracticeData['resume'] | null = null;
+
   init(data: PracticeData): void {
     this.startData = data;
     this.learnedGoOn = null;
@@ -418,6 +449,7 @@ export class PracticeScene extends PixelScene {
     delete this.startData.reset;
     delete this.startData.waitForStart;
     delete this.startData.missedBars;
+    this.takeResume(data);
     // any other restart (a tempo change, the mode, a section) ends the listening
     delete this.startData.listen;
   }
@@ -465,6 +497,15 @@ export class PracticeScene extends PixelScene {
     const asked = data.learn === true;
     if (!learnsOnOpen({ route: asked ? 'kiur' : 'piano', mustLearn: CHARACTER_PIECES.has(this.fullChart.id) })) return null;
     return LearnSession.open(context.profiles, this.fullChart, dayString(new Date()), undefined, asked);
+  }
+
+  /**
+   * Back from Settings: the same start (its section, lap, tempo, click and session) and, in Wait mode, the keys of the pass
+   * so far, so it goes on at the note it stood on. Not while the game plays the piece or a pass is ending.
+   */
+  protected override settingsReturnData(): object {
+    const keys = this.listening || this.leaving || this.locked ? [] : this.playSession.passKeys;
+    return { ...this.startData, ...this.carry(), ...(keys.length > 0 ? { resume: { keys: [...keys], notes: chartNotes(this.chart) } } : {}) };
   }
 
   /** The check-up, the intro and learning play the piece as given: Wait mode, no mode, tempo or section buttons. */
@@ -515,6 +556,7 @@ export class PracticeScene extends PixelScene {
       chordFingers: contextOf(this).profiles.chordFingers,
       ...this.learnViewOptions(),
       ...(play.mode === 'tempo' ? { tempo: this.tempoOptions(play) } : {}),
+      ...this.resumeOption(play),
       callbacks: {
         onJudged: (event, state) => this.onJudged(event, state),
         onCompleted: (result) => this.onCompleted(result),
@@ -535,7 +577,8 @@ export class PracticeScene extends PixelScene {
     if (this.resetStart && !this.waitForStart && !this.listening && play.tempoStart !== 'firstNote') this.transport?.start(context.audio.clock.nowMs());
     // Tempo mode from the first note says what Wait mode says: play the lit note
     const counted = play.mode === 'tempo' && play.tempoStart !== 'firstNote';
-    const startMessage = counted && !this.wrap && this.startMessage === t('practice.start') ? t('practice.tempoStart') : this.startMessage;
+    // back from the settings: the pass goes on where it was, or Kiur says why it starts again
+    const startMessage = this.resumedMessage(counted && !this.wrap && this.startMessage === t('practice.start') ? t('practice.tempoStart') : this.startMessage);
     if (this.passSummaryShown) this.playSession.say(startMessage, PASS_SUMMARY_MS, true);
     else if (this.bubbleHintDue()) {
       // Kiur shows the bubble once (ft_1_20, d282), then says what he says at every start
@@ -1279,7 +1322,13 @@ export class PracticeScene extends PixelScene {
     this.guarded.setMuted(true);
     this.stopMetronome();
     const { fifths, mode } = this.chart.keyMap[0]!;
-    void openOverlay(this, 'circle', { key: { fifths, mode } }).then(() => this.fromDoor('back'));
+    // a note played under the circle chooses a key there, so the prompt to play is hidden while it is open, and back after
+    const said = this.playSession.message;
+    this.playSession.say('');
+    void openOverlay(this, 'circle', { key: { fifths, mode } }).then(() => {
+      this.fromDoor('back');
+      if (!this.leaving && !this.transport && this.playSession.message === '') this.playSession.say(said);
+    });
   }
 
   /** The beat dots in the bubble (core_13 rule 10): their tuning page over the piece; none in a draft preview. */
@@ -1503,16 +1552,19 @@ export class PracticeScene extends PixelScene {
     if (this.learn) return [this.listenAction(), restart];
     const choice = playChoiceOf(contextOf(this).profiles.playSettings);
     const bpm = stripBpmLabel(this.chart.tempoMap[0]!.bpm, { tempoMode: this.transport !== null, percent: this.percent, clickOn: this.clickOn, offset: this.clickOffset });
+    // the wheel over the tempo's cells steps it as - and + do: up is faster
+    const tempoWheel = (direction: 1 | -1) => this.setPercent(this.percent + direction * TEMPO_PERCENT.step);
     return [
       this.listenAction(),
       restart,
       {
         label: t(MODE_LABEL[choice]), icon: TOOL_ICONS[choice], tooltip: modeTooltip(choice), onClick: () => this.switchMode(),
-        menu: { items: () => this.modeChoices(), cell: { w: 22, h: 22 }, columns: 5 },
+        // a stray scroll never changes how the student plays: the wheel leaves the mode alone
+        menu: { items: () => this.modeChoices(), cell: { w: 22, h: 22 }, columns: 5 }, wheel: false,
       },
-      { label: '-', tooltip: t('practice.slower'), disabled: this.percent <= TEMPO_PERCENT.min, onClick: () => this.setPercent(this.percent - TEMPO_PERCENT.step) },
-      { label: t('practice.percent', { n: Math.round(this.percent) }), tooltip: bpm, keepCase: true, onClick: () => this.setPercent(100) },
-      { label: '+', tooltip: t('practice.faster'), disabled: this.percent >= TEMPO_PERCENT.max, onClick: () => this.setPercent(this.percent + TEMPO_PERCENT.step) },
+      { label: '-', icon: TOOL_ICONS.slower, tooltip: t('practice.slower'), disabled: this.percent <= TEMPO_PERCENT.min, onClick: () => this.setPercent(this.percent - TEMPO_PERCENT.step), wheel: tempoWheel },
+      { label: t('practice.percent', { n: Math.round(this.percent) }), tooltip: bpm, keepCase: true, onClick: () => this.setPercent(100), wheel: tempoWheel },
+      { label: '+', icon: TOOL_ICONS.faster, tooltip: t('practice.faster'), disabled: this.percent >= TEMPO_PERCENT.max, onClick: () => this.setPercent(this.percent + TEMPO_PERCENT.step), wheel: tempoWheel },
     ];
   }
 
@@ -1542,9 +1594,9 @@ export class PracticeScene extends PixelScene {
     const section = this.startData.section;
     const sectionName = t(section ? 'practice.whole' : 'practice.section');
     return [
-      { label: sectionName, icon: TOOL_ICONS.section, tooltip: hotkeyLabel(sectionName, 'section'), active: this.picking !== null || section !== undefined, onClick: () => (section ? this.backToWhole() : this.startPicking()) },
+      { label: sectionName, icon: TOOL_ICONS.section, shortcut: HOTKEYS.section.letter, tooltip: hotkeyLabel(sectionName, 'section'), active: this.picking !== null || section !== undefined, onClick: () => (section ? this.backToWhole() : this.startPicking()) },
       this.rampShown ? { label: t('practice.ramp'), icon: TOOL_ICONS.steps, active: this.rampOpen, onClick: () => this.toggleRamp() } : this.laneItem(),
-      { label: t('practice.click'), icon: TOOL_ICONS.click, active: this.clickOn, tooltip: hotkeyLabel(t('practice.click'), 'click'), onClick: () => this.toggleClick() },
+      { label: t('practice.click'), icon: TOOL_ICONS.click, active: this.clickOn, shortcut: HOTKEYS.click.letter, tooltip: hotkeyLabel(t('practice.click'), 'click'), onClick: () => this.toggleClick() },
       { ...circleItem(() => this.openCircle()), disabled: this.listening },
       this.preview ? null : { label: t('practice.statsPane'), icon: TOOL_ICONS.statsPane, active: this.paneShown, onClick: () => this.toggleStatsPane() },
       // the analysis of the whole piece: where it is tricky and what to practise (core_10)
@@ -1924,6 +1976,8 @@ export class PracticeScene extends PixelScene {
   private setPercent(percent: number): void {
     if (this.locked) return; // the check-up, the intro and learning play as given (ft_1_27.AC2, ft_1_31.AC3, ft_1_32)
     this.stopMetronome();
+    // at an end (the wheel, or a press before the dimmed cell is drawn) nothing changes and nothing starts over
+    if (clampTempoPercent(percent) === this.percent) return;
     // kept at once: a second press before the restart happens (a double click) steps on from this one
     this.percent = clampTempoPercent(percent);
     // a new tempo percent starts the click speed afresh

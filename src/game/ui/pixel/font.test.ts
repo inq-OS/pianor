@@ -12,7 +12,7 @@ const dump = (text: string, options = { color: C.white }) => {
 
 describe('the glyphs', () => {
   it('cover every letter, digit and mark the game writes', () => {
-    for (const ch of 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,:;!?\'"-+=/()[]%<>') expect(hasGlyph(ch), ch).toBe(true);
+    for (const ch of 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,:;!?\'"-+=/()[]%<>…') expect(hasGlyph(ch), ch).toBe(true);
   });
 
   it('are at most five wide and the height of a capital, with two more rows for a tail', () => {

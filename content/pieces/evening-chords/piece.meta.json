@@ -3,7 +3,7 @@
   "title": "Evening Chords",
   "titles": { "et": "Õhtused akordid" },
   "level": 6,
-  "status": "draft",
+  "status": "approved",
   "hands": ["RH", "LH"],
   "phrases": [
     { "name": "Rising", "bars": [1, 4] },

@@ -9,7 +9,7 @@ import { bookParts, type BookMovement, type BookPart } from '../../core/import/b
 import { joinParts, proposeStarts, splitPart } from '../../core/import/songParts';
 import { layoutOf } from '../../core/import/book';
 import { handRanges, reclef, rekey } from '../../core/editor/photoFix';
-import { keyLabel } from '../../core/editor/key';
+import { keyName } from '../../core/editor/key';
 import type { EditorHand, EditorPiece } from '../../core/editor/model';
 import type { PhotoLayout } from '../../core/editor/photoOverlay';
 import { noteLabel, type NoteNaming } from '../../core/text/noteName';
@@ -389,7 +389,7 @@ export class BookTool {
         : t('editor.book.blank', { reason: part.reason });
       const firstPiece = parts.find((p) => 'piece' in p);
       const ownKey = 'piece' in part && firstPiece && 'piece' in firstPiece && (part.piece.fifths !== firstPiece.piece.fifths || part.piece.mode !== firstPiece.piece.mode)
-        ? ` ${t('editor.book.ownKey', { key: keyLabel(part.piece.fifths, part.piece.mode, this.host.naming) })}` : '';
+        ? ` ${t('editor.book.ownKey', { key: keyName(part.piece.fifths, part.piece.mode, this.host.naming) })}` : '';
       const local = this.localIndex(i);
       const first = this.pagesOf(part)[0];
       const split = splitPart(layoutOf(this.movements[part.movement]!), this.starts[part.movement]!, local);
@@ -491,7 +491,7 @@ export class BookTool {
     const key = el('select', { id: 'book-tool-key', style: 'font:inherit;padding:3px' });
     for (let fifths = -7; fifths <= 7; fifths++) {
       const signs = fifths === 0 ? '' : ` (${Math.abs(fifths)}${fifths > 0 ? '♯' : '♭'})`;
-      key.append(el('option', { value: String(fifths), textContent: `${keyLabel(fifths, first.mode, naming)}${signs}`, selected: fifths === first.fifths }));
+      key.append(el('option', { value: String(fifths), textContent: `${keyName(fifths, first.mode, naming)}${signs}`, selected: fifths === first.fifths }));
     }
     key.onchange = () => {
       this.fifths = Number(key.value);

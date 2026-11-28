@@ -185,7 +185,7 @@ describe('marks the game piece cannot hold where they stand (ft_Y_04.AC11)', () 
     expect(write(crossing).warnings).toEqual(['bar 2, beat 3 (right hand): a slur across a repeat sign is left out']);
   });
 
-  it('ft_Y_04.AC11 leaves out a grace note before a chord, on a tied note, of its own pitch, or a second one', () => {
+  it('ft_Y_04.AC11 leaves out a grace note before a chord, on a tied note, of its own pitch, or one of the pitch before it', () => {
     const chart = compile(head() + '[CE]2 D2- D2 F2 | G8 |]');
     const grace = (tick: number, midi: number) => ({ track: 'rh', voice: 1, tick, pitch: { midi, spelling: { step: 'B' as const, alter: 0, octave: 3 } }, slash: false });
     const out = write({ ...chart, graces: [grace(0, 59), grace(480, 59), grace(960, 59), grace(1440, 65), grace(1920, 59), grace(1920, 59)] });
@@ -193,9 +193,19 @@ describe('marks the game piece cannot hold where they stand (ft_Y_04.AC11)', () 
       'bar 1, beat 1 (right hand): a grace note before a chord is left out',
       'bar 1, beat 3 (right hand): a grace note on the second note of a tie is left out',
       "bar 1, beat 4 (right hand): a grace note of its main note's pitch is left out",
-      'bar 2, beat 1 (right hand): a second grace note on one note is left out',
+      'bar 2, beat 1 (right hand): a grace note of the pitch of the grace before it is left out',
     ]);
     expect(out.abc).toContain('[CE]2 {B,}D2- D2 F2 | {B,}G8 |]');
+  });
+
+  it('core_09.AC66 writes a grace group in its order and an ornament sign, and they compile back the same', () => {
+    const chart = compile(head() + '{/^FE}D2 !turn!E2 !trill!F2 !mordent!G2 | C8 |]');
+    const out = write(chart);
+    expect(out.warnings).toEqual([]);
+    expect(out.abc).toContain('{/^FE}D2 !turn!E2 !trill!F2 !lowermordent!G2');
+    const back = compile(out.abc);
+    expect(back.graces).toEqual(chart.graces);
+    expect(back.ornaments).toEqual(chart.ornaments);
   });
 
   it('ft_Y_04.AC11 keeps one dynamic on a chord whose voices bring two', () => {

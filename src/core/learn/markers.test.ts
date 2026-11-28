@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { chartWith } from '../../../tests/helpers/charts';
 import type { BarPlay } from '../progression/practiceLog';
-import { markerKey, markerKeyOfNote, markersByNote, markerShade, mistakeMarkers } from './markers';
+import { MARKER_RING, markerKey, markerKeyOfNote, markerRingY, markersByNote, markerShade, mistakeMarkers } from './markers';
 
 const miss = { tick: 480, track: 'rh', midi: 62 };
 
@@ -56,5 +56,19 @@ describe('mistake markers', () => {
     const markers = new Map([[markerKey({ bar: 3, tick: 480, track: 'rh', midi: 62 }), 0.5]]);
     expect([...markersByNote(section, markers, 3)]).toEqual([[1, 0.5]]);
     expect(markersByNote(section, markers).size).toBe(0);
+  });
+});
+
+describe('markerRingY', () => {
+  const S = 10;
+  it('ft_1_32.AC5 puts the ring well above a note inside the staff where the sheet has room', () => {
+    expect(markerRingY(100, 120, S)).toBe(100 - MARKER_RING.above * S);
+  });
+
+  it('ft_1_32.AC5 keeps the ring of a note on the page\'s first line on the sheet: between the beat lane and the staff, never on its torn top edge', () => {
+    const top = 25; // the first line's top staff line, 2.5 staff spaces under the sheet's top
+    const y = markerRingY(top, top + 20, S);
+    expect(y - MARKER_RING.radius * S).toBeGreaterThan(1.2 * S); // under the lane, which keeps 0.9 S from the edge, and its dots
+    expect(y + MARKER_RING.radius * S).toBeLessThan(top); // over the top line
   });
 });

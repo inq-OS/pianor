@@ -204,29 +204,75 @@ export function namingSymbol(naming: 'B' | 'H'): Bitmap {
   return b;
 }
 
-/** The practice staff's blue pointer, a line down the staff at x. */
-const pointer = (b: Canvas, x: number, top: number) => {
-  vline(b, x, top - 2, top + 14, C.blue);
-  vline(b, x + 1, top - 2, top + 14, C.blue);
+/** The go-on and start-over pictures are larger than a setting's, alone on the screen for a young reader. */
+export const RESUME_WIDTH = 50;
+export const RESUME_HEIGHT = 30;
+
+/** Fills the cells of `rows` (strings of `#`) from (x, y) in `c`, with a cream cell round each so staff lines stop at it. */
+const shape = (b: Canvas, x: number, y: number, rows: readonly string[], c: number) => {
+  rows.forEach((row, dy) => [...row].forEach((bit, dx) => {
+    if (bit !== '#') return;
+    for (const [ex, ey] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) if (rows[dy + ey]?.[dx + ex] !== '#') put(b, x + dx + ex, y + dy + ey, C.cream);
+  }));
+  rows.forEach((row, dy) => [...row].forEach((bit, dx) => { if (bit === '#') put(b, x + dx, y + dy, c); }));
 };
 
+/** A thick arrow pointing right, 16 x 11: go on. */
+const ARROW_ON = [
+  '..........#.....', '..........##....', '..........###...', '..........####..', '###############.', '################', '###############.', '..........####..', '..........###...', '..........##....', '..........#.....',
+];
+
 /**
- * Reopening a half-learned piece (ft_1_32.AC16): go on, the bars learned in gold and the pointer after them; or start
- * over, every note still to learn and the pointer back at the first bar.
+ * An arrow that leaves the final bar line, arches over the music and comes down at its start, 45 x 12, both corners
+ * rounded alike, and its head, 8 x 4: start over. Its left leg stops at row 8; the head takes over below.
+ */
+const ARROW_BACK_WIDTH = 45;
+const ARROW_BACK = [
+  '..' + '#'.repeat(ARROW_BACK_WIDTH - 4) + '..',
+  '.' + '#'.repeat(ARROW_BACK_WIDTH - 2) + '.',
+  '###' + '.'.repeat(ARROW_BACK_WIDTH - 6) + '###',
+  ...Array.from({ length: 5 }, () => '##' + '.'.repeat(ARROW_BACK_WIDTH - 4) + '##'),
+  '##' + '.'.repeat(ARROW_BACK_WIDTH - 4) + '##',
+  ...Array.from({ length: 3 }, () => '.'.repeat(ARROW_BACK_WIDTH - 2) + '##'),
+];
+const ARROW_BACK_HEAD = ['########', '.######.', '..####..', '...##...'];
+
+/**
+ * Reopening a half-learned piece (ft_1_32.AC16, d285): two pictures a young reader tells apart at a glance. Go on: the
+ * learned bar's notes in gold, a red bookmark where the learning stopped and a thick arrow onward into the next bar. Start
+ * over: every note still in ink and an arrow from the end of the music arching back down onto its first note.
  */
 export function resumeSymbol(choice: 'continue' | 'over'): Bitmap {
-  const b = paper();
-  const top = 5;
-  staff(b, top);
-  barLine(b, 1, top);
-  barLine(b, 17, top);
-  barLine(b, SYMBOL_WIDTH - 2, top);
+  const b = createBitmap(RESUME_WIDTH, RESUME_HEIGHT);
+  b.pixels.fill(C.cream);
+  const top = 12;
+  const middle = 25;
+  staff(b, top, { x1: RESUME_WIDTH - 2 });
+  for (const x of [1, middle, RESUME_WIDTH - 2]) barLine(b, x, top);
   const learned = choice === 'continue' ? C.gold : INK;
   note(b, 5, top + 9, learned);
   note(b, 11, top + 6, learned);
-  note(b, 22, top + 9);
-  note(b, 28, top + 6);
-  pointer(b, choice === 'continue' ? 19 : 2, top);
+  note(b, 17, top + 3, learned);
+  if (choice === 'continue') {
+    // the bookmark stuck in at the bar line where the learning stopped, its tail notched
+    for (let y = 0; y <= 15; y++) hline(b, middle - 2, middle + 2, y, C.red);
+    put(b, middle, 15, C.cream);
+    put(b, middle, 14, C.cream);
+    put(b, middle - 1, 15, C.cream);
+    put(b, middle + 1, 15, C.cream);
+    vline(b, middle + 2, 0, 13, C.redDark);
+    shape(b, middle + 5, top + 1, ARROW_ON, C.blue);
+    return b;
+  }
+  note(b, 30, top + 6);
+  note(b, 36, top + 9);
+  note(b, 42, top + 6);
+  // the right leg comes up out of the final bar line; the left one ends in the head over the first note
+  const right = RESUME_WIDTH - 2;
+  shape(b, right + 1 - ARROW_BACK_WIDTH, 0, ARROW_BACK, C.blue);
+  shape(b, 1, 9, ARROW_BACK_HEAD, C.blue);
+  barLine(b, right, top);
+  hline(b, right - 3, right, top);
   return b;
 }
 
@@ -350,3 +396,28 @@ export function paceClickSymbol(on: boolean): Bitmap {
 }
 
 /** A kind of dot of a tuned beat lane (core_13 rule 10): the dotted line, the click's beats, the top staff's notes, the bottom staff's. */
+
+/**
+ * Bars on a line (ft_0_16 rule 2): a scrap of staff cut into its bars. Two or four bars carry their number over them in
+ * blue; auto has a two-headed arrow the line's width over its bars, as many as the line holds. AX-3 provisional: the arrow.
+ */
+export function barsSymbol(bars: StaffSettings['barsPerLine']): Bitmap {
+  const b = paper();
+  const top = 10, left = 1, right = SYMBOL_WIDTH - 2;
+  staff(b, top, { x0: left, x1: right, gap: 2 });
+  const count = bars === 'auto' ? 3 : bars;
+  for (let i = 0; i <= count; i++) vline(b, left + Math.round(((right - left) * i) / count), top, top + 8);
+  if (bars !== 'auto') {
+    digits(b, Math.floor(SYMBOL_WIDTH / 2) - 1, 2, String(bars), C.blue);
+    return b;
+  }
+  const y = 4;
+  hline(b, left, right, y, C.blue);
+  for (const d of [1, 2]) {
+    for (const x of [left + d, right - d]) {
+      put(b, x, y - d, C.blue);
+      put(b, x, y + d, C.blue);
+    }
+  }
+  return b;
+}

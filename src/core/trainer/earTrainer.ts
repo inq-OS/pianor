@@ -61,6 +61,28 @@ export function earRowFor(table: readonly EarRow[], level: number): EarRow {
   return table[Math.min(level, table.length) - 1]!;
 }
 
+function checkStep(step: number, tableLength: number): void {
+  if (!Number.isInteger(step) || step < 1 || step > tableLength) throw new RangeError('a step is a row of the table, 1 to its length');
+}
+
+/**
+ * The step (row number, from 1) the questions come from (ft_1_10.AC13): the one the student chose, or with no choice the row
+ * the ear level earned. Levels never lock a row: any row can be chosen, up or down.
+ */
+export function earStepOf(level: number, chosen: number | null, tableLength: number): number {
+  if (chosen !== null) {
+    checkStep(chosen, tableLength);
+    return chosen;
+  }
+  return Math.min(level, tableLength);
+}
+
+/** The choice kept when the student picks `step`: null (follow the ear level again) for the earned row, else the step. */
+export function chooseEarStep(step: number, level: number, tableLength: number): number | null {
+  checkStep(step, tableLength);
+  return step === earStepOf(level, null, tableLength) ? null : step;
+}
+
 function pickFrom(random: Random, keys: readonly number[], avoid: number | undefined): number {
   const allowed = keys.filter((k) => k !== avoid);
   return random.pick(allowed.length > 0 ? allowed : keys);

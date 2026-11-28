@@ -1,5 +1,5 @@
 /**
- * The letters a student types into the name box (ft_1_07, d307): the Estonian alphabet, plus Q, W, X and Y for names from
+ * The letters a student types into the name box (ft_1_07, d308): the Estonian alphabet, plus Q, W, X and Y for names from
  * other languages. Each entry is one letter, in capitals.
  */
 export const NAME_LETTERS: readonly string[] = [
@@ -7,7 +7,7 @@ export const NAME_LETTERS: readonly string[] = [
   'U', 'V', 'W', 'Õ', 'Ä', 'Ö', 'Ü', 'X', 'Y',
 ];
 
-/** What may stand between two letters of a name (Mari-Liis, Anna Maria; d307): one at a time, never at an end. */
+/** What may stand between two letters of a name (Mari-Liis, Anna Maria; d308): one at a time, never at an end. */
 export const NAME_SEPARATORS: readonly string[] = [' ', '-'];
 
 /** The longest name the box takes, in letters (a space or hyphen counts as one). */

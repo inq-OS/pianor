@@ -10,6 +10,7 @@ import { PPQ } from '../chart/time.ts';
 import type { KeyMode } from '../editor/key.ts';
 import { WaitMode } from '../judge/wait.ts';
 import type { NoteEvent, PlayState, WrongReason } from '../judge/types.ts';
+import type { StringKey } from '../text/strings.ts';
 import { scaleSpellings } from './scaleChart.ts';
 
 export const SHAPE_LIVES = 3;
@@ -98,7 +99,19 @@ export type ShapeOutcome = 'playing' | 'won' | 'lost';
 export interface ShapeRoundState {
   lives: number;
   xp: number;
+  /** The notes played right this round. */
+  right: number;
   outcome: ShapeOutcome;
+}
+
+/**
+ * The words that say why a key was wrong (ft_1_29.AC1), short and objective: the wrong octave, the key next door or a wrong
+ * letter, the last two with the way it was off (the key pressed was too high or too low).
+ */
+export function wrongWordsKey(reason: WrongReason, direction: 'higher' | 'lower'): StringKey {
+  if (reason === 'wrong-octave') return 'theory.wrongOctave';
+  if (reason === 'neighbour-key') return direction === 'higher' ? 'shapes.neighbourHigher' : 'shapes.neighbourLower';
+  return direction === 'higher' ? 'shapes.letterHigher' : 'shapes.letterLower';
 }
 
 export type ShapePress =
@@ -113,6 +126,7 @@ export class ShapeRound {
   private readonly wait: WaitMode;
   private lives = SHAPE_LIVES;
   private xp = 0;
+  private right = 0;
   private outcome: ShapeOutcome = 'playing';
 
   constructor(readonly chart: Chart) {
@@ -127,6 +141,7 @@ export class ShapeRound {
       if (judged.type !== 'NoteJudged') continue;
       if (judged.verdict === 'correct') {
         this.xp += SHAPE_XP_PER_NOTE;
+        this.right += 1;
         result = { verdict: 'correct' };
       } else {
         this.lives -= 1;
@@ -143,6 +158,6 @@ export class ShapeRound {
   }
 
   state(): ShapeRoundState {
-    return { lives: this.lives, xp: this.xp, outcome: this.outcome };
+    return { lives: this.lives, xp: this.xp, right: this.right, outcome: this.outcome };
   }
 }

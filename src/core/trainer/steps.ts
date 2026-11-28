@@ -4,7 +4,7 @@
  * Persisted-format rule: the file has a `schemaVersion`, and a new version needs a migration (docs/testing.md section 4).
  */
 import { z } from 'zod';
-import { PIECE_HIGH, PIECE_LOW } from '../chart/pitch';
+import { PIECE_HIGH, PIECE_LOW, isWhiteKey } from '../chart/pitch';
 import type { TrainerRange } from './noteTrainer';
 
 const midiKey = z.number().int().min(PIECE_LOW).max(PIECE_HIGH);
@@ -14,8 +14,11 @@ export const trainerStepSchema = z
     id: z.string().min(1),
     name: z.string().min(1),
     range: z.object({ low: midiKey, high: midiKey }),
+    /** Only the white keys of the range are asked (ft_0_17.AC10); optional, so older files stay valid. */
+    whiteKeys: z.boolean().optional(),
   })
-  .refine((s) => s.range.low <= s.range.high, { message: 'range low must not be above high' });
+  .refine((s) => s.range.low <= s.range.high, { message: 'range low must not be above high' })
+  .refine((s) => !s.whiteKeys || Array.from({ length: s.range.high - s.range.low + 1 }, (_, i) => s.range.low + i).some(isWhiteKey), { message: 'a white-key step needs a white key' });
 
 export const trainerStepsSchema = z.object({
   schemaVersion: z.literal(1),
@@ -33,5 +36,5 @@ export function loadTrainerSteps(json: unknown): TrainerSteps {
 
 /** The key range of a step, ready for `createRound`. */
 export function rangeOf(step: TrainerStep): TrainerRange {
-  return { low: step.range.low, high: step.range.high };
+  return { low: step.range.low, high: step.range.high, ...(step.whiteKeys ? { whiteKeys: true } : {}) };
 }

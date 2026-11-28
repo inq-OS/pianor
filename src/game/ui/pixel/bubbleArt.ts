@@ -30,7 +30,8 @@ const PLATES: Readonly<Record<PlateLook, PlateColours>> = {
   down: { fill: C.panelDark, light: C.panelDark, shade: C.panelLight, outline: C.groove },
   // lit: the plate stays wood, its edge turns gold, so the picture keeps its colour and still reads
   on: { fill: C.panelLit, light: C.goldLight, shade: C.gold, outline: C.groove },
-  off: { fill: C.panel, light: C.panel, shade: C.panel, outline: C.panelDark },
+  // greyed: a sunk dark plate, so its paler picture still reads on it
+  off: { fill: C.panelDark, light: C.panelDark, shade: C.panelDark, outline: C.groove },
   // the piece maker's writer while a click on the staff writes with it: purple, as the staff's preview of the next note
   armed: { fill: C.purple, light: C.purpleLight, shade: C.purpleDark, outline: C.groove },
   // the main action (Play again, Done) at the strip's right end: a lighter wood with a honey edge, the same on every screen
@@ -171,9 +172,12 @@ export function choicesSausage(centre: { x: number; y: number }, choices: readon
   return { picture, x: x0, y: y0 };
 }
 
-/** A round patch under one choice in the sausage, `CHOICE_SIZE` across: lighter under the pointer, gold-rimmed for the one in use. */
+/** A round patch under one choice in the sausage, `CHOICE_SIZE` across: lighter under the pointer, gold-rimmed for the one in use, sunk and struck through for a greyed one. */
 export function choicePatch(look: PlateLook): Bitmap {
-  return barePlate(CHOICE_SIZE, CHOICE_SIZE, disc(CHOICE_SIZE), PLATES[look]);
+  const patch = barePlate(CHOICE_SIZE, CHOICE_SIZE, disc(CHOICE_SIZE), PLATES[look]);
+  // a greyed choice is also struck through, corner to corner under its picture, so it reads as "not here" without its colour
+  if (look === 'off') for (let i = 3; i < CHOICE_SIZE - 3; i++) patch.pixels[i * CHOICE_SIZE + (CHOICE_SIZE - 1 - i)] = C.honeyDark;
+  return patch;
 }
 
 /**

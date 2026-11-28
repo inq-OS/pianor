@@ -2,7 +2,7 @@ import type { Chart } from '../chart';
 import { tickToMs } from '../chart';
 import { classifyWrongNote } from './classify';
 import { ResultTracker } from './results';
-import { buildSteps, stepGraces } from './steps';
+import { buildSteps, stepGraces, stepOrnaments } from './steps';
 import {
   JUDGE_EVENT_VERSION, type Hints, type JudgeEvent, type NoteEvent, type NoteJudged, type NoteProgress, type PlayMode, type PlayState,
 } from './types';
@@ -29,6 +29,8 @@ export const DEFAULT_TOGETHER_WINDOW_MS = 300;
  *   key-repeat events (the mock keyboard filters them).
  * - Rhythm is measured (interval error against the chart tempo) but never decides a verdict.
  * - A grace note (d121, core_09.AC33) is never awaited: a press of its pitch while its main note is awaited is ignored.
+ * - An ornament sign (d306, core_09.AC65) is optional: a press of a pitch it uses while its note is awaited, or after it
+ *   until a key of the next step is right, is ignored.
  */
 export class WaitMode implements PlayMode {
   readonly id = 'wait';
@@ -36,8 +38,12 @@ export class WaitMode implements PlayMode {
   private readonly steps;
   /** Per step, the grace pitches a press may give before it without being wrong (d121). */
   private readonly graces: ReadonlySet<number>[];
+  /** Per step, the pitches its ornament signs use (d306). */
+  private readonly ornaments: ReadonlySet<number>[];
   private readonly tracker: ResultTracker;
   private readonly progress: NoteProgress[];
+  /** Per chart note: right only after a wrong key in its step. */
+  private readonly retried: boolean[];
   private readonly held = new Set<number>();
   private hints: Hints;
   private stepIndex = 0;
@@ -54,8 +60,10 @@ export class WaitMode implements PlayMode {
   constructor(private readonly chart: Chart, options: WaitModeOptions = {}) {
     this.steps = buildSteps(chart);
     this.graces = stepGraces(chart, this.steps);
+    this.ornaments = stepOrnaments(chart, this.steps);
     this.tracker = new ResultTracker(chart, this.steps);
     this.progress = chart.notes.map(() => 'pending');
+    this.retried = chart.notes.map(() => false);
     this.hints = options.hints ? { ...options.hints } : { noteNames: false, fingers: false };
     this.togetherWindowMs = options.togetherWindowMs ?? DEFAULT_TOGETHER_WINDOW_MS;
     this.moveOnWrong = options.moveOnWrong === true;
@@ -83,6 +91,9 @@ export class WaitMode implements PlayMode {
       if (step.noteIndices.some((i) => this.chart.notes[i]!.midi === event.midi)) return [];
       // The grace note before the awaited note is played or not, as the student likes: never wrong, never needed (d121).
       if (this.graces[step.index]!.has(event.midi)) return [];
+      // An ornament is played or not, as the student likes (d306): its notes before the main note, and after it until the next step starts.
+      if (this.ornaments[step.index]!.has(event.midi)) return [];
+      if (step.index > 0 && this.pressed.size === 0 && this.ornaments[step.index - 1]!.has(event.midi)) return [];
       const diagnosis = classifyWrongNote(event.midi, awaiting.map((i) => this.chart.notes[i]!.midi));
       this.wrongsInStep++;
       this.tracker.recordMistake(step.index);
@@ -105,6 +116,7 @@ export class WaitMode implements PlayMode {
     this.stepLastPressMs = event.timeMs;
     this.pressed.add(match);
     this.progress[match] = 'correct';
+    this.retried[match] = !firstTry;
     this.tracker.recordCorrect(step.index, firstTry, intervalErrorMs, this.hints);
     const judged: NoteJudged = {
       ...base, type: 'NoteJudged', verdict: 'correct', midi: event.midi, noteIndex: match, firstTry, intervalErrorMs,
@@ -113,7 +125,10 @@ export class WaitMode implements PlayMode {
     const events: JudgeEvent[] = [judged];
 
     if (this.pressed.size === step.noteIndices.length) {
-      for (const tied of step.tiedNoteIndices) this.progress[tied] = 'correct';
+      for (const tied of step.tiedNoteIndices) {
+        this.progress[tied] = 'correct';
+        this.retried[tied] = this.wrongsInStep > 0;
+      }
       if (step.hands.length === 2) {
         const together = this.wrongsInStep === 0 && this.stepLastPressMs - this.stepOnsetMs <= this.togetherWindowMs;
         this.tracker.recordBothHands(step.index, step.noteIndices.length, together);
@@ -143,6 +158,7 @@ export class WaitMode implements PlayMode {
       progress: this.progress,
       held: this.held,
       lastJudged: this.lastJudged,
+      retried: this.retried,
     });
   }
 }

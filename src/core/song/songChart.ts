@@ -110,7 +110,7 @@ export function songChart(song: Song, chartOf: (pieceId: string) => Chart | unde
     tempoMap: [] as Chart['tempoMap'], meterMap: [] as Chart['meterMap'], keyMap: [] as Chart['keyMap'],
     tracks: [] as Chart['tracks'], notes: [] as Chart['notes'], rests: [] as Chart['rests'], bars: [] as Chart['bars'],
     phrases: [] as ChartPhrase[], repeats: [] as NonNullable<Chart['repeats']>, slurs: [] as NonNullable<Chart['slurs']>,
-    graces: [] as NonNullable<Chart['graces']>, tuplets: [] as NonNullable<Chart['tuplets']>,
+    graces: [] as NonNullable<Chart['graces']>, ornaments: [] as NonNullable<Chart['ornaments']>, tuplets: [] as NonNullable<Chart['tuplets']>,
   };
   const parts: SongPart[] = [];
   const folds: SongFold[] = [];
@@ -146,6 +146,7 @@ export function songChart(song: Song, chartOf: (pieceId: string) => Chart | unde
     }
     for (const s of chart.slurs ?? []) out.slurs.push({ ...s, startTick: s.startTick + t0, endTick: s.endTick + t0 });
     for (const g of chart.graces ?? []) out.graces.push({ ...g, tick: g.tick + t0 });
+    for (const o of chart.ornaments ?? []) out.ornaments.push({ ...o, tick: o.tick + t0 });
     for (const u of chart.tuplets ?? []) out.tuplets.push({ ...u, startTick: u.startTick + t0, endTick: u.endTick + t0 });
     level = Math.max(level, chart.level);
     low = Math.min(low, chart.range.low);
@@ -216,7 +217,7 @@ export function songChart(song: Song, chartOf: (pieceId: string) => Chart | unde
   if (!played) return null;
   parts.sort((a, b) => a.startBar - b.startBar || b.endBar - a.endBar);
 
-  const { repeats, slurs, graces, tuplets, ...rest } = out;
+  const { repeats, slurs, graces, ornaments, tuplets, ...rest } = out;
   const chart: Chart = {
     schemaVersion: CHART_SCHEMA_VERSION,
     id: root ? `song:${song.id}/${root.id}` : someOff ? `${songChartId(song.id)}${SOME_PARTS}` : songChartId(song.id),
@@ -229,6 +230,7 @@ export function songChart(song: Song, chartOf: (pieceId: string) => Chart | unde
     ...(repeats.length > 0 ? { repeats } : {}),
     ...(slurs.length > 0 ? { slurs } : {}),
     ...(graces.length > 0 ? { graces } : {}),
+    ...(ornaments.length > 0 ? { ornaments } : {}),
     ...(tuplets.length > 0 ? { tuplets } : {}),
     range: { low, high },
   };

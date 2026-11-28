@@ -7,7 +7,7 @@
 import { cropOf, fitIn, nextTurn, shownRect, turnTransform, turnedSize, wholeOf, type Rect, type Turn, type View } from '../../core/editor/photoCrop';
 import { handRanges, reclef, rekey } from '../../core/editor/photoFix';
 import { importPieceFile } from '../../core/editor/pieceFile';
-import { keyLabel } from '../../core/editor/key';
+import { keyName } from '../../core/editor/key';
 import type { EditorHand, EditorPiece } from '../../core/editor/model';
 import { noteLabel, type NoteNaming } from '../../core/text/noteName';
 import { t } from '../../core/text/strings';
@@ -269,7 +269,7 @@ export class PhotoTool {
       const key = el('select', { id: 'photo-tool-key', style: 'font:inherit;padding:3px' });
       for (let fifths = -7; fifths <= 7; fifths++) {
         const signs = fifths === 0 ? '' : ` (${Math.abs(fifths)}${fifths > 0 ? '♯' : '♭'})`;
-        key.append(el('option', { value: String(fifths), textContent: `${keyLabel(fifths, piece.mode, naming)}${signs}`, selected: fifths === piece.fifths }));
+        key.append(el('option', { value: String(fifths), textContent: `${keyName(fifths, piece.mode, naming)}${signs}`, selected: fifths === piece.fifths }));
       }
       key.onchange = () => {
         piece = rekey(piece, Number(key.value), piece.mode);

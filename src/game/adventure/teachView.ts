@@ -45,7 +45,7 @@ export class TeachView {
   private controller: PracticeController | null = null;
   private staff: StaffView | null = null;
   /** The notes of the try as last played: the staff keeps them while the fact is said, and is fresh for the next try. */
-  private played: Pick<PlayState, 'noteProgress' | 'awaiting'> | null = null;
+  private played: Pick<PlayState, 'noteProgress' | 'awaiting' | 'retried'> | null = null;
   private timer: Phaser.Time.TimerEvent | null = null;
   private readonly objects: Phaser.GameObjects.GameObject[] = [];
   private saying: string | null = null;
@@ -54,8 +54,6 @@ export class TeachView {
   private page = 0;
   private playingNow: 'character' | 'student' | null = null;
   private done = false;
-  /** The notes of the try found only after a wrong key: the staff marks them, so it shows what was right the first time. */
-  private notFirst = new Set<number>();
   /** The student's try waits with no note played: the character says once whose turn it is. */
   private nudge: Phaser.Time.TimerEvent | null = null;
   private nudged = false;
@@ -93,7 +91,7 @@ export class TeachView {
   /** What the teaching shows now, for the tests and the self-playing demo. */
   get view(): { who: 'character' | 'student' | null; piece: string; level: 1 | 2 | 3; tries: readonly boolean[]; outcome: TeachState['outcome']; saying: string | null; page: number; closing: boolean; staff: boolean; notFirst: number[] } {
     const { piece, level, tries, outcome } = this.state;
-    return { who: this.playingNow, piece, level, tries, outcome, saying: this.saying, page: this.page, closing: this.closing, staff: this.staff !== null, notFirst: [...this.notFirst].sort((x, y) => x - y) };
+    return { who: this.playingNow, piece, level, tries, outcome, saying: this.saying, page: this.page, closing: this.closing, staff: this.staff !== null, notFirst: (this.played?.retried ?? []).flatMap((retried, i) => (retried ? [i] : [])) };
   }
 
   /** The phrase the student plays now; null in the character's turn and between tries. */
@@ -163,7 +161,6 @@ export class TeachView {
     this.saying = null;
     this.page = 0;
     this.played = null;
-    this.notFirst = new Set();
     this.playingNow = 'character';
     this.draw();
     this.handlers.playing(true);
@@ -191,7 +188,6 @@ export class TeachView {
       onJudged: (event: NoteJudged) => {
         this.notePlayed();
         if (event.verdict === 'wrong') reasons.push(event.reason);
-        else if (!event.firstTry) this.notFirst.add(event.noteIndex);
       },
       onCompleted: (result: PieceResult) => this.afterStudent(result, reasons),
     });
@@ -207,11 +203,10 @@ export class TeachView {
     });
   }
 
-  /** The try's notes on the staff: right the first time in the right colour, found only after a wrong key in the wrong one. */
+  /** The try's notes on the staff: right the first time in the right colour, found only after a wrong key apart (`retried`). */
   private showPlayed(awaiting: PlayState['awaiting']): void {
     if (!this.staff || !this.played) return;
-    this.staff.applyProgress(this.played.noteProgress, awaiting);
-    for (const index of this.notFirst) this.staff.setNoteState(index, 'wrong');
+    this.staff.applyProgress(this.played.noteProgress, awaiting, this.played.retried);
   }
 
   /** A note was played: the nudge is not needed, and once said it goes. */

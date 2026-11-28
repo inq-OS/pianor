@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cycleFocus, initialFocus, moveFocus, refocus, type FocusRect } from './focus';
+import { FOCUS_LAYOUT, initialFocus, moveFocus, refocus, type FocusRect } from './focus';
 
 const box = (x: number, y: number, disabled = false): FocusRect => ({ x, y, width: 40, height: 20, disabled });
 // a 2 x 2 grid, then one wide button below
@@ -60,33 +60,35 @@ describe('keyboard focus', () => {
     expect(refocus(grid[0]!, [box(0, 0, true)])).toBe(-1);
     expect(refocus(box(30, 0), [box(0, 0), box(60, 0)])).toBe(0); // a tie goes to the first, so a redraw never flips between two
   });
+});
 
-  it('ft_Y_13.AC1 left and right on a scattered screen step through every enabled button, left to right, and wrap', () => {
-    // scattered as a room's objects: a far corner, a low one, a high one between, a disabled one
-    const room = [box(300, 0), box(0, 100), box(120, 10), box(200, 60, true), box(120, 120)];
-    const order: number[] = [];
-    let at = 1;
-    for (let i = 0; i < 4; i++) {
-      order.push(at);
-      at = cycleFocus(room, at, 1);
+describe('keyboard focus over a picture (the room)', () => {
+  // the room's things by their centres: the corners' Back, backpack and gear on top, the shield on the wall, Kiur on the bed,
+  // the piano, the easel, the telephone and the door, at their places in no rows
+  const at = (x: number, y: number): FocusRect => ({ x: x - 5, y: y - 5, width: 10, height: 10 });
+  const room = { back: at(15, 10), backpack: at(281, 10), gear: at(305, 10), shield: at(177, 35), kiur: at(40, 75), piano: at(156, 82), easel: at(209, 77), phone: at(283, 54), door: at(305, 70) };
+  const names = Object.keys(room) as (keyof typeof room)[];
+  const rects = names.map((n) => room[n]);
+  const walk = (from: keyof typeof room, move: 'left' | 'right', steps: number) => {
+    let i = names.indexOf(from);
+    const seen: string[] = [];
+    for (let s = 0; s < steps; s++) {
+      i = moveFocus(rects, i, move, true, FOCUS_LAYOUT.picture);
+      seen.push(names[i]!);
     }
-    expect(order).toEqual([1, 2, 4, 0]);
-    expect(at).toBe(1);
-    expect(cycleFocus(room, 1, -1)).toBe(0);
-    expect(cycleFocus(room, 2, -1)).toBe(1);
-    expect(cycleFocus(room, -1, 1)).toBe(0);
-    expect(cycleFocus([box(0, 0, true)], 0, 1)).toBe(-1);
+    return seen;
+  };
+
+  it('ft_Y_13.AC1 Right goes through the things below the corners in their order across the screen, then wraps to the left', () => {
+    expect(walk('kiur', 'right', 7)).toEqual(['piano', 'shield', 'easel', 'phone', 'door', 'back', 'kiur']);
   });
 
-  it('ft_Y_13.AC1 a step through the screen takes the corner first and the corners last before the rest by place', () => {
-    // the way back in the top left corner, the gear in the top right, a scene's objects between
-    const screen = [box(200, 50), { ...box(0, 0), group: -1 as const }, box(10, 60), { ...box(150, 0), group: 1 as const }, box(300, 60)];
-    const order: number[] = [];
-    let at = 1;
-    for (let i = 0; i < 5; i++) {
-      order.push(at);
-      at = cycleFocus(screen, at, 1);
-    }
-    expect(order).toEqual([1, 2, 0, 4, 3]);
+  it('ft_Y_13.AC1 Left goes the same way back, and the telephone is reached from the door', () => {
+    expect(walk('door', 'left', 5)).toEqual(['phone', 'easel', 'shield', 'piano', 'kiur']);
+  });
+
+  it('ft_Y_13.AC1 a grid keeps its rows: Right stays on the row even with a nearer button on the next', () => {
+    expect(moveFocus(grid, 0, 'right', true, FOCUS_LAYOUT.grid)).toBe(1);
+    expect(moveFocus(grid, 2, 'up', true, FOCUS_LAYOUT.picture)).toBe(0);
   });
 });

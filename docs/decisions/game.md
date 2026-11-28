@@ -81,9 +81,9 @@ Check: `src/core/admin/adminRecord.test.ts` "reads back what it stored, and neve
 
 **Every letter name the student sees follows the player's note naming: H for B natural, B for B flat.** Features: core_09, ft_0_17, ft_0_18, ft_1_02.
 
-Every pitch or key letter shown follows the active player's `noteNaming` (`src/core/text/noteName.ts`; default `H` for a new Estonian player): hint labels, the note-name trainer and the piece maker's key button (`keyLabel` in `src/core/editor/key.ts`: `H`, `Hm`, `B`, `Bm`; `keyNames`: "B duur / g moll"); new screens use these helpers. A key keeps its own letter and sign (C flat major stays `Cb`), unlike a note hint (core_09.AC6). Stored and written data stay standard (ABC `K:` via `abcKey`, chart spellings, MIDI).
+Every pitch or key letter shown follows the active player's `noteNaming` (`src/core/text/noteName.ts`; default `H` for a new Estonian player): in H naming only the letter B changes, B flat reads `B` and every other B reads `H` with its sign (H#; a double flat B reads `Bb`), and every other note keeps its letter and sign (Cb, Fb, E#), so a scale never shows a letter twice (core_09.AC6). Every key's name the player sees comes from `keyName` in `src/core/editor/key.ts`, a flat written as ♭: "F# major", "B♭ major" in English; in Estonian with H naming the Estonian syllables (Fis-duur, Es-duur, B-duur, H-duur, Ces-duur, gis-moll), with B naming the letters (B♭-duur). Stored and written data stay standard (ABC `K:` via `abcKey`, chart spellings, MIDI).
 
-Check: `src/core/editor/key.test.ts` "names the key on the key button with the player"; `src/core/text/noteName.test.ts` "never gives a natural B the letter B in H mode"
+Check: `src/core/editor/key.test.ts` "Estonian key names"; `src/core/text/noteName.test.ts` "never gives a natural B the letter B in H mode"
 
 ## d088
 
@@ -105,7 +105,7 @@ Check: `src/core/exchange/tug.test.ts` "level 1 plays the first half of the piec
 
 **Practice earns the piece XP and a piece level, not the player; levels lock no piece.** Features: ft_1_13, ft_0_10, ft_1_12, core_04.
 
-Each finished pass earns its piece ft_0_10's XP, recomputed from the saved results whenever the profile is read (`deriveProgress`, a pure function of the history, no save bump); the piece level comes from `pieceLevels` in `content/curriculum/progression.json`, provisionally `[0, 50, 150, 300, 500, 750, 1050, 1400, 1800, 2250]`. A new attempt saves an XP breakdown with `total: 0`; player XP is the sum of saved totals plus tugs plus trainer XP, so earlier XP is kept. No piece is locked by level (pieces shown are those turned on, ft_1_02c); player levels open scenes only (d113). The score screen shows session piece XP, piece level and bar, and a card shows the level of a played piece.
+Each finished pass earns its piece ft_0_10's XP, recomputed from the saved results whenever the profile is read (`deriveProgress`, a pure function of the history, no save bump); the piece level comes from `pieceLevels` in `content/curriculum/progression.json`, provisionally `[0, 50, 150, 300, 500, 750, 1050, 1400, 1800, 2250]`. A new attempt saves an XP breakdown with `total: 0`; player XP is the sum of saved totals plus tugs plus trainer XP, so earlier XP is kept. No piece is locked by level (pieces shown are those turned on, ft_1_02c), and player levels open nothing (d113). The score screen shows session piece XP, piece level and bar, and a card shows the level of a played piece.
 
 Check: `src/core/progression/pieceLevel.test.ts` "ft_1_13.AC1: a piece earns the ft_0_10 XP of each of its passes, and its level comes from the piece curve"; `src/core/progression/pieceLevel.test.ts` "ft_1_13.AC3: a level-up announces no unlocked pieces: player levels lock no piece"
 
@@ -135,17 +135,17 @@ Check: `src/core/layout/keriMap.test.ts` "ft_1_19.AC2 every scene of the world m
 
 ## d113
 
-**Levelling up opens scenes.** Features: ft_1_19, ft_1_18.
+**A scene opens only once the maintainer confirms it; levels open and lock nothing.** Features: ft_1_19, ft_1_18.
 
-A scene carries a `level` in `content/world/keri.json` and is open when the level from total XP (`levelForXp`, `src/core/progression/xp.ts`) is at least that; the knoll (x -50, y -2 m from the lighthouse, good to about 15 m) is level 1. A scene not yet open is painted on the map but is no button. For each reference picture, the agent notes what it sees in `docs/keri/` (map, room, knoll) with improvement tips that are not built until picked.
+Every scene in `content/world/keri.json` is built `closed`, which keeps it to the tester; the `closed` mark comes off only once the maintainer confirms the scene ready, and only then can characters stand in it (`openScenes`, `src/core/world/openScenes.ts`); no player level opens or locks a scene, a piece or anything else. A closed scene is painted on the map but is no button. The knoll lies at x -50, y -2 m from the lighthouse (good to about 15 m). For each reference picture, the agent notes what it sees in `docs/keri/` (map, room, knoll) with improvement tips that are not built until picked.
 
-Check: `src/core/world/openScenes.test.ts` "ft_1_19.AC2 a scene is open when the student"
+Check: `src/core/world/openScenes.test.ts` "ft_1_19.AC2 a scene not marked closed is open to every player"
 
 ## d115
 
 **Actions and items share one model, and a painted place is used in its picture.** Features: ft_1_20, ft_0_13, ft_1_18, core_09.
 
-An action is a cell of the bubble or the strip (d282); a thing with a state or put somewhere is an item (the piece maker's lengths, rest, accidentals, ties, dynamics are held items put on a note by a click; a pure model in `src/core/`). There is no sentence line (an action names itself in a tooltip bubble, a screen's message is a Kiur speech bubble) and no verb-and-object grammar; Back and Settings are the door and the gear in the top corners, faded until the pointer is on them; the player's name is on the room's rank shield. In a painted place (room, map, every scene) a thing is pressed in the picture only and shows a contour or second look under the pointer. The top toolbar stays in code behind one frame-layout flag (`BAND_KEEPS_TOOLBAR` in `src/core/layout/frame.ts`), off. The look is d118.
+An action is a cell of the bubble or the strip (d282); a thing with a state or put somewhere is an item (the piece maker's lengths, rest, accidentals, ties, dynamics are held items put on a note by a click; a pure model in `src/core/`). There is no sentence line (an action names itself in a tooltip bubble, a screen's message is a Kiur speech bubble) and no verb-and-object grammar; Back and Settings are the door and the gear in the top corners, each a solid boxed button that looks the same on every screen; the player's name is on the room's rank shield. In a painted place (room, map, every scene) a thing is pressed in the picture only and shows a contour or second look under the pointer. The top toolbar stays in code behind one frame-layout flag (`BAND_KEEPS_TOOLBAR` in `src/core/layout/frame.ts`), off. The look is d118.
 
 Check: `src/core/layout/frame.test.ts` "ft_1_20.AC21 gives the main area 163 rows over a strip on the target screen and all 180 without one (d282)"
 
@@ -185,7 +185,7 @@ Check: `src/core/exchange/tug.test.ts` "content/challenge/rules.json parses and 
 
 **Characters are met by practising, talked to first, teach phrases for a phrase book, and give an item for a won tug; every character ties to music.** Features: ft_1_21, ft_1_22, ft_1_23, ft_1_19, ft_1_20, ft_1_07.
 
-The challenge is the tug of reputation (one marker, three steps each way; Kiur's practice tug changed by d160); question and answer is the advanced-level challenge. A character can appear only after enough practice in the room (from the practice records, never time spent), semi-randomly in an open scene, replacing d113 point 2 for characters; a lost tug is followed by a cool-down counted in real practice, never hours. Pressing a character opens a conversation first; a won tug gives an item into the band's inventory (ft_1_20). Every character ties to music: it teaches a phrase of its style (three tries, shown on the staff and heard), a phrase becomes "mine" only when played clean in the room on a later day, and learned phrases go in the phrase book (no class screen); phrases are original or public domain. The knowledge layer (a character's field, with control-question levels) is optional, per player, switched under admin, and gated by playing; the birth date is stored as year and month only in the local save, never in reports or logs, and sets the default text level (ft_1_23).
+The challenge is the tug of reputation (one marker, three steps each way; Kiur's practice tug changed by d160); question and answer is the advanced-level challenge. A character can appear only after enough practice in the room (from the practice records, never time spent), semi-randomly in an open scene; a lost tug is followed by a cool-down counted in real practice, never hours. Pressing a character opens a conversation first; a won tug gives an item into the band's inventory (ft_1_20). Every character ties to music: it teaches a phrase of its style (three tries, shown on the staff and heard), a phrase becomes "mine" only when played clean in the room on a later day, and learned phrases go in the phrase book (no class screen); phrases are original or public domain. The knowledge layer (a character's field, with control-question levels) is optional, per player, switched under admin, and gated by playing; the birth date is stored as year and month only in the local save, never in reports or logs, and sets the default text level (ft_1_23).
 
 Check: `src/core/island/presenceRules.test.ts` "needs the practice threshold, never time"; `src/core/exchange/teach.test.ts` "ft_1_22.AC3 the student has three tries"; `src/core/exchange/phraseBook.test.ts` "ft_1_22.AC5 lists every taught phrase by its character"
 
@@ -295,11 +295,11 @@ Check: untestable: product rule on what stays hidden, judged by the maintainer
 
 ## d192
 
-**A player named "tester" (letter case and spaces aside) has every scene open as soon as it is built, whatever the level.** Features: ft_1_19.
+**A player named "tester" (letter case and spaces aside) has every scene open as soon as it is built, a closed one included.** Features: ft_1_19.
 
-So a new scene can be tried before a player's progress opens it. Nothing is saved for it.
+So a new scene can be tried before the maintainer opens it to every player (d113). Nothing is saved for it.
 
-Check: `src/core/world/openScenes.test.ts` "opens every scene there is to the player called tester, whatever the level and the letter case"
+Check: `src/core/world/openScenes.test.ts` "opens every scene there is to the player called tester, a closed one included, whatever the letter case"
 
 ## d193
 
@@ -513,7 +513,7 @@ Check: `src/core/editor/entryPrefs.test.ts` "ft_1_02d.AC34 the cursor following 
 
 **A name is typed on the computer keyboard into the game's name box; the box has no letter buttons.** Features: ft_1_07.
 
-The box is big, with a red caret where the next letter goes, and takes only the name letters (d307), up to 12; Backspace deletes and Enter is Done, and Delete and Done stay as picture buttons. A see-through text field lies over the box and is focused, so a tablet's own keyboard comes up on a tap and types into it; the game draws the name and keeps only the name letters.
+The box is big, with a red caret where the next letter goes, and takes only the name letters (d308), up to 12; Backspace deletes and Enter is Done, and Delete and Done stay as picture buttons. A see-through text field lies over the box and is focused, so a tablet's own keyboard comes up on a tap and types into it; the game draws the name and keeps only the name letters.
 
 Check: `src/core/text/nameEntry.test.ts` "ft_1_07.AC6 keeps the name letters in capitals, drops anything else and stops at the longest name"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 the name box has no letter buttons: the name is typed on the computer keyboard and shown in its box"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 a tablet types into the see-through field over the name box: it is focused, keeps only name letters and its caret stays at the end"
 
@@ -589,7 +589,7 @@ A lesson is ready once every lesson it needs has a medal, and the suggested next
 
 Check: untestable: the tree becomes data with slice 2 of ft_1_39, whose loop check and ready rule get their tests then.
 
-## d306
+## d307
 
 **A tug or a teaching is left by the corner Back as by Esc, nudges an idle turn once, and names why each wrong phrase missed.** Features: ft_1_21, ft_1_22.
 
@@ -597,15 +597,15 @@ The corner Back stays pressable over a tug or a teaching and leaves it as Esc do
 
 Check: `tests/e2e/tug.spec.ts` "the corner Back is pressable over the tug and leaves it as Esc does, with nothing kept"; `tests/e2e/teach.spec.ts` "a try with no note played for a while: he says once whose turn it is, and the first note ends the line"; `src/core/exchange/tugPlay.test.ts` "ft_1_21.AC7 a neighbour key and a wrong letter each say their reason, as a wrong octave does"
 
-## d307
+## d308
 
 **A player's name takes the Estonian letters with Q, W, X and Y, and one space or hyphen between letters; the name box asks "Your name?".** Features: ft_1_07.
 
-A space or hyphen is never first, never next to another and is dropped from the end on Done, so Mari-Liis, Anna Maria and William can be typed and two names never differ by spaces alone. The plate asks the question over the name, so a student or a parent on a new install knows what goes there.
+A space or hyphen is never first, never next to another and is dropped from the end on Done, so Mari-Liis, Anna Maria and William can be typed and two names never differ by spaces alone. The ask over the plate is that question for a new player, so a student or a parent on a new install knows what goes there.
 
 Check: `src/core/text/nameEntry.test.ts` "ft_1_07.AC6 keeps a space or a hyphen between letters, never at the start and never two in a row"; `tests/e2e/player-screens.spec.ts` "ft_1_07.AC6 a name takes Q, W and one space or hyphen between letters, and drops one left at its end"
 
-## d308
+## d309
 
 **In the room Esc never leaves for the player list; the corner Back asks "Change player?" once, with Yes and No, before going there.** Features: ft_1_07, ft_1_20.
 
@@ -613,7 +613,7 @@ Esc in the room only closes what is open over it (a line, a panel, the question)
 
 Check: `tests/e2e/room.spec.ts` "Esc never takes the room to the player list, and the corner Back asks Change player? where No or Esc stays and Yes leaves"
 
-## d309
+## d310
 
 **What is said in the room stands on a plate near its speaker with a small next mark; a press on a room object during a line closes the line and does what was pressed, and the teacher waits in the doorway until her check-up is played.** Features: ft_1_27, ft_1_34.
 
@@ -621,10 +621,10 @@ A press elsewhere, Space or Enter turns the line; the telephone's message is sai
 
 Check: `tests/e2e/room.spec.ts` "ft_1_27.AC2 Esc on Kiur's reminder on the deadline day leaves the teacher waiting in the doorway, and a press on her starts the check-up"; `tests/e2e/room.spec.ts` "a press on the door while Kiur speaks closes his line and opens the map, and a press beside the objects turns the line"; `tests/e2e/room.spec.ts` "the telephone's message is said on a plate beside the telephone"
 
-## d310
+## d311
 
-**A shut place on the map is pressable and its name bubble says when it opens: "opens at level N" from its level in `content/world/keri.json`, or "not open yet" for a place the maintainer has closed.** Features: ft_1_19, ft_1_18.
+**A closed place on the map is pressable and its name bubble says it is not open yet.** Features: ft_1_19, ft_1_18.
 
-The bubble shows on hover, with the keyboard focus and on a press; a press opens nothing. A closed place gets no level, because no level opens it (AX-2.1: no promise the game does not keep).
+The bubble shows on hover, with the keyboard focus and on a press; a press opens nothing. It names no level, because no level opens a scene (d113; AX-2.1: no promise the game does not keep).
 
-Check: `src/core/world/openScenes.test.ts` "ft_1_19.AC2 a scene shut by the level says the level that opens it, and one the maintainer has closed says only that it is not open yet"; `tests/e2e/room.spec.ts` "ft_1_19.AC2 a press on a shut place on the map says it is not open yet, and opens nothing"
+Check: `tests/e2e/room.spec.ts` "ft_1_19.AC2 a press on a shut place on the map says it is not open yet, and opens nothing"

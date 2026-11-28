@@ -3,7 +3,7 @@ import { pageOf } from '../core/layout/paging';
 import { rectCentre } from '../core/layout/rect';
 import { keyName } from '../core/song/outline';
 import type { Song } from '../core/song/schema';
-import { clipToWidth } from '../core/text/clip';
+import { clipToWidth, wholeIfCut } from '../core/text/clip';
 import { t } from '../core/text/strings';
 import { contextOf } from './context';
 import { songChartId } from './songCatalogue';
@@ -21,9 +21,7 @@ import { TOOL_ICONS } from './ui/pixel/toolArt';
 const CARD_HEIGHT = 44;
 const CARD_GAP = 2;
 const LIST_TOP = 4;
-const BOOK_SIDE = 3;
-const BOOK_MARGIN = 14;
-const BOOK_GUTTER = 18;
+const BOOK_SIDE = 1;
 /** A row is set this far in from its page's cell. */
 const ROW_INSET = 3;
 /** The small buttons of a row: a finger wide at the usual zoom, as the book's own. */
@@ -80,7 +78,7 @@ export class SongsScene extends PixelScene {
 
   /** The bookmark back to the pieces, where the song bookmark stood in the piece book. */
   protected override bandActions(): ToolbarItem[] {
-    return [{ label: t('menu.allPieces'), icon: TOOL_ICONS.pieces, iconOnly: true, main: true, onClick: () => startScene(this, 'menu') }];
+    return [{ label: t('menu.group.all'), icon: TOOL_ICONS.bookOpen, iconOnly: true, main: true, onClick: () => startScene(this, 'menu') }];
   }
 
   protected draw(): void {
@@ -89,12 +87,11 @@ export class SongsScene extends PixelScene {
     const all = songs.list();
     const list = all.filter((song) => profiles.isPieceOn(songChartId(song.id)));
     this.sky();
-    this.openBook({ x: BOOK_SIDE, y: LIST_TOP - 2, w: width - 2 * BOOK_SIDE, h: height - LIST_TOP + 1 });
+    const book = { x: BOOK_SIDE, y: LIST_TOP - 2, w: width - 2 * BOOK_SIDE, h: height - LIST_TOP + 1 };
+    this.openBook(book);
     this.inkWriting = true;
     const row = CARD_HEIGHT;
-    // the rows start under the door and the gear (ft_1_36.AC22), so a row's buttons are never under a corner
-    const top = this.bandShown ? Math.max(LIST_TOP + 4, this.cornerStrip.rows + 1) : LIST_TOP + 4;
-    const grid = cardGrid({ width, height, top, margin: BOOK_MARGIN, rowHeight: row, rowGap: CARD_GAP, columnGap: BOOK_GUTTER });
+    const grid = cardGrid({ width, ...this.bookGrid(book), rowHeight: row, rowGap: CARD_GAP });
     // the first row makes a new song (rule 12), then the songs that are on
     const rows: (Song | null)[] = [null, ...list];
     const slice = pageOf(rows.length, this.page, { singlePageMax: grid.singlePageMax, perPage: grid.perPage });
@@ -110,8 +107,9 @@ export class SongsScene extends PixelScene {
       const { x, y } = rectCentre(grid.pageCell(1, capacity));
       this.label(x - grid.cardWidth / 2 + 6, y - 4, all.length > 0 ? t('songs.allOff') : t('songs.none'), C.umberDark, { shadow: false });
     }
+    // the piece book's pager: its page numbers and turned-up corners
     if (slice.paged) {
-      this.pager(slice, (page) => {
+      this.bookPager(slice, book, (page) => {
         this.page = page;
         this.redraw();
       });
@@ -165,6 +163,8 @@ export class SongsScene extends PixelScene {
     const title = clipToWidth(song.title, room, (text) => measure(drawnText(text)));
     const button = this.button({
       x: x - (factsWidth + 6) / 2, y, width: width - factsWidth - 6, height: CARD_HEIGHT / 2, label: title, look: 'ink', align: 'left', labelWidth: room,
+      // a cut title's whole words in its tooltip
+      ...wholeIfCut(title, song.title),
       onClick: () => startScene(this, 'song', { songId: song.id }),
     });
     const { x: left, y: top } = button.rect;

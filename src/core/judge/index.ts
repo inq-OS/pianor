@@ -9,3 +9,4 @@ export * from './missedBars';
 export * from './playSettings';
 export * from './keyLightHint';
 export * from './keyBash';
+export * from './replay';

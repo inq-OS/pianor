@@ -10,12 +10,12 @@
  * The space bar starts the play over from the first bar (`reset`); it has no button (the clean-screen rule).
  */
 
-import { t } from '../../core/text/strings';
+import { t, type StringKey } from '../../core/text/strings';
 
 export type HotkeyAction = 'section' | 'noteNames' | 'fingers' | 'click' | 'clickFaster' | 'clickSlower' | 'reset';
 
 /** Key code and the letter shown in brackets, by action. */
-export const HOTKEYS: Readonly<Record<HotkeyAction, { code: string; letter: string; shift?: boolean }>> = {
+export const HOTKEYS: Readonly<Record<HotkeyAction, { code: string; letter: string; shift?: boolean; name?: StringKey }>> = {
   section: { code: 'KeyR', letter: 'Shift+R', shift: true },
   noteNames: { code: 'KeyA', letter: 'A' },
   fingers: { code: 'KeyF', letter: 'F' },
@@ -23,7 +23,7 @@ export const HOTKEYS: Readonly<Record<HotkeyAction, { code: string; letter: stri
   clickFaster: { code: 'Equal', letter: 'Shift++', shift: true },
   clickSlower: { code: 'Minus', letter: 'Shift+-', shift: true },
   /** The space bar starts the piece (or section) over from its first bar; no piano key uses it. */
-  reset: { code: 'Space', letter: 'Space' },
+  reset: { code: 'Space', letter: 'Space', name: 'key.space' },
 };
 
 /** Whether a key starts the play over from the first bar (practice): the space bar, plain. */
@@ -39,9 +39,10 @@ export function actionForCode(code: string, shift = false): HotkeyAction | null 
   return null;
 }
 
-/** A button label with its hotkey in brackets: `Section [Shift+R]`. */
+/** A button label with its hotkey in brackets: `Section [Shift+R]`; a key with a name is named in the language shown (`Space`, `tühik`). */
 export function hotkeyLabel(label: string, action: HotkeyAction): string {
-  return t('practice.hotkey', { label, key: HOTKEYS[action].letter });
+  const { letter, name } = HOTKEYS[action];
+  return t('practice.hotkey', { label, key: name ? t(name) : letter });
 }
 
 /** The first candidate (longest first) that is at most `room` art pixels wide in a button, `measure` being the text width; the last one if none fits. */

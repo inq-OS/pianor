@@ -32,9 +32,9 @@ export interface VisitData {
   wanderer?: { id: string; piece: string; since: string };
 }
 
-/** The scenes the student's level has opened that have a screen, in the world model's order. */
+/** The open scenes (every one built and not closed, d113) that have a screen, in the world model's order. */
 export function visitable(from: Phaser.Scene): string[] {
-  const open = openScenes(KERI.scenes ?? [], contextOf(from).profiles.progress.level.level, isTester(contextOf(from).profiles.profile.name));
+  const open = openScenes(KERI.scenes ?? [], isTester(contextOf(from).profiles.profile.name));
   return open.filter((id) => SCENE_SCREENS[id] !== undefined);
 }
 

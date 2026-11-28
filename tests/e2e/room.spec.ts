@@ -66,17 +66,12 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_19.AC2 ft_1_19.AC5 the crossroads is shut on the map for a new player (level 2); opened, its grass, sea and clouds move and Back returns to the map', async ({ page }) => {
+  test('ft_1_19.AC2 ft_1_19.AC5 the crossroads is open on the map: pressed, its grass, sea and clouds move and Back returns to the map', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
-    // painted on the map, shut until the maintainer opens it: its name says so, and a press opens nothing
-    expect(await sceneButton(page, 'keriMap', 'Crossroads')).toBe(-1);
-    expect(await sceneButton(page, 'keriMap', 'Crossroads: not open yet')).toBeGreaterThanOrEqual(0);
-    await page.evaluate(() => {
-      window.__game.scene.stop('keriMap');
-      window.__game.scene.start('crossroads');
-    });
+    // the maintainer opened it (content/world/keri.json has no closed on it)
+    await clickButton(page, 'keriMap', await sceneButton(page, 'keriMap', 'Crossroads'));
     await waitForScene(page, 'crossroads');
     // the grass and the sea (a gust in a loop of looks) and the drifting clouds move
     const moving = await page.evaluate(() => (window.__game.scene.getScene('crossroads') as unknown as { animators: unknown[] }).animators.length);
@@ -86,7 +81,7 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_19.AC2 ft_1_19.AC5 the docks are painted on the map but locked for a new player; opened, their sea, clouds and lamp move, and Back returns to the map', async ({ page }) => {
+  test('ft_1_19.AC2 ft_1_19.AC5 the docks are painted on the map but shut while closed; opened, their sea, clouds and lamp move, and Back returns to the map', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
@@ -103,7 +98,7 @@ test.describe('the player room', () => {
     expectNoErrors(errors);
   });
 
-  test('ft_1_19.AC2 ft_1_19.AC5 the terrace is locked for a new player; opened, its clouds, lantern and pennant move, and Back returns to the map', async ({ page }) => {
+  test('ft_1_19.AC2 ft_1_19.AC5 the terrace is shut while closed; opened, its clouds, lantern and pennant move, and Back returns to the map', async ({ page }) => {
     const errors = await toRoom(page);
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Door'));
     await waitForScene(page, 'keriMap');
@@ -203,10 +198,10 @@ test.describe('the player room', () => {
     expect(first.clouds).toHaveLength(3);
     // the sea, the lamp, the gulls' flock (ft_1_19.AC13) and three clouds move
     expect(first.animators).toBe(6);
-    // the warden's house and the knoll (ft_1_19.AC2: the one scene a new player has open), and the four shut places, whose
-    // names say they are not open yet
+    // the warden's house, the knoll and the crossroads (ft_1_19.AC2: the scenes a new player has open), and the three
+    // closed places, whose names say they are not open yet
     expect(first.buttons).toHaveLength(6);
-    expect(first.labels.filter((l) => l.endsWith(': not open yet'))).toHaveLength(4);
+    expect(first.labels.filter((l) => l.endsWith(': not open yet'))).toHaveLength(3);
     for (const b of first.buttons) {
       expect(b.x).toBeGreaterThanOrEqual(0);
       expect(b.x + b.width).toBeLessThanOrEqual(first.size.width);
@@ -299,6 +294,9 @@ test.describe('the player room', () => {
     await clickButton(page, 'profile', await sceneButton(page, 'profile', 'Your card'));
     await expect.poll(() => sceneTexts(page, 'profile')).toContain('Level 1');
     expect((await sceneTexts(page, 'profile')).some((t) => /XP/.test(t))).toBe(true);
+    // the total XP, and a bar with the XP toward the next level, so a level-up never looks like XP lost
+    expect(await sceneTexts(page, 'profile')).toContain('0 XP');
+    expect((await sceneTexts(page, 'profile')).some((t) => /^0 \/ \d+ to level 2$/.test(t))).toBe(true);
     expectNoErrors(errors);
   });
 

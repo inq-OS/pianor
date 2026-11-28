@@ -216,15 +216,16 @@ describe('skyStars', () => {
 });
 
 describe('the focus ring', () => {
-  it('is two gold pixels wide just outside the button, with its four corners cut and its middle empty', () => {
+  it('ft_Y_13 is an ink line outside two light gold pixels just outside the button, its corners cut and its middle empty: it shows on parchment and on night alike', () => {
     const ring = focusRingBitmap(10, 6);
-    expect([ring.width, ring.height]).toEqual([14, 10]);
+    expect([ring.width, ring.height]).toEqual([16, 12]);
     const at = (x: number, y: number) => ring.pixels[y * ring.width + x];
-    for (const [x, y] of [[0, 0], [13, 0], [0, 9], [13, 9]] as const) expect(at(x, y)).toBe(0);
-    expect(at(1, 0)).toBe(C.goldLight);
-    expect(at(1, 1)).toBe(C.goldLight);
-    expect(at(2, 2)).toBe(0); // the button shows through
-    expect(inkCount(ring)).toBe(14 * 10 - 10 * 6 - 4);
+    for (const [x, y] of [[0, 0], [15, 0], [0, 11], [15, 11]] as const) expect(at(x, y)).toBe(0);
+    expect(at(1, 0)).toBe(C.ink);
+    expect(at(0, 5)).toBe(C.ink);
+    expect([at(1, 1), at(2, 2), at(5, 2), at(2, 5)]).toEqual([C.goldLight, C.goldLight, C.goldLight, C.goldLight]);
+    expect(at(3, 3)).toBe(0); // the button shows through
+    expect(inkCount(ring)).toBe(16 * 12 - 10 * 6 - 4);
   });
 });
 

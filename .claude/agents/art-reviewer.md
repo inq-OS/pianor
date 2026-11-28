@@ -2,6 +2,7 @@
 name: art-reviewer
 description: Reviews the pictures of one painter pull request (or one pass before it) against the art direction and the MI2 atlas, with fresh eyes, and returns one advisory verdict. Never edits pictures or code. Started by the `art-review` skill.
 model: opus
+effort: high
 tools: Read, Grep, Glob, Bash
 ---
 

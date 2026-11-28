@@ -105,7 +105,7 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d110](art.md#d110) | The art canvas is a 640x360 fine grid under layout cells of 2 x 2 fine pixels | ft_0_13, ft_1_08 |
 | [d111](art.md#d111) | The room and the map of Keri are painted pictures made at build time; outdoor scenes are pixel art in shared flat-tone runs | ft_1_18, ft_1_19, ft_1_08, ft_1_09, ft_1_14 |
 | [d112](game.md#d112) | Keri's places are painted scenes, each one picture opened from the map | ft_1_19, ft_1_18, ft_1_14, ft_1_17 |
-| [d113](game.md#d113) | Levelling up opens scenes | ft_1_19, ft_1_18 |
+| [d113](game.md#d113) | A scene opens only once the maintainer confirms it; levels open and lock nothing | ft_1_19, ft_1_18 |
 | [d114](art.md#d114) | Kiur is a tree pipit drawn from one small model on the fine grid | ft_0_13, ft_1_15, ft_1_08, ft_1_18 |
 | [d115](game.md#d115) | Actions and items share one model, and a painted place is used in its picture | ft_1_20, ft_0_13, ft_1_18, core_09 |
 | [d116](workflow.md#d116) | GitHub issues are for people; agents track their own work as tags in the docs | all |
@@ -175,7 +175,7 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d189](game.md#d189) | Screens say each thing once: no text that repeats a picture, no hint lines, symbol buttons, and a set of options is one cycling button; every grade is five stars |  |
 | [d190](game.md#d190) | At most ten players, each with a unique name; the admin unlocks with the password for 30 minutes and can lock again by hand |  |
 | [d191](game.md#d191) | The book in the player's room stays hidden; everything goes through the piano |  |
-| [d192](game.md#d192) | A player named "tester" (letter case and spaces aside) has every scene open as soon as it is built, whatever the level | ft_1_19 |
+| [d192](game.md#d192) | A player named "tester" (letter case and spaces aside) has every scene open as soon as it is built, a closed one included | ft_1_19 |
 | [d193](game.md#d193) | A student's curriculum level is not tracked; a piece's `level` is only the rule set it is linted against |  |
 | [d194](game.md#d194) | The teacher lands at the southern port; walkers show on the map only while they move, each with its own visiting days, along the paths or the coast | ft_1_24, ft_1_25, ft_1_27 |
 | [d195](notation.md#d195) | The piece maker's entry: few items that each cycle, a guessed next length, an Auto time and quick keys | ft_1_02a, ft_1_02d |
@@ -285,10 +285,10 @@ An entry says only what holds now (d151): a later decision that changes one rewr
 | [d303](game.md#d303) | The theory lesson book lists everything there is to learn, built or not: a topic with no lesson yet stands in it as a ghosted placeholder with its name only | ft_1_39 |
 | [d304](game.md#d304) | Kiur teaches the theory lessons in at most twelve stoic words a step, naming and pointing rather than describing; the first lessons are half steps, whole steps and the major scale | ft_1_39 |
 | [d305](game.md#d305) | The theory lessons' order is a skill tree of prerequisites over the catalog ids, cut into stages, with nothing locked | ft_1_39 |
-| [d306](game.md#d306) | A tug or a teaching is left by the corner Back as by Esc, nudges an idle turn once, and names why each wrong phrase missed | ft_1_21, ft_1_22 |
-| [d307](game.md#d307) | A player's name takes the Estonian letters with Q, W, X and Y, and one space or hyphen between letters; the name box asks "Your name?" | ft_1_07 |
-| [d308](game.md#d308) | In the room Esc never leaves for the player list; the corner Back asks "Change player?" once, with Yes and No, before going there | ft_1_07, ft_1_20 |
-| [d309](game.md#d309) | What is said in the room stands on a plate near its speaker with a small next mark; a press on a room object during a line closes the line and does what was pressed, and the teacher waits in the doorway until her check-up is played | ft_1_27, ft_1_34 |
-| [d310](game.md#d310) | A shut place on the map is pressable and its name bubble says when it opens: "opens at level N" from its level in `content/world/keri.json`, or "not open yet" for a place the maintainer has closed | ft_1_19, ft_1_18 |
-| [d311](art.md#d311) | Outdoors (the map and Keri's places) the faded corner door and gear stand on a dark plate that does not fade | ft_1_20 |
+| [d306](notation.md#d306) | Trills, mordents, turns and grace groups are read, drawn and heard, and stay optional for the student: playing their notes is never wrong and never needed | core_09 |
+| [d307](game.md#d307) | A tug or a teaching is left by the corner Back as by Esc, nudges an idle turn once, and names why each wrong phrase missed | ft_1_21, ft_1_22 |
+| [d308](game.md#d308) | A player's name takes the Estonian letters with Q, W, X and Y, and one space or hyphen between letters; the name box asks "Your name?" | ft_1_07 |
+| [d309](game.md#d309) | In the room Esc never leaves for the player list; the corner Back asks "Change player?" once, with Yes and No, before going there | ft_1_07, ft_1_20 |
+| [d310](game.md#d310) | What is said in the room stands on a plate near its speaker with a small next mark; a press on a room object during a line closes the line and does what was pressed, and the teacher waits in the doorway until her check-up is played | ft_1_27, ft_1_34 |
+| [d311](game.md#d311) | A closed place on the map is pressable and its name bubble says it is not open yet | ft_1_19, ft_1_18 |
 <!-- /docs:index -->

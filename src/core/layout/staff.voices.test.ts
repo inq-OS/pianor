@@ -87,7 +87,7 @@ describe('two voices on one staff (core_09.AC53)', () => {
     const chart = chartOf('!3!E F G F & !1!C4 |]');
     const layout = layoutStaff(chart, { viewport: { width: 1366, height: 768 }, staffSpace: S, scoreRoom: true });
     const tick0 = layout.notes.filter((g) => chart.notes[g.index]!.tick === 0);
-    expect(tick0.map((g) => g.label).filter((l) => l !== '')).toEqual(['C/E']);
+    expect(tick0.map((g) => g.label).filter((l) => l !== '')).toEqual(['C E']);
     expect(tick0.filter((g) => g.finger !== null).map((g) => g.finger)).toEqual([3]);
     for (const g of tick0) {
       for (const other of tick0) {

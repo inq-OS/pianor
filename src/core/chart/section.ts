@@ -53,6 +53,8 @@ export function sliceChart(chart: Chart, firstBar: number, lastBar: number): Cha
     ...(chart.slurs ? { slurs: chart.slurs.filter((s) => s.startTick >= offset && s.endTick < end).map((s) => ({ ...s, startTick: s.startTick - offset, endTick: s.endTick - offset })) } : {}),
     // a grace goes with its main note: kept and moved when that note is in the section (core_09.AC32)
     ...(chart.graces ? { graces: chart.graces.filter((g) => g.tick >= offset && g.tick < end).map((g) => ({ ...g, tick: g.tick - offset })) } : {}),
+    // an ornament goes with its note, as a grace does (core_09.AC60)
+    ...(chart.ornaments ? { ornaments: chart.ornaments.filter((o) => o.tick >= offset && o.tick < end).map((o) => ({ ...o, tick: o.tick - offset })) } : {}),
     // a tuplet lies inside one bar (core_09.AC49): kept and moved when its bar is in the section
     ...(chart.tuplets ? { tuplets: chart.tuplets.filter((t) => t.startTick >= offset && t.endTick < end).map((t) => ({ ...t, startTick: t.startTick - offset, endTick: t.endTick - offset })) } : {}),
     range: midis.length > 0 ? { low: Math.min(...midis), high: Math.max(...midis) } : chart.range,

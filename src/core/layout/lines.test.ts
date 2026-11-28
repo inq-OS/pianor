@@ -166,10 +166,10 @@ describe('sizes on the screens we support (one-line staff acceptance)', () => {
               expect(e.top, where).toBeGreaterThanOrEqual(0);
               expect(e.bottom, where).toBeLessThanOrEqual(vp.height);
             }
-            // within a page, a line ends above the next one begins
+            // within a page, a line ends above the next one begins (a grand staff's arrows may meet tip to tip: one room, lineGap)
             for (const s of l.systems) {
               const below = l.systems.find((o) => o.page === s.page && o.index === s.index + 1);
-              if (below) expect(below.staves[0]!.arrow.tipY, where).toBeGreaterThan(s.cursorTipY);
+              if (below) expect(below.staves[0]!.arrow.tipY, where).toBeGreaterThanOrEqual(s.cursorTipY - 1e-6);
             }
           }
         }

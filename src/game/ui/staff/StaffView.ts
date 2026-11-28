@@ -6,27 +6,31 @@ import type { BarNumber } from '../../../core/layout/barNumbers';
 import type { Playhead } from '../../../core/layout/playhead';
 import type { DurationMarks } from '../../../core/layout/durationHelp';
 import { SCORE_COLOURS, STAFF_INK, scoreColour } from '../../../core/layout/scoreColour';
+import { MARKER_RING, markerRingY } from '../../../core/learn/markers';
 import { wordFits } from '../../../core/layout/dynamicWords';
 import type { PlayedMark } from '../../../core/layout/playedMark';
 import { dotLook, laneLift, paceColour, type LaneDot, type LaneLook } from '../../../core/layout/beatLane';
 import type { PaceMark } from '../../../core/layout/beat';
 import { LABEL_LINE, accidentalKind, pageOfNotes, type BeamGlyph, type NoteGlyph, type NoteValue, type SlurGlyph, type StaffLayout, type TieGlyph, type TupletGlyph } from '../../../core/layout/staff';
-import type { GraceGlyph } from '../../../core/layout/staffTypes';
+import type { GraceGlyph, OrnamentGlyph } from '../../../core/layout/staffTypes';
 import { slurPoints, tiePoints } from '../../../core/layout/preview';
 import { STAFF_LAYERS, type StaffLayer } from './layers';
 import { addSheet } from './sheetGround';
 import { PARCHMENT_PAPER } from '../pixel/paint/parchment';
 import { t } from '../../../core/text/strings';
 import type { Dynamic } from '../../../core/chart/dynamics';
-import { ACCIDENTAL_STROKES, BASS_CLEF_BALL, BASS_CLEF_DOTS, BASS_CLEF_STROKE, BRACE_PATH, DIGITS, QUARTER_REST_STROKE, TREBLE_CLEF_STROKE, type Pt } from './glyphs';
+import { ACCIDENTAL_STROKES, ORNAMENT_STROKES, BASS_CLEF_BALL, BASS_CLEF_DOTS, BASS_CLEF_STROKE, BRACE_PATH, DIGITS, QUARTER_REST_STROKE, TREBLE_CLEF_STROKE, type Pt } from './glyphs';
 import { STAFF_FONT } from './staffFont';
 
-export type NoteState = 'pending' | 'correct' | 'wrong';
+/** A note's play state: `retried` is right, but only after a wrong key in its step (drawn apart from a first-try note, AX-2.1). */
+export type NoteState = 'pending' | 'correct' | 'retried' | 'wrong';
 
 export interface StaffTheme {
   paper: number;
   ink: number;
   correct: number;
+  /** A note right only after a wrong key: not the first-try green, so a pass with misses does not look perfect. */
+  retried: number;
   wrong: number;
   cursor: number;
   cursorFill: number;
@@ -50,6 +54,8 @@ export const DEFAULT_THEME: StaffTheme = {
   paper: PARCHMENT_PAPER,
   ink: STAFF_INK,
   correct: 0x1f9d55,
+  // the orange of a mistimed note in Tempo mode: right in the end, not at the first try
+  retried: SCORE_COLOURS.mistimedWorst,
   wrong: SCORE_COLOURS.missed,
   cursor: 0x2b6cff,
   // Halfway between the old highlight (0xdbe7ff) and the paper, so the box is softer.
@@ -118,6 +124,9 @@ const DURATION_GHOST_ALPHA = 0.28;
 const PLAYED_ALPHA = 0.55;
 const PLAYED_INK = '#d7263d';
 const PLAYED_NAME_GAP = 1.7;
+/** A mark over the bars (A, B, a part's name; text 1.1 spaces high) stands this far over the beat dots, and not above this much from the sheet's top (staff spaces). */
+const MARK_CLEAR = 1.1;
+const MARK_TOP = 0.6;
 /** How much of the sheet's copy covers bars drawn very faint (ft_1_32.AC20): a little ink shows through. */
 const VEIL_ALPHA = 0.86;
 
@@ -159,6 +168,8 @@ export class StaffView {
   private readonly graceLabels: Phaser.GameObjects.Text[] = [];
   /** The graces drawn on the page shown, with the head centre each was drawn at (for tests: what is drawn, not only the layout). */
   private gracesDrawn: { index: number; x: number; y: number; slash: boolean }[] = [];
+  /** The ornament signs drawn on the page shown (core_09.AC60). */
+  private ornamentsDrawn: { index: number; x: number; y: number; kind: string }[] = [];
   private readonly fingerTexts: Phaser.GameObjects.Text[] = [];
   /** Where the hand moves along the keyboard (ft_1_30.AC10): an arrow above the staff over the note, shown with the finger numbers. */
   private shifts: { x: number; y: number; direction: 'up' | 'down'; system: number; staff: number }[] = [];
@@ -345,6 +356,20 @@ export class StaffView {
    * Mark a section, or none with null: its bars get a soft background, and its letters sit above the bar line where
    * a bar starts, after the bar number when there is one. The staff keeps its size; only these marks change.
    */
+  /**
+   * The screen y of the marks over a line's bars (a section's letters, a song's part names): just over the top staff, or
+   * over the beat lane's dots when they would stand on them, so the words never sit on the dots; on a line with no room
+   * above its dots they stay where they were.
+   */
+  private markY(system: number): number {
+    const S = this.layout.staffSpace;
+    const base = this.layout.systems[system]!.topLineY - 1.95 * S;
+    const near = this.lanes.flatMap((lane) => lane.dots).filter((d) => d.system === system && Math.abs(d.y - base) < MARK_CLEAR * S).map((d) => d.y);
+    if (near.length === 0) return this.origin.y + base;
+    const above = Math.min(...near) - MARK_CLEAR * S;
+    return this.origin.y + (above >= MARK_TOP * S ? Math.min(base, above) : base);
+  }
+
   setSectionMarks(marks: SectionMarks | null): void {
     this.section = marks;
     for (const mark of this.markTexts) mark.text.destroy();
@@ -360,8 +385,7 @@ export class StaffView {
       const numberWidth = number === undefined ? 0 : String(number.number).length * 4 * cell - cell + 0.4 * S;
       // a second mark on the same bar (A and B of a one-bar section) starts after the first one's whole text, its tempo and lap too
       const x = used.get(index) ?? this.origin.x + bar.x + 0.25 * S + numberWidth;
-      const y = this.origin.y + this.layout.systems[bar.system]!.topLineY - 1.95 * S;
-      const label = this.scene.add.text(x, y, text, style).setOrigin(0, 0.5);
+      const label = this.scene.add.text(x, this.markY(bar.system), text, style).setOrigin(0, 0.5);
       used.set(index, x + label.width + 0.6 * S);
       this.markTexts.push({ text: label, system: bar.system });
     }
@@ -389,8 +413,7 @@ export class StaffView {
       const number = this.barNumbers.find((n) => n.index === index);
       const numberWidth = number === undefined ? 0 : String(number.number).length * 4 * cell - cell + 0.4 * S;
       const x = this.origin.x + bar.x + 0.25 * S + numberWidth;
-      const y = this.origin.y + this.layout.systems[bar.system]!.topLineY - 1.95 * S;
-      this.partTexts.push({ text: this.scene.add.text(x, y, text, name).setOrigin(0, 0.5), system: bar.system, bar: index });
+      this.partTexts.push({ text: this.scene.add.text(x, this.markY(bar.system), text, name).setOrigin(0, 0.5), system: bar.system, bar: index });
     }
     for (const at of this.foldsAt()) {
       const y = this.origin.y + this.layout.systems[at.system]!.bottomLineY + 2.2 * S;
@@ -485,7 +508,7 @@ export class StaffView {
       if (shade === undefined || shade <= 0 || seen.has(n.index)) continue;
       seen.add(n.index);
       const top = this.layout.systems[n.system]!.staves[n.staff]!.topLineY;
-      this.markers.push({ x: n.column, y: Math.min(top, n.y - S) - 2.4 * S, shade: Math.min(1, shade), system: n.system });
+      this.markers.push({ x: n.column, y: markerRingY(top, n.y, S), shade: Math.min(1, shade), system: n.system });
     }
     if (!this.markerGfx) this.markerGfx = this.scene.add.graphics().setPosition(this.origin.x, this.origin.y);
     this.drawMarkers();
@@ -506,7 +529,7 @@ export class StaffView {
     for (const m of this.markers) {
       if (!this.onPage(m.system)) continue;
       g.lineStyle(Math.max(1.5, 0.28 * S), markerColour(m.shade), 1);
-      g.strokeCircle(m.x, m.y, 0.55 * S);
+      g.strokeCircle(m.x, m.y, MARKER_RING.radius * S);
       this.markersDrawn++;
     }
   }
@@ -571,6 +594,8 @@ export class StaffView {
       }
     }
     this.drawLane(true);
+    // the marks over the bars keep clear of the dots
+    for (const mark of [...this.markTexts, ...this.partTexts]) mark.text.setY(this.markY(mark.system));
   }
 
   /**
@@ -692,11 +717,12 @@ export class StaffView {
 
   /**
    * Show play progress from the judge: `progress` is indexed by chart note, `cursorNotes` are the notes awaited now
-   * (one per hand in a two-hand step; each is highlighted on its own staff).
+   * (one per hand in a two-hand step; each is highlighted on its own staff). `retried` marks, by chart note, the notes
+   * right only after a wrong key (Wait mode): they keep their own colour.
    */
-  applyProgress(progress: readonly NoteProgress[], cursorNotes: NoteSelection): void {
+  applyProgress(progress: readonly NoteProgress[], cursorNotes: NoteSelection, retried?: readonly boolean[]): void {
     this.layout.notes.forEach((n, slot) => {
-      this.states[slot] = progress[n.index] === 'correct' ? 'correct' : 'pending';
+      this.states[slot] = progress[n.index] !== 'correct' ? 'pending' : retried?.[n.index] === true ? 'retried' : 'correct';
     });
     this.cursors = toSet(cursorNotes);
     this.followCursor();
@@ -977,7 +1003,7 @@ export class StaffView {
     if (scored !== null && scored !== undefined) return scored;
     if (this.isPast(note.system, note.x)) return PAST_GREY;
     const state = this.states[slot];
-    return state === 'correct' ? this.theme.correct : state === 'wrong' ? this.theme.wrong : this.theme.ink;
+    return state === 'correct' ? this.theme.correct : state === 'retried' ? this.theme.retried : state === 'wrong' ? this.theme.wrong : this.theme.ink;
   }
 
   private drawNotes(): void {
@@ -1012,7 +1038,9 @@ export class StaffView {
       if (n.stem) for (let k = 0; k < n.flags; k++) this.drawFlagAt({ ...n.stem, y2: n.stem.y2 + (n.stem.up ? 1 : -1) * k * S * 0.8 }, color);
     });
     this.gracesDrawn = [];
+    this.ornamentsDrawn = [];
     for (const grace of layout.graces) if (this.onPage(grace.system)) this.drawGrace(grace);
+    for (const sign of layout.ornaments ?? []) if (this.onPage(sign.system)) this.drawOrnament(sign);
     for (const beam of layout.beams) if (this.onPage(beam.system)) this.drawBeam(beam);
     for (const tuplet of layout.tuplets) if (this.onPage(tuplet.system)) this.drawTuplet(tuplet);
     for (const tie of layout.ties) if (this.onPage(tie.system)) this.drawTie(tie);
@@ -1034,6 +1062,12 @@ export class StaffView {
       this.playedName = this.scene.add.text(this.origin.x + mark.x, this.origin.y + mark.y + PLAYED_NAME_GAP * S, name, style).setOrigin(0.5).setAlpha(PLAYED_ALPHA);
     }
     this.drawNotes();
+  }
+
+  /** The colour a chart note is drawn in now, for tests: null for a note not on the staff. */
+  noteColourOf(noteIndex: number): number | null {
+    const slot = this.layout.notes.findIndex((n) => n.index === noteIndex);
+    return slot < 0 ? null : this.noteColor(slot);
   }
 
   /** The played key's name, for tests: null when none is shown. */
@@ -1089,7 +1123,32 @@ export class StaffView {
     g.lineStyle(thin, color, 1).lineBetween(stem.x, stem.y1, stem.x, stem.y2);
     if (grace.flag) this.drawFlagAt(stem, color, k);
     if (grace.slash) g.lineStyle(thin, color, 1).lineBetween(grace.slash.x1, grace.slash.y1, grace.slash.x2, grace.slash.y2);
+    // a grace group's two beams (core_09.AC60), hung from its stem tips
+    if (grace.beam) {
+      const { x1, x2, y, thickness, second } = grace.beam;
+      const half = thin / 2;
+      g.fillStyle(color, 1).fillRect(x1 - half, y, x2 - x1 + half * 2, thickness);
+      g.fillRect(x1 - half, second, x2 - x1 + half * 2, thickness);
+    }
     this.gracesDrawn.push({ index: grace.index, x: grace.x, y: grace.y, slash: grace.slash !== null });
+  }
+
+  /** An ornament sign over its note (core_09.AC60), from its strokes (`ORNAMENT_STROKES`), in the ink colour, grey once passed. */
+  private drawOrnament(sign: OrnamentGlyph): void {
+    const S = this.layout.staffSpace;
+    const color = this.isPast(sign.system, sign.x) ? PAST_GREY : this.theme.ink;
+    const g = this.notesGfx;
+    for (const stroke of ORNAMENT_STROKES[sign.kind]) {
+      g.lineStyle(Math.max(1.5, stroke.width * S), color, 1).beginPath();
+      stroke.points.forEach((p, i) => (i === 0 ? g.moveTo(sign.x + p.x * S, sign.y + p.y * S) : g.lineTo(sign.x + p.x * S, sign.y + p.y * S)));
+      g.strokePath();
+    }
+    this.ornamentsDrawn.push({ index: sign.index, x: sign.x, y: sign.y, kind: sign.kind });
+  }
+
+  /** The ornament signs drawn on the page shown (for tests: what is drawn, not only the layout). */
+  get ornamentsShown(): readonly { index: number; x: number; y: number; kind: string }[] {
+    return this.ornamentsDrawn;
   }
 
   /** A sharp, flat or natural centred on (cx, cy), drawn from its strokes (`ACCIDENTAL_STROKES`), at `scale` of its size (a grace's is smaller). */
@@ -1127,13 +1186,14 @@ export class StaffView {
     strokePolyline(this.notesGfx.lineStyle(Math.max(2, S * 0.1), this.theme.ink, 1), slurPoints(slur));
   }
 
-  /** The beams of a run of eighths and sixteenths, in the colour of its notes once all are right. */
+  /** The beams of a run of eighths and sixteenths, in the colour of its notes once all are right (the retried colour if one was). */
   private drawBeam(beam: BeamGlyph): void {
     const S = this.layout.staffSpace;
     const slots = beam.notes.map((index) => this.layout.notes.findIndex((n) => n.index === index));
     const wrong = beam.notes.some((index) => this.wrong.has(index));
-    const correct = slots.every((slot) => this.states[slot] === 'correct');
-    const color = this.resting(beam.system, beam.staff) ? PAST_GREY : wrong ? this.theme.wrong : correct ? this.theme.correct : this.theme.ink;
+    const done = slots.every((slot) => this.states[slot] === 'correct' || this.states[slot] === 'retried');
+    const retried = slots.some((slot) => this.states[slot] === 'retried');
+    const color = this.resting(beam.system, beam.staff) ? PAST_GREY : wrong ? this.theme.wrong : done ? (retried ? this.theme.retried : this.theme.correct) : this.theme.ink;
     const half = Math.max(2, S * 0.13) / 2;
     const top = beam.up ? beam.y : beam.y - beam.thickness;
     this.notesGfx.fillStyle(color, 1).fillRect(beam.x1 - half, top, beam.x2 - beam.x1 + half * 2, beam.thickness);

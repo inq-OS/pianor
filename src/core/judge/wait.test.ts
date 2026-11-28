@@ -101,6 +101,26 @@ describe('WaitMode: cursor and wrong notes', () => {
     expect(bar0.type === 'BarCompleted' && bar0.result).toMatchObject({ bar: 0, notes: 4, firstTryCorrect: 3, mistakes: 1, accuracy: 0.75 });
   });
 
+  it('ft_0_08.AC1 a note right only after a wrong key stays marked retried, a first-try note does not', () => {
+    const mode = new WaitMode(chart);
+    expect(mode.getState().retried?.every((r) => !r)).toBe(true);
+    mode.handle(on(61, 0)); // wrong
+    mode.handle(on(60, 500)); // right after the miss
+    mode.handle(on(chart.notes[1]!.midi, 1000)); // right at the first try
+    const state = mode.getState();
+    expect(state.noteProgress.slice(0, 2)).toEqual(['correct', 'correct']);
+    expect(state.retried?.slice(0, 2)).toEqual([true, false]);
+  });
+
+  it('ft_0_08.AC1 a tied note takes the retried mark of the note it holds', () => {
+    const tied = chartWith([
+      { tick: 0, dur: 1920, midi: 60, tieNext: true }, { tick: 1920, dur: 1920, midi: 60 }, { tick: 3840, dur: 480, midi: 62 },
+    ]);
+    const mode = new WaitMode(tied);
+    drive(mode, [on(61, 0), on(60, 100), on(62, 3000)]);
+    expect(mode.getState().retried).toEqual([true, true, false]);
+  });
+
   it('pressing the next note early (a later note) is just a wrong note, not a skip', () => {
     const mode = new WaitMode(chart);
     expect(mode.handle(on(62, 0))[0]).toMatchObject({ verdict: 'wrong' });
@@ -203,6 +223,8 @@ describe('WaitMode: chords', () => {
     const correct = events.find((e) => e.type === 'NoteJudged');
     expect(correct).toMatchObject({ verdict: 'correct', firstTry: false });
     expect(mode.getState().stepIndex).toBe(1);
+    // the key pressed before the wrong one was right at the first try; the two after it were not
+    expect(mode.getState().retried?.slice(0, 3)).toEqual([false, true, true]);
   });
 });
 
@@ -404,6 +426,27 @@ describe('WaitMode with moveOnWrong: a tug from memory (level 1)', () => {
     const mode = new WaitMode(chart);
     mode.handle(on(72, 0));
     expect(mode.getState().stepIndex).toBe(0);
+  });
+});
+
+describe('WaitMode: an ornament is optional, never wrong (core_09.AC65, d306)', () => {
+  // C, G with a turn (upper A 69, lower F 65), E
+  const pitch = (midi: number) => graceAt(0, midi).pitch;
+  const turned = chartWith([{ tick: 0, dur: 480, midi: 60 }, { tick: 480, dur: 480, midi: 67 }, { tick: 960, dur: 960, midi: 64 }], {
+    ornaments: [{ track: 'rh', voice: 1, tick: 480, kind: 'turn', upper: pitch(69), lower: pitch(65) }],
+  });
+
+  it('core_09.AC65 the turn played as written (A G F G) is no mistake: the G is judged once, the rest ignored', () => {
+    const events = drive(new WaitMode(turned), [on(60, 0), off(60, 100), on(69, 500), off(69, 550), on(67, 560), off(67, 600), on(65, 620), off(65, 660), on(67, 680), off(67, 720), on(64, 1000), off(64, 1500)]);
+    expect(judged(events).map((e) => [e.midi, e.verdict])).toEqual([[60, 'correct'], [67, 'correct'], [64, 'correct']]);
+    expect(piece(events)!.result).toMatchObject({ notes: 3, firstTryCorrect: 3, mistakes: 0 });
+  });
+
+  it('core_09.AC65 skipping the turn scores the same; a key the turn does not use is still wrong', () => {
+    expect(piece(playAll(new WaitMode(turned), turned))!.result).toMatchObject({ notes: 3, firstTryCorrect: 3, mistakes: 0 });
+    const mode = new WaitMode(turned);
+    drive(mode, [on(60, 0), off(60, 100), on(67, 500), off(67, 600)]);
+    expect(judged(mode.handle(on(62, 700))).map((e) => e.verdict)).toEqual(['wrong']);
   });
 });
 

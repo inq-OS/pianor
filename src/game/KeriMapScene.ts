@@ -1,5 +1,6 @@
 import keriJson from '../../content/world/keri.json';
-import { isTester, sceneGate } from '../core/world/openScenes';
+import { isTester, openScenes } from '../core/world/openScenes';
+import { FOCUS_LAYOUT, type FocusLayout } from '../core/layout/focus';
 import { ART_DETAIL } from '../core/layout/frame';
 import { keriMapPlan, keriMapView } from '../core/layout/keriMap';
 import { rectCentre, type Rect } from '../core/layout/rect';
@@ -69,13 +70,12 @@ function cut(source: Bitmap, box: Rect): Bitmap {
 /**
  * The map of Keri (ft_1_18.AC2, AC4): the island as one painted picture (d111, `virtual:keri-pictures`, made when the game
  * is built) seen at a slant in its sea, with what moves laid over it: the sea's second look, the lamp's turning beam and
- * drifting clouds. The room's door opens it; the warden's house and Back return to the room. Each scene the student's level has opened is a button on its painted place (ft_1_19.AC2). The map is painted for the sky phase of the hour, like the room.
+ * drifting clouds. The room's door opens it; the warden's house and Back return to the room. Each open scene is a button on its painted place (ft_1_19.AC2). The map is painted for the sky phase of the hour, like the room.
  */
 export class KeriMapScene extends PixelScene {
   protected override keyboardNavigation = true;
-  protected override focusCycle = true;
+  protected override focusLayout: FocusLayout = FOCUS_LAYOUT.picture;
   protected override pianoSign = true;
-  protected override cornerPlates = true;
   private look: SceneLook | null = null;
   /** The intro's tour of the map is still to run on this visit (`MapData.intro`). */
   private introDue = false;
@@ -95,8 +95,8 @@ export class KeriMapScene extends PixelScene {
   }
 
   /**
-   * The intro's tour of the map (ft_1_31.AC6): Kiur under the spotlight shows the island, the first place the student's
-   * level has opened and the house; then back to the room for the teacher's knock. Esc skips the rest of the intro there.
+   * The intro's tour of the map (ft_1_31.AC6): Kiur under the spotlight shows the island, the first open place
+   * and the house; then back to the room for the teacher's knock. Esc skips the rest of the intro there.
    */
   private showIntro(): void {
     if (!this.introDue || !this.sys.isActive()) return;
@@ -201,21 +201,20 @@ export class KeriMapScene extends PixelScene {
     const house = fromCells(PLAN.house);
     this.button({ ...rectCentre(house), label: t('map.house'), picture: createBitmap(house.w, house.h), onClick: () => this.back() });
     this.spots = { house };
-    // the scenes that the student's level has opened (ft_1_19.AC2, d113): a clear button over each one's painted place
-    // a shut one is a button too, whose name says when it opens (or that it is not open yet), on hover and on a press
-    const level = contextOf(this).profiles.progress.level.level, tester = isTester(contextOf(this).profiles.profile.name);
+    // the open scenes (ft_1_19.AC2, d113: every one built and not closed): a clear button over each one's painted place;
+    // a shut one is a button too, whose name says it is not open yet, on hover and on a press (d311)
+    const open = openScenes(KERI.scenes ?? [], isTester(contextOf(this).profiles.profile.name));
     for (const scene of PLAN.scenes) {
       const target = SCENE_SCREENS[scene.id];
       const place = KERI.scenes?.find((s) => s.id === scene.id);
       if (!target || !place) continue;
-      const gate = sceneGate(place, level, tester);
       const box = fromCells(scene.at);
-      if (gate.open) {
+      if (open.includes(scene.id)) {
         this.spots.place ??= box;
         this.button({ ...rectCentre(box), label: target.label(), picture: createBitmap(box.w, box.h), onClick: () => startScene(this, target.scene) });
         continue;
       }
-      const label = gate.opensAt === null ? t('map.notOpenYet', { place: target.label() }) : t('map.opensAt', { place: target.label(), level: gate.opensAt });
+      const label = t('map.notOpenYet', { place: target.label() });
       const shut: PixelButton = this.button({ ...rectCentre(box), label, picture: createBitmap(box.w, box.h), onClick: () => shut.sayName() });
     }
 
