@@ -128,6 +128,18 @@ const GLYPHS: Readonly<Record<string, readonly string[]>> = {
   // a quarter note, for a tempo (ft_1_36 rule 3: "♩ 80")
   '♩': g('...#.', '...#.', '...#.', '...#.', '.###.', '####.', '.##..'),
   '&': g('.##..', '#..#.', '#.#..', '.#...', '#.#.#', '#..#.', '.##.#'),
+  // The marks said in play instead of words (d312), so they sit inline with a count: right and wrong (as the tick and the
+  // cross icons), higher and lower (▲ high in the line, ▼ low, so the place says it too), early (the mirror of ▶), a lap
+  // (the band's start-again arrow), a half step, the sharp of the staff (its bars slant, so it never reads as #) and "at least".
+  '✓': g('.....', '....#', '...##', '#.##.', '###..', '.#...', '.....'),
+  '✗': g('.....', '##.##', '.###.', '..#..', '.###.', '##.##', '.....'),
+  '▲': g('...#...', '..###..', '.#####.', '#######', '.......', '.......', '.......'),
+  '▼': g('.......', '.......', '.......', '#######', '.#####.', '..###..', '...#...'),
+  '◀': g('....#', '...##', '..###', '.####', '..###', '...##', '....#'),
+  '↻': g('..##.#.', '.#...##', '#...###', '#......', '#.....#', '.#...#.', '..###..'),
+  '½': g('.#....#.', '##...#..', '.#..#...', '.#.#.##.', '..#....#', '.#....#.', '#....###'),
+  '♯': g('.#.#.', '.#.##', '.###.', '##.#.', '.#.##', '.###.', '##.#.'),
+  '≥': g('.#...', '..#..', '...#.', '..#..', '.#...', '.....', '#####'),
   _: g('.....', '.....', '.....', '.....', '.....', '.....', '.....', '#####'),
   // Estonian letters (ft_0_18, d086): a small capital with its mark in the two rows above it, inside the capital height.
   // The tilde of Õ is a plain line, which still reads apart from the two dots of Ö.
