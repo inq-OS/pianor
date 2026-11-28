@@ -9,6 +9,15 @@ The handbook is [docs/art-direction.md](../../../docs/art-direction.md): read it
 
 "Monkey Island 2" means the game as first released in 1991, pixel art, never its later remake; its skies come from The Curse of Monkey Island (1997). Reference pictures are studied, never copied, traced or committed (d084).
 
+## 0. Size the job first
+
+Most of what a pass costs is reading and looking, not painting: every tool runs in seconds, but the full reading list is about 100,000 tokens and every picture opened stays in the context for the rest of the session. So size the job before reading:
+
+- **A small change**: one thing in a picture that is already painted and shown (a colour, a stroke, a stone, a sprite, a frame, a fix the maintainer or a review asked for), with no new place and no new thing. Read the art direction and the artist's note of that thing, but not the Keri files, the decisions or the model scene's code (`docs/architect/painter-project.md` section 3), and skip sections 1 and 2b here. Look with `npm run art:diff -- <picture>` (below) instead of opening the four hours. The art review is the light one (`art-review` section 2).
+- **A pass on a place**: a new place, a new thing in it, or a repaint of much of it. Everything below.
+
+When a small change grows past a quarter of the picture (`art:diff` says "a big change"), it is a pass: switch lanes.
+
 ## 1. Study before drawing
 
 1. Know the place: the reference photographs of Keri and the world model (`content/world/keri.json`). `python3 -I .claude/skills/study-a-picture/refcat.py about <scene>` gives it on one page from the Keri photo map: where the place is, the view, the code, what was changed from the real island on purpose, and the photographs that feed the scene (`refcat.py sheet --scene <scene>` to open them, `--placed` for the ones the maintainer placed, `--tags <thing> --atlas` to see them over the 1991 game's rooms most like them). Invent no house, path or landmark: write `KERI-TODO` and ask (art-direction rule 14).
@@ -40,6 +49,14 @@ npm run art:render -- <picture> [hour]    # look at it
 npm run art:check  -- <picture> [hour]    # measure it
 ```
 
+**Look cheaply.** `art:render` writes 1x by default: pixel art loses nothing at 1x, and a 640 x 360 picture costs about 300 tokens to open where 2x costs 1,230 and a 1920 x 1080 screenshot 1,500 or more. For detail, crop and zoom the part (`art:diff` does it for a change), never open the whole picture larger. Open the kit one family at a time (`kit stones`): the whole kit is a sheet 11,000 pixels tall that is shrunk past reading when opened.
+
+```
+npm run art:diff -- <picture | kit [family] | figures | ui <sheet>> [hour] [--base <ref>]
+```
+
+`art:diff` paints the picture on the branch and on where the branch left `origin/main` (kept by commit, so later looks paint only the branch), at every hour, and writes **one** sheet: before, after and the changed pixels in magenta, cropped round the change and zoomed till single pixels show, one row per hour (`test-logs/art/<picture>-diff.png`). It prints each hour's changed pixels and what the sheet costs to open: a fire ring's stones a pixel wider are under 900 tokens for all four hours, against about 4,900 for the four renders at 2x. A change over a quarter of the picture gets the four hours at 1x on one sheet instead (about 1,230 tokens).
+
 `art:check` prints the picture's runs of colours (lightness steps, hue turn), how many colours of each run the picture uses, and its clouds. It lists findings and writes `test-logs/art/<picture>-<hour>-guides.png` with the composition guides laid over. Its findings are warnings: the eye and the maintainer decide.
 
 | Rule (measured in MI2 1991 and CMI 1997) | Check |
@@ -61,4 +78,4 @@ npm run art:check  -- <picture> [hour]    # measure it
 
 **An art review before every showing**, and on every painter pull request: the `art-review` skill has a fresh reviewer gauge the pass, check it is no copy of an MI2 room, and critique it against the art direction. Its verdict is advice, sent beside the pictures; only the copy guard stops a merge.
 
-Follow art-direction section 5: all four hours, the picture in the game, side by side with the reference at the same zoom. Pictures for the maintainer stay in a local folder (`private/painter/`), never in git. Write the verdict as a plain rule with no date (art-direction section 5, step 6; d165).
+**Pictures made for the maintainer are sent, not opened** (the laptop-size screenshots, the beside sheets): you judged the picture from the 1x look, the `art:diff` sheet and the gauge's numbers, and opening a 1920 x 1080 copy again only adds tokens. A small change adds its `art:diff` sheet to what the maintainer sees. Follow art-direction section 5: all four hours, the picture in the game, side by side with the reference at the same zoom. Pictures for the maintainer stay in a local folder (`private/painter/`), never in git. Write the verdict as a plain rule with no date (art-direction section 5, step 6; d165).

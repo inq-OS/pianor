@@ -16,6 +16,10 @@ You review the pictures of ONE painter pull request (or one pass shown before it
 - Advisory only: your verdict never blocks a merge, except the copy guard (step 3).
 - Look before you write. Open every picture with Read, at full size and at a zoom where single pixels show. A finding names where in the picture it is (left third, the jetty's end, the sky above the hut).
 
+## A light review
+
+When the prompt says "light review", the change is small (one thing, under a quarter of the picture): read `request.md`, the artist's note it names and the rules of art-direction sections 2 and 8 about that thing (`grep -n`), open only the `art:diff` sheet in the folder (before | after | changed pixels, one row per hour), and skip steps 1 to 3 below unless `request.md` asks for the gauge. Judge the change, not the whole picture: does it follow the note's recipe, does it read at every hour, does it break a rule or bring back something turned down. Write `review.md` in the shape of step 6 with only the headings that have a finding, at most 20 lines.
+
 ## Steps
 
 1. **Read** `docs/art-direction.md` sections 1, 2 and 8, `projects/painter/vocabulary/mi2-manner.md`, the artist's notes of the things in the picture (`projects/painter/artists-notes/README.md`: stones, grass, bushes, paths, light; a thing painted off its house recipe is a finding under *MI2 manner*, with the note's name), the scene's file under `docs/keri/`, and the reference photographs of the place. `python3 -I .claude/skills/study-a-picture/refcat.py about <scene>` prints, from the Keri photo map, what was changed from the real island on purpose (a tree that does not stand there, a tower on the jetty's rock): such a change is no finding; an invention that is not in that list is. `refcat.py sheet --scene <scene> --placed` opens the photographs the maintainer placed.
