@@ -635,4 +635,4 @@ Check: `tests/e2e/room.spec.ts` "ft_1_19.AC2 a press on a shut place on the map 
 
 A count is a number pair (3/5), a judgement is a mark on or beside the note it judges (wrong octave, neighbour key, wrong letter, early, late), a turn or a start is shown by motion or an icon, not a line to read. Words stay for a character's talk before and after a round, for tooltips, menus and the teacher's pages. Reading a sentence takes the eyes off the staff, and the staff is what the student must read (AX-0, d189).
 
-Check: untestable: until the in-play strings carry their own check, judged by reading the strings shown in play
+Check: `src/core/text/inPlay.test.ts` "d312 no in-play string is a sentence, in English or in Estonian"
