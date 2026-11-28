@@ -6,6 +6,7 @@ import type { BarNumber } from '../../../core/layout/barNumbers';
 import type { Playhead } from '../../../core/layout/playhead';
 import type { DurationMarks } from '../../../core/layout/durationHelp';
 import { SCORE_COLOURS, STAFF_INK, scoreColour } from '../../../core/layout/scoreColour';
+import { rowUnderSystem } from '../../../core/layout/passScore';
 import { MARKER_RING, markerRingY } from '../../../core/learn/markers';
 import { wordFits } from '../../../core/layout/dynamicWords';
 import type { PlayedMark } from '../../../core/layout/playedMark';
@@ -232,7 +233,7 @@ export class StaffView {
   /** A song's part names over their first bars and its folds (ft_1_36 rule 7); drawn with the marks, kept apart from a section's. */
   private partMarks: PartMarks | null = null;
   private readonly partTexts: { text: MarkObject; system: number; value: string; bar?: number }[] = [];
-  /** Chips over the page's first line (d312: a section's log as marks by the staff, not a line in the bubble). */
+  /** Chips under the page's last line (d312: a section's log as marks by the staff, not a line in the bubble). */
   private chipValues: string[] = [];
   private chipObjects: Phaser.GameObjects.GameObject[] = [];
   /** Hears every page turn (the song map's frame follows the page, ft_1_36 rule 8). */
@@ -470,7 +471,7 @@ export class StaffView {
   }
 
   /**
-   * Show marks as chips over the page's first line, at its right end in the marks' lane (a section's log when the
+   * Show marks as chips in a row under the page's last line, ending at its last bar line (a section's log when the
    * piece is whole again: "↻4", "✓2", "♩60→66"), or take them away with null: each on a paper plate edged in ink, as
    * large as a section's mark, the ✓ green and a rise gold.
    */
@@ -487,24 +488,29 @@ export class StaffView {
   private drawChips(): void {
     for (const o of this.chipObjects) o.destroy();
     this.chipObjects = [];
-    const system = this.layout.systems.findIndex((_, i) => this.onPage(i));
-    if (this.chipValues.length === 0 || system < 0) return;
+    const onPage = this.layout.systems.map((_, i) => i).filter((i) => this.onPage(i));
+    if (this.chipValues.length === 0 || onPage.length === 0) return;
     const S = this.layout.staffSpace;
-    const right = Math.max(...this.layout.barlines.filter((b) => b.system === system).map((b) => b.x));
-    const y = this.markY(system);
     const pad = 0.3 * S;
-    const images = this.chipValues.map((value) => this.markImage(0, y, value, C.ink, SECTION_MARK_SIZE, { [MARK.right]: C.green, [MARK.up]: C.goldDark }));
+    const gap = 0.4 * S;
+    const images = this.chipValues.map((value) => this.markImage(0, 0, value, C.ink, SECTION_MARK_SIZE, { [MARK.right]: C.leafDark, [MARK.up]: C.goldDark }));
+    const w = images.reduce((sum, image) => sum + image.displayWidth + 2 * pad, 0) + gap * (images.length - 1);
+    const h = Math.max(...images.map((image) => image.displayHeight)) + 2 * pad;
+    // in the row under the page's last line, ending at its last bar line, clear of its notes (as a pass's score is)
+    const place = rowUnderSystem(this.layout, onPage[onPage.length - 1]!, { w: Math.ceil(w), h: Math.ceil(h) });
+    const y = this.origin.y + place.y + h / 2;
     const plates = this.scene.add.graphics().setDepth(2);
-    let x = this.origin.x + right;
-    for (const image of [...images].reverse()) {
-      x -= image.displayWidth + 2 * pad;
-      plates.fillStyle(CHIP_PAPER, 1).fillRoundedRect(x, y - image.displayHeight / 2 - pad, image.displayWidth + 2 * pad, image.displayHeight + 2 * pad, pad);
-      plates.lineStyle(Math.max(1, Math.round(S / 10)), STAFF_INK, 1).strokeRoundedRect(x, y - image.displayHeight / 2 - pad, image.displayWidth + 2 * pad, image.displayHeight + 2 * pad, pad);
-      image.setX(x + pad).setDepth(3);
-      x -= 0.4 * S;
+    let x = this.origin.x + place.x;
+    for (const image of images) {
+      const plate = { x, y: y - h / 2, w: image.displayWidth + 2 * pad, h };
+      plates.fillStyle(CHIP_PAPER, 1).fillRoundedRect(plate.x, plate.y, plate.w, plate.h, pad);
+      plates.lineStyle(Math.max(1, Math.round(S / 10)), STAFF_INK, 1).strokeRoundedRect(plate.x, plate.y, plate.w, plate.h, pad);
+      image.setPosition(x + pad, y).setDepth(3);
+      x += plate.w + gap;
     }
     this.chipObjects = [plates, ...images];
   }
+
 
   /**
    * A song's folds (ft_1_36 rule 7): a zigzag in the fold grey through the staff, like a page folded under, so it is never
@@ -678,7 +684,6 @@ export class StaffView {
     this.drawLane(true);
     // the marks over the bars keep clear of the dots
     for (const mark of [...this.markTexts, ...this.partTexts]) mark.text.setY(this.markY(mark.system));
-    this.drawChips();
   }
 
   /**

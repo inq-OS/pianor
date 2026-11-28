@@ -152,6 +152,7 @@ export class PlaySession {
   /** The score of the pass just finished, drawn past the last bar (ft_1_12); empty when none is shown. */
   private passScore: Phaser.GameObjects.GameObject[] = [];
   /** The pass score shown now, drawn again over a redraw; null when none. */
+  private chipsNow: readonly string[] | null = null;
   private passScoreNow: { stars: number; numbers?: PassNumbers } | null = null;
   /** The cursor box breathes until the first key (`breatheCursor`). */
   private breathing = false;
@@ -392,6 +393,7 @@ export class PlaySession {
     if (this.lastWrong) this.showWrongKey(this.lastWrong);
     if (this.breathing) this.view.breathe(true);
     if (this.passScoreNow) this.drawPassScore(this.passScoreNow.stars, this.passScoreNow.numbers);
+    if (this.chipsNow) this.view.setChips(this.chipsNow);
     return this.view;
   }
 
@@ -508,6 +510,12 @@ export class PlaySession {
    * the tempo gauge with the timing score. Drawn at the staff's resolution (`passScorePlace`); it stays over a redraw
    * until `hidePassScore`.
    */
+  /** Chips over the staff (a section's log, d312), kept over a redraw until `showChips(null)`. */
+  showChips(values: readonly string[] | null): void {
+    this.chipsNow = values;
+    this.view?.setChips(values);
+  }
+
   showPassScore(stars: number, numbers?: PassNumbers): void {
     this.passScoreNow = { stars, ...(numbers ? { numbers } : {}) };
     this.drawPassScore(stars, numbers);

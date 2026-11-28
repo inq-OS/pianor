@@ -311,10 +311,10 @@ export class TeachView {
       if (this.hopping && motionAllowed()) this.hop = this.scene.tweens.add({ targets: image, y: image.y - HOP, duration: HOP_MS, yoyo: true, repeat: -1, ease: 'Sine.easeOut' });
     }
     if (this.saying !== null && this.sayingFact) {
-      // the count is marks, on a chip over the student's head, where their note stood (d312)
+      // the count is marks, on a chip just over the staff (which takes the lower half), above the student (d312)
       const chip = markChipBitmap(this.saying);
       const head = studentHead(area);
-      this.add(new PixelImage(this.scene, Math.max(2, Math.round(head.x - chip.width / 2)), head.y - chip.height - 4, chip).setName('teachFact'));
+      this.add(new PixelImage(this.scene, Math.max(2, Math.round(head.x - chip.width / 2)), Math.floor(area.h / 2) - chip.height - 3, chip).setName('teachFact'));
     } else if (this.saying !== null) {
       const pages = spokenPages(this.saying);
       // a page with more after it ends in a small arrow: a press turns to the next

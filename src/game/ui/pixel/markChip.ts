@@ -1,6 +1,6 @@
 /**
  * A chip of marks (d312): the marks shown where there is no staff ("E✓ F✗ ½▲" in the ear trainer and the tug, a count
- * over a teaching) on a paper plate, drawn `zoom` times the font so they read at a glance, in ink with the ✓ green and
+ * over a teaching) on a paper plate, drawn `zoom` times the font so they read at a glance, in ink with the ✓ dark green and
  * the ✗ red. One bitmap, so a view places it like any picture.
  */
 import { blit, createBitmap, type Bitmap } from './bitmap';
@@ -11,7 +11,7 @@ import { C } from './palette';
 const PAD = 3;
 
 export function markChipBitmap(text: string, zoom = 2): Bitmap {
-  const marks = renderMarks(drawnText(text), C.ink, { '✓': C.green, '✗': C.red });
+  const marks = renderMarks(drawnText(text), C.ink, { '✓': C.leafDark, '✗': C.red });
   const big = createBitmap(marks.width * zoom, marks.height * zoom);
   for (let y = 0; y < big.height; y++) {
     for (let x = 0; x < big.width; x++) big.pixels[y * big.width + x] = marks.pixels[Math.floor(y / zoom) * marks.width + Math.floor(x / zoom)]!;

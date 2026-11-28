@@ -206,7 +206,7 @@ test.describe('practice tools (core_02 and core_03)', () => {
     })).toBe(true);
     await press(page, 'Whole piece');
     await expect.poll(() => chartId(page)).toBe('little-steps');
-    expect(await sceneTexts(page, 'practice')).toContain('↻1 ✓0 ♩70▶77');
+    await expect.poll(() => page.evaluate(() => window.__game.scene.getScene('practice').playSession.staffView.chipsShown as string[])).toEqual(['↻1', '✓0', '♩70→77']); // chips over the staff (d312)
     expectNoErrors(errors);
   });
 

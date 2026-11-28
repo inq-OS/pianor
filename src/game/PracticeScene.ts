@@ -409,9 +409,9 @@ export class PracticeScene extends PixelScene {
     else if (this.startedOver && !fromSettings) this.playSession.showPassScore(0);
     if (this.sectionChips) {
       const chips = this.sectionChips;
-      this.playSession.staffView?.setChips(chips);
+      this.playSession.showChips(chips);
       this.time.delayedCall(PASS_SUMMARY_MS, () => {
-        if (this.sectionChips === chips) this.playSession.staffView?.setChips(null);
+        if (this.sectionChips === chips) this.playSession.showChips(null);
       });
     }
     if (this.passScoreShown || this.startedOver) {
