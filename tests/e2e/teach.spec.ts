@@ -5,7 +5,7 @@ import { expect, test } from './fixtures';
 import { activeScenes, clickButton, expectNoErrors, letGameRun, openGame, playWithVirtualPiano, sceneButton, waitForScene, type PageErrors } from './helpers';
 
 interface TalkState { showing: 'line' | 'student' | 'choices'; node: string }
-interface Teach { who: 'character' | 'student' | null; piece: string; level: number; tries: boolean[]; outcome?: 'heard' | 'notYet'; saying: string | null; closing: boolean; staff: boolean; notFirst: number[] }
+interface Teach { who: 'character' | 'student' | null; piece: string; level: number; tries: boolean[]; outcome?: 'heard' | 'notYet'; saying: string | null; closing: boolean; staff: boolean; notFirst: number[]; nudging: boolean }
 
 const knoll = 'knoll';
 const teach = (page: Page) => page.evaluate((k) => (window.__game.scene.getScene(k) as unknown as { teachState: Teach | null }).teachState, knoll);
@@ -59,12 +59,12 @@ test.describe('Puuvaim teaches his phrase in the knoll (ft_1_22.AC3, WP-12)', ()
   test('ft_1_22.AC3 he plays it with the staff shown; a missed try, then one that passes: the phrase is heard and kept with him', async ({ page }) => {
     const errors = await openTeach(page);
     expect(await teach(page)).toMatchObject({ who: 'character', piece: 'both-hands', level: 1, tries: [], staff: true });
-    // the fact names the first wrong key's reason (C sharp for C: the key next door)
+    // the fact is the count (d312): the staff shows the wrong keys
     const missed = await tryIt(page, MISSED);
-    expect(missed).toMatchObject({ tries: [false], saying: '13 of 26 notes right. You played the key next door' });
+    expect(missed).toMatchObject({ tries: [false], saying: '13/26' });
     // the staff marks the thirteen notes found only after a wrong key, not every note as right
     expect(missed.notFirst).toHaveLength(13);
-    expect(await tryIt(page, TUNE)).toMatchObject({ tries: [false, true], outcome: 'heard', saying: '26 of 26 notes right' });
+    expect(await tryIt(page, TUNE)).toMatchObject({ tries: [false, true], outcome: 'heard', saying: '26/26' });
     await expect.poll(async () => (await teach(page))?.saying).toContain('You played my tune');
     expect((await teach(page))!.staff).toBe(false);
     await page.keyboard.press('Space');
@@ -99,7 +99,7 @@ test.describe('Puuvaim teaches his phrase in the knoll (ft_1_22.AC3, WP-12)', ()
     expectNoErrors(errors);
   });
 
-  test('a try with no note played for a while: he says once whose turn it is, and the first note ends the line', async ({ page }) => {
+  test('d312 a try with no note played for a while: the note over the student hops with no line, and the first note stops it', async ({ page }) => {
     const errors = await openTeach(page);
     await expect.poll(async () => (await teach(page))?.who).toBe('character');
     await endPhrase(page);
@@ -107,9 +107,10 @@ test.describe('Puuvaim teaches his phrase in the knoll (ft_1_22.AC3, WP-12)', ()
     expect((await teach(page))!.saying).toBeNull();
     // the scene's clock runs fast, so the twenty seconds pass in one
     await page.evaluate((k) => { (window.__game.scene.getScene(k) as unknown as { time: { timeScale: number } }).time.timeScale = 40; }, knoll);
-    await expect.poll(async () => (await teach(page))?.saying, { timeout: 10_000 }).toBe('Your turn: play my line.');
+    await expect.poll(async () => (await teach(page))?.nudging, { timeout: 10_000 }).toBe(true);
+    expect((await teach(page))!.saying).toBeNull();
     await playWithVirtualPiano(page, [TUNE[0]!]);
-    await expect.poll(async () => (await teach(page))?.saying).toBeNull();
+    await expect.poll(async () => (await teach(page))?.nudging).toBe(false);
     expectNoErrors(errors);
   });
 
