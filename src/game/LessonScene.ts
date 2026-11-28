@@ -12,6 +12,7 @@ import { watchKeyBash } from './practice/bashDoor';
 import { drawMedalClef } from './practice/prizeGlyphs';
 import { C } from './ui/pixel/palette';
 import { PixelText } from './ui/pixel/PixelObjects';
+import { markLabelX, markSides } from '../core/layout/lessonMarks';
 import { PixelScene, type ToolbarItem } from './ui/pixel/PixelScene';
 import { ICONS } from './ui/pixel/iconArt';
 import { TOOL_ICONS } from './ui/pixel/toolArt';
@@ -186,17 +187,18 @@ export class LessonScene extends PixelScene {
     layer.add(g);
     const lineYs = layout.staffLines.map((l) => (l.y + top - this.mainTop) * k);
     const topLine = Math.min(...lineYs), bottomLine = Math.max(...lineYs);
-    // a mark whose label would touch the one before it above the staff goes under the staff instead, so no two
-    // labels or brackets cross; brackets stop short of a shared note so two never meet
-    let previousRight = Number.NEGATIVE_INFINITY;
-    for (const mark of marks) {
+    // brackets stop short of a shared note so two never meet; a crowded label goes under the staff (`markSides`)
+    const placed = marks.flatMap((mark) => {
       const a = layout.notes.find((n) => n.index === mark.from), b = layout.notes.find((n) => n.index === mark.to);
-      if (!a || !b) continue;
-      const x1 = Math.round(a.x * k - S * 0.3), x2 = Math.round(b.x * k + S * 0.3);
+      if (!a || !b) return [];
       const label = new PixelText(this, 0, 0, t(mark.kind === 'half' ? 'lessons.mark.half' : 'lessons.mark.whole'), { color: mark.kind === 'half' ? C.red : C.blue });
-      const labelX = Math.round((x1 + x2) / 2 - label.width / 2);
-      const below = labelX < previousRight + 6;
-      if (!below) previousRight = labelX + label.width;
+      return [{ mark, a, b, label, from: Math.round(a.x * k - S * 0.3), to: Math.round(b.x * k + S * 0.3), width: label.width }];
+    });
+    const sides = markSides(placed);
+    placed.forEach((p, i) => {
+      const { mark, a, b, label } = p;
+      const x1 = p.from, x2 = p.to, labelX = markLabelX(p);
+      const below = sides[i] === 'below';
       const leg = Math.max(2, Math.round(S * 0.6));
       g.fillStyle(MARK_INK[mark.kind], 1);
       if (below) {
@@ -217,7 +219,7 @@ export class LessonScene extends PixelScene {
         label.setPosition(labelX, y - label.height - 2);
       }
       layer.add(label);
-    }
+    });
   }
 
   /** The "?" where the answer goes, after the notes on the staff; in Try the clean run under it, a box a clean item. */
