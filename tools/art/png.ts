@@ -52,10 +52,15 @@ export function pngBytes(picture: IndexedPicture, zoom = 1, backdrop = 0x000000)
       raw[row + 3 + x * 3] = colour & 255;
     }
   }
+  return rgbPng(w, h, raw);
+}
+
+/** A PNG file (24-bit colour, no transparency) of `raw`: `height` rows, each a filter byte 0 and `width` RGB triples. */
+export function rgbPng(width: number, height: number, raw: Uint8Array): Uint8Array {
   const head = new Uint8Array(13);
   const view = new DataView(head.buffer);
-  view.setUint32(0, w);
-  view.setUint32(4, h);
+  view.setUint32(0, width);
+  view.setUint32(4, height);
   head[8] = 8; // bits for each of red, green and blue
   head[9] = 2; // colour type: RGB
   const parts = [new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', head), chunk('IDAT', deflateSync(raw)), chunk('IEND', new Uint8Array())];

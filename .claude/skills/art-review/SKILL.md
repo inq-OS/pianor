@@ -31,6 +31,17 @@ private/painter/<scene>/review-<n>/
 
 Write a `request.md` in the folder: the pull request (number and head SHA) or "pass <n>, no PR", the Keri place, where the reference photographs of it are, the scene's file under `docs/keri/`, and **what has been decided about this scene, as plain rules with no date** (from the thread, the scene's file under `docs/keri/`, art-direction section 8). These decisions are facts about Keri and the art direction: a tower that was decided is on Keri even when no photograph shows it, and without them the reviewer flags decided things as inventions (the trial review of the docks did). **Nothing about what you think of the pictures.**
 
+## 1b. The light review: a small change
+
+For a small change (`paint-a-scene` section 0: one thing in a picture already shown, `art:diff` under a quarter of the picture at every hour), the review looks only at the change:
+
+- The folder holds the `art:diff` sheet (`test-logs/art/<picture>-diff.png`, copied in) and `request.md` with the pull request or pass, the picture, the thing changed and its artist's note, what `art:diff` printed, and the decided rules about that thing. No renders of the whole picture, no screenshots.
+- Start the reviewer with `model: "sonnet"`, `effort: "medium"` and the prompt "light review: read request.md". It reads the note and the rules it names, opens only the diff sheet, and writes a `review.md` of at most 20 lines.
+- **The gauge and the copy guard still run** (`review.py`, section 3, by the thread before starting the reviewer): the script is cheap and keeps d122 whole, also for a drift of many small changes. The reviewer reads `gauge.md`'s numbers and opens no `beside-*.png`; those sheets go to the maintainer (d228).
+- The review still gives one of the three verdicts and the five headings (d122), a heading with nothing to note saying so in one line.
+
+A light review costs about a tenth of a full one: a Sonnet run that opens one sheet of a few hundred tokens and reads two pages and the gauge's table, against an Opus run that reads the art direction, the atlas notes and the photographs and opens every hour at full size.
+
 ## 2. Start the reviewer
 
 Agent tool, `subagent_type: "art-reviewer"`, in the background. The prompt is the review folder's path and "read request.md".

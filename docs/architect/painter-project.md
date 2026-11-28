@@ -22,6 +22,8 @@ A change on the right side goes to the builder or the architect as a tag in the 
 
 ## 3. Read first, in this order
 
+For a small change (one thing in a picture already shown: `paint-a-scene` section 0), read only items 1, 2 and 6 and the thing's artist's note; items 3 to 5 are about 75,000 tokens a small change does not need. For a new place, a new thing or a repaint, read the whole list:
+
 1. `CLAUDE.md` and [axioms.md](../axioms.md). AX-0 decides every conflict: learning music is above the look.
 2. [art-direction.md](../art-direction.md), whole. Section 8 lists what was already turned down.
 3. [d111](../decisions/art.md#d111) (the record behind the rules), [d110](../decisions/art.md#d110) (the 640 x 360 fine grid and layout cells), [d108](../decisions/game.md#d108) (the world model), [d112](../decisions/game.md#d112) and [d113](../decisions/game.md#d113) (scenes).
